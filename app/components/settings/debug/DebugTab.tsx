@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useSettings } from '~/lib/hooks/useSettings';
-import commit from '~/commit.json';
 import { toast } from 'react-toastify';
+import { providerBaseUrlEnvKeys } from '~/utils/constants';
 
 interface ProviderStatus {
   name: string;
@@ -43,16 +43,38 @@ interface CommitData {
   version?: string;
 }
 
-const connitJson: CommitData = commit;
+const connitJson: CommitData = {
+  commit: __COMMIT_HASH,
+  version: __APP_VERSION,
+};
 
 const LOCAL_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
+
 const versionHash = connitJson.commit;
 const versionTag = connitJson.version;
+
 const GITHUB_URLS = {
   original: 'https://api.github.com/repos/stackblitz-labs/bolt.diy/commits/main',
   fork: 'https://api.github.com/repos/Stijnus/bolt.new-any-llm/commits/main',
-  commitJson: (branch: string) =>
-    `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/${branch}/app/commit.json`,
+  commitJson: async (branch: string) => {
+    try {
+      const response = await fetch(`https://api.github.com/repos/stackblitz-labs/bolt.diy/commits/${branch}`);
+      const data: { sha: string } = await response.json();
+
+      const packageJsonResp = await fetch(
+        `https://raw.githubusercontent.com/stackblitz-labs/bolt.diy/${branch}/package.json`,
+      );
+      const packageJson: { version: string } = await packageJsonResp.json();
+
+      return {
+        commit: data.sha.slice(0, 7),
+        version: packageJson.version,
+      };
+    } catch (error) {
+      console.log('Failed to fetch local commit info:', error);
+      throw new Error('Failed to fetch local commit info');
+    }
+  },
 };
 
 function getSystemInfo(): SystemInfo {
@@ -236,7 +258,7 @@ const checkProviderStatus = async (url: string | null, providerName: string): Pr
     }
 
     // Try different endpoints based on provider
-    const checkUrls = [`${url}/api/health`, `${url}/v1/models`];
+    const checkUrls = [`${url}/api/health`, url.endsWith('v1') ? `${url}/models` : `${url}/v1/models`];
     console.log(`[Debug] Checking additional endpoints:`, checkUrls);
 
     const results = await Promise.all(
@@ -321,14 +343,16 @@ export default function DebugTab() {
           .filter(([, provider]) => LOCAL_PROVIDERS.includes(provider.name))
           .map(async ([, provider]) => {
             const envVarName =
-              provider.name.toLowerCase() === 'ollama'
-                ? 'OLLAMA_API_BASE_URL'
-                : provider.name.toLowerCase() === 'lmstudio'
-                  ? 'LMSTUDIO_API_BASE_URL'
-                  : `REACT_APP_${provider.name.toUpperCase()}_URL`;
+              providerBaseUrlEnvKeys[provider.name].baseUrlKey || `REACT_APP_${provider.name.toUpperCase()}_URL`;
 
             // Access environment variables through import.meta.env
-            const url = import.meta.env[envVarName] || provider.settings.baseUrl || null; // Ensure baseUrl is used
+            let settingsUrl = provider.settings.baseUrl;
+
+            if (settingsUrl && settingsUrl.trim().length === 0) {
+              settingsUrl = undefined;
+            }
+
+            const url = settingsUrl || import.meta.env[envVarName] || null; // Ensure baseUrl is used
             console.log(`[Debug] Using URL for ${provider.name}:`, url, `(from ${envVarName})`);
 
             const status = await checkProviderStatus(url, provider.name);
@@ -366,14 +390,9 @@ export default function DebugTab() {
       const branchToCheck = isLatestBranch ? 'main' : 'stable';
       console.log(`[Debug] Checking for updates against ${branchToCheck} branch`);
 
-      const localCommitResponse = await fetch(GITHUB_URLS.commitJson(branchToCheck));
+      const latestCommitResp = await GITHUB_URLS.commitJson(branchToCheck);
 
-      if (!localCommitResponse.ok) {
-        throw new Error('Failed to fetch local commit info');
-      }
-
-      const localCommitData = (await localCommitResponse.json()) as CommitData;
-      const remoteCommitHash = localCommitData.commit;
+      const remoteCommitHash = latestCommitResp.commit;
       const currentCommitHash = versionHash;
 
       if (remoteCommitHash !== currentCommitHash) {
@@ -521,7 +540,7 @@ export default function DebugTab() {
             <div className="mt-3 pt-3 border-t border-bolt-elements-surface-hover">
               <p className="text-xs text-bolt-elements-textSecondary">Version</p>
               <p className="text-sm font-medium text-bolt-elements-textPrimary font-mono">
-                {versionHash.slice(0, 7)}
+                {connitJson.commit.slice(0, 7)}
                 <span className="ml-2 text-xs text-bolt-elements-textSecondary">
                   (v{versionTag || '0.0.1'}) - {isLatestBranch ? 'nightly' : 'stable'}
                 </span>
