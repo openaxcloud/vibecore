@@ -1,0 +1,39 @@
+{
+  "enabled": true,
+  "rulesPath": ".windsurf/rules.json",
+  "integration": {
+    "ide": {
+      "cursor": true,
+      "vscode": true
+    },
+    "autoApply": true,
+    "notifications": true,
+    "autoFix": {
+      "enabled": true,
+      "onSave": true,
+      "formatOnSave": true,
+      "suggestImports": true,
+      "suggestComponents": true
+    },
+    "suggestions": {
+      "inline": true,
+      "quickFix": true,
+      "codeActions": true,
+      "snippets": true
+    }
+  },
+  "features": {
+    "codeCompletion": true,
+    "linting": true,
+    "formatting": true,
+    "importValidation": true,
+    "dependencyChecks": true,
+    "uiStandardization": true
+  },
+  "hooks": {
+    "preCommit": true,
+    "prePush": true,
+    "onFileCreate": true,
+    "onImportAdd": true
+  }
+}
