@@ -185,11 +185,15 @@ export default function DataTab() {
       localStorage.removeItem('bolt_settings');
       localStorage.removeItem('bolt_chat_history');
 
-      // Reload the page to apply reset
+      // Close the dialog first
+      setShowResetInlineConfirm(false);
+
+      // Then reload and show success message
       window.location.reload();
       toast.success('Settings reset successfully');
     } catch (error) {
       console.error('Reset error:', error);
+      setShowResetInlineConfirm(false);
       toast.error('Failed to reset settings');
     } finally {
       setIsResetting(false);
@@ -202,9 +206,15 @@ export default function DataTab() {
     try {
       // Clear chat history
       localStorage.removeItem('bolt_chat_history');
+
+      // Close the dialog first
+      setShowDeleteInlineConfirm(false);
+
+      // Then show the success message
       toast.success('Chat history deleted successfully');
     } catch (error) {
       console.error('Delete error:', error);
+      setShowDeleteInlineConfirm(false);
       toast.error('Failed to delete chat history');
     } finally {
       setIsDeleting(false);
@@ -216,7 +226,7 @@ export default function DataTab() {
       <input ref={fileInputRef} type="file" accept=".json" onChange={handleImportSettings} className="hidden" />
       {/* Reset Settings Dialog */}
       <DialogRoot open={showResetInlineConfirm} onOpenChange={setShowResetInlineConfirm}>
-        <Dialog showCloseButton={false}>
+        <Dialog showCloseButton={false} className="z-[1000]">
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="i-ph:warning-circle-fill w-5 h-5 text-yellow-500" />
@@ -252,7 +262,7 @@ export default function DataTab() {
 
       {/* Delete Confirmation Dialog */}
       <DialogRoot open={showDeleteInlineConfirm} onOpenChange={setShowDeleteInlineConfirm}>
-        <Dialog showCloseButton={false}>
+        <Dialog showCloseButton={false} className="z-[1000]">
           <div className="p-6">
             <div className="flex items-center gap-3">
               <div className="i-ph:warning-circle-fill w-5 h-5 text-red-500" />

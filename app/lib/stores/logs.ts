@@ -10,7 +10,10 @@ export interface LogEntry {
   level: 'info' | 'warning' | 'error' | 'debug';
   message: string;
   details?: Record<string, any>;
-  category: 'system' | 'provider' | 'user' | 'error';
+  category: 'system' | 'provider' | 'user' | 'error' | 'api' | 'auth' | 'database' | 'network';
+  subCategory?: string;
+  duration?: number;
+  statusCode?: number;
 }
 
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
@@ -101,18 +104,76 @@ class LogStore {
     return this.addLog(message, 'info', 'user', details);
   }
 
+  // API Connection Logging
+  logAPIRequest(endpoint: string, method: string, duration: number, statusCode: number, details?: Record<string, any>) {
+    const message = `${method} ${endpoint} - ${statusCode} (${duration}ms)`;
+    const level = statusCode >= 400 ? 'error' : statusCode >= 300 ? 'warning' : 'info';
+
+    return this.addLog(message, level, 'api', {
+      ...details,
+      endpoint,
+      method,
+      duration,
+      statusCode,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Authentication Logging
+  logAuth(
+    action: 'login' | 'logout' | 'token_refresh' | 'key_validation',
+    success: boolean,
+    details?: Record<string, any>,
+  ) {
+    const message = `Auth ${action} - ${success ? 'Success' : 'Failed'}`;
+    const level = success ? 'info' : 'error';
+
+    return this.addLog(message, level, 'auth', {
+      ...details,
+      action,
+      success,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Network Status Logging
+  logNetworkStatus(status: 'online' | 'offline' | 'reconnecting' | 'connected', details?: Record<string, any>) {
+    const message = `Network ${status}`;
+    const level = status === 'offline' ? 'error' : status === 'reconnecting' ? 'warning' : 'info';
+
+    return this.addLog(message, level, 'network', {
+      ...details,
+      status,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Database Operations Logging
+  logDatabase(operation: string, success: boolean, duration: number, details?: Record<string, any>) {
+    const message = `DB ${operation} - ${success ? 'Success' : 'Failed'} (${duration}ms)`;
+    const level = success ? 'info' : 'error';
+
+    return this.addLog(message, level, 'database', {
+      ...details,
+      operation,
+      success,
+      duration,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   // Error events
   logError(message: string, error?: Error | unknown, details?: Record<string, any>) {
-    const errorDetails = {
-      ...(details || {}),
-      error:
-        error instanceof Error
-          ? {
-              message: error.message,
-              stack: error.stack,
-            }
-          : error,
-    };
+    const errorDetails =
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            ...details,
+          }
+        : { error, ...details };
+
     return this.addLog(message, 'error', 'error', errorDetails);
   }
 

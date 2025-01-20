@@ -85,8 +85,8 @@ interface CategoryToggleState {
   local: boolean;
 }
 
-export default function ProvidersTab() {
-  const { providers, updateProviderSettings, isLocalModel } = useSettings();
+export const ProvidersTab = () => {
+  const settings = useSettings();
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<CategoryToggleState>({
@@ -128,12 +128,12 @@ export default function ProvidersTab() {
       // Get providers for this category
       const categoryProviders = groupedProviders[category].providers;
       categoryProviders.forEach((provider) => {
-        updateProviderSettings(provider.name, { ...provider.settings, enabled });
+        settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
       });
 
       toast.success(enabled ? `All ${category} providers enabled` : `All ${category} providers disabled`);
     },
-    [groupedProviders, updateProviderSettings],
+    [groupedProviders, settings.updateProviderSettings],
   );
 
   // Add effect to update category toggle states based on provider states
@@ -147,26 +147,32 @@ export default function ProvidersTab() {
 
   // Effect to filter and sort providers
   useEffect(() => {
-    let newFilteredProviders: IProviderConfig[] = Object.entries(providers).map(([key, value]) => ({
-      ...value,
-      name: key,
-    }));
+    const newFilteredProviders = Object.entries(settings.providers || {}).map(([key, value]) => {
+      const provider = value as IProviderConfig;
+      return {
+        name: key,
+        settings: provider.settings,
+        staticModels: provider.staticModels || [],
+        getDynamicModels: provider.getDynamicModels,
+        getApiKeyLink: provider.getApiKeyLink,
+        labelForGetApiKey: provider.labelForGetApiKey,
+        icon: provider.icon,
+      } as IProviderConfig;
+    });
 
-    if (!isLocalModel) {
-      newFilteredProviders = newFilteredProviders.filter((provider) => !LOCAL_PROVIDERS.includes(provider.name));
-    }
+    const filtered = !settings.isLocalModel
+      ? newFilteredProviders.filter((provider) => !LOCAL_PROVIDERS.includes(provider.name))
+      : newFilteredProviders;
 
-    newFilteredProviders.sort((a, b) => a.name.localeCompare(b.name));
-
-    // Split providers into regular and URL-configurable
-    const regular = newFilteredProviders.filter((p) => !URL_CONFIGURABLE_PROVIDERS.includes(p.name));
-    const urlConfigurable = newFilteredProviders.filter((p) => URL_CONFIGURABLE_PROVIDERS.includes(p.name));
+    const sorted = filtered.sort((a, b) => a.name.localeCompare(b.name));
+    const regular = sorted.filter((p) => !URL_CONFIGURABLE_PROVIDERS.includes(p.name));
+    const urlConfigurable = sorted.filter((p) => URL_CONFIGURABLE_PROVIDERS.includes(p.name));
 
     setFilteredProviders([...regular, ...urlConfigurable]);
-  }, [providers, isLocalModel]);
+  }, [settings.providers, settings.isLocalModel]);
 
   const handleToggleProvider = (provider: IProviderConfig, enabled: boolean) => {
-    updateProviderSettings(provider.name, { ...provider.settings, enabled });
+    settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
 
     if (enabled) {
       logStore.logProvider(`Provider ${provider.name} enabled`, { provider: provider.name });
@@ -184,7 +190,7 @@ export default function ProvidersTab() {
       newBaseUrl = undefined;
     }
 
-    updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
+    settings.updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
     logStore.logProvider(`Base URL updated for ${provider.name}`, {
       provider: provider.name,
       baseUrl: newBaseUrl,
@@ -404,4 +410,4 @@ export default function ProvidersTab() {
       ))}
     </div>
   );
-}
+};

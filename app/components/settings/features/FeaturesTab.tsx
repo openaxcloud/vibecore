@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { Switch } from '~/components/ui/Switch';
-import { PromptLibrary } from '~/lib/common/prompt-library';
 import { useSettings } from '~/lib/hooks/useSettings';
-import { motion, AnimatePresence } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import { settingsStyles } from '~/components/settings/settings.styles';
 import { toast } from 'react-toastify';
+import { PromptLibrary } from '~/lib/common/prompt-library';
+import { useStore } from '@nanostores/react';
+import { isEventLogsEnabled } from '~/lib/stores/settings';
 
 interface FeatureToggle {
   id: string;
@@ -20,11 +21,9 @@ interface FeatureToggle {
 
 export default function FeaturesTab() {
   const {
-    debug,
-    enableDebugMode,
+    setEventLogs,
     isLocalModel,
     enableLocalModels,
-    enableEventLogs,
     isLatestBranch,
     enableLatestBranch,
     promptId,
@@ -35,25 +34,9 @@ export default function FeaturesTab() {
     contextOptimizationEnabled,
   } = useSettings();
 
-  const [hoveredFeature, setHoveredFeature] = useState<string | null>(null);
-  const [expandedFeature, setExpandedFeature] = useState<string | null>(null);
-
-  const handleToggle = (enabled: boolean) => {
-    enableDebugMode(enabled);
-    enableEventLogs(enabled);
-    toast.success(`Debug features ${enabled ? 'enabled' : 'disabled'}`);
-  };
+  const eventLogs = useStore(isEventLogsEnabled);
 
   const features: FeatureToggle[] = [
-    {
-      id: 'debug',
-      title: 'Debug Features',
-      description: 'Enable debugging tools and detailed logging',
-      icon: 'i-ph:bug',
-      enabled: debug,
-      experimental: true,
-      tooltip: 'Access advanced debugging tools and view detailed system logs',
-    },
     {
       id: 'latestBranch',
       title: 'Use Main Branch',
@@ -88,13 +71,18 @@ export default function FeaturesTab() {
       experimental: true,
       tooltip: 'Try out new AI providers and models in development',
     },
+    {
+      id: 'eventLogs',
+      title: 'Event Logging',
+      description: 'Enable detailed event logging and history',
+      icon: 'i-ph:list-bullets',
+      enabled: eventLogs,
+      tooltip: 'Record detailed logs of system events and user actions',
+    },
   ];
 
   const handleToggleFeature = (featureId: string, enabled: boolean) => {
     switch (featureId) {
-      case 'debug':
-        handleToggle(enabled);
-        break;
       case 'latestBranch':
         enableLatestBranch(enabled);
         toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
@@ -111,13 +99,17 @@ export default function FeaturesTab() {
         enableLocalModels(enabled);
         toast.success(`Experimental providers ${enabled ? 'enabled' : 'disabled'}`);
         break;
+      case 'eventLogs':
+        setEventLogs(enabled);
+        toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
+        break;
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       <motion.div
-        className="flex items-center gap-2"
+        className="flex items-center gap-3"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -125,7 +117,9 @@ export default function FeaturesTab() {
         <div className="i-ph:puzzle-piece text-xl text-purple-500" />
         <div>
           <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Features</h3>
-          <p className="text-sm text-bolt-elements-textSecondary">Customize your Bolt experience</p>
+          <p className="text-sm text-bolt-elements-textSecondary">
+            Customize your Bolt experience with experimental features
+          </p>
         </div>
       </motion.div>
 
@@ -139,39 +133,16 @@ export default function FeaturesTab() {
           <motion.div
             key={feature.id}
             className={classNames(
-              settingsStyles.card,
+              'relative group cursor-pointer',
               'bg-bolt-elements-background-depth-2',
               'hover:bg-bolt-elements-background-depth-3',
               'transition-colors duration-200',
-              'relative overflow-hidden group cursor-pointer',
+              'rounded-lg overflow-hidden',
             )}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            onHoverStart={() => setHoveredFeature(feature.id)}
-            onHoverEnd={() => setHoveredFeature(null)}
-            onClick={() => setExpandedFeature(expandedFeature === feature.id ? null : feature.id)}
           >
-            <AnimatePresence>
-              {hoveredFeature === feature.id && feature.tooltip && (
-                <motion.div
-                  className={classNames(
-                    'absolute -top-12 left-1/2 transform -translate-x-1/2',
-                    'px-3 py-2 rounded-lg text-xs',
-                    'bg-bolt-elements-background-depth-4 text-bolt-elements-textPrimary',
-                    'border border-bolt-elements-borderColor',
-                    'whitespace-nowrap z-10',
-                  )}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                >
-                  {feature.tooltip}
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 rotate-45 w-2 h-2 bg-bolt-elements-background-depth-4 border-r border-b border-bolt-elements-borderColor" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <div className="absolute top-0 right-0 p-2 flex gap-1">
               {feature.beta && (
                 <motion.span
@@ -236,10 +207,10 @@ export default function FeaturesTab() {
 
       <motion.div
         className={classNames(
-          settingsStyles.card,
           'bg-bolt-elements-background-depth-2',
           'hover:bg-bolt-elements-background-depth-3',
           'transition-all duration-200',
+          'rounded-lg',
           'group',
         )}
         initial={{ opacity: 0, y: 20 }}
