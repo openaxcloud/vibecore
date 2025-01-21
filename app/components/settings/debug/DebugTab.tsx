@@ -4,13 +4,6 @@ import { classNames } from '~/utils/classNames';
 import { logStore } from '~/lib/stores/logs';
 import type { LogEntry } from '~/lib/stores/logs';
 
-interface ProviderStatus {
-  id: string;
-  name: string;
-  status: 'online' | 'offline' | 'error';
-  error?: string;
-}
-
 interface SystemInfo {
   os: string;
   arch: string;
@@ -90,14 +83,24 @@ interface SystemInfo {
   };
 }
 
+interface WebAppInfo {
+  name: string;
+  version: string;
+  description: string;
+  license: string;
+  nodeVersion: string;
+  dependencies: { [key: string]: string };
+  devDependencies: { [key: string]: string };
+}
+
 export default function DebugTab() {
-  const [providerStatuses, setProviderStatuses] = useState<ProviderStatus[]>([]);
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
+  const [webAppInfo, setWebAppInfo] = useState<WebAppInfo | null>(null);
   const [loading, setLoading] = useState({
     systemInfo: false,
-    providers: false,
     performance: false,
     errors: false,
+    webAppInfo: false,
   });
   const [errorLog, setErrorLog] = useState<{
     errors: any[];
@@ -109,8 +112,8 @@ export default function DebugTab() {
 
   // Fetch initial data
   useEffect(() => {
-    checkProviderStatus();
     getSystemInfo();
+    getWebAppInfo();
   }, []);
 
   // Set up error listeners when component mounts
@@ -145,75 +148,6 @@ export default function DebugTab() {
       window.removeEventListener('unhandledrejection', handleRejection);
     };
   }, []);
-
-  const checkProviderStatus = async () => {
-    try {
-      setLoading((prev) => ({ ...prev, providers: true }));
-
-      // Fetch real provider statuses
-      const providers: ProviderStatus[] = [];
-
-      // Check OpenAI status
-      try {
-        const openaiResponse = await fetch('/api/providers/openai/status');
-        providers.push({
-          id: 'openai',
-          name: 'OpenAI',
-          status: openaiResponse.ok ? 'online' : 'error',
-          error: !openaiResponse.ok ? 'API Error' : undefined,
-        });
-      } catch {
-        providers.push({ id: 'openai', name: 'OpenAI', status: 'offline' });
-      }
-
-      // Check Anthropic status
-      try {
-        const anthropicResponse = await fetch('/api/providers/anthropic/status');
-        providers.push({
-          id: 'anthropic',
-          name: 'Anthropic',
-          status: anthropicResponse.ok ? 'online' : 'error',
-          error: !anthropicResponse.ok ? 'API Error' : undefined,
-        });
-      } catch {
-        providers.push({ id: 'anthropic', name: 'Anthropic', status: 'offline' });
-      }
-
-      // Check Local Models status
-      try {
-        const localResponse = await fetch('/api/providers/local/status');
-        providers.push({
-          id: 'local',
-          name: 'Local Models',
-          status: localResponse.ok ? 'online' : 'error',
-          error: !localResponse.ok ? 'API Error' : undefined,
-        });
-      } catch {
-        providers.push({ id: 'local', name: 'Local Models', status: 'offline' });
-      }
-
-      // Check Ollama status
-      try {
-        const ollamaResponse = await fetch('/api/providers/ollama/status');
-        providers.push({
-          id: 'ollama',
-          name: 'Ollama',
-          status: ollamaResponse.ok ? 'online' : 'error',
-          error: !ollamaResponse.ok ? 'API Error' : undefined,
-        });
-      } catch {
-        providers.push({ id: 'ollama', name: 'Ollama', status: 'offline' });
-      }
-
-      setProviderStatuses(providers);
-      toast.success('Provider status updated');
-    } catch (error) {
-      toast.error('Failed to check provider status');
-      console.error('Failed to check provider status:', error);
-    } finally {
-      setLoading((prev) => ({ ...prev, providers: false }));
-    }
-  };
 
   const getSystemInfo = async () => {
     try {
@@ -357,6 +291,26 @@ export default function DebugTab() {
       console.error('Failed to get system information:', error);
     } finally {
       setLoading((prev) => ({ ...prev, systemInfo: false }));
+    }
+  };
+
+  const getWebAppInfo = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, webAppInfo: true }));
+
+      const response = await fetch('/api/system/app-info');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch webapp info');
+      }
+
+      const data = await response.json();
+      setWebAppInfo(data as WebAppInfo);
+    } catch (error) {
+      console.error('Failed to fetch webapp info:', error);
+      toast.error('Failed to fetch webapp information');
+    } finally {
+      setLoading((prev) => ({ ...prev, webAppInfo: false }));
     }
   };
 
@@ -509,29 +463,40 @@ export default function DebugTab() {
     }
   };
 
+  const exportDebugInfo = () => {
+    try {
+      const debugData = {
+        timestamp: new Date().toISOString(),
+        system: systemInfo,
+        webApp: webAppInfo,
+        errors: errorLog.errors,
+        performance: {
+          memory: (performance as any).memory || {},
+          timing: performance.timing,
+          navigation: performance.navigation,
+        },
+      };
+
+      const blob = new Blob([JSON.stringify(debugData, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bolt-debug-info-${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Debug information exported successfully');
+    } catch (error) {
+      console.error('Failed to export debug info:', error);
+      toast.error('Failed to export debug information');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4">
-        <button
-          onClick={checkProviderStatus}
-          disabled={loading.providers}
-          className={classNames(
-            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-            { 'opacity-50 cursor-not-allowed': loading.providers },
-          )}
-        >
-          {loading.providers ? (
-            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
-          ) : (
-            <div className="i-ph:plug w-4 h-4" />
-          )}
-          Check Providers
-        </button>
-
         <button
           onClick={getSystemInfo}
           disabled={loading.systemInfo}
@@ -587,6 +552,19 @@ export default function DebugTab() {
             <div className="i-ph:warning w-4 h-4" />
           )}
           Check Errors
+        </button>
+
+        <button
+          onClick={exportDebugInfo}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+          )}
+        >
+          <div className="i-ph:download w-4 h-4" />
+          Export Debug Info
         </button>
       </div>
 
@@ -772,53 +750,6 @@ export default function DebugTab() {
         )}
       </div>
 
-      {/* Provider Status */}
-      <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="i-ph:robot text-purple-500 w-5 h-5" />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Provider Status</h3>
-          </div>
-          <button
-            onClick={checkProviderStatus}
-            className={classNames(
-              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
-              { 'opacity-50 cursor-not-allowed': loading.providers },
-            )}
-            disabled={loading.providers}
-          >
-            <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.providers ? 'animate-spin' : '')} />
-            Refresh
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {providerStatuses.map((provider) => (
-            <div
-              key={provider.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#141414]"
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className={classNames(
-                    'w-2 h-2 rounded-full',
-                    provider.status === 'online'
-                      ? 'bg-green-500'
-                      : provider.status === 'offline'
-                        ? 'bg-red-500'
-                        : 'bg-yellow-500',
-                  )}
-                />
-                <span className="text-sm text-bolt-elements-textPrimary">{provider.name}</span>
-              </div>
-              <span className="text-xs text-bolt-elements-textSecondary capitalize">{provider.status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Performance Metrics */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
         <div className="flex items-center justify-between mb-4">
@@ -902,6 +833,82 @@ export default function DebugTab() {
                 </span>
               </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* WebApp Information */}
+      <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="i-ph:info text-blue-500 w-5 h-5" />
+            <h3 className="text-base font-medium text-bolt-elements-textPrimary">WebApp Information</h3>
+          </div>
+          <button
+            onClick={getWebAppInfo}
+            className={classNames(
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
+              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+              'transition-colors duration-200',
+              { 'opacity-50 cursor-not-allowed': loading.webAppInfo },
+            )}
+            disabled={loading.webAppInfo}
+          >
+            <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.webAppInfo ? 'animate-spin' : '')} />
+            Refresh
+          </button>
+        </div>
+        {webAppInfo ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="text-sm flex items-center gap-2">
+                <div className="i-ph:app-window text-bolt-elements-textSecondary w-4 h-4" />
+                <span className="text-bolt-elements-textSecondary">Name: </span>
+                <span className="text-bolt-elements-textPrimary">{webAppInfo.name}</span>
+              </div>
+              <div className="text-sm flex items-center gap-2">
+                <div className="i-ph:tag text-bolt-elements-textSecondary w-4 h-4" />
+                <span className="text-bolt-elements-textSecondary">Version: </span>
+                <span className="text-bolt-elements-textPrimary">{webAppInfo.version}</span>
+              </div>
+              <div className="text-sm flex items-center gap-2">
+                <div className="i-ph:file-text text-bolt-elements-textSecondary w-4 h-4" />
+                <span className="text-bolt-elements-textSecondary">Description: </span>
+                <span className="text-bolt-elements-textPrimary">{webAppInfo.description}</span>
+              </div>
+              <div className="text-sm flex items-center gap-2">
+                <div className="i-ph:certificate text-bolt-elements-textSecondary w-4 h-4" />
+                <span className="text-bolt-elements-textSecondary">License: </span>
+                <span className="text-bolt-elements-textPrimary">{webAppInfo.license}</span>
+              </div>
+              <div className="text-sm flex items-center gap-2">
+                <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                <span className="text-bolt-elements-textSecondary">Node Version: </span>
+                <span className="text-bolt-elements-textPrimary">{webAppInfo.nodeVersion}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="i-ph:package text-bolt-elements-textSecondary w-4 h-4" />
+                  <span className="text-bolt-elements-textSecondary">Key Dependencies:</span>
+                </div>
+                <div className="pl-6 space-y-1">
+                  {Object.entries(webAppInfo.dependencies)
+                    .filter(([key]) => ['react', '@remix-run/react', 'next', 'typescript'].includes(key))
+                    .map(([key, version]) => (
+                      <div key={key} className="text-xs text-bolt-elements-textPrimary">
+                        {key}: {version}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-bolt-elements-textSecondary">
+            {loading.webAppInfo ? 'Loading webapp information...' : 'No webapp information available'}
           </div>
         )}
       </div>

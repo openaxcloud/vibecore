@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { toast } from 'react-toastify'; // Import toast
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -120,8 +121,18 @@ export default function TaskManagerTab() {
     metrics: false,
     processes: false,
   });
-  const [energySaverMode, setEnergySaverMode] = useState(false);
-  const [autoEnergySaver, setAutoEnergySaver] = useState(true);
+  const [energySaverMode, setEnergySaverMode] = useState<boolean>(() => {
+    // Initialize from localStorage, default to false
+    const saved = localStorage.getItem('energySaverMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  const [autoEnergySaver, setAutoEnergySaver] = useState<boolean>(() => {
+    // Initialize from localStorage, default to false
+    const saved = localStorage.getItem('autoEnergySaver');
+    return saved ? JSON.parse(saved) : false;
+  });
+
   const [energySavings, setEnergySavings] = useState<EnergySavings>({
     updatesReduced: 0,
     timeInSaverMode: 0,
@@ -129,6 +140,26 @@ export default function TaskManagerTab() {
   });
 
   const saverModeStartTime = useRef<number | null>(null);
+
+  // Handle energy saver mode changes
+  const handleEnergySaverChange = (checked: boolean) => {
+    setEnergySaverMode(checked);
+    localStorage.setItem('energySaverMode', JSON.stringify(checked));
+    toast.success(checked ? 'Energy Saver mode enabled' : 'Energy Saver mode disabled');
+  };
+
+  // Handle auto energy saver changes
+  const handleAutoEnergySaverChange = (checked: boolean) => {
+    setAutoEnergySaver(checked);
+    localStorage.setItem('autoEnergySaver', JSON.stringify(checked));
+    toast.success(checked ? 'Auto Energy Saver enabled' : 'Auto Energy Saver disabled');
+
+    if (!checked) {
+      // When disabling auto mode, also disable energy saver mode
+      setEnergySaverMode(false);
+      localStorage.setItem('energySaverMode', 'false');
+    }
+  };
 
   // Calculate energy savings
   const updateEnergySavings = useCallback(() => {
@@ -163,17 +194,25 @@ export default function TaskManagerTab() {
   }, [energySaverMode]);
 
   useEffect((): (() => void) | undefined => {
-    if (energySaverMode) {
-      const savingsInterval = setInterval(updateEnergySavings, 1000);
-      return () => clearInterval(savingsInterval);
+    if (!energySaverMode) {
+      // Clear any existing intervals and reset savings when disabled
+      setEnergySavings({
+        updatesReduced: 0,
+        timeInSaverMode: 0,
+        estimatedEnergySaved: 0,
+      });
+      return undefined;
     }
 
-    return undefined;
+    const savingsInterval = setInterval(updateEnergySavings, 1000);
+
+    return () => clearInterval(savingsInterval);
   }, [energySaverMode, updateEnergySavings]);
 
-  // Auto energy saver effect
   useEffect((): (() => void) | undefined => {
     if (!autoEnergySaver) {
+      // If auto mode is disabled, clear any forced energy saver state
+      setEnergySaverMode(false);
       return undefined;
     }
 
@@ -194,18 +233,6 @@ export default function TaskManagerTab() {
     return () => clearInterval(batteryCheckInterval);
   }, [autoEnergySaver]);
 
-  const getStatusColor = (status: 'active' | 'idle' | 'suspended'): string => {
-    if (status === 'active') {
-      return 'text-green-500';
-    }
-
-    if (status === 'suspended') {
-      return 'text-yellow-500';
-    }
-
-    return 'text-gray-400';
-  };
-
   const getUsageColor = (usage: number): string => {
     if (usage > 80) {
       return 'text-red-500';
@@ -215,7 +242,7 @@ export default function TaskManagerTab() {
       return 'text-yellow-500';
     }
 
-    return 'text-green-500';
+    return 'text-gray-500';
   };
 
   const getImpactColor = (impact: 'high' | 'medium' | 'low'): string => {
@@ -227,7 +254,7 @@ export default function TaskManagerTab() {
       return 'text-yellow-500';
     }
 
-    return 'text-green-500';
+    return 'text-gray-500';
   };
 
   const renderUsageGraph = (data: number[], label: string, color: string) => {
@@ -359,7 +386,7 @@ export default function TaskManagerTab() {
           type: 'Network',
           cpuUsage: Math.random() * 5,
           memoryUsage: Math.random() * 50,
-          status: 'active',
+          status: 'idle',
           lastUpdate: new Date().toISOString(),
           impact: 'high',
         },
@@ -368,7 +395,7 @@ export default function TaskManagerTab() {
           type: 'Animation',
           cpuUsage: Math.random() * 3,
           memoryUsage: Math.random() * 30,
-          status: 'active',
+          status: 'idle',
           lastUpdate: new Date().toISOString(),
           impact: 'medium',
         },
@@ -386,7 +413,7 @@ export default function TaskManagerTab() {
           type: 'Storage',
           cpuUsage: Math.random() * 1,
           memoryUsage: Math.random() * 15,
-          status: 'active',
+          status: 'idle',
           lastUpdate: new Date().toISOString(),
           impact: 'low',
         },
@@ -395,7 +422,7 @@ export default function TaskManagerTab() {
           type: 'Network',
           cpuUsage: Math.random() * 2,
           memoryUsage: Math.random() * 10,
-          status: 'active',
+          status: 'idle',
           lastUpdate: new Date().toISOString(),
           impact: 'medium',
         },
@@ -444,7 +471,7 @@ export default function TaskManagerTab() {
                 type="checkbox"
                 id="autoEnergySaver"
                 checked={autoEnergySaver}
-                onChange={(e) => setAutoEnergySaver(e.target.checked)}
+                onChange={(e) => handleAutoEnergySaverChange(e.target.checked)}
                 className="form-checkbox h-4 w-4 text-purple-600 rounded border-gray-300 dark:border-gray-700"
               />
               <label htmlFor="autoEnergySaver" className="text-sm text-bolt-elements-textSecondary">
@@ -456,7 +483,7 @@ export default function TaskManagerTab() {
                 type="checkbox"
                 id="energySaver"
                 checked={energySaverMode}
-                onChange={(e) => !autoEnergySaver && setEnergySaverMode(e.target.checked)}
+                onChange={(e) => !autoEnergySaver && handleEnergySaverChange(e.target.checked)}
                 disabled={autoEnergySaver}
                 className="form-checkbox h-4 w-4 text-purple-600 rounded border-gray-300 dark:border-gray-700 disabled:opacity-50"
               />
@@ -465,7 +492,7 @@ export default function TaskManagerTab() {
                 className={classNames('text-sm text-bolt-elements-textSecondary', { 'opacity-50': autoEnergySaver })}
               >
                 Energy Saver
-                {energySaverMode && <span className="ml-2 text-xs text-green-500">Active</span>}
+                {energySaverMode && <span className="ml-2 text-xs text-bolt-elements-textSecondary">Active</span>}
               </label>
             </div>
           </div>
@@ -502,7 +529,7 @@ export default function TaskManagerTab() {
                 <p className="text-lg font-medium text-bolt-elements-textPrimary">
                   {Math.round(metrics.battery.level)}%
                   {metrics.battery.charging && (
-                    <span className="ml-2 text-green-500">
+                    <span className="ml-2 text-bolt-elements-textSecondary">
                       <div className="i-ph:lightning-fill w-4 h-4 inline-block" />
                     </span>
                   )}
@@ -597,10 +624,9 @@ export default function TaskManagerTab() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className={classNames('w-2 h-2 rounded-full', getStatusColor(process.status))} />
-                      <span className="text-sm text-bolt-elements-textSecondary capitalize">{process.status}</span>
-                    </div>
+                    <span className={classNames('text-sm text-bolt-elements-textSecondary capitalize')}>
+                      {process.status}
+                    </span>
                   </td>
                   <td className="py-3 px-4">
                     <span className={classNames('text-sm', getImpactColor(process.impact))}>{process.impact}</span>

@@ -707,7 +707,7 @@ const UpdateTab = () => {
                       <div className="max-h-[400px] overflow-y-auto">
                         {categorizeChangelog(updateInfo.changelog).map(([category, messages]) => (
                           <div key={category} className="border-b last:border-b-0 border-bolt-elements-borderColor">
-                            <div className="p-3 bg-bolt-elements-bg-depth-4">
+                            <div className="p-3 bg-[#EAEAEA] dark:bg-[#2A2A2A]">
                               <h5 className="text-sm font-medium text-bolt-elements-textPrimary">
                                 {category}
                                 <span className="ml-2 text-xs text-bolt-elements-textSecondary">

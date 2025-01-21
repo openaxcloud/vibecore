@@ -10,10 +10,12 @@ export interface LogEntry {
   level: 'info' | 'warning' | 'error' | 'debug';
   message: string;
   details?: Record<string, any>;
-  category: 'system' | 'provider' | 'user' | 'error' | 'api' | 'auth' | 'database' | 'network';
+  category: 'system' | 'provider' | 'user' | 'error' | 'api' | 'auth' | 'database' | 'network' | 'performance';
   subCategory?: string;
   duration?: number;
   statusCode?: number;
+  source?: string;
+  stack?: string;
 }
 
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
@@ -109,6 +111,8 @@ class LogStore {
     level: LogEntry['level'] = 'info',
     category: LogEntry['category'] = 'system',
     details?: Record<string, any>,
+    statusCode?: number,
+    duration?: number,
   ) {
     const id = this._generateId();
     const entry: LogEntry = {
@@ -118,6 +122,8 @@ class LogStore {
       message,
       details,
       category,
+      statusCode,
+      duration,
     };
 
     this._logs.setKey(id, entry);
@@ -261,6 +267,94 @@ class LogStore {
   clearReadLogs() {
     this._readLogs.clear();
     this._saveReadLogs();
+  }
+
+  // Network request logging
+  logNetworkRequest(
+    method: string,
+    url: string,
+    statusCode: number,
+    duration: number,
+    requestData?: any,
+    responseData?: any,
+  ) {
+    this.addLog(
+      `${method} ${url}`,
+      statusCode >= 400 ? 'error' : 'info',
+      'network',
+      {
+        method,
+        url,
+        statusCode,
+        duration,
+        request: requestData,
+        response: responseData,
+      },
+      statusCode,
+      duration,
+    );
+  }
+
+  // Authentication events
+  logAuthEvent(event: string, success: boolean, details?: Record<string, any>) {
+    this.addLog(`Auth ${event} ${success ? 'succeeded' : 'failed'}`, success ? 'info' : 'error', 'auth', details);
+  }
+
+  // API interactions
+  logApiCall(
+    endpoint: string,
+    method: string,
+    statusCode: number,
+    duration: number,
+    requestData?: any,
+    responseData?: any,
+  ) {
+    this.addLog(
+      `API ${method} ${endpoint}`,
+      statusCode >= 400 ? 'error' : 'info',
+      'api',
+      {
+        endpoint,
+        method,
+        statusCode,
+        duration,
+        request: requestData,
+        response: responseData,
+      },
+      statusCode,
+      duration,
+    );
+  }
+
+  // Performance monitoring
+  logPerformance(operation: string, duration: number, details?: Record<string, any>) {
+    this.addLog(
+      `Performance: ${operation}`,
+      duration > 1000 ? 'warning' : 'info',
+      'performance',
+      {
+        operation,
+        duration,
+        ...details,
+      },
+      undefined,
+      duration,
+    );
+  }
+
+  // Error logging with stack trace
+  logErrorWithStack(error: Error, category: LogEntry['category'] = 'error', details?: Record<string, any>) {
+    this.addLog(error.message, 'error', category, {
+      ...details,
+      name: error.name,
+      stack: error.stack,
+    });
+  }
+
+  // Refresh logs (useful for real-time updates)
+  refreshLogs() {
+    const currentLogs = this._logs.get();
+    this._logs.set({ ...currentLogs });
   }
 }
 

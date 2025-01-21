@@ -194,7 +194,7 @@ export default function ConnectionsTab() {
               )}
 
               {connection.user && (
-                <span className="text-sm text-green-500 flex items-center gap-1">
+                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
                   <div className="i-ph:check-circle w-4 h-4" />
                   Connected to GitHub
                 </span>
