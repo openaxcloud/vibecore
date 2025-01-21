@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { logStore } from '~/lib/stores/logs';
+import type { LogEntry } from '~/lib/stores/logs';
 
 interface ProviderStatus {
   id: string;
@@ -472,51 +473,147 @@ export default function DebugTab() {
     }
   };
 
-  const handleCheckErrors = () => {
+  const checkErrors = async () => {
     try {
       setLoading((prev) => ({ ...prev, errors: true }));
 
-      // Get any errors from the performance entries
-      const resourceErrors = performance
-        .getEntriesByType('resource')
-        .filter((entry) => {
-          const failedEntry = entry as PerformanceResourceTiming;
-          return failedEntry.responseEnd - failedEntry.startTime === 0;
-        })
-        .map((entry) => ({
-          type: 'networkError',
-          resource: entry.name,
-          timestamp: new Date().toISOString(),
-        }));
+      // Get errors from log store
+      const storedErrors = logStore.getLogs().filter((log: LogEntry) => log.level === 'error');
 
-      // Combine collected errors with resource errors
-      const allErrors = [...errorLog.errors, ...resourceErrors];
+      // Combine with runtime errors
+      const allErrors = [
+        ...errorLog.errors,
+        ...storedErrors.map((error) => ({
+          type: 'stored',
+          message: error.message,
+          timestamp: error.timestamp,
+          details: error.details || {},
+        })),
+      ];
 
-      if (allErrors.length > 0) {
-        logStore.logError('JavaScript Errors Found', {
-          errors: allErrors,
-          timestamp: new Date().toISOString(),
-        });
-        toast.error(`Found ${allErrors.length} error(s)`);
-      } else {
-        toast.success('No errors found');
-      }
-
-      // Update error log
       setErrorLog({
         errors: allErrors,
         lastCheck: new Date().toISOString(),
       });
+
+      if (allErrors.length === 0) {
+        toast.success('No errors found');
+      } else {
+        toast.warning(`Found ${allErrors.length} error(s)`);
+      }
     } catch (error) {
-      toast.error('Failed to check for errors');
-      console.error('Failed to check for errors:', error);
+      toast.error('Failed to check errors');
+      console.error('Failed to check errors:', error);
     } finally {
       setLoading((prev) => ({ ...prev, errors: false }));
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-4">
+        <button
+          onClick={checkProviderStatus}
+          disabled={loading.providers}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+            { 'opacity-50 cursor-not-allowed': loading.providers },
+          )}
+        >
+          {loading.providers ? (
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+          ) : (
+            <div className="i-ph:plug w-4 h-4" />
+          )}
+          Check Providers
+        </button>
+
+        <button
+          onClick={getSystemInfo}
+          disabled={loading.systemInfo}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+            'focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+            { 'opacity-50 cursor-not-allowed': loading.systemInfo },
+          )}
+        >
+          {loading.systemInfo ? (
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+          ) : (
+            <div className="i-ph:gear w-4 h-4" />
+          )}
+          Update System Info
+        </button>
+
+        <button
+          onClick={handleLogPerformance}
+          disabled={loading.performance}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+            'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+            { 'opacity-50 cursor-not-allowed': loading.performance },
+          )}
+        >
+          {loading.performance ? (
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+          ) : (
+            <div className="i-ph:chart-bar w-4 h-4" />
+          )}
+          Log Performance
+        </button>
+
+        <button
+          onClick={checkErrors}
+          disabled={loading.errors}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+            'focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+            { 'opacity-50 cursor-not-allowed': loading.errors },
+          )}
+        >
+          {loading.errors ? (
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+          ) : (
+            <div className="i-ph:warning w-4 h-4" />
+          )}
+          Check Errors
+        </button>
+      </div>
+
+      {/* Error Log Display */}
+      {errorLog.errors.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">Error Log</h3>
+          <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+            {errorLog.errors.map((error, index) => (
+              <div key={index} className="mb-4 last:mb-0 p-3 bg-white rounded border border-red-200">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="font-medium">Type:</span> {error.type}
+                  <span className="font-medium ml-4">Time:</span>
+                  {new Date(error.timestamp).toLocaleString()}
+                </div>
+                <div className="mt-2 text-red-600">{error.message}</div>
+                {error.filename && (
+                  <div className="mt-1 text-sm text-gray-500">
+                    File: {error.filename} (Line: {error.lineNumber}, Column: {error.columnNumber})
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* System Information */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
         <div className="flex items-center justify-between mb-4">
@@ -529,9 +626,9 @@ export default function DebugTab() {
               onClick={handleLogSystemInfo}
               className={classNames(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                'hover:bg-[#E5E5E5] dark:hover:bg-[#252525]',
-                'transition-colors',
+                'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+                'transition-colors duration-200',
               )}
             >
               <div className="i-ph:note text-bolt-elements-textSecondary w-4 h-4" />
@@ -541,10 +638,12 @@ export default function DebugTab() {
               onClick={getSystemInfo}
               className={classNames(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                'hover:bg-[#E5E5E5] dark:hover:bg-[#252525]',
-                'transition-colors',
+                'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+                'transition-colors duration-200',
+                { 'opacity-50 cursor-not-allowed': loading.systemInfo },
               )}
+              disabled={loading.systemInfo}
             >
               <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.systemInfo ? 'animate-spin' : '')} />
               Refresh
@@ -684,10 +783,12 @@ export default function DebugTab() {
             onClick={checkProviderStatus}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#252525]',
-              'transition-colors',
+              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+              'transition-colors duration-200',
+              { 'opacity-50 cursor-not-allowed': loading.providers },
             )}
+            disabled={loading.providers}
           >
             <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.providers ? 'animate-spin' : '')} />
             Refresh
@@ -729,10 +830,12 @@ export default function DebugTab() {
             onClick={handleLogPerformance}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#252525]',
-              'transition-colors',
+              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+              'transition-colors duration-200',
+              { 'opacity-50 cursor-not-allowed': loading.performance },
             )}
+            disabled={loading.performance}
           >
             <div className={classNames('i-ph:note w-4 h-4', loading.performance ? 'animate-spin' : '')} />
             Log Performance
@@ -811,13 +914,15 @@ export default function DebugTab() {
             <h3 className="text-base font-medium text-bolt-elements-textPrimary">Error Check</h3>
           </div>
           <button
-            onClick={handleCheckErrors}
+            onClick={checkErrors}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#252525]',
-              'transition-colors',
+              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+              'transition-colors duration-200',
+              { 'opacity-50 cursor-not-allowed': loading.errors },
             )}
+            disabled={loading.errors}
           >
             <div className={classNames('i-ph:magnifying-glass w-4 h-4', loading.errors ? 'animate-spin' : '')} />
             Check for Errors

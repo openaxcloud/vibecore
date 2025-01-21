@@ -19,12 +19,25 @@ export interface LogEntry {
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
 
 class LogStore {
+  logInfo(message: string, details: { type: string; message: string }) {
+    return this.addLog(message, 'info', 'system', details);
+  }
+
+  logSuccess(message: string, details: { type: string; message: string }) {
+    return this.addLog(message, 'info', 'system', { ...details, success: true });
+  }
   private _logs = map<Record<string, LogEntry>>({});
   showLogs = atom(true);
+  private _readLogs = new Set<string>();
 
   constructor() {
     // Load saved logs from cookies on initialization
     this._loadLogs();
+
+    // Only load read logs in browser environment
+    if (typeof window !== 'undefined') {
+      this._loadReadLogs();
+    }
   }
 
   // Expose the logs store for subscription
@@ -45,9 +58,34 @@ class LogStore {
     }
   }
 
+  private _loadReadLogs() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const savedReadLogs = localStorage.getItem('bolt_read_logs');
+
+    if (savedReadLogs) {
+      try {
+        const parsedReadLogs = JSON.parse(savedReadLogs);
+        this._readLogs = new Set(parsedReadLogs);
+      } catch (error) {
+        logger.error('Failed to parse read logs:', error);
+      }
+    }
+  }
+
   private _saveLogs() {
     const currentLogs = this._logs.get();
     Cookies.set('eventLogs', JSON.stringify(currentLogs));
+  }
+
+  private _saveReadLogs() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem('bolt_read_logs', JSON.stringify(Array.from(this._readLogs)));
   }
 
   private _generateId(): string {
@@ -209,6 +247,20 @@ class LogStore {
 
       return matchesLevel && matchesCategory && matchesSearch;
     });
+  }
+
+  markAsRead(logId: string) {
+    this._readLogs.add(logId);
+    this._saveReadLogs();
+  }
+
+  isRead(logId: string): boolean {
+    return this._readLogs.has(logId);
+  }
+
+  clearReadLogs() {
+    this._readLogs.clear();
+    this._saveReadLogs();
   }
 }
 

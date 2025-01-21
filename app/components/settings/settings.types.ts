@@ -17,6 +17,7 @@ export type TabType =
 export type WindowType = 'user' | 'developer';
 
 export interface UserProfile {
+  nickname: any;
   name: string;
   email: string;
   avatar?: string;
