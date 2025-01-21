@@ -15,6 +15,9 @@ const TAB_ICONS = {
   debug: 'i-ph:bug',
   'event-logs': 'i-ph:list-bullets',
   update: 'i-ph:arrow-clockwise',
+  'task-manager': 'i-ph:activity',
+  'cloud-providers': 'i-ph:cloud',
+  'local-providers': 'i-ph:desktop',
 };
 
 interface TabTileProps {

@@ -4,6 +4,7 @@ import { useSettings } from '~/lib/hooks/useSettings';
 import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
+import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
 
 interface GitHubCommitResponse {
   sha: string;
@@ -181,6 +182,9 @@ const UpdateTab = () => {
           checkInterval: 24,
         };
   });
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [updateChangelog, setUpdateChangelog] = useState<string[]>([]);
 
   useEffect(() => {
     localStorage.setItem('update_settings', JSON.stringify(updateSettings));
@@ -212,10 +216,17 @@ const UpdateTab = () => {
   };
 
   const checkForUpdates = async () => {
+    console.log('Starting update check...');
     setIsChecking(true);
     setError(null);
+    setLastChecked(new Date());
+
+    // Add a minimum delay of 2 seconds to show the spinning animation
+    const startTime = Date.now();
 
     try {
+      console.log('Fetching update info...');
+
       const githubToken = localStorage.getItem('github_connection');
       const headers: HeadersInit = {};
 
@@ -226,6 +237,14 @@ const UpdateTab = () => {
 
       const branchToCheck = isLatestBranch ? 'main' : 'stable';
       const info = await GITHUB_URLS.commitJson(branchToCheck, headers);
+
+      // Ensure we show the spinning animation for at least 2 seconds
+      const elapsedTime = Date.now() - startTime;
+
+      if (elapsedTime < 2000) {
+        await new Promise((resolve) => setTimeout(resolve, 2000 - elapsedTime));
+      }
+
       setUpdateInfo(info);
 
       if (info.hasUpdate) {
@@ -248,25 +267,18 @@ const UpdateTab = () => {
           });
 
           if (updateSettings.autoUpdate && !hasUserRespondedToUpdate) {
-            const changelogText = info.changelog?.join('\n') || 'No changelog available';
-            const userWantsUpdate = confirm(
-              `An update is available.\n\nChangelog:\n${changelogText}\n\nDo you want to update now?`,
-            );
-            setHasUserRespondedToUpdate(true);
-
-            if (userWantsUpdate) {
-              await initiateUpdate();
-            } else {
-              logStore.logSystem('Update cancelled by user');
-            }
+            setUpdateChangelog(info.changelog || ['No changelog available']);
+            setShowUpdateDialog(true);
           }
         }
       }
     } catch (err) {
+      console.error('Detailed update check error:', err);
       setError('Failed to check for updates. Please try again later.');
       console.error('Update check failed:', err);
       setUpdateFailed(true);
     } finally {
+      console.log('Update check completed');
       setIsChecking(false);
     }
   };
@@ -483,9 +495,10 @@ const UpdateTab = () => {
             onClick={() => {
               setHasUserRespondedToUpdate(false);
               setUpdateFailed(false);
+              setError(null);
               checkForUpdates();
             }}
-            disabled={isChecking || (updateFailed && !hasUserRespondedToUpdate)}
+            disabled={isChecking}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
               'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
@@ -536,6 +549,14 @@ const UpdateTab = () => {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+        {lastChecked && (
+          <div className="flex flex-col items-end mt-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Last checked: {lastChecked.toLocaleString()}
+            </span>
+            {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
           </div>
         )}
       </motion.div>
@@ -756,6 +777,66 @@ const UpdateTab = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Update Confirmation Dialog */}
+      <DialogRoot open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <Dialog
+          onClose={() => {
+            setShowUpdateDialog(false);
+            setHasUserRespondedToUpdate(true);
+            logStore.logSystem('Update cancelled by user');
+          }}
+        >
+          <div className="p-6 w-[500px]">
+            <DialogTitle>Update Available</DialogTitle>
+            <DialogDescription className="mt-2">
+              A new version is available. Would you like to update now?
+            </DialogDescription>
+
+            <div className="mt-3">
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Changelog:</h3>
+              <div
+                className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[300px] overflow-y-auto"
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'rgba(155, 155, 155, 0.5) transparent',
+                }}
+              >
+                <div className="text-sm text-bolt-elements-textSecondary space-y-1.5">
+                  {updateChangelog.map((log, index) => (
+                    <div key={index} className="break-words leading-relaxed">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-3">
+              <DialogButton
+                type="secondary"
+                onClick={() => {
+                  setShowUpdateDialog(false);
+                  setHasUserRespondedToUpdate(true);
+                  logStore.logSystem('Update cancelled by user');
+                }}
+              >
+                Cancel
+              </DialogButton>
+              <DialogButton
+                type="primary"
+                onClick={async () => {
+                  setShowUpdateDialog(false);
+                  setHasUserRespondedToUpdate(true);
+                  await initiateUpdate();
+                }}
+              >
+                Update Now
+              </DialogButton>
+            </div>
+          </div>
+        </Dialog>
+      </DialogRoot>
     </div>
   );
 };

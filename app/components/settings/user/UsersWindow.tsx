@@ -18,7 +18,6 @@ import SettingsTab from '~/components/settings/settings/SettingsTab';
 import NotificationsTab from '~/components/settings/notifications/NotificationsTab';
 import FeaturesTab from '~/components/settings/features/FeaturesTab';
 import DataTab from '~/components/settings/data/DataTab';
-import { ProvidersTab } from '~/components/settings/providers/ProvidersTab';
 import DebugTab from '~/components/settings/debug/DebugTab';
 import { EventLogsTab } from '~/components/settings/event-logs/EventLogsTab';
 import UpdateTab from '~/components/settings/update/UpdateTab';
@@ -28,6 +27,9 @@ import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useDebugStatus } from '~/lib/hooks/useDebugStatus';
+import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
+import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
+import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
 
 interface DraggableTabTileProps {
   tab: TabVisibilityConfig;
@@ -47,11 +49,13 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   notifications: 'View and manage your notifications',
   features: 'Explore new and upcoming features',
   data: 'Manage your data and storage',
-  providers: 'Configure AI providers and models',
+  'cloud-providers': 'Configure cloud AI providers and models',
+  'local-providers': 'Configure local AI providers and models',
   connection: 'Check connection status and settings',
   debug: 'Debug tools and system information',
   'event-logs': 'View system events and logs',
   update: 'Check for updates and release notes',
+  'task-manager': 'Monitor system resources and processes',
 };
 
 const DraggableTabTile = ({
@@ -209,8 +213,10 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
         return <FeaturesTab />;
       case 'data':
         return <DataTab />;
-      case 'providers':
-        return <ProvidersTab />;
+      case 'cloud-providers':
+        return <CloudProvidersTab />;
+      case 'local-providers':
+        return <LocalProvidersTab />;
       case 'connection':
         return <ConnectionsTab />;
       case 'debug':
@@ -219,6 +225,8 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
         return <EventLogsTab />;
       case 'update':
         return <UpdateTab />;
+      case 'task-manager':
+        return <TaskManagerTab />;
       default:
         return null;
     }

@@ -13,11 +13,13 @@ const TAB_ICONS: Record<TabType, string> = {
   notifications: 'i-ph:bell-fill',
   features: 'i-ph:sparkle-fill',
   data: 'i-ph:database-fill',
-  providers: 'i-ph:robot-fill',
+  'cloud-providers': 'i-ph:cloud-fill',
+  'local-providers': 'i-ph:desktop-fill',
   connection: 'i-ph:plug-fill',
   debug: 'i-ph:bug-fill',
   'event-logs': 'i-ph:list-bullets-fill',
   update: 'i-ph:arrow-clockwise-fill',
+  'task-manager': 'i-ph:gauge-fill',
 };
 
 interface TabGroupProps {
@@ -174,14 +176,15 @@ export const TabManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Define standard (visible by default) tabs for each window
-  const standardUserTabs: TabType[] = ['features', 'data', 'providers', 'connection', 'debug'];
+  const standardUserTabs: TabType[] = ['features', 'data', 'local-providers', 'cloud-providers', 'connection', 'debug'];
   const standardDeveloperTabs: TabType[] = [
     'profile',
     'settings',
     'notifications',
     'features',
     'data',
-    'providers',
+    'local-providers',
+    'cloud-providers',
     'connection',
     'debug',
     'event-logs',
@@ -217,12 +220,12 @@ export const TabManagement = () => {
   };
 
   // Filter tabs based on search and window
-  const userTabs = config.userTabs.filter((tab) =>
-    TAB_LABELS[tab.id].toLowerCase().includes(searchQuery.toLowerCase()),
+  const userTabs = (config.userTabs || []).filter(
+    (tab) => tab && TAB_LABELS[tab.id]?.toLowerCase().includes((searchQuery || '').toLowerCase()),
   );
 
-  const developerTabs = config.developerTabs.filter((tab) =>
-    TAB_LABELS[tab.id].toLowerCase().includes(searchQuery.toLowerCase()),
+  const developerTabs = (config.developerTabs || []).filter(
+    (tab) => tab && TAB_LABELS[tab.id]?.toLowerCase().includes((searchQuery || '').toLowerCase()),
   );
 
   return (

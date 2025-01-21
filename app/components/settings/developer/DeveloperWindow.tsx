@@ -13,7 +13,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import DebugTab from '~/components/settings/debug/DebugTab';
 import { EventLogsTab } from '~/components/settings/event-logs/EventLogsTab';
 import UpdateTab from '~/components/settings/update/UpdateTab';
-import { ProvidersTab } from '~/components/settings/providers/ProvidersTab';
 import DataTab from '~/components/settings/data/DataTab';
 import FeaturesTab from '~/components/settings/features/FeaturesTab';
 import NotificationsTab from '~/components/settings/notifications/NotificationsTab';
@@ -22,6 +21,9 @@ import ProfileTab from '~/components/settings/profile/ProfileTab';
 import ConnectionsTab from '~/components/settings/connections/ConnectionsTab';
 import { useUpdateCheck, useFeatures, useNotifications, useConnectionStatus, useDebugStatus } from '~/lib/hooks';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
+import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
+import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
 
 interface DraggableTabTileProps {
   tab: TabVisibilityConfig;
@@ -41,11 +43,13 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   notifications: 'View and manage your notifications',
   features: 'Explore new and upcoming features',
   data: 'Manage your data and storage',
-  providers: 'Configure AI providers and models',
+  'cloud-providers': 'Configure cloud AI providers and models',
+  'local-providers': 'Configure local AI providers and models',
   connection: 'Check connection status and settings',
   debug: 'Debug tools and system information',
   'event-logs': 'View system events and logs',
   update: 'Check for updates and release notes',
+  'task-manager': 'Monitor system resources and processes',
 };
 
 const DraggableTabTile = ({
@@ -209,8 +213,10 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
         return <FeaturesTab />;
       case 'data':
         return <DataTab />;
-      case 'providers':
-        return <ProvidersTab />;
+      case 'cloud-providers':
+        return <CloudProvidersTab />;
+      case 'local-providers':
+        return <LocalProvidersTab />;
       case 'connection':
         return <ConnectionsTab />;
       case 'debug':
@@ -219,6 +225,8 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
         return <EventLogsTab />;
       case 'update':
         return <UpdateTab />;
+      case 'task-manager':
+        return <TaskManagerTab />;
       default:
         return null;
     }
@@ -412,6 +420,15 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
                                 <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
                               </>
                             )}
+                            <DropdownMenu.Item
+                              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+                              onSelect={() => handleTabClick('task-manager')}
+                            >
+                              <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                                <div className="i-ph:activity w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                              </div>
+                              <span className="group-hover:text-purple-500 transition-colors">Task Manager</span>
+                            </DropdownMenu.Item>
                             <DropdownMenu.Item
                               className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
                               onSelect={onClose}
