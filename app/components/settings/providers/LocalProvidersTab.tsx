@@ -280,7 +280,13 @@ const LocalProvidersTab = () => {
               {provider.name === 'Ollama' && provider.settings.enabled && (
                 <motion.button
                   onClick={() => setShowOllamaUpdater(true)}
-                  className={classNames(settingsStyles.button.base, settingsStyles.button.secondary, 'ml-2')}
+                  className={classNames(
+                    settingsStyles.button.base,
+                    settingsStyles.button.secondary,
+                    'ml-2',
+                    'hover:bg-purple-500/10 hover:text-purple-500',
+                    'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
+                  )}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >

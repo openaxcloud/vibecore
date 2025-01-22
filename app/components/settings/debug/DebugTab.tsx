@@ -502,9 +502,10 @@ export default function DebugTab() {
           disabled={loading.systemInfo}
           className={classNames(
             'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-            'focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2',
+            'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+            'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            'focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
             { 'opacity-50 cursor-not-allowed': loading.systemInfo },
           )}
         >
@@ -521,9 +522,10 @@ export default function DebugTab() {
           disabled={loading.performance}
           className={classNames(
             'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-            'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
+            'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+            'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
             { 'opacity-50 cursor-not-allowed': loading.performance },
           )}
         >
@@ -540,9 +542,10 @@ export default function DebugTab() {
           disabled={loading.errors}
           className={classNames(
             'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-            'focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+            'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+            'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            'focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
             { 'opacity-50 cursor-not-allowed': loading.errors },
           )}
         >
@@ -558,9 +561,10 @@ export default function DebugTab() {
           onClick={exportDebugInfo}
           className={classNames(
             'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-            'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+            'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+            'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
           )}
         >
           <div className="i-ph:download w-4 h-4" />
@@ -604,8 +608,9 @@ export default function DebugTab() {
               onClick={handleLogSystemInfo}
               className={classNames(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+                'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+                'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+                'text-bolt-elements-textPrimary dark:hover:text-purple-500',
                 'transition-colors duration-200',
               )}
             >
@@ -616,8 +621,9 @@ export default function DebugTab() {
               onClick={getSystemInfo}
               className={classNames(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-                'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+                'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+                'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+                'text-bolt-elements-textPrimary dark:hover:text-purple-500',
                 'transition-colors duration-200',
                 { 'opacity-50 cursor-not-allowed': loading.systemInfo },
               )}
@@ -761,9 +767,10 @@ export default function DebugTab() {
             onClick={handleLogPerformance}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
+              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
               { 'opacity-50 cursor-not-allowed': loading.performance },
             )}
             disabled={loading.performance}
@@ -848,9 +855,10 @@ export default function DebugTab() {
             onClick={getWebAppInfo}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
+              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
               { 'opacity-50 cursor-not-allowed': loading.webAppInfo },
             )}
             disabled={loading.webAppInfo}
@@ -924,9 +932,10 @@ export default function DebugTab() {
             onClick={checkErrors}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
+              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
               { 'opacity-50 cursor-not-allowed': loading.errors },
             )}
             disabled={loading.errors}

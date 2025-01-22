@@ -218,7 +218,12 @@ export default function OllamaModelUpdater() {
         <motion.button
           onClick={handleBulkUpdate}
           disabled={isBulkUpdating}
-          className={classNames(settingsStyles.button.base, settingsStyles.button.primary)}
+          className={classNames(
+            settingsStyles.button.base,
+            settingsStyles.button.primary,
+            'hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+          )}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
@@ -280,7 +285,12 @@ export default function OllamaModelUpdater() {
             <motion.button
               onClick={() => handleSingleUpdate(model.name)}
               disabled={model.status === 'updating'}
-              className={classNames(settingsStyles.button.base, settingsStyles.button.secondary)}
+              className={classNames(
+                settingsStyles.button.base,
+                settingsStyles.button.secondary,
+                'hover:bg-purple-500/10 hover:text-purple-500',
+                'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
+              )}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
             >

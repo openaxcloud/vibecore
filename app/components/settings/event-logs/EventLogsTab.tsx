@@ -307,7 +307,7 @@ export function EventLogsTab() {
               setShowLevelFilter(!showLevelFilter);
               setShowCategoryFilter(false);
             }}
-            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500 transition-colors"
           >
             <div
               className={classNames('text-sm', selectedLevelOption?.icon || 'i-ph:funnel')}
@@ -324,7 +324,7 @@ export function EventLogsTab() {
 
           {showLevelFilter && (
             <div className="absolute left-0 top-full mt-1 z-20">
-              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-[#1A1A1A] border border-[#E5E5E5] dark:border-[#333333]">
                 {logLevelOptions.map((option) => (
                   <button
                     key={option.value}
@@ -335,11 +335,11 @@ export function EventLogsTab() {
                     className={classNames(
                       'flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors',
                       option.value === selectedLevel
-                        ? 'bg-purple-100 dark:bg-purple-800/40 text-purple-900 dark:text-purple-200'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50',
+                        ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-500'
+                        : 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500',
                     )}
                   >
-                    <div className={classNames(option.icon, 'text-base', option.color)} />
+                    <div className={classNames(option.icon, 'text-base')} style={{ color: option.color }} />
                     <span>{option.label}</span>
                   </button>
                 ))}
@@ -357,7 +357,7 @@ export function EventLogsTab() {
               setShowCategoryFilter(!showCategoryFilter);
               setShowLevelFilter(false);
             }}
-            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500 transition-colors"
           >
             <div
               className={classNames('text-sm', selectedCategoryOption?.icon || 'i-ph:squares-four')}
@@ -376,7 +376,7 @@ export function EventLogsTab() {
 
           {showCategoryFilter && (
             <div className="absolute left-0 top-full mt-1 z-20">
-              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-[#1A1A1A] border border-[#E5E5E5] dark:border-[#333333]">
                 {logCategoryOptions.map((option) => (
                   <button
                     key={option.value}
@@ -387,11 +387,11 @@ export function EventLogsTab() {
                     className={classNames(
                       'flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors',
                       option.value === selectedCategory
-                        ? 'bg-purple-100 dark:bg-purple-800/40 text-purple-900 dark:text-purple-200'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700/50',
+                        ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-500'
+                        : 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500',
                     )}
                   >
-                    <div className={classNames(option.icon, 'text-base', option.color)} />
+                    <div className={classNames(option.icon, 'text-base')} style={{ color: option.color }} />
                     <span>{option.label}</span>
                   </button>
                 ))}

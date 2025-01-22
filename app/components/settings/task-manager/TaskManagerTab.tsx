@@ -570,8 +570,10 @@ export default function TaskManagerTab() {
             onClick={updateProcesses}
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A] hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-              'text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary',
+              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+              'hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+              'text-bolt-elements-textPrimary',
               'transition-colors duration-200',
               { 'opacity-50 cursor-not-allowed': loading.processes },
             )}
