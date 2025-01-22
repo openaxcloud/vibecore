@@ -1,12 +1,18 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { PromptLibrary } from '~/lib/common/prompt-library';
-import { useStore } from '@nanostores/react';
-import { isEventLogsEnabled } from '~/lib/stores/settings';
+import {
+  isEventLogsEnabled,
+  isLocalModelsEnabled,
+  latestBranchStore as latestBranchAtom,
+  promptStore as promptAtom,
+  autoSelectStarterTemplate as autoSelectTemplateAtom,
+  enableContextOptimizationStore as contextOptimizationAtom,
+} from '~/lib/stores/settings';
 
 interface FeatureToggle {
   id: string;
@@ -107,21 +113,102 @@ const FeatureSection = memo(
 );
 
 export default function FeaturesTab() {
-  const {
-    setEventLogs,
-    isLocalModel,
-    enableLocalModels,
-    isLatestBranch,
-    enableLatestBranch,
-    promptId,
-    setPromptId,
-    autoSelectTemplate,
-    setAutoSelectTemplate,
-    enableContextOptimization,
-    contextOptimizationEnabled,
-  } = useSettings();
+  const { autoSelectTemplate, isLatestBranch, contextOptimizationEnabled, eventLogs, isLocalModel } = useSettings();
 
-  const eventLogs = useStore(isEventLogsEnabled);
+  // Setup store setters
+  const setEventLogs = (value: boolean) => isEventLogsEnabled.set(value);
+  const setLocalModels = (value: boolean) => isLocalModelsEnabled.set(value);
+  const setLatestBranch = (value: boolean) => latestBranchAtom.set(value);
+  const setPromptId = (value: string) => promptAtom.set(value);
+  const setAutoSelectTemplate = (value: boolean) => autoSelectTemplateAtom.set(value);
+  const setContextOptimization = (value: boolean) => contextOptimizationAtom.set(value);
+
+  const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
+    const value = localStorage.getItem(key);
+
+    if (value === null) {
+      return defaultValue;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  // Initialize state with proper type handling
+  const autoSelectTemplateState = getLocalStorageBoolean('autoSelectTemplate', autoSelectTemplate);
+  const enableLatestBranchState = getLocalStorageBoolean('enableLatestBranch', isLatestBranch);
+  const contextOptimizationState = getLocalStorageBoolean('contextOptimization', contextOptimizationEnabled);
+  const eventLogsState = getLocalStorageBoolean('eventLogs', eventLogs);
+  const experimentalProvidersState = getLocalStorageBoolean('experimentalProviders', isLocalModel);
+  const promptLibraryState = getLocalStorageBoolean('promptLibrary', false);
+  const promptIdState = localStorage.getItem('promptId') ?? '';
+
+  const [autoSelectTemplateLocal, setAutoSelectTemplateLocal] = useState(autoSelectTemplateState);
+  const [enableLatestBranchLocal, setEnableLatestBranchLocal] = useState(enableLatestBranchState);
+  const [contextOptimizationLocal, setContextOptimizationLocal] = useState(contextOptimizationState);
+  const [eventLogsLocal, setEventLogsLocal] = useState(eventLogsState);
+  const [experimentalProvidersLocal, setExperimentalProvidersLocal] = useState(experimentalProvidersState);
+  const [promptLibraryLocal, setPromptLibraryLocal] = useState(promptLibraryState);
+  const [promptIdLocal, setPromptIdLocal] = useState(promptIdState);
+
+  useEffect(() => {
+    // Update localStorage
+    localStorage.setItem('autoSelectTemplate', JSON.stringify(autoSelectTemplateLocal));
+    localStorage.setItem('enableLatestBranch', JSON.stringify(enableLatestBranchLocal));
+    localStorage.setItem('contextOptimization', JSON.stringify(contextOptimizationLocal));
+    localStorage.setItem('eventLogs', JSON.stringify(eventLogsLocal));
+    localStorage.setItem('experimentalProviders', JSON.stringify(experimentalProvidersLocal));
+    localStorage.setItem('promptLibrary', JSON.stringify(promptLibraryLocal));
+    localStorage.setItem('promptId', promptIdLocal);
+
+    // Update global state
+    setEventLogs(eventLogsLocal);
+    setLocalModels(experimentalProvidersLocal);
+    setLatestBranch(enableLatestBranchLocal);
+    setPromptId(promptIdLocal);
+    setAutoSelectTemplate(autoSelectTemplateLocal);
+    setContextOptimization(contextOptimizationLocal);
+  }, [
+    autoSelectTemplateLocal,
+    enableLatestBranchLocal,
+    contextOptimizationLocal,
+    eventLogsLocal,
+    experimentalProvidersLocal,
+    promptLibraryLocal,
+    promptIdLocal,
+  ]);
+
+  const handleToggleFeature = (featureId: string, enabled: boolean) => {
+    switch (featureId) {
+      case 'latestBranch':
+        setEnableLatestBranchLocal(enabled);
+        toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+      case 'autoTemplate':
+        setAutoSelectTemplateLocal(enabled);
+        toast.success(`Auto template selection ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+      case 'contextOptimization':
+        setContextOptimizationLocal(enabled);
+        toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+      case 'eventLogs':
+        setEventLogsLocal(enabled);
+        toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+      case 'experimentalProviders':
+        setExperimentalProvidersLocal(enabled);
+        toast.success(`Experimental providers ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+      case 'promptLibrary':
+        setPromptLibraryLocal(enabled);
+        toast.success(`Prompt Library ${enabled ? 'enabled' : 'disabled'}`);
+        break;
+    }
+  };
 
   const features: Record<'stable' | 'beta' | 'experimental', FeatureToggle[]> = {
     stable: [
@@ -130,7 +217,7 @@ export default function FeaturesTab() {
         title: 'Auto Select Code Template',
         description: 'Let Bolt select the best starter template for your project',
         icon: 'i-ph:magic-wand',
-        enabled: autoSelectTemplate,
+        enabled: autoSelectTemplateLocal,
         tooltip: 'Automatically choose the most suitable template based on your project type',
       },
       {
@@ -138,7 +225,7 @@ export default function FeaturesTab() {
         title: 'Context Optimization',
         description: 'Optimize chat context by redacting file contents and using system prompts',
         icon: 'i-ph:arrows-in',
-        enabled: contextOptimizationEnabled,
+        enabled: contextOptimizationLocal,
         tooltip: 'Improve AI responses by optimizing the context window and system prompts',
       },
       {
@@ -146,8 +233,16 @@ export default function FeaturesTab() {
         title: 'Event Logging',
         description: 'Enable detailed event logging and history',
         icon: 'i-ph:list-bullets',
-        enabled: eventLogs,
+        enabled: eventLogsLocal,
         tooltip: 'Record detailed logs of system events and user actions',
+      },
+      {
+        id: 'promptLibrary',
+        title: 'Prompt Library',
+        description: 'Manage your prompt library settings',
+        icon: 'i-ph:library',
+        enabled: promptLibraryLocal,
+        tooltip: 'Enable or disable the prompt library',
       },
     ],
     beta: [
@@ -156,7 +251,7 @@ export default function FeaturesTab() {
         title: 'Use Main Branch',
         description: 'Check for updates against the main branch instead of stable',
         icon: 'i-ph:git-branch',
-        enabled: isLatestBranch,
+        enabled: enableLatestBranchLocal,
         beta: true,
         tooltip: 'Get the latest features and improvements before they are officially released',
       },
@@ -167,36 +262,11 @@ export default function FeaturesTab() {
         title: 'Experimental Providers',
         description: 'Enable experimental providers like Ollama, LMStudio, and OpenAILike',
         icon: 'i-ph:robot',
-        enabled: isLocalModel,
+        enabled: experimentalProvidersLocal,
         experimental: true,
         tooltip: 'Try out new AI providers and models in development',
       },
     ],
-  };
-
-  const handleToggleFeature = (featureId: string, enabled: boolean) => {
-    switch (featureId) {
-      case 'latestBranch':
-        enableLatestBranch(enabled);
-        toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'autoTemplate':
-        setAutoSelectTemplate(enabled);
-        toast.success(`Auto template selection ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'contextOptimization':
-        enableContextOptimization(enabled);
-        toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'experimentalProviders':
-        enableLocalModels(enabled);
-        toast.success(`Experimental providers ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'eventLogs':
-        setEventLogs(enabled);
-        toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-    }
   };
 
   return (
@@ -262,9 +332,9 @@ export default function FeaturesTab() {
             </p>
           </div>
           <select
-            value={promptId}
+            value={promptIdLocal}
             onChange={(e) => {
-              setPromptId(e.target.value);
+              setPromptIdLocal(e.target.value);
               toast.success('Prompt template updated');
             }}
             className={classNames(

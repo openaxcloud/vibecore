@@ -53,13 +53,19 @@ export const isDebugMode = atom(false);
 const savedEventLogs = Cookies.get('isEventLogsEnabled');
 export const isEventLogsEnabled = atom(savedEventLogs === 'true');
 
+// Local models settings
 export const isLocalModelsEnabled = atom(true);
 
+// Prompt settings
 export const promptStore = atom<string>('default');
 
+// Branch settings
 export const latestBranchStore = atom(false);
 
+// Template settings
 export const autoSelectStarterTemplate = atom(false);
+
+// Context optimization settings
 export const enableContextOptimizationStore = atom(false);
 
 // Initialize tab configuration from cookie or default

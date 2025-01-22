@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from '@remix-run/cloudflare';
+import type { ActionFunctionArgs, LoaderFunction } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
 
 interface PackageJson {
@@ -26,6 +26,23 @@ const packageJson = {
     '@types/react-dom': '^18.0.0',
   },
 } as PackageJson;
+
+export const loader: LoaderFunction = async ({ request: _request }) => {
+  try {
+    return json({
+      name: packageJson.name,
+      version: packageJson.version,
+      description: packageJson.description,
+      license: packageJson.license,
+      nodeVersion: process.version,
+      dependencies: packageJson.dependencies,
+      devDependencies: packageJson.devDependencies,
+    });
+  } catch (error) {
+    console.error('Failed to get webapp info:', error);
+    return json({ error: 'Failed to get webapp information' }, { status: 500 });
+  }
+};
 
 export const action = async ({ request: _request }: ActionFunctionArgs) => {
   try {
