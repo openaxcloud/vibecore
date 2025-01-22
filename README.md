@@ -1,9 +1,14 @@
 # bolt.diy (Previously oTToDev)
+
 [![bolt.diy: AI-Powered Full-Stack Web Development in the Browser](./public/social_preview_index.jpg)](https://bolt.diy)
 
 Welcome to bolt.diy, the official open source version of Bolt.new (previously known as oTToDev and bolt.new ANY LLM), which allows you to choose the LLM that you use for each prompt! Currently, you can use OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, or Groq models - and it is easily extended to use any other model supported by the Vercel AI SDK! See the instructions below for running this locally and extending it to include more models.
 
-Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more information. 
+-----
+Check the [bolt.diy Docs](https://stackblitz-labs.github.io/bolt.diy/) for more offical installation instructions and more informations.
+
+-----
+Also [this pinned post in our community](https://thinktank.ottomator.ai/t/videos-tutorial-helpful-content/3243) has a bunch of incredible resources for running and deploying bolt.diy yourself!
 
 We have also launched an experimental agent called the "bolt.diy Expert" that can answer common questions about bolt.diy. Find it here on the [oTTomator Live Agent Studio](https://studio.ottomator.ai/).
 
@@ -23,8 +28,15 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 
 ## Join the community
 
-[Join the bolt.diy community here, in the thinktank on ottomator.ai!](https://thinktank.ottomator.ai)
+[Join the bolt.diy community here, in the oTTomator Think Tank!](https://thinktank.ottomator.ai)
 
+## Project management
+
+Bolt.diy is a community effort! Still, the core team of contributors aims at organizing the project in way that allows
+you to understand where the current areas of focus are.
+
+If you want to know what we are working on, what we are planning to work on, or if you want to contribute to the
+project, please check the [project management guide](./PROJECT.md) to get started easily.
 
 ## Requested Additions
 
@@ -47,6 +59,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - ✅ Bolt terminal to see the output of LLM run commands (@thecodacus)
 - ✅ Streaming of code output (@thecodacus)
 - ✅ Ability to revert code to earlier version (@wonderwhy-er)
+- ✅ Chat history backup and restore functionality (@sidbetatester)
 - ✅ Cohere Integration (@hasanraiyan)
 - ✅ Dynamic model max token length (@hasanraiyan)
 - ✅ Better prompt enhancing (@SujalXplores)
@@ -55,7 +68,7 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - ✅ Together Integration (@mouimet-infinisoft)
 - ✅ Mobile friendly (@qwikode)
 - ✅ Better prompt enhancing (@SujalXplores)
-- ✅ Attach images to prompts (@atrokhym)
+- ✅ Attach images to prompts (@atrokhym)(@stijnus)
 - ✅ Added Git Clone button (@thecodacus)
 - ✅ Git Import from url (@thecodacus)
 - ✅ PromptLibrary to have different variations of prompts for different use cases (@thecodacus)
@@ -64,6 +77,8 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - ✅ Detect terminal Errors and ask bolt to fix it (@thecodacus)
 - ✅ Detect preview Errors and ask bolt to fix it (@wonderwhy-er)
 - ✅ Add Starter Template Options (@thecodacus)
+- ✅ Perplexity Integration (@meetpateltech)
+- ✅ AWS Bedrock Integration (@kunjabijukchhe)
 - ⬜ **HIGH PRIORITY** - Prevent bolt from rewriting files as often (file locking and diffs)
 - ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
 - ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
@@ -73,12 +88,14 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - ⬜ Upload documents for knowledge - UI design templates, a code base to reference coding style, etc.
 - ⬜ Voice prompting
 - ⬜ Azure Open AI API Integration
-- ✅ Perplexity Integration (@meetpateltech)
 - ⬜ Vertex AI Integration
+- ⬜ Granite Integration
+- ✅ Popout Window for Web Container(@stijnus)
+- ✅ Ability to change Popout window size (@stijnus)
 
 ## Features
 
-- **AI-powered full-stack web development** directly in your browser.
+- **AI-powered full-stack web development** for **NodeJS based applications** directly in your browser.
 - **Support for multiple LLMs** with an extensible architecture to integrate additional models.
 - **Attach images to prompts** for better contextual understanding.
 - **Integrated terminal** to view output of LLM-run commands.
@@ -86,20 +103,17 @@ bolt.diy was originally started by [Cole Medin](https://www.youtube.com/@ColeMed
 - **Download projects as ZIP** for easy portability.
 - **Integration-ready Docker support** for a hassle-free setup.
 
-## Setup 
+## Setup
 
-If you're new to installing software from GitHub, don't worry! If you encounter any issues, feel free to submit an "issue" using the provided links or improve this documentation by forking the repository, editing the instructions, and submitting a pull request. The following instruction will help you get the stable branch up and running on your local machine in no time.  
+If you're new to installing software from GitHub, don't worry! If you encounter any issues, feel free to submit an "issue" using the provided links or improve this documentation by forking the repository, editing the instructions, and submitting a pull request. The following instruction will help you get the stable branch up and running on your local machine in no time.
 
 Let's get you up and running with the stable version of Bolt.DIY!
 
 ## Quick Download
 
-[![Download Latest Release](https://img.shields.io/github/v/release/stackblitz-labs/bolt.diy?label=Download%20Bolt&sort=semver)](https://github.com/stackblitz-labs/bolt.diy/releases/latest) ← Click here to go the the latest release version! 
+[![Download Latest Release](https://img.shields.io/github/v/release/stackblitz-labs/bolt.diy?label=Download%20Bolt&sort=semver)](https://github.com/stackblitz-labs/bolt.diy/releases/latest) ← Click here to go the the latest release version!
 
 - Next **click source.zip**
-
-
-
 
 ## Prerequisites
 
@@ -133,16 +147,19 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
 ### Option 1: Direct Installation (Recommended for Beginners)
 
 1. **Install Package Manager (pnpm)**:
+
    ```bash
    npm install -g pnpm
    ```
 
 2. **Install Project Dependencies**:
+
    ```bash
    pnpm install
    ```
 
 3. **Start the Application**:
+
    ```bash
    pnpm run dev
    ```
@@ -154,11 +171,13 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
 This option requires some familiarity with Docker but provides a more isolated environment.
 
 #### Additional Prerequisite
+
 - Install Docker: [Download Docker](https://www.docker.com/)
 
 #### Steps:
 
 1. **Build the Docker Image**:
+
    ```bash
    # Using npm script:
    npm run dockerbuild
@@ -169,11 +188,8 @@ This option requires some familiarity with Docker but provides a more isolated e
 
 2. **Run the Container**:
    ```bash
-   docker-compose --profile development up
+   docker compose --profile development up
    ```
-
-
-
 
 ## Configuring API Keys and Providers
 
@@ -203,6 +219,7 @@ For providers that support custom base URLs (such as Ollama or LM Studio), follo
 > **Note**: Custom base URLs are particularly useful when running local instances of AI models or using custom API endpoints.
 
 ### Supported Providers
+
 - Ollama
 - LM Studio
 - OpenAILike
@@ -210,23 +227,27 @@ For providers that support custom base URLs (such as Ollama or LM Studio), follo
 ## Setup Using Git (For Developers only)
 
 This method is recommended for developers who want to:
+
 - Contribute to the project
 - Stay updated with the latest changes
 - Switch between different versions
 - Create custom modifications
 
 #### Prerequisites
+
 1. Install Git: [Download Git](https://git-scm.com/downloads)
 
 #### Initial Setup
 
 1. **Clone the Repository**:
+
    ```bash
    # Using HTTPS
    git clone https://github.com/stackblitz-labs/bolt.diy.git
    ```
 
 2. **Navigate to Project Directory**:
+
    ```bash
    cd bolt.diy
    ```
@@ -236,6 +257,7 @@ This method is recommended for developers who want to:
    git checkout main
    ```
 4. **Install Dependencies**:
+
    ```bash
    pnpm install
    ```
@@ -250,16 +272,19 @@ This method is recommended for developers who want to:
 To get the latest changes from the repository:
 
 1. **Save Your Local Changes** (if any):
+
    ```bash
    git stash
    ```
 
 2. **Pull Latest Updates**:
+
    ```bash
    git pull origin main
    ```
 
 3. **Update Dependencies**:
+
    ```bash
    pnpm install
    ```
@@ -274,6 +299,7 @@ To get the latest changes from the repository:
 If you encounter issues:
 
 1. **Clean Installation**:
+
    ```bash
    # Remove node modules and lock files
    rm -rf node_modules pnpm-lock.yaml
