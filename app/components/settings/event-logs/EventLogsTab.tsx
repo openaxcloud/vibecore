@@ -4,6 +4,7 @@ import { Switch } from '~/components/ui/Switch';
 import { logStore, type LogEntry } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 interface SelectOption {
   value: string;
@@ -301,104 +302,104 @@ export function EventLogsTab() {
       {/* Filters */}
       <div className="flex items-center gap-4 -mt-2">
         {/* Level Filter */}
-        <div ref={levelFilterRef} className="relative">
-          <button
-            onClick={() => {
-              setShowLevelFilter(!showLevelFilter);
-              setShowCategoryFilter(false);
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500 transition-colors"
-          >
-            <div
-              className={classNames('text-sm', selectedLevelOption?.icon || 'i-ph:funnel')}
-              style={{ color: selectedLevelOption?.color }}
-            />
-            <div className="text-sm text-bolt-elements-textSecondary">{selectedLevelOption?.label || 'All Levels'}</div>
-            <div
+        <DropdownMenu.Root open={showLevelFilter} onOpenChange={setShowLevelFilter}>
+          <DropdownMenu.Trigger asChild>
+            <button
               className={classNames(
-                'i-ph:caret-down text-sm text-bolt-elements-textTertiary transition-transform',
-                showLevelFilter ? 'rotate-180' : '',
+                'flex items-center gap-2',
+                'rounded-lg px-3 py-1.5',
+                'text-sm text-gray-900 dark:text-white',
+                'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+                'transition-all duration-200',
               )}
-            />
-          </button>
+            >
+              <div
+                className={classNames('text-lg', selectedLevelOption?.icon || 'i-ph:funnel')}
+                style={{ color: selectedLevelOption?.color }}
+              />
+              <span>{selectedLevelOption?.label || 'All Levels'}</span>
+              <span className="i-ph:caret-down text-lg text-gray-500 dark:text-gray-400" />
+            </button>
+          </DropdownMenu.Trigger>
 
-          {showLevelFilter && (
-            <div className="absolute left-0 top-full mt-1 z-20">
-              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-[#1A1A1A] border border-[#E5E5E5] dark:border-[#333333]">
-                {logLevelOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSelectedLevel(option.value);
-                      setShowLevelFilter(false);
-                    }}
-                    className={classNames(
-                      'flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors',
-                      option.value === selectedLevel
-                        ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-500'
-                        : 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500',
-                    )}
-                  >
-                    <div className={classNames(option.icon, 'text-base')} style={{ color: option.color }} />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="min-w-[200px] bg-white dark:bg-[#0A0A0A] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-[#E5E5E5] dark:border-[#1A1A1A]"
+              sideOffset={5}
+              align="start"
+              side="bottom"
+            >
+              {logLevelOptions.map((option) => (
+                <DropdownMenu.Item
+                  key={option.value}
+                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+                  onClick={() => setSelectedLevel(option.value)}
+                >
+                  <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                    <div
+                      className={classNames(option.icon, 'text-lg group-hover:text-purple-500 transition-colors')}
+                      style={{ color: option.color }}
+                    />
+                  </div>
+                  <span className="group-hover:text-purple-500 transition-colors">{option.label}</span>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
 
         <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
 
         {/* Category Filter */}
-        <div ref={categoryFilterRef} className="relative">
-          <button
-            onClick={() => {
-              setShowCategoryFilter(!showCategoryFilter);
-              setShowLevelFilter(false);
-            }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500 transition-colors"
-          >
-            <div
-              className={classNames('text-sm', selectedCategoryOption?.icon || 'i-ph:squares-four')}
-              style={{ color: selectedCategoryOption?.color }}
-            />
-            <div className="text-sm text-bolt-elements-textSecondary">
-              {selectedCategoryOption?.label || 'All Categories'}
-            </div>
-            <div
+        <DropdownMenu.Root open={showCategoryFilter} onOpenChange={setShowCategoryFilter}>
+          <DropdownMenu.Trigger asChild>
+            <button
               className={classNames(
-                'i-ph:caret-down text-sm text-bolt-elements-textTertiary transition-transform',
-                showCategoryFilter ? 'rotate-180' : '',
+                'flex items-center gap-2',
+                'rounded-lg px-3 py-1.5',
+                'text-sm text-gray-900 dark:text-white',
+                'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+                'transition-all duration-200',
               )}
-            />
-          </button>
+            >
+              <div
+                className={classNames('text-lg', selectedCategoryOption?.icon || 'i-ph:squares-four')}
+                style={{ color: selectedCategoryOption?.color }}
+              />
+              <span>{selectedCategoryOption?.label || 'All Categories'}</span>
+              <span className="i-ph:caret-down text-lg text-gray-500 dark:text-gray-400" />
+            </button>
+          </DropdownMenu.Trigger>
 
-          {showCategoryFilter && (
-            <div className="absolute left-0 top-full mt-1 z-20">
-              <div className="p-1 rounded-lg shadow-lg bg-white dark:bg-[#1A1A1A] border border-[#E5E5E5] dark:border-[#333333]">
-                {logCategoryOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSelectedCategory(option.value);
-                      setShowCategoryFilter(false);
-                    }}
-                    className={classNames(
-                      'flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors',
-                      option.value === selectedCategory
-                        ? 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-500'
-                        : 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-500 dark:hover:text-purple-500',
-                    )}
-                  >
-                    <div className={classNames(option.icon, 'text-base')} style={{ color: option.color }} />
-                    <span>{option.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="min-w-[200px] bg-white dark:bg-[#0A0A0A] rounded-lg shadow-lg py-1 z-[250] animate-in fade-in-0 zoom-in-95 border border-[#E5E5E5] dark:border-[#1A1A1A]"
+              sideOffset={5}
+              align="start"
+              side="bottom"
+            >
+              {logCategoryOptions.map((option) => (
+                <DropdownMenu.Item
+                  key={option.value}
+                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+                  onClick={() => setSelectedCategory(option.value)}
+                >
+                  <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                    <div
+                      className={classNames(option.icon, 'text-lg group-hover:text-purple-500 transition-colors')}
+                      style={{ color: option.color }}
+                    />
+                  </div>
+                  <span className="group-hover:text-purple-500 transition-colors">{option.label}</span>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
 
       {/* Logs Container */}
