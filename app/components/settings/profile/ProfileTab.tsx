@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import type { UserProfile } from '~/components/settings/settings.types';
 import { motion } from 'framer-motion';
+import { settingsStyles } from '~/components/settings/settings.styles';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -92,6 +93,15 @@ export default function ProfileTab() {
       };
 
       localStorage.setItem('bolt_user_profile', JSON.stringify(updatedProfile));
+
+      // Dispatch a storage event to notify other components
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'bolt_user_profile',
+          newValue: JSON.stringify(updatedProfile),
+        }),
+      );
+
       toast.success('Profile settings saved successfully');
     } catch (error) {
       console.error('Error saving profile:', error);
@@ -234,18 +244,13 @@ export default function ProfileTab() {
       </motion.div>
 
       {/* Save Button */}
-      <motion.div
-        className="flex justify-end mt-6"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <div className="flex justify-end mt-6">
         <button
           onClick={handleSave}
           disabled={isLoading}
           className={classNames(
-            'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-            'bg-purple-500 text-white',
+            settingsStyles.button.base,
+            settingsStyles.button.primary,
             'hover:bg-purple-600',
             'disabled:opacity-50 disabled:cursor-not-allowed',
           )}
@@ -262,7 +267,7 @@ export default function ProfileTab() {
             </>
           )}
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 }

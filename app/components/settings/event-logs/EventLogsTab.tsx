@@ -5,6 +5,7 @@ import { logStore, type LogEntry } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { settingsStyles } from '~/components/settings/settings.styles';
 
 interface SelectOption {
   value: string;
@@ -241,16 +242,18 @@ export function EventLogsTab() {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <motion.button
+          <button
             onClick={handleRefresh}
-            className="p-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            animate={isRefreshing ? { rotate: 360 } : {}}
-            transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: 'linear' } : {}}
+            className={classNames(
+              settingsStyles.button.base,
+              settingsStyles.button.secondary,
+              'hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            )}
           >
-            <div className="i-ph:arrows-clockwise text-xl" />
-          </motion.button>
+            <div className="i-ph:arrows-clockwise text-lg" />
+            {isRefreshing ? 'Refreshing...' : 'Refresh Logs'}
+          </button>
         </div>
       </div>
 

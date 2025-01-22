@@ -5,6 +5,7 @@ import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
 import { themeStore, kTheme } from '~/lib/stores/theme';
 import type { UserProfile } from '~/components/settings/settings.types';
+import { settingsStyles } from '~/components/settings/settings.styles';
 
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
@@ -88,10 +89,11 @@ export default function SettingsTab() {
                 key={theme}
                 onClick={() => setSettings((prev) => ({ ...prev, theme }))}
                 className={classNames(
-                  'px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition-colors',
+                  settingsStyles.button.base,
+                  settings.theme === theme ? settingsStyles.button.primary : settingsStyles.button.secondary,
                   settings.theme === theme
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
-                    : 'bg-[#F5F5F5] dark:bg-[#1A1A1A] text-bolt-elements-textSecondary hover:bg-[#E5E5E5] dark:hover:bg-[#252525] hover:text-bolt-elements-textPrimary',
+                    ? 'dark:bg-purple-500 dark:text-white dark:hover:bg-purple-600 dark:hover:text-white'
+                    : 'hover:bg-purple-500/10 hover:text-purple-500 dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
                 )}
               >
                 <div
@@ -119,7 +121,7 @@ export default function SettingsTab() {
             onChange={(e) => setSettings((prev) => ({ ...prev, language: e.target.value }))}
             className={classNames(
               'w-full px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
@@ -199,7 +201,7 @@ export default function SettingsTab() {
             onChange={(e) => setSettings((prev) => ({ ...prev, timezone: e.target.value }))}
             className={classNames(
               'w-full px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+              'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
               'border border-[#E5E5E5] dark:border-[#1A1A1A]',
               'text-bolt-elements-textPrimary',
               'focus:outline-none focus:ring-2 focus:ring-purple-500/30',
