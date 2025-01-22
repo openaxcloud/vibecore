@@ -502,7 +502,8 @@ const UpdateTab = () => {
             className={classNames(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
               'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+              'hover:bg-purple-500/10 hover:text-purple-500',
+              'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
               'text-bolt-elements-textPrimary',
               'transition-colors duration-200',
               'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -589,11 +590,11 @@ const UpdateTab = () => {
                 disabled={isUpdating || updateFailed}
                 className={classNames(
                   'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
-                  'bg-purple-500 hover:bg-purple-600',
-                  'text-white',
+                  'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                  'hover:bg-purple-500/10 hover:text-purple-500',
+                  'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                  'text-bolt-elements-textPrimary',
                   'transition-all duration-200',
-                  'hover:shadow-lg hover:shadow-purple-500/20',
-                  'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
               >
                 <div className={classNames('i-ph:arrow-circle-up w-4 h-4', isUpdating ? 'animate-spin' : '')} />
@@ -604,7 +605,8 @@ const UpdateTab = () => {
                 className={classNames(
                   'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
                   'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                  'hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
+                  'hover:bg-purple-500/10 hover:text-purple-500',
+                  'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
                   'text-bolt-elements-textPrimary',
                   'transition-all duration-200',
                 )}
@@ -690,7 +692,14 @@ const UpdateTab = () => {
               <div className="mt-4">
                 <button
                   onClick={() => setShowChangelog(!showChangelog)}
-                  className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary hover:text-purple-500 transition-colors"
+                  className={classNames(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm',
+                    'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                    'hover:bg-purple-500/10 hover:text-purple-500',
+                    'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                    'text-bolt-elements-textSecondary',
+                    'transition-colors duration-200',
+                  )}
                 >
                   <div className={`i-ph:${showChangelog ? 'caret-up' : 'caret-down'} w-4 h-4`} />
                   {showChangelog ? 'Hide Changelog' : 'View Changelog'}
