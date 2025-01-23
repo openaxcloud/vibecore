@@ -84,6 +84,7 @@ interface SystemInfo {
 }
 
 interface WebAppInfo {
+  // Local WebApp Info
   name: string;
   version: string;
   description: string;
@@ -91,6 +92,33 @@ interface WebAppInfo {
   nodeVersion: string;
   dependencies: { [key: string]: string };
   devDependencies: { [key: string]: string };
+  // Build Info
+  buildTime?: string;
+  buildNumber?: string;
+  environment?: string;
+  // Git Info
+  gitInfo?: {
+    branch: string;
+    commit: string;
+    commitTime: string;
+    author: string;
+    remoteUrl: string;
+  };
+  // GitHub Repository Info
+  repoInfo?: {
+    name: string;
+    fullName: string;
+    description: string;
+    stars: number;
+    forks: number;
+    openIssues: number;
+    defaultBranch: string;
+    lastUpdate: string;
+    owner: {
+      login: string;
+      avatarUrl: string;
+    };
+  };
 }
 
 export default function DebugTab() {
@@ -298,14 +326,54 @@ export default function DebugTab() {
     try {
       setLoading((prev) => ({ ...prev, webAppInfo: true }));
 
-      const response = await fetch('/api/system/app-info');
-
-      if (!response.ok) {
+      // Fetch local app info
+      const appInfoResponse = await fetch('/api/system/app-info');
+      if (!appInfoResponse.ok) {
         throw new Error('Failed to fetch webapp info');
       }
+      const appData = await appInfoResponse.json();
 
-      const data = await response.json();
-      setWebAppInfo(data as WebAppInfo);
+      // Fetch git info
+      const gitInfoResponse = await fetch('/api/system/git-info');
+      let gitInfo = null;
+      if (gitInfoResponse.ok) {
+        gitInfo = await gitInfoResponse.json();
+      }
+
+      // Fetch GitHub repository info
+      const repoInfoResponse = await fetch('https://api.github.com/repos/stackblitz-labs/bolt.diy');
+      let repoInfo = null;
+      if (repoInfoResponse.ok) {
+        const repoData = await repoInfoResponse.json();
+        repoInfo = {
+          name: repoData.name,
+          fullName: repoData.full_name,
+          description: repoData.description,
+          stars: repoData.stargazers_count,
+          forks: repoData.forks_count,
+          openIssues: repoData.open_issues_count,
+          defaultBranch: repoData.default_branch,
+          lastUpdate: repoData.updated_at,
+          owner: {
+            login: repoData.owner.login,
+            avatarUrl: repoData.owner.avatar_url,
+          },
+        };
+      }
+
+      // Get build info from environment variables or config
+      const buildInfo = {
+        buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString(),
+        buildNumber: process.env.NEXT_PUBLIC_BUILD_NUMBER || 'development',
+        environment: process.env.NEXT_PUBLIC_ENV || 'development',
+      };
+
+      setWebAppInfo({
+        ...appData,
+        ...buildInfo,
+        gitInfo,
+        repoInfo,
+      });
     } catch (error) {
       console.error('Failed to fetch webapp info:', error);
       toast.error('Failed to fetch webapp information');
@@ -895,6 +963,27 @@ export default function DebugTab() {
                 <span className="text-bolt-elements-textSecondary">Node Version: </span>
                 <span className="text-bolt-elements-textPrimary">{webAppInfo.nodeVersion}</span>
               </div>
+              {webAppInfo.buildTime && (
+                <div className="text-sm flex items-center gap-2">
+                  <div className="i-ph:calendar text-bolt-elements-textSecondary w-4 h-4" />
+                  <span className="text-bolt-elements-textSecondary">Build Time: </span>
+                  <span className="text-bolt-elements-textPrimary">{webAppInfo.buildTime}</span>
+                </div>
+              )}
+              {webAppInfo.buildNumber && (
+                <div className="text-sm flex items-center gap-2">
+                  <div className="i-ph:hash text-bolt-elements-textSecondary w-4 h-4" />
+                  <span className="text-bolt-elements-textSecondary">Build Number: </span>
+                  <span className="text-bolt-elements-textPrimary">{webAppInfo.buildNumber}</span>
+                </div>
+              )}
+              {webAppInfo.environment && (
+                <div className="text-sm flex items-center gap-2">
+                  <div className="i-ph:cloud text-bolt-elements-textSecondary w-4 h-4" />
+                  <span className="text-bolt-elements-textSecondary">Environment: </span>
+                  <span className="text-bolt-elements-textPrimary">{webAppInfo.environment}</span>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <div className="text-sm">
@@ -912,6 +1001,71 @@ export default function DebugTab() {
                     ))}
                 </div>
               </div>
+              {webAppInfo.gitInfo && (
+                <div className="text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:git-branch text-bolt-elements-textSecondary w-4 h-4" />
+                    <span className="text-bolt-elements-textSecondary">Git Info:</span>
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Branch: {webAppInfo.gitInfo.branch}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Commit: {webAppInfo.gitInfo.commit}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Commit Time: {webAppInfo.gitInfo.commitTime}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Author: {webAppInfo.gitInfo.author}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Remote URL: {webAppInfo.gitInfo.remoteUrl}
+                    </div>
+                  </div>
+                </div>
+              )}
+              {webAppInfo.repoInfo && (
+                <div className="text-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="i-ph:github text-bolt-elements-textSecondary w-4 h-4" />
+                    <span className="text-bolt-elements-textSecondary">GitHub Repository:</span>
+                  </div>
+                  <div className="pl-6 space-y-1">
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Name: {webAppInfo.repoInfo.name}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Full Name: {webAppInfo.repoInfo.fullName}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Description: {webAppInfo.repoInfo.description}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Stars: {webAppInfo.repoInfo.stars}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Forks: {webAppInfo.repoInfo.forks}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Open Issues: {webAppInfo.repoInfo.openIssues}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Default Branch: {webAppInfo.repoInfo.defaultBranch}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Last Update: {webAppInfo.repoInfo.lastUpdate}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Owner: {webAppInfo.repoInfo.owner.login}
+                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">
+                      Avatar URL: {webAppInfo.repoInfo.owner.avatarUrl}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (

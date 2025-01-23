@@ -67,6 +67,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "@remix-run/cloudflare": "^2.15.0",
     "@remix-run/cloudflare-pages": "^2.15.0",
+    "@remix-run/node": "^2.15.2",
     "@remix-run/react": "^2.15.0",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
     "@unocss/reset": "^0.61.9",
