@@ -75,13 +75,13 @@ export default function ConnectionsTab() {
 
       if (!reposResponse.ok) throw new Error('Failed to fetch repositories');
 
-      const repos = await reposResponse.json() as GitHubRepoInfo[];
+      const repos = (await reposResponse.json()) as GitHubRepoInfo[];
 
       // Calculate total stats
       const totalStars = repos.reduce((acc, repo) => acc + repo.stargazers_count, 0);
       const totalForks = repos.reduce((acc, repo) => acc + repo.forks_count, 0);
 
-      setConnection(prev => ({
+      setConnection((prev) => ({
         ...prev,
         stats: {
           repos,
@@ -89,7 +89,6 @@ export default function ConnectionsTab() {
           totalForks,
         },
       }));
-
     } catch (error) {
       logStore.logError('Failed to fetch GitHub stats', { error });
       toast.error('Failed to fetch GitHub statistics');
@@ -110,7 +109,7 @@ export default function ConnectionsTab() {
 
       if (!response.ok) throw new Error('Invalid token or unauthorized');
 
-      const data = await response.json() as GitHubUserResponse;
+      const data = (await response.json()) as GitHubUserResponse;
       const newConnection = { user: data, token };
 
       // Save connection
@@ -290,9 +289,7 @@ export default function ConnectionsTab() {
                   </div>
                 </div>
 
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">
-                  Recent Repositories
-                </h4>
+                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Repositories</h4>
                 <div className="space-y-3">
                   {connection.stats.repos.map((repo) => (
                     <a
@@ -304,13 +301,9 @@ export default function ConnectionsTab() {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="text-sm font-medium text-bolt-elements-textPrimary">
-                            {repo.name}
-                          </h5>
+                          <h5 className="text-sm font-medium text-bolt-elements-textPrimary">{repo.name}</h5>
                           {repo.description && (
-                            <p className="text-xs text-bolt-elements-textSecondary mt-1">
-                              {repo.description}
-                            </p>
+                            <p className="text-xs text-bolt-elements-textSecondary mt-1">{repo.description}</p>
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
