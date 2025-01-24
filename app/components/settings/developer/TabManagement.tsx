@@ -37,7 +37,7 @@ const TabGroup = ({ title, description, tabs, onVisibilityChange, targetWindow }
   const hiddenTabs = tabs.filter((tab) => !tab.visible).sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
-    <div className="mb-8 rounded-xl bg-white/5 p-6 backdrop-blur-sm dark:bg-gray-800/30">
+    <div className="mb-8 rounded-xl bg-white/5 p-6 dark:bg-gray-800/30">
       <div className="mb-6">
         <h3 className="flex items-center gap-2 text-lg font-medium text-gray-900 dark:text-white">
           <span className="i-ph:layout-fill h-5 w-5 text-purple-500" />

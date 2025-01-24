@@ -1,7 +1,7 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { classNames } from '~/utils/classNames';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { Switch } from '~/components/ui/Switch';
@@ -9,7 +9,6 @@ import type { TabType, TabVisibilityConfig } from '~/components/settings/setting
 import { TAB_LABELS } from '~/components/settings/settings.types';
 import { DeveloperWindow } from '~/components/settings/developer/DeveloperWindow';
 import { TabTile } from '~/components/settings/shared/TabTile';
-import { tabConfigurationStore, updateTabConfiguration } from '~/lib/stores/settings';
 import { useStore } from '@nanostores/react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -30,6 +29,13 @@ import { useDebugStatus } from '~/lib/hooks/useDebugStatus';
 import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
 import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
 import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
+import {
+  tabConfigurationStore,
+  resetTabConfiguration,
+  updateTabConfiguration,
+  developerModeStore,
+  setDeveloperMode,
+} from '~/lib/stores/settings';
 
 interface DraggableTabTileProps {
   tab: TabVisibilityConfig;
@@ -89,8 +95,14 @@ const DraggableTabTile = ({
     },
   });
 
+  const dragDropRef = (node: HTMLDivElement | null) => {
+    if (node) {
+      drag(drop(node));
+    }
+  };
+
   return (
-    <div ref={(node) => drag(drop(node))} style={{ opacity: isDragging ? 0.5 : 1 }}>
+    <div ref={dragDropRef} style={{ opacity: isDragging ? 0.5 : 1 }}>
       <TabTile
         tab={tab}
         onClick={onClick}
@@ -110,10 +122,15 @@ interface UsersWindowProps {
 }
 
 export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
-  const [developerMode, setDeveloperMode] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
   const tabConfiguration = useStore(tabConfigurationStore);
+  const developerMode = useStore(developerModeStore);
+  const [showDeveloperWindow, setShowDeveloperWindow] = useState(false);
+  const [profile, setProfile] = useState(() => {
+    const saved = localStorage.getItem('bolt_user_profile');
+    return saved ? JSON.parse(saved) : { avatar: null, notifications: true };
+  });
 
   // Status hooks
   const { hasUpdate, currentVersion, acknowledgeUpdate } = useUpdateCheck();
@@ -122,11 +139,7 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
   const { hasConnectionIssues, currentIssue, acknowledgeIssue } = useConnectionStatus();
   const { hasActiveWarnings, activeIssues, acknowledgeAllIssues } = useDebugStatus();
 
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('bolt_user_profile');
-    return saved ? JSON.parse(saved) : { avatar: null, notifications: true };
-  });
-
+  // Listen for profile changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'bolt_user_profile') {
@@ -140,8 +153,66 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Listen for settings toggle event
+  useEffect(() => {
+    const handleToggleSettings = () => {
+      if (!open) {
+        // Open settings panel
+        setActiveTab('settings');
+        onClose(); // Close any other open panels
+      }
+    };
+
+    document.addEventListener('toggle-settings', handleToggleSettings);
+
+    return () => document.removeEventListener('toggle-settings', handleToggleSettings);
+  }, [open, onClose]);
+
+  // Ensure tab configuration is properly initialized
+  useEffect(() => {
+    if (!tabConfiguration || !tabConfiguration.userTabs || !tabConfiguration.developerTabs) {
+      console.warn('Tab configuration is invalid, resetting to defaults');
+      resetTabConfiguration();
+    } else {
+      // Validate tab configuration structure
+      const isValid =
+        tabConfiguration.userTabs.every(
+          (tab) =>
+            tab &&
+            typeof tab.id === 'string' &&
+            typeof tab.visible === 'boolean' &&
+            typeof tab.window === 'string' &&
+            typeof tab.order === 'number',
+        ) &&
+        tabConfiguration.developerTabs.every(
+          (tab) =>
+            tab &&
+            typeof tab.id === 'string' &&
+            typeof tab.visible === 'boolean' &&
+            typeof tab.window === 'string' &&
+            typeof tab.order === 'number',
+        );
+
+      if (!isValid) {
+        console.warn('Tab configuration is malformed, resetting to defaults');
+        resetTabConfiguration();
+      }
+    }
+  }, [tabConfiguration]);
+
+  // Handle developer mode changes
   const handleDeveloperModeChange = (checked: boolean) => {
     setDeveloperMode(checked);
+
+    if (checked) {
+      setShowDeveloperWindow(true);
+    }
+  };
+
+  // Handle developer window close
+  const handleDeveloperWindowClose = () => {
+    setShowDeveloperWindow(false);
+    setDeveloperMode(false);
   };
 
   const handleBack = () => {
@@ -149,20 +220,54 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
   };
 
   // Only show tabs that are assigned to the user window AND are visible
-  const visibleUserTabs = tabConfiguration.userTabs
-    .filter((tab) => {
-      // Hide notifications tab if notifications are disabled
-      if (tab.id === 'notifications' && !profile.notifications) {
-        return false;
-      }
+  const visibleUserTabs = useMemo(() => {
+    console.log('Filtering user tabs with configuration:', tabConfiguration);
 
-      return tab.visible;
-    })
-    .sort((a: TabVisibilityConfig, b: TabVisibilityConfig) => (a.order || 0) - (b.order || 0));
+    if (!tabConfiguration?.userTabs || !Array.isArray(tabConfiguration.userTabs)) {
+      console.warn('Invalid tab configuration, using empty array');
+      return [];
+    }
+
+    return tabConfiguration.userTabs
+      .filter((tab) => {
+        if (!tab || typeof tab.id !== 'string') {
+          console.warn('Invalid tab entry:', tab);
+          return false;
+        }
+
+        // Hide notifications tab if notifications are disabled
+        if (tab.id === 'notifications' && !profile.notifications) {
+          console.log('Hiding notifications tab due to disabled notifications');
+          return false;
+        }
+
+        // Ensure the tab has the required properties
+        if (typeof tab.visible !== 'boolean' || typeof tab.window !== 'string' || typeof tab.order !== 'number') {
+          console.warn('Tab missing required properties:', tab);
+          return false;
+        }
+
+        // Only show tabs that are explicitly visible and assigned to the user window
+        const isVisible = tab.visible && tab.window === 'user';
+        console.log(`Tab ${tab.id} visibility:`, isVisible);
+
+        return isVisible;
+      })
+      .sort((a: TabVisibilityConfig, b: TabVisibilityConfig) => {
+        const orderA = typeof a.order === 'number' ? a.order : 0;
+        const orderB = typeof b.order === 'number' ? b.order : 0;
+
+        return orderA - orderB;
+      });
+  }, [tabConfiguration, profile.notifications]);
+
+  console.log('Filtered visible user tabs:', visibleUserTabs);
 
   const moveTab = (dragIndex: number, hoverIndex: number) => {
     const draggedTab = visibleUserTabs[dragIndex];
     const targetTab = visibleUserTabs[hoverIndex];
+
+    console.log('Moving tab:', { draggedTab, targetTab });
 
     // Update the order of the dragged and target tabs
     const updatedDraggedTab = { ...draggedTab, order: targetTab.order };
@@ -310,7 +415,7 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
             className="data-[state=checked]:bg-purple-500"
             aria-label="Toggle developer mode"
           />
-          <label className="text-sm text-gray-500 dark:text-gray-400">Developer Mode</label>
+          <label className="text-sm text-gray-500 dark:text-gray-400">Switch to Developer Mode</label>
         </div>
 
         <DropdownMenu.Root>
@@ -412,9 +517,9 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
 
   return (
     <>
-      <DeveloperWindow open={developerMode} onClose={() => setDeveloperMode(false)} />
+      <DeveloperWindow open={showDeveloperWindow} onClose={handleDeveloperWindowClose} />
       <DndProvider backend={HTML5Backend}>
-        <RadixDialog.Root open={open}>
+        <RadixDialog.Root open={open && !showDeveloperWindow}>
           <RadixDialog.Portal>
             <div className="fixed inset-0 flex items-center justify-center z-[50]">
               <RadixDialog.Overlay asChild>

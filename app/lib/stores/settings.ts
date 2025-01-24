@@ -5,6 +5,8 @@ import type { IProviderConfig } from '~/types/model';
 import type { TabVisibilityConfig, TabWindowConfig } from '~/components/settings/settings.types';
 import { DEFAULT_TAB_CONFIG } from '~/components/settings/settings.types';
 import Cookies from 'js-cookie';
+import { toggleTheme } from './theme';
+import { chatStore } from './chat';
 
 export interface Shortcut {
   key: string;
@@ -18,6 +20,9 @@ export interface Shortcut {
 
 export interface Shortcuts {
   toggleTerminal: Shortcut;
+  toggleTheme: Shortcut;
+  toggleChat: Shortcut;
+  toggleSettings: Shortcut;
 }
 
 export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
@@ -30,6 +35,25 @@ export const shortcutsStore = map<Shortcuts>({
     key: 'j',
     ctrlOrMetaKey: true,
     action: () => workbenchStore.toggleTerminal(),
+  },
+  toggleTheme: {
+    key: 't',
+    ctrlOrMetaKey: true,
+    shiftKey: true,
+    action: () => toggleTheme(),
+  },
+  toggleChat: {
+    key: '/',
+    ctrlOrMetaKey: true,
+    action: () => chatStore.setKey('showChat', !chatStore.get().showChat),
+  },
+  toggleSettings: {
+    key: ',',
+    ctrlOrMetaKey: true,
+    action: () => {
+      // This will be connected to the settings panel toggle
+      document.dispatchEvent(new CustomEvent('toggle-settings'));
+    },
   },
 });
 
@@ -70,18 +94,69 @@ export const enableContextOptimizationStore = atom(false);
 
 // Initialize tab configuration from cookie or default
 const savedTabConfig = Cookies.get('tabConfiguration');
-const initialTabConfig: TabWindowConfig = savedTabConfig
-  ? JSON.parse(savedTabConfig)
-  : {
+console.log('Saved tab configuration:', savedTabConfig);
+
+let initialTabConfig: TabWindowConfig;
+
+try {
+  if (savedTabConfig) {
+    const parsedConfig = JSON.parse(savedTabConfig);
+
+    // Validate the parsed configuration
+    if (
+      parsedConfig &&
+      Array.isArray(parsedConfig.userTabs) &&
+      Array.isArray(parsedConfig.developerTabs) &&
+      parsedConfig.userTabs.every(
+        (tab: any) =>
+          tab &&
+          typeof tab.id === 'string' &&
+          typeof tab.visible === 'boolean' &&
+          typeof tab.window === 'string' &&
+          typeof tab.order === 'number',
+      ) &&
+      parsedConfig.developerTabs.every(
+        (tab: any) =>
+          tab &&
+          typeof tab.id === 'string' &&
+          typeof tab.visible === 'boolean' &&
+          typeof tab.window === 'string' &&
+          typeof tab.order === 'number',
+      )
+    ) {
+      initialTabConfig = parsedConfig;
+      console.log('Using saved tab configuration');
+    } else {
+      console.warn('Invalid saved tab configuration, using defaults');
+      initialTabConfig = {
+        userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
+        developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
+      };
+    }
+  } else {
+    console.log('No saved tab configuration found, using defaults');
+    initialTabConfig = {
       userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
       developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
     };
+  }
+} catch (error) {
+  console.error('Error loading tab configuration:', error);
+  initialTabConfig = {
+    userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
+    developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
+  };
+}
+
+console.log('Initial tab configuration:', initialTabConfig);
 
 export const tabConfigurationStore = map<TabWindowConfig>(initialTabConfig);
 
 // Helper function to update tab configuration
 export const updateTabConfiguration = (config: TabVisibilityConfig) => {
   const currentConfig = tabConfigurationStore.get();
+  console.log('Current tab configuration before update:', currentConfig);
+
   const isUserTab = config.window === 'user';
   const targetArray = isUserTab ? 'userTabs' : 'developerTabs';
 
@@ -99,16 +174,38 @@ export const updateTabConfiguration = (config: TabVisibilityConfig) => {
     [targetArray]: updatedTabs,
   };
 
+  console.log('New tab configuration after update:', newConfig);
+
   tabConfigurationStore.set(newConfig);
-  Cookies.set('tabConfiguration', JSON.stringify(newConfig));
+  Cookies.set('tabConfiguration', JSON.stringify(newConfig), {
+    expires: 365, // Set cookie to expire in 1 year
+    path: '/',
+    sameSite: 'strict',
+  });
 };
 
 // Helper function to reset tab configuration
 export const resetTabConfiguration = () => {
+  console.log('Resetting tab configuration to defaults');
+
   const defaultConfig: TabWindowConfig = {
     userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
     developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
   };
+
+  console.log('Default tab configuration:', defaultConfig);
+
   tabConfigurationStore.set(defaultConfig);
-  Cookies.set('tabConfiguration', JSON.stringify(defaultConfig));
+  Cookies.set('tabConfiguration', JSON.stringify(defaultConfig), {
+    expires: 365, // Set cookie to expire in 1 year
+    path: '/',
+    sameSite: 'strict',
+  });
+};
+
+// Developer mode store
+export const developerModeStore = atom<boolean>(false);
+
+export const setDeveloperMode = (value: boolean) => {
+  developerModeStore.set(value);
 };

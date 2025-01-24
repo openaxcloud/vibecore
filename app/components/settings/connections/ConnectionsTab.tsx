@@ -35,6 +35,7 @@ interface GitHubStats {
 interface GitHubConnection {
   user: GitHubUserResponse | null;
   token: string;
+  tokenType: 'classic' | 'fine-grained';
   stats?: GitHubStats;
 }
 
@@ -42,6 +43,7 @@ export default function ConnectionsTab() {
   const [connection, setConnection] = useState<GitHubConnection>({
     user: null,
     token: '',
+    tokenType: 'classic',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -53,7 +55,14 @@ export default function ConnectionsTab() {
 
     if (savedConnection) {
       const parsed = JSON.parse(savedConnection);
+
+      // Ensure backward compatibility with existing connections
+      if (!parsed.tokenType) {
+        parsed.tokenType = 'classic';
+      }
+
       setConnection(parsed);
+
       if (parsed.user && parsed.token) {
         fetchGitHubStats(parsed.token);
       }
@@ -73,7 +82,9 @@ export default function ConnectionsTab() {
         },
       });
 
-      if (!reposResponse.ok) throw new Error('Failed to fetch repositories');
+      if (!reposResponse.ok) {
+        throw new Error('Failed to fetch repositories');
+      }
 
       const repos = (await reposResponse.json()) as GitHubRepoInfo[];
 
@@ -107,10 +118,16 @@ export default function ConnectionsTab() {
         },
       });
 
-      if (!response.ok) throw new Error('Invalid token or unauthorized');
+      if (!response.ok) {
+        throw new Error('Invalid token or unauthorized');
+      }
 
       const data = (await response.json()) as GitHubUserResponse;
-      const newConnection = { user: data, token };
+      const newConnection: GitHubConnection = {
+        user: data,
+        token,
+        tokenType: connection.tokenType,
+      };
 
       // Save connection
       localStorage.setItem('github_connection', JSON.stringify(newConnection));
@@ -123,7 +140,7 @@ export default function ConnectionsTab() {
     } catch (error) {
       logStore.logError('Failed to authenticate with GitHub', { error });
       toast.error('Failed to connect to GitHub');
-      setConnection({ user: null, token: '' });
+      setConnection({ user: null, token: '', tokenType: 'classic' });
     } finally {
       setIsConnecting(false);
     }
@@ -136,11 +153,13 @@ export default function ConnectionsTab() {
 
   const handleDisconnect = () => {
     localStorage.removeItem('github_connection');
-    setConnection({ user: null, token: '' });
+    setConnection({ user: null, token: '', tokenType: 'classic' });
     toast.success('Disconnected from GitHub');
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="space-y-4">
@@ -174,31 +193,37 @@ export default function ConnectionsTab() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-bolt-elements-textSecondary mb-2">GitHub Username</label>
-                <input
-                  type="text"
-                  value={connection.user?.login || ''}
-                  disabled={true}
-                  placeholder="Not connected"
+                <label className="block text-sm text-bolt-elements-textSecondary mb-2">Token Type</label>
+                <select
+                  value={connection.tokenType}
+                  onChange={(e) =>
+                    setConnection((prev) => ({ ...prev, tokenType: e.target.value as 'classic' | 'fine-grained' }))
+                  }
+                  disabled={isConnecting || !!connection.user}
                   className={classNames(
                     'w-full px-3 py-2 rounded-lg text-sm',
                     'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
                     'border border-[#E5E5E5] dark:border-[#333333]',
-                    'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
+                    'text-bolt-elements-textPrimary',
                     'focus:outline-none focus:ring-1 focus:ring-purple-500',
                     'disabled:opacity-50',
                   )}
-                />
+                >
+                  <option value="classic">Personal Access Token (Classic)</option>
+                  <option value="fine-grained">Fine-grained Token</option>
+                </select>
               </div>
 
               <div>
-                <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
+                <label className="block text-sm text-bolt-elements-textSecondary mb-2">
+                  {connection.tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
+                </label>
                 <input
                   type="password"
                   value={connection.token}
                   onChange={(e) => setConnection((prev) => ({ ...prev, token: e.target.value }))}
                   disabled={isConnecting || !!connection.user}
-                  placeholder="Enter your GitHub token"
+                  placeholder={`Enter your GitHub ${connection.tokenType === 'classic' ? 'personal access token' : 'fine-grained token'}`}
                   className={classNames(
                     'w-full px-3 py-2 rounded-lg text-sm',
                     'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
@@ -257,69 +282,49 @@ export default function ConnectionsTab() {
               )}
             </div>
 
-            {connection.user && connection.stats && (
-              <div className="mt-6 border-t border-[#E5E5E5] dark:border-[#1A1A1A] pt-6">
-                <div className="flex items-center gap-4 mb-6">
+            {connection.user && (
+              <div className="p-4 bg-[#F8F8F8] dark:bg-[#1A1A1A] rounded-lg">
+                <div className="flex items-center gap-4">
                   <img
                     src={connection.user.avatar_url}
                     alt={connection.user.login}
-                    className="w-16 h-16 rounded-full"
+                    className="w-12 h-12 rounded-full"
                   />
                   <div>
-                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
-                      {connection.user.name || connection.user.login}
-                    </h3>
-                    {connection.user.bio && (
-                      <p className="text-sm text-bolt-elements-textSecondary">{connection.user.bio}</p>
-                    )}
-                    <div className="flex gap-4 mt-2 text-sm text-bolt-elements-textSecondary">
-                      <span className="flex items-center gap-1">
-                        <div className="i-ph:users w-4 h-4" />
-                        {connection.user.followers} followers
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="i-ph:star w-4 h-4" />
-                        {connection.stats.totalStars} stars
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <div className="i-ph:git-fork w-4 h-4" />
-                        {connection.stats.totalForks} forks
-                      </span>
-                    </div>
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{connection.user.name}</h4>
+                    <p className="text-sm text-bolt-elements-textSecondary">@{connection.user.login}</p>
                   </div>
                 </div>
 
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Repositories</h4>
-                <div className="space-y-3">
-                  {connection.stats.repos.map((repo) => (
-                    <a
-                      key={repo.full_name}
-                      href={repo.html_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] hover:bg-[#F0F0F0] dark:hover:bg-[#252525] transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="text-sm font-medium text-bolt-elements-textPrimary">{repo.name}</h5>
-                          {repo.description && (
-                            <p className="text-xs text-bolt-elements-textSecondary mt-1">{repo.description}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-                          <span className="flex items-center gap-1">
-                            <div className="i-ph:star w-3 h-3" />
-                            {repo.stargazers_count}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <div className="i-ph:git-fork w-3 h-3" />
-                            {repo.forks_count}
-                          </span>
-                        </div>
+                {isFetchingStats ? (
+                  <div className="mt-4 flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
+                    <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+                    Fetching GitHub stats...
+                  </div>
+                ) : (
+                  connection.stats && (
+                    <div className="mt-4 grid grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-sm text-bolt-elements-textSecondary">Public Repos</p>
+                        <p className="text-lg font-medium text-bolt-elements-textPrimary">
+                          {connection.user.public_repos}
+                        </p>
                       </div>
-                    </a>
-                  ))}
-                </div>
+                      <div>
+                        <p className="text-sm text-bolt-elements-textSecondary">Total Stars</p>
+                        <p className="text-lg font-medium text-bolt-elements-textPrimary">
+                          {connection.stats.totalStars}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-bolt-elements-textSecondary">Total Forks</p>
+                        <p className="text-lg font-medium text-bolt-elements-textPrimary">
+                          {connection.stats.totalForks}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>

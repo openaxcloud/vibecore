@@ -36,7 +36,7 @@ const DraggableTabItem = ({
   onWindowChange,
   onVisibilityChange,
 }: DraggableTabItemProps) => {
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, dragRef] = useDrag({
     type: 'tab',
     item: { type: 'tab', index, id: tab.id },
     collect: (monitor) => ({
@@ -44,7 +44,7 @@ const DraggableTabItem = ({
     }),
   });
 
-  const [, drop] = useDrop({
+  const [, dropRef] = useDrop({
     accept: 'tab',
     hover: (item: DragItem, monitor) => {
       if (!monitor.isOver({ shallow: true })) {
@@ -64,9 +64,14 @@ const DraggableTabItem = ({
     },
   });
 
+  const ref = (node: HTMLDivElement | null) => {
+    dragRef(node);
+    dropRef(node);
+  };
+
   return (
     <motion.div
-      ref={(node) => drag(drop(node))}
+      ref={ref}
       initial={false}
       animate={{
         scale: isDragging ? 1.02 : 1,

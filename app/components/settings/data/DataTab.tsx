@@ -305,9 +305,9 @@ export default function DataTab() {
       >
         <div className="flex items-center gap-2 mb-2">
           <div className="i-ph:chat-circle-duotone w-5 h-5 text-purple-500" />
-          <h3 className="text-lg font-medium">Chat History</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Chat History</h3>
         </div>
-        <p className="text-sm text-bolt-elements-textSecondary mb-4">Export or delete all your chat history.</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Export or delete all your chat history.</p>
         <div className="flex gap-4">
           <motion.button
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500 text-white text-sm hover:bg-purple-600"
@@ -339,9 +339,9 @@ export default function DataTab() {
       >
         <div className="flex items-center gap-2 mb-2">
           <div className="i-ph:gear-duotone w-5 h-5 text-purple-500" />
-          <h3 className="text-lg font-medium">Settings Backup</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Settings Backup</h3>
         </div>
-        <p className="text-sm text-bolt-elements-textSecondary mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Export your settings to a JSON file or import settings from a previously exported file.
         </p>
         <div className="flex gap-4">
@@ -364,7 +364,7 @@ export default function DataTab() {
             Import Settings
           </motion.button>
           <motion.button
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-50 text-yellow-600 text-sm hover:bg-yellow-100 dark:bg-yellow-500/10 dark:hover:bg-yellow-500/20"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-50 text-yellow-600 text-sm hover:bg-yellow-100 dark:bg-yellow-500/10 dark:hover:bg-yellow-500/20 dark:text-yellow-500"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setShowResetInlineConfirm(true)}
@@ -384,9 +384,9 @@ export default function DataTab() {
       >
         <div className="flex items-center gap-2 mb-2">
           <div className="i-ph:key-duotone w-5 h-5 text-purple-500" />
-          <h3 className="text-lg font-medium">API Keys Management</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">API Keys Management</h3>
         </div>
-        <p className="text-sm text-bolt-elements-textSecondary mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
           Import API keys from a JSON file or download a template to fill in your keys.
         </p>
         <div className="flex gap-4">
@@ -405,7 +405,7 @@ export default function DataTab() {
             disabled={isDownloadingTemplate}
           >
             {isDownloadingTemplate ? (
-              <div className="i-ph:spinner-gap-bold animate-spin" />
+              <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
             ) : (
               <div className="i-ph:download-simple w-4 h-4" />
             )}

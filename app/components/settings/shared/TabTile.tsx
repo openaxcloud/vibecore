@@ -55,7 +55,7 @@ export const TabTile = ({
               'border border-[#E5E5E5]/50 dark:border-[#333333]/50',
 
               // Shadow and glass effect
-              'shadow-sm backdrop-blur-sm',
+              'shadow-sm',
               'dark:shadow-[0_0_15px_rgba(0,0,0,0.1)]',
               'dark:bg-opacity-50',
 

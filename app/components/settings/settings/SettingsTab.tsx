@@ -6,6 +6,8 @@ import { Switch } from '~/components/ui/Switch';
 import { themeStore, kTheme } from '~/lib/stores/theme';
 import type { UserProfile } from '~/components/settings/settings.types';
 import { settingsStyles } from '~/components/settings/settings.styles';
+import { useStore } from '@nanostores/react';
+import { shortcutsStore } from '~/lib/stores/settings';
 
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
@@ -210,6 +212,39 @@ export default function SettingsTab() {
           >
             <option value={currentTimezone}>{currentTimezone}</option>
           </select>
+        </div>
+      </motion.div>
+
+      {/* Keyboard Shortcuts */}
+      <motion.div
+        className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="i-ph:keyboard-fill w-4 h-4 text-purple-500" />
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Keyboard Shortcuts</span>
+        </div>
+
+        <div className="space-y-2">
+          {Object.entries(useStore(shortcutsStore)).map(([name, shortcut]) => (
+            <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]">
+              <span className="text-sm text-bolt-elements-textPrimary capitalize">
+                {name.replace(/([A-Z])/g, ' $1').toLowerCase()}
+              </span>
+              <div className="flex items-center gap-1">
+                {shortcut.ctrlOrMetaKey && (
+                  <kbd className="kdb">{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>
+                )}
+                {shortcut.ctrlKey && <kbd className="kdb">Ctrl</kbd>}
+                {shortcut.metaKey && <kbd className="kdb">⌘</kbd>}
+                {shortcut.shiftKey && <kbd className="kdb">⇧</kbd>}
+                {shortcut.altKey && <kbd className="kdb">⌥</kbd>}
+                <kbd className="kdb">{shortcut.key.toUpperCase()}</kbd>
+              </div>
+            </div>
+          ))}
         </div>
       </motion.div>
     </div>

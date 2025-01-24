@@ -10,8 +10,6 @@ import { settingsStyles } from '~/components/settings/settings.styles';
 import { toast } from 'react-toastify';
 import { BsBox, BsCodeSquare, BsRobot } from 'react-icons/bs';
 import type { IconType } from 'react-icons';
-import OllamaModelUpdater from './OllamaModelUpdater';
-import { DialogRoot, Dialog } from '~/components/ui/Dialog';
 import { BiChip } from 'react-icons/bi';
 import { TbBrandOpenai } from 'react-icons/tb';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
@@ -33,12 +31,33 @@ const PROVIDER_DESCRIPTIONS: Record<ProviderName, string> = {
   OpenAILike: 'Connect to OpenAI-compatible API endpoints',
 };
 
+interface OllamaModel {
+  name: string;
+  digest: string;
+  size: number;
+  modified_at: string;
+  details?: {
+    family: string;
+    parameter_size: string;
+    quantization_level: string;
+  };
+  status?: 'idle' | 'updating' | 'updated' | 'error' | 'checking';
+  error?: string;
+  newDigest?: string;
+  progress?: {
+    current: number;
+    total: number;
+    status: string;
+  };
+}
+
 const LocalProvidersTab = () => {
   const settings = useSettings();
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<boolean>(false);
-  const [showOllamaUpdater, setShowOllamaUpdater] = useState(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
   // Effect to filter and sort providers
   useEffect(() => {
@@ -46,9 +65,32 @@ const LocalProvidersTab = () => {
       .filter(([key]) => [...LOCAL_PROVIDERS, 'OpenAILike'].includes(key))
       .map(([key, value]) => {
         const provider = value as IProviderConfig;
+        const envKey = providerBaseUrlEnvKeys[key]?.baseUrlKey;
+
+        // Get environment URL safely
+        const envUrl = envKey ? (import.meta.env[envKey] as string | undefined) : undefined;
+
+        console.log(`Checking env URL for ${key}:`, {
+          envKey,
+          envUrl,
+          currentBaseUrl: provider.settings.baseUrl,
+        });
+
+        // If there's an environment URL and no base URL set, update it
+        if (envUrl && !provider.settings.baseUrl) {
+          console.log(`Setting base URL for ${key} from env:`, envUrl);
+          settings.updateProviderSettings(key, {
+            ...provider.settings,
+            baseUrl: envUrl,
+          });
+        }
+
         return {
           name: key,
-          settings: provider.settings,
+          settings: {
+            ...provider.settings,
+            baseUrl: provider.settings.baseUrl || envUrl,
+          },
           staticModels: provider.staticModels || [],
           getDynamicModels: provider.getDynamicModels,
           getApiKeyLink: provider.getApiKeyLink,
@@ -57,15 +99,134 @@ const LocalProvidersTab = () => {
         } as IProviderConfig;
       });
 
-    const sorted = newFilteredProviders.sort((a, b) => a.name.localeCompare(b.name));
+    // Custom sort function to ensure LMStudio appears before OpenAILike
+    const sorted = newFilteredProviders.sort((a, b) => {
+      if (a.name === 'LMStudio') {
+        return -1;
+      }
+
+      if (b.name === 'LMStudio') {
+        return 1;
+      }
+
+      if (a.name === 'OpenAILike') {
+        return 1;
+      }
+
+      if (b.name === 'OpenAILike') {
+        return -1;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
     setFilteredProviders(sorted);
   }, [settings.providers]);
+
+  // Helper function to safely get environment URL
+  const getEnvUrl = (provider: IProviderConfig): string | undefined => {
+    const envKey = providerBaseUrlEnvKeys[provider.name]?.baseUrlKey;
+    return envKey ? (import.meta.env[envKey] as string | undefined) : undefined;
+  };
 
   // Add effect to update category toggle state based on provider states
   useEffect(() => {
     const newCategoryState = filteredProviders.every((p) => p.settings.enabled);
     setCategoryEnabled(newCategoryState);
   }, [filteredProviders]);
+
+  // Fetch Ollama models when enabled
+  useEffect(() => {
+    const ollamaProvider = filteredProviders.find((p) => p.name === 'Ollama');
+
+    if (ollamaProvider?.settings.enabled) {
+      fetchOllamaModels();
+    }
+  }, [filteredProviders]);
+
+  const fetchOllamaModels = async () => {
+    try {
+      setIsLoadingModels(true);
+
+      const response = await fetch('http://127.0.0.1:11434/api/tags');
+      const data = (await response.json()) as { models: OllamaModel[] };
+
+      setOllamaModels(
+        data.models.map((model) => ({
+          ...model,
+          status: 'idle' as const,
+        })),
+      );
+    } catch (error) {
+      console.error('Error fetching Ollama models:', error);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  const updateOllamaModel = async (modelName: string): Promise<{ success: boolean; newDigest?: string }> => {
+    try {
+      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update ${modelName}`);
+      }
+
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error('No response reader available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const text = new TextDecoder().decode(value);
+        const lines = text.split('\n').filter(Boolean);
+
+        for (const line of lines) {
+          const data = JSON.parse(line) as {
+            status: string;
+            completed?: number;
+            total?: number;
+            digest?: string;
+          };
+
+          setOllamaModels((current) =>
+            current.map((m) =>
+              m.name === modelName
+                ? {
+                    ...m,
+                    progress: {
+                      current: data.completed || 0,
+                      total: data.total || 0,
+                      status: data.status,
+                    },
+                    newDigest: data.digest,
+                  }
+                : m,
+            ),
+          );
+        }
+      }
+
+      const updatedResponse = await fetch('http://127.0.0.1:11434/api/tags');
+      const updatedData = (await updatedResponse.json()) as { models: OllamaModel[] };
+      const updatedModel = updatedData.models.find((m) => m.name === modelName);
+
+      return { success: true, newDigest: updatedModel?.digest };
+    } catch (error) {
+      console.error(`Error updating ${modelName}:`, error);
+      return { success: false };
+    }
+  };
 
   const handleToggleCategory = useCallback(
     (enabled: boolean) => {
@@ -106,6 +267,31 @@ const LocalProvidersTab = () => {
     setEditingProvider(null);
   };
 
+  const handleUpdateOllamaModel = async (modelName: string) => {
+    setOllamaModels((current) => current.map((m) => (m.name === modelName ? { ...m, status: 'updating' } : m)));
+
+    const { success, newDigest } = await updateOllamaModel(modelName);
+
+    setOllamaModels((current) =>
+      current.map((m) =>
+        m.name === modelName
+          ? {
+              ...m,
+              status: success ? 'updated' : 'error',
+              error: success ? undefined : 'Update failed',
+              newDigest,
+            }
+          : m,
+      ),
+    );
+
+    if (success) {
+      toast.success(`Updated ${modelName}`);
+    } else {
+      toast.error(`Failed to update ${modelName}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <motion.div
@@ -139,7 +325,7 @@ const LocalProvidersTab = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {filteredProviders.map((provider, index) => (
             <motion.div
               key={provider.name}
@@ -150,6 +336,12 @@ const LocalProvidersTab = () => {
                 'transition-all duration-200',
                 'relative overflow-hidden group',
                 'flex flex-col',
+
+                // Make Ollama span 2 rows
+                provider.name === 'Ollama' ? 'row-span-2' : '',
+
+                // Place Ollama in the second column
+                provider.name === 'Ollama' ? 'col-start-2' : 'col-start-1',
               )}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -253,20 +445,108 @@ const LocalProvidersTab = () => {
                             </div>
                           </div>
                         )}
-                      </div>
 
-                      {providerBaseUrlEnvKeys[provider.name]?.baseUrlKey && (
-                        <div className="mt-2 text-xs text-green-500">
-                          <div className="flex items-center gap-1">
-                            <div className="i-ph:info" />
-                            <span>Environment URL set in .env file</span>
+                        {providerBaseUrlEnvKeys[provider.name]?.baseUrlKey && (
+                          <div className="mt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <div
+                                className={
+                                  getEnvUrl(provider)
+                                    ? 'i-ph:check-circle text-green-500'
+                                    : 'i-ph:warning-circle text-yellow-500'
+                                }
+                              />
+                              <span className={getEnvUrl(provider) ? 'text-green-500' : 'text-yellow-500'}>
+                                {getEnvUrl(provider)
+                                  ? 'Environment URL set in .env.local'
+                                  : 'Environment URL not set in .env.local'}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </div>
               </div>
+
+              {provider.name === 'Ollama' && provider.settings.enabled && (
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="i-ph:cube-duotone text-purple-500" />
+                      <span className="text-sm font-medium text-bolt-elements-textPrimary">Installed Models</span>
+                    </div>
+                    {isLoadingModels ? (
+                      <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
+                        <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
+                        Loading models...
+                      </div>
+                    ) : (
+                      <span className="text-sm text-bolt-elements-textSecondary">
+                        {ollamaModels.length} models available
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    {ollamaModels.map((model) => (
+                      <div
+                        key={model.name}
+                        className="flex items-center justify-between p-2 rounded-lg bg-bolt-elements-background-depth-3"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-bolt-elements-textPrimary">{model.name}</span>
+                            {model.status === 'updating' && (
+                              <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4 text-purple-500" />
+                            )}
+                            {model.status === 'updated' && <div className="i-ph:check-circle text-green-500" />}
+                            {model.status === 'error' && <div className="i-ph:x-circle text-red-500" />}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+                            <span>Version: {model.digest.substring(0, 7)}</span>
+                            {model.status === 'updated' && model.newDigest && (
+                              <>
+                                <div className="i-ph:arrow-right w-3 h-3" />
+                                <span className="text-green-500">{model.newDigest.substring(0, 7)}</span>
+                              </>
+                            )}
+                            {model.progress && (
+                              <span className="ml-2">
+                                {model.progress.status}{' '}
+                                {model.progress.total > 0 && (
+                                  <>({Math.round((model.progress.current / model.progress.total) * 100)}%)</>
+                                )}
+                              </span>
+                            )}
+                            {model.details && (
+                              <span className="ml-2">
+                                ({model.details.parameter_size}, {model.details.quantization_level})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <motion.button
+                          onClick={() => handleUpdateOllamaModel(model.name)}
+                          disabled={model.status === 'updating'}
+                          className={classNames(
+                            settingsStyles.button.base,
+                            settingsStyles.button.secondary,
+                            'hover:bg-purple-500/10 hover:text-purple-500',
+                            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
+                          )}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="i-ph:arrows-clockwise" />
+                          Update
+                        </motion.button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <motion.div
                 className="absolute inset-0 border-2 border-purple-500/0 rounded-lg pointer-events-none"
@@ -276,36 +556,10 @@ const LocalProvidersTab = () => {
                 }}
                 transition={{ duration: 0.2 }}
               />
-
-              {provider.name === 'Ollama' && provider.settings.enabled && (
-                <motion.button
-                  onClick={() => setShowOllamaUpdater(true)}
-                  className={classNames(
-                    settingsStyles.button.base,
-                    settingsStyles.button.secondary,
-                    'ml-2',
-                    'hover:bg-purple-500/10 hover:text-purple-500',
-                    'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
-                  )}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className="i-ph:arrows-clockwise" />
-                  Update Models
-                </motion.button>
-              )}
             </motion.div>
           ))}
         </div>
       </motion.div>
-
-      <DialogRoot open={showOllamaUpdater} onOpenChange={setShowOllamaUpdater}>
-        <Dialog>
-          <div className="p-6">
-            <OllamaModelUpdater />
-          </div>
-        </Dialog>
-      </DialogRoot>
     </div>
   );
 };

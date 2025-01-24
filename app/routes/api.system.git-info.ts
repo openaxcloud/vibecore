@@ -2,7 +2,7 @@ import { json } from '@remix-run/node';
 import type { LoaderFunctionArgs } from '@remix-run/node';
 import { execSync } from 'child_process';
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request: _request }: LoaderFunctionArgs) {
   try {
     const branch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
     const commit = execSync('git rev-parse --short HEAD').toString().trim();

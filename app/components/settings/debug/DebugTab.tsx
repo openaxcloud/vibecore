@@ -92,10 +92,12 @@ interface WebAppInfo {
   nodeVersion: string;
   dependencies: { [key: string]: string };
   devDependencies: { [key: string]: string };
+
   // Build Info
   buildTime?: string;
   buildNumber?: string;
   environment?: string;
+
   // Git Info
   gitInfo?: {
     branch: string;
@@ -104,6 +106,7 @@ interface WebAppInfo {
     author: string;
     remoteUrl: string;
   };
+
   // GitHub Repository Info
   repoInfo?: {
     name: string;
@@ -119,6 +122,39 @@ interface WebAppInfo {
       avatarUrl: string;
     };
   };
+}
+
+interface GitInfo {
+  branch: string;
+  commit: string;
+  commitTime: string;
+  author: string;
+  remoteUrl: string;
+}
+
+interface RepoData {
+  name: string;
+  full_name: string;
+  description: string;
+  stargazers_count: number;
+  forks_count: number;
+  open_issues_count: number;
+  default_branch: string;
+  updated_at: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+interface AppData {
+  name: string;
+  version: string;
+  description: string;
+  license: string;
+  nodeVersion: string;
+  dependencies: { [key: string]: string };
+  devDependencies: { [key: string]: string };
 }
 
 export default function DebugTab() {
@@ -328,23 +364,27 @@ export default function DebugTab() {
 
       // Fetch local app info
       const appInfoResponse = await fetch('/api/system/app-info');
+
       if (!appInfoResponse.ok) {
         throw new Error('Failed to fetch webapp info');
       }
-      const appData = await appInfoResponse.json();
+
+      const appData = (await appInfoResponse.json()) as AppData;
 
       // Fetch git info
       const gitInfoResponse = await fetch('/api/system/git-info');
-      let gitInfo = null;
+      let gitInfo: GitInfo | undefined;
+
       if (gitInfoResponse.ok) {
-        gitInfo = await gitInfoResponse.json();
+        gitInfo = (await gitInfoResponse.json()) as GitInfo;
       }
 
       // Fetch GitHub repository info
       const repoInfoResponse = await fetch('https://api.github.com/repos/stackblitz-labs/bolt.diy');
-      let repoInfo = null;
+      let repoInfo: WebAppInfo['repoInfo'] | undefined;
+
       if (repoInfoResponse.ok) {
-        const repoData = await repoInfoResponse.json();
+        const repoData = (await repoInfoResponse.json()) as RepoData;
         repoInfo = {
           name: repoData.name,
           fullName: repoData.full_name,
@@ -394,21 +434,6 @@ export default function DebugTab() {
     }
 
     return `${Math.round(size)} ${units[unitIndex]}`;
-  };
-
-  const handleLogSystemInfo = () => {
-    if (!systemInfo) {
-      return;
-    }
-
-    logStore.logSystem('System Information', {
-      os: systemInfo.os,
-      arch: systemInfo.arch,
-      cpus: systemInfo.cpus,
-      memory: systemInfo.memory,
-      node: systemInfo.node,
-    });
-    toast.success('System information logged');
   };
 
   const handleLogPerformance = () => {
@@ -626,6 +651,26 @@ export default function DebugTab() {
         </button>
 
         <button
+          onClick={getWebAppInfo}
+          disabled={loading.webAppInfo}
+          className={classNames(
+            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+            'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
+            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
+            'text-bolt-elements-textPrimary dark:hover:text-purple-500',
+            'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
+            { 'opacity-50 cursor-not-allowed': loading.webAppInfo },
+          )}
+        >
+          {loading.webAppInfo ? (
+            <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+          ) : (
+            <div className="i-ph:info w-4 h-4" />
+          )}
+          Fetch WebApp Info
+        </button>
+
+        <button
           onClick={exportDebugInfo}
           className={classNames(
             'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
@@ -640,67 +685,11 @@ export default function DebugTab() {
         </button>
       </div>
 
-      {/* Error Log Display */}
-      {errorLog.errors.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">Error Log</h3>
-          <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-            {errorLog.errors.map((error, index) => (
-              <div key={index} className="mb-4 last:mb-0 p-3 bg-white rounded border border-red-200">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="font-medium">Type:</span> {error.type}
-                  <span className="font-medium ml-4">Time:</span>
-                  {new Date(error.timestamp).toLocaleString()}
-                </div>
-                <div className="mt-2 text-red-600">{error.message}</div>
-                {error.filename && (
-                  <div className="mt-1 text-sm text-gray-500">
-                    File: {error.filename} (Line: {error.lineNumber}, Column: {error.columnNumber})
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* System Information */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="i-ph:cpu text-purple-500 w-5 h-5" />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Information</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLogSystemInfo}
-              className={classNames(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
-                'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
-                'text-bolt-elements-textPrimary dark:hover:text-purple-500',
-                'transition-colors duration-200',
-              )}
-            >
-              <div className="i-ph:note text-bolt-elements-textSecondary w-4 h-4" />
-              Log
-            </button>
-            <button
-              onClick={getSystemInfo}
-              className={classNames(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
-                'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
-                'text-bolt-elements-textPrimary dark:hover:text-purple-500',
-                'transition-colors duration-200',
-                { 'opacity-50 cursor-not-allowed': loading.systemInfo },
-              )}
-              disabled={loading.systemInfo}
-            >
-              <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.systemInfo ? 'animate-spin' : '')} />
-              Refresh
-            </button>
-          </div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="i-ph:cpu text-purple-500 w-5 h-5" />
+          <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Information</h3>
         </div>
         {systemInfo ? (
           <div className="grid grid-cols-2 gap-6">
@@ -826,26 +815,9 @@ export default function DebugTab() {
 
       {/* Performance Metrics */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="i-ph:chart-line text-purple-500 w-5 h-5" />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Performance Metrics</h3>
-          </div>
-          <button
-            onClick={handleLogPerformance}
-            className={classNames(
-              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
-              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
-              { 'opacity-50 cursor-not-allowed': loading.performance },
-            )}
-            disabled={loading.performance}
-          >
-            <div className={classNames('i-ph:note w-4 h-4', loading.performance ? 'animate-spin' : '')} />
-            Log Performance
-          </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="i-ph:chart-line text-purple-500 w-5 h-5" />
+          <h3 className="text-base font-medium text-bolt-elements-textPrimary">Performance Metrics</h3>
         </div>
         {systemInfo && (
           <div className="grid grid-cols-2 gap-4">
@@ -914,26 +886,9 @@ export default function DebugTab() {
 
       {/* WebApp Information */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="i-ph:info text-blue-500 w-5 h-5" />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">WebApp Information</h3>
-          </div>
-          <button
-            onClick={getWebAppInfo}
-            className={classNames(
-              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
-              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
-              { 'opacity-50 cursor-not-allowed': loading.webAppInfo },
-            )}
-            disabled={loading.webAppInfo}
-          >
-            <div className={classNames('i-ph:arrows-clockwise w-4 h-4', loading.webAppInfo ? 'animate-spin' : '')} />
-            Refresh
-          </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="i-ph:info text-blue-500 w-5 h-5" />
+          <h3 className="text-base font-medium text-bolt-elements-textPrimary">WebApp Information</h3>
         </div>
         {webAppInfo ? (
           <div className="grid grid-cols-2 gap-4">
@@ -1008,18 +963,12 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textSecondary">Git Info:</span>
                   </div>
                   <div className="pl-6 space-y-1">
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Branch: {webAppInfo.gitInfo.branch}
-                    </div>
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Commit: {webAppInfo.gitInfo.commit}
-                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Branch: {webAppInfo.gitInfo.branch}</div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Commit: {webAppInfo.gitInfo.commit}</div>
                     <div className="text-xs text-bolt-elements-textPrimary">
                       Commit Time: {webAppInfo.gitInfo.commitTime}
                     </div>
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Author: {webAppInfo.gitInfo.author}
-                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Author: {webAppInfo.gitInfo.author}</div>
                     <div className="text-xs text-bolt-elements-textPrimary">
                       Remote URL: {webAppInfo.gitInfo.remoteUrl}
                     </div>
@@ -1033,21 +982,15 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textSecondary">GitHub Repository:</span>
                   </div>
                   <div className="pl-6 space-y-1">
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Name: {webAppInfo.repoInfo.name}
-                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Name: {webAppInfo.repoInfo.name}</div>
                     <div className="text-xs text-bolt-elements-textPrimary">
                       Full Name: {webAppInfo.repoInfo.fullName}
                     </div>
                     <div className="text-xs text-bolt-elements-textPrimary">
                       Description: {webAppInfo.repoInfo.description}
                     </div>
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Stars: {webAppInfo.repoInfo.stars}
-                    </div>
-                    <div className="text-xs text-bolt-elements-textPrimary">
-                      Forks: {webAppInfo.repoInfo.forks}
-                    </div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Stars: {webAppInfo.repoInfo.stars}</div>
+                    <div className="text-xs text-bolt-elements-textPrimary">Forks: {webAppInfo.repoInfo.forks}</div>
                     <div className="text-xs text-bolt-elements-textPrimary">
                       Open Issues: {webAppInfo.repoInfo.openIssues}
                     </div>
@@ -1077,26 +1020,9 @@ export default function DebugTab() {
 
       {/* Error Check */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="i-ph:warning text-purple-500 w-5 h-5" />
-            <h3 className="text-base font-medium text-bolt-elements-textPrimary">Error Check</h3>
-          </div>
-          <button
-            onClick={checkErrors}
-            className={classNames(
-              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20',
-              'text-bolt-elements-textPrimary dark:hover:text-purple-500',
-              'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-[#0A0A0A]',
-              { 'opacity-50 cursor-not-allowed': loading.errors },
-            )}
-            disabled={loading.errors}
-          >
-            <div className={classNames('i-ph:magnifying-glass w-4 h-4', loading.errors ? 'animate-spin' : '')} />
-            Check for Errors
-          </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="i-ph:warning text-purple-500 w-5 h-5" />
+          <h3 className="text-base font-medium text-bolt-elements-textPrimary">Error Check</h3>
         </div>
         <div className="space-y-4">
           <div className="text-sm text-bolt-elements-textSecondary">

@@ -1,12 +1,18 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { classNames } from '~/utils/classNames';
 import { TabManagement } from './TabManagement';
 import { TabTile } from '~/components/settings/shared/TabTile';
 import { DialogTitle } from '~/components/ui/Dialog';
 import type { TabType, TabVisibilityConfig } from '~/components/settings/settings.types';
-import { tabConfigurationStore, updateTabConfiguration } from '~/lib/stores/settings';
+import {
+  tabConfigurationStore,
+  resetTabConfiguration,
+  updateTabConfiguration,
+  developerModeStore,
+  setDeveloperMode,
+} from '~/lib/stores/settings';
 import { useStore } from '@nanostores/react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -24,6 +30,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
 import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
 import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
+import { Switch } from '~/components/ui/Switch';
 
 interface DraggableTabTileProps {
   tab: TabVisibilityConfig;
@@ -83,8 +90,14 @@ const DraggableTabTile = ({
     },
   });
 
+  const dragDropRef = (node: HTMLDivElement | null) => {
+    if (node) {
+      drag(drop(node));
+    }
+  };
+
   return (
-    <div ref={(node) => drag(drop(node))} style={{ opacity: isDragging ? 0.5 : 1 }}>
+    <div ref={dragDropRef} style={{ opacity: isDragging ? 0.5 : 1 }}>
       <TabTile
         tab={tab}
         onClick={onClick}
@@ -104,14 +117,31 @@ interface DeveloperWindowProps {
 }
 
 export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
-  const tabConfiguration = useStore(tabConfigurationStore);
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
-  const [showTabManagement, setShowTabManagement] = useState(false);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
+  const tabConfiguration = useStore(tabConfigurationStore);
+  const [showTabManagement, setShowTabManagement] = useState(false);
+  const developerMode = useStore(developerModeStore);
   const [profile, setProfile] = useState(() => {
     const saved = localStorage.getItem('bolt_user_profile');
     return saved ? JSON.parse(saved) : { avatar: null, notifications: true };
   });
+
+  // Handle developer mode change
+  const handleDeveloperModeChange = (checked: boolean) => {
+    setDeveloperMode(checked);
+
+    if (!checked) {
+      onClose();
+    }
+  };
+
+  // Ensure developer mode is true when window is opened
+  useEffect(() => {
+    if (open) {
+      setDeveloperMode(true);
+    }
+  }, [open]);
 
   // Listen for profile changes
   useEffect(() => {
@@ -134,6 +164,38 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
   const { hasConnectionIssues, currentIssue, acknowledgeIssue } = useConnectionStatus();
   const { hasActiveWarnings, activeIssues, acknowledgeAllIssues } = useDebugStatus();
 
+  // Ensure tab configuration is properly initialized
+  useEffect(() => {
+    if (!tabConfiguration || !tabConfiguration.userTabs || !tabConfiguration.developerTabs) {
+      console.warn('Tab configuration is invalid in DeveloperWindow, resetting to defaults');
+      resetTabConfiguration();
+    } else {
+      // Validate tab configuration structure
+      const isValid =
+        tabConfiguration.userTabs.every(
+          (tab) =>
+            tab &&
+            typeof tab.id === 'string' &&
+            typeof tab.visible === 'boolean' &&
+            typeof tab.window === 'string' &&
+            typeof tab.order === 'number',
+        ) &&
+        tabConfiguration.developerTabs.every(
+          (tab) =>
+            tab &&
+            typeof tab.id === 'string' &&
+            typeof tab.visible === 'boolean' &&
+            typeof tab.window === 'string' &&
+            typeof tab.order === 'number',
+        );
+
+      if (!isValid) {
+        console.warn('Tab configuration is malformed in DeveloperWindow, resetting to defaults');
+        resetTabConfiguration();
+      }
+    }
+  }, [tabConfiguration]);
+
   const handleBack = () => {
     if (showTabManagement) {
       setShowTabManagement(false);
@@ -143,20 +205,54 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
   };
 
   // Only show tabs that are assigned to the developer window AND are visible
-  const visibleDeveloperTabs = tabConfiguration.developerTabs
-    .filter((tab) => {
-      // Hide notifications tab if notifications are disabled
-      if (tab.id === 'notifications' && !profile.notifications) {
-        return false;
-      }
+  const visibleDeveloperTabs = useMemo(() => {
+    console.log('Filtering developer tabs with configuration:', tabConfiguration);
 
-      return tab.visible;
-    })
-    .sort((a: TabVisibilityConfig, b: TabVisibilityConfig) => (a.order || 0) - (b.order || 0));
+    if (!tabConfiguration?.developerTabs || !Array.isArray(tabConfiguration.developerTabs)) {
+      console.warn('Invalid tab configuration, using empty array');
+      return [];
+    }
+
+    return tabConfiguration.developerTabs
+      .filter((tab) => {
+        if (!tab || typeof tab.id !== 'string') {
+          console.warn('Invalid tab entry:', tab);
+          return false;
+        }
+
+        // Hide notifications tab if notifications are disabled
+        if (tab.id === 'notifications' && !profile.notifications) {
+          console.log('Hiding notifications tab due to disabled notifications');
+          return false;
+        }
+
+        // Ensure the tab has the required properties
+        if (typeof tab.visible !== 'boolean' || typeof tab.window !== 'string' || typeof tab.order !== 'number') {
+          console.warn('Tab missing required properties:', tab);
+          return false;
+        }
+
+        // Only show tabs that are explicitly visible and assigned to the developer window
+        const isVisible = tab.visible && tab.window === 'developer';
+        console.log(`Tab ${tab.id} visibility:`, isVisible);
+
+        return isVisible;
+      })
+      .sort((a: TabVisibilityConfig, b: TabVisibilityConfig) => {
+        const orderA = typeof a.order === 'number' ? a.order : 0;
+        const orderB = typeof b.order === 'number' ? b.order : 0;
+
+        return orderA - orderB;
+      });
+  }, [tabConfiguration, profile.notifications]);
+
+  console.log('Filtered visible developer tabs:', visibleDeveloperTabs);
 
   const moveTab = (dragIndex: number, hoverIndex: number) => {
     const draggedTab = visibleDeveloperTabs[dragIndex];
     const targetTab = visibleDeveloperTabs[hoverIndex];
+
+    console.log('Moving developer tab:', { draggedTab, targetTab });
 
     // Update the order of the dragged and target tabs
     const updatedDraggedTab = { ...draggedTab, order: targetTab.order };
@@ -278,7 +374,10 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
     <DndProvider backend={HTML5Backend}>
       <RadixDialog.Root open={open}>
         <RadixDialog.Portal>
-          <div className="fixed inset-0 flex items-center justify-center z-[60]">
+          <div
+            className="fixed inset-0 flex items-center justify-center z-[60]"
+            style={{ opacity: developerMode ? 1 : 0, transition: 'opacity 0.2s ease-in-out' }}
+          >
             <RadixDialog.Overlay className="fixed inset-0">
               <motion.div
                 className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -299,7 +398,7 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
                   'flex flex-col overflow-hidden',
                 )}
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
+                animate={{ opacity: developerMode ? 1 : 0, scale: developerMode ? 1 : 0.95, y: developerMode ? 0 : 20 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.2 }}
               >
@@ -345,6 +444,16 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
                         </span>
                       </motion.button>
                     )}
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={developerMode}
+                        onCheckedChange={handleDeveloperModeChange}
+                        className="data-[state=checked]:bg-purple-500"
+                        aria-label="Toggle developer mode"
+                      />
+                      <label className="text-sm text-gray-500 dark:text-gray-400">Switch to User Mode</label>
+                    </div>
 
                     <div className="relative">
                       <DropdownMenu.Root>
