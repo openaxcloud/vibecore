@@ -1087,30 +1087,36 @@ export default function DebugTab() {
                         <div className="i-ph:github text-bolt-elements-textSecondary w-4 h-4" />
                         <span className="text-bolt-elements-textSecondary">GitHub Repository:</span>
                       </div>
-                      <div className="pl-6 space-y-1">
-                        <div className="text-xs text-bolt-elements-textPrimary">Name: {webAppInfo.repoInfo.name}</div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Full Name: {webAppInfo.repoInfo.fullName}
+                      <div className="pl-6 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={webAppInfo.repoInfo.owner.avatarUrl}
+                            alt={`${webAppInfo.repoInfo.owner.login}'s avatar`}
+                            className="w-8 h-8 rounded-full border border-[#E5E5E5] dark:border-[#1A1A1A]"
+                          />
+                          <div className="space-y-0.5">
+                            <div className="text-xs text-bolt-elements-textPrimary font-medium">
+                              Owner: {webAppInfo.repoInfo.owner.login}
+                            </div>
+                            <div className="text-xs text-bolt-elements-textSecondary">
+                              Last Update: {new Date(webAppInfo.repoInfo.lastUpdate).toLocaleDateString()}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Description: {webAppInfo.repoInfo.description}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">Stars: {webAppInfo.repoInfo.stars}</div>
-                        <div className="text-xs text-bolt-elements-textPrimary">Forks: {webAppInfo.repoInfo.forks}</div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Open Issues: {webAppInfo.repoInfo.openIssues}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Default Branch: {webAppInfo.repoInfo.defaultBranch}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Last Update: {webAppInfo.repoInfo.lastUpdate}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Owner: {webAppInfo.repoInfo.owner.login}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Avatar URL: {webAppInfo.repoInfo.owner.avatarUrl}
+
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
+                            <div className="i-ph:star text-yellow-500 w-4 h-4" />
+                            {webAppInfo.repoInfo.stars.toLocaleString()} stars
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
+                            <div className="i-ph:git-fork text-blue-500 w-4 h-4" />
+                            {webAppInfo.repoInfo.forks.toLocaleString()} forks
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
+                            <div className="i-ph:warning-circle text-red-500 w-4 h-4" />
+                            {webAppInfo.repoInfo.openIssues.toLocaleString()} issues
+                          </div>
                         </div>
                       </div>
                     </div>
