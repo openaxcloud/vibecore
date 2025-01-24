@@ -103,7 +103,7 @@ export default function ConnectionsTab() {
 
       // Fetch repositories - only owned by the authenticated user
       const reposResponse = await fetch(
-        'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner',
+        'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner,organization_member,collaborator',
         {
           headers: {
             Authorization: `Bearer ${token}`,
