@@ -6,7 +6,7 @@ import type { LogEntry } from '~/lib/stores/logs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/Collapsible';
 import { Progress } from '~/components/ui/Progress';
 import { ScrollArea } from '~/components/ui/ScrollArea';
-import { Badge, type BadgeProps } from '~/components/ui/Badge';
+import { Badge } from '~/components/ui/Badge';
 import { cn } from '~/lib/utils';
 
 interface SystemInfo {
@@ -373,11 +373,13 @@ export default function DebugTab() {
       if (!appInfoResponse.ok) {
         throw new Error('Failed to fetch webapp info');
       }
+
       const appData = (await appInfoResponse.json()) as Record<string, unknown>;
 
       // Fetch git info
       const gitInfoResponse = await fetch('/api/system/git-info');
       let gitInfo: GitInfo | undefined;
+
       if (gitInfoResponse.ok) {
         gitInfo = (await gitInfoResponse.json()) as GitInfo;
       }
@@ -385,6 +387,7 @@ export default function DebugTab() {
       // Fetch GitHub repository info
       const repoInfoResponse = await fetch('https://api.github.com/repos/stackblitz-labs/bolt.diy');
       let repoInfo: WebAppInfo['repoInfo'] | undefined;
+
       if (repoInfoResponse.ok) {
         const repoData = (await repoInfoResponse.json()) as GitHubRepoResponse;
         repoInfo = {

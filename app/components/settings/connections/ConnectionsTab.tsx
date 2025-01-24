@@ -101,12 +101,15 @@ export default function ConnectionsTab() {
     try {
       setIsFetchingStats(true);
 
-      // Fetch repositories
-      const reposResponse = await fetch('https://api.github.com/user/repos?sort=updated&per_page=10', {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      // Fetch repositories - only owned by the authenticated user
+      const reposResponse = await fetch(
+        'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!reposResponse.ok) {
         throw new Error('Failed to fetch repositories');
