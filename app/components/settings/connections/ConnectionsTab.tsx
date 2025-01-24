@@ -327,6 +327,83 @@ export default function ConnectionsTab() {
                 )}
               </div>
             )}
+
+            {connection.user && connection.stats && (
+              <div className="mt-6 border-t border-[#E5E5E5] dark:border-[#1A1A1A] pt-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <img
+                    src={connection.user.avatar_url}
+                    alt={connection.user.login}
+                    className="w-16 h-16 rounded-full"
+                  />
+                  <div>
+                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.user.name || connection.user.login}
+                    </h3>
+                    {connection.user.bio && (
+                      <p className="text-sm text-bolt-elements-textSecondary">{connection.user.bio}</p>
+                    )}
+                    <div className="flex gap-4 mt-2 text-sm text-bolt-elements-textSecondary">
+                      <span className="flex items-center gap-1">
+                        <div className="i-ph:users w-4 h-4" />
+                        {connection.user.followers} followers
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="i-ph:star w-4 h-4" />
+                        {connection.stats.totalStars} stars
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="i-ph:git-fork w-4 h-4" />
+                        {connection.stats.totalForks} forks
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Repositories</h4>
+                <div className="space-y-3">
+                  {connection.stats.repos.map((repo) => (
+                    <a
+                      key={repo.full_name}
+                      href={repo.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] hover:bg-[#F0F0F0] dark:hover:bg-[#252525] transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2">
+                            <div className="i-ph:git-repository w-4 h-4 text-bolt-elements-textSecondary" />
+                            {repo.name}
+                          </h5>
+                          {repo.description && (
+                            <p className="text-xs text-bolt-elements-textSecondary mt-1">{repo.description}</p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
+                            <span className="flex items-center gap-1">
+                              <div className="i-ph:git-branch w-3 h-3" />
+                              {repo.default_branch}
+                            </span>
+                            <span>•</span>
+                            <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
+                          <span className="flex items-center gap-1">
+                            <div className="i-ph:star w-3 h-3" />
+                            {repo.stargazers_count}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <div className="i-ph:git-fork w-3 h-3" />
+                            {repo.forks_count}
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
