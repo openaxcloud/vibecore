@@ -7,6 +7,9 @@ export interface GitHubUserResponse {
   public_repos: number;
   followers: number;
   following: number;
+  public_gists: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface GitHubRepoInfo {
@@ -18,12 +21,45 @@ export interface GitHubRepoInfo {
   forks_count: number;
   default_branch: string;
   updated_at: string;
+  language: string;
+  languages_url: string;
+}
+
+export interface GitHubOrganization {
+  login: string;
+  avatar_url: string;
+  description: string;
+  html_url: string;
+}
+
+export interface GitHubEvent {
+  id: string;
+  type: string;
+  created_at: string;
+  repo: {
+    name: string;
+    url: string;
+  };
+  payload: {
+    action?: string;
+    ref?: string;
+    ref_type?: string;
+    description?: string;
+  };
+}
+
+export interface GitHubLanguageStats {
+  [key: string]: number;
 }
 
 export interface GitHubStats {
   repos: GitHubRepoInfo[];
   totalStars: number;
   totalForks: number;
+  organizations: GitHubOrganization[];
+  recentActivity: GitHubEvent[];
+  languages: GitHubLanguageStats;
+  totalGists: number;
 }
 
 export interface GitHubConnection {

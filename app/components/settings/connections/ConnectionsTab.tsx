@@ -13,6 +13,8 @@ interface GitHubUserResponse {
   public_repos: number;
   followers: number;
   following: number;
+  created_at: string;
+  public_gists: number;
 }
 
 interface GitHubRepoInfo {
@@ -24,12 +26,36 @@ interface GitHubRepoInfo {
   forks_count: number;
   default_branch: string;
   updated_at: string;
+  languages_url: string;
+}
+
+interface GitHubOrganization {
+  login: string;
+  avatar_url: string;
+  html_url: string;
+}
+
+interface GitHubEvent {
+  id: string;
+  type: string;
+  repo: {
+    name: string;
+  };
+  created_at: string;
+}
+
+interface GitHubLanguageStats {
+  [language: string]: number;
 }
 
 interface GitHubStats {
   repos: GitHubRepoInfo[];
   totalStars: number;
   totalForks: number;
+  organizations: GitHubOrganization[];
+  recentActivity: GitHubEvent[];
+  languages: GitHubLanguageStats;
+  totalGists: number;
 }
 
 interface GitHubConnection {
@@ -88,9 +114,54 @@ export default function ConnectionsTab() {
 
       const repos = (await reposResponse.json()) as GitHubRepoInfo[];
 
+      // Fetch organizations
+      const orgsResponse = await fetch('https://api.github.com/user/orgs', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!orgsResponse.ok) {
+        throw new Error('Failed to fetch organizations');
+      }
+
+      const organizations = (await orgsResponse.json()) as GitHubOrganization[];
+
+      // Fetch recent activity
+      const eventsResponse = await fetch('https://api.github.com/users/' + connection.user?.login + '/events/public', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!eventsResponse.ok) {
+        throw new Error('Failed to fetch events');
+      }
+
+      const recentActivity = ((await eventsResponse.json()) as GitHubEvent[]).slice(0, 5);
+
+      // Fetch languages for each repository
+      const languagePromises = repos.map((repo) =>
+        fetch(repo.languages_url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }).then((res) => res.json() as Promise<Record<string, number>>),
+      );
+
+      const repoLanguages = await Promise.all(languagePromises);
+      const languages: GitHubLanguageStats = {};
+
+      repoLanguages.forEach((repoLang) => {
+        Object.entries(repoLang).forEach(([lang, bytes]) => {
+          languages[lang] = (languages[lang] || 0) + bytes;
+        });
+      });
+
       // Calculate total stats
       const totalStars = repos.reduce((acc, repo) => acc + repo.stargazers_count, 0);
       const totalForks = repos.reduce((acc, repo) => acc + repo.forks_count, 0);
+      const totalGists = connection.user?.public_gists || 0;
 
       setConnection((prev) => ({
         ...prev,
@@ -98,6 +169,10 @@ export default function ConnectionsTab() {
           repos,
           totalStars,
           totalForks,
+          organizations,
+          recentActivity,
+          languages,
+          totalGists,
         },
       }));
     } catch (error) {
@@ -360,6 +435,102 @@ export default function ConnectionsTab() {
                   </div>
                 </div>
 
+                {/* Organizations Section */}
+                {connection.stats.organizations.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Organizations</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {connection.stats.organizations.map((org) => (
+                        <a
+                          key={org.login}
+                          href={org.html_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] hover:bg-[#F0F0F0] dark:hover:bg-[#252525] transition-colors"
+                        >
+                          <img src={org.avatar_url} alt={org.login} className="w-6 h-6 rounded-md" />
+                          <span className="text-sm text-bolt-elements-textPrimary">{org.login}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Languages Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Top Languages</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(connection.stats.languages)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([language]) => (
+                        <span
+                          key={language}
+                          className="px-3 py-1 text-xs rounded-full bg-purple-500/10 text-purple-500 dark:bg-purple-500/20"
+                        >
+                          {language}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Recent Activity Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Activity</h4>
+                  <div className="space-y-3">
+                    {connection.stats.recentActivity.map((event) => (
+                      <div key={event.id} className="p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] text-sm">
+                        <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
+                          <div className="i-ph:git-commit w-4 h-4 text-bolt-elements-textSecondary" />
+                          <span className="font-medium">{event.type.replace('Event', '')}</span>
+                          <span>on</span>
+                          <a
+                            href={`https://github.com/${event.repo.name}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-500 hover:underline"
+                          >
+                            {event.repo.name}
+                          </a>
+                        </div>
+                        <div className="mt-1 text-xs text-bolt-elements-textSecondary">
+                          {new Date(event.created_at).toLocaleDateString()} at{' '}
+                          {new Date(event.created_at).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Stats */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Member Since</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {new Date(connection.user.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Public Gists</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.stats.totalGists}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Organizations</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.stats.organizations.length}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Languages</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {Object.keys(connection.stats.languages).length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Existing repositories section */}
                 <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Repositories</h4>
                 <div className="space-y-3">
                   {connection.stats.repos.map((repo) => (
