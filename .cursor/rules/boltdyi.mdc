@@ -1,3 +1,7 @@
+---
+description: 
+globs: 
+---
 # Project Overview
 
 bolt.diy (previously oTToDev) is an open-source AI-powered full-stack web development platform that allows users to choose different LLM providers for coding assistance. The project supports multiple AI providers including OpenAI, Anthropic, Ollama, OpenRouter, Gemini, LMStudio, Mistral, xAI, HuggingFace, DeepSeek, and Groq.
@@ -8,8 +12,6 @@ bolt.diy (previously oTToDev) is an open-source AI-powered full-stack web develo
 - Focus on best practices and clean code
 - Provide clear explanations for code changes
 - Maintain consistent code style with the existing codebase
-- Always write comments that are relevant to the code they describe
-- Always write a changelog what you did and save it in a file called changelog.md in the root of the project
 
 # Techstack
 
