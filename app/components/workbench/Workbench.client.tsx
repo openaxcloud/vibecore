@@ -232,6 +232,7 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   );
 });
 
+// View component for rendering content with motion transitions
 interface ViewProps extends HTMLMotionProps<'div'> {
   children: JSX.Element;
 }
