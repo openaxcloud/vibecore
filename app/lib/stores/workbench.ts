@@ -536,7 +536,7 @@ export class WorkbenchStore {
         sha: newCommit.sha,
       });
 
-      return repo.html_url; // Return the URL instead of showing alert
+      alert(`Repository created and code pushed: ${repo.html_url}`);
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling

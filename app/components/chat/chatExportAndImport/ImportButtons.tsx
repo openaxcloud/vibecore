@@ -1,8 +1,6 @@
 import type { Message } from 'ai';
 import { toast } from 'react-toastify';
 import { ImportFolderButton } from '~/components/chat/ImportFolderButton';
-import { Button } from '~/components/ui/Button';
-import { cn } from '~/lib/utils';
 
 type ChatData = {
   messages?: Message[]; // Standard Bolt format
@@ -59,35 +57,19 @@ export function ImportButtons(importChat: ((description: string, messages: Messa
       />
       <div className="flex flex-col items-center gap-4 max-w-2xl text-center">
         <div className="flex gap-2">
-          <Button
+          <button
             onClick={() => {
               const input = document.getElementById('chat-import');
               input?.click();
             }}
-            variant="outline"
-            size="lg"
-            className={cn(
-              'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
-              'text-bolt-elements-textPrimary dark:text-white',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',
-              'border-[#E5E5E5] dark:border-[#333333]',
-              'h-10 px-4 py-2 min-w-[120px] justify-center',
-              'transition-all duration-200 ease-in-out',
-            )}
+            className="px-4 py-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 transition-all flex items-center gap-2"
           >
-            <span className="i-ph:upload-simple w-4 h-4" />
+            <div className="i-ph:upload-simple" />
             Import Chat
-          </Button>
+          </button>
           <ImportFolderButton
             importChat={importChat}
-            className={cn(
-              'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
-              'text-bolt-elements-textPrimary dark:text-white',
-              'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',
-              'border border-[#E5E5E5] dark:border-[#333333]',
-              'h-10 px-4 py-2 min-w-[120px] justify-center',
-              'transition-all duration-200 ease-in-out rounded-lg',
-            )}
+            className="px-4 py-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 transition-all flex items-center gap-2"
           />
         </div>
       </div>

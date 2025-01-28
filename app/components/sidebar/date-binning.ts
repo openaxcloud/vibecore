@@ -39,21 +39,21 @@ function dateCategory(date: Date) {
   }
 
   if (isThisWeek(date)) {
-    // e.g., "Mon" instead of "Monday"
-    return format(date, 'EEE');
+    // e.g., "Monday"
+    return format(date, 'eeee');
   }
 
   const thirtyDaysAgo = subDays(new Date(), 30);
 
   if (isAfter(date, thirtyDaysAgo)) {
-    return 'Past 30 Days';
+    return 'Last 30 Days';
   }
 
   if (isThisYear(date)) {
-    // e.g., "Jan" instead of "January"
-    return format(date, 'LLL');
+    // e.g., "July"
+    return format(date, 'MMMM');
   }
 
-  // e.g., "Jan 2023" instead of "January 2023"
-  return format(date, 'LLL yyyy');
+  // e.g., "July 2023"
+  return format(date, 'MMMM yyyy');
 }

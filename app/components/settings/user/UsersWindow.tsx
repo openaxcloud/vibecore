@@ -515,27 +515,13 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
     </div>
   );
 
-  // Trap focus when window is open
-  useEffect(() => {
-    if (open) {
-      // Prevent background scrolling
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [open]);
-
   return (
     <>
       <DeveloperWindow open={showDeveloperWindow} onClose={handleDeveloperWindowClose} />
       <DndProvider backend={HTML5Backend}>
-        <RadixDialog.Root open={open}>
+        <RadixDialog.Root open={open && !showDeveloperWindow}>
           <RadixDialog.Portal>
-            <div className="fixed inset-0 flex items-center justify-center z-[100]">
+            <div className="fixed inset-0 flex items-center justify-center z-[50]">
               <RadixDialog.Overlay asChild>
                 <motion.div
                   className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -545,12 +531,7 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
                   transition={{ duration: 0.2 }}
                 />
               </RadixDialog.Overlay>
-              <RadixDialog.Content
-                aria-describedby={undefined}
-                onEscapeKeyDown={onClose}
-                onPointerDownOutside={onClose}
-                className="relative z-[101]"
-              >
+              <RadixDialog.Content aria-describedby={undefined} asChild>
                 <motion.div
                   className={classNames(
                     'relative',

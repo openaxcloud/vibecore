@@ -4,8 +4,6 @@ import { toast } from 'react-toastify';
 import { MAX_FILES, isBinaryFile, shouldIncludeFile } from '~/utils/fileUtils';
 import { createChatFromFolder } from '~/utils/folderImport';
 import { logStore } from '~/lib/stores/logs'; // Assuming logStore is imported from this location
-import { Button } from '~/components/ui/Button';
-import { cn } from '~/lib/utils';
 
 interface ImportFolderButtonProps {
   className?: string;
@@ -114,27 +112,17 @@ export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ classNam
         onChange={handleFileChange}
         {...({} as any)}
       />
-      <Button
+      <button
         onClick={() => {
           const input = document.getElementById('folder-import');
           input?.click();
         }}
-        variant="outline"
-        size="lg"
-        className={cn(
-          'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
-          'text-bolt-elements-textPrimary dark:text-white',
-          'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',
-          'border-[#E5E5E5] dark:border-[#333333]',
-          'h-10 px-4 py-2 min-w-[120px] justify-center',
-          'transition-all duration-200 ease-in-out',
-          className,
-        )}
+        className={className}
         disabled={isLoading}
       >
-        <span className="i-ph:upload-simple w-4 h-4" />
+        <div className="i-ph:upload-simple" />
         {isLoading ? 'Importing...' : 'Import Folder'}
-      </Button>
+      </button>
     </>
   );
 };
