@@ -8,8 +8,6 @@ bolt.diy (previously oTToDev) is an open-source AI-powered full-stack web develo
 - Focus on best practices and clean code
 - Provide clear explanations for code changes
 - Maintain consistent code style with the existing codebase
-- Always write comments that are relevant to the code they describe
-- Always write a changelog what you did and save it in a file called changelog.md in the root of the project
 
 # Techstack
 
@@ -134,3 +132,25 @@ bolt.diy (previously oTToDev) is an open-source AI-powered full-stack web develo
 4. Validate your solution against existing patterns
 5. Test thoroughly before considering work complete
 6. Review impact on related components
+
+# UI GUIDELINES
+
+- Use consistent colors and typography
+- Ensure UI is responsive and accessible
+- Provide clear feedback for user actions
+- Use meaningful icons and labels
+- Keep UI clean and organized
+- Use consistent spacing and alignment
+- Use consistent naming conventions for components and variables
+- Use consistent file and folder structure
+- Use consistent naming conventions for components and variables
+- Use consistent file and folder structure
+
+# Style Guide
+
+- Use consistent naming conventions for components and variables
+- Use consistent file and folder structure
+- Respect the Light/Dark mode
+- Don't use white background for dark mode
+- Don't use white text on white background for dark mode
+- Match the style of the existing codebase

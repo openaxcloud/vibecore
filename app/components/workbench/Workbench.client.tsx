@@ -215,11 +215,10 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
         <PushToGitHubDialog
           isOpen={isPushDialogOpen}
           onClose={() => setIsPushDialogOpen(false)}
-          onPush={async (repoName, username, token) => {
+          onPush={async (repoName, username, token, isPrivate) => {
             try {
-              await workbenchStore.pushToGitHub(repoName, undefined, username, token);
-
-              // Success dialog will be shown by PushToGitHubDialog component
+              const repoUrl = await workbenchStore.pushToGitHub(repoName, undefined, username, token, isPrivate);
+              return repoUrl;
             } catch (error) {
               console.error('Error pushing to GitHub:', error);
               toast.error('Failed to push to GitHub');

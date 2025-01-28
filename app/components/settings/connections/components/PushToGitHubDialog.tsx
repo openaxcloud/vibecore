@@ -6,11 +6,16 @@ import { getLocalStorage } from '~/utils/localStorage';
 import { classNames } from '~/utils/classNames';
 import type { GitHubUserResponse } from '~/types/GitHub';
 import { logStore } from '~/lib/stores/logs';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { extractRelativePath } from '~/utils/diff';
+import { formatSize } from '~/utils/formatSize';
+import type { FileMap, File } from '~/lib/stores/files';
+import { Octokit } from '@octokit/rest';
 
 interface PushToGitHubDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onPush: (repoName: string, username?: string, token?: string) => Promise<void>;
+  onPush: (repoName: string, username?: string, token?: string, isPrivate?: boolean) => Promise<string>;
 }
 
 interface GitHubRepo {
@@ -35,6 +40,7 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
   const [isFetchingRepos, setIsFetchingRepos] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdRepoUrl, setCreatedRepoUrl] = useState('');
+  const [pushedFiles, setPushedFiles] = useState<{ path: string; size: number }[]>([]);
 
   // Load GitHub connection on mount
   useEffect(() => {
@@ -126,10 +132,44 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
     setIsLoading(true);
 
     try {
-      await onPush(repoName, connection.user.login, connection.token);
+      // Check if repository exists first
+      const octokit = new Octokit({ auth: connection.token });
 
-      const repoUrl = `https://github.com/${connection.user.login}/${repoName}`;
+      try {
+        await octokit.repos.get({
+          owner: connection.user.login,
+          repo: repoName,
+        });
+
+        // If we get here, the repo exists
+        const confirmOverwrite = window.confirm(
+          `Repository "${repoName}" already exists. Do you want to update it? This will add or modify files in the repository.`,
+        );
+
+        if (!confirmOverwrite) {
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // 404 means repo doesn't exist, which is what we want for new repos
+        if (error instanceof Error && 'status' in error && error.status !== 404) {
+          throw error;
+        }
+      }
+
+      const repoUrl = await onPush(repoName, connection.user.login, connection.token, isPrivate);
       setCreatedRepoUrl(repoUrl);
+
+      // Get list of pushed files
+      const files = workbenchStore.files.get();
+      const filesList = Object.entries(files as FileMap)
+        .filter(([, dirent]) => dirent?.type === 'file' && !dirent.isBinary)
+        .map(([path, dirent]) => ({
+          path: extractRelativePath(path),
+          size: new TextEncoder().encode((dirent as File).content || '').length,
+        }));
+
+      setPushedFiles(filesList);
       setShowSuccessDialog(true);
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
@@ -159,26 +199,23 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="w-[90vw] md:w-[500px]"
+              className="w-[90vw] md:w-[600px] max-h-[85vh] overflow-y-auto"
             >
-              <Dialog.Content className="bg-white dark:bg-[#0A0A0A] rounded-lg p-6 border border-[#E5E5E5] dark:border-[#1A1A1A] shadow-xl">
-                <div className="text-center space-y-4">
-                  <motion.div
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="mx-auto w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500"
-                  >
-                    <div className="i-ph:check-circle-bold w-6 h-6" />
-                  </motion.div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                      Repository Created Successfully!
-                    </h3>
-                    <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                      Your code has been pushed to GitHub and is ready to use.
-                    </p>
+              <Dialog.Content className="bg-white dark:bg-[#1E1E1E] rounded-lg border border-[#E5E5E5] dark:border-[#333333] shadow-xl">
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-green-500">
+                      <div className="i-ph:check-circle w-5 h-5" />
+                      <h3 className="text-lg font-medium">Successfully pushed to GitHub</h3>
+                    </div>
+                    <Dialog.Close
+                      onClick={handleClose}
+                      className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+                    >
+                      <div className="i-ph:x w-5 h-5" />
+                    </Dialog.Close>
                   </div>
+
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-3 text-left">
                     <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mb-2">
                       Repository URL
@@ -200,26 +237,58 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
                       </motion.button>
                     </div>
                   </div>
-                  <div className="flex gap-2 pt-2">
+
+                  <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-3">
+                    <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mb-2">
+                      Pushed Files ({pushedFiles.length})
+                    </p>
+                    <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                      {pushedFiles.map((file) => (
+                        <div
+                          key={file.path}
+                          className="flex items-center justify-between py-1 text-sm text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
+                        >
+                          <span className="font-mono truncate flex-1">{file.path}</span>
+                          <span className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark ml-2">
+                            {formatSize(file.size)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <motion.a
+                      href={createdRepoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 text-sm inline-flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="i-ph:github-logo w-4 h-4" />
+                      View Repository
+                    </motion.a>
+                    <motion.button
+                      onClick={() => {
+                        navigator.clipboard.writeText(createdRepoUrl);
+                        toast.success('URL copied to clipboard');
+                      }}
+                      className="px-4 py-2 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 hover:bg-[#E5E5E5] dark:hover:bg-[#252525] text-sm inline-flex items-center gap-2"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="i-ph:copy w-4 h-4" />
+                      Copy URL
+                    </motion.button>
                     <motion.button
                       onClick={handleClose}
-                      className="flex-1 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
+                      className="px-4 py-2 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 hover:bg-[#E5E5E5] dark:hover:bg-[#252525] text-sm"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       Close
                     </motion.button>
-                    <motion.a
-                      href={createdRepoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 px-4 py-2 text-sm bg-purple-500 text-white rounded-lg hover:bg-purple-600 inline-flex items-center justify-center gap-2"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="i-ph:github-logo w-4 h-4" />
-                      Open Repository
-                    </motion.a>
                   </div>
                 </div>
               </Dialog.Content>
