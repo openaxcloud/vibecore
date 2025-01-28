@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { logStore } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
@@ -21,12 +21,45 @@ const NotificationsTab = () => {
   const [filter, setFilter] = useState<FilterType>('all');
   const logs = useStore(logStore.logs);
 
+  useEffect(() => {
+    const startTime = performance.now();
+
+    return () => {
+      const duration = performance.now() - startTime;
+      logStore.logPerformanceMetric('NotificationsTab', 'mount-duration', duration);
+    };
+  }, []);
+
   const handleClearNotifications = () => {
+    const count = Object.keys(logs).length;
+    logStore.logInfo('Cleared notifications', {
+      type: 'notification_clear',
+      message: `Cleared ${count} notifications`,
+      clearedCount: count,
+      component: 'notifications',
+    });
     logStore.clearLogs();
   };
 
   const handleUpdateAction = (updateUrl: string) => {
+    logStore.logInfo('Update link clicked', {
+      type: 'update_click',
+      message: 'User clicked update link',
+      updateUrl,
+      component: 'notifications',
+    });
     window.open(updateUrl, '_blank');
+  };
+
+  const handleFilterChange = (newFilter: FilterType) => {
+    logStore.logInfo('Notification filter changed', {
+      type: 'filter_change',
+      message: `Filter changed to ${newFilter}`,
+      previousFilter: filter,
+      newFilter,
+      component: 'notifications',
+    });
+    setFilter(newFilter);
   };
 
   const filteredLogs = Object.values(logs)
@@ -172,7 +205,7 @@ const NotificationsTab = () => {
                 <DropdownMenu.Item
                   key={option.id}
                   className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                  onClick={() => setFilter(option.id)}
+                  onClick={() => handleFilterChange(option.id)}
                 >
                   <div className="mr-3 flex h-5 w-5 items-center justify-center">
                     <div

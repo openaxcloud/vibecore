@@ -385,242 +385,247 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
   }, [open]);
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      <RadixDialog.Root open={open}>
-        <RadixDialog.Portal>
-          <div className="fixed inset-0 flex items-center justify-center z-[100]">
-            <RadixDialog.Overlay className="fixed inset-0">
-              <motion.div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              />
-            </RadixDialog.Overlay>
-
-            <RadixDialog.Content
-              aria-describedby={undefined}
-              onEscapeKeyDown={onClose}
-              onPointerDownOutside={onClose}
-              className="relative z-[101]"
+    <>
+      <DropdownMenu.Root>
+        <DropdownMenu.Portal>
+          <DropdownMenu.Content
+            className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-[200] animate-in fade-in-0 zoom-in-95"
+            sideOffset={5}
+            align="end"
+          >
+            <DropdownMenu.Item
+              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+              onSelect={() => handleTabClick('profile')}
             >
-              <motion.div
-                className={classNames(
-                  'w-[1200px] h-[90vh]',
-                  'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
-                  'rounded-2xl shadow-2xl',
-                  'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                  'flex flex-col overflow-hidden',
-                )}
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: developerMode ? 1 : 0, scale: developerMode ? 1 : 0.95, y: developerMode ? 0 : 20 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center space-x-4">
-                    {activeTab || showTabManagement ? (
-                      <button
-                        onClick={handleBack}
-                        className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
-                      >
-                        <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                      </button>
-                    ) : (
-                      <motion.div
-                        className="i-ph:lightning-fill w-5 h-5 text-purple-500"
-                        initial={{ rotate: -10 }}
-                        animate={{ rotate: 10 }}
-                        transition={{
-                          repeat: Infinity,
-                          repeatType: 'reverse',
-                          duration: 2,
-                          ease: 'easeInOut',
-                        }}
-                      />
-                    )}
-                    <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                      {showTabManagement ? 'Tab Management' : activeTab ? 'Developer Tools' : 'Developer Settings'}
-                    </DialogTitle>
-                  </div>
+              <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                <div className="i-ph:user-circle w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+              </div>
+              <span className="group-hover:text-purple-500 transition-colors">Profile</span>
+            </DropdownMenu.Item>
 
-                  <div className="flex items-center space-x-4">
-                    {!activeTab && !showTabManagement && (
-                      <motion.button
-                        onClick={() => setShowTabManagement(true)}
-                        className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <div className="i-ph:sliders-horizontal w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                        <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors">
-                          Manage Tabs
-                        </span>
-                      </motion.button>
-                    )}
+            <DropdownMenu.Item
+              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+              onSelect={() => handleTabClick('settings')}
+            >
+              <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                <div className="i-ph:gear w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+              </div>
+              <span className="group-hover:text-purple-500 transition-colors">Settings</span>
+            </DropdownMenu.Item>
 
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={developerMode}
-                        onCheckedChange={handleDeveloperModeChange}
-                        className="data-[state=checked]:bg-purple-500"
-                        aria-label="Toggle developer mode"
-                      />
-                      <label className="text-sm text-gray-500 dark:text-gray-400">Switch to User Mode</label>
-                    </div>
-
-                    <div className="relative">
-                      <DropdownMenu.Root>
-                        <DropdownMenu.Trigger asChild>
-                          <button className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden hover:ring-2 ring-gray-300 dark:ring-gray-600 transition-all">
-                            {profile.avatar ? (
-                              <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                                <svg
-                                  className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                              </div>
-                            )}
-                          </button>
-                        </DropdownMenu.Trigger>
-
-                        <DropdownMenu.Portal>
-                          <DropdownMenu.Content
-                            className="min-w-[220px] bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 z-[200]"
-                            sideOffset={5}
-                            align="end"
-                          >
-                            <DropdownMenu.Item
-                              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                              onSelect={() => handleTabClick('profile')}
-                            >
-                              <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                                <div className="i-ph:user-circle w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                              </div>
-                              <span className="group-hover:text-purple-500 transition-colors">Profile</span>
-                            </DropdownMenu.Item>
-
-                            <DropdownMenu.Item
-                              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                              onSelect={() => handleTabClick('settings')}
-                            >
-                              <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                                <div className="i-ph:gear w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                              </div>
-                              <span className="group-hover:text-purple-500 transition-colors">Settings</span>
-                            </DropdownMenu.Item>
-
-                            {profile.notifications && (
-                              <>
-                                <DropdownMenu.Item
-                                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                                  onSelect={() => handleTabClick('notifications')}
-                                >
-                                  <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                                    <div className="i-ph:bell w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                                  </div>
-                                  <span className="group-hover:text-purple-500 transition-colors">
-                                    Notifications
-                                    {hasUnreadNotifications && (
-                                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-purple-500 text-white rounded-full">
-                                        {unreadNotifications.length}
-                                      </span>
-                                    )}
-                                  </span>
-                                </DropdownMenu.Item>
-
-                                <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
-                              </>
-                            )}
-                            <DropdownMenu.Item
-                              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                              onSelect={() => handleTabClick('task-manager')}
-                            >
-                              <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                                <div className="i-ph:activity w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                              </div>
-                              <span className="group-hover:text-purple-500 transition-colors">Task Manager</span>
-                            </DropdownMenu.Item>
-                            <DropdownMenu.Item
-                              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
-                              onSelect={onClose}
-                            >
-                              <div className="mr-3 flex h-5 w-5 items-center justify-center">
-                                <div className="i-ph:sign-out w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                              </div>
-                              <span className="group-hover:text-purple-500 transition-colors">Close</span>
-                            </DropdownMenu.Item>
-                          </DropdownMenu.Content>
-                        </DropdownMenu.Portal>
-                      </DropdownMenu.Root>
-                    </div>
-
-                    <button
-                      onClick={onClose}
-                      className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
-                    >
-                      <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div
-                  className={classNames(
-                    'flex-1',
-                    'overflow-y-auto',
-                    'hover:overflow-y-auto',
-                    'scrollbar scrollbar-w-2',
-                    'scrollbar-track-transparent',
-                    'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
-                    'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
-                    'will-change-scroll',
-                    'touch-auto',
-                  )}
+            {profile.notifications && (
+              <>
+                <DropdownMenu.Item
+                  className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+                  onSelect={() => handleTabClick('notifications')}
                 >
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6">
-                    {showTabManagement ? (
-                      <TabManagement />
-                    ) : activeTab ? (
-                      getTabComponent()
-                    ) : (
-                      <div className="grid grid-cols-4 gap-4">
-                        {visibleDeveloperTabs.map((tab: TabVisibilityConfig, index: number) => (
-                          <DraggableTabTile
-                            key={tab.id}
-                            tab={tab}
-                            index={index}
-                            moveTab={moveTab}
-                            onClick={() => handleTabClick(tab.id)}
-                            isActive={activeTab === tab.id}
-                            hasUpdate={getTabUpdateStatus(tab.id)}
-                            statusMessage={getStatusMessage(tab.id)}
-                            description={TAB_DESCRIPTIONS[tab.id]}
-                            isLoading={loadingTab === tab.id}
-                          />
-                        ))}
-                      </div>
+                  <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                    <div className="i-ph:bell w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                  </div>
+                  <span className="group-hover:text-purple-500 transition-colors">
+                    Notifications
+                    {hasUnreadNotifications && (
+                      <span className="ml-2 px-1.5 py-0.5 text-xs bg-purple-500 text-white rounded-full">
+                        {unreadNotifications.length}
+                      </span>
                     )}
+                  </span>
+                </DropdownMenu.Item>
+
+                <DropdownMenu.Separator className="my-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </>
+            )}
+            <DropdownMenu.Item
+              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+              onSelect={() => handleTabClick('task-manager')}
+            >
+              <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                <div className="i-ph:activity w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+              </div>
+              <span className="group-hover:text-purple-500 transition-colors">Task Manager</span>
+            </DropdownMenu.Item>
+            <DropdownMenu.Item
+              className="group flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 cursor-pointer transition-colors"
+              onSelect={onClose}
+            >
+              <div className="mr-3 flex h-5 w-5 items-center justify-center">
+                <div className="i-ph:sign-out w-[18px] h-[18px] text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+              </div>
+              <span className="group-hover:text-purple-500 transition-colors">Close</span>
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Portal>
+        <DndProvider backend={HTML5Backend}>
+          <RadixDialog.Root open={open}>
+            <RadixDialog.Portal>
+              <div className="fixed inset-0 flex items-center justify-center z-[100]">
+                <RadixDialog.Overlay className="fixed inset-0">
+                  <motion.div
+                    className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                </RadixDialog.Overlay>
+
+                <RadixDialog.Content
+                  aria-describedby={undefined}
+                  onEscapeKeyDown={onClose}
+                  onPointerDownOutside={onClose}
+                  className="relative z-[101]"
+                >
+                  <motion.div
+                    className={classNames(
+                      'w-[1200px] h-[90vh]',
+                      'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+                      'rounded-2xl shadow-2xl',
+                      'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                      'flex flex-col overflow-hidden',
+                    )}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{
+                      opacity: developerMode ? 1 : 0,
+                      scale: developerMode ? 1 : 0.95,
+                      y: developerMode ? 0 : 20,
+                    }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center space-x-4">
+                        {activeTab || showTabManagement ? (
+                          <button
+                            onClick={handleBack}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                          >
+                            <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                          </button>
+                        ) : (
+                          <motion.div
+                            className="i-ph:lightning-fill w-5 h-5 text-purple-500"
+                            initial={{ rotate: -10 }}
+                            animate={{ rotate: 10 }}
+                            transition={{
+                              repeat: Infinity,
+                              repeatType: 'reverse',
+                              duration: 2,
+                              ease: 'easeInOut',
+                            }}
+                          />
+                        )}
+                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                          {showTabManagement ? 'Tab Management' : activeTab ? 'Developer Tools' : 'Developer Settings'}
+                        </DialogTitle>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        {!activeTab && !showTabManagement && (
+                          <motion.button
+                            onClick={() => setShowTabManagement(true)}
+                            className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <div className="i-ph:sliders-horizontal w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                            <span className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors">
+                              Manage Tabs
+                            </span>
+                          </motion.button>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={developerMode}
+                            onCheckedChange={handleDeveloperModeChange}
+                            className="data-[state=checked]:bg-purple-500"
+                            aria-label="Toggle developer mode"
+                          />
+                          <label className="text-sm text-gray-500 dark:text-gray-400">Switch to User Mode</label>
+                        </div>
+
+                        <div className="relative">
+                          <DropdownMenu.Trigger asChild>
+                            <button className="flex items-center justify-center w-8 h-8 rounded-full overflow-hidden hover:ring-2 ring-gray-300 dark:ring-gray-600 transition-all">
+                              {profile.avatar ? (
+                                <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                                  <svg
+                                    className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                            </button>
+                          </DropdownMenu.Trigger>
+                        </div>
+
+                        <button
+                          onClick={onClose}
+                          className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                        >
+                          <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div
+                      className={classNames(
+                        'flex-1',
+                        'overflow-y-auto',
+                        'hover:overflow-y-auto',
+                        'scrollbar scrollbar-w-2',
+                        'scrollbar-track-transparent',
+                        'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
+                        'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
+                        'will-change-scroll',
+                        'touch-auto',
+                      )}
+                    >
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6">
+                        {showTabManagement ? (
+                          <TabManagement />
+                        ) : activeTab ? (
+                          getTabComponent()
+                        ) : (
+                          <div className="grid grid-cols-4 gap-4">
+                            {visibleDeveloperTabs.map((tab: TabVisibilityConfig, index: number) => (
+                              <DraggableTabTile
+                                key={tab.id}
+                                tab={tab}
+                                index={index}
+                                moveTab={moveTab}
+                                onClick={() => handleTabClick(tab.id)}
+                                isActive={activeTab === tab.id}
+                                hasUpdate={getTabUpdateStatus(tab.id)}
+                                statusMessage={getStatusMessage(tab.id)}
+                                description={TAB_DESCRIPTIONS[tab.id]}
+                                isLoading={loadingTab === tab.id}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
                   </motion.div>
-                </div>
-              </motion.div>
-            </RadixDialog.Content>
-          </div>
-        </RadixDialog.Portal>
-      </RadixDialog.Root>
-    </DndProvider>
+                </RadixDialog.Content>
+              </div>
+            </RadixDialog.Portal>
+          </RadixDialog.Root>
+        </DndProvider>
+      </DropdownMenu.Root>
+    </>
   );
 };

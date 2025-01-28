@@ -32,24 +32,25 @@ export type ProviderSetting = Record<string, IProviderConfig>;
 
 export const shortcutsStore = map<Shortcuts>({
   toggleTerminal: {
-    key: 'j',
+    key: '`',
     ctrlOrMetaKey: true,
     action: () => workbenchStore.toggleTerminal(),
   },
   toggleTheme: {
-    key: 't',
+    key: 'd',
     ctrlOrMetaKey: true,
-    shiftKey: true,
+    altKey: true,
     action: () => toggleTheme(),
   },
   toggleChat: {
-    key: '/',
+    key: 'k',
     ctrlOrMetaKey: true,
     action: () => chatStore.setKey('showChat', !chatStore.get().showChat),
   },
   toggleSettings: {
-    key: ',',
+    key: 's',
     ctrlOrMetaKey: true,
+    altKey: true,
     action: () => {
       // This will be connected to the settings panel toggle
       document.dispatchEvent(new CustomEvent('toggle-settings'));

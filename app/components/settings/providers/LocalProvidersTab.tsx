@@ -7,20 +7,20 @@ import { logStore } from '~/lib/stores/logs';
 import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 import { settingsStyles } from '~/components/settings/settings.styles';
-import { toast } from 'react-toastify';
-import { BsBox, BsCodeSquare, BsRobot } from 'react-icons/bs';
+import { BsRobot } from 'react-icons/bs';
 import type { IconType } from 'react-icons';
 import { BiChip } from 'react-icons/bi';
 import { TbBrandOpenai } from 'react-icons/tb';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
+import { useToast } from '~/components/ui/use-toast';
 
 // Add type for provider names to ensure type safety
 type ProviderName = 'Ollama' | 'LMStudio' | 'OpenAILike';
 
 // Update the PROVIDER_ICONS type to use the ProviderName type
 const PROVIDER_ICONS: Record<ProviderName, IconType> = {
-  Ollama: BsBox,
-  LMStudio: BsCodeSquare,
+  Ollama: BsRobot,
+  LMStudio: BsRobot,
   OpenAILike: TbBrandOpenai,
 };
 
@@ -30,6 +30,9 @@ const PROVIDER_DESCRIPTIONS: Record<ProviderName, string> = {
   LMStudio: 'Local model inference with LM Studio',
   OpenAILike: 'Connect to OpenAI-compatible API endpoints',
 };
+
+// Add a constant for the Ollama API base URL
+const OLLAMA_API_URL = 'http://127.0.0.1:11434';
 
 interface OllamaModel {
   name: string;
@@ -51,17 +54,59 @@ interface OllamaModel {
   };
 }
 
-const LocalProvidersTab = () => {
-  const settings = useSettings();
+interface OllamaServiceStatus {
+  isRunning: boolean;
+  lastChecked: Date;
+  error?: string;
+}
+
+interface OllamaPullResponse {
+  status: string;
+  completed?: number;
+  total?: number;
+  digest?: string;
+}
+
+const isOllamaPullResponse = (data: unknown): data is OllamaPullResponse => {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'status' in data &&
+    typeof (data as OllamaPullResponse).status === 'string'
+  );
+};
+
+interface ManualInstallState {
+  isOpen: boolean;
+  modelString: string;
+}
+
+export function LocalProvidersTab() {
+  const { success, error } = useToast();
+  const { providers, updateProviderSettings } = useSettings();
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<boolean>(false);
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [serviceStatus, setServiceStatus] = useState<OllamaServiceStatus>({
+    isRunning: false,
+    lastChecked: new Date(),
+  });
+  const [isInstallingModel, setIsInstallingModel] = useState<string | null>(null);
+  const [installProgress, setInstallProgress] = useState<{
+    model: string;
+    progress: number;
+    status: string;
+  } | null>(null);
+  const [manualInstall, setManualInstall] = useState<ManualInstallState>({
+    isOpen: false,
+    modelString: '',
+  });
 
   // Effect to filter and sort providers
   useEffect(() => {
-    const newFilteredProviders = Object.entries(settings.providers || {})
+    const newFilteredProviders = Object.entries(providers || {})
       .filter(([key]) => [...LOCAL_PROVIDERS, 'OpenAILike'].includes(key))
       .map(([key, value]) => {
         const provider = value as IProviderConfig;
@@ -79,7 +124,7 @@ const LocalProvidersTab = () => {
         // If there's an environment URL and no base URL set, update it
         if (envUrl && !provider.settings.baseUrl) {
           console.log(`Setting base URL for ${key} from env:`, envUrl);
-          settings.updateProviderSettings(key, {
+          updateProviderSettings(key, {
             ...provider.settings,
             baseUrl: envUrl,
           });
@@ -120,7 +165,7 @@ const LocalProvidersTab = () => {
       return a.name.localeCompare(b.name);
     });
     setFilteredProviders(sorted);
-  }, [settings.providers]);
+  }, [providers, updateProviderSettings]);
 
   // Helper function to safely get environment URL
   const getEnvUrl = (provider: IProviderConfig): string | undefined => {
@@ -165,7 +210,7 @@ const LocalProvidersTab = () => {
 
   const updateOllamaModel = async (modelName: string): Promise<{ success: boolean; newDigest?: string }> => {
     try {
-      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+      const response = await fetch(`${OLLAMA_API_URL}/api/pull`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: modelName }),
@@ -192,12 +237,12 @@ const LocalProvidersTab = () => {
         const lines = text.split('\n').filter(Boolean);
 
         for (const line of lines) {
-          const data = JSON.parse(line) as {
-            status: string;
-            completed?: number;
-            total?: number;
-            digest?: string;
-          };
+          const rawData = JSON.parse(line);
+
+          if (!isOllamaPullResponse(rawData)) {
+            console.error('Invalid response format:', rawData);
+            continue;
+          }
 
           setOllamaModels((current) =>
             current.map((m) =>
@@ -205,11 +250,11 @@ const LocalProvidersTab = () => {
                 ? {
                     ...m,
                     progress: {
-                      current: data.completed || 0,
-                      total: data.total || 0,
-                      status: data.status,
+                      current: rawData.completed || 0,
+                      total: rawData.total || 0,
+                      status: rawData.status,
                     },
-                    newDigest: data.digest,
+                    newDigest: rawData.digest,
                   }
                 : m,
             ),
@@ -232,22 +277,22 @@ const LocalProvidersTab = () => {
     (enabled: boolean) => {
       setCategoryEnabled(enabled);
       filteredProviders.forEach((provider) => {
-        settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
+        updateProviderSettings(provider.name, { ...provider.settings, enabled });
       });
-      toast.success(enabled ? 'All local providers enabled' : 'All local providers disabled');
+      success(enabled ? 'All local providers enabled' : 'All local providers disabled');
     },
-    [filteredProviders, settings],
+    [filteredProviders, updateProviderSettings, success],
   );
 
   const handleToggleProvider = (provider: IProviderConfig, enabled: boolean) => {
-    settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
+    updateProviderSettings(provider.name, { ...provider.settings, enabled });
 
     if (enabled) {
       logStore.logProvider(`Provider ${provider.name} enabled`, { provider: provider.name });
-      toast.success(`${provider.name} enabled`);
+      success(`${provider.name} enabled`);
     } else {
       logStore.logProvider(`Provider ${provider.name} disabled`, { provider: provider.name });
-      toast.success(`${provider.name} disabled`);
+      success(`${provider.name} disabled`);
     }
   };
 
@@ -258,42 +303,193 @@ const LocalProvidersTab = () => {
       newBaseUrl = undefined;
     }
 
-    settings.updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
+    updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
     logStore.logProvider(`Base URL updated for ${provider.name}`, {
       provider: provider.name,
       baseUrl: newBaseUrl,
     });
-    toast.success(`${provider.name} base URL updated`);
+    success(`${provider.name} base URL updated`);
     setEditingProvider(null);
   };
 
   const handleUpdateOllamaModel = async (modelName: string) => {
     setOllamaModels((current) => current.map((m) => (m.name === modelName ? { ...m, status: 'updating' } : m)));
 
-    const { success, newDigest } = await updateOllamaModel(modelName);
+    const { success: updateSuccess, newDigest } = await updateOllamaModel(modelName);
 
     setOllamaModels((current) =>
       current.map((m) =>
         m.name === modelName
           ? {
               ...m,
-              status: success ? 'updated' : 'error',
-              error: success ? undefined : 'Update failed',
+              status: updateSuccess ? 'updated' : 'error',
+              error: updateSuccess ? undefined : 'Update failed',
               newDigest,
             }
           : m,
       ),
     );
 
-    if (success) {
-      toast.success(`Updated ${modelName}`);
+    if (updateSuccess) {
+      success(`Updated ${modelName}`);
     } else {
-      toast.error(`Failed to update ${modelName}`);
+      error(`Failed to update ${modelName}`);
     }
   };
 
+  const handleDeleteOllamaModel = async (modelName: string) => {
+    try {
+      const response = await fetch(`${OLLAMA_API_URL}/api/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelName }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete ${modelName}`);
+      }
+
+      setOllamaModels((current) => current.filter((m) => m.name !== modelName));
+      success(`Deleted ${modelName}`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error(`Error deleting ${modelName}:`, errorMessage);
+      error(`Failed to delete ${modelName}`);
+    }
+  };
+
+  // Health check function
+  const checkOllamaHealth = async () => {
+    try {
+      // Use the root endpoint instead of /api/health
+      const response = await fetch(OLLAMA_API_URL);
+      const text = await response.text();
+      const isRunning = text.includes('Ollama is running');
+
+      setServiceStatus({
+        isRunning,
+        lastChecked: new Date(),
+      });
+
+      if (isRunning) {
+        // If Ollama is running, fetch models
+        fetchOllamaModels();
+      }
+
+      return isRunning;
+    } catch (error) {
+      console.error('Health check error:', error);
+      setServiceStatus({
+        isRunning: false,
+        lastChecked: new Date(),
+        error: error instanceof Error ? error.message : 'Failed to connect to Ollama service',
+      });
+
+      return false;
+    }
+  };
+
+  // Update manual installation function
+  const handleManualInstall = async (modelString: string) => {
+    try {
+      setIsInstallingModel(modelString);
+      setInstallProgress({ model: modelString, progress: 0, status: 'Starting download...' });
+      setManualInstall((prev) => ({ ...prev, isOpen: false }));
+
+      const response = await fetch(`${OLLAMA_API_URL}/api/pull`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: modelString }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to install ${modelString}`);
+      }
+
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error('No response reader available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const text = new TextDecoder().decode(value);
+        const lines = text.split('\n').filter(Boolean);
+
+        for (const line of lines) {
+          const rawData = JSON.parse(line);
+
+          if (!isOllamaPullResponse(rawData)) {
+            console.error('Invalid response format:', rawData);
+            continue;
+          }
+
+          setInstallProgress({
+            model: modelString,
+            progress: rawData.completed && rawData.total ? (rawData.completed / rawData.total) * 100 : 0,
+            status: rawData.status,
+          });
+        }
+      }
+
+      success(`Successfully installed ${modelString}`);
+      await fetchOllamaModels();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error(`Error installing ${modelString}:`, errorMessage);
+      error(`Failed to install ${modelString}`);
+    } finally {
+      setIsInstallingModel(null);
+      setInstallProgress(null);
+    }
+  };
+
+  // Add health check effect
+  useEffect(() => {
+    const checkHealth = async () => {
+      const isHealthy = await checkOllamaHealth();
+
+      if (!isHealthy) {
+        error('Ollama service is not running. Please start the Ollama service.');
+      }
+    };
+
+    checkHealth();
+
+    const interval = setInterval(checkHealth, 50000);
+
+    // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="space-y-6">
+      {/* Service Status Indicator - Move to top */}
+      <div
+        className={classNames(
+          'flex items-center gap-2 p-2 rounded-lg',
+          serviceStatus.isRunning ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500',
+        )}
+      >
+        <div className={classNames('w-2 h-2 rounded-full', serviceStatus.isRunning ? 'bg-green-500' : 'bg-red-500')} />
+        <span className="text-sm">
+          {serviceStatus.isRunning ? 'Ollama service is running' : 'Ollama service is not running'}
+        </span>
+        <span className="text-xs text-bolt-elements-textSecondary ml-2">
+          Last checked: {serviceStatus.lastChecked.toLocaleTimeString()}
+        </span>
+      </div>
+
       <motion.div
         className="space-y-4"
         initial={{ opacity: 0, y: 20 }}
@@ -527,21 +723,40 @@ const LocalProvidersTab = () => {
                             )}
                           </div>
                         </div>
-                        <motion.button
-                          onClick={() => handleUpdateOllamaModel(model.name)}
-                          disabled={model.status === 'updating'}
-                          className={classNames(
-                            settingsStyles.button.base,
-                            settingsStyles.button.secondary,
-                            'hover:bg-purple-500/10 hover:text-purple-500',
-                            'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
-                          )}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div className="i-ph:arrows-clockwise" />
-                          Update
-                        </motion.button>
+                        <div className="flex items-center gap-2">
+                          <motion.button
+                            onClick={() => handleUpdateOllamaModel(model.name)}
+                            disabled={model.status === 'updating'}
+                            className={classNames(
+                              settingsStyles.button.base,
+                              settingsStyles.button.secondary,
+                              'hover:bg-purple-500/10 hover:text-purple-500',
+                            )}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <div className="i-ph:arrows-clockwise" />
+                            Update
+                          </motion.button>
+                          <motion.button
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to delete ${model.name}?`)) {
+                                handleDeleteOllamaModel(model.name);
+                              }
+                            }}
+                            disabled={model.status === 'updating'}
+                            className={classNames(
+                              settingsStyles.button.base,
+                              settingsStyles.button.secondary,
+                              'hover:bg-red-500/10 hover:text-red-500',
+                            )}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <div className="i-ph:trash" />
+                            Delete
+                          </motion.button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -560,8 +775,130 @@ const LocalProvidersTab = () => {
           ))}
         </div>
       </motion.div>
+
+      {/* Manual Installation Section */}
+      {serviceStatus.isRunning && (
+        <div className="mt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Install New Model</h3>
+              <p className="text-sm text-bolt-elements-textSecondary">
+                Enter the model name exactly as shown (e.g., deepseek-r1:1.5b)
+              </p>
+            </div>
+          </div>
+
+          {/* Model Information Section */}
+          <div className="p-4 rounded-lg bg-bolt-elements-background-depth-2 space-y-3">
+            <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
+              <div className="i-ph:info text-purple-500" />
+              <span className="font-medium">Where to find models?</span>
+            </div>
+            <div className="space-y-2 text-sm text-bolt-elements-textSecondary">
+              <p>
+                Browse available models at{' '}
+                <a
+                  href="https://ollama.com/library"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-500 hover:underline"
+                >
+                  ollama.com/library
+                </a>
+              </p>
+              <div className="space-y-1">
+                <p className="font-medium text-bolt-elements-textPrimary">Popular models:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>deepseek-r1:1.5b - DeepSeek's reasoning model</li>
+                  <li>llama3:8b - Meta's Llama 3 (8B parameters)</li>
+                  <li>mistral:7b - Mistral's 7B model</li>
+                  <li>gemma:2b - Google's Gemma model</li>
+                  <li>qwen2:7b - Alibaba's Qwen2 model</li>
+                </ul>
+              </div>
+              <p className="mt-2">
+                <span className="text-yellow-500">Note:</span> Copy the exact model name including the tag (e.g.,
+                'deepseek-r1:1.5b') from the library to ensure successful installation.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="text"
+                className="w-full px-3 py-2 rounded-md bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary"
+                placeholder="deepseek-r1:1.5b"
+                value={manualInstall.modelString}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setManualInstall((prev) => ({ ...prev, modelString: e.target.value }))
+                }
+              />
+            </div>
+            <motion.button
+              onClick={() => handleManualInstall(manualInstall.modelString)}
+              disabled={!manualInstall.modelString || !!isInstallingModel}
+              className={classNames(
+                settingsStyles.button.base,
+                settingsStyles.button.primary,
+                'hover:bg-purple-500/10 hover:text-purple-500',
+                'min-w-[120px] justify-center',
+              )}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isInstallingModel ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="i-ph:spinner-gap-bold animate-spin" />
+                  Installing...
+                </div>
+              ) : (
+                <>
+                  <div className="i-ph:download" />
+                  Install Model
+                </>
+              )}
+            </motion.button>
+            {isInstallingModel && (
+              <motion.button
+                onClick={() => {
+                  setIsInstallingModel(null);
+                  setInstallProgress(null);
+                  error('Installation cancelled');
+                }}
+                className={classNames(
+                  settingsStyles.button.base,
+                  settingsStyles.button.secondary,
+                  'hover:bg-red-500/10 hover:text-red-500',
+                  'min-w-[100px] justify-center',
+                )}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="i-ph:x" />
+                Cancel
+              </motion.button>
+            )}
+          </div>
+
+          {installProgress && (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center justify-between text-sm text-bolt-elements-textSecondary">
+                <span>{installProgress.status}</span>
+                <span>{Math.round(installProgress.progress)}%</span>
+              </div>
+              <div className="w-full h-2 bg-bolt-elements-background-depth-3 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 transition-all duration-200"
+                  style={{ width: `${installProgress.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default LocalProvidersTab;
