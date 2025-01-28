@@ -23,14 +23,17 @@ interface BatteryManager extends EventTarget {
   level: number;
 }
 
+type ProcessStatus = 'active' | 'idle' | 'suspended';
+type ProcessImpact = 'high' | 'medium' | 'low';
+
 interface ProcessInfo {
   name: string;
-  type: 'API' | 'Animation' | 'Background' | 'Render' | 'Network' | 'Storage';
+  type: 'API' | 'Animation' | 'Background' | 'Network' | 'Storage';
   cpuUsage: number;
   memoryUsage: number;
-  status: 'active' | 'idle' | 'suspended';
+  status: ProcessStatus;
   lastUpdate: string;
-  impact: 'high' | 'medium' | 'low';
+  impact: ProcessImpact;
 }
 
 interface SystemMetrics {
@@ -141,6 +144,8 @@ export default function TaskManagerTab() {
 
   const saverModeStartTime = useRef<number | null>(null);
 
+  const [performanceObserver, setPerformanceObserver] = useState<PerformanceObserver | null>(null);
+
   // Handle energy saver mode changes
   const handleEnergySaverChange = (checked: boolean) => {
     setEnergySaverMode(checked);
@@ -161,10 +166,64 @@ export default function TaskManagerTab() {
     }
   };
 
-  // Calculate energy savings
+  // Add this helper function at the top level of the component
+  function isNetworkRequest(entry: PerformanceEntry): boolean {
+    const resourceTiming = entry as PerformanceResourceTiming;
+    return resourceTiming.initiatorType === 'fetch' && entry.duration === 0;
+  }
+
+  // Update getActiveProcessCount
+  const getActiveProcessCount = async (): Promise<number> => {
+    try {
+      const networkCount = (navigator as any)?.connections?.length || 0;
+      const swCount = (await navigator.serviceWorker?.getRegistrations().then((regs) => regs.length)) || 0;
+      const animationCount = document.getAnimations().length;
+      const fetchCount = performance.getEntriesByType('resource').filter(isNetworkRequest).length;
+
+      return networkCount + swCount + animationCount + fetchCount;
+    } catch (error) {
+      console.error('Failed to get active process count:', error);
+      return 0;
+    }
+  };
+
+  // Update process cleanup
+  const cleanupOldProcesses = useCallback(() => {
+    const MAX_PROCESS_AGE = 30000; // 30 seconds
+
+    setProcesses((currentProcesses) => {
+      const now = Date.now();
+      return currentProcesses.filter((process) => {
+        const processTime = new Date(process.lastUpdate).getTime();
+        const age = now - processTime;
+
+        /*
+         * Keep processes that are:
+         * 1. Less than MAX_PROCESS_AGE old, or
+         * 2. Currently active, or
+         * 3. Service workers (they're managed separately)
+         */
+        return age < MAX_PROCESS_AGE || process.status === 'active' || process.type === 'Background';
+      });
+    });
+  }, []);
+
+  // Add cleanup interval
+  useEffect(() => {
+    const interval = setInterval(cleanupOldProcesses, 5000);
+    return () => clearInterval(interval);
+  }, [cleanupOldProcesses]);
+
+  // Update energy savings calculation
   const updateEnergySavings = useCallback(() => {
     if (!energySaverMode) {
       saverModeStartTime.current = null;
+      setEnergySavings({
+        updatesReduced: 0,
+        timeInSaverMode: 0,
+        estimatedEnergySaved: 0,
+      });
+
       return;
     }
 
@@ -172,42 +231,75 @@ export default function TaskManagerTab() {
       saverModeStartTime.current = Date.now();
     }
 
-    const timeInSaverMode = (Date.now() - saverModeStartTime.current) / 1000; // in seconds
-    const normalUpdatesPerMinute =
-      60 / (UPDATE_INTERVALS.normal.metrics / 1000) + 60 / (UPDATE_INTERVALS.normal.processes / 1000);
-    const saverUpdatesPerMinute =
-      60 / (UPDATE_INTERVALS.energySaver.metrics / 1000) + 60 / (UPDATE_INTERVALS.energySaver.processes / 1000);
+    const timeInSaverMode = Math.max(0, (Date.now() - (saverModeStartTime.current || Date.now())) / 1000);
+
+    const normalUpdatesPerMinute = 60 / (UPDATE_INTERVALS.normal.metrics / 1000);
+    const saverUpdatesPerMinute = 60 / (UPDATE_INTERVALS.energySaver.metrics / 1000);
     const updatesReduced = Math.floor((normalUpdatesPerMinute - saverUpdatesPerMinute) * (timeInSaverMode / 60));
 
-    // Calculate energy saved (mWh)
-    const energySaved =
-      (updatesReduced * ENERGY_COSTS.update + // Energy saved from reduced updates
-        updatesReduced * ENERGY_COSTS.apiCall + // Energy saved from fewer API calls
-        updatesReduced * ENERGY_COSTS.rendering) / // Energy saved from fewer renders
-      3600; // Convert to watt-hours (divide by 3600 seconds)
+    const processCount = processes.length;
+    const energyPerUpdate = ENERGY_COSTS.update + processCount * ENERGY_COSTS.rendering;
+    const energySaved = (updatesReduced * energyPerUpdate) / 3600;
 
     setEnergySavings({
       updatesReduced,
       timeInSaverMode,
       estimatedEnergySaved: energySaved,
     });
-  }, [energySaverMode]);
+  }, [energySaverMode, processes.length]);
 
-  useEffect((): (() => void) | undefined => {
-    if (!energySaverMode) {
-      // Clear any existing intervals and reset savings when disabled
-      setEnergySavings({
-        updatesReduced: 0,
-        timeInSaverMode: 0,
-        estimatedEnergySaved: 0,
-      });
-      return undefined;
-    }
+  // Add interval for energy savings updates
+  useEffect(() => {
+    const interval = setInterval(updateEnergySavings, 1000);
+    return () => clearInterval(interval);
+  }, [updateEnergySavings]);
 
-    const savingsInterval = setInterval(updateEnergySavings, 1000);
+  // Improve process monitoring by adding unique IDs and timestamps
+  const createProcess = (
+    name: string,
+    type: ProcessInfo['type'],
+    cpuUsage: number,
+    memoryUsage: number,
+    status: ProcessStatus,
+    impact: ProcessImpact,
+  ): ProcessInfo => ({
+    name,
+    type,
+    cpuUsage,
+    memoryUsage,
+    status,
+    lastUpdate: new Date().toISOString(),
+    impact,
+  });
 
-    return () => clearInterval(savingsInterval);
-  }, [energySaverMode, updateEnergySavings]);
+  // Update animation monitoring to track changes better
+  const updateAnimations = useCallback(() => {
+    const animations = document.getAnimations();
+
+    setProcesses((currentProcesses) => {
+      const nonAnimationProcesses = currentProcesses.filter((p) => !p.name.startsWith('Animation:'));
+      const newAnimations = animations
+        .slice(0, 5)
+        .map((animation) =>
+          createProcess(
+            `Animation: ${animation.id || 'Unnamed'}`,
+            'Animation',
+            animation.playState === 'running' ? 2 : 0,
+            1,
+            animation.playState === 'running' ? 'active' : 'idle',
+            'low',
+          ),
+        );
+
+      return [...nonAnimationProcesses, ...newAnimations];
+    });
+  }, []);
+
+  // Add animation monitoring interval
+  useEffect(() => {
+    const interval = setInterval(updateAnimations, energySaverMode ? 5000 : 1000);
+    return () => clearInterval(interval);
+  }, [updateAnimations, energySaverMode]);
 
   useEffect((): (() => void) | undefined => {
     if (!autoEnergySaver) {
@@ -245,7 +337,7 @@ export default function TaskManagerTab() {
     return 'text-gray-500';
   };
 
-  const getImpactColor = (impact: 'high' | 'medium' | 'low'): string => {
+  const getImpactColor = (impact: ProcessImpact): string => {
     if (impact === 'high') {
       return 'text-red-500';
     }
@@ -382,77 +474,196 @@ export default function TaskManagerTab() {
   const getCPUUsage = async (): Promise<number> => {
     try {
       const t0 = performance.now();
-      const startEntries = performance.getEntriesByType('measure');
 
-      // Wait a short time to measure CPU usage
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Create some actual work to measure and use the result
+      let result = 0;
+
+      for (let i = 0; i < 10000; i++) {
+        result += Math.random();
+      }
+
+      // Use result to prevent optimization
+      if (result < 0) {
+        console.log('Unexpected negative result');
+      }
 
       const t1 = performance.now();
-      const endEntries = performance.getEntriesByType('measure');
+      const timeTaken = t1 - t0;
 
-      // Calculate CPU usage based on the number of performance entries
-      const entriesPerMs = (endEntries.length - startEntries.length) / (t1 - t0);
+      /*
+       * Normalize to percentage (0-100)
+       * Lower time = higher CPU availability
+       */
+      const maxExpectedTime = 50; // baseline in ms
+      const cpuAvailability = Math.max(0, Math.min(100, ((maxExpectedTime - timeTaken) / maxExpectedTime) * 100));
 
-      // Normalize to percentage (0-100)
-      return Math.min(100, entriesPerMs * 1000);
+      return 100 - cpuAvailability; // Convert availability to usage
     } catch (error) {
       console.error('Failed to get CPU usage:', error);
       return 0;
     }
   };
 
-  // Get real active process count
-  const getActiveProcessCount = async (): Promise<number> => {
-    try {
-      // Count active network connections
-      const networkCount = (navigator as any)?.connections?.length || 0;
+  // Add network change listener
+  useEffect(() => {
+    const connection =
+      (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
 
-      // Count active service workers
-      const swCount = (await navigator.serviceWorker?.getRegistrations().then((regs) => regs.length)) || 0;
-
-      // Count active animations
-      const animationCount = document.getAnimations().length;
-
-      // Count active fetch requests
-      const fetchCount = performance
-        .getEntriesByType('resource')
-        .filter(
-          (entry) => (entry as PerformanceResourceTiming).initiatorType === 'fetch' && entry.duration === 0,
-        ).length;
-
-      return networkCount + swCount + animationCount + fetchCount;
-    } catch (error) {
-      console.error('Failed to get active process count:', error);
-      return 0;
+    if (!connection) {
+      return;
     }
-  };
 
+    const updateNetworkInfo = () => {
+      setMetrics((prev) => ({
+        ...prev,
+        network: {
+          downlink: connection.downlink || 0,
+          latency: connection.rtt || 0,
+          type: connection.type || 'unknown',
+        },
+      }));
+    };
+
+    connection.addEventListener('change', updateNetworkInfo);
+
+    // eslint-disable-next-line consistent-return
+    return () => connection.removeEventListener('change', updateNetworkInfo);
+  }, []);
+
+  // Add this effect for live process monitoring
+  useEffect(() => {
+    // Clean up previous observer if exists
+    performanceObserver?.disconnect();
+
+    // Create new performance observer for network requests
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      const newNetworkEntries = entries
+        .filter((entry: PerformanceEntry): boolean => {
+          const resourceTiming = entry as PerformanceResourceTiming;
+          return entry.entryType === 'resource' && resourceTiming.initiatorType === 'fetch';
+        })
+        .slice(-5);
+
+      if (newNetworkEntries.length > 0) {
+        setProcesses((currentProcesses) => {
+          // Remove old network processes
+          const filteredProcesses = currentProcesses.filter((p) => !p.name.startsWith('Network Request:'));
+
+          // Add new network processes
+          const newProcesses = newNetworkEntries.map((entry) => ({
+            name: `Network Request: ${new URL((entry as PerformanceResourceTiming).name).pathname}`,
+            type: 'Network' as const,
+            cpuUsage: entry.duration > 0 ? entry.duration / 100 : 0,
+            memoryUsage: (entry as PerformanceResourceTiming).encodedBodySize / (1024 * 1024),
+            status: (entry.duration === 0 ? 'active' : 'idle') as ProcessStatus,
+            lastUpdate: new Date().toISOString(),
+            impact: (entry.duration > 1000 ? 'high' : entry.duration > 500 ? 'medium' : 'low') as ProcessImpact,
+          })) as ProcessInfo[];
+
+          return [...filteredProcesses, ...newProcesses];
+        });
+      }
+    });
+
+    // Start observing resource timing entries
+    observer.observe({ entryTypes: ['resource'] });
+    setPerformanceObserver(observer);
+
+    // Set up animation observer
+    const animationObserver = new MutationObserver(() => {
+      const animations = document.getAnimations();
+
+      setProcesses((currentProcesses) => {
+        // Remove old animation processes
+        const filteredProcesses = currentProcesses.filter((p) => !p.name.startsWith('Animation:'));
+
+        // Add current animations
+        const animationProcesses = animations.slice(0, 5).map((animation) => ({
+          name: `Animation: ${animation.id || 'Unnamed'}`,
+          type: 'Animation' as const,
+          cpuUsage: animation.playState === 'running' ? 2 : 0,
+          memoryUsage: 1,
+          status: (animation.playState === 'running' ? 'active' : 'idle') as ProcessStatus,
+          lastUpdate: new Date().toISOString(),
+          impact: 'low' as ProcessImpact,
+        })) as ProcessInfo[];
+
+        return [...filteredProcesses, ...animationProcesses];
+      });
+    });
+
+    // Observe DOM changes that might trigger animations
+    animationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    // Set up service worker observer
+    const checkServiceWorkers = async () => {
+      const serviceWorkers = (await navigator.serviceWorker?.getRegistrations()) || [];
+
+      setProcesses((currentProcesses) => {
+        // Remove old service worker processes
+        const filteredProcesses = currentProcesses.filter((p) => !p.name.startsWith('Service Worker:'));
+
+        // Add current service workers
+        const swProcesses = serviceWorkers.map((sw) => ({
+          name: `Service Worker: ${sw.scope}`,
+          type: 'Background' as const,
+          cpuUsage: sw.active ? 1 : 0,
+          memoryUsage: 5,
+          status: (sw.active ? 'active' : 'idle') as ProcessStatus,
+          lastUpdate: new Date().toISOString(),
+          impact: 'low' as ProcessImpact,
+        })) as ProcessInfo[];
+
+        return [...filteredProcesses, ...swProcesses];
+      });
+    };
+
+    // Check service workers periodically
+    const swInterval = setInterval(checkServiceWorkers, 5000);
+
+    // Clean up
+    return () => {
+      performanceObserver?.disconnect();
+      animationObserver.disconnect();
+      clearInterval(swInterval);
+    };
+  }, []);
+
+  // Update the updateProcesses function
   const updateProcesses = async () => {
     try {
       setLoading((prev) => ({ ...prev, processes: true }));
 
-      // Get real process information
+      // Get initial process information
       const processes: ProcessInfo[] = [];
 
-      // Add network processes
+      // Add initial network processes
       const networkEntries = performance
         .getEntriesByType('resource')
-        .filter((entry) => (entry as PerformanceResourceTiming).initiatorType === 'fetch' && entry.duration === 0)
-        .slice(-5); // Get last 5 active requests
+        .filter((entry: PerformanceEntry): boolean => {
+          const resourceTiming = entry as PerformanceResourceTiming;
+          return entry.entryType === 'resource' && resourceTiming.initiatorType === 'fetch';
+        })
+        .slice(-5);
 
       networkEntries.forEach((entry) => {
         processes.push({
           name: `Network Request: ${new URL((entry as PerformanceResourceTiming).name).pathname}`,
           type: 'Network',
           cpuUsage: entry.duration > 0 ? entry.duration / 100 : 0,
-          memoryUsage: (entry as PerformanceResourceTiming).encodedBodySize / (1024 * 1024), // Convert to MB
-          status: entry.duration === 0 ? 'active' : 'idle',
+          memoryUsage: (entry as PerformanceResourceTiming).encodedBodySize / (1024 * 1024),
+          status: (entry.duration === 0 ? 'active' : 'idle') as ProcessStatus,
           lastUpdate: new Date().toISOString(),
-          impact: entry.duration > 1000 ? 'high' : entry.duration > 500 ? 'medium' : 'low',
+          impact: (entry.duration > 1000 ? 'high' : entry.duration > 500 ? 'medium' : 'low') as ProcessImpact,
         });
       });
 
-      // Add animation processes
+      // Add initial animations
       document
         .getAnimations()
         .slice(0, 5)
@@ -461,24 +672,24 @@ export default function TaskManagerTab() {
             name: `Animation: ${animation.id || 'Unnamed'}`,
             type: 'Animation',
             cpuUsage: animation.playState === 'running' ? 2 : 0,
-            memoryUsage: 1, // Approximate memory usage
-            status: animation.playState === 'running' ? 'active' : 'idle',
+            memoryUsage: 1,
+            status: (animation.playState === 'running' ? 'active' : 'idle') as ProcessStatus,
             lastUpdate: new Date().toISOString(),
-            impact: 'low',
+            impact: 'low' as ProcessImpact,
           });
         });
 
-      // Add service worker processes
+      // Add initial service workers
       const serviceWorkers = (await navigator.serviceWorker?.getRegistrations()) || [];
       serviceWorkers.forEach((sw) => {
         processes.push({
           name: `Service Worker: ${sw.scope}`,
           type: 'Background',
           cpuUsage: sw.active ? 1 : 0,
-          memoryUsage: 5, // Approximate memory usage
-          status: sw.active ? 'active' : 'idle',
+          memoryUsage: 5,
+          status: (sw.active ? 'active' : 'idle') as ProcessStatus,
           lastUpdate: new Date().toISOString(),
-          impact: 'low',
+          impact: 'low' as ProcessImpact,
         });
       });
 
