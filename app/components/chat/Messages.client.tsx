@@ -1,5 +1,5 @@
 import type { Message } from 'ai';
-import React, { Fragment } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
@@ -19,6 +19,94 @@ interface MessagesProps {
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: MessagesProps, ref) => {
   const { id, isStreaming = false, messages = [] } = props;
   const location = useLocation();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isUserInteracting, setIsUserInteracting] = useState(false);
+  const [lastScrollTop, setLastScrollTop] = useState(0);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+
+  // Check if we should auto-scroll based on scroll position
+  const checkShouldAutoScroll = () => {
+    if (!containerRef.current) {
+      return true;
+    }
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+    return distanceFromBottom < 100;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (!shouldAutoScroll || isUserInteracting) {
+      return;
+    }
+
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
+
+  // Handle user interaction and scroll position
+  useEffect(() => {
+    const container = containerRef.current;
+
+    if (!container) {
+      return undefined;
+    }
+
+    const handleInteractionStart = () => {
+      setIsUserInteracting(true);
+    };
+
+    const handleInteractionEnd = () => {
+      if (checkShouldAutoScroll()) {
+        setTimeout(() => setIsUserInteracting(false), 100);
+      }
+    };
+
+    const handleScroll = () => {
+      const { scrollTop } = container;
+      const shouldScroll = checkShouldAutoScroll();
+
+      // Update auto-scroll state based on scroll position
+      setShouldAutoScroll(shouldScroll);
+
+      // If scrolling up, disable auto-scroll
+      if (scrollTop < lastScrollTop) {
+        setIsUserInteracting(true);
+      }
+
+      setLastScrollTop(scrollTop);
+    };
+
+    container.addEventListener('mousedown', handleInteractionStart);
+    container.addEventListener('mouseup', handleInteractionEnd);
+    container.addEventListener('touchstart', handleInteractionStart);
+    container.addEventListener('touchend', handleInteractionEnd);
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      container.removeEventListener('mousedown', handleInteractionStart);
+      container.removeEventListener('mouseup', handleInteractionEnd);
+      container.removeEventListener('touchstart', handleInteractionStart);
+      container.removeEventListener('touchend', handleInteractionEnd);
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [lastScrollTop]);
+
+  // Scroll to bottom when new messages are added or during streaming
+  useEffect(() => {
+    if (messages.length > 0 && (isStreaming || shouldAutoScroll)) {
+      scrollToBottom('smooth');
+    }
+  }, [messages, isStreaming, shouldAutoScroll]);
+
+  // Initial scroll on component mount
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom('instant');
+      setShouldAutoScroll(true);
+    }
+  }, []);
 
   const handleRewind = (messageId: string) => {
     const searchParams = new URLSearchParams(location.search);
@@ -41,7 +129,20 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
   };
 
   return (
-    <div id={id} ref={ref} className={props.className}>
+    <div
+      id={id}
+      ref={(el) => {
+        // Combine refs
+        if (typeof ref === 'function') {
+          ref(el);
+        }
+
+        (containerRef as any).current = el;
+
+        return undefined;
+      }}
+      className={props.className}
+    >
       {messages.length > 0
         ? messages.map((message, index) => {
             const { role, content, id: messageId, annotations } = message;
@@ -107,6 +208,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
             );
           })
         : null}
+      <div ref={messagesEndRef} /> {/* Add an empty div as scroll anchor */}
       {isStreaming && (
         <div className="text-center w-full text-bolt-elements-textSecondary i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
       )}
