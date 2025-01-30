@@ -263,8 +263,6 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
       });
   }, [tabConfiguration, profile.notifications]);
 
-  console.log('Filtered visible user tabs:', visibleUserTabs);
-
   const moveTab = (dragIndex: number, hoverIndex: number) => {
     const draggedTab = visibleUserTabs[dragIndex];
     const targetTab = visibleUserTabs[hoverIndex];

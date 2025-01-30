@@ -2,11 +2,11 @@ import type { GitHubRepoInfo, GitHubContent, RepositoryStats } from '~/types/Git
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import * as Dialog from '@radix-ui/react-dialog';
-import { cn } from '~/lib/utils';
-import { getLocalStorage } from '~/utils/localStorage';
-import { classNames as utilsClassNames } from '~/utils/classNames';
+import { classNames } from '~/utils/classNames';
+import { getLocalStorage } from '~/lib/persistence';
 import { motion } from 'framer-motion';
 import { formatSize } from '~/utils/formatSize';
+import { Input } from '~/components/ui/Input';
 
 interface GitHubTreeResponse {
   tree: Array<{
@@ -445,7 +445,7 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
             </Dialog.Title>
             <Dialog.Close
               onClick={handleClose}
-              className={cn(
+              className={classNames(
                 'p-2 rounded-lg transition-all duration-200 ease-in-out',
                 'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
                 'dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark',
@@ -476,12 +476,13 @@ export function RepositorySelectionDialog({ isOpen, onClose, onSelect }: Reposit
 
             {activeTab === 'url' ? (
               <div className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub repository URL..."
+                <Input
+                  placeholder="Enter repository URL"
                   value={customUrl}
                   onChange={(e) => setCustomUrl(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-[#F5F5F5] dark:bg-[#252525] border border-[#E5E5E5] dark:border-[#333333] text-bolt-elements-textPrimary"
+                  className={classNames('w-full', {
+                    'border-red-500': false,
+                  })}
                 />
                 <button
                   onClick={handleImport}
@@ -610,7 +611,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={utilsClassNames(
+      className={classNames(
         'px-4 py-2 h-10 rounded-lg transition-all duration-200 flex items-center gap-2 min-w-[120px] justify-center',
         active
           ? 'bg-purple-500 text-white hover:bg-purple-600'

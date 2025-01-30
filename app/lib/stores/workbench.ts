@@ -10,14 +10,17 @@ import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
-import { saveAs } from 'file-saver';
+import fileSaver from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
-import * as nodePath from 'node:path';
+import { path } from '~/utils/path';
 import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert } from '~/types/actions';
+
+// Destructure saveAs from the CommonJS module
+const { saveAs } = fileSaver;
 
 export interface ArtifactState {
   id: string;
@@ -329,7 +332,7 @@ export class WorkbenchStore {
 
     if (data.action.type === 'file') {
       const wc = await webcontainer;
-      const fullPath = nodePath.join(wc.workdir, data.action.filePath);
+      const fullPath = path.join(wc.workdir, data.action.filePath);
 
       if (this.selectedFile.value !== fullPath) {
         this.setSelectedFile(fullPath);

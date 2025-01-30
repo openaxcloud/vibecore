@@ -5,7 +5,7 @@ import { MAX_FILES, isBinaryFile, shouldIncludeFile } from '~/utils/fileUtils';
 import { createChatFromFolder } from '~/utils/folderImport';
 import { logStore } from '~/lib/stores/logs'; // Assuming logStore is imported from this location
 import { Button } from '~/components/ui/Button';
-import { cn } from '~/lib/utils';
+import { classNames } from '~/utils/classNames';
 
 interface ImportFolderButtonProps {
   className?: string;
@@ -119,9 +119,10 @@ export const ImportFolderButton: React.FC<ImportFolderButtonProps> = ({ classNam
           const input = document.getElementById('folder-import');
           input?.click();
         }}
+        title="Import Folder"
         variant="outline"
         size="lg"
-        className={cn(
+        className={classNames(
           'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
           'text-bolt-elements-textPrimary dark:text-white',
           'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',

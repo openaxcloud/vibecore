@@ -2,7 +2,6 @@ import type { IconType } from 'react-icons';
 
 export type ProviderName =
   | 'AmazonBedrock'
-  | 'Anthropic'
   | 'Cohere'
   | 'Deepseek'
   | 'Google'
@@ -10,7 +9,6 @@ export type ProviderName =
   | 'HuggingFace'
   | 'Hyperbolic'
   | 'Mistral'
-  | 'OpenAI'
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
@@ -27,12 +25,12 @@ export type ServiceStatus = {
   incidents?: string[];
 };
 
-export type ProviderConfig = {
+export interface ProviderConfig {
   statusUrl: string;
   apiUrl: string;
   headers: Record<string, string>;
   testModel: string;
-};
+}
 
 export type ApiResponse = {
   error?: {
@@ -51,8 +49,7 @@ export type ApiResponse = {
 };
 
 export type StatusCheckResult = {
-  status: ServiceStatus['status'];
-  message?: string;
-  incidents?: string[];
-  responseTime?: number;
+  status: 'operational' | 'degraded' | 'down';
+  message: string;
+  incidents: string[];
 };

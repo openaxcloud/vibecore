@@ -2,7 +2,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
-import { getLocalStorage } from '~/utils/localStorage';
+import { getLocalStorage } from '~/lib/persistence';
 import { classNames } from '~/utils/classNames';
 import type { GitHubUserResponse } from '~/types/GitHub';
 import { logStore } from '~/lib/stores/logs';

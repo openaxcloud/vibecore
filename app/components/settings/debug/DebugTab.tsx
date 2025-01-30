@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
-import { logStore } from '~/lib/stores/logs';
-import type { LogEntry } from '~/lib/stores/logs';
+import { logStore, type LogEntry } from '~/lib/stores/logs';
+import { useStore } from '@nanostores/react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/Collapsible';
 import { Progress } from '~/components/ui/Progress';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { Badge } from '~/components/ui/Badge';
-import { cn } from '~/lib/utils';
 
 interface SystemInfo {
   os: string;
@@ -88,125 +87,134 @@ interface SystemInfo {
   };
 }
 
+interface GitHubRepoInfo {
+  fullName: string;
+  defaultBranch: string;
+  stars: number;
+  forks: number;
+  openIssues?: number;
+}
+
+interface GitInfo {
+  local: {
+    commitHash: string;
+    branch: string;
+    commitTime: string;
+    author: string;
+    email: string;
+    remoteUrl: string;
+    repoName: string;
+  };
+  github?: {
+    currentRepo: GitHubRepoInfo;
+    upstream?: GitHubRepoInfo;
+  };
+  isForked?: boolean;
+}
+
 interface WebAppInfo {
-  // Local WebApp Info
   name: string;
   version: string;
   description: string;
   license: string;
-  nodeVersion: string;
-  dependencies: { [key: string]: string };
-  devDependencies: { [key: string]: string };
-
-  // Build Info
-  buildTime?: string;
-  buildNumber?: string;
-  environment?: string;
-
-  // Git Info
-  gitInfo?: {
-    branch: string;
-    commit: string;
-    commitTime: string;
-    author: string;
-    remoteUrl: string;
+  environment: string;
+  timestamp: string;
+  runtimeInfo: {
+    nodeVersion: string;
   };
-
-  // GitHub Repository Info
-  repoInfo?: {
-    name: string;
-    fullName: string;
-    description: string;
-    stars: number;
-    forks: number;
-    openIssues: number;
-    defaultBranch: string;
-    lastUpdate: string;
-    owner: {
-      login: string;
-      avatarUrl: string;
-    };
+  dependencies: {
+    production: Array<{ name: string; version: string; type: string }>;
+    development: Array<{ name: string; version: string; type: string }>;
+    peer: Array<{ name: string; version: string; type: string }>;
+    optional: Array<{ name: string; version: string; type: string }>;
   };
+  gitInfo: GitInfo;
 }
 
-// Add interface for GitHub API response
-interface GitHubRepoResponse {
-  name: string;
-  full_name: string;
-  description: string | null;
-  stargazers_count: number;
-  forks_count: number;
-  open_issues_count: number;
-  default_branch: string;
-  updated_at: string;
-  owner: {
-    login: string;
-    avatar_url: string;
-  };
-}
+const DependencySection = ({
+  title,
+  deps,
+}: {
+  title: string;
+  deps: Array<{ name: string; version: string; type: string }>;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
 
-// Add interface for Git info response
-interface GitInfo {
-  branch: string;
-  commit: string;
-  commitTime: string;
-  author: string;
-  remoteUrl: string;
-}
+  if (deps.length === 0) {
+    return null;
+  }
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex w-full items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="i-ph:package text-bolt-elements-textSecondary w-4 h-4" />
+          <span className="text-base text-bolt-elements-textPrimary">
+            {title} Dependencies ({deps.length})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-bolt-elements-textSecondary">{isOpen ? 'Hide' : 'Show'}</span>
+          <div
+            className={classNames(
+              'i-ph:caret-down w-4 h-4 transform transition-transform duration-200',
+              isOpen ? 'rotate-180' : '',
+            )}
+          />
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <ScrollArea className="h-[200px] w-full p-4">
+          <div className="space-y-2 pl-7">
+            {deps.map((dep) => (
+              <div key={dep.name} className="flex items-center justify-between text-sm">
+                <span className="text-bolt-elements-textPrimary">{dep.name}</span>
+                <span className="text-bolt-elements-textSecondary">{dep.version}</span>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
 
 export default function DebugTab() {
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [webAppInfo, setWebAppInfo] = useState<WebAppInfo | null>(null);
   const [loading, setLoading] = useState({
     systemInfo: false,
-    performance: false,
-    errors: false,
     webAppInfo: false,
+    errors: false,
+    performance: false,
   });
-  const [errorLog, setErrorLog] = useState<{
-    errors: any[];
-    lastCheck: string | null;
-  }>({
-    errors: [],
-    lastCheck: null,
-  });
-
-  // Add section collapse state
   const [openSections, setOpenSections] = useState({
-    system: true,
-    performance: true,
-    webapp: true,
-    errors: true,
+    system: false,
+    webapp: false,
+    errors: false,
+    performance: false,
   });
 
-  // Fetch initial data
-  useEffect(() => {
-    getSystemInfo();
-    getWebAppInfo();
-  }, []);
+  // Subscribe to logStore updates
+  const logs = useStore(logStore.logs);
+  const errorLogs = useMemo(() => {
+    return Object.values(logs).filter(
+      (log): log is LogEntry => typeof log === 'object' && log !== null && 'level' in log && log.level === 'error',
+    );
+  }, [logs]);
 
   // Set up error listeners when component mounts
   useEffect(() => {
-    const errors: any[] = [];
-
     const handleError = (event: ErrorEvent) => {
-      errors.push({
-        type: 'error',
-        message: event.message,
+      logStore.logError(event.message, event.error, {
         filename: event.filename,
         lineNumber: event.lineno,
         columnNumber: event.colno,
-        error: event.error,
-        timestamp: new Date().toISOString(),
       });
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
-      errors.push({
-        type: 'unhandledRejection',
-        reason: event.reason,
-        timestamp: new Date().toISOString(),
-      });
+      logStore.logError('Unhandled Promise Rejection', event.reason);
     };
 
     window.addEventListener('error', handleError);
@@ -217,6 +225,66 @@ export default function DebugTab() {
       window.removeEventListener('unhandledrejection', handleRejection);
     };
   }, []);
+
+  // Check for errors when the errors section is opened
+  useEffect(() => {
+    if (openSections.errors) {
+      checkErrors();
+    }
+  }, [openSections.errors]);
+
+  // Load initial data when component mounts
+  useEffect(() => {
+    const loadInitialData = async () => {
+      await Promise.all([getSystemInfo(), getWebAppInfo()]);
+    };
+
+    loadInitialData();
+  }, []);
+
+  // Refresh data when sections are opened
+  useEffect(() => {
+    if (openSections.system) {
+      getSystemInfo();
+    }
+
+    if (openSections.webapp) {
+      getWebAppInfo();
+    }
+  }, [openSections.system, openSections.webapp]);
+
+  // Add periodic refresh of git info
+  useEffect(() => {
+    if (!openSections.webapp) {
+      return undefined;
+    }
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch('/api/system/git-info');
+        const updatedGitInfo = (await response.json()) as GitInfo;
+
+        setWebAppInfo((prev) => {
+          if (!prev) {
+            return null;
+          }
+
+          return {
+            ...prev,
+            gitInfo: updatedGitInfo,
+          };
+        });
+      } catch (error) {
+        console.error('Failed to refresh git info:', error);
+      }
+    }, 5000);
+
+    const cleanup = () => {
+      clearInterval(interval);
+    };
+
+    return cleanup;
+  }, [openSections.webapp]);
 
   const getSystemInfo = async () => {
     try {
@@ -367,67 +435,32 @@ export default function DebugTab() {
     try {
       setLoading((prev) => ({ ...prev, webAppInfo: true }));
 
-      // Fetch local app info
-      const appInfoResponse = await fetch('/api/system/app-info');
+      const [appResponse, gitResponse] = await Promise.all([
+        fetch('/api/system/app-info'),
+        fetch('/api/system/git-info'),
+      ]);
 
-      if (!appInfoResponse.ok) {
+      if (!appResponse.ok || !gitResponse.ok) {
         throw new Error('Failed to fetch webapp info');
       }
 
-      const appData = (await appInfoResponse.json()) as Record<string, unknown>;
-
-      // Fetch git info
-      const gitInfoResponse = await fetch('/api/system/git-info');
-      let gitInfo: GitInfo | undefined;
-
-      if (gitInfoResponse.ok) {
-        gitInfo = (await gitInfoResponse.json()) as GitInfo;
-      }
-
-      // Fetch GitHub repository info
-      const repoInfoResponse = await fetch('https://api.github.com/repos/stackblitz-labs/bolt.diy');
-      let repoInfo: WebAppInfo['repoInfo'] | undefined;
-
-      if (repoInfoResponse.ok) {
-        const repoData = (await repoInfoResponse.json()) as GitHubRepoResponse;
-        repoInfo = {
-          name: repoData.name,
-          fullName: repoData.full_name,
-          description: repoData.description ?? '',
-          stars: repoData.stargazers_count,
-          forks: repoData.forks_count,
-          openIssues: repoData.open_issues_count,
-          defaultBranch: repoData.default_branch,
-          lastUpdate: repoData.updated_at,
-          owner: {
-            login: repoData.owner.login,
-            avatarUrl: repoData.owner.avatar_url,
-          },
-        };
-      }
-
-      // Get build info from environment variables or config
-      const buildInfo = {
-        buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString(),
-        buildNumber: process.env.NEXT_PUBLIC_BUILD_NUMBER || 'development',
-        environment: process.env.NEXT_PUBLIC_ENV || 'development',
-      };
+      const appData = (await appResponse.json()) as Omit<WebAppInfo, 'gitInfo'>;
+      const gitData = (await gitResponse.json()) as GitInfo;
 
       setWebAppInfo({
-        name: appData.name as string,
-        version: appData.version as string,
-        description: appData.description as string,
-        license: appData.license as string,
-        nodeVersion: appData.nodeVersion as string,
-        dependencies: appData.dependencies as Record<string, string>,
-        devDependencies: appData.devDependencies as Record<string, string>,
-        ...buildInfo,
-        gitInfo,
-        repoInfo,
+        ...appData,
+        gitInfo: gitData,
       });
+
+      toast.success('WebApp information updated');
+
+      return true;
     } catch (error) {
       console.error('Failed to fetch webapp info:', error);
       toast.error('Failed to fetch webapp information');
+      setWebAppInfo(null);
+
+      return false;
     } finally {
       setLoading((prev) => ({ ...prev, webAppInfo: false }));
     }
@@ -536,28 +569,12 @@ export default function DebugTab() {
       setLoading((prev) => ({ ...prev, errors: true }));
 
       // Get errors from log store
-      const storedErrors = logStore.getLogs().filter((log: LogEntry) => log.level === 'error');
+      const storedErrors = errorLogs;
 
-      // Combine with runtime errors
-      const allErrors = [
-        ...errorLog.errors,
-        ...storedErrors.map((error) => ({
-          type: 'stored',
-          message: error.message,
-          timestamp: error.timestamp,
-          details: error.details || {},
-        })),
-      ];
-
-      setErrorLog({
-        errors: allErrors,
-        lastCheck: new Date().toISOString(),
-      });
-
-      if (allErrors.length === 0) {
+      if (storedErrors.length === 0) {
         toast.success('No errors found');
       } else {
-        toast.warning(`Found ${allErrors.length} error(s)`);
+        toast.warning(`Found ${storedErrors.length} error(s)`);
       }
     } catch (error) {
       toast.error('Failed to check errors');
@@ -573,7 +590,7 @@ export default function DebugTab() {
         timestamp: new Date().toISOString(),
         system: systemInfo,
         webApp: webAppInfo,
-        errors: errorLog.errors,
+        errors: logStore.getLogs().filter((log: LogEntry) => log.level === 'error'),
         performance: {
           memory: (performance as any).memory || {},
           timing: performance.timing,
@@ -629,10 +646,7 @@ export default function DebugTab() {
 
         <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/10 to-red-500/5 border border-red-500/20">
           <div className="text-sm text-bolt-elements-textSecondary">Errors</div>
-          <div className="text-2xl font-semibold text-bolt-elements-textPrimary mt-1">{errorLog.errors.length}</div>
-          <div className="text-xs text-bolt-elements-textSecondary mt-2">
-            Last Check: {errorLog.lastCheck ? new Date(errorLog.lastCheck).toLocaleTimeString() : 'Never'}
-          </div>
+          <div className="text-2xl font-semibold text-bolt-elements-textPrimary mt-1">{errorLogs.length}</div>
         </div>
       </div>
 
@@ -746,7 +760,7 @@ export default function DebugTab() {
               <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Information</h3>
             </div>
             <div
-              className={cn(
+              className={classNames(
                 'i-ph:caret-down w-4 h-4 transform transition-transform duration-200',
                 openSections.system ? 'rotate-180' : '',
               )}
@@ -893,7 +907,7 @@ export default function DebugTab() {
               <h3 className="text-base font-medium text-bolt-elements-textPrimary">Performance Metrics</h3>
             </div>
             <div
-              className={cn(
+              className={classNames(
                 'i-ph:caret-down w-4 h-4 transform transition-transform duration-200',
                 openSections.performance ? 'rotate-180' : '',
               )}
@@ -973,7 +987,7 @@ export default function DebugTab() {
       {/* WebApp Information */}
       <Collapsible
         open={openSections.webapp}
-        onOpenChange={(open: boolean) => setOpenSections((prev) => ({ ...prev, webapp: open }))}
+        onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, webapp: open }))}
         className="w-full"
       >
         <CollapsibleTrigger className="w-full">
@@ -981,9 +995,10 @@ export default function DebugTab() {
             <div className="flex items-center gap-3">
               <div className="i-ph:info text-blue-500 w-5 h-5" />
               <h3 className="text-base font-medium text-bolt-elements-textPrimary">WebApp Information</h3>
+              {loading.webAppInfo && <span className="loading loading-spinner loading-sm" />}
             </div>
             <div
-              className={cn(
+              className={classNames(
                 'i-ph:caret-down w-4 h-4 transform transition-transform duration-200',
                 openSections.webapp ? 'rotate-180' : '',
               )}
@@ -993,142 +1008,154 @@ export default function DebugTab() {
 
         <CollapsibleContent>
           <div className="p-6 mt-2 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]">
-            {webAppInfo ? (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:app-window text-bolt-elements-textSecondary w-4 h-4" />
-                    <span className="text-bolt-elements-textSecondary">Name: </span>
-                    <span className="text-bolt-elements-textPrimary">{webAppInfo.name}</span>
-                  </div>
-                  <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:tag text-bolt-elements-textSecondary w-4 h-4" />
-                    <span className="text-bolt-elements-textSecondary">Version: </span>
-                    <span className="text-bolt-elements-textPrimary">{webAppInfo.version}</span>
-                  </div>
-                  <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:file-text text-bolt-elements-textSecondary w-4 h-4" />
-                    <span className="text-bolt-elements-textSecondary">Description: </span>
-                    <span className="text-bolt-elements-textPrimary">{webAppInfo.description}</span>
-                  </div>
-                  <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:certificate text-bolt-elements-textSecondary w-4 h-4" />
-                    <span className="text-bolt-elements-textSecondary">License: </span>
-                    <span className="text-bolt-elements-textPrimary">{webAppInfo.license}</span>
-                  </div>
-                  <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
-                    <span className="text-bolt-elements-textSecondary">Node Version: </span>
-                    <span className="text-bolt-elements-textPrimary">{webAppInfo.nodeVersion}</span>
-                  </div>
-                  {webAppInfo.buildTime && (
+            {loading.webAppInfo ? (
+              <div className="flex items-center justify-center p-8">
+                <span className="loading loading-spinner loading-lg" />
+              </div>
+            ) : !webAppInfo ? (
+              <div className="flex flex-col items-center justify-center p-8 text-bolt-elements-textSecondary">
+                <div className="i-ph:warning-circle w-8 h-8 mb-2" />
+                <p>Failed to load WebApp information</p>
+                <button
+                  onClick={() => getWebAppInfo()}
+                  className="mt-4 px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="mb-4 text-base font-medium text-bolt-elements-textPrimary">Basic Information</h3>
+                  <div className="space-y-3">
                     <div className="text-sm flex items-center gap-2">
-                      <div className="i-ph:calendar text-bolt-elements-textSecondary w-4 h-4" />
-                      <span className="text-bolt-elements-textSecondary">Build Time: </span>
-                      <span className="text-bolt-elements-textPrimary">{webAppInfo.buildTime}</span>
+                      <div className="i-ph:app-window text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Name:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.name}</span>
                     </div>
-                  )}
-                  {webAppInfo.buildNumber && (
                     <div className="text-sm flex items-center gap-2">
-                      <div className="i-ph:hash text-bolt-elements-textSecondary w-4 h-4" />
-                      <span className="text-bolt-elements-textSecondary">Build Number: </span>
-                      <span className="text-bolt-elements-textPrimary">{webAppInfo.buildNumber}</span>
+                      <div className="i-ph:tag text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Version:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.version}</span>
                     </div>
-                  )}
-                  {webAppInfo.environment && (
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:certificate text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">License:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.license}</span>
+                    </div>
                     <div className="text-sm flex items-center gap-2">
                       <div className="i-ph:cloud text-bolt-elements-textSecondary w-4 h-4" />
-                      <span className="text-bolt-elements-textSecondary">Environment: </span>
+                      <span className="text-bolt-elements-textSecondary">Environment:</span>
                       <span className="text-bolt-elements-textPrimary">{webAppInfo.environment}</span>
                     </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <div className="text-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="i-ph:package text-bolt-elements-textSecondary w-4 h-4" />
-                      <span className="text-bolt-elements-textSecondary">Key Dependencies:</span>
-                    </div>
-                    <div className="pl-6 space-y-1">
-                      {Object.entries(webAppInfo.dependencies)
-                        .filter(([key]) => ['react', '@remix-run/react', 'next', 'typescript'].includes(key))
-                        .map(([key, version]) => (
-                          <div key={key} className="text-xs text-bolt-elements-textPrimary">
-                            {key}: {version}
-                          </div>
-                        ))}
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Node Version:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.runtimeInfo.nodeVersion}</span>
                     </div>
                   </div>
-                  {webAppInfo.gitInfo && (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="i-ph:git-branch text-bolt-elements-textSecondary w-4 h-4" />
-                        <span className="text-bolt-elements-textSecondary">Git Info:</span>
-                      </div>
-                      <div className="pl-6 space-y-1">
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Branch: {webAppInfo.gitInfo.branch}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Commit: {webAppInfo.gitInfo.commit}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Commit Time: {webAppInfo.gitInfo.commitTime}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Author: {webAppInfo.gitInfo.author}
-                        </div>
-                        <div className="text-xs text-bolt-elements-textPrimary">
-                          Remote URL: {webAppInfo.gitInfo.remoteUrl}
-                        </div>
-                      </div>
+                </div>
+
+                <div>
+                  <h3 className="mb-4 text-base font-medium text-bolt-elements-textPrimary">Git Information</h3>
+                  <div className="space-y-3">
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:git-branch text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Branch:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.gitInfo.local.branch}</span>
                     </div>
-                  )}
-                  {webAppInfo.repoInfo && (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="i-ph:github text-bolt-elements-textSecondary w-4 h-4" />
-                        <span className="text-bolt-elements-textSecondary">GitHub Repository:</span>
-                      </div>
-                      <div className="pl-6 space-y-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={webAppInfo.repoInfo.owner.avatarUrl}
-                            alt={`${webAppInfo.repoInfo.owner.login}'s avatar`}
-                            className="w-8 h-8 rounded-full border border-[#E5E5E5] dark:border-[#1A1A1A]"
-                          />
-                          <div className="space-y-0.5">
-                            <div className="text-xs text-bolt-elements-textPrimary font-medium">
-                              Owner: {webAppInfo.repoInfo.owner.login}
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:git-commit text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Commit:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.gitInfo.local.commitHash}</span>
+                    </div>
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:user text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Author:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.gitInfo.local.author}</span>
+                    </div>
+                    <div className="text-sm flex items-center gap-2">
+                      <div className="i-ph:clock text-bolt-elements-textSecondary w-4 h-4" />
+                      <span className="text-bolt-elements-textSecondary">Commit Time:</span>
+                      <span className="text-bolt-elements-textPrimary">{webAppInfo.gitInfo.local.commitTime}</span>
+                    </div>
+
+                    {webAppInfo.gitInfo.github && (
+                      <>
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+                          <div className="text-sm flex items-center gap-2">
+                            <div className="i-ph:git-fork text-bolt-elements-textSecondary w-4 h-4" />
+                            <span className="text-bolt-elements-textSecondary">Repository:</span>
+                            <span className="text-bolt-elements-textPrimary">
+                              {webAppInfo.gitInfo.github.currentRepo.fullName}
+                              {webAppInfo.gitInfo.isForked && ' (fork)'}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <div className="i-ph:star text-yellow-500 w-4 h-4" />
+                              <span className="text-bolt-elements-textSecondary">
+                                {webAppInfo.gitInfo.github.currentRepo.stars}
+                              </span>
                             </div>
-                            <div className="text-xs text-bolt-elements-textSecondary">
-                              Last Update: {new Date(webAppInfo.repoInfo.lastUpdate).toLocaleDateString()}
+                            <div className="flex items-center gap-1">
+                              <div className="i-ph:git-fork text-blue-500 w-4 h-4" />
+                              <span className="text-bolt-elements-textSecondary">
+                                {webAppInfo.gitInfo.github.currentRepo.forks}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="i-ph:warning-circle text-red-500 w-4 h-4" />
+                              <span className="text-bolt-elements-textSecondary">
+                                {webAppInfo.gitInfo.github.currentRepo.openIssues}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
-                            <div className="i-ph:star text-yellow-500 w-4 h-4" />
-                            {webAppInfo.repoInfo.stars.toLocaleString()} stars
+                        {webAppInfo.gitInfo.github.upstream && (
+                          <div className="mt-2">
+                            <div className="text-sm flex items-center gap-2">
+                              <div className="i-ph:git-fork text-bolt-elements-textSecondary w-4 h-4" />
+                              <span className="text-bolt-elements-textSecondary">Upstream:</span>
+                              <span className="text-bolt-elements-textPrimary">
+                                {webAppInfo.gitInfo.github.upstream.fullName}
+                              </span>
+                            </div>
+
+                            <div className="mt-2 flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <div className="i-ph:star text-yellow-500 w-4 h-4" />
+                                <span className="text-bolt-elements-textSecondary">
+                                  {webAppInfo.gitInfo.github.upstream.stars}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="i-ph:git-fork text-blue-500 w-4 h-4" />
+                                <span className="text-bolt-elements-textSecondary">
+                                  {webAppInfo.gitInfo.github.upstream.forks}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
-                            <div className="i-ph:git-fork text-blue-500 w-4 h-4" />
-                            {webAppInfo.repoInfo.forks.toLocaleString()} forks
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary">
-                            <div className="i-ph:warning-circle text-red-500 w-4 h-4" />
-                            {webAppInfo.repoInfo.openIssues.toLocaleString()} issues
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="text-sm text-bolt-elements-textSecondary">
-                {loading.webAppInfo ? 'Loading webapp information...' : 'No webapp information available'}
+            )}
+
+            {webAppInfo && (
+              <div className="mt-6">
+                <h3 className="mb-4 text-base font-medium text-bolt-elements-textPrimary">Dependencies</h3>
+                <div className="space-y-2 bg-gray-50 dark:bg-[#1A1A1A] rounded-lg">
+                  <DependencySection title="Production" deps={webAppInfo.dependencies.production} />
+                  <DependencySection title="Development" deps={webAppInfo.dependencies.development} />
+                  <DependencySection title="Peer" deps={webAppInfo.dependencies.peer} />
+                  <DependencySection title="Optional" deps={webAppInfo.dependencies.optional} />
+                </div>
               </div>
             )}
           </div>
@@ -1138,7 +1165,7 @@ export default function DebugTab() {
       {/* Error Check */}
       <Collapsible
         open={openSections.errors}
-        onOpenChange={(open: boolean) => setOpenSections((prev) => ({ ...prev, errors: open }))}
+        onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, errors: open }))}
         className="w-full"
       >
         <CollapsibleTrigger className="w-full">
@@ -1146,14 +1173,14 @@ export default function DebugTab() {
             <div className="flex items-center gap-3">
               <div className="i-ph:warning text-red-500 w-5 h-5" />
               <h3 className="text-base font-medium text-bolt-elements-textPrimary">Error Check</h3>
-              {errorLog.errors.length > 0 && (
+              {errorLogs.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
-                  {errorLog.errors.length} Errors
+                  {errorLogs.length} Errors
                 </Badge>
               )}
             </div>
             <div
-              className={cn(
+              className={classNames(
                 'i-ph:caret-down w-4 h-4 transform transition-transform duration-200',
                 openSections.errors ? 'rotate-180' : '',
               )}
@@ -1175,31 +1202,33 @@ export default function DebugTab() {
                   </ul>
                 </div>
                 <div className="text-sm">
-                  <span className="text-bolt-elements-textSecondary">Last Check: </span>
+                  <span className="text-bolt-elements-textSecondary">Status: </span>
                   <span className="text-bolt-elements-textPrimary">
                     {loading.errors
                       ? 'Checking...'
-                      : errorLog.lastCheck
-                        ? `Last checked ${new Date(errorLog.lastCheck).toLocaleString()} (${errorLog.errors.length} errors found)`
-                        : 'Click to check for errors'}
+                      : errorLogs.length > 0
+                        ? `${errorLogs.length} errors found`
+                        : 'No errors found'}
                   </span>
                 </div>
-                {errorLog.errors.length > 0 && (
+                {errorLogs.length > 0 && (
                   <div className="mt-4">
                     <div className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Recent Errors:</div>
                     <div className="space-y-2">
-                      {errorLog.errors.slice(0, 3).map((error, index) => (
-                        <div key={index} className="text-sm text-red-500 dark:text-red-400">
-                          {error.type === 'error' && `${error.message} (${error.filename}:${error.lineNumber})`}
-                          {error.type === 'unhandledRejection' && `Unhandled Promise Rejection: ${error.reason}`}
-                          {error.type === 'networkError' && `Network Error: Failed to load ${error.resource}`}
+                      {errorLogs.map((error) => (
+                        <div key={error.id} className="text-sm text-red-500 dark:text-red-400 p-2 rounded bg-red-500/5">
+                          <div className="font-medium">{error.message}</div>
+                          {error.source && (
+                            <div className="text-xs mt-1 text-red-400">
+                              Source: {error.source}
+                              {error.details?.lineNumber && `:${error.details.lineNumber}`}
+                            </div>
+                          )}
+                          {error.stack && (
+                            <div className="text-xs mt-1 text-red-400 font-mono whitespace-pre-wrap">{error.stack}</div>
+                          )}
                         </div>
                       ))}
-                      {errorLog.errors.length > 3 && (
-                        <div className="text-sm text-bolt-elements-textSecondary">
-                          And {errorLog.errors.length - 3} more errors...
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}

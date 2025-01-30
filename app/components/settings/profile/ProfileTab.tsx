@@ -4,7 +4,6 @@ import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import type { UserProfile } from '~/components/settings/settings.types';
 import { motion } from 'framer-motion';
-import { settingsStyles } from '~/components/settings/settings.styles';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
@@ -112,7 +111,13 @@ export default function ProfileTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div
+      className={classNames(
+        'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm p-4',
+        'hover:bg-bolt-elements-background-depth-2',
+        'transition-all duration-200',
+      )}
+    >
       {/* Profile Information */}
       <motion.div
         className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none"
@@ -249,10 +254,11 @@ export default function ProfileTab() {
           onClick={handleSave}
           disabled={isLoading}
           className={classNames(
-            settingsStyles.button.base,
-            settingsStyles.button.primary,
+            'rounded-md px-4 py-2 text-sm',
+            'bg-purple-500 text-white',
             'hover:bg-purple-600',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
+            'dark:bg-purple-500 dark:hover:bg-purple-600',
+            'transition-all duration-200',
           )}
         >
           {isLoading ? (

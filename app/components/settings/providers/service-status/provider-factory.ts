@@ -1,122 +1,91 @@
 import type { ProviderName, ProviderConfig, StatusCheckResult } from './types';
-import { OpenAIStatusChecker } from './providers/openai';
 import { BaseProviderChecker } from './base-provider';
 
-// Import other provider implementations as they are created
+import { AmazonBedrockStatusChecker } from './providers/amazon-bedrock';
+import { CohereStatusChecker } from './providers/cohere';
+import { DeepseekStatusChecker } from './providers/deepseek';
+import { GoogleStatusChecker } from './providers/google';
+import { GroqStatusChecker } from './providers/groq';
+import { HuggingFaceStatusChecker } from './providers/huggingface';
+import { HyperbolicStatusChecker } from './providers/hyperbolic';
+import { MistralStatusChecker } from './providers/mistral';
+import { OpenRouterStatusChecker } from './providers/openrouter';
+import { PerplexityStatusChecker } from './providers/perplexity';
+import { TogetherStatusChecker } from './providers/together';
+import { XAIStatusChecker } from './providers/xai';
 
 export class ProviderStatusCheckerFactory {
   private static _providerConfigs: Record<ProviderName, ProviderConfig> = {
-    OpenAI: {
-      statusUrl: 'https://status.openai.com/',
-      apiUrl: 'https://api.openai.com/v1/models',
-      headers: {
-        Authorization: 'Bearer $OPENAI_API_KEY',
-      },
-      testModel: 'gpt-3.5-turbo',
-    },
-    Anthropic: {
-      statusUrl: 'https://status.anthropic.com/',
-      apiUrl: 'https://api.anthropic.com/v1/messages',
-      headers: {
-        'x-api-key': '$ANTHROPIC_API_KEY',
-        'anthropic-version': '2024-02-29',
-      },
-      testModel: 'claude-3-sonnet-20240229',
-    },
     AmazonBedrock: {
       statusUrl: 'https://health.aws.amazon.com/health/status',
       apiUrl: 'https://bedrock.us-east-1.amazonaws.com/models',
-      headers: {
-        Authorization: 'Bearer $AWS_BEDROCK_CONFIG',
-      },
+      headers: {},
       testModel: 'anthropic.claude-3-sonnet-20240229-v1:0',
     },
     Cohere: {
       statusUrl: 'https://status.cohere.com/',
       apiUrl: 'https://api.cohere.ai/v1/models',
-      headers: {
-        Authorization: 'Bearer $COHERE_API_KEY',
-      },
+      headers: {},
       testModel: 'command',
     },
     Deepseek: {
       statusUrl: 'https://status.deepseek.com/',
       apiUrl: 'https://api.deepseek.com/v1/models',
-      headers: {
-        Authorization: 'Bearer $DEEPSEEK_API_KEY',
-      },
+      headers: {},
       testModel: 'deepseek-chat',
     },
     Google: {
       statusUrl: 'https://status.cloud.google.com/',
       apiUrl: 'https://generativelanguage.googleapis.com/v1/models',
-      headers: {
-        'x-goog-api-key': '$GOOGLE_API_KEY',
-      },
+      headers: {},
       testModel: 'gemini-pro',
     },
     Groq: {
       statusUrl: 'https://groqstatus.com/',
       apiUrl: 'https://api.groq.com/v1/models',
-      headers: {
-        Authorization: 'Bearer $GROQ_API_KEY',
-      },
+      headers: {},
       testModel: 'mixtral-8x7b-32768',
     },
     HuggingFace: {
       statusUrl: 'https://status.huggingface.co/',
       apiUrl: 'https://api-inference.huggingface.co/models',
-      headers: {
-        Authorization: 'Bearer $HUGGINGFACE_API_KEY',
-      },
+      headers: {},
       testModel: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
     },
     Hyperbolic: {
       statusUrl: 'https://status.hyperbolic.ai/',
       apiUrl: 'https://api.hyperbolic.ai/v1/models',
-      headers: {
-        Authorization: 'Bearer $HYPERBOLIC_API_KEY',
-      },
+      headers: {},
       testModel: 'hyperbolic-1',
     },
     Mistral: {
       statusUrl: 'https://status.mistral.ai/',
       apiUrl: 'https://api.mistral.ai/v1/models',
-      headers: {
-        Authorization: 'Bearer $MISTRAL_API_KEY',
-      },
+      headers: {},
       testModel: 'mistral-tiny',
     },
     OpenRouter: {
       statusUrl: 'https://status.openrouter.ai/',
       apiUrl: 'https://openrouter.ai/api/v1/models',
-      headers: {
-        Authorization: 'Bearer $OPEN_ROUTER_API_KEY',
-      },
+      headers: {},
       testModel: 'anthropic/claude-3-sonnet',
     },
     Perplexity: {
       statusUrl: 'https://status.perplexity.com/',
       apiUrl: 'https://api.perplexity.ai/v1/models',
-      headers: {
-        Authorization: 'Bearer $PERPLEXITY_API_KEY',
-      },
+      headers: {},
       testModel: 'pplx-7b-chat',
     },
     Together: {
       statusUrl: 'https://status.together.ai/',
       apiUrl: 'https://api.together.xyz/v1/models',
-      headers: {
-        Authorization: 'Bearer $TOGETHER_API_KEY',
-      },
+      headers: {},
       testModel: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
     },
     XAI: {
       statusUrl: 'https://status.x.ai/',
       apiUrl: 'https://api.x.ai/v1/models',
-      headers: {
-        Authorization: 'Bearer $XAI_API_KEY',
-      },
+      headers: {},
       testModel: 'grok-1',
     },
   };
@@ -128,12 +97,31 @@ export class ProviderStatusCheckerFactory {
       throw new Error(`No configuration found for provider: ${provider}`);
     }
 
-    // Return specific provider implementation or fallback to base implementation
     switch (provider) {
-      case 'OpenAI':
-        return new OpenAIStatusChecker(config);
-
-      // Add other provider implementations as they are created
+      case 'AmazonBedrock':
+        return new AmazonBedrockStatusChecker(config);
+      case 'Cohere':
+        return new CohereStatusChecker(config);
+      case 'Deepseek':
+        return new DeepseekStatusChecker(config);
+      case 'Google':
+        return new GoogleStatusChecker(config);
+      case 'Groq':
+        return new GroqStatusChecker(config);
+      case 'HuggingFace':
+        return new HuggingFaceStatusChecker(config);
+      case 'Hyperbolic':
+        return new HyperbolicStatusChecker(config);
+      case 'Mistral':
+        return new MistralStatusChecker(config);
+      case 'OpenRouter':
+        return new OpenRouterStatusChecker(config);
+      case 'Perplexity':
+        return new PerplexityStatusChecker(config);
+      case 'Together':
+        return new TogetherStatusChecker(config);
+      case 'XAI':
+        return new XAIStatusChecker(config);
       default:
         return new (class extends BaseProviderChecker {
           async checkStatus(): Promise<StatusCheckResult> {
@@ -154,7 +142,13 @@ export class ProviderStatusCheckerFactory {
     return Object.keys(this._providerConfigs) as ProviderName[];
   }
 
-  static getProviderConfig(provider: ProviderName): ProviderConfig | undefined {
-    return this._providerConfigs[provider];
+  static getProviderConfig(provider: ProviderName): ProviderConfig {
+    const config = this._providerConfigs[provider];
+
+    if (!config) {
+      throw new Error(`Unknown provider: ${provider}`);
+    }
+
+    return config;
   }
 }

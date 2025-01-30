@@ -177,7 +177,15 @@ export const TabManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Define standard (visible by default) tabs for each window
-  const standardUserTabs: TabType[] = ['features', 'data', 'local-providers', 'cloud-providers', 'connection', 'debug'];
+  const standardUserTabs: TabType[] = [
+    'features',
+    'data',
+    'local-providers',
+    'cloud-providers',
+    'connection',
+    'debug',
+    'service-status',
+  ];
   const standardDeveloperTabs: TabType[] = [
     'profile',
     'settings',
@@ -190,6 +198,8 @@ export const TabManagement = () => {
     'debug',
     'event-logs',
     'update',
+    'task-manager',
+    'service-status',
   ];
 
   const handleVisibilityChange = (tabId: TabType, enabled: boolean, targetWindow: 'user' | 'developer') => {

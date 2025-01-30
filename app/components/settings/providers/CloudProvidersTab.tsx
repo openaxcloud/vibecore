@@ -6,7 +6,6 @@ import type { IProviderConfig } from '~/types/model';
 import { logStore } from '~/lib/stores/logs';
 import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import { settingsStyles } from '~/components/settings/settings.styles';
 import { toast } from 'react-toastify';
 import { providerBaseUrlEnvKeys } from '~/utils/constants';
 import { SiAmazon, SiGoogle, SiHuggingface, SiPerplexity, SiOpenai } from 'react-icons/si';
@@ -168,7 +167,7 @@ const CloudProvidersTab = () => {
             <motion.div
               key={provider.name}
               className={classNames(
-                settingsStyles.card,
+                'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm',
                 'bg-bolt-elements-background-depth-2',
                 'hover:bg-bolt-elements-background-depth-3',
                 'transition-all duration-200',

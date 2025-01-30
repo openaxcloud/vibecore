@@ -6,7 +6,6 @@ import type { IProviderConfig } from '~/types/model';
 import { logStore } from '~/lib/stores/logs';
 import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
-import { settingsStyles } from '~/components/settings/settings.styles';
 import { BsRobot } from 'react-icons/bs';
 import type { IconType } from 'react-icons';
 import { BiChip } from 'react-icons/bi';
@@ -473,7 +472,13 @@ export function LocalProvidersTab() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div
+      className={classNames(
+        'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm p-4',
+        'hover:bg-bolt-elements-background-depth-2',
+        'transition-all duration-200',
+      )}
+    >
       {/* Service Status Indicator - Move to top */}
       <div
         className={classNames(
@@ -526,7 +531,6 @@ export function LocalProvidersTab() {
             <motion.div
               key={provider.name}
               className={classNames(
-                settingsStyles.card,
                 'bg-bolt-elements-background-depth-2',
                 'hover:bg-bolt-elements-background-depth-3',
                 'transition-all duration-200',
@@ -728,9 +732,11 @@ export function LocalProvidersTab() {
                             onClick={() => handleUpdateOllamaModel(model.name)}
                             disabled={model.status === 'updating'}
                             className={classNames(
-                              settingsStyles.button.base,
-                              settingsStyles.button.secondary,
-                              'hover:bg-purple-500/10 hover:text-purple-500',
+                              'rounded-md px-4 py-2 text-sm',
+                              'bg-purple-500 text-white',
+                              'hover:bg-purple-600',
+                              'dark:bg-purple-500 dark:hover:bg-purple-600',
+                              'transition-all duration-200',
                             )}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -746,9 +752,11 @@ export function LocalProvidersTab() {
                             }}
                             disabled={model.status === 'updating'}
                             className={classNames(
-                              settingsStyles.button.base,
-                              settingsStyles.button.secondary,
-                              'hover:bg-red-500/10 hover:text-red-500',
+                              'rounded-md px-4 py-2 text-sm',
+                              'bg-red-500 text-white',
+                              'hover:bg-red-600',
+                              'dark:bg-red-500 dark:hover:bg-red-600',
+                              'transition-all duration-200',
                             )}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
@@ -839,10 +847,11 @@ export function LocalProvidersTab() {
               onClick={() => handleManualInstall(manualInstall.modelString)}
               disabled={!manualInstall.modelString || !!isInstallingModel}
               className={classNames(
-                settingsStyles.button.base,
-                settingsStyles.button.primary,
-                'hover:bg-purple-500/10 hover:text-purple-500',
-                'min-w-[120px] justify-center',
+                'rounded-md px-4 py-2 text-sm',
+                'bg-purple-500 text-white',
+                'hover:bg-purple-600',
+                'dark:bg-purple-500 dark:hover:bg-purple-600',
+                'transition-all duration-200',
               )}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -867,10 +876,11 @@ export function LocalProvidersTab() {
                   error('Installation cancelled');
                 }}
                 className={classNames(
-                  settingsStyles.button.base,
-                  settingsStyles.button.secondary,
-                  'hover:bg-red-500/10 hover:text-red-500',
-                  'min-w-[100px] justify-center',
+                  'rounded-md px-4 py-2 text-sm',
+                  'bg-red-500 text-white',
+                  'hover:bg-red-600',
+                  'dark:bg-red-500 dark:hover:bg-red-600',
+                  'transition-all duration-200',
                 )}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

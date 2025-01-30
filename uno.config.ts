@@ -16,17 +16,19 @@ const customIconCollection = {
   [collectionName]: iconPaths.reduce(
     (acc, iconPath) => {
       const [iconName] = basename(iconPath).split('.');
+      console.log(`Loading icon: ${iconName} from ${iconPath}`); // Debug log
 
       acc[iconName] = async () => {
         try {
           const content = await fs.readFile(iconPath, 'utf8');
+
+          // Simplified SVG processing
           return content
-            .replace(/fill="[^"]*"/g, '')
-            .replace(/fill='[^']*'/g, '')
-            .replace(/width="[^"]*"/g, '')
-            .replace(/height="[^"]*"/g, '')
-            .replace(/viewBox="[^"]*"/g, 'viewBox="0 0 24 24"')
-            .replace(/<svg([^>]*)>/, '<svg $1 fill="currentColor">');
+            .replace(/fill="[^"]*"/g, 'fill="currentColor"')
+            .replace(/fill='[^']*'/g, "fill='currentColor'")
+            .replace(/width="[^"]*"/g, 'width="24"')
+            .replace(/height="[^"]*"/g, 'height="24"')
+            .replace(/viewBox="[^"]*"/g, 'viewBox="0 0 24 24"');
         } catch (error) {
           console.error(`Error loading icon ${iconName}:`, error);
           return '';
@@ -118,7 +120,11 @@ const COLOR_PRIMITIVES = {
 };
 
 export default defineConfig({
-  safelist: [...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`)],
+  safelist: [
+    // Explicitly safelist all icon combinations
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x}`),
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}:${x}`),
+  ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',

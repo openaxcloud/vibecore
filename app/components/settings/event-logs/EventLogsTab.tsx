@@ -5,7 +5,6 @@ import { logStore, type LogEntry } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { settingsStyles } from '~/components/settings/settings.styles';
 
 interface SelectOption {
   value: string;
@@ -231,7 +230,13 @@ export function EventLogsTab() {
   const selectedCategoryOption = logCategoryOptions.find((opt) => opt.value === selectedCategory);
 
   return (
-    <div className="flex flex-col h-full gap-4 p-6">
+    <div
+      className={classNames(
+        'rounded-lg border bg-bolt-elements-background text-bolt-elements-textPrimary shadow-sm p-4',
+        'hover:bg-bolt-elements-background-depth-2',
+        'transition-all duration-200',
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -245,10 +250,11 @@ export function EventLogsTab() {
           <button
             onClick={handleRefresh}
             className={classNames(
-              settingsStyles.button.base,
-              settingsStyles.button.secondary,
-              'hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:bg-[#1A1A1A] dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
+              'rounded-md px-4 py-2 text-sm',
+              'bg-purple-500 text-white',
+              'hover:bg-purple-600',
+              'dark:bg-purple-500 dark:hover:bg-purple-600',
+              'transition-all duration-200',
             )}
           >
             <div className="i-ph:arrows-clockwise text-lg" />
@@ -292,7 +298,13 @@ export function EventLogsTab() {
 
           <motion.button
             onClick={handleExportLogs}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm bg-purple-500 hover:bg-purple-600 text-white transition-colors"
+            className={classNames(
+              'rounded-md px-4 py-2 text-sm',
+              'bg-purple-500 text-white',
+              'hover:bg-purple-600',
+              'dark:bg-purple-500 dark:hover:bg-purple-600',
+              'transition-all duration-200',
+            )}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -309,7 +321,6 @@ export function EventLogsTab() {
           <DropdownMenu.Trigger asChild>
             <button
               className={classNames(
-                'flex items-center gap-2',
                 'rounded-lg px-3 py-1.5',
                 'text-sm text-gray-900 dark:text-white',
                 'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
@@ -360,7 +371,6 @@ export function EventLogsTab() {
           <DropdownMenu.Trigger asChild>
             <button
               className={classNames(
-                'flex items-center gap-2',
                 'rounded-lg px-3 py-1.5',
                 'text-sm text-gray-900 dark:text-white',
                 'bg-[#FAFAFA] dark:bg-[#0A0A0A]',

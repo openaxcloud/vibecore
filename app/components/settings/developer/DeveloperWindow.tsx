@@ -30,6 +30,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
 import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
 import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
+import ServiceStatusTab from '~/components/settings/providers/ServiceStatusTab';
 import { Switch } from '~/components/ui/Switch';
 
 interface DraggableTabTileProps {
@@ -57,7 +58,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   'event-logs': 'View application event logs',
   update: 'Check for updates',
   'task-manager': 'Manage running tasks',
-  'service-status': 'View service health and status',
+  'service-status': 'Monitor provider service health and status',
 };
 
 const DraggableTabTile = ({
@@ -207,8 +208,6 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
 
   // Only show tabs that are assigned to the developer window AND are visible
   const visibleDeveloperTabs = useMemo(() => {
-    console.log('Filtering developer tabs with configuration:', tabConfiguration);
-
     if (!tabConfiguration?.developerTabs || !Array.isArray(tabConfiguration.developerTabs)) {
       console.warn('Invalid tab configuration, using empty array');
       return [];
@@ -223,7 +222,6 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
 
         // Hide notifications tab if notifications are disabled
         if (tab.id === 'notifications' && !profile.notifications) {
-          console.log('Hiding notifications tab due to disabled notifications');
           return false;
         }
 
@@ -235,7 +233,6 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
 
         // Only show tabs that are explicitly visible and assigned to the developer window
         const isVisible = tab.visible && tab.window === 'developer';
-        console.log(`Tab ${tab.id} visibility:`, isVisible);
 
         return isVisible;
       })
@@ -246,8 +243,6 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
         return orderA - orderB;
       });
   }, [tabConfiguration, profile.notifications]);
-
-  console.log('Filtered visible developer tabs:', visibleDeveloperTabs);
 
   const moveTab = (dragIndex: number, hoverIndex: number) => {
     const draggedTab = visibleDeveloperTabs[dragIndex];
@@ -324,6 +319,8 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
         return <UpdateTab />;
       case 'task-manager':
         return <TaskManagerTab />;
+      case 'service-status':
+        return <ServiceStatusTab />;
       default:
         return null;
     }

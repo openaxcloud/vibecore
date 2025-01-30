@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { RepositorySelectionDialog } from '~/components/settings/connections/components/RepositorySelectionDialog';
-import { cn } from '~/lib/utils';
+import { classNames } from '~/utils/classNames';
 import { Button } from '~/components/ui/Button';
 import type { IChatMetadata } from '~/lib/persistence/db';
 
@@ -158,7 +158,7 @@ ${escapeBoltTags(file.content)}
         title="Clone a Git Repo"
         variant="outline"
         size="lg"
-        className={cn(
+        className={classNames(
           'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
           'text-bolt-elements-textPrimary dark:text-white',
           'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',

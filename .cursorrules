@@ -154,3 +154,4 @@ bolt.diy (previously oTToDev) is an open-source AI-powered full-stack web develo
 - Don't use white background for dark mode
 - Don't use white text on white background for dark mode
 - Match the style of the existing codebase
+- Use consistent naming conventions for components and variables

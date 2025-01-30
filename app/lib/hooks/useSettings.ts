@@ -18,7 +18,7 @@ import Cookies from 'js-cookie';
 import type { IProviderSetting, ProviderInfo, IProviderConfig } from '~/types/model';
 import type { TabWindowConfig, TabVisibilityConfig } from '~/components/settings/settings.types';
 import { logStore } from '~/lib/stores/logs';
-import { getLocalStorage, setLocalStorage } from '~/utils/localStorage';
+import { getLocalStorage, setLocalStorage } from '~/lib/persistence';
 
 export interface Settings {
   theme: 'light' | 'dark' | 'system';
