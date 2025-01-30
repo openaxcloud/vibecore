@@ -14,7 +14,8 @@ export type TabType =
   | 'debug'
   | 'event-logs'
   | 'update'
-  | 'task-manager';
+  | 'task-manager'
+  | 'service-status';
 
 export type WindowType = 'user' | 'developer';
 
@@ -68,6 +69,7 @@ export const TAB_LABELS: Record<TabType, string> = {
   'event-logs': 'Event Logs',
   update: 'Update',
   'task-manager': 'Task Manager',
+  'service-status': 'Service Status',
 };
 
 export const DEFAULT_TAB_CONFIG: TabVisibilityConfig[] = [
@@ -75,17 +77,18 @@ export const DEFAULT_TAB_CONFIG: TabVisibilityConfig[] = [
   { id: 'features', visible: true, window: 'user', order: 0 },
   { id: 'data', visible: true, window: 'user', order: 1 },
   { id: 'cloud-providers', visible: true, window: 'user', order: 2 },
-  { id: 'local-providers', visible: true, window: 'user', order: 3 },
-  { id: 'connection', visible: true, window: 'user', order: 4 },
-  { id: 'debug', visible: true, window: 'user', order: 5 },
+  { id: 'service-status', visible: true, window: 'user', order: 3 },
+  { id: 'local-providers', visible: true, window: 'user', order: 4 },
+  { id: 'connection', visible: true, window: 'user', order: 5 },
+  { id: 'debug', visible: true, window: 'user', order: 6 },
 
   // User Window Tabs (Hidden by default)
-  { id: 'profile', visible: false, window: 'user', order: 6 },
-  { id: 'settings', visible: false, window: 'user', order: 7 },
-  { id: 'notifications', visible: false, window: 'user', order: 8 },
-  { id: 'event-logs', visible: false, window: 'user', order: 9 },
-  { id: 'update', visible: false, window: 'user', order: 10 },
-  { id: 'task-manager', visible: false, window: 'user', order: 11 },
+  { id: 'profile', visible: false, window: 'user', order: 7 },
+  { id: 'settings', visible: false, window: 'user', order: 8 },
+  { id: 'notifications', visible: false, window: 'user', order: 9 },
+  { id: 'event-logs', visible: false, window: 'user', order: 10 },
+  { id: 'update', visible: false, window: 'user', order: 11 },
+  { id: 'task-manager', visible: false, window: 'user', order: 12 },
 
   // Developer Window Tabs (All visible by default)
   { id: 'profile', visible: true, window: 'developer', order: 0 },
@@ -94,12 +97,13 @@ export const DEFAULT_TAB_CONFIG: TabVisibilityConfig[] = [
   { id: 'features', visible: true, window: 'developer', order: 3 },
   { id: 'data', visible: true, window: 'developer', order: 4 },
   { id: 'cloud-providers', visible: true, window: 'developer', order: 5 },
-  { id: 'local-providers', visible: true, window: 'developer', order: 6 },
-  { id: 'connection', visible: true, window: 'developer', order: 7 },
-  { id: 'debug', visible: true, window: 'developer', order: 8 },
-  { id: 'event-logs', visible: true, window: 'developer', order: 9 },
-  { id: 'update', visible: true, window: 'developer', order: 10 },
-  { id: 'task-manager', visible: true, window: 'developer', order: 11 },
+  { id: 'service-status', visible: true, window: 'developer', order: 6 },
+  { id: 'local-providers', visible: true, window: 'developer', order: 7 },
+  { id: 'connection', visible: true, window: 'developer', order: 8 },
+  { id: 'debug', visible: true, window: 'developer', order: 9 },
+  { id: 'event-logs', visible: true, window: 'developer', order: 10 },
+  { id: 'update', visible: true, window: 'developer', order: 11 },
+  { id: 'task-manager', visible: true, window: 'developer', order: 12 },
 ];
 
 export const categoryLabels: Record<SettingCategory, string> = {

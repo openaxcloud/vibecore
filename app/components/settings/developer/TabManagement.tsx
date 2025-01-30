@@ -19,7 +19,8 @@ const TAB_ICONS: Record<TabType, string> = {
   debug: 'i-ph:bug-fill',
   'event-logs': 'i-ph:list-bullets-fill',
   update: 'i-ph:arrow-clockwise-fill',
-  'task-manager': 'i-ph:gauge-fill',
+  'task-manager': 'i-ph:activity-fill',
+  'service-status': 'i-ph:heartbeat-fill',
 };
 
 interface TabGroupProps {

@@ -7,7 +7,7 @@ import type { IconifyJSON } from '@iconify/types';
 // Debug: Log the current working directory and icon paths
 console.log('CWD:', process.cwd());
 
-const iconPaths = globSync(join(process.cwd(), 'public/icons/*.svg'));
+const iconPaths = globSync(join(process.cwd(), 'icons/*.svg'));
 console.log('Found icons:', iconPaths);
 
 const collectionName = 'bolt';

@@ -38,8 +38,9 @@ export const shortcutsStore = map<Shortcuts>({
   },
   toggleTheme: {
     key: 'd',
-    ctrlOrMetaKey: true,
-    altKey: true,
+    metaKey: true, // Command key on Mac, Windows key on Windows
+    altKey: true, // Option key on Mac, Alt key on Windows
+    shiftKey: true,
     action: () => toggleTheme(),
   },
   toggleChat: {

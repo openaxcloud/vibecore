@@ -35,11 +35,11 @@ export default function SettingsTab() {
 
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       document.querySelector('html')?.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      themeStore.set(prefersDark ? 'dark' : 'light');
     } else {
-      // Set specific theme
+      themeStore.set(settings.theme);
       localStorage.setItem(kTheme, settings.theme);
       document.querySelector('html')?.setAttribute('data-theme', settings.theme);
-      themeStore.set(settings.theme);
     }
   }, [settings.theme]);
 
@@ -89,7 +89,13 @@ export default function SettingsTab() {
             {(['light', 'dark', 'system'] as const).map((theme) => (
               <button
                 key={theme}
-                onClick={() => setSettings((prev) => ({ ...prev, theme }))}
+                onClick={() => {
+                  setSettings((prev) => ({ ...prev, theme }));
+
+                  if (theme !== 'system') {
+                    themeStore.set(theme);
+                  }
+                }}
                 className={classNames(
                   settingsStyles.button.base,
                   settings.theme === theme ? settingsStyles.button.primary : settingsStyles.button.secondary,

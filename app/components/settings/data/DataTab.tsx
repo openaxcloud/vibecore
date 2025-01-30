@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { DialogRoot, DialogClose, Dialog, DialogTitle } from '~/components/ui/Dialog';
-import { db, getAll } from '~/lib/persistence';
+import { db, getAll, deleteById } from '~/lib/persistence';
 
 export default function DataTab() {
   const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
@@ -180,10 +180,20 @@ export default function DataTab() {
     setIsResetting(true);
 
     try {
-      // Clear all stored settings
+      // Clear all stored settings from localStorage
       localStorage.removeItem('bolt_user_profile');
       localStorage.removeItem('bolt_settings');
       localStorage.removeItem('bolt_chat_history');
+
+      // Clear all data from IndexedDB
+      if (!db) {
+        throw new Error('Database not initialized');
+      }
+
+      // Get all chats and delete them
+      const chats = await getAll(db as IDBDatabase);
+      const deletePromises = chats.map((chat) => deleteById(db as IDBDatabase, chat.id));
+      await Promise.all(deletePromises);
 
       // Close the dialog first
       setShowResetInlineConfirm(false);
@@ -204,8 +214,18 @@ export default function DataTab() {
     setIsDeleting(true);
 
     try {
-      // Clear chat history
+      // Clear chat history from localStorage
       localStorage.removeItem('bolt_chat_history');
+
+      // Clear chats from IndexedDB
+      if (!db) {
+        throw new Error('Database not initialized');
+      }
+
+      // Get all chats and delete them one by one
+      const chats = await getAll(db as IDBDatabase);
+      const deletePromises = chats.map((chat) => deleteById(db as IDBDatabase, chat.id));
+      await Promise.all(deletePromises);
 
       // Close the dialog first
       setShowDeleteInlineConfirm(false);

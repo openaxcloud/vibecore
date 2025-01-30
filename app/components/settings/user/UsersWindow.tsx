@@ -27,6 +27,7 @@ import { useNotifications } from '~/lib/hooks/useNotifications';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useDebugStatus } from '~/lib/hooks/useDebugStatus';
 import CloudProvidersTab from '~/components/settings/providers/CloudProvidersTab';
+import ServiceStatusTab from '~/components/settings/providers/ServiceStatusTab';
 import LocalProvidersTab from '~/components/settings/providers/LocalProvidersTab';
 import TaskManagerTab from '~/components/settings/task-manager/TaskManagerTab';
 import {
@@ -57,6 +58,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   data: 'Manage your data and storage',
   'cloud-providers': 'Configure cloud AI providers and models',
   'local-providers': 'Configure local AI providers and models',
+  'service-status': 'Monitor cloud LLM service status',
   connection: 'Check connection status and settings',
   debug: 'Debug tools and system information',
   'event-logs': 'View system events and logs',
@@ -320,6 +322,8 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
         return <DataTab />;
       case 'cloud-providers':
         return <CloudProvidersTab />;
+      case 'service-status':
+        return <ServiceStatusTab />;
       case 'local-providers':
         return <LocalProvidersTab />;
       case 'connection':

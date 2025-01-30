@@ -18,6 +18,7 @@ const TAB_ICONS = {
   'task-manager': 'i-ph:activity',
   'cloud-providers': 'i-ph:cloud',
   'local-providers': 'i-ph:desktop',
+  'service-status': 'i-ph:activity-bold',
 };
 
 interface TabTileProps {
