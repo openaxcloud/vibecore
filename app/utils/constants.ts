@@ -63,7 +63,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Slidev starter template for creating developer-friendly presentations using Markdown',
     githubRepo: 'thecodacus/bolt-slidev-template',
     tags: ['slidev', 'presentation', 'markdown'],
-    icon: 'i-bolt-slidev',
+    icon: 'i-bolt:slidev',
   },
   {
     name: 'bolt-sveltekit',
