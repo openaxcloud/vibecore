@@ -1,13 +1,20 @@
 import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives } from 'unocss';
 import type { IconifyJSON } from '@iconify/types';
 
 // Debug: Log the current working directory and icon paths
 console.log('CWD:', process.cwd());
 
-const iconPaths = globSync(join(process.cwd(), 'icons/*.svg'));
+// Use resolve to get absolute path and normalize slashes
+const iconsDir = resolve(process.cwd(), 'icons');
+const iconPaths = globSync('*.svg', {
+  cwd: iconsDir,
+  absolute: true,
+  onlyFiles: true,
+});
+
 console.log('Found icons:', iconPaths);
 
 const collectionName = 'bolt';
