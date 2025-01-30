@@ -21,7 +21,6 @@ const customIconCollection = {
       acc[iconName] = async () => {
         try {
           const content = await fs.readFile(iconPath, 'utf8');
-
           // Simplified SVG processing
           return content
             .replace(/fill="[^"]*"/g, 'fill="currentColor"')
@@ -121,9 +120,9 @@ const COLOR_PRIMITIVES = {
 
 export default defineConfig({
   safelist: [
-    // Explicitly safelist all icon combinations
+    // Explicitly safelist all icon combinations with both formats
     ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x}`),
-    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}:${x}`),
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x.toLowerCase()}`),
   ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
@@ -278,15 +277,8 @@ export default defineConfig({
         width: '24px',
         height: '24px',
       },
-      customizations: {
-        customize(props) {
-          return {
-            ...props,
-            width: '24px',
-            height: '24px',
-          };
-        },
-      },
+      scale: 1,
+      cdn: 'https://esm.sh/',
     }),
   ],
 });

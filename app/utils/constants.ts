@@ -31,7 +31,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Lightweight Astro starter template for building fast static websites',
     githubRepo: 'thecodacus/bolt-astro-basic-template',
     tags: ['astro', 'blog', 'performance'],
-    icon: 'i-bolt:astro',
+    icon: 'i-bolt-astro',
   },
   {
     name: 'bolt-nextjs-shadcn',
@@ -39,7 +39,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Next.js starter fullstack template integrated with shadcn/ui components and styling system',
     githubRepo: 'thecodacus/bolt-nextjs-shadcn-template',
     tags: ['nextjs', 'react', 'typescript', 'shadcn', 'tailwind'],
-    icon: 'i-bolt:nextjs',
+    icon: 'i-bolt-nextjs',
   },
   {
     name: 'bolt-qwik-ts',
@@ -47,7 +47,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Qwik framework starter with TypeScript for building resumable applications',
     githubRepo: 'thecodacus/bolt-qwik-ts-template',
     tags: ['qwik', 'typescript', 'performance', 'resumable'],
-    icon: 'i-bolt:qwik',
+    icon: 'i-bolt-qwik',
   },
   {
     name: 'bolt-remix-ts',
@@ -55,7 +55,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Remix framework starter with TypeScript for full-stack web applications',
     githubRepo: 'thecodacus/bolt-remix-ts-template',
     tags: ['remix', 'typescript', 'fullstack', 'react'],
-    icon: 'i-bolt:remix',
+    icon: 'i-bolt-remix',
   },
   {
     name: 'bolt-slidev',
@@ -71,7 +71,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'SvelteKit starter template for building fast, efficient web applications',
     githubRepo: 'bolt-sveltekit-template',
     tags: ['svelte', 'sveltekit', 'typescript'],
-    icon: 'i-bolt:svelte',
+    icon: 'i-bolt-svelte',
   },
   {
     name: 'vanilla-vite',
@@ -79,7 +79,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Minimal Vite starter template for vanilla JavaScript projects',
     githubRepo: 'thecodacus/vanilla-vite-template',
     tags: ['vite', 'vanilla-js', 'minimal'],
-    icon: 'i-bolt:vite',
+    icon: 'i-bolt-vite',
   },
   {
     name: 'bolt-vite-react',
@@ -87,7 +87,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'React starter template powered by Vite for fast development experience',
     githubRepo: 'thecodacus/bolt-vite-react-ts-template',
     tags: ['react', 'vite', 'frontend'],
-    icon: 'i-bolt:react',
+    icon: 'i-bolt-react',
   },
   {
     name: 'bolt-vite-ts',
@@ -95,7 +95,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Vite starter template with TypeScript configuration for type-safe development',
     githubRepo: 'thecodacus/bolt-vite-ts-template',
     tags: ['vite', 'typescript', 'minimal'],
-    icon: 'i-bolt:typescript',
+    icon: 'i-bolt-typescript',
   },
   {
     name: 'bolt-vue',
@@ -103,7 +103,7 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'Vue.js starter template with modern tooling and best practices',
     githubRepo: 'thecodacus/bolt-vue-template',
     tags: ['vue', 'typescript', 'frontend'],
-    icon: 'i-bolt:vue',
+    icon: 'i-bolt-vue',
   },
   {
     name: 'bolt-angular',
@@ -111,6 +111,6 @@ export const STARTER_TEMPLATES: Template[] = [
     description: 'A modern Angular starter template with TypeScript support and best practices configuration',
     githubRepo: 'thecodacus/bolt-angular-template',
     tags: ['angular', 'typescript', 'frontend', 'spa'],
-    icon: 'i-bolt:angular',
+    icon: 'i-bolt-angular',
   },
 ];
