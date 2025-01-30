@@ -20,7 +20,7 @@ interface GitHubRepoInfo {
 const getLocalGitInfo = () => {
   try {
     return {
-      commitHash: execSync('git rev-parse --short HEAD').toString().trim(),
+      commitHash: execSync('git rev-parse HEAD').toString().trim(),
       branch: execSync('git rev-parse --abbrev-ref HEAD').toString().trim(),
       commitTime: execSync('git log -1 --format=%cd').toString().trim(),
       author: execSync('git log -1 --format=%an').toString().trim(),
@@ -40,13 +40,42 @@ const getLocalGitInfo = () => {
 
 const getGitHubInfo = async (repoFullName: string) => {
   try {
-    const response = await fetch(`https://api.github.com/repos/${repoFullName}`);
+    // Add GitHub token if available
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+    };
+
+    const githubToken = process.env.GITHUB_TOKEN;
+
+    if (githubToken) {
+      headers.Authorization = `token ${githubToken}`;
+    }
+
+    console.log('Fetching GitHub info for:', repoFullName); // Debug log
+
+    const response = await fetch(`https://api.github.com/repos/${repoFullName}`, {
+      headers,
+    });
 
     if (!response.ok) {
+      console.error('GitHub API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        repoFullName,
+      });
+
+      // If we get a 404, try the main repo as fallback
+      if (response.status === 404 && repoFullName !== 'stackblitz-labs/bolt.diy') {
+        return getGitHubInfo('stackblitz-labs/bolt.diy');
+      }
+
       throw new Error(`GitHub API error: ${response.statusText}`);
     }
 
-    return (await response.json()) as GitHubRepoInfo;
+    const data = await response.json();
+    console.log('GitHub API response:', data); // Debug log
+
+    return data as GitHubRepoInfo;
   } catch (error) {
     console.error('Failed to get GitHub info:', error);
     return null;
@@ -55,6 +84,7 @@ const getGitHubInfo = async (repoFullName: string) => {
 
 export const loader: LoaderFunction = async ({ request: _request }) => {
   const localInfo = getLocalGitInfo();
+  console.log('Local git info:', localInfo); // Debug log
 
   // If we have local info, try to get GitHub info for both our fork and upstream
   let githubInfo = null;
@@ -68,7 +98,7 @@ export const loader: LoaderFunction = async ({ request: _request }) => {
     githubInfo = await getGitHubInfo('stackblitz-labs/bolt.diy');
   }
 
-  return json({
+  const response = {
     local: localInfo || {
       commitHash: 'unknown',
       branch: 'unknown',
@@ -99,5 +129,10 @@ export const loader: LoaderFunction = async ({ request: _request }) => {
       : null,
     isForked: Boolean(githubInfo?.parent),
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  console.log('Final response:', response);
+
+  // Debug log
+  return json(response);
 };

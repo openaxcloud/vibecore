@@ -447,6 +447,8 @@ export default function DebugTab() {
       const appData = (await appResponse.json()) as Omit<WebAppInfo, 'gitInfo'>;
       const gitData = (await gitResponse.json()) as GitInfo;
 
+      console.log('Git Info Response:', gitData); // Add logging to debug
+
       setWebAppInfo({
         ...appData,
         gitInfo: gitData,
@@ -1084,7 +1086,7 @@ export default function DebugTab() {
                       <>
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                           <div className="text-sm flex items-center gap-2">
-                            <div className="i-ph:git-fork text-bolt-elements-textSecondary w-4 h-4" />
+                            <div className="i-ph:git-repository text-bolt-elements-textSecondary w-4 h-4" />
                             <span className="text-bolt-elements-textSecondary">Repository:</span>
                             <span className="text-bolt-elements-textPrimary">
                               {webAppInfo.gitInfo.github.currentRepo.fullName}

@@ -24,22 +24,66 @@ interface BatteryManager extends EventTarget {
 }
 
 interface SystemMetrics {
-  cpu: number;
+  cpu: {
+    usage: number;
+    cores: number[];
+    temperature?: number;
+    frequency?: number;
+  };
   memory: {
     used: number;
     total: number;
     percentage: number;
+    heap: {
+      used: number;
+      total: number;
+      limit: number;
+    };
+    cache?: number;
   };
   uptime: number;
   battery?: {
     level: number;
     charging: boolean;
     timeRemaining?: number;
+    temperature?: number;
+    cycles?: number;
+    health?: number;
   };
   network: {
     downlink: number;
+    uplink?: number;
     latency: number;
     type: string;
+    activeConnections?: number;
+    bytesReceived: number;
+    bytesSent: number;
+  };
+  performance: {
+    fps: number;
+    pageLoad: number;
+    domReady: number;
+    resources: {
+      total: number;
+      size: number;
+      loadTime: number;
+    };
+    timing: {
+      ttfb: number;
+      fcp: number;
+      lcp: number;
+    };
+  };
+  storage: {
+    total: number;
+    used: number;
+    free: number;
+    type: string;
+  };
+  health: {
+    score: number;
+    issues: string[];
+    suggestions: string[];
   };
 }
 
@@ -55,6 +99,26 @@ interface EnergySavings {
   updatesReduced: number;
   timeInSaverMode: number;
   estimatedEnergySaved: number; // in mWh (milliwatt-hours)
+}
+
+interface PowerProfile {
+  name: string;
+  description: string;
+  settings: {
+    updateInterval: number;
+    enableAnimations: boolean;
+    backgroundProcessing: boolean;
+    networkThrottling: boolean;
+  };
+}
+
+interface PerformanceAlert {
+  type: 'warning' | 'error' | 'info';
+  message: string;
+  timestamp: number;
+  metric: string;
+  threshold: number;
+  value: number;
 }
 
 declare global {
@@ -88,12 +152,61 @@ const ENERGY_COSTS = {
   rendering: 1, // mW per render
 };
 
+const PERFORMANCE_THRESHOLDS = {
+  cpu: { warning: 70, critical: 90 },
+  memory: { warning: 80, critical: 95 },
+  fps: { warning: 30, critical: 15 },
+  loadTime: { warning: 3000, critical: 5000 },
+};
+
+const POWER_PROFILES: PowerProfile[] = [
+  {
+    name: 'Performance',
+    description: 'Maximum performance, higher power consumption',
+    settings: {
+      updateInterval: 1000,
+      enableAnimations: true,
+      backgroundProcessing: true,
+      networkThrottling: false,
+    },
+  },
+  {
+    name: 'Balanced',
+    description: 'Balance between performance and power saving',
+    settings: {
+      updateInterval: 2000,
+      enableAnimations: true,
+      backgroundProcessing: true,
+      networkThrottling: false,
+    },
+  },
+  {
+    name: 'Power Saver',
+    description: 'Maximum power saving, reduced performance',
+    settings: {
+      updateInterval: 5000,
+      enableAnimations: false,
+      backgroundProcessing: false,
+      networkThrottling: true,
+    },
+  },
+];
+
 export default function TaskManagerTab() {
   const [metrics, setMetrics] = useState<SystemMetrics>({
-    cpu: 0,
-    memory: { used: 0, total: 0, percentage: 0 },
+    cpu: { usage: 0, cores: [] },
+    memory: { used: 0, total: 0, percentage: 0, heap: { used: 0, total: 0, limit: 0 } },
     uptime: 0,
-    network: { downlink: 0, latency: 0, type: 'unknown' },
+    network: { downlink: 0, latency: 0, type: 'unknown', bytesReceived: 0, bytesSent: 0 },
+    performance: {
+      fps: 0,
+      pageLoad: 0,
+      domReady: 0,
+      resources: { total: 0, size: 0, loadTime: 0 },
+      timing: { ttfb: 0, fcp: 0, lcp: 0 },
+    },
+    storage: { total: 0, used: 0, free: 0, type: 'unknown' },
+    health: { score: 0, issues: [], suggestions: [] },
   });
   const [metricsHistory, setMetricsHistory] = useState<MetricsHistory>({
     timestamps: [],
@@ -121,6 +234,8 @@ export default function TaskManagerTab() {
   });
 
   const saverModeStartTime = useRef<number | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<PowerProfile>(POWER_PROFILES[1]); // Default to Balanced
+  const [alerts, setAlerts] = useState<PerformanceAlert[]>([]);
 
   // Handle energy saver mode changes
   const handleEnergySaverChange = (checked: boolean) => {
@@ -181,7 +296,135 @@ export default function TaskManagerTab() {
     return () => clearInterval(interval);
   }, [updateEnergySavings]);
 
-  // Update metrics
+  // Get detailed performance metrics
+  const getPerformanceMetrics = async (): Promise<Partial<SystemMetrics['performance']>> => {
+    try {
+      // Get FPS
+      const fps = await measureFrameRate();
+
+      // Get page load metrics
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const pageLoad = navigation.loadEventEnd - navigation.startTime;
+      const domReady = navigation.domContentLoadedEventEnd - navigation.startTime;
+
+      // Get resource metrics
+      const resources = performance.getEntriesByType('resource');
+      const resourceMetrics = {
+        total: resources.length,
+        size: resources.reduce((total, r) => total + (r as any).transferSize || 0, 0),
+        loadTime: Math.max(...resources.map((r) => r.duration)),
+      };
+
+      // Get Web Vitals
+      const ttfb = navigation.responseStart - navigation.requestStart;
+      const paintEntries = performance.getEntriesByType('paint');
+      const fcp = paintEntries.find((entry) => entry.name === 'first-contentful-paint')?.startTime || 0;
+      const lcpEntry = await getLargestContentfulPaint();
+
+      return {
+        fps,
+        pageLoad,
+        domReady,
+        resources: resourceMetrics,
+        timing: {
+          ttfb,
+          fcp,
+          lcp: lcpEntry?.startTime || 0,
+        },
+      };
+    } catch (error) {
+      console.error('Failed to get performance metrics:', error);
+      return {};
+    }
+  };
+
+  // Measure frame rate
+  const measureFrameRate = async (): Promise<number> => {
+    return new Promise((resolve) => {
+      const frameCount = { value: 0 };
+      const startTime = performance.now();
+
+      const countFrame = (time: number) => {
+        frameCount.value++;
+
+        if (time - startTime >= 1000) {
+          resolve(Math.round((frameCount.value * 1000) / (time - startTime)));
+        } else {
+          requestAnimationFrame(countFrame);
+        }
+      };
+
+      requestAnimationFrame(countFrame);
+    });
+  };
+
+  // Get Largest Contentful Paint
+  const getLargestContentfulPaint = async (): Promise<PerformanceEntry | undefined> => {
+    return new Promise((resolve) => {
+      new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        resolve(entries[entries.length - 1]);
+      }).observe({ entryTypes: ['largest-contentful-paint'] });
+
+      // Resolve after 3 seconds if no LCP entry is found
+      setTimeout(() => resolve(undefined), 3000);
+    });
+  };
+
+  // Analyze system health
+  const analyzeSystemHealth = (currentMetrics: SystemMetrics): SystemMetrics['health'] => {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+    let score = 100;
+
+    // CPU analysis
+    if (currentMetrics.cpu.usage > PERFORMANCE_THRESHOLDS.cpu.critical) {
+      score -= 30;
+      issues.push('Critical CPU usage');
+      suggestions.push('Consider closing resource-intensive applications');
+    } else if (currentMetrics.cpu.usage > PERFORMANCE_THRESHOLDS.cpu.warning) {
+      score -= 15;
+      issues.push('High CPU usage');
+      suggestions.push('Monitor system processes for unusual activity');
+    }
+
+    // Memory analysis
+    if (currentMetrics.memory.percentage > PERFORMANCE_THRESHOLDS.memory.critical) {
+      score -= 30;
+      issues.push('Critical memory usage');
+      suggestions.push('Close unused applications to free up memory');
+    } else if (currentMetrics.memory.percentage > PERFORMANCE_THRESHOLDS.memory.warning) {
+      score -= 15;
+      issues.push('High memory usage');
+      suggestions.push('Consider freeing up memory by closing background applications');
+    }
+
+    // Performance analysis
+    if (currentMetrics.performance.fps < PERFORMANCE_THRESHOLDS.fps.critical) {
+      score -= 20;
+      issues.push('Very low frame rate');
+      suggestions.push('Disable animations or switch to power saver mode');
+    } else if (currentMetrics.performance.fps < PERFORMANCE_THRESHOLDS.fps.warning) {
+      score -= 10;
+      issues.push('Low frame rate');
+      suggestions.push('Consider reducing visual effects');
+    }
+
+    // Battery analysis
+    if (currentMetrics.battery && !currentMetrics.battery.charging && currentMetrics.battery.level < 20) {
+      score -= 10;
+      issues.push('Low battery');
+      suggestions.push('Connect to power source or enable power saver mode');
+    }
+
+    return {
+      score: Math.max(0, score),
+      issues,
+      suggestions,
+    };
+  };
+
+  // Update metrics with enhanced data
   const updateMetrics = async () => {
     try {
       // Get memory info using Performance API
@@ -216,36 +459,62 @@ export default function TaskManagerTab() {
         (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
       const networkInfo = {
         downlink: connection?.downlink || 0,
+        uplink: connection?.uplink,
         latency: connection?.rtt || 0,
         type: connection?.type || 'unknown',
+        activeConnections: connection?.activeConnections,
+        bytesReceived: connection?.bytesReceived || 0,
+        bytesSent: connection?.bytesSent || 0,
       };
 
-      const newMetrics = {
-        cpu: cpuUsage,
+      // Get enhanced performance metrics
+      const performanceMetrics = await getPerformanceMetrics();
+
+      const metrics: SystemMetrics = {
+        cpu: { usage: cpuUsage, cores: [], temperature: undefined, frequency: undefined },
         memory: {
           used: Math.round(usedMem),
           total: Math.round(totalMem),
           percentage: Math.round(memPercentage),
+          heap: {
+            used: Math.round(usedMem),
+            total: Math.round(totalMem),
+            limit: Math.round(totalMem),
+          },
         },
         uptime: performance.now() / 1000,
         battery: batteryInfo,
         network: networkInfo,
+        performance: performanceMetrics as SystemMetrics['performance'],
+        storage: {
+          total: 0,
+          used: 0,
+          free: 0,
+          type: 'unknown',
+        },
+        health: { score: 0, issues: [], suggestions: [] },
       };
 
-      setMetrics(newMetrics);
+      // Analyze system health
+      metrics.health = analyzeSystemHealth(metrics);
+
+      // Check for alerts
+      checkPerformanceAlerts(metrics);
+
+      setMetrics(metrics);
 
       // Update metrics history
       const now = new Date().toLocaleTimeString();
       setMetricsHistory((prev) => {
         const timestamps = [...prev.timestamps, now].slice(-MAX_HISTORY_POINTS);
-        const cpu = [...prev.cpu, newMetrics.cpu].slice(-MAX_HISTORY_POINTS);
-        const memory = [...prev.memory, newMetrics.memory.percentage].slice(-MAX_HISTORY_POINTS);
+        const cpu = [...prev.cpu, metrics.cpu.usage].slice(-MAX_HISTORY_POINTS);
+        const memory = [...prev.memory, metrics.memory.percentage].slice(-MAX_HISTORY_POINTS);
         const battery = [...prev.battery, batteryInfo?.level || 0].slice(-MAX_HISTORY_POINTS);
         const network = [...prev.network, networkInfo.downlink].slice(-MAX_HISTORY_POINTS);
 
         return { timestamps, cpu, memory, battery, network };
       });
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Failed to update system metrics:', error);
     }
   };
@@ -300,6 +569,8 @@ export default function TaskManagerTab() {
           downlink: connection.downlink || 0,
           latency: connection.rtt || 0,
           type: connection.type || 'unknown',
+          bytesReceived: connection.bytesReceived || 0,
+          bytesSent: connection.bytesSent || 0,
         },
       }));
     };
@@ -427,12 +698,60 @@ export default function TaskManagerTab() {
     return () => clearInterval(batteryCheckInterval);
   }, [autoEnergySaver]);
 
+  // Check for performance alerts
+  const checkPerformanceAlerts = (currentMetrics: SystemMetrics) => {
+    const newAlerts: PerformanceAlert[] = [];
+
+    // CPU alert
+    if (currentMetrics.cpu.usage > PERFORMANCE_THRESHOLDS.cpu.critical) {
+      newAlerts.push({
+        type: 'error',
+        message: 'Critical CPU usage detected',
+        timestamp: Date.now(),
+        metric: 'cpu',
+        threshold: PERFORMANCE_THRESHOLDS.cpu.critical,
+        value: currentMetrics.cpu.usage,
+      });
+    }
+
+    // Memory alert
+    if (currentMetrics.memory.percentage > PERFORMANCE_THRESHOLDS.memory.critical) {
+      newAlerts.push({
+        type: 'error',
+        message: 'Critical memory usage detected',
+        timestamp: Date.now(),
+        metric: 'memory',
+        threshold: PERFORMANCE_THRESHOLDS.memory.critical,
+        value: currentMetrics.memory.percentage,
+      });
+    }
+
+    // Performance alert
+    if (currentMetrics.performance.fps < PERFORMANCE_THRESHOLDS.fps.critical) {
+      newAlerts.push({
+        type: 'warning',
+        message: 'Very low frame rate detected',
+        timestamp: Date.now(),
+        metric: 'fps',
+        threshold: PERFORMANCE_THRESHOLDS.fps.critical,
+        value: currentMetrics.performance.fps,
+      });
+    }
+
+    if (newAlerts.length > 0) {
+      setAlerts((prev) => [...prev, ...newAlerts]);
+      newAlerts.forEach((alert) => {
+        toast.warning(alert.message);
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      {/* System Metrics */}
+      {/* Power Profile Selection */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Metrics</h3>
+          <h3 className="text-base font-medium text-bolt-elements-textPrimary">Power Management</h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <input
@@ -463,19 +782,99 @@ export default function TaskManagerTab() {
                 {energySaverMode && <span className="ml-2 text-xs text-bolt-elements-textSecondary">Active</span>}
               </label>
             </div>
+            <select
+              value={selectedProfile.name}
+              onChange={(e) => {
+                const profile = POWER_PROFILES.find((p) => p.name === e.target.value);
+
+                if (profile) {
+                  setSelectedProfile(profile);
+                  toast.success(`Switched to ${profile.name} power profile`);
+                }
+              }}
+              className="px-3 py-1 rounded-md bg-[#F8F8F8] dark:bg-[#141414] border border-[#E5E5E5] dark:border-[#1A1A1A] text-sm"
+            >
+              {POWER_PROFILES.map((profile) => (
+                <option key={profile.name} value={profile.name}>
+                  {profile.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
+        <div className="text-sm text-bolt-elements-textSecondary">{selectedProfile.description}</div>
+      </div>
 
+      {/* System Health Score */}
+      <div className="flex flex-col gap-4">
+        <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Health</h3>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-bolt-elements-textSecondary">Health Score</span>
+              <span
+                className={classNames('text-lg font-medium', {
+                  'text-green-500': metrics.health.score >= 80,
+                  'text-yellow-500': metrics.health.score >= 60 && metrics.health.score < 80,
+                  'text-red-500': metrics.health.score < 60,
+                })}
+              >
+                {metrics.health.score}%
+              </span>
+            </div>
+            {metrics.health.issues.length > 0 && (
+              <div className="mt-2">
+                <div className="text-sm font-medium text-bolt-elements-textSecondary mb-1">Issues:</div>
+                <ul className="text-sm text-bolt-elements-textSecondary space-y-1">
+                  {metrics.health.issues.map((issue, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="i-ph:warning-circle-fill text-yellow-500 w-4 h-4" />
+                      {issue}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {metrics.health.suggestions.length > 0 && (
+              <div className="mt-2">
+                <div className="text-sm font-medium text-bolt-elements-textSecondary mb-1">Suggestions:</div>
+                <ul className="text-sm text-bolt-elements-textSecondary space-y-1">
+                  {metrics.health.suggestions.map((suggestion, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="i-ph:lightbulb-fill text-purple-500 w-4 h-4" />
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* System Metrics */}
+      <div className="flex flex-col gap-4">
+        <h3 className="text-base font-medium text-bolt-elements-textPrimary">System Metrics</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* CPU Usage */}
           <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-bolt-elements-textSecondary">CPU Usage</span>
-              <span className={classNames('text-sm font-medium', getUsageColor(metrics.cpu))}>
-                {Math.round(metrics.cpu)}%
+              <span className={classNames('text-sm font-medium', getUsageColor(metrics.cpu.usage))}>
+                {Math.round(metrics.cpu.usage)}%
               </span>
             </div>
             {renderUsageGraph(metricsHistory.cpu, 'CPU', '#9333ea')}
+            {metrics.cpu.temperature && (
+              <div className="text-xs text-bolt-elements-textSecondary mt-2">
+                Temperature: {metrics.cpu.temperature}°C
+              </div>
+            )}
+            {metrics.cpu.frequency && (
+              <div className="text-xs text-bolt-elements-textSecondary">
+                Frequency: {(metrics.cpu.frequency / 1000).toFixed(1)} GHz
+              </div>
+            )}
           </div>
 
           {/* Memory Usage */}
@@ -487,28 +886,42 @@ export default function TaskManagerTab() {
               </span>
             </div>
             {renderUsageGraph(metricsHistory.memory, 'Memory', '#2563eb')}
+            <div className="text-xs text-bolt-elements-textSecondary mt-2">
+              Used: {formatBytes(metrics.memory.used)}
+            </div>
+            <div className="text-xs text-bolt-elements-textSecondary">Total: {formatBytes(metrics.memory.total)}</div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              Heap: {formatBytes(metrics.memory.heap.used)} / {formatBytes(metrics.memory.heap.total)}
+            </div>
           </div>
 
-          {/* Battery */}
-          {metrics.battery && (
-            <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-bolt-elements-textSecondary">Battery</span>
-                <div className="flex items-center gap-2">
-                  {metrics.battery.charging && <div className="i-ph:lightning-fill w-4 h-4 text-bolt-action-primary" />}
-                  <span
-                    className={classNames(
-                      'text-sm font-medium',
-                      metrics.battery.level > 20 ? 'text-bolt-elements-textPrimary' : 'text-red-500',
-                    )}
-                  >
-                    {Math.round(metrics.battery.level)}%
-                  </span>
-                </div>
-              </div>
-              {renderUsageGraph(metricsHistory.battery, 'Battery', '#22c55e')}
+          {/* Performance */}
+          <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-bolt-elements-textSecondary">Performance</span>
+              <span
+                className={classNames('text-sm font-medium', {
+                  'text-red-500': metrics.performance.fps < PERFORMANCE_THRESHOLDS.fps.critical,
+                  'text-yellow-500': metrics.performance.fps < PERFORMANCE_THRESHOLDS.fps.warning,
+                  'text-green-500': metrics.performance.fps >= PERFORMANCE_THRESHOLDS.fps.warning,
+                })}
+              >
+                {Math.round(metrics.performance.fps)} FPS
+              </span>
             </div>
-          )}
+            <div className="text-xs text-bolt-elements-textSecondary mt-2">
+              Page Load: {(metrics.performance.pageLoad / 1000).toFixed(2)}s
+            </div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              DOM Ready: {(metrics.performance.domReady / 1000).toFixed(2)}s
+            </div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              TTFB: {(metrics.performance.timing.ttfb / 1000).toFixed(2)}s
+            </div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              Resources: {metrics.performance.resources.total} ({formatBytes(metrics.performance.resources.size)})
+            </div>
+          </div>
 
           {/* Network */}
           <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
@@ -519,8 +932,117 @@ export default function TaskManagerTab() {
               </span>
             </div>
             {renderUsageGraph(metricsHistory.network, 'Network', '#f59e0b')}
+            <div className="text-xs text-bolt-elements-textSecondary mt-2">Type: {metrics.network.type}</div>
+            <div className="text-xs text-bolt-elements-textSecondary">Latency: {metrics.network.latency}ms</div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              Received: {formatBytes(metrics.network.bytesReceived)}
+            </div>
+            <div className="text-xs text-bolt-elements-textSecondary">
+              Sent: {formatBytes(metrics.network.bytesSent)}
+            </div>
           </div>
         </div>
+
+        {/* Battery Section */}
+        {metrics.battery && (
+          <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-bolt-elements-textSecondary">Battery</span>
+              <div className="flex items-center gap-2">
+                {metrics.battery.charging && <div className="i-ph:lightning-fill w-4 h-4 text-bolt-action-primary" />}
+                <span
+                  className={classNames(
+                    'text-sm font-medium',
+                    metrics.battery.level > 20 ? 'text-bolt-elements-textPrimary' : 'text-red-500',
+                  )}
+                >
+                  {Math.round(metrics.battery.level)}%
+                </span>
+              </div>
+            </div>
+            {renderUsageGraph(metricsHistory.battery, 'Battery', '#22c55e')}
+            {metrics.battery.timeRemaining && (
+              <div className="text-xs text-bolt-elements-textSecondary mt-2">
+                {metrics.battery.charging ? 'Time to full: ' : 'Time remaining: '}
+                {formatTime(metrics.battery.timeRemaining)}
+              </div>
+            )}
+            {metrics.battery.temperature && (
+              <div className="text-xs text-bolt-elements-textSecondary">
+                Temperature: {metrics.battery.temperature}°C
+              </div>
+            )}
+            {metrics.battery.cycles && (
+              <div className="text-xs text-bolt-elements-textSecondary">Charge cycles: {metrics.battery.cycles}</div>
+            )}
+            {metrics.battery.health && (
+              <div className="text-xs text-bolt-elements-textSecondary">Battery health: {metrics.battery.health}%</div>
+            )}
+          </div>
+        )}
+
+        {/* Storage Section */}
+        <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-bolt-elements-textSecondary">Storage</span>
+            <span className="text-sm font-medium text-bolt-elements-textPrimary">
+              {formatBytes(metrics.storage.used)} / {formatBytes(metrics.storage.total)}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={classNames('h-full transition-all duration-300', {
+                'bg-green-500': metrics.storage.used / metrics.storage.total < 0.7,
+                'bg-yellow-500':
+                  metrics.storage.used / metrics.storage.total >= 0.7 &&
+                  metrics.storage.used / metrics.storage.total < 0.9,
+                'bg-red-500': metrics.storage.used / metrics.storage.total >= 0.9,
+              })}
+              style={{ width: `${(metrics.storage.used / metrics.storage.total) * 100}%` }}
+            />
+          </div>
+          <div className="text-xs text-bolt-elements-textSecondary mt-2">Free: {formatBytes(metrics.storage.free)}</div>
+          <div className="text-xs text-bolt-elements-textSecondary">Type: {metrics.storage.type}</div>
+        </div>
+
+        {/* Performance Alerts */}
+        {alerts.length > 0 && (
+          <div className="flex flex-col gap-2 rounded-lg bg-[#F8F8F8] dark:bg-[#141414] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-bolt-elements-textPrimary">Recent Alerts</span>
+              <button
+                onClick={() => setAlerts([])}
+                className="text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="space-y-2">
+              {alerts.slice(-5).map((alert, index) => (
+                <div
+                  key={index}
+                  className={classNames('flex items-center gap-2 text-sm', {
+                    'text-red-500': alert.type === 'error',
+                    'text-yellow-500': alert.type === 'warning',
+                    'text-blue-500': alert.type === 'info',
+                  })}
+                >
+                  <div
+                    className={classNames('w-4 h-4', {
+                      'i-ph:warning-circle-fill': alert.type === 'warning',
+                      'i-ph:x-circle-fill': alert.type === 'error',
+                      'i-ph:info-fill': alert.type === 'info',
+                    })}
+                  />
+                  <span>{alert.message}</span>
+                  <span className="text-xs text-bolt-elements-textSecondary ml-auto">
+                    {new Date(alert.timestamp).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Energy Savings */}
         {energySaverMode && (
@@ -550,3 +1072,32 @@ export default function TaskManagerTab() {
     </div>
   );
 }
+
+// Helper function to format bytes
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) {
+    return '0 B';
+  }
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+};
+
+// Helper function to format time
+const formatTime = (seconds: number): string => {
+  if (!isFinite(seconds) || seconds === 0) {
+    return 'Unknown';
+  }
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
