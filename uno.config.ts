@@ -2,6 +2,7 @@ import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives } from 'unocss';
+import type { IconifyJSON } from '@iconify/types';
 
 // Debug: Log the current working directory and icon paths
 console.log('CWD:', process.cwd());
@@ -15,11 +16,13 @@ const customIconCollection = {
   [collectionName]: iconPaths.reduce(
     (acc, iconPath) => {
       const [iconName] = basename(iconPath).split('.');
-      console.log(`Loading icon: ${iconName} from ${iconPath}`);
+      console.log(`Loading icon: ${iconName} from ${iconPath}`); // Debug log
 
       acc[iconName] = async () => {
         try {
           const content = await fs.readFile(iconPath, 'utf8');
+
+          // Simplified SVG processing
           return content
             .replace(/fill="[^"]*"/g, 'fill="currentColor"')
             .replace(/fill='[^']*'/g, "fill='currentColor'")
@@ -120,7 +123,7 @@ export default defineConfig({
   safelist: [
     // Explicitly safelist all icon combinations
     ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x}`),
-    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x.toLowerCase()}`),
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}:${x}`),
   ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
@@ -263,7 +266,11 @@ export default defineConfig({
     presetIcons({
       warn: true,
       collections: {
-        [collectionName]: customIconCollection[collectionName],
+        bolt: customIconCollection.bolt,
+        ph: async () => {
+          const icons = await import('@iconify-json/ph/icons.json');
+          return icons.default as IconifyJSON;
+        },
       },
       extraProperties: {
         display: 'inline-block',
@@ -271,9 +278,15 @@ export default defineConfig({
         width: '24px',
         height: '24px',
       },
-      scale: 1,
-      unit: 'px',
-      cdn: '',
+      customizations: {
+        customize(props) {
+          return {
+            ...props,
+            width: '24px',
+            height: '24px',
+          };
+        },
+      },
     }),
   ],
 });
