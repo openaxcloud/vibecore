@@ -62,74 +62,73 @@ const CloudProvidersTab = () => {
   const [filteredProviders, setFilteredProviders] = useState<IProviderConfig[]>([]);
   const [categoryEnabled, setCategoryEnabled] = useState<boolean>(false);
 
-  // Effect to filter and sort providers
+  // Load and filter providers
   useEffect(() => {
     const newFilteredProviders = Object.entries(settings.providers || {})
-      .filter(([key]) => !['Ollama', 'LMStudio', 'OpenAILike'].includes(key)) // Filter out local providers
-      .map(([key, value]) => {
-        const provider = value as IProviderConfig;
-        return {
-          name: key,
-          settings: provider.settings,
-          staticModels: provider.staticModels || [],
-          getDynamicModels: provider.getDynamicModels,
-          getApiKeyLink: provider.getApiKeyLink,
-          labelForGetApiKey: provider.labelForGetApiKey,
-          icon: provider.icon,
-        } as IProviderConfig;
-      });
+      .filter(([key]) => !['Ollama', 'LMStudio', 'OpenAILike'].includes(key))
+      .map(([key, value]) => ({
+        name: key,
+        settings: value.settings,
+        staticModels: value.staticModels || [],
+        getDynamicModels: value.getDynamicModels,
+        getApiKeyLink: value.getApiKeyLink,
+        labelForGetApiKey: value.labelForGetApiKey,
+        icon: value.icon,
+      }));
 
     const sorted = newFilteredProviders.sort((a, b) => a.name.localeCompare(b.name));
-    const regular = sorted.filter((p) => !URL_CONFIGURABLE_PROVIDERS.includes(p.name));
-    const urlConfigurable = sorted.filter((p) => URL_CONFIGURABLE_PROVIDERS.includes(p.name));
+    setFilteredProviders(sorted);
 
-    setFilteredProviders([...regular, ...urlConfigurable]);
+    // Update category enabled state
+    const allEnabled = newFilteredProviders.every((p) => p.settings.enabled);
+    setCategoryEnabled(allEnabled);
   }, [settings.providers]);
-
-  // Add effect to update category toggle state based on provider states
-  useEffect(() => {
-    const newCategoryState = filteredProviders.every((p) => p.settings.enabled);
-    setCategoryEnabled(newCategoryState);
-  }, [filteredProviders]);
 
   const handleToggleCategory = useCallback(
     (enabled: boolean) => {
-      setCategoryEnabled(enabled);
+      // Update all providers
       filteredProviders.forEach((provider) => {
         settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
       });
+
+      setCategoryEnabled(enabled);
       toast.success(enabled ? 'All cloud providers enabled' : 'All cloud providers disabled');
     },
     [filteredProviders, settings],
   );
 
-  const handleToggleProvider = (provider: IProviderConfig, enabled: boolean) => {
-    settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
+  const handleToggleProvider = useCallback(
+    (provider: IProviderConfig, enabled: boolean) => {
+      // Update the provider settings in the store
+      settings.updateProviderSettings(provider.name, { ...provider.settings, enabled });
 
-    if (enabled) {
-      logStore.logProvider(`Provider ${provider.name} enabled`, { provider: provider.name });
-      toast.success(`${provider.name} enabled`);
-    } else {
-      logStore.logProvider(`Provider ${provider.name} disabled`, { provider: provider.name });
-      toast.success(`${provider.name} disabled`);
-    }
-  };
+      if (enabled) {
+        logStore.logProvider(`Provider ${provider.name} enabled`, { provider: provider.name });
+        toast.success(`${provider.name} enabled`);
+      } else {
+        logStore.logProvider(`Provider ${provider.name} disabled`, { provider: provider.name });
+        toast.success(`${provider.name} disabled`);
+      }
+    },
+    [settings],
+  );
 
-  const handleUpdateBaseUrl = (provider: IProviderConfig, baseUrl: string) => {
-    let newBaseUrl: string | undefined = baseUrl;
+  const handleUpdateBaseUrl = useCallback(
+    (provider: IProviderConfig, baseUrl: string) => {
+      const newBaseUrl: string | undefined = baseUrl.trim() || undefined;
 
-    if (newBaseUrl && newBaseUrl.trim().length === 0) {
-      newBaseUrl = undefined;
-    }
+      // Update the provider settings in the store
+      settings.updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
 
-    settings.updateProviderSettings(provider.name, { ...provider.settings, baseUrl: newBaseUrl });
-    logStore.logProvider(`Base URL updated for ${provider.name}`, {
-      provider: provider.name,
-      baseUrl: newBaseUrl,
-    });
-    toast.success(`${provider.name} base URL updated`);
-    setEditingProvider(null);
-  };
+      logStore.logProvider(`Base URL updated for ${provider.name}`, {
+        provider: provider.name,
+        baseUrl: newBaseUrl,
+      });
+      toast.success(`${provider.name} base URL updated`);
+      setEditingProvider(null);
+    },
+    [settings],
+  );
 
   return (
     <div className="space-y-6">

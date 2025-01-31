@@ -311,6 +311,24 @@ export default function ConnectionsTab() {
                     'disabled:opacity-50',
                   )}
                 />
+                <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+                  <a
+                    href={`https://github.com/settings/tokens${connection.tokenType === 'fine-grained' ? '/beta' : '/new'}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-purple-500 hover:underline inline-flex items-center gap-1"
+                  >
+                    Get your token
+                    <div className="i-ph:arrow-square-out w-10 h-5" />
+                  </a>
+                  <span className="mx-2">•</span>
+                  <span>
+                    Required scopes:{' '}
+                    {connection.tokenType === 'classic'
+                      ? 'repo, read:org, read:user'
+                      : 'Repository access, Organization access'}
+                  </span>
+                </div>
               </div>
             </div>
 

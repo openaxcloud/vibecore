@@ -59,40 +59,142 @@ export const shortcutsStore = map<Shortcuts>({
   },
 });
 
-const initialProviderSettings: ProviderSetting = {};
-PROVIDER_LIST.forEach((provider) => {
-  initialProviderSettings[provider.name] = {
-    ...provider,
+// Create a single key for provider settings
+const PROVIDER_SETTINGS_KEY = 'provider_settings';
+
+// Initialize provider settings from both localStorage and defaults
+const getInitialProviderSettings = (): ProviderSetting => {
+  const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
+  const initialSettings: ProviderSetting = {};
+
+  // Start with default settings
+  PROVIDER_LIST.forEach((provider) => {
+    initialSettings[provider.name] = {
+      ...provider,
+      settings: {
+        enabled: true,
+      },
+    };
+  });
+
+  // Override with saved settings if they exist
+  if (savedSettings) {
+    try {
+      const parsed = JSON.parse(savedSettings);
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (initialSettings[key]) {
+          initialSettings[key].settings = (value as IProviderConfig).settings;
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing saved provider settings:', error);
+    }
+  }
+
+  return initialSettings;
+};
+
+export const providersStore = map<ProviderSetting>(getInitialProviderSettings());
+
+// Create a function to update provider settings that handles both store and persistence
+export const updateProviderSettings = (provider: string, settings: ProviderSetting) => {
+  const currentSettings = providersStore.get();
+
+  // Create new provider config with updated settings
+  const updatedProvider = {
+    ...currentSettings[provider],
     settings: {
-      enabled: true,
+      ...currentSettings[provider].settings,
+      ...settings,
     },
   };
-});
 
-//TODO: need to create one single map for all these flags
+  // Update the store with new settings
+  providersStore.setKey(provider, updatedProvider);
 
-export const providersStore = map<ProviderSetting>(initialProviderSettings);
+  // Save to localStorage
+  const allSettings = providersStore.get();
+  localStorage.setItem(PROVIDER_SETTINGS_KEY, JSON.stringify(allSettings));
+};
 
 export const isDebugMode = atom(false);
 
-// Initialize event logs from cookie or default to false
-const savedEventLogs = Cookies.get('isEventLogsEnabled');
-export const isEventLogsEnabled = atom(savedEventLogs === 'true');
+// Define keys for localStorage
+const SETTINGS_KEYS = {
+  LATEST_BRANCH: 'isLatestBranch',
+  AUTO_SELECT_TEMPLATE: 'autoSelectTemplate',
+  CONTEXT_OPTIMIZATION: 'contextOptimizationEnabled',
+  EVENT_LOGS: 'isEventLogsEnabled',
+  LOCAL_MODELS: 'isLocalModelsEnabled',
+  PROMPT_ID: 'promptId',
+} as const;
 
-// Local models settings
-export const isLocalModelsEnabled = atom(true);
+// Initialize settings from localStorage or defaults
+const getInitialSettings = () => {
+  const getStoredBoolean = (key: string, defaultValue: boolean): boolean => {
+    const stored = localStorage.getItem(key);
 
-// Prompt settings
-export const promptStore = atom<string>('default');
+    if (stored === null) {
+      return defaultValue;
+    }
 
-// Branch settings
-export const latestBranchStore = atom(false);
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return defaultValue;
+    }
+  };
 
-// Template settings
-export const autoSelectStarterTemplate = atom(false);
+  return {
+    latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, false),
+    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, false),
+    contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, false),
+    eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
+    localModels: getStoredBoolean(SETTINGS_KEYS.LOCAL_MODELS, true),
+    promptId: localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default',
+  };
+};
 
-// Context optimization settings
-export const enableContextOptimizationStore = atom(false);
+// Initialize stores with persisted values
+const initialSettings = getInitialSettings();
+
+export const latestBranchStore = atom<boolean>(initialSettings.latestBranch);
+export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelectTemplate);
+export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
+export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
+export const isLocalModelsEnabled = atom<boolean>(initialSettings.localModels);
+export const promptStore = atom<string>(initialSettings.promptId);
+
+// Helper functions to update settings with persistence
+export const updateLatestBranch = (enabled: boolean) => {
+  latestBranchStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LATEST_BRANCH, JSON.stringify(enabled));
+};
+
+export const updateAutoSelectTemplate = (enabled: boolean) => {
+  autoSelectStarterTemplate.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, JSON.stringify(enabled));
+};
+
+export const updateContextOptimization = (enabled: boolean) => {
+  enableContextOptimizationStore.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, JSON.stringify(enabled));
+};
+
+export const updateEventLogs = (enabled: boolean) => {
+  isEventLogsEnabled.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.EVENT_LOGS, JSON.stringify(enabled));
+};
+
+export const updateLocalModels = (enabled: boolean) => {
+  isLocalModelsEnabled.set(enabled);
+  localStorage.setItem(SETTINGS_KEYS.LOCAL_MODELS, JSON.stringify(enabled));
+};
+
+export const updatePromptId = (id: string) => {
+  promptStore.set(id);
+  localStorage.setItem(SETTINGS_KEYS.PROMPT_ID, id);
+};
 
 // Initialize tab configuration from cookie or default
 const savedTabConfig = Cookies.get('tabConfiguration');

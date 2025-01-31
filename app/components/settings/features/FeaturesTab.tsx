@@ -1,19 +1,11 @@
-import React, { memo, useEffect, useState } from 'react';
+// Remove unused imports
+import React, { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Switch } from '~/components/ui/Switch';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { PromptLibrary } from '~/lib/common/prompt-library';
-import {
-  latestBranchStore,
-  autoSelectStarterTemplate,
-  enableContextOptimizationStore,
-  isLocalModelsEnabled,
-  isEventLogsEnabled,
-  promptStore as promptAtom,
-} from '~/lib/stores/settings';
-import { logStore } from '~/lib/stores/logs';
 
 interface FeatureToggle {
   id: string;
@@ -114,132 +106,84 @@ const FeatureSection = memo(
 );
 
 export default function FeaturesTab() {
-  const { autoSelectTemplate, isLatestBranch, contextOptimizationEnabled, eventLogs, isLocalModel } = useSettings();
+  const {
+    autoSelectTemplate,
+    isLatestBranch,
+    contextOptimizationEnabled,
+    eventLogs,
+    isLocalModel,
+    setAutoSelectTemplate,
+    enableLatestBranch,
+    enableContextOptimization,
+    setEventLogs,
+    enableLocalModels,
+    setPromptId,
+    promptId,
+  } = useSettings();
 
-  const getLocalStorageBoolean = (key: string, defaultValue: boolean): boolean => {
-    const value = localStorage.getItem(key);
+  const handleToggleFeature = useCallback(
+    (id: string, enabled: boolean) => {
+      switch (id) {
+        case 'latestBranch':
+          enableLatestBranch(enabled);
+          toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        case 'autoSelectTemplate':
+          setAutoSelectTemplate(enabled);
+          toast.success(`Auto select template ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        case 'contextOptimization':
+          enableContextOptimization(enabled);
+          toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        case 'eventLogs':
+          setEventLogs(enabled);
+          toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        case 'localModels':
+          enableLocalModels(enabled);
+          toast.success(`Experimental providers ${enabled ? 'enabled' : 'disabled'}`);
+          break;
+        default:
+          break;
+      }
+    },
+    [enableLatestBranch, setAutoSelectTemplate, enableContextOptimization, setEventLogs, enableLocalModels],
+  );
 
-    if (value === null) {
-      return defaultValue;
-    }
-
-    try {
-      return JSON.parse(value);
-    } catch {
-      return defaultValue;
-    }
-  };
-
-  const autoSelectTemplateState = getLocalStorageBoolean('autoSelectTemplate', autoSelectTemplate);
-  const enableLatestBranchState = getLocalStorageBoolean('enableLatestBranch', isLatestBranch);
-  const contextOptimizationState = getLocalStorageBoolean('contextOptimization', contextOptimizationEnabled);
-  const eventLogsState = getLocalStorageBoolean('eventLogs', eventLogs);
-  const experimentalProvidersState = getLocalStorageBoolean('experimentalProviders', isLocalModel);
-  const promptLibraryState = getLocalStorageBoolean('promptLibrary', false);
-  const promptIdState = localStorage.getItem('promptId') ?? '';
-
-  const [autoSelectTemplateLocal, setAutoSelectTemplateLocal] = useState(autoSelectTemplateState);
-  const [enableLatestBranchLocal, setEnableLatestBranchLocal] = useState(enableLatestBranchState);
-  const [contextOptimizationLocal, setContextOptimizationLocal] = useState(contextOptimizationState);
-  const [eventLogsLocal, setEventLogsLocal] = useState(eventLogsState);
-  const [experimentalProvidersLocal, setExperimentalProvidersLocal] = useState(experimentalProvidersState);
-  const [promptLibraryLocal, setPromptLibraryLocal] = useState(promptLibraryState);
-  const [promptIdLocal, setPromptIdLocal] = useState(promptIdState);
-
-  useEffect(() => {
-    localStorage.setItem('autoSelectTemplate', JSON.stringify(autoSelectTemplateLocal));
-    localStorage.setItem('enableLatestBranch', JSON.stringify(enableLatestBranchLocal));
-    localStorage.setItem('contextOptimization', JSON.stringify(contextOptimizationLocal));
-    localStorage.setItem('eventLogs', JSON.stringify(eventLogsLocal));
-    localStorage.setItem('experimentalProviders', JSON.stringify(experimentalProvidersLocal));
-    localStorage.setItem('promptLibrary', JSON.stringify(promptLibraryLocal));
-    localStorage.setItem('promptId', promptIdLocal);
-
-    autoSelectStarterTemplate.set(autoSelectTemplateLocal);
-    latestBranchStore.set(enableLatestBranchLocal);
-    enableContextOptimizationStore.set(contextOptimizationLocal);
-    isEventLogsEnabled.set(eventLogsLocal);
-    isLocalModelsEnabled.set(experimentalProvidersLocal);
-    promptAtom.set(promptIdLocal);
-  }, [
-    autoSelectTemplateLocal,
-    enableLatestBranchLocal,
-    contextOptimizationLocal,
-    eventLogsLocal,
-    experimentalProvidersLocal,
-    promptLibraryLocal,
-    promptIdLocal,
-  ]);
-
-  const handleToggleFeature = (featureId: string, enabled: boolean) => {
-    logStore.logFeatureToggle(featureId, enabled);
-
-    switch (featureId) {
-      case 'latestBranch':
-        setEnableLatestBranchLocal(enabled);
-        latestBranchStore.set(enabled);
-        toast.success(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'autoSelectTemplate':
-        setAutoSelectTemplateLocal(enabled);
-        autoSelectStarterTemplate.set(enabled);
-        toast.success(`Auto template selection ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'contextOptimization':
-        setContextOptimizationLocal(enabled);
-        enableContextOptimizationStore.set(enabled);
-        toast.success(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'localModels':
-        setExperimentalProvidersLocal(enabled);
-        isLocalModelsEnabled.set(enabled);
-        toast.success(`Experimental providers ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'eventLogs':
-        setEventLogsLocal(enabled);
-        isEventLogsEnabled.set(enabled);
-        toast.success(`Event logging ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-      case 'promptLibrary':
-        setPromptLibraryLocal(enabled);
-        toast.success(`Prompt Library ${enabled ? 'enabled' : 'disabled'}`);
-        break;
-    }
-  };
-
-  const features: Record<'stable' | 'beta' | 'experimental', FeatureToggle[]> = {
+  const features = {
     stable: [
       {
+        id: 'latestBranch',
+        title: 'Main Branch Updates',
+        description: 'Get the latest updates from the main branch',
+        icon: 'i-ph:git-branch',
+        enabled: isLatestBranch,
+        tooltip: 'Enable to receive updates from the main development branch',
+      },
+      {
         id: 'autoSelectTemplate',
-        title: 'Auto Select Code Template',
-        description: 'Let Bolt select the best starter template for your project',
-        icon: 'i-ph:magic-wand',
-        enabled: autoSelectTemplateLocal,
-        tooltip: 'Automatically choose the most suitable template based on your project type',
+        title: 'Auto Select Template',
+        description: 'Automatically select starter template',
+        icon: 'i-ph:selection',
+        enabled: autoSelectTemplate,
+        tooltip: 'Automatically select the most appropriate starter template',
       },
       {
         id: 'contextOptimization',
         title: 'Context Optimization',
-        description: 'Optimize chat context by redacting file contents and using system prompts',
-        icon: 'i-ph:arrows-in',
-        enabled: contextOptimizationLocal,
-        tooltip: 'Improve AI responses by optimizing the context window and system prompts',
+        description: 'Optimize context for better responses',
+        icon: 'i-ph:brain',
+        enabled: contextOptimizationEnabled,
+        tooltip: 'Enable context optimization for improved AI responses',
       },
       {
         id: 'eventLogs',
         title: 'Event Logging',
         description: 'Enable detailed event logging and history',
         icon: 'i-ph:list-bullets',
-        enabled: eventLogsLocal,
+        enabled: eventLogs,
         tooltip: 'Record detailed logs of system events and user actions',
-      },
-      {
-        id: 'promptLibrary',
-        title: 'Prompt Library',
-        description: 'Manage your prompt library settings',
-        icon: 'i-ph:library',
-        enabled: promptLibraryLocal,
-        tooltip: 'Enable or disable the prompt library',
       },
     ],
     beta: [],
@@ -249,7 +193,7 @@ export default function FeaturesTab() {
         title: 'Experimental Providers',
         description: 'Enable experimental providers like Ollama, LMStudio, and OpenAILike',
         icon: 'i-ph:robot',
-        enabled: experimentalProvidersLocal,
+        enabled: isLocalModel,
         experimental: true,
         tooltip: 'Try out new AI providers and models in development',
       },
@@ -319,9 +263,9 @@ export default function FeaturesTab() {
             </p>
           </div>
           <select
-            value={promptIdLocal}
+            value={promptId}
             onChange={(e) => {
-              setPromptIdLocal(e.target.value);
+              setPromptId(e.target.value);
               toast.success('Prompt template updated');
             }}
             className={classNames(

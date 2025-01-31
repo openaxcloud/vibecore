@@ -12,6 +12,13 @@ import {
   tabConfigurationStore,
   updateTabConfiguration as updateTabConfig,
   resetTabConfiguration as resetTabConfig,
+  updateProviderSettings as updateProviderSettingsStore,
+  updateLatestBranch,
+  updateAutoSelectTemplate,
+  updateContextOptimization,
+  updateEventLogs,
+  updateLocalModels,
+  updatePromptId,
 } from '~/lib/stores/settings';
 import { useCallback, useEffect, useState } from 'react';
 import Cookies from 'js-cookie';
@@ -64,8 +71,13 @@ export interface UseSettingsReturn {
   resetTabConfiguration: () => void;
 }
 
+// Add interface to match ProviderSetting type
+interface ProviderSettingWithIndex extends IProviderSetting {
+  [key: string]: any;
+}
+
 export function useSettings(): UseSettingsReturn {
-  const providers = useStore(providersStore) as Record<string, IProviderConfig>;
+  const providers = useStore(providersStore);
   const debug = useStore(isDebugMode);
   const eventLogs = useStore(isEventLogsEnabled);
   const promptId = useStore(promptStore);
@@ -86,16 +98,6 @@ export function useSettings(): UseSettingsReturn {
       tabConfiguration,
     };
   });
-
-  // writing values to cookies on change
-  useEffect(() => {
-    const providers = providersStore.get();
-    const providerSetting: Record<string, IProviderSetting> = {};
-    Object.keys(providers).forEach((provider) => {
-      providerSetting[provider] = providers[provider].settings;
-    });
-    Cookies.set('providers', JSON.stringify(providerSetting));
-  }, [providers]);
 
   useEffect(() => {
     let active = Object.entries(providers)
@@ -118,8 +120,8 @@ export function useSettings(): UseSettingsReturn {
     });
   }, []);
 
-  const updateProviderSettings = useCallback((provider: string, config: IProviderSetting) => {
-    providersStore.setKey(provider, { settings: config } as IProviderConfig);
+  const updateProviderSettings = useCallback((provider: string, config: ProviderSettingWithIndex) => {
+    updateProviderSettingsStore(provider, config);
   }, []);
 
   const enableDebugMode = useCallback((enabled: boolean) => {
@@ -129,38 +131,33 @@ export function useSettings(): UseSettingsReturn {
   }, []);
 
   const setEventLogs = useCallback((enabled: boolean) => {
-    isEventLogsEnabled.set(enabled);
+    updateEventLogs(enabled);
     logStore.logSystem(`Event logs ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('isEventLogsEnabled', String(enabled));
   }, []);
 
   const enableLocalModels = useCallback((enabled: boolean) => {
-    isLocalModelsEnabled.set(enabled);
+    updateLocalModels(enabled);
     logStore.logSystem(`Local models ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('isLocalModelsEnabled', String(enabled));
   }, []);
 
-  const setPromptId = useCallback((promptId: string) => {
-    promptStore.set(promptId);
-    Cookies.set('promptId', promptId);
+  const setPromptId = useCallback((id: string) => {
+    updatePromptId(id);
+    logStore.logSystem(`Prompt template updated to ${id}`);
   }, []);
 
   const enableLatestBranch = useCallback((enabled: boolean) => {
-    latestBranchStore.set(enabled);
+    updateLatestBranch(enabled);
     logStore.logSystem(`Main branch updates ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('isLatestBranch', String(enabled));
   }, []);
 
   const setAutoSelectTemplate = useCallback((enabled: boolean) => {
-    autoSelectStarterTemplate.set(enabled);
+    updateAutoSelectTemplate(enabled);
     logStore.logSystem(`Auto select template ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('autoSelectTemplate', String(enabled));
   }, []);
 
   const enableContextOptimization = useCallback((enabled: boolean) => {
-    enableContextOptimizationStore.set(enabled);
+    updateContextOptimization(enabled);
     logStore.logSystem(`Context optimization ${enabled ? 'enabled' : 'disabled'}`);
-    Cookies.set('contextOptimizationEnabled', String(enabled));
   }, []);
 
   const setTheme = useCallback(
@@ -190,6 +187,18 @@ export function useSettings(): UseSettingsReturn {
     },
     [saveSettings],
   );
+
+  // Fix the providers cookie sync
+  useEffect(() => {
+    const providers = providersStore.get();
+    const providerSetting: Record<string, { enabled: boolean }> = {};
+    Object.keys(providers).forEach((provider) => {
+      providerSetting[provider] = {
+        enabled: providers[provider].settings.enabled || false, // Add fallback for undefined
+      };
+    });
+    Cookies.set('providers', JSON.stringify(providerSetting));
+  }, [providers]);
 
   return {
     ...settings,
