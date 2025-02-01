@@ -1,6 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import React, { useState, useEffect, useMemo } from 'react';
 import { classNames } from '~/utils/classNames';
 import { DialogTitle } from '~/components/ui/Dialog';
@@ -37,6 +37,7 @@ import {
   developerModeStore,
   setDeveloperMode,
 } from '~/lib/stores/settings';
+import { DEFAULT_TAB_CONFIG } from '~/components/settings/settings.types';
 
 interface DraggableTabTileProps {
   tab: TabVisibilityConfig;
@@ -121,6 +122,10 @@ const DraggableTabTile = ({
 interface UsersWindowProps {
   open: boolean;
   onClose: () => void;
+}
+
+interface TabWithType extends TabVisibilityConfig {
+  isExtraDevTab?: boolean;
 }
 
 export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
@@ -223,45 +228,48 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
 
   // Only show tabs that are assigned to the user window AND are visible
   const visibleUserTabs = useMemo(() => {
-    console.log('Filtering user tabs with configuration:', tabConfiguration);
-
     if (!tabConfiguration?.userTabs || !Array.isArray(tabConfiguration.userTabs)) {
       console.warn('Invalid tab configuration, using empty array');
       return [];
     }
 
-    return tabConfiguration.userTabs
-      .filter((tab) => {
-        if (!tab || typeof tab.id !== 'string') {
-          console.warn('Invalid tab entry:', tab);
-          return false;
-        }
+    // Get the base user tabs that are visible
+    const baseTabs = tabConfiguration.userTabs.filter((tab) => {
+      if (!tab || typeof tab.id !== 'string') {
+        console.warn('Invalid tab entry:', tab);
+        return false;
+      }
 
-        // Hide notifications tab if notifications are disabled
-        if (tab.id === 'notifications' && !profile.notifications) {
-          console.log('Hiding notifications tab due to disabled notifications');
-          return false;
-        }
+      // Hide notifications tab if notifications are disabled
+      if (tab.id === 'notifications' && !profile.notifications) {
+        return false;
+      }
 
-        // Ensure the tab has the required properties
-        if (typeof tab.visible !== 'boolean' || typeof tab.window !== 'string' || typeof tab.order !== 'number') {
-          console.warn('Tab missing required properties:', tab);
-          return false;
-        }
+      // Only show tabs that are explicitly visible and assigned to the user window
+      return tab.visible && tab.window === 'user';
+    });
 
-        // Only show tabs that are explicitly visible and assigned to the user window
-        const isVisible = tab.visible && tab.window === 'user';
-        console.log(`Tab ${tab.id} visibility:`, isVisible);
+    // If in developer mode, add the developer-only tabs
+    if (developerMode) {
+      const developerOnlyTabs = DEFAULT_TAB_CONFIG.filter((tab) => {
+        /*
+         * Only include tabs that are:
+         * 1. Assigned to developer window
+         * 2. Not already in user tabs
+         * 3. Marked as visible in developer window
+         */
+        return tab.window === 'developer' && tab.visible && !baseTabs.some((baseTab) => baseTab.id === tab.id);
+      }).map((tab) => ({
+        ...tab,
+        isExtraDevTab: true,
+        order: baseTabs.length + tab.order, // Place after user tabs
+      }));
 
-        return isVisible;
-      })
-      .sort((a: TabVisibilityConfig, b: TabVisibilityConfig) => {
-        const orderA = typeof a.order === 'number' ? a.order : 0;
-        const orderB = typeof b.order === 'number' ? b.order : 0;
+      return [...baseTabs, ...developerOnlyTabs].sort((a, b) => a.order - b.order);
+    }
 
-        return orderA - orderB;
-      });
-  }, [tabConfiguration, profile.notifications]);
+    return baseTabs.sort((a, b) => a.order - b.order);
+  }, [tabConfiguration, profile.notifications, developerMode]);
 
   const moveTab = (dragIndex: number, hoverIndex: number) => {
     const draggedTab = visibleUserTabs[dragIndex];
@@ -569,29 +577,50 @@ export const UsersWindow = ({ open, onClose }: UsersWindowProps) => {
                   >
                     <motion.div
                       key={activeTab || 'home'}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
                       className="p-6"
                     >
                       {activeTab ? (
                         getTabComponent()
                       ) : (
-                        <div className="grid grid-cols-4 gap-4">
-                          {visibleUserTabs.map((tab: TabVisibilityConfig, index: number) => (
-                            <DraggableTabTile
-                              key={tab.id}
-                              tab={tab}
-                              index={index}
-                              moveTab={moveTab}
-                              onClick={() => handleTabClick(tab.id)}
-                              isActive={activeTab === tab.id}
-                              hasUpdate={getTabUpdateStatus(tab.id)}
-                              statusMessage={getStatusMessage(tab.id)}
-                              description={TAB_DESCRIPTIONS[tab.id]}
-                              isLoading={loadingTab === tab.id}
-                            />
-                          ))}
-                        </div>
+                        <motion.div
+                          className="grid grid-cols-4 gap-4"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <AnimatePresence mode="popLayout">
+                            {visibleUserTabs.map((tab: TabWithType, index: number) => (
+                              <motion.div
+                                key={tab.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                                transition={{
+                                  duration: 0.2,
+                                  delay: index * 0.05,
+                                }}
+                              >
+                                <DraggableTabTile
+                                  tab={tab}
+                                  index={index}
+                                  moveTab={moveTab}
+                                  onClick={() => handleTabClick(tab.id)}
+                                  isActive={activeTab === tab.id}
+                                  hasUpdate={getTabUpdateStatus(tab.id)}
+                                  statusMessage={getStatusMessage(tab.id)}
+                                  description={TAB_DESCRIPTIONS[tab.id]}
+                                  isLoading={loadingTab === tab.id}
+                                />
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
                       )}
                     </motion.div>
                   </div>

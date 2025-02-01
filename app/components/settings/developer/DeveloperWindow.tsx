@@ -1,5 +1,5 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { classNames } from '~/utils/classNames';
 import { TabManagement } from './TabManagement';
@@ -481,14 +481,9 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
                       'border border-[#E5E5E5] dark:border-[#1A1A1A]',
                       'flex flex-col overflow-hidden',
                     )}
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{
-                      opacity: developerMode ? 1 : 0,
-                      scale: developerMode ? 1 : 0.95,
-                      y: developerMode ? 0 : 20,
-                    }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.15 }}
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -592,28 +587,54 @@ export const DeveloperWindow = ({ open, onClose }: DeveloperWindowProps) => {
                         'touch-auto',
                       )}
                     >
-                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6">
+                      <motion.div
+                        key={activeTab || 'home'}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="p-6"
+                      >
                         {showTabManagement ? (
                           <TabManagement />
                         ) : activeTab ? (
                           getTabComponent()
                         ) : (
-                          <div className="grid grid-cols-4 gap-4">
-                            {visibleDeveloperTabs.map((tab: TabVisibilityConfig, index: number) => (
-                              <DraggableTabTile
-                                key={tab.id}
-                                tab={tab}
-                                index={index}
-                                moveTab={moveTab}
-                                onClick={() => handleTabClick(tab.id)}
-                                isActive={activeTab === tab.id}
-                                hasUpdate={getTabUpdateStatus(tab.id)}
-                                statusMessage={getStatusMessage(tab.id)}
-                                description={TAB_DESCRIPTIONS[tab.id]}
-                                isLoading={loadingTab === tab.id}
-                              />
-                            ))}
-                          </div>
+                          <motion.div
+                            className="grid grid-cols-4 gap-4"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <AnimatePresence mode="popLayout">
+                              {visibleDeveloperTabs.map((tab: TabVisibilityConfig, index: number) => (
+                                <motion.div
+                                  key={tab.id}
+                                  layout
+                                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                                  transition={{
+                                    duration: 0.2,
+                                    delay: index * 0.05,
+                                  }}
+                                >
+                                  <DraggableTabTile
+                                    tab={tab}
+                                    index={index}
+                                    moveTab={moveTab}
+                                    onClick={() => handleTabClick(tab.id)}
+                                    isActive={activeTab === tab.id}
+                                    hasUpdate={getTabUpdateStatus(tab.id)}
+                                    statusMessage={getStatusMessage(tab.id)}
+                                    description={TAB_DESCRIPTIONS[tab.id]}
+                                    isLoading={loadingTab === tab.id}
+                                  />
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+                          </motion.div>
                         )}
                       </motion.div>
                     </div>

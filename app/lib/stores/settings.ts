@@ -62,9 +62,11 @@ export const shortcutsStore = map<Shortcuts>({
 // Create a single key for provider settings
 const PROVIDER_SETTINGS_KEY = 'provider_settings';
 
+// Add this helper function at the top of the file
+const isBrowser = typeof window !== 'undefined';
+
 // Initialize provider settings from both localStorage and defaults
 const getInitialProviderSettings = (): ProviderSetting => {
-  const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
   const initialSettings: ProviderSetting = {};
 
   // Start with default settings
@@ -77,17 +79,21 @@ const getInitialProviderSettings = (): ProviderSetting => {
     };
   });
 
-  // Override with saved settings if they exist
-  if (savedSettings) {
-    try {
-      const parsed = JSON.parse(savedSettings);
-      Object.entries(parsed).forEach(([key, value]) => {
-        if (initialSettings[key]) {
-          initialSettings[key].settings = (value as IProviderConfig).settings;
-        }
-      });
-    } catch (error) {
-      console.error('Error parsing saved provider settings:', error);
+  // Only try to load from localStorage in the browser
+  if (isBrowser) {
+    const savedSettings = localStorage.getItem(PROVIDER_SETTINGS_KEY);
+
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        Object.entries(parsed).forEach(([key, value]) => {
+          if (initialSettings[key]) {
+            initialSettings[key].settings = (value as IProviderConfig).settings;
+          }
+        });
+      } catch (error) {
+        console.error('Error parsing saved provider settings:', error);
+      }
     }
   }
 
@@ -127,11 +133,16 @@ const SETTINGS_KEYS = {
   EVENT_LOGS: 'isEventLogsEnabled',
   LOCAL_MODELS: 'isLocalModelsEnabled',
   PROMPT_ID: 'promptId',
+  DEVELOPER_MODE: 'isDeveloperMode',
 } as const;
 
 // Initialize settings from localStorage or defaults
 const getInitialSettings = () => {
   const getStoredBoolean = (key: string, defaultValue: boolean): boolean => {
+    if (!isBrowser) {
+      return defaultValue;
+    }
+
     const stored = localStorage.getItem(key);
 
     if (stored === null) {
@@ -151,7 +162,8 @@ const getInitialSettings = () => {
     contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, false),
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     localModels: getStoredBoolean(SETTINGS_KEYS.LOCAL_MODELS, true),
-    promptId: localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default',
+    promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
+    developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
   };
 };
 
@@ -196,65 +208,40 @@ export const updatePromptId = (id: string) => {
   localStorage.setItem(SETTINGS_KEYS.PROMPT_ID, id);
 };
 
-// Initialize tab configuration from cookie or default
-const savedTabConfig = Cookies.get('tabConfiguration');
-console.log('Saved tab configuration:', savedTabConfig);
-
-let initialTabConfig: TabWindowConfig;
-
-try {
-  if (savedTabConfig) {
-    const parsedConfig = JSON.parse(savedTabConfig);
-
-    // Validate the parsed configuration
-    if (
-      parsedConfig &&
-      Array.isArray(parsedConfig.userTabs) &&
-      Array.isArray(parsedConfig.developerTabs) &&
-      parsedConfig.userTabs.every(
-        (tab: any) =>
-          tab &&
-          typeof tab.id === 'string' &&
-          typeof tab.visible === 'boolean' &&
-          typeof tab.window === 'string' &&
-          typeof tab.order === 'number',
-      ) &&
-      parsedConfig.developerTabs.every(
-        (tab: any) =>
-          tab &&
-          typeof tab.id === 'string' &&
-          typeof tab.visible === 'boolean' &&
-          typeof tab.window === 'string' &&
-          typeof tab.order === 'number',
-      )
-    ) {
-      initialTabConfig = parsedConfig;
-      console.log('Using saved tab configuration');
-    } else {
-      console.warn('Invalid saved tab configuration, using defaults');
-      initialTabConfig = {
-        userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
-        developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
-      };
-    }
-  } else {
-    console.log('No saved tab configuration found, using defaults');
-    initialTabConfig = {
-      userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
-      developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
-    };
-  }
-} catch (error) {
-  console.error('Error loading tab configuration:', error);
-  initialTabConfig = {
+// Initialize tab configuration from localStorage or defaults
+const getInitialTabConfiguration = (): TabWindowConfig => {
+  const defaultConfig: TabWindowConfig = {
     userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
     developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
   };
-}
 
-console.log('Initial tab configuration:', initialTabConfig);
+  if (!isBrowser) {
+    return defaultConfig;
+  }
 
-export const tabConfigurationStore = map<TabWindowConfig>(initialTabConfig);
+  try {
+    const saved = localStorage.getItem('bolt_tab_configuration');
+
+    if (!saved) {
+      return defaultConfig;
+    }
+
+    const parsed = JSON.parse(saved);
+
+    if (!parsed?.userTabs || !parsed?.developerTabs) {
+      return defaultConfig;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.warn('Failed to parse tab configuration:', error);
+    return defaultConfig;
+  }
+};
+
+console.log('Initial tab configuration:', getInitialTabConfiguration());
+
+export const tabConfigurationStore = map<TabWindowConfig>(getInitialTabConfiguration());
 
 // Helper function to update tab configuration
 export const updateTabConfiguration = (config: TabVisibilityConfig) => {
@@ -307,9 +294,13 @@ export const resetTabConfiguration = () => {
   });
 };
 
-// Developer mode store
-export const developerModeStore = atom<boolean>(false);
+// Developer mode store with persistence
+export const developerModeStore = atom<boolean>(initialSettings.developerMode);
 
 export const setDeveloperMode = (value: boolean) => {
   developerModeStore.set(value);
+
+  if (isBrowser) {
+    localStorage.setItem(SETTINGS_KEYS.DEVELOPER_MODE, JSON.stringify(value));
+  }
 };
