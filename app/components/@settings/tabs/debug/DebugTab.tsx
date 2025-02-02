@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { logStore, type LogEntry } from '~/lib/stores/logs';
@@ -7,6 +7,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/component
 import { Progress } from '~/components/ui/Progress';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { Badge } from '~/components/ui/Badge';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { jsPDF } from 'jspdf';
 
 interface SystemInfo {
   os: string;
@@ -136,6 +138,13 @@ interface OllamaServiceStatus {
   isRunning: boolean;
   lastChecked: Date;
   error?: string;
+}
+
+interface ExportFormat {
+  id: string;
+  label: string;
+  icon: string;
+  handler: () => void;
 }
 
 const DependencySection = ({
@@ -541,7 +550,7 @@ export default function DebugTab() {
       const resourceEntries = performance.getEntriesByType('resource');
       const resourceStats = {
         totalResources: resourceEntries.length,
-        totalSize: resourceEntries.reduce((total, entry) => total + (entry as any).transferSize || 0, 0),
+        totalSize: resourceEntries.reduce((total, entry) => total + ((entry as any).transferSize || 0), 0),
         totalTime: Math.max(...resourceEntries.map((entry) => entry.duration)),
       };
 
@@ -651,6 +660,438 @@ export default function DebugTab() {
     }
   };
 
+  const exportAsCSV = () => {
+    try {
+      const debugData = {
+        system: systemInfo,
+        webApp: webAppInfo,
+        errors: logStore.getLogs().filter((log: LogEntry) => log.level === 'error'),
+        performance: {
+          memory: (performance as any).memory || {},
+          timing: performance.timing,
+          navigation: performance.navigation,
+        },
+      };
+
+      // Convert the data to CSV format
+      const csvData = [
+        ['Category', 'Key', 'Value'],
+        ...Object.entries(debugData).flatMap(([category, data]) =>
+          Object.entries(data || {}).map(([key, value]) => [
+            category,
+            key,
+            typeof value === 'object' ? JSON.stringify(value) : String(value),
+          ]),
+        ),
+      ];
+
+      // Create CSV content
+      const csvContent = csvData.map((row) => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bolt-debug-info-${new Date().toISOString()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Debug information exported as CSV');
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+      toast.error('Failed to export debug information as CSV');
+    }
+  };
+
+  const exportAsPDF = () => {
+    try {
+      const debugData = {
+        system: systemInfo,
+        webApp: webAppInfo,
+        errors: logStore.getLogs().filter((log: LogEntry) => log.level === 'error'),
+        performance: {
+          memory: (performance as any).memory || {},
+          timing: performance.timing,
+          navigation: performance.navigation,
+        },
+      };
+
+      // Create new PDF document
+      const doc = new jsPDF();
+      const lineHeight = 7;
+      let yPos = 20;
+      const margin = 20;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const maxLineWidth = pageWidth - 2 * margin;
+
+      // Add key-value pair with better formatting
+      const addKeyValue = (key: string, value: any, indent = 0) => {
+        // Check if we need a new page
+        if (yPos > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+
+        doc.setFontSize(10);
+        doc.setTextColor('#374151');
+        doc.setFont('helvetica', 'bold');
+
+        // Format the key with proper spacing
+        const formattedKey = key.replace(/([A-Z])/g, ' $1').trim();
+        doc.text(formattedKey + ':', margin + indent, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor('#6B7280');
+
+        let valueText;
+
+        if (typeof value === 'object' && value !== null) {
+          // Skip rendering if value is empty object
+          if (Object.keys(value).length === 0) {
+            return;
+          }
+
+          yPos += lineHeight;
+          Object.entries(value).forEach(([subKey, subValue]) => {
+            // Check for page break before each sub-item
+            if (yPos > doc.internal.pageSize.getHeight() - 20) {
+              doc.addPage();
+              yPos = margin;
+            }
+
+            const formattedSubKey = subKey.replace(/([A-Z])/g, ' $1').trim();
+            addKeyValue(formattedSubKey, subValue, indent + 10);
+          });
+
+          return;
+        } else {
+          valueText = String(value);
+        }
+
+        const valueX = margin + indent + doc.getTextWidth(formattedKey + ': ');
+        const maxValueWidth = maxLineWidth - indent - doc.getTextWidth(formattedKey + ': ');
+        const lines = doc.splitTextToSize(valueText, maxValueWidth);
+
+        // Check if we need a new page for the value
+        if (yPos + lines.length * lineHeight > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+
+        doc.text(lines, valueX, yPos);
+        yPos += lines.length * lineHeight;
+      };
+
+      // Add section header with page break check
+      const addSectionHeader = (title: string) => {
+        // Check if we need a new page
+        if (yPos + 20 > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = margin;
+        }
+
+        yPos += lineHeight;
+        doc.setFillColor('#F3F4F6');
+        doc.rect(margin - 2, yPos - 5, pageWidth - 2 * (margin - 2), lineHeight + 6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor('#111827');
+        doc.setFontSize(12);
+        doc.text(title.toUpperCase(), margin, yPos);
+        doc.setFont('helvetica', 'normal');
+        yPos += lineHeight * 1.5;
+      };
+
+      // Add horizontal line with page break check
+      const addHorizontalLine = () => {
+        // Check if we need a new page
+        if (yPos + 10 > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          yPos = margin;
+
+          return; // Skip drawing line if we just started a new page
+        }
+
+        doc.setDrawColor('#E5E5E5');
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += lineHeight;
+      };
+
+      // Helper function to add footer to all pages
+      const addFooters = () => {
+        const totalPages = doc.internal.pages.length - 1;
+
+        for (let i = 1; i <= totalPages; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor('#9CA3AF');
+          doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, {
+            align: 'center',
+          });
+        }
+      };
+
+      // Title and Header (first page only)
+      doc.setFillColor('#6366F1');
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Debug Information Report', margin, 25);
+      yPos = 50;
+
+      // Timestamp and metadata
+      doc.setTextColor('#6B7280');
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+
+      const timestamp = new Date().toLocaleString(undefined, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      doc.text(`Generated: ${timestamp}`, margin, yPos);
+      yPos += lineHeight * 2;
+
+      // System Information Section
+      if (debugData.system) {
+        addSectionHeader('System Information');
+
+        // OS and Architecture
+        addKeyValue('Operating System', debugData.system.os);
+        addKeyValue('Architecture', debugData.system.arch);
+        addKeyValue('Platform', debugData.system.platform);
+        addKeyValue('CPU Cores', debugData.system.cpus);
+
+        // Memory
+        const memory = debugData.system.memory;
+        addKeyValue('Memory', {
+          'Total Memory': memory.total,
+          'Used Memory': memory.used,
+          'Free Memory': memory.free,
+          Usage: memory.percentage + '%',
+        });
+
+        // Browser Information
+        const browser = debugData.system.browser;
+        addKeyValue('Browser', {
+          Name: browser.name,
+          Version: browser.version,
+          Language: browser.language,
+          Platform: browser.platform,
+          'Cookies Enabled': browser.cookiesEnabled ? 'Yes' : 'No',
+          'Online Status': browser.online ? 'Online' : 'Offline',
+        });
+
+        // Screen Information
+        const screen = debugData.system.screen;
+        addKeyValue('Screen', {
+          Resolution: `${screen.width}x${screen.height}`,
+          'Color Depth': screen.colorDepth + ' bit',
+          'Pixel Ratio': screen.pixelRatio + 'x',
+        });
+
+        // Time Information
+        const time = debugData.system.time;
+        addKeyValue('Time Settings', {
+          Timezone: time.timezone,
+          'UTC Offset': time.offset / 60 + ' hours',
+          Locale: time.locale,
+        });
+
+        addHorizontalLine();
+      }
+
+      // Web App Information Section
+      if (debugData.webApp) {
+        addSectionHeader('Web App Information');
+
+        // Basic Info
+        addKeyValue('Application', {
+          Name: debugData.webApp.name,
+          Version: debugData.webApp.version,
+          Environment: debugData.webApp.environment,
+          'Node Version': debugData.webApp.runtimeInfo.nodeVersion,
+        });
+
+        // Git Information
+        if (debugData.webApp.gitInfo) {
+          const gitInfo = debugData.webApp.gitInfo.local;
+          addKeyValue('Git Information', {
+            Branch: gitInfo.branch,
+            Commit: gitInfo.commitHash,
+            Author: gitInfo.author,
+            'Commit Time': gitInfo.commitTime,
+            Repository: gitInfo.repoName,
+          });
+
+          if (debugData.webApp.gitInfo.github) {
+            const githubInfo = debugData.webApp.gitInfo.github.currentRepo;
+            addKeyValue('GitHub Information', {
+              Repository: githubInfo.fullName,
+              'Default Branch': githubInfo.defaultBranch,
+              Stars: githubInfo.stars,
+              Forks: githubInfo.forks,
+              'Open Issues': githubInfo.openIssues || 0,
+            });
+          }
+        }
+
+        addHorizontalLine();
+      }
+
+      // Performance Section
+      if (debugData.performance) {
+        addSectionHeader('Performance Metrics');
+
+        // Memory Usage
+        const memory = debugData.performance.memory || {};
+        const totalHeap = memory.totalJSHeapSize || 0;
+        const usedHeap = memory.usedJSHeapSize || 0;
+        const usagePercentage = memory.usagePercentage || 0;
+
+        addKeyValue('Memory Usage', {
+          'Total Heap Size': formatBytes(totalHeap),
+          'Used Heap Size': formatBytes(usedHeap),
+          Usage: usagePercentage.toFixed(1) + '%',
+        });
+
+        // Timing Metrics
+        const timing = debugData.performance.timing || {};
+        const navigationStart = timing.navigationStart || 0;
+        const loadEventEnd = timing.loadEventEnd || 0;
+        const domContentLoadedEventEnd = timing.domContentLoadedEventEnd || 0;
+        const responseEnd = timing.responseEnd || 0;
+        const requestStart = timing.requestStart || 0;
+
+        const loadTime = loadEventEnd > navigationStart ? loadEventEnd - navigationStart : 0;
+        const domReadyTime =
+          domContentLoadedEventEnd > navigationStart ? domContentLoadedEventEnd - navigationStart : 0;
+        const requestTime = responseEnd > requestStart ? responseEnd - requestStart : 0;
+
+        addKeyValue('Page Load Metrics', {
+          'Total Load Time': (loadTime / 1000).toFixed(2) + ' seconds',
+          'DOM Ready Time': (domReadyTime / 1000).toFixed(2) + ' seconds',
+          'Request Time': (requestTime / 1000).toFixed(2) + ' seconds',
+        });
+
+        // Network Information
+        if (debugData.system?.network) {
+          const network = debugData.system.network;
+          addKeyValue('Network Information', {
+            'Connection Type': network.type || 'Unknown',
+            'Effective Type': network.effectiveType || 'Unknown',
+            'Download Speed': (network.downlink || 0) + ' Mbps',
+            'Latency (RTT)': (network.rtt || 0) + ' ms',
+            'Data Saver': network.saveData ? 'Enabled' : 'Disabled',
+          });
+        }
+
+        addHorizontalLine();
+      }
+
+      // Errors Section
+      if (debugData.errors && debugData.errors.length > 0) {
+        addSectionHeader('Error Log');
+
+        debugData.errors.forEach((error: LogEntry, index: number) => {
+          doc.setTextColor('#DC2626');
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Error ${index + 1}:`, margin, yPos);
+          yPos += lineHeight;
+
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor('#6B7280');
+          addKeyValue('Message', error.message, 10);
+
+          if (error.stack) {
+            addKeyValue('Stack', error.stack, 10);
+          }
+
+          if (error.source) {
+            addKeyValue('Source', error.source, 10);
+          }
+
+          yPos += lineHeight;
+        });
+      }
+
+      // Add footers to all pages at the end
+      addFooters();
+
+      // Save the PDF
+      doc.save(`bolt-debug-info-${new Date().toISOString()}.pdf`);
+      toast.success('Debug information exported as PDF');
+    } catch (error) {
+      console.error('Failed to export PDF:', error);
+      toast.error('Failed to export debug information as PDF');
+    }
+  };
+
+  const exportAsText = () => {
+    try {
+      const debugData = {
+        system: systemInfo,
+        webApp: webAppInfo,
+        errors: logStore.getLogs().filter((log: LogEntry) => log.level === 'error'),
+        performance: {
+          memory: (performance as any).memory || {},
+          timing: performance.timing,
+          navigation: performance.navigation,
+        },
+      };
+
+      const textContent = Object.entries(debugData)
+        .map(([category, data]) => {
+          return `${category.toUpperCase()}\n${'-'.repeat(30)}\n${JSON.stringify(data, null, 2)}\n\n`;
+        })
+        .join('\n');
+
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bolt-debug-info-${new Date().toISOString()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Debug information exported as text file');
+    } catch (error) {
+      console.error('Failed to export text file:', error);
+      toast.error('Failed to export debug information as text file');
+    }
+  };
+
+  const exportFormats: ExportFormat[] = [
+    {
+      id: 'json',
+      label: 'Export as JSON',
+      icon: 'i-ph:file-json',
+      handler: exportDebugInfo,
+    },
+    {
+      id: 'csv',
+      label: 'Export as CSV',
+      icon: 'i-ph:file-csv',
+      handler: exportAsCSV,
+    },
+    {
+      id: 'pdf',
+      label: 'Export as PDF',
+      icon: 'i-ph:file-pdf',
+      handler: exportAsPDF,
+    },
+    {
+      id: 'txt',
+      label: 'Export as Text',
+      icon: 'i-ph:file-text',
+      handler: exportAsText,
+    },
+  ];
+
   // Add Ollama health check function
   const checkOllamaHealth = async () => {
     try {
@@ -686,6 +1127,77 @@ export default function DebugTab() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Replace the existing export button with this new component
+  const ExportButton = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const handleOpenChange = useCallback((open: boolean) => {
+      setIsOpen(open);
+    }, []);
+
+    const handleFormatClick = useCallback((handler: () => void) => {
+      handler();
+      setIsOpen(false);
+    }, []);
+
+    return (
+      <DialogRoot open={isOpen} onOpenChange={handleOpenChange}>
+        <button
+          onClick={() => setIsOpen(true)}
+          className={classNames(
+            'group flex items-center gap-2',
+            'rounded-lg px-3 py-1.5',
+            'text-sm text-gray-900 dark:text-white',
+            'bg-[#FAFAFA] dark:bg-[#0A0A0A]',
+            'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+            'hover:bg-purple-500/10 dark:hover:bg-purple-500/20',
+            'transition-all duration-200',
+          )}
+        >
+          <span className="i-ph:download text-lg text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+          Export
+        </button>
+
+        <Dialog showCloseButton>
+          <div className="p-6">
+            <DialogTitle className="flex items-center gap-2">
+              <div className="i-ph:download w-5 h-5" />
+              Export Debug Information
+            </DialogTitle>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {exportFormats.map((format) => (
+                <button
+                  key={format.id}
+                  onClick={() => handleFormatClick(format.handler)}
+                  className={classNames(
+                    'flex items-center gap-3 px-4 py-3 text-sm rounded-lg transition-colors w-full text-left',
+                    'bg-white dark:bg-[#0A0A0A]',
+                    'border border-[#E5E5E5] dark:border-[#1A1A1A]',
+                    'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
+                    'hover:border-purple-200 dark:hover:border-purple-900/30',
+                    'text-bolt-elements-textPrimary',
+                  )}
+                >
+                  <div className={classNames(format.icon, 'w-5 h-5')} />
+                  <div>
+                    <div className="font-medium">{format.label}</div>
+                    <div className="text-xs text-bolt-elements-textSecondary mt-0.5">
+                      {format.id === 'json' && 'Export as a structured JSON file'}
+                      {format.id === 'csv' && 'Export as a CSV spreadsheet'}
+                      {format.id === 'pdf' && 'Export as a formatted PDF document'}
+                      {format.id === 'txt' && 'Export as a formatted text file'}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Dialog>
+      </DialogRoot>
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto p-4">
@@ -830,20 +1342,7 @@ export default function DebugTab() {
           Fetch WebApp Info
         </button>
 
-        <button
-          onClick={exportDebugInfo}
-          className={classNames(
-            'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors',
-            'bg-white dark:bg-[#0A0A0A]',
-            'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-            'hover:bg-purple-50 dark:hover:bg-[#1a1a1a]',
-            'hover:border-purple-200 dark:hover:border-purple-900/30',
-            'text-bolt-elements-textPrimary',
-          )}
-        >
-          <div className="i-ph:download w-4 h-4" />
-          Export Debug Info
-        </button>
+        <ExportButton />
       </div>
 
       {/* System Information */}
