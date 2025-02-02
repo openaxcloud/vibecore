@@ -21,52 +21,24 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <motion.button className="group outline-none relative" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+        <motion.button
+          className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center focus:outline-none"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
           {profile?.avatar ? (
-            <div
-              className={classNames(
-                'w-10 h-10',
-                'rounded-full overflow-hidden',
-                'bg-white dark:bg-gray-800',
-                'transition-all duration-200',
-                'relative',
-                'shadow-sm',
-              )}
-            >
-              <img
-                src={profile.avatar}
-                alt={profile?.username || 'Profile'}
-                className={classNames(
-                  'w-full h-full',
-                  'object-cover',
-                  'transform-gpu',
-                  'image-rendering-crisp',
-                  'group-hover:brightness-110',
-                  'group-hover:scale-105',
-                  'transition-all duration-200',
-                )}
-                loading="eager"
-                decoding="sync"
-              />
-            </div>
+            <img
+              src={profile.avatar}
+              alt={profile?.username || 'Profile'}
+              className="w-full h-full rounded-full object-cover"
+              loading="eager"
+              decoding="sync"
+            />
           ) : (
-            <div
-              className={classNames(
-                'w-10 h-10',
-                'rounded-full',
-                'flex items-center justify-center',
-                'bg-white dark:bg-gray-800',
-                'text-gray-400 dark:text-gray-500',
-                'group-hover:text-purple-500 dark:group-hover:text-purple-400',
-                'transition-all duration-200',
-                'shadow-sm',
-              )}
-            >
+            <div className="w-full h-full rounded-full flex items-center justify-center bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500">
               <div className="i-ph:question w-6 h-6" />
             </div>
           )}
-          {/* Add subtle circular highlight effect */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </motion.button>
       </DropdownMenu.Trigger>
 
