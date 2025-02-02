@@ -7,6 +7,7 @@ const execAsync = promisify(exec);
 
 interface UpdateRequestBody {
   branch: string;
+  autoUpdate?: boolean;
 }
 
 interface UpdateProgress {
@@ -22,6 +23,7 @@ interface UpdateProgress {
     totalSize?: string;
     currentCommit?: string;
     remoteCommit?: string;
+    updateReady?: boolean;
   };
 }
 
@@ -37,7 +39,7 @@ export const action: ActionFunction = async ({ request }) => {
       return json({ error: 'Invalid request body: branch is required and must be a string' }, { status: 400 });
     }
 
-    const { branch } = body as UpdateRequestBody;
+    const { branch, autoUpdate = false } = body as UpdateRequestBody;
 
     // Create a ReadableStream to send progress updates
     const stream = new ReadableStream({
@@ -271,8 +273,29 @@ export const action: ActionFunction = async ({ request }) => {
               totalSize: formatSize(totalSizeInBytes),
               currentCommit: currentCommit.trim().substring(0, 7),
               remoteCommit: remoteCommit.trim().substring(0, 7),
+              updateReady: true,
             },
           });
+
+          // Only proceed with update if autoUpdate is true
+          if (!autoUpdate) {
+            sendProgress({
+              stage: 'complete',
+              message: 'Update is ready to be applied. Click "Update Now" to proceed.',
+              progress: 100,
+              details: {
+                changedFiles,
+                additions: stats?.[2] ? parseInt(stats[2]) : 0,
+                deletions: stats?.[3] ? parseInt(stats[3]) : 0,
+                commitMessages,
+                totalSize: formatSize(totalSizeInBytes),
+                currentCommit: currentCommit.trim().substring(0, 7),
+                remoteCommit: remoteCommit.trim().substring(0, 7),
+                updateReady: true,
+              },
+            });
+            return;
+          }
 
           // Pull stage
           sendProgress({

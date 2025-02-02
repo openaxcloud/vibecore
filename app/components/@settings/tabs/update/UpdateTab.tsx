@@ -19,6 +19,7 @@ interface UpdateProgress {
     totalSize?: string;
     currentCommit?: string;
     remoteCommit?: string;
+    updateReady?: boolean;
   };
 }
 
@@ -113,7 +114,10 @@ const UpdateTab = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ branch: branchToCheck }),
+        body: JSON.stringify({
+          branch: branchToCheck,
+          autoUpdate: updateSettings.autoUpdate,
+        }),
       });
 
       if (!response.ok) {
@@ -152,10 +156,11 @@ const UpdateTab = () => {
               setIsChecking(false);
 
               if (!progress.error) {
-                // Update was successful
+                // Update check completed
                 toast.success('Update check completed');
 
-                if (progress.details?.changedFiles?.length) {
+                // Show update dialog only if there are changes and auto-update is disabled
+                if (progress.details?.changedFiles?.length && progress.details.updateReady) {
                   setShowUpdateDialog(true);
                 }
               }
@@ -173,6 +178,69 @@ const UpdateTab = () => {
       });
     } finally {
       setIsChecking(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    setShowUpdateDialog(false);
+
+    try {
+      const branchToCheck = isLatestBranch ? 'main' : 'stable';
+
+      // Start the update with autoUpdate set to true to force the update
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          branch: branchToCheck,
+          autoUpdate: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Update failed: ${response.statusText}`);
+      }
+
+      // Handle the update progress stream
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error('No response stream available');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(Boolean);
+
+        for (const line of lines) {
+          try {
+            const progress = JSON.parse(line) as UpdateProgress;
+            setUpdateProgress(progress);
+
+            if (progress.error) {
+              setError(progress.error);
+              toast.error('Update failed');
+            }
+
+            if (progress.stage === 'complete' && !progress.error) {
+              toast.success('Update completed successfully');
+            }
+          } catch (e) {
+            console.error('Error parsing update progress:', e);
+          }
+        }
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      toast.error('Update failed');
     }
   };
 
@@ -286,44 +354,75 @@ const UpdateTab = () => {
             <div className="i-ph:arrows-clockwise text-purple-500 w-5 h-5" />
             <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Update Status</h3>
           </div>
-          <button
-            onClick={() => {
-              setError(null);
-              checkForUpdates();
-            }}
-            className={classNames(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
-              'text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+          <div className="flex items-center gap-2">
+            {updateProgress?.details?.updateReady && !updateSettings.autoUpdate && (
+              <button
+                onClick={handleUpdate}
+                className={classNames(
+                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
+                  'bg-purple-500 text-white',
+                  'hover:bg-purple-600',
+                  'transition-colors duration-200',
+                )}
+              >
+                <div className="i-ph:arrow-circle-up w-4 h-4" />
+                Update Now
+              </button>
             )}
-            disabled={isChecking}
-          >
-            {isChecking ? (
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="i-ph:arrows-clockwise w-4 h-4"
-                />
-                Checking...
-              </div>
-            ) : (
-              <>
-                <div className="i-ph:arrows-clockwise w-4 h-4" />
-                Check for Updates
-              </>
-            )}
-          </button>
+            <button
+              onClick={() => {
+                setError(null);
+                checkForUpdates();
+              }}
+              className={classNames(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
+                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                'hover:bg-purple-500/10 hover:text-purple-500',
+                'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                'text-bolt-elements-textPrimary',
+                'transition-colors duration-200',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+              )}
+              disabled={isChecking}
+            >
+              {isChecking ? (
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="i-ph:arrows-clockwise w-4 h-4"
+                  />
+                  Checking...
+                </div>
+              ) : (
+                <>
+                  <div className="i-ph:arrows-clockwise w-4 h-4" />
+                  Check for Updates
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Show progress information */}
         {updateProgress && <UpdateProgressDisplay progress={updateProgress} />}
 
         {error && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
+
+        {/* Show update source information */}
+        <div className="mt-4 text-sm text-bolt-elements-textSecondary">
+          <p>
+            Updates are fetched from: <span className="font-mono">stackblitz-labs/bolt.diy</span> (
+            {isLatestBranch ? 'main' : 'stable'} branch)
+          </p>
+          {updateProgress?.details?.currentCommit && updateProgress?.details?.remoteCommit && (
+            <p className="mt-1">
+              Current version: <span className="font-mono">{updateProgress.details.currentCommit}</span>
+              <span className="mx-2">→</span>
+              Latest version: <span className="font-mono">{updateProgress.details.remoteCommit}</span>
+            </p>
+          )}
+        </div>
       </motion.div>
 
       {/* Update dialog */}
@@ -331,34 +430,53 @@ const UpdateTab = () => {
         <Dialog>
           <DialogTitle>Update Available</DialogTitle>
           <DialogDescription>
-            {updateProgress?.details?.changedFiles && (
-              <div className="mt-4">
-                <p className="font-medium">Changes:</p>
-                <ul className="list-disc list-inside mt-2">
-                  {updateProgress.details.changedFiles.map((file, index) => (
-                    <li key={index} className="text-sm">
-                      {file}
-                    </li>
-                  ))}
-                </ul>
-                {updateProgress.details.totalSize && (
-                  <p className="mt-2 text-sm">Total size: {updateProgress.details.totalSize}</p>
-                )}
-              </div>
-            )}
+            <div className="mt-4">
+              <p className="text-sm text-bolt-elements-textSecondary mb-4">
+                A new version is available from <span className="font-mono">stackblitz-labs/bolt.diy</span> (
+                {isLatestBranch ? 'main' : 'stable'} branch)
+              </p>
+              {updateProgress?.details?.commitMessages && updateProgress.details.commitMessages.length > 0 && (
+                <div className="mb-4">
+                  <p className="font-medium mb-2">Commit Messages:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {updateProgress.details.commitMessages.map((msg, index) => (
+                      <li key={index} className="text-sm text-bolt-elements-textSecondary">
+                        {msg}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {updateProgress?.details?.changedFiles && (
+                <div>
+                  <p className="font-medium mb-2">Changed Files:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {updateProgress.details.changedFiles.map((file, index) => (
+                      <li key={index} className="text-sm text-bolt-elements-textSecondary">
+                        {file}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {updateProgress?.details?.totalSize && (
+                <p className="mt-4 text-sm text-bolt-elements-textSecondary">
+                  Total size: {updateProgress.details.totalSize}
+                </p>
+              )}
+              {updateProgress?.details?.additions !== undefined && updateProgress?.details?.deletions !== undefined && (
+                <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                  Changes: <span className="text-green-600">+{updateProgress.details.additions}</span>{' '}
+                  <span className="text-red-600">-{updateProgress.details.deletions}</span>
+                </p>
+              )}
+            </div>
           </DialogDescription>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end gap-2 mt-6">
             <DialogButton type="secondary" onClick={() => setShowUpdateDialog(false)}>
               Cancel
             </DialogButton>
-            <DialogButton
-              type="primary"
-              onClick={() => {
-                setShowUpdateDialog(false);
-
-                // Handle update initiation here
-              }}
-            >
+            <DialogButton type="primary" onClick={handleUpdate}>
               Update Now
             </DialogButton>
           </div>
