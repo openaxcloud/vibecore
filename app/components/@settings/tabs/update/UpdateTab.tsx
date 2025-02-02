@@ -1,26 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { logStore } from '~/lib/stores/logs';
-import { classNames } from '~/utils/classNames';
 import { toast } from 'react-toastify';
 import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
-
-interface GitHubCommitResponse {
-  sha: string;
-  commit: {
-    message: string;
-  };
-}
-
-interface GitHubReleaseResponse {
-  tag_name: string;
-  body: string;
-  assets: Array<{
-    size: number;
-    browser_download_url: string;
-  }>;
-}
 
 interface UpdateProgress {
   stage: 'fetch' | 'pull' | 'install' | 'build' | 'complete';
@@ -32,23 +15,9 @@ interface UpdateProgress {
     additions?: number;
     deletions?: number;
     commitMessages?: string[];
-  };
-}
-
-interface UpdateInfo {
-  currentVersion: string;
-  latestVersion: string;
-  branch: string;
-  hasUpdate: boolean;
-  releaseNotes?: string;
-  downloadSize?: string;
-  changelog?: string[];
-  currentCommit?: string;
-  latestCommit?: string;
-  updateProgress?: UpdateProgress;
-  error?: {
-    type: string;
-    message: string;
+    totalSize?: string;
+    currentCommit?: string;
+    remoteCommit?: string;
   };
 }
 
@@ -58,125 +27,60 @@ interface UpdateSettings {
   checkInterval: number;
 }
 
-const categorizeChangelog = (messages: string[]) => {
-  const categories = new Map<string, string[]>();
+const ProgressBar = ({ progress }: { progress: number }) => (
+  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+    <motion.div
+      className="h-full bg-blue-500"
+      initial={{ width: 0 }}
+      animate={{ width: `${progress}%` }}
+      transition={{ duration: 0.3 }}
+    />
+  </div>
+);
 
-  messages.forEach((message) => {
-    let category = 'Other';
-
-    if (message.startsWith('feat:')) {
-      category = 'Features';
-    } else if (message.startsWith('fix:')) {
-      category = 'Bug Fixes';
-    } else if (message.startsWith('docs:')) {
-      category = 'Documentation';
-    } else if (message.startsWith('ci:')) {
-      category = 'CI Improvements';
-    } else if (message.startsWith('refactor:')) {
-      category = 'Refactoring';
-    } else if (message.startsWith('test:')) {
-      category = 'Testing';
-    } else if (message.startsWith('style:')) {
-      category = 'Styling';
-    } else if (message.startsWith('perf:')) {
-      category = 'Performance';
-    }
-
-    if (!categories.has(category)) {
-      categories.set(category, []);
-    }
-
-    categories.get(category)!.push(message);
-  });
-
-  const order = [
-    'Features',
-    'Bug Fixes',
-    'Documentation',
-    'CI Improvements',
-    'Refactoring',
-    'Performance',
-    'Testing',
-    'Styling',
-    'Other',
-  ];
-
-  return Array.from(categories.entries())
-    .sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]))
-    .filter(([_, messages]) => messages.length > 0);
-};
-
-const parseCommitMessage = (message: string) => {
-  const prMatch = message.match(/#(\d+)/);
-  const prNumber = prMatch ? prMatch[1] : null;
-
-  let cleanMessage = message.replace(/^[a-z]+:\s*/i, '');
-  cleanMessage = cleanMessage.replace(/#\d+/g, '').trim();
-
-  const parts = cleanMessage.split(/[\n\r]|\s+\*\s+/);
-  const title = parts[0].trim();
-  const description = parts
-    .slice(1)
-    .map((p) => p.trim())
-    .filter((p) => p && !p.includes('Co-authored-by:'))
-    .join('\n');
-
-  return { title, description, prNumber };
-};
-
-const GITHUB_URLS = {
-  commitJson: async (branch: string, headers: HeadersInit = {}): Promise<UpdateInfo> => {
-    try {
-      const [commitResponse, releaseResponse, changelogResponse] = await Promise.all([
-        fetch(`https://api.github.com/repos/stackblitz-labs/bolt.diy/commits/${branch}`, { headers }),
-        fetch('https://api.github.com/repos/stackblitz-labs/bolt.diy/releases/latest', { headers }),
-        fetch(`https://api.github.com/repos/stackblitz-labs/bolt.diy/commits?sha=${branch}&per_page=10`, { headers }),
-      ]);
-
-      if (!commitResponse.ok || !releaseResponse.ok || !changelogResponse.ok) {
-        throw new Error(
-          `GitHub API error: ${!commitResponse.ok ? await commitResponse.text() : await releaseResponse.text()}`,
-        );
-      }
-
-      const commitData = (await commitResponse.json()) as GitHubCommitResponse;
-      const releaseData = (await releaseResponse.json()) as GitHubReleaseResponse;
-      const commits = (await changelogResponse.json()) as GitHubCommitResponse[];
-
-      const totalSize = releaseData.assets?.reduce((acc, asset) => acc + asset.size, 0) || 0;
-      const downloadSize = (totalSize / (1024 * 1024)).toFixed(2) + ' MB';
-
-      const changelog = commits.map((commit) => commit.commit.message);
-
-      return {
-        currentVersion: process.env.APP_VERSION || 'unknown',
-        latestVersion: releaseData.tag_name || commitData.sha.substring(0, 7),
-        branch,
-        hasUpdate: commitData.sha !== process.env.CURRENT_COMMIT,
-        releaseNotes: releaseData.body || '',
-        downloadSize,
-        changelog,
-        currentCommit: process.env.CURRENT_COMMIT?.substring(0, 7),
-        latestCommit: commitData.sha.substring(0, 7),
-      };
-    } catch (error) {
-      console.error('Error fetching update info:', error);
-      throw error;
-    }
-  },
-};
+const UpdateProgressDisplay = ({ progress }: { progress: UpdateProgress }) => (
+  <div className="mt-4 space-y-2">
+    <div className="flex justify-between items-center">
+      <span className="text-sm font-medium">{progress.message}</span>
+      <span className="text-sm text-gray-500">{progress.progress}%</span>
+    </div>
+    <ProgressBar progress={progress.progress || 0} />
+    {progress.details && (
+      <div className="mt-2 text-sm text-gray-600">
+        {progress.details.changedFiles && progress.details.changedFiles.length > 0 && (
+          <div className="mt-2">
+            <div className="font-medium">Changed Files:</div>
+            <ul className="list-disc list-inside">
+              {progress.details.changedFiles.map((file, index) => (
+                <li key={index} className="ml-2">
+                  {file}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {progress.details.totalSize && <div className="mt-1">Total size: {progress.details.totalSize}</div>}
+        {progress.details.additions !== undefined && progress.details.deletions !== undefined && (
+          <div className="mt-1">
+            Changes: <span className="text-green-600">+{progress.details.additions}</span>{' '}
+            <span className="text-red-600">-{progress.details.deletions}</span>
+          </div>
+        )}
+        {progress.details.currentCommit && progress.details.remoteCommit && (
+          <div className="mt-1">
+            Updating from {progress.details.currentCommit} to {progress.details.remoteCommit}
+          </div>
+        )}
+      </div>
+    )}
+  </div>
+);
 
 const UpdateTab = () => {
   const { isLatestBranch } = useSettings();
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showChangelog, setShowChangelog] = useState(false);
-  const [showManualInstructions, setShowManualInstructions] = useState(false);
-  const [hasUserRespondedToUpdate, setHasUserRespondedToUpdate] = useState(false);
-  const [updateFailed, setUpdateFailed] = useState(false);
-  const [updateSettings, setUpdateSettings] = useState<UpdateSettings>(() => {
+  const [updateSettings] = useState<UpdateSettings>(() => {
     const stored = localStorage.getItem('update_settings');
     return stored
       ? JSON.parse(stored)
@@ -186,9 +90,7 @@ const UpdateTab = () => {
           checkInterval: 24,
         };
   });
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
-  const [updateChangelog, setUpdateChangelog] = useState<string[]>([]);
   const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null);
 
   useEffect(() => {
@@ -199,97 +101,31 @@ const UpdateTab = () => {
     console.log('Starting update check...');
     setIsChecking(true);
     setError(null);
-    setLastChecked(new Date());
-
-    try {
-      console.log('Fetching update info...');
-
-      const branchToCheck = isLatestBranch ? 'main' : 'stable';
-      const info = await GITHUB_URLS.commitJson(branchToCheck);
-
-      setUpdateInfo(info);
-
-      if (info.error) {
-        setError(info.error.message);
-        logStore.logWarning('Update Check Failed', {
-          type: 'update',
-          message: info.error.message,
-        });
-
-        return;
-      }
-
-      if (info.hasUpdate) {
-        const existingLogs = Object.values(logStore.logs.get());
-        const hasUpdateNotification = existingLogs.some(
-          (log) =>
-            log.level === 'warning' &&
-            log.details?.type === 'update' &&
-            log.details.latestVersion === info.latestVersion,
-        );
-
-        if (!hasUpdateNotification && updateSettings.notifyInApp) {
-          logStore.logWarning('Update Available', {
-            currentVersion: info.currentVersion,
-            latestVersion: info.latestVersion,
-            branch: branchToCheck,
-            type: 'update',
-            message: `A new version is available on the ${branchToCheck} branch`,
-            updateUrl: `https://github.com/stackblitz-labs/bolt.diy/compare/${info.currentVersion}...${info.latestVersion}`,
-          });
-
-          if (updateSettings.autoUpdate && !hasUserRespondedToUpdate) {
-            setUpdateChangelog([
-              'New version available.',
-              `Compare changes: https://github.com/stackblitz-labs/bolt.diy/compare/${info.currentVersion}...${info.latestVersion}`,
-              '',
-              'Click "Update Now" to start the update process.',
-            ]);
-            setShowUpdateDialog(true);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Update check failed:', err);
-
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(`Failed to check for updates: ${errorMessage}`);
-      setUpdateFailed(true);
-    } finally {
-      setIsChecking(false);
-    }
-  };
-
-  const initiateUpdate = async () => {
-    setIsUpdating(true);
-    setError(null);
     setUpdateProgress(null);
 
     try {
+      const branchToCheck = isLatestBranch ? 'main' : 'stable';
+
+      // Start the update check with streaming progress
       const response = await fetch('/api/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          branch: isLatestBranch ? 'main' : 'stable',
-        }),
+        body: JSON.stringify({ branch: branchToCheck }),
       });
 
       if (!response.ok) {
-        const errorData = (await response.json()) as { error: string };
-        throw new Error(errorData.error || 'Failed to initiate update');
+        throw new Error(`Update check failed: ${response.statusText}`);
       }
 
-      // Handle streaming response
       const reader = response.body?.getReader();
 
       if (!reader) {
-        throw new Error('Failed to read response stream');
+        throw new Error('No response stream available');
       }
 
-      const decoder = new TextDecoder();
-
+      // Read the stream
       while (true) {
         const { done, value } = await reader.read();
 
@@ -297,638 +133,115 @@ const UpdateTab = () => {
           break;
         }
 
-        const chunk = decoder.decode(value);
-        const updates = chunk.split('\n').filter(Boolean);
+        // Convert the chunk to text and parse the JSON
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(Boolean);
 
-        for (const update of updates) {
+        for (const line of lines) {
           try {
-            const progress = JSON.parse(update) as UpdateProgress;
+            const progress = JSON.parse(line) as UpdateProgress;
             setUpdateProgress(progress);
 
             if (progress.error) {
-              throw new Error(progress.error);
+              setError(progress.error);
             }
 
+            // If we're done, update the UI accordingly
             if (progress.stage === 'complete') {
-              logStore.logSuccess('Update completed', {
-                type: 'update',
-                message: progress.message,
-              });
-              toast.success(progress.message);
-              setUpdateFailed(false);
+              setIsChecking(false);
 
-              return;
+              if (!progress.error) {
+                // Update was successful
+                toast.success('Update check completed');
+
+                if (progress.details?.changedFiles?.length) {
+                  setShowUpdateDialog(true);
+                }
+              }
             }
-
-            logStore.logInfo(`Update progress: ${progress.stage}`, {
-              type: 'update',
-              message: progress.message,
-            });
           } catch (e) {
-            console.error('Failed to parse update progress:', e);
+            console.error('Error parsing progress update:', e);
           }
         }
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError('Failed to complete update. Please try again or update manually.');
-      console.error('Update failed:', err);
-      logStore.logSystem('Update failed: ' + errorMessage);
-      toast.error('Update failed: ' + errorMessage);
-      setUpdateFailed(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      logStore.logWarning('Update Check Failed', {
+        type: 'update',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      });
     } finally {
-      setIsUpdating(false);
+      setIsChecking(false);
     }
   };
-
-  const handleRestart = async () => {
-    // Show confirmation dialog
-    if (window.confirm('The application needs to restart to apply the update. Proceed?')) {
-      // Save any necessary state
-      localStorage.setItem('pendingRestart', 'true');
-
-      // Reload the page
-      window.location.reload();
-    }
-  };
-
-  // Check for pending restart on mount
-  useEffect(() => {
-    const pendingRestart = localStorage.getItem('pendingRestart');
-
-    if (pendingRestart === 'true') {
-      localStorage.removeItem('pendingRestart');
-      toast.success('Update applied successfully!');
-    }
-  }, []);
-
-  useEffect(() => {
-    const checkInterval = updateSettings.checkInterval * 60 * 60 * 1000;
-    const intervalId = setInterval(checkForUpdates, checkInterval);
-
-    return () => clearInterval(intervalId);
-  }, [updateSettings.checkInterval, isLatestBranch]);
-
-  useEffect(() => {
-    checkForUpdates();
-  }, [isLatestBranch]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <motion.div
-        className="flex items-center gap-3"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="i-ph:arrow-circle-up text-xl text-purple-500" />
-        <div>
-          <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Updates</h3>
-          <p className="text-sm text-bolt-elements-textSecondary">Check for and manage application updates</p>
-        </div>
-      </motion.div>
-
-      {/* Update Settings Card */}
-      <motion.div
-        className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-      >
-        <div className="flex items-center gap-3 mb-6">
-          <div className="i-ph:gear text-purple-500 w-5 h-5" />
-          <h3 className="text-lg font-medium text-bolt-elements-textPrimary">Update Settings</h3>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-bolt-elements-textPrimary">Automatic Updates</span>
-              <p className="text-xs text-bolt-elements-textSecondary">
-                Automatically check and apply updates when available
-              </p>
-            </div>
-            <button
-              onClick={() => setUpdateSettings((prev) => ({ ...prev, autoUpdate: !prev.autoUpdate }))}
-              className={classNames(
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                updateSettings.autoUpdate ? 'bg-purple-500' : 'bg-gray-200 dark:bg-gray-700',
-              )}
-            >
-              <span
-                className={classNames(
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  updateSettings.autoUpdate ? 'translate-x-6' : 'translate-x-1',
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-bolt-elements-textPrimary">In-App Notifications</span>
-              <p className="text-xs text-bolt-elements-textSecondary">Show notifications when updates are available</p>
-            </div>
-            <button
-              onClick={() => setUpdateSettings((prev) => ({ ...prev, notifyInApp: !prev.notifyInApp }))}
-              className={classNames(
-                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                updateSettings.notifyInApp ? 'bg-purple-500' : 'bg-gray-200 dark:bg-gray-700',
-              )}
-            >
-              <span
-                className={classNames(
-                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                  updateSettings.notifyInApp ? 'translate-x-6' : 'translate-x-1',
-                )}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-bolt-elements-textPrimary">Check Interval</span>
-              <p className="text-xs text-bolt-elements-textSecondary">How often to check for updates</p>
-            </div>
-            <select
-              value={updateSettings.checkInterval}
-              onChange={(e) => setUpdateSettings((prev) => ({ ...prev, checkInterval: Number(e.target.value) }))}
-              className={classNames(
-                'px-3 py-2 rounded-lg text-sm',
-                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                'border border-[#E5E5E5] dark:border-[#1A1A1A]',
-                'text-bolt-elements-textPrimary',
-                'hover:bg-[#E5E5E5] dark:hover:bg-[#2A2A2A]',
-                'transition-colors duration-200',
-              )}
-            >
-              <option value="6">6 hours</option>
-              <option value="12">12 hours</option>
-              <option value="24">24 hours</option>
-              <option value="48">48 hours</option>
-            </select>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Update Status Card */}
-      <motion.div
-        className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.2 }}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-bolt-elements-textSecondary">
-              Currently on {isLatestBranch ? 'main' : 'stable'} branch
-            </span>
-            {updateInfo && (
-              <span className="text-xs text-bolt-elements-textTertiary">
-                Version: {updateInfo.currentVersion} ({updateInfo.currentCommit})
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              setHasUserRespondedToUpdate(false);
-              setUpdateFailed(false);
-              setError(null);
-              checkForUpdates();
-            }}
-            disabled={isChecking}
-            className={classNames(
-              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
-              'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-              'hover:bg-purple-500/10 hover:text-purple-500',
-              'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
-              'text-bolt-elements-textPrimary',
-              'transition-colors duration-200',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-            )}
-          >
-            <div className={classNames('i-ph:arrows-clockwise w-4 h-4', isChecking ? 'animate-spin' : '')} />
-            {isChecking ? 'Checking...' : 'Check for Updates'}
-          </button>
-        </div>
-
-        {error && (
-          <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
-            <div className="flex items-center gap-2">
-              <div className="i-ph:warning-circle" />
-              <div className="flex flex-col">
-                <span className="font-medium">{error}</span>
-                {error.includes('rate limit') && (
-                  <span className="text-sm mt-1">
-                    Try adding a GitHub token in the connections tab to increase the rate limit.
-                  </span>
-                )}
-                {error.includes('authentication') && (
-                  <span className="text-sm mt-1">
-                    Please check your GitHub token configuration in the connections tab.
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {updateInfo && (
-          <div
-            className={classNames(
-              'p-4 rounded-lg',
-              updateInfo.hasUpdate
-                ? 'bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20'
-                : 'bg-green-500/5 dark:bg-green-500/10 border border-green-500/20',
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={classNames(
-                  'text-lg',
-                  updateInfo.hasUpdate ? 'i-ph:warning text-purple-500' : 'i-ph:check-circle text-green-500',
-                )}
-              />
-              <div>
-                <h4 className="font-medium text-bolt-elements-textPrimary">
-                  {updateInfo.hasUpdate ? 'Update Available' : 'Up to Date'}
-                </h4>
-                <p className="text-sm text-bolt-elements-textSecondary">
-                  {updateInfo.hasUpdate
-                    ? `Version ${updateInfo.latestVersion} (${updateInfo.latestCommit}) is now available`
-                    : 'You are running the latest version'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-        {lastChecked && (
-          <div className="flex flex-col items-end mt-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Last checked: {lastChecked.toLocaleString()}
-            </span>
-            {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
-          </div>
-        )}
-      </motion.div>
-
-      {/* Update Details Card */}
-      {updateInfo && updateInfo.hasUpdate && (
-        <motion.div
-          className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="i-ph:arrow-circle-up text-purple-500 w-5 h-5" />
-              <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                Version {updateInfo.latestVersion}
-              </span>
-            </div>
-            <span className="text-xs px-3 py-1 rounded-full bg-purple-500/10 text-purple-500">
-              {updateInfo.downloadSize}
-            </span>
-          </div>
-
-          {/* Update Options */}
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={initiateUpdate}
-                disabled={isUpdating || updateFailed}
-                className={classNames(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
-                  'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                  'hover:bg-purple-500/10 hover:text-purple-500',
-                  'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
-                  'text-bolt-elements-textPrimary',
-                  'transition-all duration-200',
-                )}
-              >
-                <div className={classNames('i-ph:arrow-circle-up w-4 h-4', isUpdating ? 'animate-spin' : '')} />
-                {isUpdating ? 'Updating...' : 'Auto Update'}
-              </button>
-              <button
-                onClick={() => setShowManualInstructions(!showManualInstructions)}
-                className={classNames(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
-                  'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                  'hover:bg-purple-500/10 hover:text-purple-500',
-                  'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
-                  'text-bolt-elements-textPrimary',
-                  'transition-all duration-200',
-                )}
-              >
-                <div className="i-ph:book-open w-4 h-4" />
-                {showManualInstructions ? 'Hide Instructions' : 'Manual Update'}
-              </button>
-            </div>
-
-            {/* Manual Update Instructions */}
-            <AnimatePresence>
-              {showManualInstructions && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-6 text-bolt-elements-textSecondary"
-                >
-                  <div className="p-4 rounded-lg bg-purple-500/5 dark:bg-purple-500/10 border border-purple-500/20">
-                    <p className="font-medium text-purple-500">
-                      Update available from {isLatestBranch ? 'main' : 'stable'} branch!
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      <p>
-                        Current: {updateInfo.currentVersion} ({updateInfo.currentCommit})
-                      </p>
-                      <p>
-                        Latest: {updateInfo.latestVersion} ({updateInfo.latestCommit})
-                      </p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-base font-medium text-bolt-elements-textPrimary mb-3">To update:</h4>
-                    <ol className="space-y-4">
-                      <li className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                          1
-                        </div>
-                        <div>
-                          <p className="font-medium text-bolt-elements-textPrimary">Pull the latest changes:</p>
-                          <code className="mt-2 block p-3 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] font-mono text-sm">
-                            git pull upstream {isLatestBranch ? 'main' : 'stable'}
-                          </code>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                          2
-                        </div>
-                        <div>
-                          <p className="font-medium text-bolt-elements-textPrimary">Install dependencies:</p>
-                          <code className="mt-2 block p-3 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] font-mono text-sm">
-                            pnpm install
-                          </code>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                          3
-                        </div>
-                        <div>
-                          <p className="font-medium text-bolt-elements-textPrimary">Build the application:</p>
-                          <code className="mt-2 block p-3 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] font-mono text-sm">
-                            pnpm build
-                          </code>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                          4
-                        </div>
-                        <p className="font-medium text-bolt-elements-textPrimary">Restart the application</p>
-                      </li>
-                    </ol>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Changelog */}
-            {updateInfo.changelog && updateInfo.changelog.length > 0 && (
-              <div className="mt-4">
-                <button
-                  onClick={() => setShowChangelog(!showChangelog)}
-                  className={classNames(
-                    'flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm',
-                    'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
-                    'hover:bg-purple-500/10 hover:text-purple-500',
-                    'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
-                    'text-bolt-elements-textSecondary',
-                    'transition-colors duration-200',
-                  )}
-                >
-                  <div className={`i-ph:${showChangelog ? 'caret-up' : 'caret-down'} w-4 h-4`} />
-                  {showChangelog ? 'Hide Changelog' : 'View Changelog'}
-                </button>
-
-                <AnimatePresence>
-                  {showChangelog && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 rounded-lg bg-[#F5F5F5] dark:bg-[#1A1A1A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
-                    >
-                      <div className="max-h-[400px] overflow-y-auto">
-                        {categorizeChangelog(updateInfo.changelog).map(([category, messages]) => (
-                          <div key={category} className="border-b last:border-b-0 border-bolt-elements-borderColor">
-                            <div className="p-3 bg-[#EAEAEA] dark:bg-[#2A2A2A]">
-                              <h5 className="text-sm font-medium text-bolt-elements-textPrimary">
-                                {category}
-                                <span className="ml-2 text-xs text-bolt-elements-textSecondary">
-                                  ({messages.length})
-                                </span>
-                              </h5>
-                            </div>
-                            <div className="divide-y divide-bolt-elements-borderColor">
-                              {messages.map((message, index) => {
-                                const { title, description, prNumber } = parseCommitMessage(message);
-                                return (
-                                  <div key={index} className="p-3 hover:bg-bolt-elements-bg-depth-4 transition-colors">
-                                    <div className="flex items-start gap-3">
-                                      <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-bolt-elements-textSecondary" />
-                                      <div className="space-y-1 flex-1">
-                                        <p className="text-sm font-medium text-bolt-elements-textPrimary">
-                                          {title}
-                                          {prNumber && (
-                                            <span className="ml-2 text-xs text-bolt-elements-textSecondary">
-                                              #{prNumber}
-                                            </span>
-                                          )}
-                                        </p>
-                                        {description && (
-                                          <p className="text-xs text-bolt-elements-textSecondary">{description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Update Progress */}
-      {isUpdating && updateProgress && (
-        <motion.div
-          className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-sm font-medium text-bolt-elements-textPrimary">
-                  {updateProgress.stage.charAt(0).toUpperCase() + updateProgress.stage.slice(1)}
-                </span>
-                <p className="text-xs text-bolt-elements-textSecondary">{updateProgress.message}</p>
-              </div>
-              {updateProgress.progress !== undefined && (
-                <span className="text-sm text-bolt-elements-textSecondary">{Math.round(updateProgress.progress)}%</span>
-              )}
-            </div>
-
-            {/* Show detailed information when available */}
-            {updateProgress.details && (
-              <div className="mt-4 space-y-4">
-                {updateProgress.details.commitMessages && updateProgress.details.commitMessages.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Commits to be applied:</h4>
-                    <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[200px] overflow-y-auto text-sm">
-                      {updateProgress.details.commitMessages.map((msg, i) => (
-                        <div key={i} className="text-bolt-elements-textSecondary py-1">
-                          {msg}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {updateProgress.details.changedFiles && updateProgress.details.changedFiles.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Changed Files:</h4>
-                    <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[200px] overflow-y-auto text-sm">
-                      {updateProgress.details.changedFiles.map((file, i) => (
-                        <div key={i} className="text-bolt-elements-textSecondary py-1">
-                          {file}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(updateProgress.details.additions !== undefined || updateProgress.details.deletions !== undefined) && (
-                  <div className="flex gap-4">
-                    {updateProgress.details.additions !== undefined && (
-                      <div className="text-green-500">
-                        <span className="text-sm">+{updateProgress.details.additions} additions</span>
-                      </div>
-                    )}
-                    {updateProgress.details.deletions !== undefined && (
-                      <div className="text-red-500">
-                        <span className="text-sm">-{updateProgress.details.deletions} deletions</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {updateProgress.progress !== undefined && (
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500 transition-all duration-300"
-                  style={{ width: `${updateProgress.progress}%` }}
-                />
-              </div>
-            )}
-
-            {/* Show restart button when update is complete */}
-            {updateProgress.stage === 'complete' && !updateProgress.error && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={handleRestart}
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-                >
-                  Restart Application
-                </button>
-              </div>
-            )}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Update Confirmation Dialog */}
-      <DialogRoot open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
-        <Dialog
-          onClose={() => {
-            setShowUpdateDialog(false);
-            setHasUserRespondedToUpdate(true);
-            logStore.logSystem('Update cancelled by user');
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">Updates</h2>
+        <button
+          onClick={() => {
+            setError(null);
+            checkForUpdates();
           }}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+          disabled={isChecking}
         >
-          <div className="p-6 w-[500px]">
-            <DialogTitle>Update Available</DialogTitle>
-            <DialogDescription className="mt-2">
-              A new version is available. Would you like to update now?
-            </DialogDescription>
+          {isChecking ? (
+            <div className="flex items-center">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                className="w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"
+              />
+              Checking...
+            </div>
+          ) : (
+            'Check for Updates'
+          )}
+        </button>
+      </div>
 
-            <div className="mt-3">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Update Information:</h3>
-              <div
-                className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[300px] overflow-y-auto"
-                style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'rgba(155, 155, 155, 0.5) transparent',
-                }}
-              >
-                <div className="text-sm text-bolt-elements-textSecondary space-y-1.5">
-                  {updateChangelog.map((log, index) => (
-                    <div key={index} className="break-words leading-relaxed">
-                      {log.startsWith('Compare changes:') ? (
-                        <a
-                          href={log.split(': ')[1]}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-500 hover:text-purple-600 dark:text-purple-400 dark:hover:text-purple-300"
-                        >
-                          View changes on GitHub
-                        </a>
-                      ) : (
-                        log
-                      )}
-                    </div>
+      {/* Show progress information */}
+      {updateProgress && <UpdateProgressDisplay progress={updateProgress} />}
+
+      {error && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
+
+      {/* Update dialog */}
+      <DialogRoot open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <Dialog>
+          <DialogTitle>Update Available</DialogTitle>
+          <DialogDescription>
+            {updateProgress?.details?.changedFiles && (
+              <div className="mt-4">
+                <p className="font-medium">Changes:</p>
+                <ul className="list-disc list-inside mt-2">
+                  {updateProgress.details.changedFiles.map((file, index) => (
+                    <li key={index} className="text-sm">
+                      {file}
+                    </li>
                   ))}
-                </div>
+                </ul>
+                {updateProgress.details.totalSize && (
+                  <p className="mt-2 text-sm">Total size: {updateProgress.details.totalSize}</p>
+                )}
               </div>
-            </div>
+            )}
+          </DialogDescription>
+          <div className="flex justify-end gap-2 mt-4">
+            <DialogButton type="secondary" onClick={() => setShowUpdateDialog(false)}>
+              Cancel
+            </DialogButton>
+            <DialogButton
+              type="primary"
+              onClick={() => {
+                setShowUpdateDialog(false);
 
-            <div className="mt-4 flex justify-end gap-3">
-              <DialogButton
-                type="secondary"
-                onClick={() => {
-                  setShowUpdateDialog(false);
-                  setHasUserRespondedToUpdate(true);
-                  logStore.logSystem('Update cancelled by user');
-                }}
-              >
-                Cancel
-              </DialogButton>
-              <DialogButton
-                type="primary"
-                onClick={async () => {
-                  setShowUpdateDialog(false);
-                  setHasUserRespondedToUpdate(true);
-                  await initiateUpdate();
-                }}
-              >
-                Update Now
-              </DialogButton>
-            </div>
+                // Handle update initiation here
+              }}
+            >
+              Update Now
+            </DialogButton>
           </div>
         </Dialog>
       </DialogRoot>

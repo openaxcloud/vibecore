@@ -48,11 +48,23 @@ export const action: ActionFunction = async ({ request }) => {
         };
 
         try {
+          // Initial check stage
+          sendProgress({
+            stage: 'fetch',
+            message: 'Checking repository status...',
+            progress: 0,
+          });
+
           // Check if remote exists
           let defaultBranch = branch || 'main'; // Make branch mutable
 
           try {
             await execAsync('git remote get-url origin');
+            sendProgress({
+              stage: 'fetch',
+              message: 'Repository remote verified',
+              progress: 10,
+            });
           } catch {
             throw new Error(
               'No remote repository found. Please set up the remote repository first by running:\ngit remote add origin https://github.com/stackblitz-labs/bolt.diy.git',
@@ -61,11 +73,27 @@ export const action: ActionFunction = async ({ request }) => {
 
           // Get default branch if not specified
           if (!branch) {
+            sendProgress({
+              stage: 'fetch',
+              message: 'Detecting default branch...',
+              progress: 20,
+            });
+
             try {
               const { stdout } = await execAsync('git remote show origin | grep "HEAD branch" | cut -d" " -f5');
               defaultBranch = stdout.trim() || 'main';
+              sendProgress({
+                stage: 'fetch',
+                message: `Using branch: ${defaultBranch}`,
+                progress: 30,
+              });
             } catch {
               defaultBranch = 'main'; // Fallback to main if we can't detect
+              sendProgress({
+                stage: 'fetch',
+                message: 'Using default branch: main',
+                progress: 30,
+              });
             }
           }
 
@@ -73,20 +101,36 @@ export const action: ActionFunction = async ({ request }) => {
           sendProgress({
             stage: 'fetch',
             message: 'Fetching latest changes...',
-            progress: 0,
+            progress: 40,
           });
 
           // Fetch all remotes
           await execAsync('git fetch --all');
+          sendProgress({
+            stage: 'fetch',
+            message: 'Remote changes fetched',
+            progress: 50,
+          });
 
           // Check if remote branch exists
           try {
             await execAsync(`git rev-parse --verify origin/${defaultBranch}`);
+            sendProgress({
+              stage: 'fetch',
+              message: 'Remote branch verified',
+              progress: 60,
+            });
           } catch {
             throw new Error(`Remote branch 'origin/${defaultBranch}' not found. Please push your changes first.`);
           }
 
           // Get current commit hash and remote commit hash
+          sendProgress({
+            stage: 'fetch',
+            message: 'Comparing versions...',
+            progress: 70,
+          });
+
           const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
           const { stdout: remoteCommit } = await execAsync(`git rev-parse origin/${defaultBranch}`);
 
@@ -96,9 +140,19 @@ export const action: ActionFunction = async ({ request }) => {
               stage: 'complete',
               message: 'No updates available. You are on the latest version.',
               progress: 100,
+              details: {
+                currentCommit: currentCommit.trim().substring(0, 7),
+                remoteCommit: remoteCommit.trim().substring(0, 7),
+              },
             });
             return;
           }
+
+          sendProgress({
+            stage: 'fetch',
+            message: 'Analyzing changes...',
+            progress: 80,
+          });
 
           // Initialize variables
           let changedFiles: string[] = [];
@@ -131,9 +185,19 @@ export const action: ActionFunction = async ({ request }) => {
                 stage: 'complete',
                 message: `No file changes detected between your version and origin/${defaultBranch}. You might be on a different branch.`,
                 progress: 100,
+                details: {
+                  currentCommit: currentCommit.trim().substring(0, 7),
+                  remoteCommit: remoteCommit.trim().substring(0, 7),
+                },
               });
               return;
             }
+
+            sendProgress({
+              stage: 'fetch',
+              message: `Found ${files.length} changed files, calculating sizes...`,
+              progress: 90,
+            });
 
             // Get size information for each changed file
             for (const line of files) {
