@@ -22,6 +22,19 @@ interface GitHubReleaseResponse {
   }>;
 }
 
+interface UpdateProgress {
+  stage: 'fetch' | 'pull' | 'install' | 'build' | 'complete';
+  message: string;
+  progress?: number;
+  error?: string;
+  details?: {
+    changedFiles?: string[];
+    additions?: number;
+    deletions?: number;
+    commitMessages?: string[];
+  };
+}
+
 interface UpdateInfo {
   currentVersion: string;
   latestVersion: string;
@@ -32,9 +45,7 @@ interface UpdateInfo {
   changelog?: string[];
   currentCommit?: string;
   latestCommit?: string;
-  downloadProgress?: number;
-  installProgress?: number;
-  estimatedTimeRemaining?: number;
+  updateProgress?: UpdateProgress;
   error?: {
     type: string;
     message: string;
@@ -45,13 +56,6 @@ interface UpdateSettings {
   autoUpdate: boolean;
   notifyInApp: boolean;
   checkInterval: number;
-}
-
-interface UpdateResponse {
-  success: boolean;
-  error?: string;
-  message?: string;
-  instructions?: string[];
 }
 
 const categorizeChangelog = (messages: string[]) => {
@@ -168,7 +172,6 @@ const UpdateTab = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [showChangelog, setShowChangelog] = useState(false);
   const [showManualInstructions, setShowManualInstructions] = useState(false);
   const [hasUserRespondedToUpdate, setHasUserRespondedToUpdate] = useState(false);
@@ -186,6 +189,7 @@ const UpdateTab = () => {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [updateChangelog, setUpdateChangelog] = useState<string[]>([]);
+  const [updateProgress, setUpdateProgress] = useState<UpdateProgress | null>(null);
 
   useEffect(() => {
     localStorage.setItem('update_settings', JSON.stringify(updateSettings));
@@ -259,77 +263,104 @@ const UpdateTab = () => {
   const initiateUpdate = async () => {
     setIsUpdating(true);
     setError(null);
+    setUpdateProgress(null);
 
-    let currentRetry = 0;
-    const maxRetries = 3;
+    try {
+      const response = await fetch('/api/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          branch: isLatestBranch ? 'main' : 'stable',
+        }),
+      });
 
-    const attemptUpdate = async (): Promise<void> => {
-      try {
-        const response = await fetch('/api/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            branch: isLatestBranch ? 'main' : 'stable',
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = (await response.json()) as { error: string };
-          throw new Error(errorData.error || 'Failed to initiate update');
-        }
-
-        const result = (await response.json()) as UpdateResponse;
-
-        if (result.success) {
-          logStore.logSuccess('Update instructions ready', {
-            type: 'update',
-            message: result.message || 'Update instructions ready',
-          });
-
-          // Show manual update instructions
-          setShowManualInstructions(true);
-          setUpdateChangelog(
-            result.instructions || [
-              'Failed to get update instructions. Please update manually:',
-              '1. git pull origin main',
-              '2. pnpm install',
-              '3. pnpm build',
-              '4. Restart the application',
-            ],
-          );
-
-          return;
-        }
-
-        throw new Error(result.error || 'Update failed');
-      } catch (err) {
-        currentRetry++;
-
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-
-        if (currentRetry < maxRetries) {
-          toast.warning(`Update attempt ${currentRetry} failed. Retrying...`, { autoClose: 2000 });
-          setRetryCount(currentRetry);
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          await attemptUpdate();
-
-          return;
-        }
-
-        setError('Failed to get update instructions. Please update manually.');
-        console.error('Update failed:', err);
-        logStore.logSystem('Update failed: ' + errorMessage);
-        toast.error('Update failed: ' + errorMessage);
-        setUpdateFailed(true);
+      if (!response.ok) {
+        const errorData = (await response.json()) as { error: string };
+        throw new Error(errorData.error || 'Failed to initiate update');
       }
-    };
 
-    await attemptUpdate();
-    setIsUpdating(false);
-    setRetryCount(0);
+      // Handle streaming response
+      const reader = response.body?.getReader();
+
+      if (!reader) {
+        throw new Error('Failed to read response stream');
+      }
+
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value);
+        const updates = chunk.split('\n').filter(Boolean);
+
+        for (const update of updates) {
+          try {
+            const progress = JSON.parse(update) as UpdateProgress;
+            setUpdateProgress(progress);
+
+            if (progress.error) {
+              throw new Error(progress.error);
+            }
+
+            if (progress.stage === 'complete') {
+              logStore.logSuccess('Update completed', {
+                type: 'update',
+                message: progress.message,
+              });
+              toast.success(progress.message);
+              setUpdateFailed(false);
+
+              return;
+            }
+
+            logStore.logInfo(`Update progress: ${progress.stage}`, {
+              type: 'update',
+              message: progress.message,
+            });
+          } catch (e) {
+            console.error('Failed to parse update progress:', e);
+          }
+        }
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError('Failed to complete update. Please try again or update manually.');
+      console.error('Update failed:', err);
+      logStore.logSystem('Update failed: ' + errorMessage);
+      toast.error('Update failed: ' + errorMessage);
+      setUpdateFailed(true);
+    } finally {
+      setIsUpdating(false);
+    }
   };
+
+  const handleRestart = async () => {
+    // Show confirmation dialog
+    if (window.confirm('The application needs to restart to apply the update. Proceed?')) {
+      // Save any necessary state
+      localStorage.setItem('pendingRestart', 'true');
+
+      // Reload the page
+      window.location.reload();
+    }
+  };
+
+  // Check for pending restart on mount
+  useEffect(() => {
+    const pendingRestart = localStorage.getItem('pendingRestart');
+
+    if (pendingRestart === 'true') {
+      localStorage.removeItem('pendingRestart');
+      toast.success('Update applied successfully!');
+    }
+  }, []);
 
   useEffect(() => {
     const checkInterval = updateSettings.checkInterval * 60 * 60 * 1000;
@@ -741,7 +772,7 @@ const UpdateTab = () => {
       )}
 
       {/* Update Progress */}
-      {isUpdating && updateInfo?.downloadProgress !== undefined && (
+      {isUpdating && updateProgress && (
         <motion.div
           className="p-6 rounded-xl bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A]"
           initial={{ opacity: 0, y: 20 }}
@@ -750,18 +781,83 @@ const UpdateTab = () => {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-bolt-elements-textPrimary">Downloading Update</span>
-              <span className="text-sm text-bolt-elements-textSecondary">
-                {Math.round(updateInfo.downloadProgress)}%
-              </span>
+              <div>
+                <span className="text-sm font-medium text-bolt-elements-textPrimary">
+                  {updateProgress.stage.charAt(0).toUpperCase() + updateProgress.stage.slice(1)}
+                </span>
+                <p className="text-xs text-bolt-elements-textSecondary">{updateProgress.message}</p>
+              </div>
+              {updateProgress.progress !== undefined && (
+                <span className="text-sm text-bolt-elements-textSecondary">{Math.round(updateProgress.progress)}%</span>
+              )}
             </div>
-            <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-purple-500 transition-all duration-300"
-                style={{ width: `${updateInfo.downloadProgress}%` }}
-              />
-            </div>
-            {retryCount > 0 && <p className="text-sm text-yellow-500">Retry attempt {retryCount}/3...</p>}
+
+            {/* Show detailed information when available */}
+            {updateProgress.details && (
+              <div className="mt-4 space-y-4">
+                {updateProgress.details.commitMessages && updateProgress.details.commitMessages.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Commits to be applied:</h4>
+                    <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[200px] overflow-y-auto text-sm">
+                      {updateProgress.details.commitMessages.map((msg, i) => (
+                        <div key={i} className="text-bolt-elements-textSecondary py-1">
+                          {msg}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {updateProgress.details.changedFiles && updateProgress.details.changedFiles.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-2">Changed Files:</h4>
+                    <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 max-h-[200px] overflow-y-auto text-sm">
+                      {updateProgress.details.changedFiles.map((file, i) => (
+                        <div key={i} className="text-bolt-elements-textSecondary py-1">
+                          {file}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(updateProgress.details.additions !== undefined || updateProgress.details.deletions !== undefined) && (
+                  <div className="flex gap-4">
+                    {updateProgress.details.additions !== undefined && (
+                      <div className="text-green-500">
+                        <span className="text-sm">+{updateProgress.details.additions} additions</span>
+                      </div>
+                    )}
+                    {updateProgress.details.deletions !== undefined && (
+                      <div className="text-red-500">
+                        <span className="text-sm">-{updateProgress.details.deletions} deletions</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {updateProgress.progress !== undefined && (
+              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500 transition-all duration-300"
+                  style={{ width: `${updateProgress.progress}%` }}
+                />
+              </div>
+            )}
+
+            {/* Show restart button when update is complete */}
+            {updateProgress.stage === 'complete' && !updateProgress.error && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleRestart}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                >
+                  Restart Application
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       )}

@@ -11,11 +11,15 @@ import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useDebugStatus } from '~/lib/hooks/useDebugStatus';
-import { tabConfigurationStore, developerModeStore, setDeveloperMode } from '~/lib/stores/settings';
+import {
+  tabConfigurationStore,
+  developerModeStore,
+  setDeveloperMode,
+  resetTabConfiguration,
+} from '~/lib/stores/settings';
 import { profileStore } from '~/lib/stores/profile';
-import type { TabType, TabVisibilityConfig, DevTabConfig, Profile } from './types';
+import type { TabType, TabVisibilityConfig, Profile } from './types';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
-import { resetTabConfiguration } from '~/lib/stores/settings';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
 
@@ -43,6 +47,24 @@ interface TabWithDevType extends TabVisibilityConfig {
   isExtraDevTab?: boolean;
 }
 
+interface ExtendedTabConfig extends TabVisibilityConfig {
+  isExtraDevTab?: boolean;
+}
+
+interface BaseTabConfig {
+  id: TabType;
+  visible: boolean;
+  window: 'user' | 'developer';
+  order: number;
+}
+
+interface AnimatedSwitchProps {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  id: string;
+  label: string;
+}
+
 const TAB_DESCRIPTIONS: Record<TabType, string> = {
   profile: 'Manage your profile and account settings',
   settings: 'Configure application preferences',
@@ -58,6 +80,65 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   update: 'Check for updates and release notes',
   'task-manager': 'Monitor system resources and processes',
   'tab-management': 'Configure visible tabs and their order',
+};
+
+const AnimatedSwitch = ({ checked, onCheckedChange, id, label }: AnimatedSwitchProps) => {
+  return (
+    <div className="flex items-center gap-2">
+      <Switch
+        id={id}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        className={classNames(
+          'relative inline-flex h-6 w-11 items-center rounded-full',
+          'transition-all duration-300 ease-[cubic-bezier(0.87,_0,_0.13,_1)]',
+          'bg-gray-200 dark:bg-gray-700',
+          'data-[state=checked]:bg-purple-500',
+          'focus:outline-none focus:ring-2 focus:ring-purple-500/20',
+          'cursor-pointer',
+          'group',
+        )}
+      >
+        <motion.span
+          className={classNames(
+            'absolute left-[2px] top-[2px]',
+            'inline-block h-5 w-5 rounded-full',
+            'bg-white shadow-lg',
+            'transition-shadow duration-300',
+            'group-hover:shadow-md group-active:shadow-sm',
+            'group-hover:scale-95 group-active:scale-90',
+          )}
+          layout
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 30,
+          }}
+          animate={{
+            x: checked ? '1.25rem' : '0rem',
+          }}
+        >
+          <motion.div
+            className="absolute inset-0 rounded-full bg-white"
+            initial={false}
+            animate={{
+              scale: checked ? 1 : 0.8,
+            }}
+            transition={{ duration: 0.2 }}
+          />
+        </motion.span>
+        <span className="sr-only">Toggle {label}</span>
+      </Switch>
+      <div className="flex items-center gap-2">
+        <label
+          htmlFor={id}
+          className="text-sm text-gray-500 dark:text-gray-400 select-none cursor-pointer whitespace-nowrap w-[88px]"
+        >
+          {label}
+        </label>
+      </div>
+    </div>
+  );
 };
 
 export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
@@ -78,7 +159,12 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
   const { hasConnectionIssues, currentIssue, acknowledgeIssue } = useConnectionStatus();
   const { hasActiveWarnings, activeIssues, acknowledgeAllIssues } = useDebugStatus();
 
-  // Add visibleTabs logic using useMemo
+  // Memoize the base tab configurations to avoid recalculation
+  const baseTabConfig = useMemo(() => {
+    return new Map(DEFAULT_TAB_CONFIG.map((tab) => [tab.id, tab]));
+  }, []);
+
+  // Add visibleTabs logic using useMemo with optimized calculations
   const visibleTabs = useMemo(() => {
     if (!tabConfiguration?.userTabs || !Array.isArray(tabConfiguration.userTabs)) {
       console.warn('Invalid tab configuration, resetting to defaults');
@@ -87,64 +173,84 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       return [];
     }
 
+    const notificationsDisabled = profile?.preferences?.notifications === false;
+
     // In developer mode, show ALL tabs without restrictions
     if (developerMode) {
-      // Combine all unique tabs from both user and developer configurations
-      const allTabs = new Set([
-        ...DEFAULT_TAB_CONFIG.map((tab) => tab.id),
-        ...tabConfiguration.userTabs.map((tab) => tab.id),
-        ...(tabConfiguration.developerTabs || []).map((tab) => tab.id),
-      ]);
+      const seenTabs = new Set<TabType>();
+      const devTabs: ExtendedTabConfig[] = [];
 
-      // Create a complete tab list with all tabs visible
-      const devTabs = Array.from(allTabs).map((tabId) => {
-        // Try to find existing configuration for this tab
-        const existingTab =
-          tabConfiguration.developerTabs?.find((t) => t.id === tabId) ||
-          tabConfiguration.userTabs?.find((t) => t.id === tabId) ||
-          DEFAULT_TAB_CONFIG.find((t) => t.id === tabId);
+      // Process tabs in order of priority: developer, user, default
+      const processTab = (tab: BaseTabConfig) => {
+        if (!seenTabs.has(tab.id)) {
+          seenTabs.add(tab.id);
+          devTabs.push({
+            id: tab.id,
+            visible: true,
+            window: 'developer',
+            order: tab.order || devTabs.length,
+          });
+        }
+      };
 
-        return {
-          id: tabId,
-          visible: true,
-          window: 'developer' as const,
-          order: existingTab?.order || DEFAULT_TAB_CONFIG.findIndex((t) => t.id === tabId),
-        };
-      });
+      // Process tabs in priority order
+      tabConfiguration.developerTabs?.forEach((tab) => processTab(tab as BaseTabConfig));
+      tabConfiguration.userTabs.forEach((tab) => processTab(tab as BaseTabConfig));
+      DEFAULT_TAB_CONFIG.forEach((tab) => processTab(tab as BaseTabConfig));
 
-      // Add Tab Management tile for developer mode
-      const tabManagementConfig: DevTabConfig = {
-        id: 'tab-management',
+      // Add Tab Management tile
+      devTabs.push({
+        id: 'tab-management' as TabType,
         visible: true,
         window: 'developer',
         order: devTabs.length,
         isExtraDevTab: true,
-      };
-      devTabs.push(tabManagementConfig);
+      });
 
       return devTabs.sort((a, b) => a.order - b.order);
     }
 
-    // In user mode, only show visible user tabs
-    const notificationsDisabled = profile?.preferences?.notifications === false;
-
+    // Optimize user mode tab filtering
     return tabConfiguration.userTabs
       .filter((tab) => {
-        if (!tab || typeof tab.id !== 'string') {
-          console.warn('Invalid tab entry:', tab);
+        if (!tab?.id) {
           return false;
         }
 
-        // Hide notifications tab if notifications are disabled in user preferences
         if (tab.id === 'notifications' && notificationsDisabled) {
           return false;
         }
 
-        // Only show tabs that are explicitly visible and assigned to the user window
         return tab.visible && tab.window === 'user';
       })
       .sort((a, b) => a.order - b.order);
-  }, [tabConfiguration, developerMode, profile?.preferences?.notifications]);
+  }, [tabConfiguration, developerMode, profile?.preferences?.notifications, baseTabConfig]);
+
+  // Optimize animation performance with layout animations
+  const gridLayoutVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 200,
+        damping: 20,
+        mass: 0.6,
+      },
+    },
+  };
 
   // Handlers
   const handleBack = () => {
@@ -328,7 +434,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                       }}
                     >
                       <div className="w-full h-full flex items-center justify-center bg-gray-100/50 dark:bg-gray-800/50 rounded-full">
-                        <div className="i-ph:robot-fill w-5 h-5 text-gray-400 dark:text-gray-400 transition-colors" />
+                        <div className="i-ph:lightning-fill w-5 h-5 text-purple-500 dark:text-purple-400 transition-colors" />
                       </div>
                     </motion.div>
                   )}
@@ -338,39 +444,14 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                 </div>
 
                 <div className="flex items-center gap-6">
-                  {/* Developer Mode Controls */}
-                  <div className="flex items-center gap-6">
-                    {/* Mode Toggle */}
-                    <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
-                      <Switch
-                        id="developer-mode"
-                        checked={developerMode}
-                        onCheckedChange={handleDeveloperModeChange}
-                        className={classNames(
-                          'relative inline-flex h-6 w-11 items-center rounded-full',
-                          'bg-gray-200 dark:bg-gray-700',
-                          'data-[state=checked]:bg-purple-500',
-                          'transition-colors duration-200',
-                        )}
-                      >
-                        <span className="sr-only">Toggle developer mode</span>
-                        <span
-                          className={classNames(
-                            'inline-block h-4 w-4 transform rounded-full bg-white',
-                            'transition duration-200',
-                            'translate-x-1 data-[state=checked]:translate-x-6',
-                          )}
-                        />
-                      </Switch>
-                      <div className="flex items-center gap-2">
-                        <label
-                          htmlFor="developer-mode"
-                          className="text-sm text-gray-500 dark:text-gray-400 select-none cursor-pointer whitespace-nowrap w-[88px]"
-                        >
-                          {developerMode ? 'Developer Mode' : 'User Mode'}
-                        </label>
-                      </div>
-                    </div>
+                  {/* Mode Toggle */}
+                  <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
+                    <AnimatedSwitch
+                      id="developer-mode"
+                      checked={developerMode}
+                      onCheckedChange={handleDeveloperModeChange}
+                      label={developerMode ? 'Developer Mode' : 'User Mode'}
+                    />
                   </div>
 
                   {/* Avatar and Dropdown */}
@@ -415,24 +496,15 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                   ) : activeTab ? (
                     getTabComponent(activeTab)
                   ) : (
-                    <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+                    <motion.div
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
+                      variants={gridLayoutVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
                       <AnimatePresence mode="popLayout">
                         {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
-                          <motion.div
-                            key={tab.id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{
-                              type: 'spring',
-                              stiffness: 400,
-                              damping: 30,
-                              mass: 0.8,
-                              duration: 0.3,
-                            }}
-                            className="aspect-[1.5/1]"
-                          >
+                          <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
                             <TabTile
                               tab={tab}
                               onClick={() => handleTabClick(tab.id as TabType)}
