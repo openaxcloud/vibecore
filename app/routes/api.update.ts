@@ -45,6 +45,27 @@ export const action: ActionFunction = async ({ request }) => {
         };
 
         try {
+          // Check if remote exists
+          let defaultBranch = branch || 'main'; // Make branch mutable
+
+          try {
+            await execAsync('git remote get-url origin');
+          } catch {
+            throw new Error(
+              'No remote repository found. Please set up the remote repository first by running:\ngit remote add origin https://github.com/stackblitz-labs/bolt.diy.git',
+            );
+          }
+
+          // Get default branch if not specified
+          if (!branch) {
+            try {
+              const { stdout } = await execAsync('git remote show origin | grep "HEAD branch" | cut -d" " -f5');
+              defaultBranch = stdout.trim() || 'main';
+            } catch {
+              defaultBranch = 'main'; // Fallback to main if we can't detect
+            }
+          }
+
           // Fetch stage
           sendProgress({
             stage: 'fetch',
@@ -52,31 +73,67 @@ export const action: ActionFunction = async ({ request }) => {
             progress: 0,
           });
 
+          // Fetch all remotes
+          await execAsync('git fetch --all');
+
+          // Check if remote branch exists
+          try {
+            await execAsync(`git rev-parse --verify origin/${defaultBranch}`);
+          } catch {
+            throw new Error(`Remote branch 'origin/${defaultBranch}' not found. Please push your changes first.`);
+          }
+
           // Get current commit hash
           const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
 
-          // Fetch changes
-          await execAsync('git fetch origin');
+          // Initialize variables
+          let changedFiles: string[] = [];
+          let commitMessages: string[] = [];
+          let stats: RegExpMatchArray | null = null;
 
           // Get list of changed files
-          const { stdout: diffOutput } = await execAsync(`git diff --name-status origin/${branch}`);
-          const changedFiles = diffOutput
-            .split('\n')
-            .filter(Boolean)
-            .map((line) => {
-              const [status, file] = line.split('\t');
-              return `${status === 'M' ? 'Modified' : status === 'A' ? 'Added' : 'Deleted'}: ${file}`;
-            });
+          try {
+            const { stdout: diffOutput } = await execAsync(`git diff --name-status origin/${defaultBranch}`);
+            changedFiles = diffOutput
+              .split('\n')
+              .filter(Boolean)
+              .map((line) => {
+                const [status, file] = line.split('\t');
+                return `${status === 'M' ? 'Modified' : status === 'A' ? 'Added' : 'Deleted'}: ${file}`;
+              });
+          } catch {
+            // Handle silently - empty changedFiles array will be used
+          }
 
           // Get commit messages
-          const { stdout: logOutput } = await execAsync(`git log --oneline ${currentCommit.trim()}..origin/${branch}`);
-          const commitMessages = logOutput.split('\n').filter(Boolean);
+          try {
+            const { stdout: logOutput } = await execAsync(
+              `git log --oneline ${currentCommit.trim()}..origin/${defaultBranch}`,
+            );
+            commitMessages = logOutput.split('\n').filter(Boolean);
+          } catch {
+            // Handle silently - empty commitMessages array will be used
+          }
 
           // Get diff stats
-          const { stdout: diffStats } = await execAsync(`git diff --shortstat origin/${branch}`);
-          const stats = diffStats.match(
-            /(\d+) files? changed(?:, (\d+) insertions?\\(\\+\\))?(?:, (\d+) deletions?\\(-\\))?/,
-          );
+          try {
+            const { stdout: diffStats } = await execAsync(`git diff --shortstat origin/${defaultBranch}`);
+            stats = diffStats.match(
+              /(\d+) files? changed(?:, (\d+) insertions?\\(\\+\\))?(?:, (\d+) deletions?\\(-\\))?/,
+            );
+          } catch {
+            // Handle silently - null stats will be used
+          }
+
+          // If no changes detected
+          if (!stats && changedFiles.length === 0) {
+            sendProgress({
+              stage: 'complete',
+              message: 'No updates available. You are on the latest version.',
+              progress: 100,
+            });
+            return;
+          }
 
           sendProgress({
             stage: 'fetch',
@@ -93,11 +150,11 @@ export const action: ActionFunction = async ({ request }) => {
           // Pull stage
           sendProgress({
             stage: 'pull',
-            message: `Pulling changes from ${branch}...`,
+            message: `Pulling changes from ${defaultBranch}...`,
             progress: 0,
           });
 
-          await execAsync(`git pull origin ${branch}`);
+          await execAsync(`git pull origin ${defaultBranch}`);
 
           sendProgress({
             stage: 'pull',
@@ -141,11 +198,11 @@ export const action: ActionFunction = async ({ request }) => {
             message: 'Update completed successfully! Click Restart to apply changes.',
             progress: 100,
           });
-        } catch (error) {
+        } catch (err) {
           sendProgress({
             stage: 'complete',
             message: 'Update failed',
-            error: error instanceof Error ? error.message : 'Unknown error occurred',
+            error: err instanceof Error ? err.message : 'Unknown error occurred',
           });
         } finally {
           controller.close();
@@ -160,12 +217,12 @@ export const action: ActionFunction = async ({ request }) => {
         Connection: 'keep-alive',
       },
     });
-  } catch (error) {
-    console.error('Update preparation failed:', error);
+  } catch (err) {
+    console.error('Update preparation failed:', err);
     return json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred while preparing update',
+        error: err instanceof Error ? err.message : 'Unknown error occurred while preparing update',
       },
       { status: 500 },
     );
