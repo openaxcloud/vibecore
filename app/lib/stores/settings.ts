@@ -21,6 +21,8 @@ export interface Shortcut {
   metaKey?: boolean;
   ctrlOrMetaKey?: boolean;
   action: () => void;
+  description?: string; // Description of what the shortcut does
+  isPreventDefault?: boolean; // Whether to prevent default browser behavior
 }
 
 export interface Shortcuts {
@@ -35,32 +37,41 @@ export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
+// Define safer shortcuts that don't conflict with browser defaults
 export const shortcutsStore = map<Shortcuts>({
   toggleTerminal: {
     key: '`',
     ctrlOrMetaKey: true,
     action: () => workbenchStore.toggleTerminal(),
+    description: 'Toggle terminal',
+    isPreventDefault: true,
   },
   toggleTheme: {
     key: 'd',
-    metaKey: true, // Command key on Mac, Windows key on Windows
-    altKey: true, // Option key on Mac, Alt key on Windows
+    metaKey: true,
+    altKey: true,
     shiftKey: true,
     action: () => toggleTheme(),
+    description: 'Toggle theme',
+    isPreventDefault: true,
   },
   toggleChat: {
-    key: 'k',
+    key: 'j', // Changed from 'k' to 'j' to avoid conflicts
     ctrlOrMetaKey: true,
+    altKey: true, // Added alt key to make it more unique
     action: () => chatStore.setKey('showChat', !chatStore.get().showChat),
+    description: 'Toggle chat',
+    isPreventDefault: true,
   },
   toggleSettings: {
     key: 's',
     ctrlOrMetaKey: true,
     altKey: true,
     action: () => {
-      // This will be connected to the settings panel toggle
       document.dispatchEvent(new CustomEvent('toggle-settings'));
     },
+    description: 'Toggle settings',
+    isPreventDefault: true,
   },
 });
 
