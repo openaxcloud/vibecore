@@ -59,7 +59,7 @@ export const action: ActionFunction = async ({ request }) => {
           let defaultBranch = branch || 'main'; // Make branch mutable
 
           try {
-            await execAsync('git remote get-url origin');
+            await execAsync('git remote get-url upstream');
             sendProgress({
               stage: 'fetch',
               message: 'Repository remote verified',
@@ -67,7 +67,7 @@ export const action: ActionFunction = async ({ request }) => {
             });
           } catch {
             throw new Error(
-              'No remote repository found. Please set up the remote repository first by running:\ngit remote add origin https://github.com/stackblitz-labs/bolt.diy.git',
+              'No upstream repository found. Please set up the upstream repository first by running:\ngit remote add upstream https://github.com/stackblitz-labs/bolt.diy.git',
             );
           }
 
@@ -80,7 +80,7 @@ export const action: ActionFunction = async ({ request }) => {
             });
 
             try {
-              const { stdout } = await execAsync('git remote show origin | grep "HEAD branch" | cut -d" " -f5');
+              const { stdout } = await execAsync('git remote show upstream | grep "HEAD branch" | cut -d" " -f5');
               defaultBranch = stdout.trim() || 'main';
               sendProgress({
                 stage: 'fetch',
@@ -114,14 +114,16 @@ export const action: ActionFunction = async ({ request }) => {
 
           // Check if remote branch exists
           try {
-            await execAsync(`git rev-parse --verify origin/${defaultBranch}`);
+            await execAsync(`git rev-parse --verify upstream/${defaultBranch}`);
             sendProgress({
               stage: 'fetch',
               message: 'Remote branch verified',
               progress: 60,
             });
           } catch {
-            throw new Error(`Remote branch 'origin/${defaultBranch}' not found. Please push your changes first.`);
+            throw new Error(
+              `Remote branch 'upstream/${defaultBranch}' not found. Please ensure the upstream repository is properly configured.`,
+            );
           }
 
           // Get current commit hash and remote commit hash
@@ -132,7 +134,7 @@ export const action: ActionFunction = async ({ request }) => {
           });
 
           const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
-          const { stdout: remoteCommit } = await execAsync(`git rev-parse origin/${defaultBranch}`);
+          const { stdout: remoteCommit } = await execAsync(`git rev-parse upstream/${defaultBranch}`);
 
           // If we're on the same commit, no update is available
           if (currentCommit.trim() === remoteCommit.trim()) {
@@ -183,7 +185,7 @@ export const action: ActionFunction = async ({ request }) => {
             if (files.length === 0) {
               sendProgress({
                 stage: 'complete',
-                message: `No file changes detected between your version and origin/${defaultBranch}. You might be on a different branch.`,
+                message: `No file changes detected between your version and upstream/${defaultBranch}. You might be on a different branch.`,
                 progress: 100,
                 details: {
                   currentCommit: currentCommit.trim().substring(0, 7),
@@ -221,7 +223,7 @@ export const action: ActionFunction = async ({ request }) => {
             });
           } catch (err) {
             console.debug('Failed to get changed files:', err);
-            throw new Error(`Failed to compare changes with origin/${defaultBranch}. Are you on the correct branch?`);
+            throw new Error(`Failed to compare changes with upstream/${defaultBranch}. Are you on the correct branch?`);
           }
 
           // Get commit messages between current and remote
@@ -250,7 +252,7 @@ export const action: ActionFunction = async ({ request }) => {
           if (!stats && changedFiles.length === 0) {
             sendProgress({
               stage: 'complete',
-              message: `No changes detected between your version and origin/${defaultBranch}. This might be unexpected - please check your git status.`,
+              message: `No changes detected between your version and upstream/${defaultBranch}. This might be unexpected - please check your git status.`,
               progress: 100,
             });
             return;
@@ -259,7 +261,7 @@ export const action: ActionFunction = async ({ request }) => {
           // We have changes, send the details
           sendProgress({
             stage: 'fetch',
-            message: `Changes detected on origin/${defaultBranch}`,
+            message: `Changes detected on upstream/${defaultBranch}`,
             progress: 100,
             details: {
               changedFiles,
@@ -275,11 +277,11 @@ export const action: ActionFunction = async ({ request }) => {
           // Pull stage
           sendProgress({
             stage: 'pull',
-            message: `Pulling changes from ${defaultBranch}...`,
+            message: `Pulling changes from upstream/${defaultBranch}...`,
             progress: 0,
           });
 
-          await execAsync(`git pull origin ${defaultBranch}`);
+          await execAsync(`git pull upstream ${defaultBranch}`);
 
           sendProgress({
             stage: 'pull',
