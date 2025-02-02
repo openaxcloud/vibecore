@@ -19,6 +19,9 @@ interface UpdateProgress {
     additions?: number;
     deletions?: number;
     commitMessages?: string[];
+    totalSize?: string;
+    currentCommit?: string;
+    remoteCommit?: string;
   };
 }
 
@@ -83,50 +86,12 @@ export const action: ActionFunction = async ({ request }) => {
             throw new Error(`Remote branch 'origin/${defaultBranch}' not found. Please push your changes first.`);
           }
 
-          // Get current commit hash
+          // Get current commit hash and remote commit hash
           const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
+          const { stdout: remoteCommit } = await execAsync(`git rev-parse origin/${defaultBranch}`);
 
-          // Initialize variables
-          let changedFiles: string[] = [];
-          let commitMessages: string[] = [];
-          let stats: RegExpMatchArray | null = null;
-
-          // Get list of changed files
-          try {
-            const { stdout: diffOutput } = await execAsync(`git diff --name-status origin/${defaultBranch}`);
-            changedFiles = diffOutput
-              .split('\n')
-              .filter(Boolean)
-              .map((line) => {
-                const [status, file] = line.split('\t');
-                return `${status === 'M' ? 'Modified' : status === 'A' ? 'Added' : 'Deleted'}: ${file}`;
-              });
-          } catch {
-            // Handle silently - empty changedFiles array will be used
-          }
-
-          // Get commit messages
-          try {
-            const { stdout: logOutput } = await execAsync(
-              `git log --oneline ${currentCommit.trim()}..origin/${defaultBranch}`,
-            );
-            commitMessages = logOutput.split('\n').filter(Boolean);
-          } catch {
-            // Handle silently - empty commitMessages array will be used
-          }
-
-          // Get diff stats
-          try {
-            const { stdout: diffStats } = await execAsync(`git diff --shortstat origin/${defaultBranch}`);
-            stats = diffStats.match(
-              /(\d+) files? changed(?:, (\d+) insertions?\\(\\+\\))?(?:, (\d+) deletions?\\(-\\))?/,
-            );
-          } catch {
-            // Handle silently - null stats will be used
-          }
-
-          // If no changes detected
-          if (!stats && changedFiles.length === 0) {
+          // If we're on the same commit, no update is available
+          if (currentCommit.trim() === remoteCommit.trim()) {
             sendProgress({
               stage: 'complete',
               message: 'No updates available. You are on the latest version.',
@@ -135,15 +100,111 @@ export const action: ActionFunction = async ({ request }) => {
             return;
           }
 
+          // Initialize variables
+          let changedFiles: string[] = [];
+          let commitMessages: string[] = [];
+          let stats: RegExpMatchArray | null = null;
+          let totalSizeInBytes = 0;
+
+          // Format size for display
+          const formatSize = (bytes: number) => {
+            if (bytes === 0) {
+              return '0 B';
+            }
+
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+          };
+
+          // Get list of changed files and their sizes
+          try {
+            const { stdout: diffOutput } = await execAsync(
+              `git diff --name-status ${currentCommit.trim()}..${remoteCommit.trim()}`,
+            );
+            const files = diffOutput.split('\n').filter(Boolean);
+
+            if (files.length === 0) {
+              sendProgress({
+                stage: 'complete',
+                message: `No file changes detected between your version and origin/${defaultBranch}. You might be on a different branch.`,
+                progress: 100,
+              });
+              return;
+            }
+
+            // Get size information for each changed file
+            for (const line of files) {
+              const [status, file] = line.split('\t');
+
+              if (status !== 'D') {
+                // Skip deleted files
+                try {
+                  const { stdout: sizeOutput } = await execAsync(`git cat-file -s ${remoteCommit.trim()}:${file}`);
+                  const size = parseInt(sizeOutput) || 0;
+                  totalSizeInBytes += size;
+                } catch {
+                  console.debug(`Could not get size for file: ${file}`);
+                }
+              }
+            }
+
+            changedFiles = files.map((line) => {
+              const [status, file] = line.split('\t');
+              return `${status === 'M' ? 'Modified' : status === 'A' ? 'Added' : 'Deleted'}: ${file}`;
+            });
+          } catch (err) {
+            console.debug('Failed to get changed files:', err);
+            throw new Error(`Failed to compare changes with origin/${defaultBranch}. Are you on the correct branch?`);
+          }
+
+          // Get commit messages between current and remote
+          try {
+            const { stdout: logOutput } = await execAsync(
+              `git log --oneline ${currentCommit.trim()}..${remoteCommit.trim()}`,
+            );
+            commitMessages = logOutput.split('\n').filter(Boolean);
+          } catch {
+            // Handle silently - empty commitMessages array will be used
+          }
+
+          // Get diff stats using the specific commits
+          try {
+            const { stdout: diffStats } = await execAsync(
+              `git diff --shortstat ${currentCommit.trim()}..${remoteCommit.trim()}`,
+            );
+            stats = diffStats.match(
+              /(\d+) files? changed(?:, (\d+) insertions?\\(\\+\\))?(?:, (\d+) deletions?\\(-\\))?/,
+            );
+          } catch {
+            // Handle silently - null stats will be used
+          }
+
+          // If we somehow still have no changes detected
+          if (!stats && changedFiles.length === 0) {
+            sendProgress({
+              stage: 'complete',
+              message: `No changes detected between your version and origin/${defaultBranch}. This might be unexpected - please check your git status.`,
+              progress: 100,
+            });
+            return;
+          }
+
+          // We have changes, send the details
           sendProgress({
             stage: 'fetch',
-            message: 'Changes detected',
+            message: `Changes detected on origin/${defaultBranch}`,
             progress: 100,
             details: {
               changedFiles,
               additions: stats?.[2] ? parseInt(stats[2]) : 0,
               deletions: stats?.[3] ? parseInt(stats[3]) : 0,
               commitMessages,
+              totalSize: formatSize(totalSizeInBytes),
+              currentCommit: currentCommit.trim().substring(0, 7),
+              remoteCommit: remoteCommit.trim().substring(0, 7),
             },
           });
 
