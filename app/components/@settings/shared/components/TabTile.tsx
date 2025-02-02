@@ -13,9 +13,10 @@ interface TabTileProps {
   description?: string;
   isLoading?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }
 
-export const TabTile = ({
+export const TabTile: React.FC<TabTileProps> = ({
   tab,
   onClick,
   isActive,
@@ -24,6 +25,7 @@ export const TabTile = ({
   description,
   isLoading,
   className,
+  children,
 }: TabTileProps) => {
   return (
     <Tooltip.Provider delayDuration={200}>
@@ -100,62 +102,33 @@ export const TabTile = ({
               </div>
             </div>
 
-            {/* Status Indicator */}
+            {/* Update Indicator with Tooltip */}
             {hasUpdate && (
-              <motion.div
-                className={classNames(
-                  'absolute top-3 right-3',
-                  'w-2.5 h-2.5 rounded-full',
-                  'bg-purple-500',
-                  'ring-4 ring-purple-500',
-                )}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', bounce: 0.5 }}
-              />
+              <>
+                <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 animate-pulse" />
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className={classNames(
+                      'px-3 py-1.5 rounded-lg',
+                      'bg-[#18181B] text-white',
+                      'text-sm font-medium',
+                      'select-none',
+                      'z-[100]',
+                    )}
+                    side="top"
+                    sideOffset={5}
+                  >
+                    {statusMessage}
+                    <Tooltip.Arrow className="fill-[#18181B]" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </>
             )}
 
-            {/* Loading Overlay */}
-            {isLoading && (
-              <motion.div
-                className={classNames(
-                  'absolute inset-0 rounded-xl z-10',
-                  'bg-white dark:bg-black',
-                  'flex items-center justify-center',
-                )}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
-              >
-                <motion.div
-                  className={classNames('w-8 h-8 rounded-full', 'border-2 border-purple-500', 'border-t-purple-500')}
-                  animate={{ rotate: 360 }}
-                  transition={{
-                    duration: 1,
-                    repeat: Infinity,
-                    ease: 'linear',
-                  }}
-                />
-              </motion.div>
-            )}
+            {/* Children (e.g. Beta Label) */}
+            {children}
           </motion.div>
         </Tooltip.Trigger>
-        <Tooltip.Portal>
-          <Tooltip.Content
-            className={classNames(
-              'px-3 py-1.5 rounded-lg',
-              'bg-[#18181B] text-white',
-              'text-sm font-medium',
-              'select-none',
-              'z-[100]',
-            )}
-            side="top"
-            sideOffset={5}
-          >
-            {statusMessage || TAB_LABELS[tab.id]}
-            <Tooltip.Arrow className="fill-[#18181B]" />
-          </Tooltip.Content>
-        </Tooltip.Portal>
       </Tooltip.Root>
     </Tooltip.Provider>
   );

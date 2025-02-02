@@ -82,6 +82,15 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   'tab-management': 'Configure visible tabs and their order',
 };
 
+// Beta status for experimental features
+const BETA_TABS = new Set<TabType>(['task-manager', 'service-status']);
+
+const BetaLabel = () => (
+  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
+    <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">BETA</span>
+  </div>
+);
+
 const AnimatedSwitch = ({ checked, onCheckedChange, id, label }: AnimatedSwitchProps) => {
   return (
     <div className="flex items-center gap-2">
@@ -108,11 +117,12 @@ const AnimatedSwitch = ({ checked, onCheckedChange, id, label }: AnimatedSwitchP
             'group-hover:shadow-md group-active:shadow-sm',
             'group-hover:scale-95 group-active:scale-90',
           )}
-          layout
+          initial={false}
           transition={{
             type: 'spring',
             stiffness: 500,
             damping: 30,
+            duration: 0.2,
           }}
           animate={{
             x: checked ? '1.25rem' : '0rem',
@@ -414,29 +424,13 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-4">
-                  {activeTab || showTabManagement ? (
+                  {(activeTab || showTabManagement) && (
                     <button
                       onClick={handleBack}
-                      className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                      className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                     >
                       <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                     </button>
-                  ) : (
-                    <motion.div
-                      className="w-7 h-7"
-                      initial={{ rotate: -5 }}
-                      animate={{ rotate: 5 }}
-                      transition={{
-                        repeat: Infinity,
-                        repeatType: 'reverse',
-                        duration: 2,
-                        ease: 'easeInOut',
-                      }}
-                    >
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100/50 dark:bg-gray-800/50 rounded-full">
-                        <div className="i-ph:lightning-fill w-5 h-5 text-purple-500 dark:text-purple-400 transition-colors" />
-                      </div>
-                    </motion.div>
                   )}
                   <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                     {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
@@ -462,7 +456,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                   {/* Close Button */}
                   <button
                     onClick={onClose}
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                   >
                     <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                   </button>
@@ -513,8 +507,10 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                               statusMessage={getStatusMessage(tab.id)}
                               description={TAB_DESCRIPTIONS[tab.id]}
                               isLoading={loadingTab === tab.id}
-                              className="h-full"
-                            />
+                              className="h-full relative"
+                            >
+                              {BETA_TABS.has(tab.id) && <BetaLabel />}
+                            </TabTile>
                           </motion.div>
                         ))}
                       </AnimatePresence>

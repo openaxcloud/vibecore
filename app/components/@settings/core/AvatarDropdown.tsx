@@ -5,6 +5,12 @@ import { classNames } from '~/utils/classNames';
 import { profileStore } from '~/lib/stores/profile';
 import type { TabType, Profile } from './types';
 
+const BetaLabel = () => (
+  <span className="px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20 text-[10px] font-medium text-purple-600 dark:text-purple-400 ml-2">
+    BETA
+  </span>
+);
+
 interface AvatarDropdownProps {
   onSelectTab: (tab: TabType) => void;
 }
@@ -15,55 +21,52 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <motion.button
-          className="group flex items-center justify-center"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <div
-            className={classNames(
-              'w-10 h-10',
-              'rounded-full overflow-hidden',
-              'bg-gray-100/50 dark:bg-gray-800/50',
-              'flex items-center justify-center',
-              'ring-1 ring-gray-200/50 dark:ring-gray-700/50',
-              'group-hover:ring-purple-500/50 dark:group-hover:ring-purple-500/50',
-              'group-hover:bg-purple-500/10 dark:group-hover:bg-purple-500/10',
-              'transition-all duration-200',
-              'relative',
-            )}
-          >
-            {profile?.avatar ? (
-              <div className="w-full h-full">
-                <img
-                  src={profile.avatar}
-                  alt={profile?.username || 'Profile'}
-                  className={classNames(
-                    'w-full h-full',
-                    'object-cover',
-                    'transform-gpu',
-                    'image-rendering-crisp',
-                    'group-hover:brightness-110',
-                    'group-hover:scale-105',
-                    'transition-all duration-200',
-                  )}
-                  loading="eager"
-                  decoding="sync"
-                />
-                <div
-                  className={classNames(
-                    'absolute inset-0',
-                    'ring-1 ring-inset ring-black/5 dark:ring-white/5',
-                    'group-hover:ring-purple-500/20 dark:group-hover:ring-purple-500/20',
-                    'group-hover:bg-purple-500/5 dark:group-hover:bg-purple-500/5',
-                    'transition-colors duration-200',
-                  )}
-                />
-              </div>
-            ) : (
-              <div className="i-ph:robot-fill w-6 h-6 text-gray-400 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
-            )}
-          </div>
+        <motion.button className="group outline-none relative" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          {profile?.avatar ? (
+            <div
+              className={classNames(
+                'w-10 h-10',
+                'rounded-full overflow-hidden',
+                'bg-white dark:bg-gray-800',
+                'transition-all duration-200',
+                'relative',
+                'shadow-sm',
+              )}
+            >
+              <img
+                src={profile.avatar}
+                alt={profile?.username || 'Profile'}
+                className={classNames(
+                  'w-full h-full',
+                  'object-cover',
+                  'transform-gpu',
+                  'image-rendering-crisp',
+                  'group-hover:brightness-110',
+                  'group-hover:scale-105',
+                  'transition-all duration-200',
+                )}
+                loading="eager"
+                decoding="sync"
+              />
+            </div>
+          ) : (
+            <div
+              className={classNames(
+                'w-10 h-10',
+                'rounded-full',
+                'flex items-center justify-center',
+                'bg-white dark:bg-gray-800',
+                'text-gray-400 dark:text-gray-500',
+                'group-hover:text-purple-500 dark:group-hover:text-purple-400',
+                'transition-all duration-200',
+                'shadow-sm',
+              )}
+            >
+              <div className="i-ph:question w-6 h-6" />
+            </div>
+          )}
+          {/* Add subtle circular highlight effect */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </motion.button>
       </DropdownMenu.Trigger>
 
@@ -86,7 +89,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
               'border-b border-gray-200/50 dark:border-gray-800/50',
             )}
           >
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100/50 dark:bg-gray-800/50 flex-shrink-0">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm">
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
@@ -96,8 +99,8 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
                   decoding="sync"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="i-ph:robot-fill w-6 h-6 text-gray-400 dark:text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+                <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-500 font-medium text-lg">
+                  <span className="relative -top-0.5">?</span>
                 </div>
               )}
             </div>
@@ -121,7 +124,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             )}
             onClick={() => onSelectTab('profile')}
           >
-            <div className="i-ph:robot-fill w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:user-circle w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
             Edit Profile
           </DropdownMenu.Item>
 
@@ -137,7 +140,7 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             )}
             onClick={() => onSelectTab('settings')}
           >
-            <div className="i-ph:gear-six-fill w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:gear-six w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
             Settings
           </DropdownMenu.Item>
 
@@ -155,8 +158,9 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             )}
             onClick={() => onSelectTab('task-manager')}
           >
-            <div className="i-ph:activity-fill w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:activity w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
             Task Manager
+            <BetaLabel />
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
@@ -171,8 +175,9 @@ export const AvatarDropdown = ({ onSelectTab }: AvatarDropdownProps) => {
             )}
             onClick={() => onSelectTab('service-status')}
           >
-            <div className="i-ph:heartbeat-fill w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
+            <div className="i-ph:heartbeat w-4 h-4 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors" />
             Service Status
+            <BetaLabel />
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
