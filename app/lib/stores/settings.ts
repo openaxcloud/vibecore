@@ -2,8 +2,13 @@ import { atom, map } from 'nanostores';
 import { workbenchStore } from './workbench';
 import { PROVIDER_LIST } from '~/utils/constants';
 import type { IProviderConfig } from '~/types/model';
-import type { TabVisibilityConfig, TabWindowConfig } from '~/components/settings/settings.types';
-import { DEFAULT_TAB_CONFIG } from '~/components/settings/settings.types';
+import type {
+  TabVisibilityConfig,
+  TabWindowConfig,
+  UserTabConfig,
+  DevTabConfig,
+} from '~/components/@settings/core/types';
+import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import Cookies from 'js-cookie';
 import { toggleTheme } from './theme';
 import { chatStore } from './chat';
@@ -211,8 +216,8 @@ export const updatePromptId = (id: string) => {
 // Initialize tab configuration from localStorage or defaults
 const getInitialTabConfiguration = (): TabWindowConfig => {
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
-    developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
+    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
+    developerTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is DevTabConfig => tab.window === 'developer'),
   };
 
   if (!isBrowser) {
@@ -232,7 +237,13 @@ const getInitialTabConfiguration = (): TabWindowConfig => {
       return defaultConfig;
     }
 
-    return parsed;
+    // Ensure proper typing of loaded configuration
+    return {
+      userTabs: parsed.userTabs.filter((tab: TabVisibilityConfig): tab is UserTabConfig => tab.window === 'user'),
+      developerTabs: parsed.developerTabs.filter(
+        (tab: TabVisibilityConfig): tab is DevTabConfig => tab.window === 'developer',
+      ),
+    };
   } catch (error) {
     console.warn('Failed to parse tab configuration:', error);
     return defaultConfig;
@@ -277,21 +288,13 @@ export const updateTabConfiguration = (config: TabVisibilityConfig) => {
 
 // Helper function to reset tab configuration
 export const resetTabConfiguration = () => {
-  console.log('Resetting tab configuration to defaults');
-
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'user'),
-    developerTabs: DEFAULT_TAB_CONFIG.filter((tab) => tab.window === 'developer'),
+    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
+    developerTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is DevTabConfig => tab.window === 'developer'),
   };
 
-  console.log('Default tab configuration:', defaultConfig);
-
   tabConfigurationStore.set(defaultConfig);
-  Cookies.set('tabConfiguration', JSON.stringify(defaultConfig), {
-    expires: 365, // Set cookie to expire in 1 year
-    path: '/',
-    sameSite: 'strict',
-  });
+  localStorage.setItem('bolt_tab_configuration', JSON.stringify(defaultConfig));
 };
 
 // Developer mode store with persistence

@@ -1,71 +1,35 @@
-import { logStore, type LogEntry } from '~/lib/stores/logs';
-
-export type NotificationType = 'info' | 'warning' | 'error' | 'success' | 'update';
-
-export interface NotificationDetails {
-  type?: string;
-  message?: string;
-  currentVersion?: string;
-  latestVersion?: string;
-  branch?: string;
-  updateUrl?: string;
-}
+import { logStore } from '~/lib/stores/logs';
+import type { LogEntry } from '~/lib/stores/logs';
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: NotificationType;
-  read: boolean;
+  type: 'info' | 'warning' | 'error' | 'success';
   timestamp: string;
-  details?: NotificationDetails;
+  read: boolean;
+  details?: Record<string, unknown>;
 }
 
-interface LogEntryWithRead extends LogEntry {
-  read?: boolean;
+export interface LogEntryWithRead extends LogEntry {
+  read: boolean;
 }
-
-const mapLogToNotification = (log: LogEntryWithRead): Notification => {
-  const type: NotificationType =
-    log.details?.type === 'update'
-      ? 'update'
-      : log.level === 'error'
-        ? 'error'
-        : log.level === 'warning'
-          ? 'warning'
-          : 'info';
-
-  const baseNotification: Notification = {
-    id: log.id,
-    title: log.category.charAt(0).toUpperCase() + log.category.slice(1),
-    message: log.message,
-    type,
-    read: log.read || false,
-    timestamp: log.timestamp,
-  };
-
-  if (log.details) {
-    return {
-      ...baseNotification,
-      details: log.details as NotificationDetails,
-    };
-  }
-
-  return baseNotification;
-};
 
 export const getNotifications = async (): Promise<Notification[]> => {
-  const logs = Object.values(logStore.logs.get()) as LogEntryWithRead[];
+  // Get notifications from the log store
+  const logs = Object.values(logStore.logs.get());
 
   return logs
-    .filter((log) => {
-      if (log.details?.type === 'update') {
-        return true;
-      }
-
-      return log.level === 'error' || log.level === 'warning';
-    })
-    .map(mapLogToNotification)
+    .filter((log) => log.category !== 'system') // Filter out system logs
+    .map((log) => ({
+      id: log.id,
+      title: (log.details?.title as string) || log.message.split('\n')[0],
+      message: log.message,
+      type: log.level as 'info' | 'warning' | 'error' | 'success',
+      timestamp: log.timestamp,
+      read: logStore.isRead(log.id),
+      details: log.details,
+    }))
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
@@ -81,7 +45,7 @@ export const getUnreadCount = (): number => {
   const logs = Object.values(logStore.logs.get()) as LogEntryWithRead[];
 
   return logs.filter((log) => {
-    if (!log.read) {
+    if (!logStore.isRead(log.id)) {
       if (log.details?.type === 'update') {
         return true;
       }

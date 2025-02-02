@@ -13,53 +13,109 @@ export interface DebugError {
 }
 
 export interface DebugStatus {
-  warnings: DebugWarning[];
-  errors: DebugError[];
-  lastChecked: string;
+  warnings: DebugIssue[];
+  errors: DebugIssue[];
 }
 
 export interface DebugIssue {
   id: string;
-  type: 'warning' | 'error';
   message: string;
+  type: 'warning' | 'error';
+  timestamp: string;
+  details?: Record<string, unknown>;
 }
 
+// Keep track of acknowledged issues
+const acknowledgedIssues = new Set<string>();
+
 export const getDebugStatus = async (): Promise<DebugStatus> => {
-  /*
-   * TODO: Implement actual debug status logic
-   * This is a mock implementation
-   */
-  return {
-    warnings: [
-      {
-        id: 'warn-1',
-        message: 'High memory usage detected',
-        timestamp: new Date().toISOString(),
-        code: 'MEM_HIGH',
-      },
-    ],
-    errors: [
-      {
-        id: 'err-1',
-        message: 'Failed to connect to database',
-        timestamp: new Date().toISOString(),
-        stack: 'Error: Connection timeout',
-      },
-    ],
-    lastChecked: new Date().toISOString(),
+  const issues: DebugStatus = {
+    warnings: [],
+    errors: [],
   };
+
+  try {
+    // Check memory usage
+    if (performance && 'memory' in performance) {
+      const memory = (performance as any).memory;
+
+      if (memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.8) {
+        issues.warnings.push({
+          id: 'high-memory-usage',
+          message: 'High memory usage detected',
+          type: 'warning',
+          timestamp: new Date().toISOString(),
+          details: {
+            used: memory.usedJSHeapSize,
+            total: memory.jsHeapSizeLimit,
+          },
+        });
+      }
+    }
+
+    // Check storage quota
+    if (navigator.storage && navigator.storage.estimate) {
+      const estimate = await navigator.storage.estimate();
+      const usageRatio = (estimate.usage || 0) / (estimate.quota || 1);
+
+      if (usageRatio > 0.9) {
+        issues.warnings.push({
+          id: 'storage-quota-warning',
+          message: 'Storage quota nearly reached',
+          type: 'warning',
+          timestamp: new Date().toISOString(),
+          details: {
+            used: estimate.usage,
+            quota: estimate.quota,
+          },
+        });
+      }
+    }
+
+    // Check for console errors (if any)
+    const errorLogs = localStorage.getItem('error_logs');
+
+    if (errorLogs) {
+      const errors = JSON.parse(errorLogs);
+      errors.forEach((error: any) => {
+        issues.errors.push({
+          id: `error-${error.timestamp}`,
+          message: error.message,
+          type: 'error',
+          timestamp: error.timestamp,
+          details: error.details,
+        });
+      });
+    }
+
+    // Filter out acknowledged issues
+    issues.warnings = issues.warnings.filter((warning) => !acknowledgedIssues.has(warning.id));
+    issues.errors = issues.errors.filter((error) => !acknowledgedIssues.has(error.id));
+
+    return issues;
+  } catch (error) {
+    console.error('Error getting debug status:', error);
+    return issues;
+  }
 };
 
-export const acknowledgeWarning = async (warningId: string): Promise<void> => {
-  /*
-   * TODO: Implement actual warning acknowledgment logic
-   */
-  console.log(`Acknowledging warning ${warningId}`);
+export const acknowledgeWarning = async (id: string): Promise<void> => {
+  acknowledgedIssues.add(id);
 };
 
-export const acknowledgeError = async (errorId: string): Promise<void> => {
-  /*
-   * TODO: Implement actual error acknowledgment logic
-   */
-  console.log(`Acknowledging error ${errorId}`);
+export const acknowledgeError = async (id: string): Promise<void> => {
+  acknowledgedIssues.add(id);
+
+  // Also remove from error logs if present
+  try {
+    const errorLogs = localStorage.getItem('error_logs');
+
+    if (errorLogs) {
+      const errors = JSON.parse(errorLogs);
+      const updatedErrors = errors.filter((error: any) => `error-${error.timestamp}` !== id);
+      localStorage.setItem('error_logs', JSON.stringify(updatedErrors));
+    }
+  } catch (error) {
+    console.error('Error acknowledging error:', error);
+  }
 };

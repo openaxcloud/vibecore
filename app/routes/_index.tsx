@@ -4,7 +4,8 @@ import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
-import { ControlPanel } from '~/components/settings/ControlPanel';
+import { ControlPanel } from '~/components/@settings';
+import { SettingsButton } from '~/components/ui/SettingsButton';
 import { useState } from 'react';
 
 export const meta: MetaFunction = () => {
@@ -21,13 +22,9 @@ export default function Index() {
       <BackgroundRays />
       <Header />
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
-      <button
-        onClick={() => setShowControlPanel(true)}
-        className="fixed bottom-4 right-4 flex items-center space-x-2 px-4 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors"
-      >
-        <span className="i-ph:gear w-5 h-5" />
-        <span>Open Control Panel</span>
-      </button>
+      <div className="fixed bottom-4 right-4">
+        <SettingsButton onClick={() => setShowControlPanel(true)} />
+      </div>
       <ClientOnly>
         {() => <ControlPanel open={showControlPanel} onClose={() => setShowControlPanel(false)} />}
       </ClientOnly>
