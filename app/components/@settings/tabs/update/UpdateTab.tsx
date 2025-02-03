@@ -5,6 +5,7 @@ import { logStore } from '~/lib/stores/logs';
 import { toast } from 'react-toastify';
 import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
 import { classNames } from '~/utils/classNames';
+import { Markdown } from '~/components/chat/Markdown';
 
 interface UpdateProgress {
   stage: 'fetch' | 'pull' | 'install' | 'build' | 'complete';
@@ -20,6 +21,8 @@ interface UpdateProgress {
     currentCommit?: string;
     remoteCommit?: string;
     updateReady?: boolean;
+    changelog?: string;
+    compareUrl?: string;
   };
 }
 
@@ -50,15 +53,52 @@ const UpdateProgressDisplay = ({ progress }: { progress: UpdateProgress }) => (
     {progress.details && (
       <div className="mt-2 text-sm text-gray-600">
         {progress.details.changedFiles && progress.details.changedFiles.length > 0 && (
-          <div className="mt-2">
-            <div className="font-medium">Changed Files:</div>
-            <ul className="list-disc list-inside">
-              {progress.details.changedFiles.map((file, index) => (
-                <li key={index} className="ml-2">
-                  {file}
-                </li>
-              ))}
-            </ul>
+          <div className="mt-4">
+            <div className="font-medium mb-2">Changed Files:</div>
+            <div className="space-y-2">
+              {/* Group files by type */}
+              {['Modified', 'Added', 'Deleted'].map((type) => {
+                const filesOfType = progress.details?.changedFiles?.filter((file) => file.startsWith(type)) || [];
+
+                if (filesOfType.length === 0) {
+                  return null;
+                }
+
+                return (
+                  <div key={type} className="space-y-1">
+                    <div
+                      className={classNames('text-sm font-medium', {
+                        'text-blue-500': type === 'Modified',
+                        'text-green-500': type === 'Added',
+                        'text-red-500': type === 'Deleted',
+                      })}
+                    >
+                      {type} ({filesOfType.length})
+                    </div>
+                    <div className="pl-4 space-y-1">
+                      {filesOfType.map((file, index) => {
+                        const fileName = file.split(': ')[1];
+                        return (
+                          <div key={index} className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
+                            <div
+                              className={classNames('w-4 h-4', {
+                                'i-ph:pencil-simple': type === 'Modified',
+                                'i-ph:plus': type === 'Added',
+                                'i-ph:trash': type === 'Deleted',
+                                'text-blue-500': type === 'Modified',
+                                'text-green-500': type === 'Added',
+                                'text-red-500': type === 'Deleted',
+                              })}
+                            />
+                            <span className="font-mono text-xs">{fileName}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
         {progress.details.totalSize && <div className="mt-1">Total size: {progress.details.totalSize}</div>}
@@ -410,19 +450,100 @@ const UpdateTab = () => {
         {error && <div className="mt-4 p-4 bg-red-100 text-red-700 rounded">{error}</div>}
 
         {/* Show update source information */}
-        <div className="mt-4 text-sm text-bolt-elements-textSecondary">
-          <p>
-            Updates are fetched from: <span className="font-mono">stackblitz-labs/bolt.diy</span> (
-            {isLatestBranch ? 'main' : 'stable'} branch)
-          </p>
-          {updateProgress?.details?.currentCommit && updateProgress?.details?.remoteCommit && (
-            <p className="mt-1">
-              Current version: <span className="font-mono">{updateProgress.details.currentCommit}</span>
-              <span className="mx-2">→</span>
-              Latest version: <span className="font-mono">{updateProgress.details.remoteCommit}</span>
-            </p>
-          )}
-        </div>
+        {updateProgress?.details?.currentCommit && updateProgress?.details?.remoteCommit && (
+          <div className="mt-4 text-sm text-bolt-elements-textSecondary">
+            <div className="flex items-center justify-between">
+              <div>
+                <p>
+                  Updates are fetched from: <span className="font-mono">stackblitz-labs/bolt.diy</span> (
+                  {isLatestBranch ? 'main' : 'stable'} branch)
+                </p>
+                <p className="mt-1">
+                  Current version: <span className="font-mono">{updateProgress.details.currentCommit}</span>
+                  <span className="mx-2">→</span>
+                  Latest version: <span className="font-mono">{updateProgress.details.remoteCommit}</span>
+                </p>
+              </div>
+              {updateProgress?.details?.compareUrl && (
+                <a
+                  href={updateProgress.details.compareUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={classNames(
+                    'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
+                    'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                    'hover:bg-purple-500/10 hover:text-purple-500',
+                    'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                    'text-bolt-elements-textPrimary',
+                    'transition-colors duration-200',
+                    'w-fit',
+                  )}
+                >
+                  <div className="i-ph:github-logo w-4 h-4" />
+                  View Changes on GitHub
+                </a>
+              )}
+            </div>
+            {updateProgress?.details?.additions !== undefined && updateProgress?.details?.deletions !== undefined && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="i-ph:git-diff text-purple-500 w-4 h-4" />
+                Changes: <span className="text-green-600">+{updateProgress.details.additions}</span>{' '}
+                <span className="text-red-600">-{updateProgress.details.deletions}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Add this before the changed files section */}
+        {updateProgress?.details?.changelog && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="i-ph:scroll text-purple-500 w-5 h-5" />
+              <p className="font-medium">Changelog</p>
+            </div>
+            <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-4 overflow-auto max-h-[300px]">
+              <div className="prose dark:prose-invert prose-sm max-w-none">
+                <Markdown>{updateProgress.details.changelog}</Markdown>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add this in the update status card, after the commit info */}
+        {updateProgress?.details?.compareUrl && (
+          <div className="mt-4">
+            <a
+              href={updateProgress.details.compareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={classNames(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
+                'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                'hover:bg-purple-500/10 hover:text-purple-500',
+                'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                'text-bolt-elements-textPrimary',
+                'transition-colors duration-200',
+                'w-fit',
+              )}
+            >
+              <div className="i-ph:github-logo w-4 h-4" />
+              View Changes on GitHub
+            </a>
+          </div>
+        )}
+
+        {updateProgress?.details?.commitMessages && updateProgress.details.commitMessages.length > 0 && (
+          <div className="mb-6">
+            <p className="font-medium mb-2">Changes in this Update:</p>
+            <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-4 overflow-auto max-h-[400px]">
+              <div className="prose dark:prose-invert prose-sm max-w-none">
+                {updateProgress.details.commitMessages.map((section, index) => (
+                  <Markdown key={index}>{section}</Markdown>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Update dialog */}
@@ -435,40 +556,58 @@ const UpdateTab = () => {
                 A new version is available from <span className="font-mono">stackblitz-labs/bolt.diy</span> (
                 {isLatestBranch ? 'main' : 'stable'} branch)
               </p>
+
+              {updateProgress?.details?.compareUrl && (
+                <div className="mb-6">
+                  <a
+                    href={updateProgress.details.compareUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={classNames(
+                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm',
+                      'bg-[#F5F5F5] dark:bg-[#1A1A1A]',
+                      'hover:bg-purple-500/10 hover:text-purple-500',
+                      'dark:hover:bg-purple-500/20 dark:hover:text-purple-500',
+                      'text-bolt-elements-textPrimary',
+                      'transition-colors duration-200',
+                      'w-fit',
+                    )}
+                  >
+                    <div className="i-ph:github-logo w-4 h-4" />
+                    View Changes on GitHub
+                  </a>
+                </div>
+              )}
+
               {updateProgress?.details?.commitMessages && updateProgress.details.commitMessages.length > 0 && (
-                <div className="mb-4">
+                <div className="mb-6">
                   <p className="font-medium mb-2">Commit Messages:</p>
-                  <ul className="list-disc list-inside space-y-1">
+                  <div className="bg-[#F5F5F5] dark:bg-[#1A1A1A] rounded-lg p-3 space-y-2">
                     {updateProgress.details.commitMessages.map((msg, index) => (
-                      <li key={index} className="text-sm text-bolt-elements-textSecondary">
-                        {msg}
-                      </li>
+                      <div key={index} className="text-sm text-bolt-elements-textSecondary flex items-start gap-2">
+                        <div className="i-ph:git-commit text-purple-500 w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <span>{msg}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
-              {updateProgress?.details?.changedFiles && (
-                <div>
-                  <p className="font-medium mb-2">Changed Files:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {updateProgress.details.changedFiles.map((file, index) => (
-                      <li key={index} className="text-sm text-bolt-elements-textSecondary">
-                        {file}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
               {updateProgress?.details?.totalSize && (
-                <p className="mt-4 text-sm text-bolt-elements-textSecondary">
-                  Total size: {updateProgress.details.totalSize}
-                </p>
-              )}
-              {updateProgress?.details?.additions !== undefined && updateProgress?.details?.deletions !== undefined && (
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                  Changes: <span className="text-green-600">+{updateProgress.details.additions}</span>{' '}
-                  <span className="text-red-600">-{updateProgress.details.deletions}</span>
-                </p>
+                <div className="flex items-center gap-4 text-sm text-bolt-elements-textSecondary">
+                  <div className="flex items-center gap-2">
+                    <div className="i-ph:file text-purple-500 w-4 h-4" />
+                    Total size: {updateProgress.details.totalSize}
+                  </div>
+                  {updateProgress?.details?.additions !== undefined &&
+                    updateProgress?.details?.deletions !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <div className="i-ph:git-diff text-purple-500 w-4 h-4" />
+                        Changes: <span className="text-green-600">+{updateProgress.details.additions}</span>{' '}
+                        <span className="text-red-600">-{updateProgress.details.deletions}</span>
+                      </div>
+                    )}
+                </div>
               )}
             </div>
           </DialogDescription>
