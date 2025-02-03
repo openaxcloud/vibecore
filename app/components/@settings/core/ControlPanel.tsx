@@ -22,6 +22,7 @@ import type { TabType, TabVisibilityConfig, Profile } from './types';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
+import BackgroundRays from '~/components/ui/BackgroundRays';
 
 // Import all tab components
 import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
@@ -83,7 +84,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
 };
 
 // Beta status for experimental features
-const BETA_TABS = new Set<TabType>(['task-manager', 'service-status']);
+const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
 
 const BetaLabel = () => (
   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
@@ -415,108 +416,114 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                 'rounded-2xl shadow-2xl',
                 'border border-[#E5E5E5] dark:border-[#1A1A1A]',
                 'flex flex-col overflow-hidden',
+                'relative',
               )}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-4">
-                  {(activeTab || showTabManagement) && (
+              <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                <BackgroundRays />
+              </div>
+              <div className="relative z-10 flex flex-col h-full">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center space-x-4">
+                    {(activeTab || showTabManagement) && (
+                      <button
+                        onClick={handleBack}
+                        className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                      >
+                        <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                      </button>
+                    )}
+                    <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+                      {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
+                    </DialogTitle>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    {/* Mode Toggle */}
+                    <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
+                      <AnimatedSwitch
+                        id="developer-mode"
+                        checked={developerMode}
+                        onCheckedChange={handleDeveloperModeChange}
+                        label={developerMode ? 'Developer Mode' : 'User Mode'}
+                      />
+                    </div>
+
+                    {/* Avatar and Dropdown */}
+                    <div className="border-l border-gray-200 dark:border-gray-800 pl-6">
+                      <AvatarDropdown onSelectTab={handleTabClick} />
+                    </div>
+
+                    {/* Close Button */}
                     <button
-                      onClick={handleBack}
+                      onClick={onClose}
                       className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
                     >
-                      <div className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
+                      <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
                     </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div
+                  className={classNames(
+                    'flex-1',
+                    'overflow-y-auto',
+                    'hover:overflow-y-auto',
+                    'scrollbar scrollbar-w-2',
+                    'scrollbar-track-transparent',
+                    'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
+                    'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
+                    'will-change-scroll',
+                    'touch-auto',
                   )}
-                  <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
-                  </DialogTitle>
-                </div>
-
-                <div className="flex items-center gap-6">
-                  {/* Mode Toggle */}
-                  <div className="flex items-center gap-2 min-w-[140px] border-r border-gray-200 dark:border-gray-800 pr-6">
-                    <AnimatedSwitch
-                      id="developer-mode"
-                      checked={developerMode}
-                      onCheckedChange={handleDeveloperModeChange}
-                      label={developerMode ? 'Developer Mode' : 'User Mode'}
-                    />
-                  </div>
-
-                  {/* Avatar and Dropdown */}
-                  <div className="border-l border-gray-200 dark:border-gray-800 pl-6">
-                    <AvatarDropdown onSelectTab={handleTabClick} />
-                  </div>
-
-                  {/* Close Button */}
-                  <button
-                    onClick={onClose}
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
-                  >
-                    <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div
-                className={classNames(
-                  'flex-1',
-                  'overflow-y-auto',
-                  'hover:overflow-y-auto',
-                  'scrollbar scrollbar-w-2',
-                  'scrollbar-track-transparent',
-                  'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
-                  'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
-                  'will-change-scroll',
-                  'touch-auto',
-                )}
-              >
-                <motion.div
-                  key={activeTab || 'home'}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="p-6"
                 >
-                  {showTabManagement ? (
-                    <TabManagement />
-                  ) : activeTab ? (
-                    getTabComponent(activeTab)
-                  ) : (
-                    <motion.div
-                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
-                      variants={gridLayoutVariants}
-                      initial="hidden"
-                      animate="visible"
-                    >
-                      <AnimatePresence mode="popLayout">
-                        {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
-                          <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
-                            <TabTile
-                              tab={tab}
-                              onClick={() => handleTabClick(tab.id as TabType)}
-                              isActive={activeTab === tab.id}
-                              hasUpdate={getTabUpdateStatus(tab.id)}
-                              statusMessage={getStatusMessage(tab.id)}
-                              description={TAB_DESCRIPTIONS[tab.id]}
-                              isLoading={loadingTab === tab.id}
-                              className="h-full relative"
-                            >
-                              {BETA_TABS.has(tab.id) && <BetaLabel />}
-                            </TabTile>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </motion.div>
-                  )}
-                </motion.div>
+                  <motion.div
+                    key={activeTab || 'home'}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="p-6"
+                  >
+                    {showTabManagement ? (
+                      <TabManagement />
+                    ) : activeTab ? (
+                      getTabComponent(activeTab)
+                    ) : (
+                      <motion.div
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
+                        variants={gridLayoutVariants}
+                        initial="hidden"
+                        animate="visible"
+                      >
+                        <AnimatePresence mode="popLayout">
+                          {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
+                            <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
+                              <TabTile
+                                tab={tab}
+                                onClick={() => handleTabClick(tab.id as TabType)}
+                                isActive={activeTab === tab.id}
+                                hasUpdate={getTabUpdateStatus(tab.id)}
+                                statusMessage={getStatusMessage(tab.id)}
+                                description={TAB_DESCRIPTIONS[tab.id]}
+                                isLoading={loadingTab === tab.id}
+                                className="h-full relative"
+                              >
+                                {BETA_TABS.has(tab.id) && <BetaLabel />}
+                              </TabTile>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                </div>
               </div>
             </motion.div>
           </RadixDialog.Content>

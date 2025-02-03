@@ -44,6 +44,14 @@ const OPTIONAL_USER_TABS: TabType[] = ['profile', 'settings', 'task-manager', 's
 // All available tabs for user mode
 const ALL_USER_TABS = [...DEFAULT_USER_TABS, ...OPTIONAL_USER_TABS];
 
+// Define which tabs are beta
+const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
+
+// Beta label component
+const BetaLabel = () => (
+  <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-500/10 text-purple-500 font-medium">BETA</span>
+);
+
 export const TabManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const tabConfiguration = useStore(tabConfigurationStore);
@@ -217,9 +225,12 @@ export const TabManagement = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
-                        {TAB_LABELS[tab.id]}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-bolt-elements-textPrimary group-hover:text-purple-500 transition-colors">
+                          {TAB_LABELS[tab.id]}
+                        </h4>
+                        {BETA_TABS.has(tab.id) && <BetaLabel />}
+                      </div>
                       <p className="text-xs text-bolt-elements-textSecondary mt-0.5">
                         {tab.visible ? 'Visible in user mode' : 'Hidden in user mode'}
                       </p>

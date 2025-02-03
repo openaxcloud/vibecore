@@ -12,6 +12,8 @@ import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
 import { classNames } from '~/utils/classNames';
+import { useStore } from '@nanostores/react';
+import { profileStore } from '~/lib/stores/profile';
 
 const menuVariants = {
   closed: {
@@ -65,6 +67,7 @@ export const Menu = () => {
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const profile = useStore(profileStore);
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
@@ -169,7 +172,27 @@ export const Menu = () => {
           isSettingsOpen ? 'z-40' : 'z-sidebar',
         )}
       >
-        <div className="h-12 flex items-center px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50"></div>
+        <div className="h-12 flex items-center justify-between px-4 border-b border-gray-100 dark:border-gray-800/50 bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="text-gray-900 dark:text-white font-medium"></div>
+          <div className="flex items-center gap-3">
+            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">
+              {profile?.username || 'Guest User'}
+            </span>
+            <div className="flex items-center justify-center w-[32px] h-[32px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0">
+              {profile?.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile?.username || 'User'}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  decoding="sync"
+                />
+              ) : (
+                <div className="i-ph:user-fill text-lg" />
+              )}
+            </div>
+          </div>
+        </div>
         <CurrentDateTime />
         <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
           <div className="p-4 space-y-3">

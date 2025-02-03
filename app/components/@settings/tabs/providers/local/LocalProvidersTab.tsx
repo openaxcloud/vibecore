@@ -87,19 +87,10 @@ export default function LocalProvidersTab() {
       .map(([key, value]) => {
         const provider = value as IProviderConfig;
         const envKey = providerBaseUrlEnvKeys[key]?.baseUrlKey;
-
-        // Get environment URL safely
         const envUrl = envKey ? (import.meta.env[envKey] as string | undefined) : undefined;
 
-        console.log(`Checking env URL for ${key}:`, {
-          envKey,
-          envUrl,
-          currentBaseUrl: provider.settings.baseUrl,
-        });
-
-        // If there's an environment URL and no base URL set, update it
+        // Set base URL if provided by environment
         if (envUrl && !provider.settings.baseUrl) {
-          console.log(`Setting base URL for ${key} from env:`, envUrl);
           updateProviderSettings(key, {
             ...provider.settings,
             baseUrl: envUrl,
@@ -414,7 +405,9 @@ export default function LocalProvidersTab() {
               <BiChip className="w-6 h-6" />
             </motion.div>
             <div>
-              <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">Local AI Models</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">Local AI Models</h2>
+              </div>
               <p className="text-sm text-bolt-elements-textSecondary">Configure and manage your local AI providers</p>
             </div>
           </div>

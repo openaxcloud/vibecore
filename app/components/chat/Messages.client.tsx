@@ -8,6 +8,8 @@ import { db, chatId } from '~/lib/persistence/useChatHistory';
 import { forkChat } from '~/lib/persistence/db';
 import { toast } from 'react-toastify';
 import WithTooltip from '~/components/ui/Tooltip';
+import { useStore } from '@nanostores/react';
+import { profileStore } from '~/lib/stores/profile';
 
 interface MessagesProps {
   id?: string;
@@ -24,6 +26,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
   const [isUserInteracting, setIsUserInteracting] = useState(false);
   const [lastScrollTop, setLastScrollTop] = useState(0);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const profile = useStore(profileStore);
 
   // Check if we should auto-scroll based on scroll position
   const checkShouldAutoScroll = () => {
@@ -166,8 +169,18 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                 })}
               >
                 {isUserMessage && (
-                  <div className="flex items-center justify-center w-[34px] h-[34px] overflow-hidden bg-white text-gray-600 rounded-full shrink-0 self-start">
-                    <div className="i-ph:user-fill text-xl"></div>
+                  <div className="flex items-center justify-center w-[40px] h-[40px] overflow-hidden bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-500 rounded-full shrink-0 self-start">
+                    {profile?.avatar ? (
+                      <img
+                        src={profile.avatar}
+                        alt={profile?.username || 'User'}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                        decoding="sync"
+                      />
+                    ) : (
+                      <div className="i-ph:user-fill text-2xl" />
+                    )}
                   </div>
                 )}
                 <div className="grid grid-col-1 w-full">
