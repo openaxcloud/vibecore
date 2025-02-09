@@ -163,9 +163,7 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
    ```bash
    pnpm run dev
    ```
-
-   **Important Note**: If you're using Google Chrome, you'll need Chrome Canary for local development. [Download it here](https://www.google.com/chrome/canary/)
-
+   
 ### Option 2: Using Docker
 
 This option requires some familiarity with Docker but provides a more isolated environment.
