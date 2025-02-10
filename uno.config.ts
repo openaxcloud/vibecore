@@ -1,23 +1,52 @@
 import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
-import { basename } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives } from 'unocss';
+import type { IconifyJSON } from '@iconify/types';
 
-const iconPaths = globSync('./icons/*.svg');
+// Debug: Log the current working directory and icon paths
+console.log('CWD:', process.cwd());
+
+// Use resolve to get absolute path and normalize slashes
+const iconsDir = resolve(process.cwd(), 'icons');
+const iconPaths = globSync('*.svg', {
+  cwd: iconsDir,
+  absolute: true,
+  onlyFiles: true,
+});
+
+console.log('Found icons:', iconPaths);
 
 const collectionName = 'bolt';
 
-const customIconCollection = iconPaths.reduce(
-  (acc, iconPath) => {
-    const [iconName] = basename(iconPath).split('.');
+const customIconCollection = {
+  [collectionName]: iconPaths.reduce(
+    (acc, iconPath) => {
+      const [iconName] = basename(iconPath).split('.');
+      console.log(`Loading icon: ${iconName} from ${iconPath}`); // Debug log
 
-    acc[collectionName] ??= {};
-    acc[collectionName][iconName] = async () => fs.readFile(iconPath, 'utf8');
+      acc[iconName] = async () => {
+        try {
+          const content = await fs.readFile(iconPath, 'utf8');
 
-    return acc;
-  },
-  {} as Record<string, Record<string, () => Promise<string>>>,
-);
+          // Simplified SVG processing
+          return content
+            .replace(/fill="[^"]*"/g, 'fill="currentColor"')
+            .replace(/fill='[^']*'/g, "fill='currentColor'")
+            .replace(/width="[^"]*"/g, 'width="24"')
+            .replace(/height="[^"]*"/g, 'height="24"')
+            .replace(/viewBox="[^"]*"/g, 'viewBox="0 0 24 24"');
+        } catch (error) {
+          console.error(`Error loading icon ${iconName}:`, error);
+          return '';
+        }
+      };
+
+      return acc;
+    },
+    {} as Record<string, () => Promise<string>>,
+  ),
+};
 
 const BASE_COLORS = {
   white: '#FFFFFF',
@@ -99,7 +128,9 @@ const COLOR_PRIMITIVES = {
 
 export default defineConfig({
   safelist: [
-    ...Object.keys(customIconCollection[collectionName]||{}).map(x=>`i-bolt:${x}`)    
+    // Explicitly safelist all icon combinations
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}-${x}`),
+    ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-${collectionName}:${x}`),
   ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
@@ -242,9 +273,27 @@ export default defineConfig({
     presetIcons({
       warn: true,
       collections: {
-        ...customIconCollection,
+        bolt: customIconCollection.bolt,
+        ph: async () => {
+          const icons = await import('@iconify-json/ph/icons.json');
+          return icons.default as IconifyJSON;
+        },
       },
-      unit: 'em',
+      extraProperties: {
+        display: 'inline-block',
+        'vertical-align': 'middle',
+        width: '24px',
+        height: '24px',
+      },
+      customizations: {
+        customize(props) {
+          return {
+            ...props,
+            width: '24px',
+            height: '24px',
+          };
+        },
+      },
     }),
   ],
 });
