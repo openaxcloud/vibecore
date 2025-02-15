@@ -429,16 +429,16 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
               }}
               disabled={isInstalling}
             />
-            <p className="text-xs text-bolt-elements-textTertiary px-1">
+            <p className="text-sm text-bolt-elements-textSecondary px-1">
               Browse models at{' '}
               <a
                 href="https://ollama.com/library"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-500 hover:underline inline-flex items-center gap-0.5"
+                className="text-purple-500 hover:underline inline-flex items-center gap-1 text-base font-medium"
               >
                 ollama.com/library
-                <div className="i-ph:arrow-square-out text-[10px]" />
+                <div className="i-ph:arrow-square-out text-sm" />
               </a>{' '}
               and copy model names to install
             </p>
@@ -448,10 +448,11 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
           onClick={() => handleInstallModel(modelString)}
           disabled={!modelString || isInstalling}
           className={classNames(
-            'rounded-xl px-6 py-3',
-            'bg-purple-500 text-white',
+            'rounded-lg px-4 py-2',
+            'bg-purple-500 text-white text-sm',
             'hover:bg-purple-600',
             'transition-all duration-200',
+            'flex items-center gap-2',
             { 'opacity-50 cursor-not-allowed': !modelString || isInstalling },
           )}
           whileHover={{ scale: 1.02 }}
@@ -459,7 +460,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
         >
           {isInstalling ? (
             <div className="flex items-center gap-2">
-              <div className="i-ph:spinner-gap-bold animate-spin" />
+              <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
               <span>Installing...</span>
             </div>
           ) : (

@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
-import { themeStore, kTheme } from '~/lib/stores/theme';
 import type { UserProfile } from '~/components/@settings/core/types';
 import { useStore } from '@nanostores/react';
 import { shortcutsStore } from '~/lib/stores/settings';
@@ -41,7 +40,6 @@ export default function SettingsTab() {
     return saved
       ? JSON.parse(saved)
       : {
-          theme: 'system',
           notifications: true,
           language: 'en',
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -52,22 +50,6 @@ export default function SettingsTab() {
     setCurrentTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
-  // Apply theme when settings changes
-  useEffect(() => {
-    if (settings.theme === 'system') {
-      // Remove theme override
-      localStorage.removeItem(kTheme);
-
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.querySelector('html')?.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-      themeStore.set(prefersDark ? 'dark' : 'light');
-    } else {
-      themeStore.set(settings.theme);
-      localStorage.setItem(kTheme, settings.theme);
-      document.querySelector('html')?.setAttribute('data-theme', settings.theme);
-    }
-  }, [settings.theme]);
-
   // Save settings automatically when they change
   useEffect(() => {
     try {
@@ -77,7 +59,6 @@ export default function SettingsTab() {
       // Merge with new settings
       const updatedProfile = {
         ...existingProfile,
-        theme: settings.theme,
         notifications: settings.notifications,
         language: settings.language,
         timezone: settings.timezone,
@@ -93,7 +74,7 @@ export default function SettingsTab() {
 
   return (
     <div className="space-y-4">
-      {/* Theme & Language */}
+      {/* Language & Notifications */}
       <motion.div
         className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4 space-y-4"
         initial={{ opacity: 0, y: 20 }}
@@ -102,45 +83,7 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:palette-fill w-4 h-4 text-purple-500" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">Appearance</span>
-        </div>
-
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="i-ph:paint-brush-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label className="block text-sm text-bolt-elements-textSecondary">Theme</label>
-          </div>
-          <div className="flex gap-2">
-            {(['light', 'dark', 'system'] as const).map((theme) => (
-              <button
-                key={theme}
-                onClick={() => {
-                  setSettings((prev) => ({ ...prev, theme }));
-
-                  if (theme !== 'system') {
-                    themeStore.set(theme);
-                  }
-                }}
-                className={classNames(
-                  'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed',
-                  settings.theme === theme
-                    ? 'bg-purple-500 text-white hover:bg-purple-600 dark:bg-purple-500 dark:text-white dark:hover:bg-purple-600'
-                    : 'bg-bolt-elements-hover dark:bg-[#1A1A1A] text-bolt-elements-textSecondary hover:bg-purple-500/10 hover:text-purple-500 dark:hover:bg-purple-500/20 dark:text-bolt-elements-textPrimary dark:hover:text-purple-500',
-                )}
-              >
-                <div
-                  className={`w-4 h-4 ${
-                    theme === 'light'
-                      ? 'i-ph:sun-fill'
-                      : theme === 'dark'
-                        ? 'i-ph:moon-stars-fill'
-                        : 'i-ph:monitor-fill'
-                  }`}
-                />
-                <span className="capitalize">{theme}</span>
-              </button>
-            ))}
-          </div>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Preferences</span>
         </div>
 
         <div>
