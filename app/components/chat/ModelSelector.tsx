@@ -1,5 +1,6 @@
 import type { ProviderInfo } from '~/types/model';
 import { useEffect, useState, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { classNames } from '~/utils/classNames';
 
@@ -25,7 +26,9 @@ export const ModelSelector = ({
 }: ModelSelectorProps) => {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const optionsRef = useRef<(HTMLDivElement | null)[]>([]);
 
   // Filter models based on search query
   const filteredModels = [...modelList]
@@ -36,12 +39,84 @@ export const ModelSelector = ({
         model.name.toLowerCase().includes(modelSearchQuery.toLowerCase()),
     );
 
+  // Reset focused index when search query changes or dropdown opens/closes
+  useEffect(() => {
+    setFocusedIndex(-1);
+  }, [modelSearchQuery, isModelDropdownOpen]);
+
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isModelDropdownOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isModelDropdownOpen]);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!isModelDropdownOpen) {
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = prev + 1;
+
+          if (next >= filteredModels.length) {
+            return 0;
+          }
+
+          return next;
+        });
+        break;
+
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = prev - 1;
+
+          if (next < 0) {
+            return filteredModels.length - 1;
+          }
+
+          return next;
+        });
+        break;
+
+      case 'Enter':
+        e.preventDefault();
+
+        if (focusedIndex >= 0 && focusedIndex < filteredModels.length) {
+          const selectedModel = filteredModels[focusedIndex];
+          setModel?.(selectedModel.name);
+          setIsModelDropdownOpen(false);
+          setModelSearchQuery('');
+        }
+
+        break;
+
+      case 'Escape':
+        e.preventDefault();
+        setIsModelDropdownOpen(false);
+        setModelSearchQuery('');
+        break;
+
+      case 'Tab':
+        if (!e.shiftKey && focusedIndex === filteredModels.length - 1) {
+          setIsModelDropdownOpen(false);
+        }
+
+        break;
+    }
+  };
+
+  // Focus the selected option
+  useEffect(() => {
+    if (focusedIndex >= 0 && optionsRef.current[focusedIndex]) {
+      optionsRef.current[focusedIndex]?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [focusedIndex]);
 
   // Update enabled providers when cookies change
   useEffect(() => {
@@ -100,7 +175,7 @@ export const ModelSelector = ({
         ))}
       </select>
 
-      <div className="relative flex-1 lg:max-w-[70%]">
+      <div className="relative flex-1 lg:max-w-[70%]" onKeyDown={handleKeyDown}>
         <div
           className={classNames(
             'w-full p-2 rounded-lg border border-bolt-elements-borderColor',
@@ -110,6 +185,10 @@ export const ModelSelector = ({
             isModelDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
           )}
           onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+          role="combobox"
+          aria-expanded={isModelDropdownOpen}
+          aria-controls="model-listbox"
+          aria-haspopup="listbox"
         >
           <div className="flex items-center justify-between">
             <span>{modelList.find((m) => m.name === model)?.label || 'Select model'}</span>
@@ -123,7 +202,11 @@ export const ModelSelector = ({
         </div>
 
         {isModelDropdownOpen && (
-          <div className="absolute z-10 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background shadow-lg">
+          <div
+            className="absolute z-10 w-full mt-1 py-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background shadow-lg"
+            role="listbox"
+            id="model-listbox"
+          >
             <div className="px-2 pb-2">
               <div className="relative">
                 <input
@@ -140,6 +223,8 @@ export const ModelSelector = ({
                     'transition-all',
                   )}
                   onClick={(e) => e.stopPropagation()}
+                  role="searchbox"
+                  aria-label="Search models"
                 />
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
                   <span className="i-ph:magnifying-glass text-bolt-elements-textTertiary" />
@@ -150,8 +235,6 @@ export const ModelSelector = ({
             <div
               className={classNames(
                 'max-h-60 overflow-y-auto',
-
-                //Mobile scrollbar (touch devices)
                 'sm:scrollbar-none',
                 '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2',
                 '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
@@ -159,8 +242,6 @@ export const ModelSelector = ({
                 '[&::-webkit-scrollbar-thumb]:rounded-full',
                 '[&::-webkit-scrollbar-track]:bg-bolt-elements-background-depth-2',
                 '[&::-webkit-scrollbar-track]:rounded-full',
-
-                //Desktop hover-only scrollbar
                 'sm:[&::-webkit-scrollbar]:w-1.5 sm:[&::-webkit-scrollbar]:h-1.5',
                 'sm:hover:[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor/50',
                 'sm:hover:[&::-webkit-scrollbar-thumb:hover]:bg-bolt-elements-borderColor',
@@ -174,12 +255,19 @@ export const ModelSelector = ({
               ) : (
                 filteredModels.map((modelOption, index) => (
                   <div
+                    ref={(el) => (optionsRef.current[index] = el)}
                     key={index}
+                    role="option"
+                    aria-selected={model === modelOption.name}
                     className={classNames(
                       'px-3 py-2 text-sm cursor-pointer',
                       'hover:bg-bolt-elements-background-depth-3',
                       'text-bolt-elements-textPrimary',
-                      model === modelOption.name ? 'bg-bolt-elements-background-depth-2' : undefined,
+                      'outline-none',
+                      model === modelOption.name || focusedIndex === index
+                        ? 'bg-bolt-elements-background-depth-2'
+                        : undefined,
+                      focusedIndex === index ? 'ring-1 ring-inset ring-bolt-elements-focus' : undefined,
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -187,6 +275,7 @@ export const ModelSelector = ({
                       setIsModelDropdownOpen(false);
                       setModelSearchQuery('');
                     }}
+                    tabIndex={focusedIndex === index ? 0 : -1}
                   >
                     {modelOption.label}
                   </div>
