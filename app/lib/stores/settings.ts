@@ -174,12 +174,12 @@ const getInitialSettings = () => {
   };
 
   return {
-    latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, false),
-    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, false),
-    contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, false),
+    latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, true),
+    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, true),
+    contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, true),
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
     localModels: getStoredBoolean(SETTINGS_KEYS.LOCAL_MODELS, true),
-    promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
+    promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'optimized' : 'optimized',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
   };
 };
