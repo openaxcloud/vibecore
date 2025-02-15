@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { classNames } from '~/utils/classNames';
+import * as React from 'react';
 
 interface ModelSelectorProps {
   model?: string;
@@ -190,11 +191,11 @@ export const ModelSelector = ({
           aria-controls="model-listbox"
           aria-haspopup="listbox"
         >
-          <div className="flex items-center justify-between whitespace-nowrap">
-            <span>{modelList.find((m) => m.name === model)?.label || 'Select model'}</span>
-            <span
+          <div className="flex items-center justify-between">
+            <div className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</div>
+            <div
               className={classNames(
-                'i-ph:caret-down transition-transform',
+                'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary opacity-75',
                 isModelDropdownOpen ? 'rotate-180' : undefined,
               )}
             />
