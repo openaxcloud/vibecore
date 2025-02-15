@@ -186,10 +186,17 @@ export const ModelSelector = ({
             isModelDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
           )}
           onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsModelDropdownOpen(!isModelDropdownOpen);
+            }
+          }}
           role="combobox"
           aria-expanded={isModelDropdownOpen}
           aria-controls="model-listbox"
           aria-haspopup="listbox"
+          tabIndex={0}
         >
           <div className="flex items-center justify-between">
             <div className="truncate">{modelList.find((m) => m.name === model)?.label || 'Select model'}</div>
