@@ -190,7 +190,7 @@ export const ModelSelector = ({
           aria-controls="model-listbox"
           aria-haspopup="listbox"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between whitespace-nowrap">
             <span>{modelList.find((m) => m.name === model)?.label || 'Select model'}</span>
             <span
               className={classNames(
