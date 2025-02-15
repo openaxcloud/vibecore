@@ -181,7 +181,7 @@ export const ModelSelector = ({
             'w-full p-2 rounded-lg border border-bolt-elements-borderColor',
             'bg-bolt-elements-prompt-background text-bolt-elements-textPrimary',
             'focus-within:outline-none focus-within:ring-2 focus-within:ring-bolt-elements-focus',
-            'transition-all cursor-pointer truncate',
+            'transition-all cursor-pointer',
             isModelDropdownOpen ? 'ring-2 ring-bolt-elements-focus' : undefined,
           )}
           onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
