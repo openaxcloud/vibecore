@@ -30,6 +30,20 @@ export const ModelSelector = ({
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false);
+        setModelSearchQuery('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Filter models based on search query
   const filteredModels = [...modelList]
@@ -176,7 +190,7 @@ export const ModelSelector = ({
         ))}
       </select>
 
-      <div className="relative flex-1 lg:max-w-[70%]" onKeyDown={handleKeyDown}>
+      <div className="relative flex-1 lg:max-w-[70%]" onKeyDown={handleKeyDown} ref={dropdownRef}>
         <div
           className={classNames(
             'w-full p-2 rounded-lg border border-bolt-elements-borderColor',
