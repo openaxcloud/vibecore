@@ -150,9 +150,21 @@ export const ModelSelector = ({
             <div
               className={classNames(
                 'max-h-60 overflow-y-auto',
-                'scrollbar-thin scrollbar-track-bolt-elements-background-depth-2',
-                'scrollbar-thumb-bolt-elements-borderColor hover:scrollbar-thumb-bolt-elements-borderColorHover',
-                'scrollbar-thumb-rounded-full scrollbar-track-rounded-full',
+
+                //Mobile scrollbar (touch devices)
+                'sm:scrollbar-none',
+                '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2',
+                '[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor',
+                '[&::-webkit-scrollbar-thumb]:hover:bg-bolt-elements-borderColorHover',
+                '[&::-webkit-scrollbar-thumb]:rounded-full',
+                '[&::-webkit-scrollbar-track]:bg-bolt-elements-background-depth-2',
+                '[&::-webkit-scrollbar-track]:rounded-full',
+
+                //Desktop hover-only scrollbar
+                'sm:[&::-webkit-scrollbar]:w-1.5 sm:[&::-webkit-scrollbar]:h-1.5',
+                'sm:hover:[&::-webkit-scrollbar-thumb]:bg-bolt-elements-borderColor/50',
+                'sm:hover:[&::-webkit-scrollbar-thumb:hover]:bg-bolt-elements-borderColor',
+                'sm:[&::-webkit-scrollbar-track]:bg-transparent',
               )}
             >
               {modelLoading === 'all' || modelLoading === provider?.name ? (
