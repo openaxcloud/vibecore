@@ -1,5 +1,4 @@
 import { atom, map } from 'nanostores';
-import { workbenchStore } from './workbench';
 import { PROVIDER_LIST } from '~/utils/constants';
 import type { IProviderConfig } from '~/types/model';
 import type {
@@ -11,7 +10,7 @@ import type {
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import Cookies from 'js-cookie';
 import { toggleTheme } from './theme';
-import { chatStore } from './chat';
+import { create } from 'zustand';
 
 export interface Shortcut {
   key: string;
@@ -26,10 +25,8 @@ export interface Shortcut {
 }
 
 export interface Shortcuts {
-  toggleTerminal: Shortcut;
   toggleTheme: Shortcut;
-  toggleChat: Shortcut;
-  toggleSettings: Shortcut;
+  toggleTerminal: Shortcut;
 }
 
 export const URL_CONFIGURABLE_PROVIDERS = ['Ollama', 'LMStudio', 'OpenAILike'];
@@ -37,15 +34,8 @@ export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
-// Define safer shortcuts that don't conflict with browser defaults
+// Simplified shortcuts store with only theme toggle
 export const shortcutsStore = map<Shortcuts>({
-  toggleTerminal: {
-    key: '`',
-    ctrlOrMetaKey: true,
-    action: () => workbenchStore.toggleTerminal(),
-    description: 'Toggle terminal',
-    isPreventDefault: true,
-  },
   toggleTheme: {
     key: 'd',
     metaKey: true,
@@ -55,22 +45,13 @@ export const shortcutsStore = map<Shortcuts>({
     description: 'Toggle theme',
     isPreventDefault: true,
   },
-  toggleChat: {
-    key: 'j', // Changed from 'k' to 'j' to avoid conflicts
+  toggleTerminal: {
+    key: '`',
     ctrlOrMetaKey: true,
-    altKey: true, // Added alt key to make it more unique
-    action: () => chatStore.setKey('showChat', !chatStore.get().showChat),
-    description: 'Toggle chat',
-    isPreventDefault: true,
-  },
-  toggleSettings: {
-    key: 's',
-    ctrlOrMetaKey: true,
-    altKey: true,
     action: () => {
-      document.dispatchEvent(new CustomEvent('toggle-settings'));
+      // This will be handled by the terminal component
     },
-    description: 'Toggle settings',
+    description: 'Toggle terminal',
     isPreventDefault: true,
   },
 });
@@ -148,7 +129,6 @@ const SETTINGS_KEYS = {
   AUTO_SELECT_TEMPLATE: 'autoSelectTemplate',
   CONTEXT_OPTIMIZATION: 'contextOptimizationEnabled',
   EVENT_LOGS: 'isEventLogsEnabled',
-  LOCAL_MODELS: 'isLocalModelsEnabled',
   PROMPT_ID: 'promptId',
   DEVELOPER_MODE: 'isDeveloperMode',
 } as const;
@@ -175,10 +155,9 @@ const getInitialSettings = () => {
 
   return {
     latestBranch: getStoredBoolean(SETTINGS_KEYS.LATEST_BRANCH, false),
-    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, false),
-    contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, false),
+    autoSelectTemplate: getStoredBoolean(SETTINGS_KEYS.AUTO_SELECT_TEMPLATE, true),
+    contextOptimization: getStoredBoolean(SETTINGS_KEYS.CONTEXT_OPTIMIZATION, true),
     eventLogs: getStoredBoolean(SETTINGS_KEYS.EVENT_LOGS, true),
-    localModels: getStoredBoolean(SETTINGS_KEYS.LOCAL_MODELS, true),
     promptId: isBrowser ? localStorage.getItem(SETTINGS_KEYS.PROMPT_ID) || 'default' : 'default',
     developerMode: getStoredBoolean(SETTINGS_KEYS.DEVELOPER_MODE, false),
   };
@@ -191,7 +170,6 @@ export const latestBranchStore = atom<boolean>(initialSettings.latestBranch);
 export const autoSelectStarterTemplate = atom<boolean>(initialSettings.autoSelectTemplate);
 export const enableContextOptimizationStore = atom<boolean>(initialSettings.contextOptimization);
 export const isEventLogsEnabled = atom<boolean>(initialSettings.eventLogs);
-export const isLocalModelsEnabled = atom<boolean>(initialSettings.localModels);
 export const promptStore = atom<string>(initialSettings.promptId);
 
 // Helper functions to update settings with persistence
@@ -213,11 +191,6 @@ export const updateContextOptimization = (enabled: boolean) => {
 export const updateEventLogs = (enabled: boolean) => {
   isEventLogsEnabled.set(enabled);
   localStorage.setItem(SETTINGS_KEYS.EVENT_LOGS, JSON.stringify(enabled));
-};
-
-export const updateLocalModels = (enabled: boolean) => {
-  isLocalModelsEnabled.set(enabled);
-  localStorage.setItem(SETTINGS_KEYS.LOCAL_MODELS, JSON.stringify(enabled));
 };
 
 export const updatePromptId = (id: string) => {
@@ -319,3 +292,35 @@ export const setDeveloperMode = (value: boolean) => {
     localStorage.setItem(SETTINGS_KEYS.DEVELOPER_MODE, JSON.stringify(value));
   }
 };
+
+// First, let's define the SettingsStore interface
+interface SettingsStore {
+  isOpen: boolean;
+  selectedTab: string;
+  openSettings: () => void;
+  closeSettings: () => void;
+  setSelectedTab: (tab: string) => void;
+}
+
+export const useSettingsStore = create<SettingsStore>((set) => ({
+  isOpen: false,
+  selectedTab: 'user', // Default tab
+
+  openSettings: () => {
+    set({
+      isOpen: true,
+      selectedTab: 'user', // Always open to user tab
+    });
+  },
+
+  closeSettings: () => {
+    set({
+      isOpen: false,
+      selectedTab: 'user', // Reset to user tab when closing
+    });
+  },
+
+  setSelectedTab: (tab: string) => {
+    set({ selectedTab: tab });
+  },
+}));
