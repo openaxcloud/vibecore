@@ -1103,15 +1103,18 @@ export default function DebugTab() {
   // Add Ollama health check function
   const checkOllamaStatus = useCallback(async () => {
     try {
+      const ollamaProvider = providers?.Ollama;
+      const baseUrl = ollamaProvider?.settings?.baseUrl || 'http://127.0.0.1:11434';
+
       // First check if service is running
-      const versionResponse = await fetch('http://127.0.0.1:11434/api/version');
+      const versionResponse = await fetch(`${baseUrl}/api/version`);
 
       if (!versionResponse.ok) {
         throw new Error('Service not running');
       }
 
       // Then fetch installed models
-      const modelsResponse = await fetch('http://127.0.0.1:11434/api/tags');
+      const modelsResponse = await fetch(`${baseUrl}/api/tags`);
 
       const modelsData = (await modelsResponse.json()) as {
         models: Array<{ name: string; size: string; quantization: string }>;
@@ -1130,7 +1133,7 @@ export default function DebugTab() {
         models: undefined,
       });
     }
-  }, []);
+  }, [providers]);
 
   // Monitor isLocalModel changes and check status periodically
   useEffect(() => {

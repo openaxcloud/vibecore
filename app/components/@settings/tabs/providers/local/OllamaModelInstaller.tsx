@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { classNames } from '~/utils/classNames';
 import { Progress } from '~/components/ui/Progress';
 import { useToast } from '~/components/ui/use-toast';
+import { useSettings } from '~/lib/hooks/useSettings';
 
 interface OllamaModelInstallerProps {
   onModelInstalled: () => void;
@@ -141,11 +142,15 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [models, setModels] = useState<ModelInfo[]>(POPULAR_MODELS);
   const { toast } = useToast();
+  const { providers } = useSettings();
+
+  // Get base URL from provider settings
+  const baseUrl = providers?.Ollama?.settings?.baseUrl || 'http://127.0.0.1:11434';
 
   // Function to check installed models and their versions
   const checkInstalledModels = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:11434/api/tags', {
+      const response = await fetch(`${baseUrl}/api/tags`, {
         method: 'GET',
       });
 
@@ -181,7 +186,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
   // Check installed models on mount and after installation
   useEffect(() => {
     checkInstalledModels();
-  }, []);
+  }, [baseUrl]);
 
   const handleCheckUpdates = async () => {
     setIsChecking(true);
@@ -224,7 +229,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
       setModelString('');
       setSearchQuery('');
 
-      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+      const response = await fetch(`${baseUrl}/api/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -302,7 +307,7 @@ export default function OllamaModelInstaller({ onModelInstalled }: OllamaModelIn
     try {
       setModels((prev) => prev.map((m) => (m.name === modelToUpdate ? { ...m, status: 'updating' } : m)));
 
-      const response = await fetch('http://127.0.0.1:11434/api/pull', {
+      const response = await fetch(`${baseUrl}/api/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

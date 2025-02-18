@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '@nanostores/react';
 import { Switch } from '~/components/ui/Switch';
@@ -8,6 +8,7 @@ import { TAB_LABELS } from '~/components/@settings/core/constants';
 import type { TabType } from '~/components/@settings/core/types';
 import { toast } from 'react-toastify';
 import { TbLayoutGrid } from 'react-icons/tb';
+import { useSettingsStore } from '~/lib/stores/settings';
 
 // Define tab icons mapping
 const TAB_ICONS: Record<TabType, string> = {
@@ -55,6 +56,7 @@ const BetaLabel = () => (
 export const TabManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const tabConfiguration = useStore(tabConfigurationStore);
+  const { setSelectedTab } = useSettingsStore();
 
   const handleTabVisibilityChange = (tabId: TabType, checked: boolean) => {
     // Get current tab configuration
@@ -125,6 +127,13 @@ export const TabManagement = () => {
 
   // Filter tabs based on search query
   const filteredTabs = allTabs.filter((tab) => TAB_LABELS[tab.id].toLowerCase().includes(searchQuery.toLowerCase()));
+
+  useEffect(() => {
+    // Reset to first tab when component unmounts
+    return () => {
+      setSelectedTab('user'); // Reset to user tab when unmounting
+    };
+  }, [setSelectedTab]);
 
   return (
     <div className="space-y-6">

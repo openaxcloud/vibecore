@@ -1,12 +1,22 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { toast } from 'react-toastify';
+import { debounce } from '~/utils/debounce';
 
 export default function ProfileTab() {
   const profile = useStore(profileStore);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Create debounced update functions
+  const debouncedUpdate = useCallback(
+    debounce((field: 'username' | 'bio', value: string) => {
+      updateProfile({ [field]: value });
+      toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
+    }, 1000),
+    [],
+  );
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,14 +52,11 @@ export default function ProfileTab() {
   };
 
   const handleProfileUpdate = (field: 'username' | 'bio', value: string) => {
+    // Update the store immediately for UI responsiveness
     updateProfile({ [field]: value });
 
-    // Only show toast for completed typing (after 1 second of no typing)
-    const debounceToast = setTimeout(() => {
-      toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated`);
-    }, 1000);
-
-    return () => clearTimeout(debounceToast);
+    // Debounce the toast notification
+    debouncedUpdate(field, value);
   };
 
   return (

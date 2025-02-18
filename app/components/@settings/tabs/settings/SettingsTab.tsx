@@ -4,18 +4,7 @@ import { toast } from 'react-toastify';
 import { classNames } from '~/utils/classNames';
 import { Switch } from '~/components/ui/Switch';
 import type { UserProfile } from '~/components/@settings/core/types';
-import { useStore } from '@nanostores/react';
-import { shortcutsStore } from '~/lib/stores/settings';
 import { isMac } from '~/utils/os';
-
-// Helper to format shortcut key display
-const formatShortcutKey = (key: string) => {
-  if (key === '`') {
-    return '`';
-  }
-
-  return key.toUpperCase();
-};
 
 // Helper to get modifier key symbols/text
 const getModifierSymbol = (modifier: string): string => {
@@ -24,8 +13,6 @@ const getModifierSymbol = (modifier: string): string => {
       return isMac ? '⌘' : 'Win';
     case 'alt':
       return isMac ? '⌥' : 'Alt';
-    case 'ctrl':
-      return isMac ? '⌃' : 'Ctrl';
     case 'shift':
       return '⇧';
     default:
@@ -188,7 +175,7 @@ export default function SettingsTab() {
         </div>
       </motion.div>
 
-      {/* Keyboard Shortcuts */}
+      {/* Simplified Keyboard Shortcuts */}
       <motion.div
         className="bg-white dark:bg-[#0A0A0A] rounded-lg shadow-sm dark:shadow-none p-4"
         initial={{ opacity: 0, y: 20 }}
@@ -201,51 +188,26 @@ export default function SettingsTab() {
         </div>
 
         <div className="space-y-2">
-          {Object.entries(useStore(shortcutsStore)).map(([name, shortcut]) => (
-            <div
-              key={name}
-              className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A] hover:bg-purple-50 dark:hover:bg-purple-500/10 transition-colors"
-            >
-              <div className="flex flex-col">
-                <span className="text-sm text-bolt-elements-textPrimary capitalize">
-                  {name.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                </span>
-                {shortcut.description && (
-                  <span className="text-xs text-bolt-elements-textSecondary">{shortcut.description}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1">
-                {shortcut.ctrlOrMetaKey && (
-                  <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                    {getModifierSymbol(isMac ? 'meta' : 'ctrl')}
-                  </kbd>
-                )}
-                {shortcut.ctrlKey && (
-                  <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                    {getModifierSymbol('ctrl')}
-                  </kbd>
-                )}
-                {shortcut.metaKey && (
-                  <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                    {getModifierSymbol('meta')}
-                  </kbd>
-                )}
-                {shortcut.altKey && (
-                  <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                    {getModifierSymbol('alt')}
-                  </kbd>
-                )}
-                {shortcut.shiftKey && (
-                  <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                    {getModifierSymbol('shift')}
-                  </kbd>
-                )}
-                <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
-                  {formatShortcutKey(shortcut.key)}
-                </kbd>
-              </div>
+          <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAFAFA] dark:bg-[#1A1A1A]">
+            <div className="flex flex-col">
+              <span className="text-sm text-bolt-elements-textPrimary">Toggle Theme</span>
+              <span className="text-xs text-bolt-elements-textSecondary">Switch between light and dark mode</span>
             </div>
-          ))}
+            <div className="flex items-center gap-1">
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+                {getModifierSymbol('meta')}
+              </kbd>
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+                {getModifierSymbol('alt')}
+              </kbd>
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+                {getModifierSymbol('shift')}
+              </kbd>
+              <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#1A1A1A] rounded shadow-sm">
+                D
+              </kbd>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>
