@@ -238,7 +238,7 @@ export default function DebugTab() {
     performance: false,
   });
 
-  const { isLocalModel, providers } = useSettings();
+  const { providers } = useSettings();
 
   // Subscribe to logStore updates
   const logs = useStore(logStore.logs);
@@ -1135,16 +1135,22 @@ export default function DebugTab() {
     }
   }, [providers]);
 
-  // Monitor isLocalModel changes and check status periodically
+  // Monitor Ollama provider status and check periodically
   useEffect(() => {
-    // Check immediately when isLocalModel changes
-    checkOllamaStatus();
+    const ollamaProvider = providers?.Ollama;
 
-    // Set up periodic checks every 10 seconds
-    const intervalId = setInterval(checkOllamaStatus, 10000);
+    if (ollamaProvider?.settings?.enabled) {
+      // Check immediately when provider is enabled
+      checkOllamaStatus();
 
-    return () => clearInterval(intervalId);
-  }, [isLocalModel, checkOllamaStatus]);
+      // Set up periodic checks every 10 seconds
+      const intervalId = setInterval(checkOllamaStatus, 10000);
+
+      return () => clearInterval(intervalId);
+    }
+
+    return undefined;
+  }, [providers, checkOllamaStatus]);
 
   // Replace the existing export button with this new component
   const ExportButton = () => {
@@ -1221,15 +1227,6 @@ export default function DebugTab() {
   const getOllamaStatus = () => {
     const ollamaProvider = providers?.Ollama;
     const isOllamaEnabled = ollamaProvider?.settings?.enabled;
-
-    if (!isLocalModel) {
-      return {
-        status: 'Disabled',
-        color: 'text-red-500',
-        bgColor: 'bg-red-500',
-        message: 'Local models are disabled in settings',
-      };
-    }
 
     if (!isOllamaEnabled) {
       return {
