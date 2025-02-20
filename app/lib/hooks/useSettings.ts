@@ -173,14 +173,11 @@ export function useSettings(): UseSettingsReturn {
     [saveSettings],
   );
 
-  // Fix the providers cookie sync
   useEffect(() => {
     const providers = providersStore.get();
-    const providerSetting: Record<string, { enabled: boolean }> = {};
+    const providerSetting: Record<string, IProviderSetting> = {}; // preserve the entire settings object for each provider
     Object.keys(providers).forEach((provider) => {
-      providerSetting[provider] = {
-        enabled: providers[provider].settings.enabled || false, // Add fallback for undefined
-      };
+      providerSetting[provider] = providers[provider].settings;
     });
     Cookies.set('providers', JSON.stringify(providerSetting));
   }, [providers]);
