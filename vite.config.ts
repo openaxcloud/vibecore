@@ -89,7 +89,6 @@ export default defineConfig((config) => {
       __PKG_DEV_DEPENDENCIES: JSON.stringify(pkg.devDependencies),
       __PKG_PEER_DEPENDENCIES: JSON.stringify(pkg.peerDependencies),
       __PKG_OPTIONAL_DEPENDENCIES: JSON.stringify(pkg.optionalDependencies),
-      'module': {},
     },
     build: {
       target: 'esnext',
