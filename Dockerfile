@@ -6,7 +6,7 @@ WORKDIR /app
 # Install dependencies (this step is cached as long as the dependencies don't change)
 COPY package.json pnpm-lock.yaml ./
 
-RUN npm install -g corepack@latest
+#RUN npm install -g corepack@latest
 
 RUN corepack enable pnpm && pnpm install
 
