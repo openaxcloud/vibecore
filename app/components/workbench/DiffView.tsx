@@ -25,6 +25,10 @@ interface DiffBlock {
   content: string;
   type: 'added' | 'removed' | 'unchanged';
   correspondingLine?: number;
+  charChanges?: Array<{
+    value: string;
+    type: 'added' | 'removed' | 'unchanged';
+  }>;
 }
 
 interface FullscreenButtonProps {
@@ -74,93 +78,211 @@ const processChanges = (beforeCode: string, afterCode: string) => {
       };
     }
 
-    // Normalizar quebras de linha para evitar falsos positivos
-    const normalizedBefore = beforeCode.replace(/\r\n/g, '\n');
-    const normalizedAfter = afterCode.replace(/\r\n/g, '\n');
+    // Normalize line endings and content
+    const normalizeContent = (content: string): string[] => {
+      return content
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .map(line => line.trimEnd());
+    };
 
-    // Dividir em linhas preservando linhas vazias
-    const beforeLines = normalizedBefore.split('\n');
-    const afterLines = normalizedAfter.split('\n');
+    const beforeLines = normalizeContent(beforeCode);
+    const afterLines = normalizeContent(afterCode);
 
-    // Se os conteúdos são idênticos após normalização, não há mudanças
-    if (normalizedBefore === normalizedAfter) {
+    // Early return if files are identical
+    if (beforeLines.join('\n') === afterLines.join('\n')) {
       return {
         beforeLines,
         afterLines,
         hasChanges: false,
         lineChanges: { before: new Set(), after: new Set() },
-        unifiedBlocks: []
+        unifiedBlocks: [],
+        isBinary: false
       };
     }
-
-    // Processar as diferenças com configurações otimizadas para detecção por linha
-    const changes = diffLines(normalizedBefore, normalizedAfter, {
-      newlineIsToken: false, // Não tratar quebras de linha como tokens separados
-      ignoreWhitespace: true, // Ignorar diferenças de espaços em branco
-      ignoreCase: false // Manter sensibilidade a maiúsculas/minúsculas
-    });
 
     const lineChanges = {
       before: new Set<number>(),
       after: new Set<number>()
     };
 
-    let beforeLineNumber = 0;
-    let afterLineNumber = 0;
+    const unifiedBlocks: DiffBlock[] = [];
 
-    const unifiedBlocks = changes.reduce((blocks: DiffBlock[], change) => {
-      // Dividir o conteúdo em linhas preservando linhas vazias
-      const lines = change.value.split('\n');
-      
-      if (change.added) {
-        // Processar linhas adicionadas
-        const addedBlocks = lines.map((line, i) => {
-          lineChanges.after.add(afterLineNumber + i);
-          return {
-            lineNumber: afterLineNumber + i,
-            content: line,
-            type: 'added' as const
-          };
+    // Compare lines directly for more accurate diff
+    let i = 0, j = 0;
+    while (i < beforeLines.length || j < afterLines.length) {
+      if (i < beforeLines.length && j < afterLines.length && beforeLines[i] === afterLines[j]) {
+        // Unchanged line
+        unifiedBlocks.push({
+          lineNumber: j,
+          content: afterLines[j],
+          type: 'unchanged',
+          correspondingLine: i
         });
-        afterLineNumber += lines.length;
-        return [...blocks, ...addedBlocks];
-      }
+        i++;
+        j++;
+      } else {
+        // Look ahead for potential matches
+        let matchFound = false;
+        const lookAhead = 3; // Number of lines to look ahead
 
-      if (change.removed) {
-        // Processar linhas removidas
-        const removedBlocks = lines.map((line, i) => {
-          lineChanges.before.add(beforeLineNumber + i);
-          return {
-            lineNumber: beforeLineNumber + i,
-            content: line,
-            type: 'removed' as const
-          };
-        });
-        beforeLineNumber += lines.length;
-        return [...blocks, ...removedBlocks];
-      }
+        // Try to find matching lines ahead
+        for (let k = 1; k <= lookAhead && i + k < beforeLines.length && j + k < afterLines.length; k++) {
+          if (beforeLines[i + k] === afterLines[j]) {
+            // Found match in after lines - mark lines as removed
+            for (let l = 0; l < k; l++) {
+              lineChanges.before.add(i + l);
+              unifiedBlocks.push({
+                lineNumber: i + l,
+                content: beforeLines[i + l],
+                type: 'removed',
+                correspondingLine: j,
+                charChanges: [{ value: beforeLines[i + l], type: 'removed' }]
+              });
+            }
+            i += k;
+            matchFound = true;
+            break;
+          } else if (beforeLines[i] === afterLines[j + k]) {
+            // Found match in before lines - mark lines as added
+            for (let l = 0; l < k; l++) {
+              lineChanges.after.add(j + l);
+              unifiedBlocks.push({
+                lineNumber: j + l,
+                content: afterLines[j + l],
+                type: 'added',
+                correspondingLine: i,
+                charChanges: [{ value: afterLines[j + l], type: 'added' }]
+              });
+            }
+            j += k;
+            matchFound = true;
+            break;
+          }
+        }
 
-      // Processar linhas não modificadas
-      const unchangedBlocks = lines.map((line, i) => {
-        const block = {
-          lineNumber: afterLineNumber + i,
-          content: line,
-          type: 'unchanged' as const,
-          correspondingLine: beforeLineNumber + i
-        };
-        return block;
-      });
-      beforeLineNumber += lines.length;
-      afterLineNumber += lines.length;
-      return [...blocks, ...unchangedBlocks];
-    }, []);
+        if (!matchFound) {
+          // No match found - try to find character-level changes
+          if (i < beforeLines.length && j < afterLines.length) {
+            const beforeLine = beforeLines[i];
+            const afterLine = afterLines[j];
+            
+            // Find common prefix and suffix
+            let prefixLength = 0;
+            while (prefixLength < beforeLine.length && 
+                   prefixLength < afterLine.length && 
+                   beforeLine[prefixLength] === afterLine[prefixLength]) {
+              prefixLength++;
+            }
+            
+            let suffixLength = 0;
+            while (suffixLength < beforeLine.length - prefixLength && 
+                   suffixLength < afterLine.length - prefixLength && 
+                   beforeLine[beforeLine.length - 1 - suffixLength] === 
+                   afterLine[afterLine.length - 1 - suffixLength]) {
+              suffixLength++;
+            }
+
+            const prefix = beforeLine.slice(0, prefixLength);
+            const beforeMiddle = beforeLine.slice(prefixLength, beforeLine.length - suffixLength);
+            const afterMiddle = afterLine.slice(prefixLength, afterLine.length - suffixLength);
+            const suffix = beforeLine.slice(beforeLine.length - suffixLength);
+
+            if (beforeMiddle || afterMiddle) {
+              // There are character-level changes
+              if (beforeMiddle) {
+                lineChanges.before.add(i);
+                unifiedBlocks.push({
+                  lineNumber: i,
+                  content: beforeLine,
+                  type: 'removed',
+                  correspondingLine: j,
+                  charChanges: [
+                    { value: prefix, type: 'unchanged' },
+                    { value: beforeMiddle, type: 'removed' },
+                    { value: suffix, type: 'unchanged' }
+                  ]
+                });
+                i++;
+              }
+              if (afterMiddle) {
+                lineChanges.after.add(j);
+                unifiedBlocks.push({
+                  lineNumber: j,
+                  content: afterLine,
+                  type: 'added',
+                  correspondingLine: i - 1,
+                  charChanges: [
+                    { value: prefix, type: 'unchanged' },
+                    { value: afterMiddle, type: 'added' },
+                    { value: suffix, type: 'unchanged' }
+                  ]
+                });
+                j++;
+              }
+            } else {
+              // No character-level changes found, treat as regular line changes
+              if (i < beforeLines.length) {
+                lineChanges.before.add(i);
+                unifiedBlocks.push({
+                  lineNumber: i,
+                  content: beforeLines[i],
+                  type: 'removed',
+                  correspondingLine: j,
+                  charChanges: [{ value: beforeLines[i], type: 'removed' }]
+                });
+                i++;
+              }
+              if (j < afterLines.length) {
+                lineChanges.after.add(j);
+                unifiedBlocks.push({
+                  lineNumber: j,
+                  content: afterLines[j],
+                  type: 'added',
+                  correspondingLine: i - 1,
+                  charChanges: [{ value: afterLines[j], type: 'added' }]
+                });
+                j++;
+              }
+            }
+          } else {
+            // Handle remaining lines
+            if (i < beforeLines.length) {
+              lineChanges.before.add(i);
+              unifiedBlocks.push({
+                lineNumber: i,
+                content: beforeLines[i],
+                type: 'removed',
+                correspondingLine: j,
+                charChanges: [{ value: beforeLines[i], type: 'removed' }]
+              });
+              i++;
+            }
+            if (j < afterLines.length) {
+              lineChanges.after.add(j);
+              unifiedBlocks.push({
+                lineNumber: j,
+                content: afterLines[j],
+                type: 'added',
+                correspondingLine: i - 1,
+                charChanges: [{ value: afterLines[j], type: 'added' }]
+              });
+              j++;
+            }
+          }
+        }
+      }
+    }
+
+    // Sort blocks by line number
+    const processedBlocks = unifiedBlocks.sort((a, b) => a.lineNumber - b.lineNumber);
 
     return {
       beforeLines,
       afterLines,
       hasChanges: lineChanges.before.size > 0 || lineChanges.after.size > 0,
       lineChanges,
-      unifiedBlocks,
+      unifiedBlocks: processedBlocks,
       isBinary: false
     };
   } catch (error) {
@@ -177,8 +299,14 @@ const processChanges = (beforeCode: string, afterCode: string) => {
   }
 };
 
-const lineNumberStyles = "w-12 shrink-0 pl-2 py-0.5 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1";
-const lineContentStyles = "px-4 py-0.5 font-mono whitespace-pre flex-1 group-hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary";
+const lineNumberStyles = "w-9 shrink-0 pl-2 py-1 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1";
+const lineContentStyles = "px-1 py-1 font-mono whitespace-pre flex-1 group-hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary";
+const diffPanelStyles = "h-full overflow-auto diff-panel-content";
+const diffLineStyles = {
+  added: 'bg-green-500/20 border-l-4 border-green-500',
+  removed: 'bg-red-500/20 border-l-4 border-red-500',
+  unchanged: ''
+};
 
 const renderContentWarning = (type: 'binary' | 'error') => (
   <div className="h-full flex items-center justify-center p-4">
@@ -243,13 +371,15 @@ const CodeLine = memo(({
   content, 
   type, 
   highlighter, 
-  language 
+  language,
+  block
 }: {
   lineNumber: number;
   content: string;
   type: 'added' | 'removed' | 'unchanged';
   highlighter: any;
   language: string;
+  block: DiffBlock;
 }) => {
   const bgColor = {
     added: 'bg-green-500/20 border-l-4 border-green-500',
@@ -257,13 +387,42 @@ const CodeLine = memo(({
     unchanged: ''
   }[type];
 
-  const highlightedCode = useMemo(() => {
-    if (!highlighter) return content;
-    return highlighter.codeToHtml(content, { 
-      lang: language, 
-      theme: 'github-dark' 
-    }).replace(/<\/?pre[^>]*>/g, '').replace(/<\/?code[^>]*>/g, '');
-  }, [content, highlighter, language]);
+  const renderContent = () => {
+    if (type === 'unchanged' || !block.charChanges) {
+      const highlightedCode = highlighter ? 
+        highlighter.codeToHtml(content, { lang: language, theme: 'github-dark' })
+          .replace(/<\/?pre[^>]*>/g, '')
+          .replace(/<\/?code[^>]*>/g, '') 
+        : content;
+      return <span dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
+    }
+
+    return (
+      <>
+        {block.charChanges.map((change, index) => {
+          const changeClass = {
+            added: 'text-green-500 bg-green-500/20',
+            removed: 'text-red-500 bg-red-500/20',
+            unchanged: ''
+          }[change.type];
+
+          const highlightedCode = highlighter ? 
+            highlighter.codeToHtml(change.value, { lang: language, theme: 'github-dark' })
+              .replace(/<\/?pre[^>]*>/g, '')
+              .replace(/<\/?code[^>]*>/g, '') 
+            : change.value;
+
+          return (
+            <span 
+              key={index} 
+              className={changeClass}
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+          );
+        })}
+      </>
+    );
+  };
 
   return (
     <div className="flex group min-w-fit">
@@ -274,7 +433,7 @@ const CodeLine = memo(({
           {type === 'removed' && '-'}
           {type === 'unchanged' && ' '}
         </span>
-        <span dangerouslySetInnerHTML={{ __html: highlightedCode }} />
+        {renderContent()}
       </div>
     </div>
   );
@@ -380,9 +539,9 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, 
           beforeCode={beforeCode}
           afterCode={afterCode}
         />
-        <div className="flex-1 overflow-auto diff-panel-content">
+        <div className={diffPanelStyles}>
           {hasChanges ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto min-w-full">
               {unifiedBlocks.map((block, index) => (
                 <CodeLine
                   key={`${block.lineNumber}-${index}`}
@@ -391,97 +550,9 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, 
                   type={block.type}
                   highlighter={highlighter}
                   language={language}
+                  block={block}
                 />
               ))}
-            </div>
-          ) : (
-            <NoChangesView 
-              beforeCode={beforeCode}
-              language={language}
-              highlighter={highlighter}
-            />
-          )}
-        </div>
-      </div>
-    </FullscreenOverlay>
-  );
-});
-
-const SideBySideComparison = memo(({
-  beforeCode,
-  afterCode,
-  language,
-  filename,
-  lightTheme,
-  darkTheme,
-}: CodeComparisonProps) => {
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [highlighter, setHighlighter] = useState<any>(null);
-  
-  const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev);
-  }, []);
-
-  const { beforeLines, afterLines, hasChanges, lineChanges, isBinary, error } = useProcessChanges(beforeCode, afterCode);
-
-  useEffect(() => {
-    getHighlighter({
-      themes: ['github-dark'],
-      langs: ['typescript', 'javascript', 'json', 'html', 'css', 'jsx', 'tsx']
-    }).then(setHighlighter);
-  }, []);
-
-  if (isBinary || error) return renderContentWarning(isBinary ? 'binary' : 'error');
-
-  const renderCode = (code: string) => {
-    if (!highlighter) return code;
-    const highlightedCode = highlighter.codeToHtml(code, { 
-      lang: language, 
-      theme: 'github-dark' 
-    });
-    return highlightedCode.replace(/<\/?pre[^>]*>/g, '').replace(/<\/?code[^>]*>/g, '');
-  };
-
-  return (
-    <FullscreenOverlay isFullscreen={isFullscreen}>
-      <div className="w-full h-full flex flex-col">
-        <FileInfo 
-          filename={filename}
-          hasChanges={hasChanges}
-          onToggleFullscreen={toggleFullscreen}
-          isFullscreen={isFullscreen}
-          beforeCode={beforeCode}
-          afterCode={afterCode}
-        />
-        <div className="flex-1 overflow-auto diff-panel-content">
-          {hasChanges ? (
-            <div className="grid md:grid-cols-2 divide-x divide-bolt-elements-borderColor relative h-full">
-              <div className="overflow-auto">
-                {beforeLines.map((line, index) => (
-                  <div key={`before-${index}`} className="flex group min-w-fit">
-                    <div className={lineNumberStyles}>{index + 1}</div>
-                    <div className={`${lineContentStyles} ${lineChanges.before.has(index) ? 'bg-red-500/20 border-l-4 border-red-500' : ''}`}>
-                      <span className="mr-2 text-bolt-elements-textTertiary">
-                        {lineChanges.before.has(index) ? '-' : ' '}
-                      </span>
-                      <span dangerouslySetInnerHTML={{ __html: renderCode(line) }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="overflow-auto">
-                {afterLines.map((line, index) => (
-                  <div key={`after-${index}`} className="flex group min-w-fit">
-                    <div className={lineNumberStyles}>{index + 1}</div>
-                    <div className={`${lineContentStyles} ${lineChanges.after.has(index) ? 'bg-green-500/20 border-l-4 border-green-500' : ''}`}>
-                      <span className="mr-2 text-bolt-elements-textTertiary">
-                        {lineChanges.after.has(index) ? '+' : ' '}
-                      </span>
-                      <span dangerouslySetInnerHTML={{ __html: renderCode(line) }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           ) : (
             <NoChangesView 
@@ -499,11 +570,10 @@ const SideBySideComparison = memo(({
 interface DiffViewProps {
   fileHistory: Record<string, FileHistory>;
   setFileHistory: React.Dispatch<React.SetStateAction<Record<string, FileHistory>>>;
-  diffViewMode: 'inline' | 'side';
   actionRunner: ActionRunner;
 }
 
-export const DiffView = memo(({ fileHistory, setFileHistory, diffViewMode, actionRunner }: DiffViewProps) => {
+export const DiffView = memo(({ fileHistory, setFileHistory, actionRunner }: DiffViewProps) => {
   const files = useStore(workbenchStore.files) as FileMap;
   const selectedFile = useStore(workbenchStore.selectedFile);
   const currentDocument = useStore(workbenchStore.currentDocument) as EditorDocument;
@@ -612,25 +682,14 @@ export const DiffView = memo(({ fileHistory, setFileHistory, diffViewMode, actio
   try {
     return (
       <div className="h-full overflow-hidden">
-        {diffViewMode === 'inline' ? (
-          <InlineDiffComparison
-            beforeCode={effectiveOriginalContent}
-            afterCode={currentContent}
-            language={language}
-            filename={selectedFile}
-            lightTheme="github-light"
-            darkTheme="github-dark"
-          />
-        ) : (
-          <SideBySideComparison
-            beforeCode={effectiveOriginalContent}
-            afterCode={currentContent}
-            language={language}
-            filename={selectedFile}
-            lightTheme="github-light"
-            darkTheme="github-dark"
-          />
-        )}
+        <InlineDiffComparison
+          beforeCode={effectiveOriginalContent}
+          afterCode={currentContent}
+          language={language}
+          filename={selectedFile}
+          lightTheme="github-light"
+          darkTheme="github-dark"
+        />
       </div>
     );
   } catch (error) {

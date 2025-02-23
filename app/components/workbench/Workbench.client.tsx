@@ -74,13 +74,9 @@ const workbenchVariants = {
 const FileModifiedDropdown = memo(({
   fileHistory,
   onSelectFile,
-  diffViewMode,
-  toggleDiffViewMode,
 }: {
   fileHistory: Record<string, FileHistory>,
   onSelectFile: (filePath: string) => void,
-  diffViewMode: 'inline' | 'side',
-  toggleDiffViewMode: () => void,
 }) => {
   const modifiedFiles = Object.entries(fileHistory);
   const hasChanges = modifiedFiles.length > 0;
@@ -251,12 +247,6 @@ const FileModifiedDropdown = memo(({
           </>
         )}
       </Popover>
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleDiffViewMode(); }}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-textPrimary border border-bolt-elements-borderColor"
-      >
-        <span className="font-medium">{diffViewMode === 'inline' ? 'Inline' : 'Side by Side'}</span>
-      </button>
     </div>
   );
 });
@@ -272,7 +262,6 @@ export const Workbench = memo(({
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
-  const [diffViewMode, setDiffViewMode] = useState<'inline' | 'side'>('inline');
   const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
 
   const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
@@ -343,10 +332,6 @@ export const Workbench = memo(({
     workbenchStore.currentView.set('diff');
   }, []);
 
-  const toggleDiffViewMode = useCallback(() => {
-    setDiffViewMode(prev => prev === 'inline' ? 'side' : 'inline');
-  }, []);
-
   return (
     chatStarted && (
       <motion.div
@@ -405,8 +390,6 @@ export const Workbench = memo(({
                   <FileModifiedDropdown
                     fileHistory={fileHistory}
                     onSelectFile={handleSelectFile}
-                    diffViewMode={diffViewMode}
-                    toggleDiffViewMode={toggleDiffViewMode}
                   />
                 )}
                 <IconButton
@@ -444,7 +427,6 @@ export const Workbench = memo(({
                   <DiffView 
                     fileHistory={fileHistory}
                     setFileHistory={setFileHistory}
-                    diffViewMode={diffViewMode}
                     actionRunner={actionRunner}
                   />
                 </View>
