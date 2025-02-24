@@ -10,6 +10,7 @@ import { diffFiles, extractRelativePath } from '~/utils/diff';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { FileHistory } from '~/types/actions';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
+import { themeStore } from '~/lib/stores/theme';
 
 interface CodeComparisonProps {
   beforeCode: string;
@@ -302,10 +303,18 @@ const processChanges = (beforeCode: string, afterCode: string) => {
 const lineNumberStyles = "w-9 shrink-0 pl-2 py-1 text-left font-mono text-bolt-elements-textTertiary border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-1";
 const lineContentStyles = "px-1 py-1 font-mono whitespace-pre flex-1 group-hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary";
 const diffPanelStyles = "h-full overflow-auto diff-panel-content";
+
+// Updated color styles for better consistency
 const diffLineStyles = {
-  added: 'bg-green-500/20 border-l-4 border-green-500',
-  removed: 'bg-red-500/20 border-l-4 border-red-500',
+  added: 'bg-green-500/10 dark:bg-green-500/20 border-l-4 border-green-500',
+  removed: 'bg-red-500/10 dark:bg-red-500/20 border-l-4 border-red-500',
   unchanged: ''
+};
+
+const changeColorStyles = {
+  added: 'text-green-700 dark:text-green-500 bg-green-500/10 dark:bg-green-500/20',
+  removed: 'text-red-700 dark:text-red-500 bg-red-500/10 dark:bg-red-500/20',
+  unchanged: 'text-bolt-elements-textPrimary'
 };
 
 const renderContentWarning = (type: 'binary' | 'error') => (
@@ -324,10 +333,11 @@ const renderContentWarning = (type: 'binary' | 'error') => (
   </div>
 );
 
-const NoChangesView = memo(({ beforeCode, language, highlighter }: { 
+const NoChangesView = memo(({ beforeCode, language, highlighter, theme }: { 
   beforeCode: string;
   language: string;
   highlighter: any;
+  theme: string;
 }) => (
   <div className="h-full flex flex-col items-center justify-center p-4">
     <div className="text-center text-bolt-elements-textTertiary">
@@ -347,7 +357,7 @@ const NoChangesView = memo(({ beforeCode, language, highlighter }: {
               <span className="mr-2"> </span>
               <span dangerouslySetInnerHTML={{ 
                 __html: highlighter ? 
-                  highlighter.codeToHtml(line, { lang: language, theme: 'github-dark' })
+                  highlighter.codeToHtml(line, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
                     .replace(/<\/?pre[^>]*>/g, '')
                     .replace(/<\/?code[^>]*>/g, '') 
                   : line 
@@ -372,7 +382,8 @@ const CodeLine = memo(({
   type, 
   highlighter, 
   language,
-  block
+  block,
+  theme
 }: {
   lineNumber: number;
   content: string;
@@ -380,17 +391,14 @@ const CodeLine = memo(({
   highlighter: any;
   language: string;
   block: DiffBlock;
+  theme: string;
 }) => {
-  const bgColor = {
-    added: 'bg-green-500/20 border-l-4 border-green-500',
-    removed: 'bg-red-500/20 border-l-4 border-red-500',
-    unchanged: ''
-  }[type];
+  const bgColor = diffLineStyles[type];
 
   const renderContent = () => {
     if (type === 'unchanged' || !block.charChanges) {
       const highlightedCode = highlighter ? 
-        highlighter.codeToHtml(content, { lang: language, theme: 'github-dark' })
+        highlighter.codeToHtml(content, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
           .replace(/<\/?pre[^>]*>/g, '')
           .replace(/<\/?code[^>]*>/g, '') 
         : content;
@@ -400,14 +408,10 @@ const CodeLine = memo(({
     return (
       <>
         {block.charChanges.map((change, index) => {
-          const changeClass = {
-            added: 'text-green-500 bg-green-500/20',
-            removed: 'text-red-500 bg-red-500/20',
-            unchanged: ''
-          }[change.type];
+          const changeClass = changeColorStyles[change.type];
 
           const highlightedCode = highlighter ? 
-            highlighter.codeToHtml(change.value, { lang: language, theme: 'github-dark' })
+            highlighter.codeToHtml(change.value, { lang: language, theme: theme === 'dark' ? 'github-dark' : 'github-light' })
               .replace(/<\/?pre[^>]*>/g, '')
               .replace(/<\/?code[^>]*>/g, '') 
             : change.value;
@@ -429,8 +433,8 @@ const CodeLine = memo(({
       <div className={lineNumberStyles}>{lineNumber + 1}</div>
       <div className={`${lineContentStyles} ${bgColor}`}>
         <span className="mr-2 text-bolt-elements-textTertiary">
-          {type === 'added' && '+'}
-          {type === 'removed' && '-'}
+          {type === 'added' && <span className="text-green-700 dark:text-green-500">+</span>}
+          {type === 'removed' && <span className="text-red-700 dark:text-red-500">-</span>}
           {type === 'unchanged' && ' '}
         </span>
         {renderContent()}
@@ -488,20 +492,20 @@ const FileInfo = memo(({
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
                 {additions > 0 && (
-                  <span className="text-green-500">+{additions}</span>
+                  <span className="text-green-700 dark:text-green-500">+{additions}</span>
                 )}
                 {deletions > 0 && (
-                  <span className="text-red-500">-{deletions}</span>
+                  <span className="text-red-700 dark:text-red-500">-{deletions}</span>
                 )}
               </div>
             )}
-            <span className="text-yellow-400">Modified</span>
+            <span className="text-yellow-600 dark:text-yellow-400">Modified</span>
             <span className="text-bolt-elements-textTertiary text-xs">
               {new Date().toLocaleTimeString()}
             </span>
           </>
         ) : (
-          <span className="text-green-400">No Changes</span>
+          <span className="text-green-700 dark:text-green-400">No Changes</span>
         )}
         <FullscreenButton onClick={onToggleFullscreen} isFullscreen={isFullscreen} />
       </span>
@@ -512,6 +516,7 @@ const FileInfo = memo(({
 const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, lightTheme, darkTheme }: CodeComparisonProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlighter, setHighlighter] = useState<any>(null);
+  const theme = useStore(themeStore);
   
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(prev => !prev);
@@ -521,7 +526,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, 
 
   useEffect(() => {
     getHighlighter({
-      themes: ['github-dark'],
+      themes: ['github-dark', 'github-light'],
       langs: ['typescript', 'javascript', 'json', 'html', 'css', 'jsx', 'tsx']
     }).then(setHighlighter);
   }, []);
@@ -551,6 +556,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, 
                   highlighter={highlighter}
                   language={language}
                   block={block}
+                  theme={theme}
                 />
               ))}
             </div>
@@ -559,6 +565,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language, 
               beforeCode={beforeCode}
               language={language}
               highlighter={highlighter}
+              theme={theme}
             />
           )}
         </div>
