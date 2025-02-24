@@ -553,4 +553,3 @@ export function GithubConnection() {
     </motion.div>
   );
 }
-                    

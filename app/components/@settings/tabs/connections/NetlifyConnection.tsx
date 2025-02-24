@@ -28,7 +28,7 @@ export function NetlifyConnection() {
 
       const sitesResponse = await fetch('https://api.netlify.com/api/v1/sites', {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -37,8 +37,8 @@ export function NetlifyConnection() {
         throw new Error(`Failed to fetch sites: ${sitesResponse.status}`);
       }
 
-      const sites = await sitesResponse.json() as NetlifySite[];
-      
+      const sites = (await sitesResponse.json()) as NetlifySite[];
+
       const currentState = netlifyConnection.get();
       updateNetlifyConnection({
         ...currentState,
@@ -63,7 +63,7 @@ export function NetlifyConnection() {
     try {
       const response = await fetch('https://api.netlify.com/api/v1/user', {
         headers: {
-          'Authorization': `Bearer ${connection.token}`,
+          Authorization: `Bearer ${connection.token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -72,12 +72,12 @@ export function NetlifyConnection() {
         throw new Error('Invalid token or unauthorized');
       }
 
-      const userData = await response.json() as NetlifyUser;
+      const userData = (await response.json()) as NetlifyUser;
       updateNetlifyConnection({
         user: userData,
         token: connection.token,
       });
-      
+
       await fetchNetlifyStats(connection.token);
       toast.success('Successfully connected to Netlify');
     } catch (error) {
@@ -105,7 +105,13 @@ export function NetlifyConnection() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img className='w-5 h-5' height="24" width="24" crossOrigin='anonymous' src="https://cdn.simpleicons.org/netlify" />
+            <img
+              className="w-5 h-5"
+              height="24"
+              width="24"
+              crossOrigin="anonymous"
+              src="https://cdn.simpleicons.org/netlify"
+            />
             <h3 className="text-base font-medium text-bolt-elements-textPrimary">Netlify Connection</h3>
           </div>
         </div>
@@ -113,9 +119,7 @@ export function NetlifyConnection() {
         {!connection.user ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-bolt-elements-textSecondary mb-2">
-                Personal Access Token
-              </label>
+              <label className="block text-sm text-bolt-elements-textSecondary mb-2">Personal Access Token</label>
               <input
                 type="password"
                 value={connection.token}
@@ -190,12 +194,12 @@ export function NetlifyConnection() {
             </div>
 
             <div className="flex items-center gap-4 p-4 bg-[#F8F8F8] dark:bg-[#1A1A1A] rounded-lg">
-              <img 
-                src={connection.user.avatar_url} 
-                referrerPolicy='no-referrer' 
-                crossOrigin="anonymous" 
-                alt={connection.user.full_name} 
-                className="w-12 h-12 rounded-full border-2 border-[#00AD9F]" 
+              <img
+                src={connection.user.avatar_url}
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                alt={connection.user.full_name}
+                className="w-12 h-12 rounded-full border-2 border-[#00AD9F]"
               />
               <div>
                 <h4 className="text-sm font-medium text-bolt-elements-textPrimary">{connection.user.full_name}</h4>
@@ -231,7 +235,12 @@ export function NetlifyConnection() {
                               {site.name}
                             </h5>
                             <div className="flex items-center gap-2 mt-2 text-xs text-bolt-elements-textSecondary">
-                              <a href={site.url} target="_blank" rel="noopener noreferrer" className="hover:text-[#00AD9F]">
+                              <a
+                                href={site.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:text-[#00AD9F]"
+                              >
                                 {site.url}
                               </a>
                               {site.published_deploy && (

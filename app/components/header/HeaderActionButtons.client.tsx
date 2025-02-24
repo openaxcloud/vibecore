@@ -16,7 +16,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const { showChat } = useStore(chatStore);
   const connection = useStore(netlifyConnection);
-  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
@@ -31,26 +31,27 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
     try {
       setIsDeploying(true);
+
       const artifact = workbenchStore.firstArtifact;
-      
+
       if (!artifact) {
         throw new Error('No active project found');
       }
 
       const actionId = 'build-' + Date.now();
       const actionData: ActionCallbackData = {
-        messageId: "netlify build",
+        messageId: 'netlify build',
         artifactId: artifact.id,
         actionId,
         action: {
           type: 'build' as const,
           content: 'npm run build',
-        }
+        },
       };
 
       // Add the action first
       artifact.runner.addAction(actionData);
-      
+
       // Then run it
       await artifact.runner.runAction(actionData);
 
@@ -60,17 +61,21 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       // Get the build files
       const container = await webcontainer;
+
       // Remove /home/project from buildPath if it exists
       const buildPath = artifact.runner.buildOutput.path.replace('/home/project', '');
+
       // Get all files recursively
       async function getAllFiles(dirPath: string): Promise<Record<string, string>> {
         const files: Record<string, string> = {};
         const entries = await container.fs.readdir(dirPath, { withFileTypes: true });
-        
+
         for (const entry of entries) {
           const fullPath = path.join(dirPath, entry.name);
+
           if (entry.isFile()) {
             const content = await container.fs.readFile(fullPath, 'utf-8');
+
             // Remove /dist prefix from the path
             const deployPath = fullPath.replace(buildPath, '');
             files[deployPath] = content;
@@ -79,7 +84,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             Object.assign(files, subFiles);
           }
         }
-        
+
         return files;
       }
 
@@ -96,12 +101,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           siteId: existingSiteId || undefined,
           files: fileContents,
           token: connection.token,
-          chatId: artifact.id
+          chatId: artifact.id,
         }),
       });
 
-      const data = await response.json() as any;
-      
+      const data = (await response.json()) as any;
+
       if (!response.ok || !data.deploy || !data.site) {
         console.error('Invalid deploy response:', data);
         throw new Error(data.error || 'Invalid deployment response');
@@ -114,35 +119,38 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       while (attempts < maxAttempts) {
         try {
-          const statusResponse = await fetch(`https://api.netlify.com/api/v1/sites/${data.site.id}/deploys/${data.deploy.id}`, {
-            headers: {
-              'Authorization': `Bearer ${connection.token}`,
+          const statusResponse = await fetch(
+            `https://api.netlify.com/api/v1/sites/${data.site.id}/deploys/${data.deploy.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${connection.token}`,
+              },
             },
-          });
-          
-          deploymentStatus = await statusResponse.json() as any;
-          
+          );
+
+          deploymentStatus = (await statusResponse.json()) as any;
+
           if (deploymentStatus.state === 'ready' || deploymentStatus.state === 'uploaded') {
             break;
           }
-          
+
           if (deploymentStatus.state === 'error') {
             throw new Error('Deployment failed: ' + (deploymentStatus.error_message || 'Unknown error'));
           }
-          
+
           attempts++;
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (error) {
           console.error('Status check error:', error);
           attempts++;
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
       }
 
       if (attempts >= maxAttempts) {
         throw new Error('Deployment timed out');
       }
-      
+
       // Store the site ID if it's a new site
       if (data.site) {
         localStorage.setItem(`netlify-site-${artifact.id}`, data.site.id);
@@ -151,15 +159,15 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       toast.success(
         <div>
           Deployed successfully!{' '}
-          <a 
-            href={deploymentStatus.ssl_url || deploymentStatus.url} 
-            target="_blank" 
+          <a
+            href={deploymentStatus.ssl_url || deploymentStatus.url}
+            target="_blank"
             rel="noopener noreferrer"
             className="underline"
           >
             View site
           </a>
-        </div>
+        </div>,
       );
     } catch (error) {
       console.error('Deploy error:', error);
@@ -172,11 +180,11 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   return (
     <div className="flex">
       <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
-        <Button 
-          active 
+        <Button
+          active
           disabled={isDeploying || !activePreview}
           onClick={handleDeploy}
-          className='px-4 hover:bg-bolt-elements-item-backgroundActive'
+          className="px-4 hover:bg-bolt-elements-item-backgroundActive"
         >
           {isDeploying ? 'Deploying...' : 'Deploy'}
         </Button>
@@ -222,15 +230,17 @@ interface ButtonProps {
 function Button({ active = false, disabled = false, children, onClick, className }: ButtonProps) {
   return (
     <button
-      className={classNames('flex items-center p-1.5', {
-        'bg-bolt-elements-item-backgroundDefault hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary':
-          !active,
-        'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': active && !disabled,
-        'bg-bolt-elements-item-backgroundDefault text-alpha-gray-20 dark:text-alpha-white-20 cursor-not-allowed':
-          disabled,
-      },
-      className
-    )}
+      className={classNames(
+        'flex items-center p-1.5',
+        {
+          'bg-bolt-elements-item-backgroundDefault hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary':
+            !active,
+          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': active && !disabled,
+          'bg-bolt-elements-item-backgroundDefault text-alpha-gray-20 dark:text-alpha-white-20 cursor-not-allowed':
+            disabled,
+        },
+        className,
+      )}
       onClick={onClick}
     >
       {children}

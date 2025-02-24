@@ -159,6 +159,7 @@ export class ActionRunner {
         }
         case 'build': {
           const buildOutput = await this.#runBuildAction(action);
+
           // Store build output for deployment
           this.buildOutput = buildOutput;
           break;
@@ -318,16 +319,17 @@ export class ActionRunner {
     }
 
     const webcontainer = await this.#webcontainer;
+
     // Create a new terminal specifically for the build
     const buildProcess = await webcontainer.spawn('npm', ['run', 'build']);
-    
+
     let output = '';
     buildProcess.output.pipeTo(
       new WritableStream({
         write(data) {
           output += data;
         },
-      })
+      }),
     );
 
     const exitCode = await buildProcess.exit;
@@ -342,7 +344,7 @@ export class ActionRunner {
     return {
       path: buildDir,
       exitCode,
-      output
+      output,
     };
   }
 }

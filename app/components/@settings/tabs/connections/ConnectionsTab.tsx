@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { logStore } from '~/lib/stores/logs';
-import { classNames } from '~/utils/classNames';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { GithubConnection } from './GithubConnection';
@@ -74,8 +73,6 @@ export default function ConnectionsTab() {
     tokenType: 'classic',
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isFetchingStats, setIsFetchingStats] = useState(false);
 
   // Load saved connection on mount
   useEffect(() => {
@@ -101,8 +98,6 @@ export default function ConnectionsTab() {
 
   const fetchGitHubStats = async (token: string) => {
     try {
-      setIsFetchingStats(true);
-
       // Fetch repositories - only owned by the authenticated user
       const reposResponse = await fetch(
         'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner,organization_member,collaborator',
@@ -184,57 +179,7 @@ export default function ConnectionsTab() {
       logStore.logError('Failed to fetch GitHub stats', { error });
       toast.error('Failed to fetch GitHub statistics');
     } finally {
-      setIsFetchingStats(false);
     }
-  };
-
-  const fetchGithubUser = async (token: string) => {
-    try {
-      setIsConnecting(true);
-
-      const response = await fetch('https://api.github.com/user', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Invalid token or unauthorized');
-      }
-
-      const data = (await response.json()) as GitHubUserResponse;
-      const newConnection: GitHubConnection = {
-        user: data,
-        token,
-        tokenType: connection.tokenType,
-      };
-
-      // Save connection
-      localStorage.setItem('github_connection', JSON.stringify(newConnection));
-      setConnection(newConnection);
-
-      // Fetch additional stats
-      await fetchGitHubStats(token);
-
-      toast.success('Successfully connected to GitHub');
-    } catch (error) {
-      logStore.logError('Failed to authenticate with GitHub', { error });
-      toast.error('Failed to connect to GitHub');
-      setConnection({ user: null, token: '', tokenType: 'classic' });
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const handleConnect = async (event: React.FormEvent) => {
-    event.preventDefault();
-    await fetchGithubUser(connection.token);
-  };
-
-  const handleDisconnect = () => {
-    localStorage.removeItem('github_connection');
-    setConnection({ user: null, token: '', tokenType: 'classic' });
-    toast.success('Disconnected from GitHub');
   };
 
   if (isLoading) {
@@ -259,9 +204,9 @@ export default function ConnectionsTab() {
 
       <div className="grid grid-cols-1 gap-4">
         {/* GitHub Connection */}
-        <GithubConnection/>
+        <GithubConnection />
         {/* Netlify Connection */}
-        <NetlifyConnection/>
+        <NetlifyConnection />
       </div>
     </div>
   );
