@@ -4,8 +4,14 @@ import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
-import { netlifyConnection, isConnecting, isFetchingStats, updateNetlifyConnection } from '~/lib/stores/netlify';
-import type { NetlifyUser, NetlifySite } from '~/types/netlify';
+import {
+  netlifyConnection,
+  isConnecting,
+  isFetchingStats,
+  updateNetlifyConnection,
+  fetchNetlifyStats,
+} from '~/lib/stores/netlify';
+import type { NetlifyUser } from '~/types/netlify';
 
 export function NetlifyConnection() {
   const connection = useStore(netlifyConnection);
@@ -21,40 +27,6 @@ export function NetlifyConnection() {
     };
     fetchSites();
   }, [connection.user, connection.token]);
-
-  const fetchNetlifyStats = async (token: string) => {
-    try {
-      isFetchingStats.set(true);
-
-      const sitesResponse = await fetch('https://api.netlify.com/api/v1/sites', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!sitesResponse.ok) {
-        throw new Error(`Failed to fetch sites: ${sitesResponse.status}`);
-      }
-
-      const sites = (await sitesResponse.json()) as NetlifySite[];
-
-      const currentState = netlifyConnection.get();
-      updateNetlifyConnection({
-        ...currentState,
-        stats: {
-          sites,
-          totalSites: sites.length,
-        },
-      });
-    } catch (error) {
-      console.error('Netlify API Error:', error);
-      logStore.logError('Failed to fetch Netlify stats', { error });
-      toast.error('Failed to fetch Netlify statistics');
-    } finally {
-      isFetchingStats.set(false);
-    }
-  };
 
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();

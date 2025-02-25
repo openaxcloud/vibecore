@@ -73,22 +73,13 @@ export function GithubConnection() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({
-    organizations: false,
-    languages: false,
-    recentActivity: false,
-    repositories: false,
-  });
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+  const [isFetchingStats, setIsFetchingStats] = useState(false);
+  const [isStatsExpanded, setIsStatsExpanded] = useState(false);
 
   const fetchGitHubStats = async (token: string) => {
     try {
+      setIsFetchingStats(true);
+
       const reposResponse = await fetch(
         'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner,organization_member,collaborator',
         {
@@ -165,6 +156,7 @@ export function GithubConnection() {
       logStore.logError('Failed to fetch GitHub stats', { error });
       toast.error('Failed to fetch GitHub statistics');
     } finally {
+      setIsFetchingStats(false);
     }
   };
 
@@ -188,7 +180,7 @@ export function GithubConnection() {
     setIsLoading(false);
   }, []);
 
-  if (isLoading) {
+  if (isLoading || isConnecting || isFetchingStats) {
     return <LoadingSpinner />;
   }
 
@@ -350,7 +342,7 @@ export function GithubConnection() {
                 'hover:bg-red-600',
               )}
             >
-              <div className="i-ph:plug w-4 h-4" />
+              <div className="i-ph:plug-x w-4 h-4" />
               Disconnect
             </button>
           )}
@@ -365,161 +357,144 @@ export function GithubConnection() {
 
         {connection.user && connection.stats && (
           <div className="mt-6 border-t border-[#E5E5E5] dark:border-[#1A1A1A] pt-6">
-            <div className="flex items-center gap-4 mb-6">
-              <img src={connection.user.avatar_url} alt={connection.user.login} className="w-16 h-16 rounded-full" />
-              <div>
-                <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
-                  {connection.user.name || connection.user.login}
-                </h3>
-                {connection.user.bio && (
-                  <p className="text-sm text-bolt-elements-textSecondary">{connection.user.bio}</p>
-                )}
-                <div className="flex gap-4 mt-2 text-sm text-bolt-elements-textSecondary">
-                  <span className="flex items-center gap-1">
-                    <div className="i-ph:users w-4 h-4" />
-                    {connection.user.followers} followers
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="i-ph:book-bookmark w-4 h-4" />
-                    {connection.user.public_repos} public repos
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="i-ph:star w-4 h-4" />
-                    {connection.stats.totalStars} stars
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <div className="i-ph:git-fork w-4 h-4" />
-                    {connection.stats.totalForks} forks
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Organizations Section */}
-            {connection.stats.organizations.length > 0 && (
-              <div className="space-y-3">
-                <button
-                  onClick={() => toggleSection('organizations')}
-                  className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
-                >
-                  <div className="i-ph:buildings w-4 h-4" />
-                  Organizations ({connection.stats.organizations.length})
-                  <div
-                    className={classNames(
-                      'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                      expandedSections.organizations ? 'rotate-180' : '',
-                    )}
-                  />
-                </button>
-                {expandedSections.organizations && (
-                  <div className="flex flex-wrap gap-3 pb-4">
-                    {connection.stats.organizations.map((org) => (
-                      <a
-                        key={org.login}
-                        href={org.html_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 p-2 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] hover:bg-[#F0F0F0] dark:hover:bg-[#252525] transition-colors"
-                      >
-                        <img src={org.avatar_url} alt={org.login} className="w-6 h-6 rounded-md" />
-                        <span className="text-sm text-bolt-elements-textPrimary">{org.login}</span>
-                      </a>
-                    ))}
+            <button onClick={() => setIsStatsExpanded(!isStatsExpanded)} className="w-full bg-transparent">
+              <div className="flex items-center gap-4">
+                <img src={connection.user.avatar_url} alt={connection.user.login} className="w-16 h-16 rounded-full" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.user.name || connection.user.login}
+                    </h3>
+                    <div
+                      className={classNames(
+                        'i-ph:caret-down w-4 h-4 text-bolt-elements-textSecondary transition-transform',
+                        isStatsExpanded ? 'rotate-180' : '',
+                      )}
+                    />
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Languages Section */}
-            <div className="space-y-3">
-              <button
-                onClick={() => toggleSection('languages')}
-                className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
-              >
-                <div className="i-ph:code w-4 h-4" />
-                Top Languages ({Object.keys(connection.stats.languages).length})
-                <div
-                  className={classNames(
-                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                    expandedSections.languages ? 'rotate-180' : '',
+                  {connection.user.bio && (
+                    <p className="text-sm text-start text-bolt-elements-textSecondary">{connection.user.bio}</p>
                   )}
-                />
-              </button>
-              {expandedSections.languages && (
-                <div className="flex flex-wrap gap-2 pb-4">
-                  {Object.entries(connection.stats.languages)
-                    .sort(([, a], [, b]) => b - a)
-                    .slice(0, 5)
-                    .map(([language]) => (
-                      <span
-                        key={language}
-                        className="px-3 py-1 text-xs rounded-full bg-purple-500/10 text-purple-500 dark:bg-purple-500/20"
-                      >
-                        {language}
-                      </span>
-                    ))}
+                  <div className="flex gap-4 mt-2 text-sm text-bolt-elements-textSecondary">
+                    <span className="flex items-center gap-1">
+                      <div className="i-ph:users w-4 h-4" />
+                      {connection.user.followers} followers
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="i-ph:book-bookmark w-4 h-4" />
+                      {connection.user.public_repos} public repos
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="i-ph:star w-4 h-4" />
+                      {connection.stats.totalStars} stars
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <div className="i-ph:git-fork w-4 h-4" />
+                      {connection.stats.totalForks} forks
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            </button>
 
-            {/* Recent Activity Section */}
-            <div className="space-y-3">
-              <button
-                onClick={() => toggleSection('recentActivity')}
-                className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
-              >
-                <div className="i-ph:activity w-4 h-4" />
-                Recent Activity ({connection.stats.recentActivity.length})
-                <div
-                  className={classNames(
-                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                    expandedSections.recentActivity ? 'rotate-180' : '',
-                  )}
-                />
-              </button>
-              {expandedSections.recentActivity && (
-                <div className="space-y-3 pb-4">
-                  {connection.stats.recentActivity.map((event) => (
-                    <div key={event.id} className="p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] text-sm">
-                      <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
-                        <div className="i-ph:git-commit w-4 h-4 text-bolt-elements-textSecondary" />
-                        <span className="font-medium">{event.type.replace('Event', '')}</span>
-                        <span>on</span>
+            {isStatsExpanded && (
+              <div className="pt-4">
+                {connection.stats.organizations.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Organizations</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {connection.stats.organizations.map((org) => (
                         <a
-                          href={`https://github.com/${event.repo.name}`}
+                          key={org.login}
+                          href={org.html_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-purple-500 hover:underline"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] hover:bg-[#F0F0F0] dark:hover:bg-[#252525] transition-colors"
                         >
-                          {event.repo.name}
+                          <img src={org.avatar_url} alt={org.login} className="w-6 h-6 rounded-md" />
+                          <span className="text-sm text-bolt-elements-textPrimary">{org.login}</span>
                         </a>
-                      </div>
-                      <div className="mt-1 text-xs text-bolt-elements-textSecondary">
-                        {new Date(event.created_at).toLocaleDateString()} at{' '}
-                        {new Date(event.created_at).toLocaleTimeString()}
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
 
-            {/* Repositories Section */}
-            <div className="space-y-3">
-              <button
-                onClick={() => toggleSection('repositories')}
-                className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
-              >
-                <div className="i-ph:clock-counter-clockwise w-4 h-4" />
-                Recent Repositories ({connection.stats.repos.length})
-                <div
-                  className={classNames(
-                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
-                    expandedSections.repositories ? 'rotate-180' : '',
-                  )}
-                />
-              </button>
-              {expandedSections.repositories && (
+                {/* Languages Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Top Languages</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(connection.stats.languages)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([language]) => (
+                        <span
+                          key={language}
+                          className="px-3 py-1 text-xs rounded-full bg-purple-500/10 text-purple-500 dark:bg-purple-500/20"
+                        >
+                          {language}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Recent Activity Section */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Activity</h4>
+                  <div className="space-y-3">
+                    {connection.stats.recentActivity.map((event) => (
+                      <div key={event.id} className="p-3 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A] text-sm">
+                        <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
+                          <div className="i-ph:git-commit w-4 h-4 text-bolt-elements-textSecondary" />
+                          <span className="font-medium">{event.type.replace('Event', '')}</span>
+                          <span>on</span>
+                          <a
+                            href={`https://github.com/${event.repo.name}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-500 hover:underline"
+                          >
+                            {event.repo.name}
+                          </a>
+                        </div>
+                        <div className="mt-1 text-xs text-bolt-elements-textSecondary">
+                          {new Date(event.created_at).toLocaleDateString()} at{' '}
+                          {new Date(event.created_at).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Stats */}
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Member Since</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {new Date(connection.user.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Public Gists</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.stats.totalGists}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Organizations</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {connection.stats.organizations.length}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-[#F8F8F8] dark:bg-[#1A1A1A]">
+                    <div className="text-sm text-bolt-elements-textSecondary">Languages</div>
+                    <div className="text-lg font-medium text-bolt-elements-textPrimary">
+                      {Object.keys(connection.stats.languages).length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Repositories Section */}
+                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3">Recent Repositories</h4>
                 <div className="space-y-3">
                   {connection.stats.repos.map((repo) => (
                     <a
@@ -561,8 +536,8 @@ export function GithubConnection() {
                     </a>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>

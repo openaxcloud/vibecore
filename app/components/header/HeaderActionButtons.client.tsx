@@ -10,6 +10,8 @@ import { path } from '~/utils/path';
 import { useEffect, useRef, useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory'; // Add this import
+import { streamingState } from '~/lib/stores/streaming';
+import { NetlifyDeploymentLink } from '~/components/chat/NetlifyDeploymentLink.client';
 
 interface HeaderActionButtonsProps {}
 
@@ -25,6 +27,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const canHideChat = showWorkbench || !showChat;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const isStreaming = useStore(streamingState);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -41,7 +44,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   const handleDeploy = async () => {
     if (!connection.user || !connection.token) {
-      toast.error('Please connect to Netlify first');
+      toast.error('Please connect to Netlify first in the settings tab!');
       return;
     }
 
@@ -206,7 +209,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
           <Button
             active
-            disabled={isDeploying || !activePreview}
+            disabled={isDeploying || !activePreview || isStreaming}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2"
           >
@@ -225,8 +228,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
                 handleDeploy();
                 setIsDropdownOpen(false);
               }}
-              disabled={isDeploying || !activePreview}
-              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md"
+              disabled={isDeploying || !activePreview || !connection.user}
+              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative"
             >
               <img
                 className="w-5 h-5"
@@ -235,7 +238,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
                 crossOrigin="anonymous"
                 src="https://cdn.simpleicons.org/netlify"
               />
-              <span className="mx-auto">Deploy to Netlify</span>
+              <span className="mx-auto">{!connection.user ? 'No Account Connected' : 'Deploy to Netlify'}</span>
+              {connection.user && <NetlifyDeploymentLink />}
             </Button>
             <Button
               active={false}
