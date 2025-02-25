@@ -19,7 +19,11 @@ export interface StartAction extends BaseAction {
   type: 'start';
 }
 
-export type BoltAction = FileAction | ShellAction | StartAction;
+export interface BuildAction extends BaseAction {
+  type: 'build';
+}
+
+export type BoltAction = FileAction | ShellAction | StartAction | BuildAction;
 
 export type BoltActionData = BoltAction | BaseAction;
 
