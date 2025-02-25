@@ -73,7 +73,6 @@ export function GithubConnection() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isFetchingStats, setIsFetchingStats] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     organizations: false,
     languages: false,
@@ -82,16 +81,14 @@ export function GithubConnection() {
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
   const fetchGitHubStats = async (token: string) => {
     try {
-      setIsFetchingStats(true);
-
       const reposResponse = await fetch(
         'https://api.github.com/user/repos?sort=updated&per_page=10&affiliation=owner,organization_member,collaborator',
         {
@@ -168,7 +165,6 @@ export function GithubConnection() {
       logStore.logError('Failed to fetch GitHub stats', { error });
       toast.error('Failed to fetch GitHub statistics');
     } finally {
-      setIsFetchingStats(false);
     }
   };
 
@@ -188,6 +184,7 @@ export function GithubConnection() {
         fetchGitHubStats(parsed.token);
       }
     }
+
     setIsLoading(false);
   }, []);
 
@@ -401,16 +398,18 @@ export function GithubConnection() {
             {/* Organizations Section */}
             {connection.stats.organizations.length > 0 && (
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={() => toggleSection('organizations')}
                   className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
                 >
                   <div className="i-ph:buildings w-4 h-4" />
                   Organizations ({connection.stats.organizations.length})
-                  <div className={classNames(
-                    "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
-                    expandedSections.organizations ? "rotate-180" : ""
-                  )} />
+                  <div
+                    className={classNames(
+                      'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
+                      expandedSections.organizations ? 'rotate-180' : '',
+                    )}
+                  />
                 </button>
                 {expandedSections.organizations && (
                   <div className="flex flex-wrap gap-3 pb-4">
@@ -433,16 +432,18 @@ export function GithubConnection() {
 
             {/* Languages Section */}
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={() => toggleSection('languages')}
                 className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
               >
                 <div className="i-ph:code w-4 h-4" />
                 Top Languages ({Object.keys(connection.stats.languages).length})
-                <div className={classNames(
-                  "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
-                  expandedSections.languages ? "rotate-180" : ""
-                )} />
+                <div
+                  className={classNames(
+                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
+                    expandedSections.languages ? 'rotate-180' : '',
+                  )}
+                />
               </button>
               {expandedSections.languages && (
                 <div className="flex flex-wrap gap-2 pb-4">
@@ -463,16 +464,18 @@ export function GithubConnection() {
 
             {/* Recent Activity Section */}
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={() => toggleSection('recentActivity')}
                 className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
               >
                 <div className="i-ph:activity w-4 h-4" />
                 Recent Activity ({connection.stats.recentActivity.length})
-                <div className={classNames(
-                  "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
-                  expandedSections.recentActivity ? "rotate-180" : ""
-                )} />
+                <div
+                  className={classNames(
+                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
+                    expandedSections.recentActivity ? 'rotate-180' : '',
+                  )}
+                />
               </button>
               {expandedSections.recentActivity && (
                 <div className="space-y-3 pb-4">
@@ -503,16 +506,18 @@ export function GithubConnection() {
 
             {/* Repositories Section */}
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={() => toggleSection('repositories')}
                 className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary flex items-center gap-2"
               >
                 <div className="i-ph:clock-counter-clockwise w-4 h-4" />
                 Recent Repositories ({connection.stats.repos.length})
-                <div className={classNames(
-                  "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
-                  expandedSections.repositories ? "rotate-180" : ""
-                )} />
+                <div
+                  className={classNames(
+                    'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
+                    expandedSections.repositories ? 'rotate-180' : '',
+                  )}
+                />
               </button>
               {expandedSections.repositories && (
                 <div className="space-y-3">

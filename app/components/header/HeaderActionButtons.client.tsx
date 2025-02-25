@@ -33,6 +33,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
+
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
@@ -109,6 +110,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       }
 
       const fileContents = await getAllFiles(buildPath);
+
       // Use chatId instead of artifact.id
       const existingSiteId = localStorage.getItem(`netlify-site-${currentChatId}`);
 
@@ -209,65 +211,64 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2"
           >
             {isDeploying ? 'Deploying...' : 'Deploy'}
-            <div className={classNames(
-              "i-ph:caret-down w-4 h-4 transition-transform",
-              isDropdownOpen ? "rotate-180" : ""
-            )} />
+            <div
+              className={classNames('i-ph:caret-down w-4 h-4 transition-transform', isDropdownOpen ? 'rotate-180' : '')}
+            />
           </Button>
         </div>
 
         {isDropdownOpen && (
           <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
-              <Button
-                active
-                onClick={() => {
-                  handleDeploy();
-                  setIsDropdownOpen(false);
-                }}
-                disabled={isDeploying || !activePreview}
-                className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md"
-              >
-                <img
-                  className="w-5 h-5"
-                  height="24"
-                  width="24"
-                  crossOrigin="anonymous"
-                  src="https://cdn.simpleicons.org/netlify"
-                />
-                <span className='mx-auto'>Deploy to Netlify</span>
-              </Button>
-              <Button
-                active={false}
-                disabled
-                className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
-              >
-                <span className='sr-only'>Coming Soon</span>
-                <img
-                  className="w-5 h-5 bg-black p-1 rounded"
-                  height="24"
-                  width="24"
-                  crossOrigin="anonymous"
-                  src="https://cdn.simpleicons.org/vercel/white"
-                  alt='vercel'
-                />
-                <span className='mx-auto'>Deploy to Vercel (Coming Soon)</span>
-              </Button>
-              <Button
-                active={false}
-                disabled
-                className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
-              >
-                <span className='sr-only'>Coming Soon</span>
-                <img
-                  className="w-5 h-5"
-                  height="24"
-                  width="24"
-                  crossOrigin="anonymous"
-                  src="https://cdn.simpleicons.org/cloudflare"
-                  alt='vercel'
-                />
-                <span className='mx-auto'>Deploy to Cloudflare (Coming Soon)</span>
-              </Button>
+            <Button
+              active
+              onClick={() => {
+                handleDeploy();
+                setIsDropdownOpen(false);
+              }}
+              disabled={isDeploying || !activePreview}
+              className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md"
+            >
+              <img
+                className="w-5 h-5"
+                height="24"
+                width="24"
+                crossOrigin="anonymous"
+                src="https://cdn.simpleicons.org/netlify"
+              />
+              <span className="mx-auto">Deploy to Netlify</span>
+            </Button>
+            <Button
+              active={false}
+              disabled
+              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
+            >
+              <span className="sr-only">Coming Soon</span>
+              <img
+                className="w-5 h-5 bg-black p-1 rounded"
+                height="24"
+                width="24"
+                crossOrigin="anonymous"
+                src="https://cdn.simpleicons.org/vercel/white"
+                alt="vercel"
+              />
+              <span className="mx-auto">Deploy to Vercel (Coming Soon)</span>
+            </Button>
+            <Button
+              active={false}
+              disabled
+              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
+            >
+              <span className="sr-only">Coming Soon</span>
+              <img
+                className="w-5 h-5"
+                height="24"
+                width="24"
+                crossOrigin="anonymous"
+                src="https://cdn.simpleicons.org/cloudflare"
+                alt="vercel"
+              />
+              <span className="mx-auto">Deploy to Cloudflare (Coming Soon)</span>
+            </Button>
           </div>
         )}
       </div>

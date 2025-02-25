@@ -5,7 +5,7 @@ import type { ChatHistoryItem } from './useChatHistory';
 export interface IChatMetadata {
   gitUrl: string;
   gitBranch?: string;
-  netlifySiteId?: string;  // Add this field
+  netlifySiteId?: string;
 }
 
 const logger = createScopedLogger('ChatHistory');

@@ -214,16 +214,18 @@ export function NetlifyConnection() {
               </div>
             ) : (
               <div>
-                <button 
+                <button
                   onClick={() => setIsSitesExpanded(!isSitesExpanded)}
                   className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
                 >
                   <div className="i-ph:buildings w-4 h-4" />
                   Your Sites ({connection.stats?.totalSites || 0})
-                  <div className={classNames(
-                    "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
-                    isSitesExpanded ? "rotate-180" : ""
-                  )} />
+                  <div
+                    className={classNames(
+                      'i-ph:caret-down w-4 h-4 ml-auto transition-transform',
+                      isSitesExpanded ? 'rotate-180' : '',
+                    )}
+                  />
                 </button>
                 {isSitesExpanded && connection.stats?.sites?.length ? (
                   <div className="grid gap-3">
