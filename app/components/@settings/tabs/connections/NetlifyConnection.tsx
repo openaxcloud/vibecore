@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
@@ -11,8 +11,8 @@ export function NetlifyConnection() {
   const connection = useStore(netlifyConnection);
   const connecting = useStore(isConnecting);
   const fetchingStats = useStore(isFetchingStats);
+  const [isSitesExpanded, setIsSitesExpanded] = useState(false);
 
-  // Update the useEffect to handle the fetching state properly
   useEffect(() => {
     const fetchSites = async () => {
       if (connection.user && connection.token) {
@@ -175,21 +175,21 @@ export function NetlifyConnection() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
-                  <div className="i-ph:check-circle w-4 h-4 text-green-500" />
-                  Connected to Netlify
-                </span>
                 <button
                   onClick={handleDisconnect}
                   className={classNames(
-                    'px-3 py-1.5 rounded-lg text-sm flex items-center gap-2',
-                    'text-white bg-red-800 border border-red-500',
-                    'hover:bg-red-50 dark:hover:bg-red-950',
+                    'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
+                    'bg-red-500 text-white',
+                    'hover:bg-red-600',
                   )}
                 >
                   <div className="i-ph:plug w-4 h-4" />
                   Disconnect
                 </button>
+                <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
+                  <div className="i-ph:check-circle w-4 h-4 text-green-500" />
+                  Connected to Netlify
+                </span>
               </div>
             </div>
 
@@ -214,11 +214,18 @@ export function NetlifyConnection() {
               </div>
             ) : (
               <div>
-                <h4 className="text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2">
+                <button 
+                  onClick={() => setIsSitesExpanded(!isSitesExpanded)}
+                  className="w-full bg-transparent text-left text-sm font-medium text-bolt-elements-textPrimary mb-3 flex items-center gap-2"
+                >
                   <div className="i-ph:buildings w-4 h-4" />
                   Your Sites ({connection.stats?.totalSites || 0})
-                </h4>
-                {connection.stats?.sites?.length ? (
+                  <div className={classNames(
+                    "i-ph:caret-down w-4 h-4 ml-auto transition-transform",
+                    isSitesExpanded ? "rotate-180" : ""
+                  )} />
+                </button>
+                {isSitesExpanded && connection.stats?.sites?.length ? (
                   <div className="grid gap-3">
                     {connection.stats.sites.map((site) => (
                       <a
@@ -266,12 +273,12 @@ export function NetlifyConnection() {
                       </a>
                     ))}
                   </div>
-                ) : (
+                ) : isSitesExpanded ? (
                   <div className="text-sm text-bolt-elements-textSecondary flex items-center gap-2">
                     <div className="i-ph:info w-4 h-4" />
                     No sites found in your Netlify account
                   </div>
-                )}
+                ) : null}
               </div>
             )}
           </div>

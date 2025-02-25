@@ -7,8 +7,9 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { webcontainer } from '~/lib/webcontainer';
 import { classNames } from '~/utils/classNames';
 import { path } from '~/utils/path';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
+import { chatId } from '~/lib/persistence/useChatHistory'; // Add this import
 
 interface HeaderActionButtonsProps {}
 
@@ -22,10 +23,29 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const [isDeploying, setIsDeploying] = useState(false);
   const isSmallViewport = useViewport(1024);
   const canHideChat = showWorkbench || !showChat;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentChatId = useStore(chatId);
 
   const handleDeploy = async () => {
     if (!connection.user || !connection.token) {
       toast.error('Please connect to Netlify first');
+      return;
+    }
+
+    if (!currentChatId) {
+      toast.error('No active chat found');
       return;
     }
 
@@ -89,7 +109,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       }
 
       const fileContents = await getAllFiles(buildPath);
-      const existingSiteId = localStorage.getItem(`netlify-site-${artifact.id}`);
+      // Use chatId instead of artifact.id
+      const existingSiteId = localStorage.getItem(`netlify-site-${currentChatId}`);
 
       // Deploy using the API route with file contents
       const response = await fetch('/api/deploy', {
@@ -101,7 +122,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           siteId: existingSiteId || undefined,
           files: fileContents,
           token: connection.token,
-          chatId: artifact.id,
+          chatId: currentChatId, // Use chatId instead of artifact.id
         }),
       });
 
@@ -153,7 +174,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       // Store the site ID if it's a new site
       if (data.site) {
-        localStorage.setItem(`netlify-site-${artifact.id}`, data.site.id);
+        localStorage.setItem(`netlify-site-${currentChatId}`, data.site.id);
       }
 
       toast.success(
@@ -179,15 +200,76 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex">
-      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
-        <Button
-          active
-          disabled={isDeploying || !activePreview}
-          onClick={handleDeploy}
-          className="px-4 hover:bg-bolt-elements-item-backgroundActive"
-        >
-          {isDeploying ? 'Deploying...' : 'Deploy'}
-        </Button>
+      <div className="relative" ref={dropdownRef}>
+        <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-2 text-sm">
+          <Button
+            active
+            disabled={isDeploying || !activePreview}
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2"
+          >
+            {isDeploying ? 'Deploying...' : 'Deploy'}
+            <div className={classNames(
+              "i-ph:caret-down w-4 h-4 transition-transform",
+              isDropdownOpen ? "rotate-180" : ""
+            )} />
+          </Button>
+        </div>
+
+        {isDropdownOpen && (
+          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
+              <Button
+                active
+                onClick={() => {
+                  handleDeploy();
+                  setIsDropdownOpen(false);
+                }}
+                disabled={isDeploying || !activePreview}
+                className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md"
+              >
+                <img
+                  className="w-5 h-5"
+                  height="24"
+                  width="24"
+                  crossOrigin="anonymous"
+                  src="https://cdn.simpleicons.org/netlify"
+                />
+                <span className='mx-auto'>Deploy to Netlify</span>
+              </Button>
+              <Button
+                active={false}
+                disabled
+                className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
+              >
+                <span className='sr-only'>Coming Soon</span>
+                <img
+                  className="w-5 h-5 bg-black p-1 rounded"
+                  height="24"
+                  width="24"
+                  crossOrigin="anonymous"
+                  src="https://cdn.simpleicons.org/vercel/white"
+                  alt='vercel'
+                />
+                <span className='mx-auto'>Deploy to Vercel (Coming Soon)</span>
+              </Button>
+              <Button
+                active={false}
+                disabled
+                className="flex items-center w-full rounded-md px-4 py-2 text-sm text-bolt-elements-textTertiary gap-2"
+              >
+                <span className='sr-only'>Coming Soon</span>
+                <img
+                  className="w-5 h-5"
+                  height="24"
+                  width="24"
+                  crossOrigin="anonymous"
+                  src="https://cdn.simpleicons.org/cloudflare"
+                  alt='vercel'
+                />
+                <span className='mx-auto'>Deploy to Cloudflare (Coming Soon)</span>
+              </Button>
+          </div>
+        )}
       </div>
       <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden">
         <Button
