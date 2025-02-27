@@ -238,6 +238,9 @@ export class WorkbenchStore {
   getFileModifcations() {
     return this.#filesStore.getFileModifications();
   }
+  getModifiedFiles() {
+    return this.#filesStore.getModifiedFiles();
+  }
 
   resetAllFileModifications() {
     this.#filesStore.resetFileModifications();

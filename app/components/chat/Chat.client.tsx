@@ -25,6 +25,7 @@ import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
+import { filesToArtifacts } from '~/utils/fileUtils';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -320,17 +321,17 @@ export const ChatImpl = memo(
               const { assistantMessage, userMessage } = temResp;
               setMessages([
                 {
-                  id: `${new Date().getTime()}`,
+                  id: `1-${new Date().getTime()}`,
                   role: 'user',
                   content: messageContent,
                 },
                 {
-                  id: `${new Date().getTime()}`,
+                  id: `2-${new Date().getTime()}`,
                   role: 'assistant',
                   content: assistantMessage,
                 },
                 {
-                  id: `${new Date().getTime()}`,
+                  id: `3-${new Date().getTime()}`,
                   role: 'user',
                   content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
                   annotations: ['hidden'],
@@ -371,17 +372,18 @@ export const ChatImpl = memo(
         setMessages(messages.slice(0, -1));
       }
 
-      const fileModifications = workbenchStore.getFileModifcations();
+      const modifiedFiles = workbenchStore.getModifiedFiles();
 
       chatStore.setKey('aborted', false);
 
-      if (fileModifications !== undefined) {
+      if (modifiedFiles !== undefined) {
+        const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
         append({
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${messageContent}`,
             },
             ...imageDataList.map((imageData) => ({
               type: 'image',
