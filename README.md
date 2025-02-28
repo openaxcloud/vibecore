@@ -79,6 +79,7 @@ project, please check the [project management guide](./PROJECT.md) to get starte
 - ✅ Add Starter Template Options (@thecodacus)
 - ✅ Perplexity Integration (@meetpateltech)
 - ✅ AWS Bedrock Integration (@kunjabijukchhe)
+- ✅ Add a "Diff View" to see the changes (@toddyclipsgg)
 - ⬜ **HIGH PRIORITY** - Prevent bolt from rewriting files as often (file locking and diffs)
 - ⬜ **HIGH PRIORITY** - Better prompting for smaller LLMs (code window sometimes doesn't start)
 - ⬜ **HIGH PRIORITY** - Run agents in the backend as opposed to a single model call
@@ -163,9 +164,7 @@ You have two options for running Bolt.DIY: directly on your machine or using Doc
    ```bash
    pnpm run dev
    ```
-
-   **Important Note**: If you're using Google Chrome, you'll need Chrome Canary for local development. [Download it here](https://www.google.com/chrome/canary/)
-
+   
 ### Option 2: Using Docker
 
 This option requires some familiarity with Docker but provides a more isolated environment.
