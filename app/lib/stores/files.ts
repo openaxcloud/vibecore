@@ -115,7 +115,7 @@ export class FilesStore {
 
       const oldContent = this.getFile(filePath)?.content;
 
-      if (!oldContent) {
+      if (!oldContent && oldContent !== '') {
         unreachable('Expected content to be defined');
       }
 
