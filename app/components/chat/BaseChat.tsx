@@ -413,15 +413,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             apiKeys={apiKeys}
                             modelLoading={isModelLoading}
                           />
-                          {(providerList || []).length > 0 && provider && !LOCAL_PROVIDERS.includes(provider.name) && (
-                            <APIKeyManager
-                              provider={provider}
-                              apiKey={apiKeys[provider.name] || ''}
-                              setApiKey={(key) => {
-                                onApiKeysChange(provider.name, key);
-                              }}
-                            />
-                          )}
+                          {(providerList || []).length > 0 &&
+                            provider &&
+                            (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
+                              <APIKeyManager
+                                provider={provider}
+                                apiKey={apiKeys[provider.name] || ''}
+                                setApiKey={(key) => {
+                                  onApiKeysChange(provider.name, key);
+                                }}
+                              />
+                            )}
                         </div>
                       )}
                     </ClientOnly>
