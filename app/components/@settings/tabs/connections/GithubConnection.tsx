@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { logStore } from '~/lib/stores/logs';
 import { classNames } from '~/utils/classNames';
+import Cookies from 'js-cookie';
 
 interface GitHubUserResponse {
   login: string;
@@ -175,6 +176,8 @@ export function GithubConnection() {
       if (parsed.user && parsed.token) {
         fetchGitHubStats(parsed.token);
       }
+    } else if (import.meta.env.VITE_GITHUB_ACCESS_TOKEN) {
+      fetchGithubUser(import.meta.env.VITE_GITHUB_ACCESS_TOKEN);
     }
 
     setIsLoading(false);
@@ -206,6 +209,10 @@ export function GithubConnection() {
       };
 
       localStorage.setItem('github_connection', JSON.stringify(newConnection));
+      Cookies.set('githubToken', token);
+      Cookies.set('githubUsername', data.login);
+      Cookies.set('git:github.com', JSON.stringify({ username: token, password: 'x-oauth-basic' }));
+
       setConnection(newConnection);
 
       await fetchGitHubStats(token);
