@@ -31,6 +31,7 @@ interface Props {
 interface InlineInputProps {
   depth: number;
   placeholder: string;
+  initialValue?: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 }
@@ -223,18 +224,23 @@ function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; childr
   );
 }
 
-function InlineInput({ depth, placeholder, onSubmit, onCancel }: InlineInputProps) {
+function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel }: InlineInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
+
+        if (initialValue) {
+          inputRef.current.value = initialValue;
+          inputRef.current.select();
+        }
       }
     }, 50);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [initialValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -272,7 +278,6 @@ function InlineInput({ depth, placeholder, onSubmit, onCancel }: InlineInputProp
   );
 }
 
-// Modify the FileContextMenu component
 function FileContextMenu({
   onCopyPath,
   onCopyRelativePath,
@@ -281,8 +286,10 @@ function FileContextMenu({
 }: FolderContextMenuProps & { fullPath: string }) {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
+  const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -355,6 +362,59 @@ function FileContextMenu({
     setIsCreatingFolder(false);
   };
 
+  const handleDelete = async () => {
+    try {
+      if (confirm(`Are you sure you want to delete ${fileName}?`)) {
+        const isDirectory = path.extname(fullPath) === '';
+
+        const success = isDirectory
+          ? await workbenchStore.deleteFolder(fullPath)
+          : await workbenchStore.deleteFile(fullPath);
+
+        if (success) {
+          toast.success('Deleted successfully');
+        } else {
+          toast.error('Failed to delete');
+        }
+      }
+    } catch (error) {
+      toast.error('Error during delete operation');
+      logger.error(error);
+    }
+  };
+
+  const handleRename = async (newName: string) => {
+    if (newName === fileName) {
+      setIsRenaming(false);
+      return;
+    }
+
+    const parentDir = path.dirname(fullPath);
+    const newPath = path.join(parentDir, newName);
+
+    try {
+      const files = workbenchStore.files.get();
+      const fileEntry = files[fullPath];
+
+      const isDirectory = !fileEntry || fileEntry.type === 'folder';
+
+      const success = isDirectory
+        ? await workbenchStore.renameFolder(fullPath, newPath)
+        : await workbenchStore.renameFile(fullPath, newPath);
+
+      if (success) {
+        toast.success('Renamed successfully');
+      } else {
+        toast.error('Failed to rename');
+      }
+    } catch (error) {
+      toast.error('Error during rename operation');
+      logger.error(error);
+    }
+
+    setIsRenaming(false);
+  };
+
   return (
     <>
       <ContextMenu.Root>
@@ -368,7 +428,17 @@ function FileContextMenu({
                 isDragging,
             })}
           >
-            {children}
+            {!isRenaming && children}
+
+            {isRenaming && (
+              <InlineInput
+                depth={depth}
+                placeholder="Enter new name..."
+                initialValue={fileName}
+                onSubmit={handleRename}
+                onCancel={() => setIsRenaming(false)}
+              />
+            )}
           </div>
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
@@ -387,6 +457,18 @@ function FileContextMenu({
                 <div className="flex items-center gap-2">
                   <div className="i-ph:folder-plus" />
                   New Folder
+                </div>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={() => setIsRenaming(true)}>
+                <div className="flex items-center gap-2">
+                  <div className="i-ph:pencil-simple" />
+                  Rename
+                </div>
+              </ContextMenuItem>
+              <ContextMenuItem onSelect={handleDelete}>
+                <div className="flex items-center gap-2">
+                  <div className="i-ph:trash text-red-500" />
+                  <span className="text-red-500">Delete</span>
                 </div>
               </ContextMenuItem>
             </ContextMenu.Group>
@@ -413,11 +495,11 @@ function FileContextMenu({
           onCancel={() => setIsCreatingFolder(false)}
         />
       )}
+      {/* Remove the isRenaming InlineInput from here since we moved it above */}
     </>
   );
 }
 
-// Update the Folder component to pass the fullPath
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
   return (
     <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={folder.fullPath}>
@@ -440,7 +522,6 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
   );
 }
 
-// Add this interface after the FolderProps interface
 interface FileProps {
   file: FileNode;
   selected: boolean;
@@ -461,7 +542,6 @@ function File({
   fileHistory = {},
 }: FileProps) {
   const { depth, name, fullPath } = file;
-  const parentPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
 
   const fileModifications = fileHistory[fullPath];
 
@@ -503,7 +583,7 @@ function File({
   const showStats = additions > 0 || deletions > 0;
 
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={parentPath}>
+    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={fullPath}>
       <NodeButton
         className={classNames('group', {
           'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault':
