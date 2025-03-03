@@ -547,6 +547,54 @@ export class WorkbenchStore {
       throw error; // Rethrow the error for further handling
     }
   }
+
+  async createNewFile(filePath: string, content: string | File | ArrayBuffer = '') {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(filePath);
+
+      const dirPath = path.dirname(relativePath);
+
+      if (dirPath !== '.') {
+        await wc.fs.mkdir(dirPath, { recursive: true });
+      }
+
+      let fileContent: string | Uint8Array;
+
+      if (content instanceof File) {
+        const buffer = await content.arrayBuffer();
+        fileContent = new Uint8Array(buffer);
+      } else if (content instanceof ArrayBuffer) {
+        fileContent = new Uint8Array(content);
+      } else {
+        fileContent = content || '';
+      }
+
+      await wc.fs.writeFile(relativePath, fileContent);
+
+      const fullPath = path.join(wc.workdir, relativePath);
+      this.setSelectedFile(fullPath);
+
+      return true;
+    } catch (error) {
+      console.error('Error creating file:', error);
+      return false;
+    }
+  }
+
+  async createNewFolder(folderPath: string) {
+    try {
+      const wc = await webcontainer;
+      const relativePath = extractRelativePath(folderPath);
+
+      await wc.fs.mkdir(relativePath, { recursive: true });
+
+      return true;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      return false;
+    }
+  }
 }
 
 export const workbenchStore = new WorkbenchStore();
