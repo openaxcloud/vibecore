@@ -556,7 +556,7 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
   useEffect(() => {
     getHighlighter({
       themes: ['github-dark', 'github-light'],
-      langs: ['typescript', 'javascript', 'json', 'html', 'css', 'jsx', 'tsx'],
+      langs: ['typescript', 'javascript', 'json', 'html', 'css', 'jsx', 'tsx', 'python', 'php'],
     }).then(setHighlighter);
   }, []);
 
