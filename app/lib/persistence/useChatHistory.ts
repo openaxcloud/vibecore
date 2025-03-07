@@ -69,7 +69,7 @@ export function useChatHistory() {
             const summary = snapshot.summary;
 
             const rewindId = searchParams.get('rewindTo');
-            let startingIdx = 0;
+            let startingIdx = -1;
             const endingIdx = rewindId
               ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
               : storedMessages.messages.length;
@@ -80,13 +80,13 @@ export function useChatHistory() {
             }
 
             if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
-              startingIdx = 0;
+              startingIdx = -1;
             }
 
             let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
             let archivedMessages: Message[] = [];
 
-            if (startingIdx > 0) {
+            if (startingIdx >= 0) {
               archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
             }
 
