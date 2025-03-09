@@ -263,13 +263,19 @@ This method is recommended for developers who want to:
    pnpm run dev
    ```
 
-5. **(OPTIONAL)** Switch to the Main Branch if you want to use pre-release/testbranch):
+5. **(OPTIONAL)** Switch to the Main Branch if you want to use pre-release/testbranch:
    ```bash
    git checkout main
+   pnpm install
+   pnpm run dev
    ```
   Hint: Be aware that this can have beta-features and more likely got bugs than the stable release
 
-
+>**Open the WebUI to test (Default: http://localhost:5173)**
+>   - Beginngers: 
+>     - Try to use a sophisticated Provider/Model like Anthropic with Claude Sonnet 3.x Models to get best results
+>     - Explanation: The System Prompt currently implemented in bolt.diy cant cover the best performance for all providers and models out there. So it works better with some models, then other, even if the models itself are perfect for >programming
+>     - Future: Planned is a Plugin/Extentions-Library so there can be different System Prompts for different Models, which will help to get better results
 
 #### Staying Updated
 
