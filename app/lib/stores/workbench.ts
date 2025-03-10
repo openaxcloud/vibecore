@@ -262,7 +262,6 @@ export class WorkbenchStore {
       const success = await this.#filesStore.createFile(filePath, content);
 
       if (success) {
-        // If the file is created successfully, select it in the editor
         this.setSelectedFile(filePath);
 
         /*
@@ -294,15 +293,12 @@ export class WorkbenchStore {
 
   async deleteFile(filePath: string) {
     try {
-      // Check if the file is currently open in the editor
       const currentDocument = this.currentDocument.get();
       const isCurrentFile = currentDocument?.filePath === filePath;
 
-      // Delete the file
       const success = await this.#filesStore.deleteFile(filePath);
 
       if (success) {
-        // Remove from unsaved files if present
         const newUnsavedFiles = new Set(this.unsavedFiles.get());
 
         if (newUnsavedFiles.has(filePath)) {
@@ -310,9 +306,7 @@ export class WorkbenchStore {
           this.unsavedFiles.set(newUnsavedFiles);
         }
 
-        // If this was the current file, select another file
         if (isCurrentFile) {
-          // Find another file to select
           const files = this.files.get();
           let nextFile: string | undefined = undefined;
 
@@ -336,15 +330,12 @@ export class WorkbenchStore {
 
   async deleteFolder(folderPath: string) {
     try {
-      // Check if any file in this folder is currently open
       const currentDocument = this.currentDocument.get();
       const isInCurrentFolder = currentDocument?.filePath?.startsWith(folderPath + '/');
 
-      // Delete the folder
       const success = await this.#filesStore.deleteFolder(folderPath);
 
       if (success) {
-        // Remove any files in this folder from unsaved files
         const unsavedFiles = this.unsavedFiles.get();
         const newUnsavedFiles = new Set<string>();
 
@@ -358,9 +349,7 @@ export class WorkbenchStore {
           this.unsavedFiles.set(newUnsavedFiles);
         }
 
-        // If current file was in this folder, select another file
         if (isInCurrentFolder) {
-          // Find another file to select
           const files = this.files.get();
           let nextFile: string | undefined = undefined;
 

@@ -182,29 +182,23 @@ export class FilesStore {
 
     const currentFiles = this.files.get();
 
-    // Process each deleted path
     for (const deletedPath of this.#deletedPaths) {
-      // Remove the path itself
       if (currentFiles[deletedPath]) {
         this.files.setKey(deletedPath, undefined);
 
-        // Adjust file count if it was a file
         if (currentFiles[deletedPath]?.type === 'file') {
           this.#size--;
         }
       }
 
-      // Also remove any files/folders inside deleted folders
       for (const [path, dirent] of Object.entries(currentFiles)) {
         if (path.startsWith(deletedPath + '/')) {
           this.files.setKey(path, undefined);
 
-          // Adjust file count if it was a file
           if (dirent?.type === 'file') {
             this.#size--;
           }
 
-          // Remove from modified files tracking if present
           if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
             this.#modifiedFiles.delete(path);
           }
@@ -225,7 +219,6 @@ export class FilesStore {
         continue;
       }
 
-      // Also skip if this is a file/folder inside a deleted folder
       let isInDeletedFolder = false;
 
       for (const deletedPath of this.#deletedPaths) {
@@ -280,11 +273,9 @@ export class FilesStore {
             }
           }
 
-          // Check if we already have this file with content
           const existingFile = this.files.get()[sanitizedPath];
 
           if (existingFile?.type === 'file' && existingFile.isBinary && existingFile.content && !content) {
-            // Keep existing binary content if new content is empty
             content = existingFile.content;
           }
 
@@ -327,34 +318,27 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
       }
 
-      // Create parent directories if they don't exist
       const dirPath = path.dirname(relativePath);
 
       if (dirPath !== '.') {
         await webcontainer.fs.mkdir(dirPath, { recursive: true });
       }
 
-      // Detect binary content
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
         await webcontainer.fs.writeFile(relativePath, Buffer.from(content));
 
-        // Store Base64 encoded data instead of an empty string
         const base64Content = Buffer.from(content).toString('base64');
         this.files.setKey(filePath, { type: 'file', content: base64Content, isBinary: true });
 
-        // Store the base64 content as the original content for tracking modifications
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
-        // Ensure we write at least a space character for empty files to ensure they're tracked
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
         await webcontainer.fs.writeFile(relativePath, contentToWrite);
 
-        // But store the actual empty string in our file map if that's what was requested
         this.files.setKey(filePath, { type: 'file', content: content as string, isBinary: false });
 
-        // Store the text content as the original content
         this.#modifiedFiles.set(filePath, content as string);
       }
 
@@ -379,7 +363,6 @@ export class FilesStore {
 
       await webcontainer.fs.mkdir(relativePath, { recursive: true });
 
-      // Immediately update the folder in our store without waiting for the watcher
       this.files.setKey(folderPath, { type: 'folder' });
 
       logger.info(`Folder created: ${folderPath}`);
@@ -403,19 +386,15 @@ export class FilesStore {
 
       await webcontainer.fs.rm(relativePath);
 
-      // Add to deleted paths set
       this.#deletedPaths.add(filePath);
 
-      // Immediately update our store without waiting for the watcher
       this.files.setKey(filePath, undefined);
       this.#size--;
 
-      // Remove from modified files tracking if present
       if (this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.delete(filePath);
       }
 
-      // Persist the deleted paths to localStorage for extra durability
       this.#persistDeletedPaths();
 
       logger.info(`File deleted: ${filePath}`);
@@ -439,35 +418,28 @@ export class FilesStore {
 
       await webcontainer.fs.rm(relativePath, { recursive: true });
 
-      // Add to deleted paths set
       this.#deletedPaths.add(folderPath);
 
-      // Immediately update our store without waiting for the watcher
       this.files.setKey(folderPath, undefined);
 
-      // Also remove all files and subfolders from our store
       const allFiles = this.files.get();
 
       for (const [path, dirent] of Object.entries(allFiles)) {
         if (path.startsWith(folderPath + '/')) {
           this.files.setKey(path, undefined);
 
-          // Also add these paths to the deleted paths set
           this.#deletedPaths.add(path);
 
-          // Decrement file count for each file (not folder) removed
           if (dirent?.type === 'file') {
             this.#size--;
           }
 
-          // Remove from modified files tracking if present
           if (dirent?.type === 'file' && this.#modifiedFiles.has(path)) {
             this.#modifiedFiles.delete(path);
           }
         }
       }
 
-      // Persist the deleted paths to localStorage for extra durability
       this.#persistDeletedPaths();
 
       logger.info(`Folder deleted: ${folderPath}`);
@@ -479,7 +451,7 @@ export class FilesStore {
     }
   }
 
-  // Add a method to persist deleted paths to localStorage
+  // method to persist deleted paths to localStorage
   #persistDeletedPaths() {
     try {
       if (typeof localStorage !== 'undefined') {

@@ -290,7 +290,6 @@ function FileContextMenu({
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
 
-  // Add this to determine if the path is a file or folder
   const isFolder = useMemo(() => {
     const files = workbenchStore.files.get();
     const fileEntry = files[fullPath];
@@ -298,7 +297,6 @@ function FileContextMenu({
     return !fileEntry || fileEntry.type === 'folder';
   }, [fullPath]);
 
-  // Get the parent directory for files
   const targetPath = useMemo(() => {
     return isFolder ? fullPath : path.dirname(fullPath);
   }, [fullPath, isFolder]);
@@ -354,10 +352,7 @@ function FileContextMenu({
   );
 
   const handleCreateFile = async (fileName: string) => {
-    // Use targetPath instead of fullPath
     const newFilePath = path.join(targetPath, fileName);
-
-    // Change from createNewFile to createFile
     const success = await workbenchStore.createFile(newFilePath, '');
 
     if (success) {
@@ -370,10 +365,7 @@ function FileContextMenu({
   };
 
   const handleCreateFolder = async (folderName: string) => {
-    // Use targetPath instead of fullPath
     const newFolderPath = path.join(targetPath, folderName);
-
-    // Change from createNewFolder to createFolder
     const success = await workbenchStore.createFolder(newFolderPath);
 
     if (success) {
@@ -385,10 +377,8 @@ function FileContextMenu({
     setIsCreatingFolder(false);
   };
 
-  // Add delete handler function
   const handleDelete = async () => {
     try {
-      // Confirm deletion with the user
       if (!confirm(`Are you sure you want to delete ${isFolder ? 'folder' : 'file'}: ${fileName}?`)) {
         return;
       }
