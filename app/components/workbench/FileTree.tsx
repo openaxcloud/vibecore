@@ -286,10 +286,22 @@ function FileContextMenu({
 }: FolderContextMenuProps & { fullPath: string }) {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
-  const [isRenaming, setIsRenaming] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
+
+  // Add this to determine if the path is a file or folder
+  const isFolder = useMemo(() => {
+    const files = workbenchStore.files.get();
+    const fileEntry = files[fullPath];
+
+    return !fileEntry || fileEntry.type === 'folder';
+  }, [fullPath]);
+
+  // Get the parent directory for files
+  const targetPath = useMemo(() => {
+    return isFolder ? fullPath : path.dirname(fullPath);
+  }, [fullPath, isFolder]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -309,20 +321,25 @@ function FileContextMenu({
       e.stopPropagation();
 
       const items = Array.from(e.dataTransfer.items);
-      const imageFiles = items.filter((item) => item.type.startsWith('image/'));
+      const files = items.filter((item) => item.kind === 'file');
 
-      for (const item of imageFiles) {
+      for (const item of files) {
         const file = item.getAsFile();
 
         if (file) {
           try {
             const filePath = path.join(fullPath, file.name);
-            const success = await workbenchStore.createNewFile(filePath, file);
+
+            // Convert file to binary data (Uint8Array)
+            const arrayBuffer = await file.arrayBuffer();
+            const binaryContent = new Uint8Array(arrayBuffer);
+
+            const success = await workbenchStore.createFile(filePath, binaryContent);
 
             if (success) {
-              toast.success(`Image ${file.name} uploaded successfully`);
+              toast.success(`File ${file.name} uploaded successfully`);
             } else {
-              toast.error(`Failed to upload image ${file.name}`);
+              toast.error(`Failed to upload file ${file.name}`);
             }
           } catch (error) {
             toast.error(`Error uploading ${file.name}`);
@@ -337,8 +354,11 @@ function FileContextMenu({
   );
 
   const handleCreateFile = async (fileName: string) => {
-    const newFilePath = path.join(fullPath, fileName);
-    const success = await workbenchStore.createNewFile(newFilePath);
+    // Use targetPath instead of fullPath
+    const newFilePath = path.join(targetPath, fileName);
+
+    // Change from createNewFile to createFile
+    const success = await workbenchStore.createFile(newFilePath, '');
 
     if (success) {
       toast.success('File created successfully');
@@ -350,8 +370,11 @@ function FileContextMenu({
   };
 
   const handleCreateFolder = async (folderName: string) => {
-    const newFolderPath = path.join(fullPath, folderName);
-    const success = await workbenchStore.createNewFolder(newFolderPath);
+    // Use targetPath instead of fullPath
+    const newFolderPath = path.join(targetPath, folderName);
+
+    // Change from createNewFolder to createFolder
+    const success = await workbenchStore.createFolder(newFolderPath);
 
     if (success) {
       toast.success('Folder created successfully');
@@ -362,57 +385,31 @@ function FileContextMenu({
     setIsCreatingFolder(false);
   };
 
+  // Add delete handler function
   const handleDelete = async () => {
     try {
-      if (confirm(`Are you sure you want to delete ${fileName}?`)) {
-        const isDirectory = path.extname(fullPath) === '';
-
-        const success = isDirectory
-          ? await workbenchStore.deleteFolder(fullPath)
-          : await workbenchStore.deleteFile(fullPath);
-
-        if (success) {
-          toast.success('Deleted successfully');
-        } else {
-          toast.error('Failed to delete');
-        }
+      // Confirm deletion with the user
+      if (!confirm(`Are you sure you want to delete ${isFolder ? 'folder' : 'file'}: ${fileName}?`)) {
+        return;
       }
-    } catch (error) {
-      toast.error('Error during delete operation');
-      logger.error(error);
-    }
-  };
 
-  const handleRename = async (newName: string) => {
-    if (newName === fileName) {
-      setIsRenaming(false);
-      return;
-    }
+      let success;
 
-    const parentDir = path.dirname(fullPath);
-    const newPath = path.join(parentDir, newName);
-
-    try {
-      const files = workbenchStore.files.get();
-      const fileEntry = files[fullPath];
-
-      const isDirectory = !fileEntry || fileEntry.type === 'folder';
-
-      const success = isDirectory
-        ? await workbenchStore.renameFolder(fullPath, newPath)
-        : await workbenchStore.renameFile(fullPath, newPath);
+      if (isFolder) {
+        success = await workbenchStore.deleteFolder(fullPath);
+      } else {
+        success = await workbenchStore.deleteFile(fullPath);
+      }
 
       if (success) {
-        toast.success('Renamed successfully');
+        toast.success(`${isFolder ? 'Folder' : 'File'} deleted successfully`);
       } else {
-        toast.error('Failed to rename');
+        toast.error(`Failed to delete ${isFolder ? 'folder' : 'file'}`);
       }
     } catch (error) {
-      toast.error('Error during rename operation');
+      toast.error(`Error deleting ${isFolder ? 'folder' : 'file'}`);
       logger.error(error);
     }
-
-    setIsRenaming(false);
   };
 
   return (
@@ -428,17 +425,7 @@ function FileContextMenu({
                 isDragging,
             })}
           >
-            {!isRenaming && children}
-
-            {isRenaming && (
-              <InlineInput
-                depth={depth}
-                placeholder="Enter new name..."
-                initialValue={fileName}
-                onSubmit={handleRename}
-                onCancel={() => setIsRenaming(false)}
-              />
-            )}
+            {children}
           </div>
         </ContextMenu.Trigger>
         <ContextMenu.Portal>
@@ -459,22 +446,19 @@ function FileContextMenu({
                   New Folder
                 </div>
               </ContextMenuItem>
-              <ContextMenuItem onSelect={() => setIsRenaming(true)}>
-                <div className="flex items-center gap-2">
-                  <div className="i-ph:pencil-simple" />
-                  Rename
-                </div>
-              </ContextMenuItem>
-              <ContextMenuItem onSelect={handleDelete}>
-                <div className="flex items-center gap-2">
-                  <div className="i-ph:trash text-red-500" />
-                  <span className="text-red-500">Delete</span>
-                </div>
-              </ContextMenuItem>
             </ContextMenu.Group>
             <ContextMenu.Group className="p-1">
               <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
               <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
+            </ContextMenu.Group>
+            {/* Add delete option in a new group */}
+            <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
+              <ContextMenuItem onSelect={handleDelete}>
+                <div className="flex items-center gap-2 text-red-500">
+                  <div className="i-ph:trash" />
+                  Delete {isFolder ? 'Folder' : 'File'}
+                </div>
+              </ContextMenuItem>
             </ContextMenu.Group>
           </ContextMenu.Content>
         </ContextMenu.Portal>
@@ -495,7 +479,6 @@ function FileContextMenu({
           onCancel={() => setIsCreatingFolder(false)}
         />
       )}
-      {/* Remove the isRenaming InlineInput from here since we moved it above */}
     </>
   );
 }

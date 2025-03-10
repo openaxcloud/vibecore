@@ -60,6 +60,16 @@ export class WorkbenchStore {
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
       import.meta.hot.data.actionAlert = this.actionAlert;
+
+      // Ensure binary files are properly preserved across hot reloads
+      const filesMap = this.files.get();
+
+      for (const [path, dirent] of Object.entries(filesMap)) {
+        if (dirent?.type === 'file' && dirent.isBinary && dirent.content) {
+          // Make sure binary content is preserved
+          this.files.setKey(path, { ...dirent });
+        }
+      }
     }
   }
 
@@ -238,12 +248,138 @@ export class WorkbenchStore {
   getFileModifcations() {
     return this.#filesStore.getFileModifications();
   }
+
   getModifiedFiles() {
     return this.#filesStore.getModifiedFiles();
   }
 
   resetAllFileModifications() {
     this.#filesStore.resetFileModifications();
+  }
+
+  async createFile(filePath: string, content: string | Uint8Array = '') {
+    try {
+      const success = await this.#filesStore.createFile(filePath, content);
+
+      if (success) {
+        // If the file is created successfully, select it in the editor
+        this.setSelectedFile(filePath);
+
+        /*
+         * For empty files, we need to ensure they're not marked as unsaved
+         * Only check for empty string, not empty Uint8Array
+         */
+        if (typeof content === 'string' && content === '') {
+          const newUnsavedFiles = new Set(this.unsavedFiles.get());
+          newUnsavedFiles.delete(filePath);
+          this.unsavedFiles.set(newUnsavedFiles);
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Failed to create file:', error);
+      throw error;
+    }
+  }
+
+  async createFolder(folderPath: string) {
+    try {
+      return await this.#filesStore.createFolder(folderPath);
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+      throw error;
+    }
+  }
+
+  async deleteFile(filePath: string) {
+    try {
+      // Check if the file is currently open in the editor
+      const currentDocument = this.currentDocument.get();
+      const isCurrentFile = currentDocument?.filePath === filePath;
+
+      // Delete the file
+      const success = await this.#filesStore.deleteFile(filePath);
+
+      if (success) {
+        // Remove from unsaved files if present
+        const newUnsavedFiles = new Set(this.unsavedFiles.get());
+
+        if (newUnsavedFiles.has(filePath)) {
+          newUnsavedFiles.delete(filePath);
+          this.unsavedFiles.set(newUnsavedFiles);
+        }
+
+        // If this was the current file, select another file
+        if (isCurrentFile) {
+          // Find another file to select
+          const files = this.files.get();
+          let nextFile: string | undefined = undefined;
+
+          for (const [path, dirent] of Object.entries(files)) {
+            if (dirent?.type === 'file') {
+              nextFile = path;
+              break;
+            }
+          }
+
+          this.setSelectedFile(nextFile);
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      throw error;
+    }
+  }
+
+  async deleteFolder(folderPath: string) {
+    try {
+      // Check if any file in this folder is currently open
+      const currentDocument = this.currentDocument.get();
+      const isInCurrentFolder = currentDocument?.filePath?.startsWith(folderPath + '/');
+
+      // Delete the folder
+      const success = await this.#filesStore.deleteFolder(folderPath);
+
+      if (success) {
+        // Remove any files in this folder from unsaved files
+        const unsavedFiles = this.unsavedFiles.get();
+        const newUnsavedFiles = new Set<string>();
+
+        for (const file of unsavedFiles) {
+          if (!file.startsWith(folderPath + '/')) {
+            newUnsavedFiles.add(file);
+          }
+        }
+
+        if (newUnsavedFiles.size !== unsavedFiles.size) {
+          this.unsavedFiles.set(newUnsavedFiles);
+        }
+
+        // If current file was in this folder, select another file
+        if (isInCurrentFolder) {
+          // Find another file to select
+          const files = this.files.get();
+          let nextFile: string | undefined = undefined;
+
+          for (const [path, dirent] of Object.entries(files)) {
+            if (dirent?.type === 'file') {
+              nextFile = path;
+              break;
+            }
+          }
+
+          this.setSelectedFile(nextFile);
+        }
+      }
+
+      return success;
+    } catch (error) {
+      console.error('Failed to delete folder:', error);
+      throw error;
+    }
   }
 
   abortAllActions() {
@@ -545,152 +681,6 @@ export class WorkbenchStore {
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling
-    }
-  }
-
-  async createNewFile(filePath: string, content: string | File | ArrayBuffer = '') {
-    try {
-      const wc = await webcontainer;
-      const relativePath = extractRelativePath(filePath);
-
-      const dirPath = path.dirname(relativePath);
-
-      if (dirPath !== '.') {
-        await wc.fs.mkdir(dirPath, { recursive: true });
-      }
-
-      let fileContent: string | Uint8Array;
-
-      if (content instanceof File) {
-        const buffer = await content.arrayBuffer();
-        fileContent = new Uint8Array(buffer);
-      } else if (content instanceof ArrayBuffer) {
-        fileContent = new Uint8Array(content);
-      } else {
-        fileContent = content || '';
-      }
-
-      await wc.fs.writeFile(relativePath, fileContent);
-
-      const fullPath = path.join(wc.workdir, relativePath);
-      this.setSelectedFile(fullPath);
-
-      return true;
-    } catch (error) {
-      console.error('Error creating file:', error);
-      return false;
-    }
-  }
-
-  async createNewFolder(folderPath: string) {
-    try {
-      const wc = await webcontainer;
-      const relativePath = extractRelativePath(folderPath);
-
-      await wc.fs.mkdir(relativePath, { recursive: true });
-
-      return true;
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      return false;
-    }
-  }
-
-  async deleteFile(filePath: string) {
-    try {
-      const wc = await webcontainer;
-      const relativePath = extractRelativePath(filePath);
-
-      await wc.fs.rm(relativePath);
-
-      // If the deleted file was selected, clear the selection
-      if (this.selectedFile.get() === filePath) {
-        this.setSelectedFile(undefined);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      return false;
-    }
-  }
-
-  async deleteFolder(folderPath: string) {
-    try {
-      const wc = await webcontainer;
-      const relativePath = extractRelativePath(folderPath);
-
-      await wc.fs.rm(relativePath, { recursive: true });
-
-      const selectedFile = this.selectedFile.get();
-
-      if (selectedFile && selectedFile.startsWith(folderPath)) {
-        this.setSelectedFile(undefined);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error deleting folder:', error);
-      return false;
-    }
-  }
-
-  async renameFile(oldPath: string, newPath: string) {
-    try {
-      const wc = await webcontainer;
-      const oldRelativePath = extractRelativePath(oldPath);
-      const newRelativePath = extractRelativePath(newPath);
-
-      const fileContent = await wc.fs.readFile(oldRelativePath, 'utf-8');
-
-      await this.createNewFile(newPath, fileContent);
-
-      await this.deleteFile(oldPath);
-
-      if (this.selectedFile.get() === oldPath) {
-        const fullNewPath = path.join(wc.workdir, newRelativePath);
-        this.setSelectedFile(fullNewPath);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error renaming file:', error);
-      return false;
-    }
-  }
-
-  async renameFolder(oldPath: string, newPath: string) {
-    try {
-      await this.createNewFolder(newPath);
-
-      const files = this.files.get();
-      const filesToMove = Object.entries(files)
-        .filter(([filePath]) => filePath.startsWith(oldPath))
-        .map(([filePath, dirent]) => ({ path: filePath, dirent }));
-
-      for (const { path: filePath, dirent } of filesToMove) {
-        if (dirent?.type === 'file') {
-          const relativePath = filePath.substring(oldPath.length);
-          const newFilePath = path.join(newPath, relativePath);
-
-          await this.createNewFile(newFilePath, dirent.content);
-        }
-      }
-
-      await this.deleteFolder(oldPath);
-
-      const selectedFile = this.selectedFile.get();
-
-      if (selectedFile && selectedFile.startsWith(oldPath)) {
-        const relativePath = selectedFile.substring(oldPath.length);
-        const newSelectedPath = path.join(newPath, relativePath);
-        this.setSelectedFile(newSelectedPath);
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error renaming folder:', error);
-      return false;
     }
   }
 }
