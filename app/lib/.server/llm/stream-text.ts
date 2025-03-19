@@ -12,7 +12,12 @@ import { getFilePaths } from './select-context';
 
 export type Messages = Message[];
 
-export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
+export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0], 'model'> {
+  supabaseConnection?: {
+    isConnected: boolean;
+    hasSelectedProject: boolean;
+  };
+}
 
 const logger = createScopedLogger('stream-text');
 
@@ -97,6 +102,10 @@ export async function streamText(props: {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
+      supabase: {
+        isConnected: options?.supabaseConnection?.isConnected || false,
+        hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
+      },
     }) ?? getSystemPrompt();
 
   if (files && contextFiles && contextOptimization) {
