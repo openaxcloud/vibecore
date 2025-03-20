@@ -27,6 +27,7 @@ export interface SupabaseConnectionState {
 }
 
 const savedConnection = typeof localStorage !== 'undefined' ? localStorage.getItem('supabase_connection') : null;
+const savedCredentials = typeof localStorage !== 'undefined' ? localStorage.getItem('supabaseCredentials') : null;
 
 const initialState: SupabaseConnectionState = savedConnection
   ? JSON.parse(savedConnection)
@@ -38,6 +39,14 @@ const initialState: SupabaseConnectionState = savedConnection
       isConnected: false,
       project: undefined,
     };
+
+if (savedCredentials && !initialState.credentials) {
+  try {
+    initialState.credentials = JSON.parse(savedCredentials);
+  } catch (e) {
+    console.error('Failed to parse saved credentials:', e);
+  }
+}
 
 export const supabaseConnection = atom<SupabaseConnectionState>(initialState);
 

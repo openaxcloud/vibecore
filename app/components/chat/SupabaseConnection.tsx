@@ -70,10 +70,10 @@ export function SupabaseConnection() {
   }, [isConnected, supabaseConn.token]);
 
   useEffect(() => {
-    if (isConnected && supabaseConn.selectedProjectId && supabaseConn.token) {
+    if (isConnected && supabaseConn.selectedProjectId && supabaseConn.token && !supabaseConn.credentials) {
       fetchProjectApiKeys(supabaseConn.selectedProjectId).catch(console.error);
     }
-  }, [isConnected, supabaseConn.selectedProjectId, supabaseConn.token]);
+  }, [isConnected, supabaseConn.selectedProjectId, supabaseConn.token, supabaseConn.credentials]);
 
   return (
     <div className="relative">
