@@ -80,8 +80,11 @@ You are Bolt, an expert AI assistant and exceptional senior software developer w
           : ''
       : ''
   } 
-    IMPORTANT: Create a .env file and ALWAYS populate the variables${
-      supabase?.credentials?.supabaseUrl && supabase?.credentials?.anonKey
+    IMPORTANT: Create a .env file if it doesnt exist${
+      supabase?.isConnected &&
+      supabase?.hasSelectedProject &&
+      supabase?.credentials?.supabaseUrl &&
+      supabase?.credentials?.anonKey
         ? ` and include the following variables:
     VITE_SUPABASE_URL=${supabase.credentials.supabaseUrl}
     VITE_SUPABASE_ANON_KEY=${supabase.credentials.anonKey}`
