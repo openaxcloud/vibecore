@@ -19,3 +19,13 @@ export interface SupabaseStats {
   projects: SupabaseProject[];
   totalProjects: number;
 }
+
+export interface SupabaseApiKey {
+  name: string;
+  api_key: string;
+}
+
+export interface SupabaseCredentials {
+  anonKey?: string;
+  supabaseUrl?: string;
+}

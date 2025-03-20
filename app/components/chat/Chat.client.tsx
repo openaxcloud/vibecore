@@ -169,6 +169,10 @@ export const ChatImpl = memo(
         supabase: {
           isConnected: supabaseConn.isConnected,
           hasSelectedProject: !!selectedProject,
+          credentials: {
+            supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+            anonKey: supabaseConn?.credentials?.anonKey,
+          },
         },
       },
       sendExtraMessageFields: true,

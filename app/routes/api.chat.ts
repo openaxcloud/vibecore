@@ -45,6 +45,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     supabase?: {
       isConnected: boolean;
       hasSelectedProject: boolean;
+      credentials?: {
+        anonKey?: string;
+        supabaseUrl?: string;
+      };
     };
   }>();
 
@@ -183,7 +187,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           // logger.debug('Code Files Selected');
         }
 
-        // Stream the text
         const options: StreamingOptions = {
           supabaseConnection: supabase,
           toolChoice: 'none',

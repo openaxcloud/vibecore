@@ -1,5 +1,5 @@
 import { atom } from 'nanostores';
-import type { SupabaseUser, SupabaseStats } from '~/types/supabase';
+import type { SupabaseUser, SupabaseStats, SupabaseApiKey, SupabaseCredentials } from '~/types/supabase';
 
 export interface SupabaseProject {
   id: string;
@@ -22,10 +22,10 @@ export interface SupabaseConnectionState {
   stats?: SupabaseStats;
   selectedProjectId?: string;
   isConnected?: boolean;
-  project?: SupabaseProject; // Add the selected project data
+  project?: SupabaseProject;
+  credentials?: SupabaseCredentials;
 }
 
-// Init from localStorage if available
 const savedConnection = typeof localStorage !== 'undefined' ? localStorage.getItem('supabase_connection') : null;
 
 const initialState: SupabaseConnectionState = savedConnection
@@ -36,30 +36,28 @@ const initialState: SupabaseConnectionState = savedConnection
       stats: undefined,
       selectedProjectId: undefined,
       isConnected: false,
-      project: undefined, // Initialize as undefined
+      project: undefined,
     };
 
 export const supabaseConnection = atom<SupabaseConnectionState>(initialState);
 
-// After init, fetch stats if we have a token
 if (initialState.token && !initialState.stats) {
   fetchSupabaseStats(initialState.token).catch(console.error);
 }
 
 export const isConnecting = atom(false);
 export const isFetchingStats = atom(false);
+export const isFetchingApiKeys = atom(false);
 
 export function updateSupabaseConnection(connection: Partial<SupabaseConnectionState>) {
   const currentState = supabaseConnection.get();
 
-  // Set isConnected based on user presence AND token
   if (connection.user !== undefined || connection.token !== undefined) {
     const newUser = connection.user !== undefined ? connection.user : currentState.user;
     const newToken = connection.token !== undefined ? connection.token : currentState.token;
     connection.isConnected = !!(newUser && newToken);
   }
 
-  // Update the project data when selectedProjectId changes
   if (connection.selectedProjectId !== undefined) {
     if (connection.selectedProjectId && currentState.stats?.projects) {
       const selectedProject = currentState.stats.projects.find(
@@ -69,7 +67,6 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
       if (selectedProject) {
         connection.project = selectedProject;
       } else {
-        // If project not found in stats but ID is provided, set a minimal project object
         connection.project = {
           id: connection.selectedProjectId,
           name: `Project ${connection.selectedProjectId.substring(0, 8)}...`,
@@ -80,8 +77,8 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
         };
       }
     } else if (connection.selectedProjectId === '') {
-      // Clear the project when selectedProjectId is empty
       connection.project = undefined;
+      connection.credentials = undefined;
     }
   }
 
@@ -90,12 +87,18 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
 
   /*
    * Always save the connection state to localStorage to persist across chats
-   * Always save the connection state to localStorage to persist across chats
    */
-  if (connection.user || connection.token || connection.selectedProjectId !== undefined) {
+  if (connection.user || connection.token || connection.selectedProjectId !== undefined || connection.credentials) {
     localStorage.setItem('supabase_connection', JSON.stringify(newState));
+
+    if (newState.credentials) {
+      localStorage.setItem('supabaseCredentials', JSON.stringify(newState.credentials));
+    } else {
+      localStorage.removeItem('supabaseCredentials');
+    }
   } else {
     localStorage.removeItem('supabase_connection');
+    localStorage.removeItem('supabaseCredentials');
   }
 }
 
@@ -103,28 +106,77 @@ export async function fetchSupabaseStats(token: string) {
   isFetchingStats.set(true);
 
   try {
-    const response = await fetch('https://api.supabase.com/v1/projects', {
+    // Use the internal API route instead of direct Supabase API call
+    const response = await fetch('/api/supabase', {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        token,
+      }),
     });
 
     if (!response.ok) {
       throw new Error('Failed to fetch projects');
     }
 
-    const projects = (await response.json()) as any;
+    const data = (await response.json()) as any;
 
     updateSupabaseConnection({
-      stats: {
-        projects,
-        totalProjects: projects.length,
-      },
+      user: data.user,
+      stats: data.stats,
     });
   } catch (error) {
     console.error('Failed to fetch Supabase stats:', error);
     throw error;
   } finally {
     isFetchingStats.set(false);
+  }
+}
+
+export async function fetchProjectApiKeys(projectId: string, token: string) {
+  isFetchingApiKeys.set(true);
+
+  try {
+    const response = await fetch('/api/supabase/variables', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        projectId,
+        token,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch API keys');
+    }
+
+    const data = (await response.json()) as any;
+    const apiKeys = data.apiKeys;
+
+    const anonKey = apiKeys.find((key: SupabaseApiKey) => key.name === 'anon' || key.name === 'public');
+
+    if (anonKey) {
+      const supabaseUrl = `https://${projectId}.supabase.co`;
+
+      updateSupabaseConnection({
+        credentials: {
+          anonKey: anonKey.api_key,
+          supabaseUrl,
+        },
+      });
+
+      return { anonKey: anonKey.api_key, supabaseUrl };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Failed to fetch project API keys:', error);
+    throw error;
+  } finally {
+    isFetchingApiKeys.set(false);
   }
 }

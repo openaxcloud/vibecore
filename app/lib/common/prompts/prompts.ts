@@ -4,7 +4,11 @@ import { stripIndents } from '~/utils/stripIndent';
 
 export const getSystemPrompt = (
   cwd: string = WORK_DIR,
-  supabase?: { isConnected: boolean; hasSelectedProject: boolean },
+  supabase?: {
+    isConnected: boolean;
+    hasSelectedProject: boolean;
+    credentials?: { anonKey?: string; supabaseUrl?: string };
+  },
 ) => `
 You are Bolt, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -76,8 +80,16 @@ You are Bolt, an expert AI assistant and exceptional senior software developer w
           : ''
       : ''
   } 
-  The environment variables for Supabase connection will be available in the project's \`.env\` file.
-  IMPORTANT: Create a .env file if it doesnt exist.
+  IMPORTANT: Create a .env file if it doesnt exist and include the following variables:
+  ${
+    supabase?.isConnected &&
+    supabase?.hasSelectedProject &&
+    supabase?.credentials?.supabaseUrl &&
+    supabase?.credentials?.anonKey
+      ? `VITE_SUPABASE_URL=${supabase.credentials.supabaseUrl}
+      VITE_SUPABASE_ANON_KEY=${supabase.credentials.anonKey}`
+      : 'SUPABASE_URL=your_supabase_url\nSUPABASE_ANON_KEY=your_supabase_anon_key'
+  }
   NEVER modify any Supabase configuration or \`.env\` files.
 
   CRITICAL DATA PRESERVATION AND SAFETY REQUIREMENTS:

@@ -16,6 +16,10 @@ export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0]
   supabaseConnection?: {
     isConnected: boolean;
     hasSelectedProject: boolean;
+    credentials?: {
+      anonKey?: string;
+      supabaseUrl?: string;
+    };
   };
 }
 
@@ -105,6 +109,7 @@ export async function streamText(props: {
       supabase: {
         isConnected: options?.supabaseConnection?.isConnected || false,
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
+        credentials: options?.supabaseConnection?.credentials || undefined,
       },
     }) ?? getSystemPrompt();
 

@@ -8,6 +8,10 @@ export interface PromptOptions {
   supabase?: {
     isConnected: boolean;
     hasSelectedProject: boolean;
+    credentials?: {
+      anonKey?: string;
+      supabaseUrl?: string;
+    };
   };
 }
 

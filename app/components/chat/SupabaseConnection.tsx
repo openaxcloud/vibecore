@@ -21,11 +21,11 @@ export function SupabaseConnection() {
     handleCreateProject,
     updateToken,
     isConnected,
+    fetchProjectApiKeys,
   } = useSupabaseConnection();
 
   const currentChatId = useStore(chatId);
 
-  // Add event listener for opening the connection dialog
   useEffect(() => {
     const handleOpenConnectionDialog = () => {
       setIsDialogOpen(true);
@@ -38,7 +38,6 @@ export function SupabaseConnection() {
     };
   }, [setIsDialogOpen]);
 
-  // Load the selected project from localStorage when connected or chat changes
   useEffect(() => {
     if (isConnected && currentChatId) {
       const savedProjectId = localStorage.getItem(`supabase-project-${currentChatId}`);
@@ -69,6 +68,12 @@ export function SupabaseConnection() {
       fetchSupabaseStats(supabaseConn.token).catch(console.error);
     }
   }, [isConnected, supabaseConn.token]);
+
+  useEffect(() => {
+    if (isConnected && supabaseConn.selectedProjectId && supabaseConn.token) {
+      fetchProjectApiKeys(supabaseConn.selectedProjectId).catch(console.error);
+    }
+  }, [isConnected, supabaseConn.selectedProjectId, supabaseConn.token]);
 
   return (
     <div className="relative">

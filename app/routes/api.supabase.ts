@@ -7,7 +7,6 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ error: 'Method not allowed' }, { status: 405 });
   }
 
-  // Inside the action function
   try {
     const { token } = (await request.json()) as any;
 
@@ -27,17 +26,14 @@ export const action: ActionFunction = async ({ request }) => {
 
     const projects = (await projectsResponse.json()) as SupabaseProject[];
 
-    // Create a Map to store unique projects by ID
     const uniqueProjectsMap = new Map<string, SupabaseProject>();
 
-    // Only keep the latest version of each project
     for (const project of projects) {
       if (!uniqueProjectsMap.has(project.id)) {
         uniqueProjectsMap.set(project.id, project);
       }
     }
 
-    // Debug log to see unique projects
     console.log(
       'Unique projects:',
       Array.from(uniqueProjectsMap.values()).map((p) => ({ id: p.id, name: p.name })),
@@ -45,7 +41,6 @@ export const action: ActionFunction = async ({ request }) => {
 
     const uniqueProjects = Array.from(uniqueProjectsMap.values());
 
-    // Sort projects by creation date (newest first)
     uniqueProjects.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return json({
