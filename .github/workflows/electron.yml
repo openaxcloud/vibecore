@@ -8,13 +8,16 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest] # TODO: add back macos-latest when notarize is figured out
         node-version: [18.18.0]
       fail-fast: false
 
@@ -80,7 +83,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: ${{ github.ref_type == 'branch' }}
+          draft: ${{ github.event_name == 'workflow_dispatch' || github.ref_type == 'branch' }}
           files: |
             dist/*.exe
             dist/*.dmg
