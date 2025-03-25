@@ -34,11 +34,6 @@ export const action: ActionFunction = async ({ request }) => {
       }
     }
 
-    console.log(
-      'Unique projects:',
-      Array.from(uniqueProjectsMap.values()).map((p) => ({ id: p.id, name: p.name })),
-    );
-
     const uniqueProjects = Array.from(uniqueProjectsMap.values());
 
     uniqueProjects.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());

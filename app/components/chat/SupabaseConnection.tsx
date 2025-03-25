@@ -214,13 +214,23 @@ export function SupabaseConnection() {
                           )}
                         />
                       </button>
-                      <button
-                        onClick={() => handleCreateProject()}
-                        className="px-2 py-1 rounded-md text-xs bg-[#3ECF8E] text-white hover:bg-[#3BBF84] flex items-center gap-1"
-                      >
-                        <div className="i-ph:plus w-3 h-3" />
-                        New Project
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => fetchSupabaseStats(supabaseConn.token)}
+                          className="px-2 py-1 rounded-md text-xs bg-[#F0F0F0] dark:bg-[#252525] text-bolt-elements-textSecondary hover:bg-[#E5E5E5] dark:hover:bg-[#333333] flex items-center gap-1"
+                          title="Refresh projects list"
+                        >
+                          <div className="i-ph:arrows-clockwise w-3 h-3" />
+                          Refresh
+                        </button>
+                        <button
+                          onClick={() => handleCreateProject()}
+                          className="px-2 py-1 rounded-md text-xs bg-[#3ECF8E] text-white hover:bg-[#3BBF84] flex items-center gap-1"
+                        >
+                          <div className="i-ph:plus w-3 h-3" />
+                          New Project
+                        </button>
+                      </div>
                     </div>
 
                     {isProjectsExpanded && (
