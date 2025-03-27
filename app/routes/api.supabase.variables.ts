@@ -1,4 +1,4 @@
-import { json, type ActionFunctionArgs } from '@remix-run/node';
+import { json, type ActionFunctionArgs } from '@remix-run/cloudflare';
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
