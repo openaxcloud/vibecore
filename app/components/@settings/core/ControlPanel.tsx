@@ -29,7 +29,7 @@ import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
 import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
 import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
 import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
-import DataTab from '~/components/@settings/tabs/data/DataTab';
+import { DataTab } from '~/components/@settings/tabs/data/DataTab';
 import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
 import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
 import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
@@ -416,7 +416,7 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         <div className="fixed inset-0 flex items-center justify-center z-[100]">
           <RadixDialog.Overlay asChild>
             <motion.div
-              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
