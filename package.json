@@ -170,11 +170,12 @@
     "@types/path-browserify": "^1.0.3",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
+    "crypto-browserify": "^3.12.1",
     "electron": "^33.2.0",
     "electron-builder": "^25.1.8",
-    "@vitejs/plugin-react": "^4.3.4",
     "fast-glob": "^3.3.2",
     "husky": "9.1.7",
     "is-ci": "^3.0.1",
@@ -184,6 +185,7 @@
     "prettier": "^3.4.1",
     "rimraf": "^4.4.1",
     "sass-embedded": "^1.81.0",
+    "stream-browserify": "^3.0.0",
     "typescript": "^5.7.2",
     "unified": "^11.0.5",
     "unocss": "^0.61.9",
@@ -192,7 +194,7 @@
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.7",
-    "wrangler": "^3.91.0"
+    "wrangler": "^4.5.1"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
