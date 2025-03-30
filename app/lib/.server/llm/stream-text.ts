@@ -153,18 +153,126 @@ ${props.summary}
 
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
 
-  // console.log(systemPrompt,processedMessages);
+  // Store original messages for reference
+  const originalMessages = [...messages];
+  const hasMultimodalContent = originalMessages.some((msg) => Array.isArray(msg.content));
 
-  return await _streamText({
-    model: provider.getModelInstance({
-      model: modelDetails.name,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
-    system: systemPrompt,
-    maxTokens: dynamicMaxTokens,
-    messages: convertToCoreMessages(processedMessages as any),
-    ...options,
-  });
+  try {
+    if (hasMultimodalContent) {
+      /*
+       * For multimodal content, we need to preserve the original array structure
+       * but make sure the roles are valid and content items are properly formatted
+       */
+      const multimodalMessages = originalMessages.map((msg) => ({
+        role: msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant' ? msg.role : 'user',
+        content: Array.isArray(msg.content)
+          ? msg.content.map((item) => {
+              // Ensure each content item has the correct format
+              if (typeof item === 'string') {
+                return { type: 'text', text: item };
+              }
+
+              if (item && typeof item === 'object') {
+                if (item.type === 'image' && item.image) {
+                  return { type: 'image', image: item.image };
+                }
+
+                if (item.type === 'text') {
+                  return { type: 'text', text: item.text || '' };
+                }
+              }
+
+              // Default fallback for unknown formats
+              return { type: 'text', text: String(item || '') };
+            })
+          : [{ type: 'text', text: typeof msg.content === 'string' ? msg.content : String(msg.content || '') }],
+      }));
+
+      return await _streamText({
+        model: provider.getModelInstance({
+          model: modelDetails.name,
+          serverEnv,
+          apiKeys,
+          providerSettings,
+        }),
+        system: systemPrompt,
+        maxTokens: dynamicMaxTokens,
+        messages: multimodalMessages as any,
+        ...options,
+      });
+    } else {
+      // For non-multimodal content, we use the standard approach
+      const normalizedTextMessages = processedMessages.map((msg) => ({
+        role: msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant' ? msg.role : 'user',
+        content: typeof msg.content === 'string' ? msg.content : String(msg.content || ''),
+      }));
+
+      return await _streamText({
+        model: provider.getModelInstance({
+          model: modelDetails.name,
+          serverEnv,
+          apiKeys,
+          providerSettings,
+        }),
+        system: systemPrompt,
+        maxTokens: dynamicMaxTokens,
+        messages: convertToCoreMessages(normalizedTextMessages),
+        ...options,
+      });
+    }
+  } catch (error: any) {
+    // Special handling for format errors
+    if (error.message && error.message.includes('messages must be an array of CoreMessage or UIMessage')) {
+      logger.warn('Message format error detected, attempting recovery with explicit formatting...');
+
+      // Create properly formatted messages for all cases as a last resort
+      const fallbackMessages = processedMessages.map((msg) => {
+        // Determine text content with careful type handling
+        let textContent = '';
+
+        if (typeof msg.content === 'string') {
+          textContent = msg.content;
+        } else if (Array.isArray(msg.content)) {
+          // Handle array content safely
+          const contentArray = msg.content as any[];
+          textContent = contentArray
+            .map((contentItem) =>
+              typeof contentItem === 'string'
+                ? contentItem
+                : contentItem?.text || contentItem?.image || String(contentItem || ''),
+            )
+            .join(' ');
+        } else {
+          textContent = String(msg.content || '');
+        }
+
+        return {
+          role: msg.role === 'system' || msg.role === 'user' || msg.role === 'assistant' ? msg.role : 'user',
+          content: [
+            {
+              type: 'text',
+              text: textContent,
+            },
+          ],
+        };
+      });
+
+      // Try one more time with the fallback format
+      return await _streamText({
+        model: provider.getModelInstance({
+          model: modelDetails.name,
+          serverEnv,
+          apiKeys,
+          providerSettings,
+        }),
+        system: systemPrompt,
+        maxTokens: dynamicMaxTokens,
+        messages: fallbackMessages as any,
+        ...options,
+      });
+    }
+
+    // If it's not a format error, re-throw the original error
+    throw error;
+  }
 }
