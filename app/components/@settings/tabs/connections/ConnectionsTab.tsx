@@ -3,6 +3,7 @@ import React, { Suspense, useState } from 'react';
 import { classNames } from '~/utils/classNames';
 import ConnectionDiagnostics from './ConnectionDiagnostics';
 import { Button } from '~/components/ui/Button';
+import VercelConnection from './VercelConnection';
 
 // Use React.lazy for dynamic imports
 const GitHubConnection = React.lazy(() => import('./GithubConnection'));
@@ -154,6 +155,9 @@ export default function ConnectionsTab() {
         </Suspense>
         <Suspense fallback={<LoadingFallback />}>
           <NetlifyConnection />
+        </Suspense>
+        <Suspense fallback={<LoadingFallback />}>
+          <VercelConnection />
         </Suspense>
       </div>
 
