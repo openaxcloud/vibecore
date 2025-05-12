@@ -27,7 +27,8 @@ const IGNORE_PATTERNS = [
   '**/npm-debug.log*',
   '**/yarn-debug.log*',
   '**/yarn-error.log*',
-  '**/*lock.json',
+
+  // Include this so npm install runs much faster '**/*lock.json',
   '**/*lock.yaml',
 ];
 
@@ -70,7 +71,7 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
           // Skip binary files
           if (
             content instanceof Uint8Array &&
-            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg)$/i)
+            !filePath.match(/\.(txt|md|astro|mjs|js|jsx|ts|tsx|json|html|css|scss|less|yml|yaml|xml|svg|vue|svelte)$/i)
           ) {
             skippedFiles.push(filePath);
             continue;
@@ -156,13 +157,13 @@ ${escapeBoltTags(file.content)}
       <Button
         onClick={() => setIsDialogOpen(true)}
         title="Clone a Git Repo"
-        variant="outline"
+        variant="default"
         size="lg"
         className={classNames(
-          'gap-2 bg-[#F5F5F5] dark:bg-[#252525]',
-          'text-bolt-elements-textPrimary dark:text-white',
-          'hover:bg-[#E5E5E5] dark:hover:bg-[#333333]',
-          'border-[#E5E5E5] dark:border-[#333333]',
+          'gap-2 bg-bolt-elements-background-depth-1',
+          'text-bolt-elements-textPrimary',
+          'hover:bg-bolt-elements-background-depth-2',
+          'border border-bolt-elements-borderColor',
           'h-10 px-4 py-2 min-w-[120px] justify-center',
           'transition-all duration-200 ease-in-out',
           className,

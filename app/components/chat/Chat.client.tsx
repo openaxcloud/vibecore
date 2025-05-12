@@ -8,7 +8,7 @@ import { useChat } from 'ai/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
-import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
+import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -26,6 +26,7 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
+import { supabaseConnection } from '~/lib/stores/supabase';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -80,6 +81,7 @@ export function Chat() {
         position="bottom-right"
         pauseOnFocusLoss
         transition={toastAnimation}
+        autoClose={3000}
       />
     </>
   );
@@ -123,6 +125,12 @@ export const ChatImpl = memo(
     const [fakeLoading, setFakeLoading] = useState(false);
     const files = useStore(workbenchStore.files);
     const actionAlert = useStore(workbenchStore.alert);
+    const deployAlert = useStore(workbenchStore.deployAlert);
+    const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
+    const selectedProject = supabaseConn.stats?.projects?.find(
+      (project) => project.id === supabaseConn.selectedProjectId,
+    );
+    const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
     const [model, setModel] = useState(() => {
@@ -160,6 +168,14 @@ export const ChatImpl = memo(
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
+        supabase: {
+          isConnected: supabaseConn.isConnected,
+          hasSelectedProject: !!selectedProject,
+          credentials: {
+            supabaseUrl: supabaseConn?.credentials?.supabaseUrl,
+            anonKey: supabaseConn?.credentials?.anonKey,
+          },
+        },
       },
       sendExtraMessageFields: true,
       onError: (e) => {
@@ -294,6 +310,9 @@ export const ChatImpl = memo(
         return;
       }
 
+      // If no locked items, proceed normally with the original message
+      const finalMessageContent = messageContent;
+
       runAnimation();
 
       if (!chatStarted) {
@@ -301,7 +320,7 @@ export const ChatImpl = memo(
 
         if (autoSelectTemplate) {
           const { template, title } = await selectStarterTemplate({
-            message: messageContent,
+            message: finalMessageContent,
             model,
             provider,
           });
@@ -323,7 +342,16 @@ export const ChatImpl = memo(
                 {
                   id: `1-${new Date().getTime()}`,
                   role: 'user',
-                  content: messageContent,
+                  content: [
+                    {
+                      type: 'text',
+                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
+                    },
+                    ...imageDataList.map((imageData) => ({
+                      type: 'image',
+                      image: imageData,
+                    })),
+                  ] as any,
                 },
                 {
                   id: `2-${new Date().getTime()}`,
@@ -338,6 +366,15 @@ export const ChatImpl = memo(
                 },
               ]);
               reload();
+              setInput('');
+              Cookies.remove(PROMPT_COOKIE_KEY);
+
+              setUploadedFiles([]);
+              setImageDataList([]);
+
+              resetEnhancer();
+
+              textareaRef.current?.blur();
               setFakeLoading(false);
 
               return;
@@ -353,7 +390,7 @@ export const ChatImpl = memo(
             content: [
               {
                 type: 'text',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
               },
               ...imageDataList.map((imageData) => ({
                 type: 'image',
@@ -364,6 +401,15 @@ export const ChatImpl = memo(
         ]);
         reload();
         setFakeLoading(false);
+        setInput('');
+        Cookies.remove(PROMPT_COOKIE_KEY);
+
+        setUploadedFiles([]);
+        setImageDataList([]);
+
+        resetEnhancer();
+
+        textareaRef.current?.blur();
 
         return;
       }
@@ -383,7 +429,7 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${messageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`,
             },
             ...imageDataList.map((imageData) => ({
               type: 'image',
@@ -399,7 +445,7 @@ export const ChatImpl = memo(
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${messageContent}`,
+              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
             },
             ...imageDataList.map((imageData) => ({
               type: 'image',
@@ -440,8 +486,6 @@ export const ChatImpl = memo(
       [],
     );
 
-    const [messageRef, scrollRef] = useSnapScroll();
-
     useEffect(() => {
       const storedApiKeys = Cookies.get('apiKeys');
 
@@ -479,8 +523,6 @@ export const ChatImpl = memo(
         provider={provider}
         setProvider={handleProviderChange}
         providerList={activeProviders}
-        messageRef={messageRef}
-        scrollRef={scrollRef}
         handleInputChange={(e) => {
           onTextareaChange(e);
           debouncedCachePrompt(e);
@@ -517,6 +559,10 @@ export const ChatImpl = memo(
         setImageDataList={setImageDataList}
         actionAlert={actionAlert}
         clearAlert={() => workbenchStore.clearAlert()}
+        supabaseAlert={supabaseAlert}
+        clearSupabaseAlert={() => workbenchStore.clearSupabaseAlert()}
+        deployAlert={deployAlert}
+        clearDeployAlert={() => workbenchStore.clearDeployAlert()}
         data={chatData}
       />
     );

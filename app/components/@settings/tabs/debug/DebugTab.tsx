@@ -342,24 +342,86 @@ export default function DebugTab() {
     try {
       setLoading((prev) => ({ ...prev, systemInfo: true }));
 
-      // Get browser info
-      const ua = navigator.userAgent;
-      const browserName = ua.includes('Firefox')
-        ? 'Firefox'
-        : ua.includes('Chrome')
-          ? 'Chrome'
-          : ua.includes('Safari')
-            ? 'Safari'
-            : ua.includes('Edge')
-              ? 'Edge'
-              : 'Unknown';
-      const browserVersion = ua.match(/(Firefox|Chrome|Safari|Edge)\/([0-9.]+)/)?.[2] || 'Unknown';
+      // Get better OS detection
+      const userAgent = navigator.userAgent;
+      let detectedOS = 'Unknown';
+      let detectedArch = 'unknown';
+
+      // Improved OS detection
+      if (userAgent.indexOf('Win') !== -1) {
+        detectedOS = 'Windows';
+      } else if (userAgent.indexOf('Mac') !== -1) {
+        detectedOS = 'macOS';
+      } else if (userAgent.indexOf('Linux') !== -1) {
+        detectedOS = 'Linux';
+      } else if (userAgent.indexOf('Android') !== -1) {
+        detectedOS = 'Android';
+      } else if (/iPhone|iPad|iPod/.test(userAgent)) {
+        detectedOS = 'iOS';
+      }
+
+      // Better architecture detection
+      if (userAgent.indexOf('x86_64') !== -1 || userAgent.indexOf('x64') !== -1 || userAgent.indexOf('WOW64') !== -1) {
+        detectedArch = 'x64';
+      } else if (userAgent.indexOf('x86') !== -1 || userAgent.indexOf('i686') !== -1) {
+        detectedArch = 'x86';
+      } else if (userAgent.indexOf('arm64') !== -1 || userAgent.indexOf('aarch64') !== -1) {
+        detectedArch = 'arm64';
+      } else if (userAgent.indexOf('arm') !== -1) {
+        detectedArch = 'arm';
+      }
+
+      // Get browser info with improved detection
+      const browserName = (() => {
+        if (userAgent.indexOf('Edge') !== -1 || userAgent.indexOf('Edg/') !== -1) {
+          return 'Edge';
+        }
+
+        if (userAgent.indexOf('Chrome') !== -1) {
+          return 'Chrome';
+        }
+
+        if (userAgent.indexOf('Firefox') !== -1) {
+          return 'Firefox';
+        }
+
+        if (userAgent.indexOf('Safari') !== -1) {
+          return 'Safari';
+        }
+
+        return 'Unknown';
+      })();
+
+      const browserVersionMatch = userAgent.match(/(Edge|Edg|Chrome|Firefox|Safari)[\s/](\d+(\.\d+)*)/);
+      const browserVersion = browserVersionMatch ? browserVersionMatch[2] : 'Unknown';
 
       // Get performance metrics
       const memory = (performance as any).memory || {};
       const timing = performance.timing;
       const navigation = performance.navigation;
-      const connection = (navigator as any).connection;
+      const connection = (navigator as any).connection || {};
+
+      // Try to use Navigation Timing API Level 2 when available
+      let loadTime = 0;
+      let domReadyTime = 0;
+
+      try {
+        const navEntries = performance.getEntriesByType('navigation');
+
+        if (navEntries.length > 0) {
+          const navTiming = navEntries[0] as PerformanceNavigationTiming;
+          loadTime = navTiming.loadEventEnd - navTiming.startTime;
+          domReadyTime = navTiming.domContentLoadedEventEnd - navTiming.startTime;
+        } else {
+          // Fall back to older API
+          loadTime = timing.loadEventEnd - timing.navigationStart;
+          domReadyTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+        }
+      } catch {
+        // Fall back to older API if Navigation Timing API Level 2 is not available
+        loadTime = timing.loadEventEnd - timing.navigationStart;
+        domReadyTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+      }
 
       // Get battery info
       let batteryInfo;
@@ -405,9 +467,9 @@ export default function DebugTab() {
       const memoryPercentage = totalMemory ? (usedMemory / totalMemory) * 100 : 0;
 
       const systemInfo: SystemInfo = {
-        os: navigator.platform,
-        arch: navigator.userAgent.includes('x64') ? 'x64' : navigator.userAgent.includes('arm') ? 'arm' : 'unknown',
-        platform: navigator.platform,
+        os: detectedOS,
+        arch: detectedArch,
+        platform: navigator.platform || 'unknown',
         cpus: navigator.hardwareConcurrency + ' cores',
         memory: {
           total: formatBytes(totalMemory),
@@ -423,7 +485,7 @@ export default function DebugTab() {
           userAgent: navigator.userAgent,
           cookiesEnabled: navigator.cookieEnabled,
           online: navigator.onLine,
-          platform: navigator.platform,
+          platform: navigator.platform || 'unknown',
           cores: navigator.hardwareConcurrency,
         },
         screen: {
@@ -445,8 +507,8 @@ export default function DebugTab() {
             usagePercentage: memory.totalJSHeapSize ? (memory.usedJSHeapSize / memory.totalJSHeapSize) * 100 : 0,
           },
           timing: {
-            loadTime: timing.loadEventEnd - timing.navigationStart,
-            domReadyTime: timing.domContentLoadedEventEnd - timing.navigationStart,
+            loadTime,
+            domReadyTime,
             readyStart: timing.fetchStart - timing.navigationStart,
             redirectTime: timing.redirectEnd - timing.redirectStart,
             appcacheTime: timing.domainLookupStart - timing.fetchStart,
@@ -481,6 +543,23 @@ export default function DebugTab() {
     } finally {
       setLoading((prev) => ({ ...prev, systemInfo: false }));
     }
+  };
+
+  // Helper function to format bytes to human readable format with better precision
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) {
+      return '0 B';
+    }
+
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+
+    // Return with proper precision based on unit size
+    if (i === 0) {
+      return `${bytes} ${units[i]}`;
+    }
+
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
   };
 
   const getWebAppInfo = async () => {
@@ -518,20 +597,6 @@ export default function DebugTab() {
     } finally {
       setLoading((prev) => ({ ...prev, webAppInfo: false }));
     }
-  };
-
-  // Helper function to format bytes to human readable format
-  const formatBytes = (bytes: number) => {
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = bytes;
-    let unitIndex = 0;
-
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
-    }
-
-    return `${Math.round(size)} ${units[unitIndex]}`;
   };
 
   const handleLogPerformance = () => {
@@ -1077,7 +1142,7 @@ export default function DebugTab() {
     {
       id: 'json',
       label: 'Export as JSON',
-      icon: 'i-ph:file-json',
+      icon: 'i-ph:file-js',
       handler: exportDebugInfo,
     },
     {
@@ -1587,7 +1652,7 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textPrimary">{systemInfo.platform}</span>
                   </div>
                   <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:microchip text-bolt-elements-textSecondary w-4 h-4" />
+                    <div className="i-ph:circuitry text-bolt-elements-textSecondary w-4 h-4" />
                     <span className="text-bolt-elements-textSecondary">Architecture: </span>
                     <span className="text-bolt-elements-textPrimary">{systemInfo.arch}</span>
                   </div>
@@ -1597,7 +1662,7 @@ export default function DebugTab() {
                     <span className="text-bolt-elements-textPrimary">{systemInfo.cpus}</span>
                   </div>
                   <div className="text-sm flex items-center gap-2">
-                    <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                    <div className="i-ph:graph text-bolt-elements-textSecondary w-4 h-4" />
                     <span className="text-bolt-elements-textSecondary">Node Version: </span>
                     <span className="text-bolt-elements-textPrimary">{systemInfo.node}</span>
                   </div>
@@ -1852,7 +1917,7 @@ export default function DebugTab() {
                       <span className="text-bolt-elements-textPrimary">{webAppInfo.environment}</span>
                     </div>
                     <div className="text-sm flex items-center gap-2">
-                      <div className="i-ph:node text-bolt-elements-textSecondary w-4 h-4" />
+                      <div className="i-ph:graph text-bolt-elements-textSecondary w-4 h-4" />
                       <span className="text-bolt-elements-textSecondary">Node Version:</span>
                       <span className="text-bolt-elements-textPrimary">{webAppInfo.runtimeInfo.nodeVersion}</span>
                     </div>
@@ -1887,7 +1952,7 @@ export default function DebugTab() {
                       <>
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                           <div className="text-sm flex items-center gap-2">
-                            <div className="i-ph:git-repository text-bolt-elements-textSecondary w-4 h-4" />
+                            <div className="i-ph:git-fork text-bolt-elements-textSecondary w-4 h-4" />
                             <span className="text-bolt-elements-textSecondary">Repository:</span>
                             <span className="text-bolt-elements-textPrimary">
                               {webAppInfo.gitInfo.github.currentRepo.fullName}

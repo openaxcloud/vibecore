@@ -41,10 +41,11 @@ if (!import.meta.env.SSR) {
           // Handle both uncaught exceptions and unhandled promise rejections
           if (message.type === 'PREVIEW_UNCAUGHT_EXCEPTION' || message.type === 'PREVIEW_UNHANDLED_REJECTION') {
             const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
+            const title = isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception';
             workbenchStore.actionAlert.set({
               type: 'preview',
-              title: isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception',
-              description: message.message,
+              title,
+              description: 'message' in message ? message.message : 'Unknown error',
               content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
               source: 'preview',
             });

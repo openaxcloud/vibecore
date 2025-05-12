@@ -8,11 +8,19 @@ import { allowedHTMLElements } from '~/utils/markdown';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
-import { getFilePaths } from './select-context';
 
 export type Messages = Message[];
 
-export type StreamingOptions = Omit<Parameters<typeof _streamText>[0], 'model'>;
+export interface StreamingOptions extends Omit<Parameters<typeof _streamText>[0], 'model'> {
+  supabaseConnection?: {
+    isConnected: boolean;
+    hasSelectedProject: boolean;
+    credentials?: {
+      anonKey?: string;
+      supabaseUrl?: string;
+    };
+  };
+}
 
 const logger = createScopedLogger('stream-text');
 
@@ -54,6 +62,15 @@ export async function streamText(props: {
       let content = message.content;
       content = content.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
       content = content.replace(/<think>.*?<\/think>/s, '');
+
+      // Remove package-lock.json content specifically keeping token usage MUCH lower
+      content = content.replace(
+        /<boltAction type="file" filePath="package-lock\.json">[\s\S]*?<\/boltAction>/g,
+        '[package-lock.json content removed]',
+      );
+
+      // Trim whitespace potentially left after removals
+      content = content.trim();
 
       return { ...message, content };
     }
@@ -97,17 +114,17 @@ export async function streamText(props: {
       cwd: WORK_DIR,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
+      supabase: {
+        isConnected: options?.supabaseConnection?.isConnected || false,
+        hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
+        credentials: options?.supabaseConnection?.credentials || undefined,
+      },
     }) ?? getSystemPrompt();
 
-  if (files && contextFiles && contextOptimization) {
+  if (contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
-    const filePaths = getFilePaths(files);
 
     systemPrompt = `${systemPrompt}
-Below are all the files present in the project:
----
-${filePaths.join('\n')}
----
 
 Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
 CONTEXT BUFFER:
@@ -137,9 +154,33 @@ ${props.summary}
     }
   }
 
+  const effectiveLockedFilePaths = new Set<string>();
+
+  if (files) {
+    for (const [filePath, fileDetails] of Object.entries(files)) {
+      if (fileDetails?.isLocked) {
+        effectiveLockedFilePaths.add(filePath);
+      }
+    }
+  }
+
+  if (effectiveLockedFilePaths.size > 0) {
+    const lockedFilesListString = Array.from(effectiveLockedFilePaths)
+      .map((filePath) => `- ${filePath}`)
+      .join('\n');
+    systemPrompt = `${systemPrompt}
+
+IMPORTANT: The following files are locked and MUST NOT be modified in any way. Do not suggest or make any changes to these files. You can proceed with the request but DO NOT make any changes to these files specifically:
+${lockedFilesListString}
+---
+`;
+  } else {
+    console.log('No locked files found from any source for prompt.');
+  }
+
   logger.info(`Sending llm call to ${provider.name} with model ${modelDetails.name}`);
 
-  // console.log(systemPrompt,processedMessages);
+  // console.log(systemPrompt, processedMessages);
 
   return await _streamText({
     model: provider.getModelInstance({
