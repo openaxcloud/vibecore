@@ -7,8 +7,7 @@ import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
 import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
-import { profileStore } from '~/lib/stores/profile';
-import type { TabType, Profile } from './types';
+import type { TabType } from './types';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
@@ -33,6 +32,7 @@ import McpTab from '~/components/@settings/tabs/mcp/McpTab';
 interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
+  initialTab?: TabType | null;
 }
 
 // Beta status for experimental features
@@ -44,7 +44,7 @@ const BetaLabel = () => (
   </div>
 );
 
-export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
+export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelProps) => {
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
@@ -52,7 +52,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
   // Store values
   const tabConfiguration = useStore(tabConfigurationStore);
-  const profile = useStore(profileStore) as Profile;
 
   // Status hooks
   const { hasNewFeatures, unviewedFeatures, acknowledgeAllFeatures } = useFeatures();
@@ -73,8 +72,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       return [];
     }
 
-    const notificationsDisabled = profile?.preferences?.notifications === false;
-
     // Optimize user mode tab filtering
     return tabConfiguration.userTabs
       .filter((tab) => {
@@ -82,14 +79,10 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
           return false;
         }
 
-        if (tab.id === 'notifications' && notificationsDisabled) {
-          return false;
-        }
-
         return tab.visible && tab.window === 'user';
       })
       .sort((a, b) => a.order - b.order);
-  }, [tabConfiguration, profile?.preferences?.notifications, baseTabConfig]);
+  }, [tabConfiguration, baseTabConfig]);
 
   // Reset to default view when modal opens/closes
   useEffect(() => {
@@ -99,10 +92,9 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
       setLoadingTab(null);
       setShowTabManagement(false);
     } else {
-      // When opening, set to null to show the main view
-      setActiveTab(null);
+      setActiveTab(initialTab);
     }
-  }, [open]);
+  }, [open, initialTab]);
 
   // Handle closing
   const handleClose = () => {

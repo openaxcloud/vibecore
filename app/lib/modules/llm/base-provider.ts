@@ -90,8 +90,9 @@ export abstract class BaseProvider implements ProviderInfo {
     }
 
     const apiTokenKey = this.config.apiTokenKey || defaultApiTokenKey;
-    const apiKey =
+    const apiKeyValue =
       apiKeys?.[this.name] || serverEnv?.[apiTokenKey] || process?.env?.[apiTokenKey] || manager.env?.[apiTokenKey];
+    const apiKey = typeof apiKeyValue === 'string' ? apiKeyValue.replace(/\s+/g, '') : apiKeyValue;
 
     return {
       baseUrl,

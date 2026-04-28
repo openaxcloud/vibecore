@@ -152,10 +152,16 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   } else {
     try {
       const models = await getModelList({ apiKeys, providerSettings, serverEnv: context.cloudflare?.env as any });
-      const modelDetails = models.find((m: ModelInfo) => m.name === model);
+      let modelDetails = models.find((m: ModelInfo) => m.name === model);
 
       if (!modelDetails) {
-        throw new Error('Model not found');
+        modelDetails = models.find((m: ModelInfo) => m.provider === provider.name) || models[0];
+
+        if (!modelDetails) {
+          throw new Error('Model not found');
+        }
+
+        logger.warn(`Model ${model} not found for ${provider.name}; falling back to ${modelDetails.name}`);
       }
 
       const dynamicMaxTokens = modelDetails ? getCompletionTokenLimit(modelDetails) : Math.min(MAX_TOKENS, 16384);
