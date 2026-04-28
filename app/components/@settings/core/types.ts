@@ -17,7 +17,12 @@ export type TabType =
   | 'vercel'
   | 'supabase'
   | 'event-logs'
-  | 'mcp';
+  | 'mcp'
+  | 'connections'
+  | 'update'
+  | 'debug'
+  | 'task-manager'
+  | 'service-status';
 
 export type WindowType = 'user' | 'developer';
 
@@ -81,6 +86,11 @@ export const TAB_LABELS: Record<TabType, string> = {
   supabase: 'Supabase',
   'event-logs': 'Event Logs',
   mcp: 'MCP Servers',
+  connections: 'Connections',
+  update: 'Updates',
+  debug: 'Debug',
+  'task-manager': 'Task Manager',
+  'service-status': 'Service Status',
 };
 
 export const categoryLabels: Record<SettingCategory, string> = {

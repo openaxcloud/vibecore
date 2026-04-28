@@ -1,5 +1,21 @@
 import type { TabType } from './types';
-import { User, Settings, Bell, Star, Database, Cloud, Laptop, Github, Wrench, List } from 'lucide-react';
+import {
+  User,
+  Settings,
+  Bell,
+  Star,
+  Database,
+  Cloud,
+  Laptop,
+  Github,
+  Wrench,
+  List,
+  Plug,
+  RefreshCw,
+  Bug,
+  ClipboardList,
+  Activity,
+} from 'lucide-react';
 
 // GitLab icon component
 const GitLabIcon = () => (
@@ -53,6 +69,11 @@ export const TAB_ICONS: Record<TabType, React.ComponentType<{ className?: string
   supabase: () => <SupabaseIcon />,
   'event-logs': List,
   mcp: Wrench,
+  connections: Plug,
+  update: RefreshCw,
+  debug: Bug,
+  'task-manager': ClipboardList,
+  'service-status': Activity,
 };
 
 export const TAB_LABELS: Record<TabType, string> = {
@@ -70,6 +91,11 @@ export const TAB_LABELS: Record<TabType, string> = {
   supabase: 'Supabase',
   'event-logs': 'Event Logs',
   mcp: 'MCP Servers',
+  connections: 'Connections',
+  update: 'Updates',
+  debug: 'Debug',
+  'task-manager': 'Task Manager',
+  'service-status': 'Service Status',
 };
 
 export const TAB_DESCRIPTIONS: Record<TabType, string> = {
@@ -87,6 +113,11 @@ export const TAB_DESCRIPTIONS: Record<TabType, string> = {
   supabase: 'Setup Supabase database connection',
   'event-logs': 'View system events and logs',
   mcp: 'Configure MCP (Model Context Protocol) servers',
+  connections: 'Review service and provider connections',
+  update: 'Check upstream updates and changes',
+  debug: 'Inspect runtime diagnostics',
+  'task-manager': 'Manage local browser data and tasks',
+  'service-status': 'Check application service endpoints',
 };
 
 export const DEFAULT_TAB_CONFIG = [
@@ -101,8 +132,13 @@ export const DEFAULT_TAB_CONFIG = [
   { id: 'vercel', visible: true, window: 'user' as const, order: 7 },
   { id: 'supabase', visible: true, window: 'user' as const, order: 8 },
   { id: 'notifications', visible: true, window: 'user' as const, order: 9 },
-  { id: 'event-logs', visible: true, window: 'user' as const, order: 10 },
-  { id: 'mcp', visible: true, window: 'user' as const, order: 11 },
+  { id: 'connections', visible: true, window: 'user' as const, order: 10 },
+  { id: 'update', visible: true, window: 'user' as const, order: 11 },
+  { id: 'debug', visible: true, window: 'user' as const, order: 12 },
+  { id: 'task-manager', visible: true, window: 'user' as const, order: 13 },
+  { id: 'service-status', visible: true, window: 'user' as const, order: 14 },
+  { id: 'event-logs', visible: true, window: 'user' as const, order: 15 },
+  { id: 'mcp', visible: true, window: 'user' as const, order: 16 },
 
   // User Window Tabs (In dropdown, initially hidden)
 ];

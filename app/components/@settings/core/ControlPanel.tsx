@@ -28,6 +28,11 @@ import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
 import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
 import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
 import McpTab from '~/components/@settings/tabs/mcp/McpTab';
+import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
+import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
+import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
+import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
+import ServiceStatusTab from '~/components/@settings/tabs/service-status/ServiceStatusTab';
 
 interface ControlPanelProps {
   open: boolean;
@@ -143,6 +148,16 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
         return <EventLogsTab />;
       case 'mcp':
         return <McpTab />;
+      case 'connections':
+        return <ConnectionsTab />;
+      case 'update':
+        return <UpdateTab />;
+      case 'debug':
+        return <DebugTab />;
+      case 'task-manager':
+        return <TaskManagerTab />;
+      case 'service-status':
+        return <ServiceStatusTab />;
 
       default:
         return null;

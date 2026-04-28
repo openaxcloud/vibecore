@@ -1,4 +1,4 @@
-import { type ActionFunction } from '@remix-run/cloudflare';
+import { json, type ActionFunction, type LoaderFunction } from '@remix-run/cloudflare';
 import { execFile } from 'node:child_process';
 
 type UpdateStage = 'fetch' | 'pull' | 'install' | 'build' | 'complete';
@@ -48,6 +48,87 @@ function writeProgress(controller: TransformStreamDefaultController<Uint8Array>,
   controller.enqueue(new TextEncoder().encode(`${JSON.stringify(progress)}\n`));
 }
 
+async function collectUpdateDetails(branch: string) {
+  await git(['fetch', 'upstream', branch]);
+
+  const currentCommit = await git(['rev-parse', '--short', 'HEAD']);
+  const remoteCommit = await git(['rev-parse', '--short', `upstream/${branch}`]);
+  const fullCurrentCommit = await git(['rev-parse', 'HEAD']);
+  const fullRemoteCommit = await git(['rev-parse', `upstream/${branch}`]);
+  const updateReady = fullCurrentCommit !== fullRemoteCommit;
+
+  const changedFiles = updateReady
+    ? (await git(['diff', '--name-status', 'HEAD', `upstream/${branch}`]))
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => {
+          const [status, file] = line.split(/\s+/, 2);
+          const label = status === 'A' ? 'Added' : status === 'D' ? 'Deleted' : 'Modified';
+
+          return `${label}: ${file}`;
+        })
+    : [];
+
+  const numstat = updateReady ? await git(['diff', '--numstat', 'HEAD', `upstream/${branch}`]) : '';
+  const totals = numstat.split('\n').reduce(
+    (acc, line) => {
+      const [additions, deletions] = line.split('\t');
+      acc.additions += Number(additions) || 0;
+      acc.deletions += Number(deletions) || 0;
+
+      return acc;
+    },
+    { additions: 0, deletions: 0 },
+  );
+
+  const commitMessages = updateReady
+    ? (await git(['log', '--oneline', `HEAD..upstream/${branch}`])).split('\n').filter(Boolean)
+    : [];
+  const repo = await git(['config', '--get', 'remote.upstream.url']).catch(() => '');
+  const compareUrl = repo.includes('github.com')
+    ? repo
+        .replace(/^git@github.com:/, 'https://github.com/')
+        .replace(/\.git$/, '')
+        .concat(`/compare/${fullCurrentCommit}...${fullRemoteCommit}`)
+    : undefined;
+
+  return {
+    changedFiles,
+    additions: totals.additions,
+    deletions: totals.deletions,
+    commitMessages,
+    currentCommit,
+    remoteCommit,
+    updateReady,
+    compareUrl,
+  };
+}
+
+export const loader: LoaderFunction = async ({ request }) => {
+  const url = new URL(request.url);
+  const branch = url.searchParams.get('branch') || 'main';
+
+  try {
+    const details = await collectUpdateDetails(branch);
+
+    return json({
+      stage: 'complete',
+      message: details.updateReady ? 'Update available' : 'You are up to date',
+      progress: 100,
+      details: {
+        ...details,
+        changelog: details.updateReady
+          ? 'Updates are available. Review the changed files and run git pull manually when ready.'
+          : 'No updates found.',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown update check error';
+
+    return json({ stage: 'complete', message: 'Update check failed', progress: 100, error: message }, { status: 500 });
+  }
+};
+
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -75,82 +156,27 @@ export const action: ActionFunction = async ({ request }) => {
         progress: 15,
       });
 
-      await git(['fetch', 'upstream', branch]);
+      const details = await collectUpdateDetails(branch);
 
-      const currentCommit = await git(['rev-parse', '--short', 'HEAD']);
-      const remoteCommit = await git(['rev-parse', '--short', `upstream/${branch}`]);
-      const fullCurrentCommit = await git(['rev-parse', 'HEAD']);
-      const fullRemoteCommit = await git(['rev-parse', `upstream/${branch}`]);
-      const updateReady = fullCurrentCommit !== fullRemoteCommit;
-
-      const changedFiles = updateReady
-        ? (await git(['diff', '--name-status', 'HEAD', `upstream/${branch}`]))
-            .split('\n')
-            .filter(Boolean)
-            .map((line) => {
-              const [status, file] = line.split(/\s+/, 2);
-              const label = status === 'A' ? 'Added' : status === 'D' ? 'Deleted' : 'Modified';
-
-              return `${label}: ${file}`;
-            })
-        : [];
-
-      const numstat = updateReady ? await git(['diff', '--numstat', 'HEAD', `upstream/${branch}`]) : '';
-      const totals = numstat.split('\n').reduce(
-        (acc, line) => {
-          const [additions, deletions] = line.split('\t');
-          acc.additions += Number(additions) || 0;
-          acc.deletions += Number(deletions) || 0;
-
-          return acc;
-        },
-        { additions: 0, deletions: 0 },
-      );
-
-      const commitMessages = updateReady
-        ? (await git(['log', '--oneline', `HEAD..upstream/${branch}`])).split('\n').filter(Boolean)
-        : [];
-      const repo = await git(['config', '--get', 'remote.upstream.url']).catch(() => '');
-      const compareUrl = repo.includes('github.com')
-        ? repo
-            .replace(/^git@github.com:/, 'https://github.com/')
-            .replace(/\.git$/, '')
-            .concat(`/compare/${fullCurrentCommit}...${fullRemoteCommit}`)
-        : undefined;
-
-      if (autoUpdate && updateReady) {
+      if (autoUpdate && details.updateReady) {
         writeProgress(controller, {
           stage: 'pull',
           message: 'Updates are available. Apply them manually from the terminal.',
           progress: 100,
           error: 'Automatic updates are disabled in this local development environment.',
           details: {
-            changedFiles,
-            additions: totals.additions,
-            deletions: totals.deletions,
-            commitMessages,
-            currentCommit,
-            remoteCommit,
-            updateReady,
-            compareUrl,
+            ...details,
           },
         });
       }
 
       writeProgress(controller, {
         stage: 'complete',
-        message: updateReady ? 'Update available' : 'You are up to date',
+        message: details.updateReady ? 'Update available' : 'You are up to date',
         progress: 100,
         details: {
-          changedFiles,
-          additions: totals.additions,
-          deletions: totals.deletions,
-          commitMessages,
-          currentCommit,
-          remoteCommit,
-          updateReady,
-          compareUrl,
-          changelog: updateReady
+          ...details,
+          changelog: details.updateReady
             ? 'Updates are available. Review the changed files and run git pull manually when ready.'
             : 'No updates found.',
         },

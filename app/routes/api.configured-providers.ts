@@ -1,7 +1,6 @@
 import type { LoaderFunction } from '@remix-run/cloudflare';
 import { json } from '@remix-run/cloudflare';
 import { LLMManager } from '~/lib/modules/llm/manager';
-import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 
 interface ConfiguredProvider {
   name: string;
@@ -22,8 +21,9 @@ export const loader: LoaderFunction = async ({ context }) => {
     const llmManager = LLMManager.getInstance(context?.cloudflare?.env as any);
     const configuredProviders: ConfiguredProvider[] = [];
 
-    // Check each local provider for environment configuration
-    for (const providerName of LOCAL_PROVIDERS) {
+    // Check every registered provider so cloud provider status matches the UI.
+    for (const provider of llmManager.getAllProviders()) {
+      const providerName = provider.name;
       const providerInstance = llmManager.getProvider(providerName);
       let isConfigured = false;
       let configMethod: 'environment' | 'none' = 'none';
@@ -50,7 +50,7 @@ export const loader: LoaderFunction = async ({ context }) => {
           const isValidEnvValue =
             envBaseUrl &&
             typeof envBaseUrl === 'string' &&
-            envBaseUrl.trim().length > 0 &&
+            envBaseUrl.replace(/\s+/g, '').length > 0 &&
             !envBaseUrl.includes('your_') && // Filter out placeholder values like "your_openai_like_base_url_here"
             !envBaseUrl.includes('_here') &&
             envBaseUrl.startsWith('http'); // Must be a valid URL
@@ -73,7 +73,7 @@ export const loader: LoaderFunction = async ({ context }) => {
           const isValidApiToken =
             envApiToken &&
             typeof envApiToken === 'string' &&
-            envApiToken.trim().length > 0 &&
+            envApiToken.replace(/\s+/g, '').length > 0 &&
             !envApiToken.includes('your_') && // Filter out placeholder values
             !envApiToken.includes('_here') &&
             envApiToken.length > 10; // API keys are typically longer than 10 chars
@@ -100,11 +100,7 @@ export const loader: LoaderFunction = async ({ context }) => {
 
     // Return default state on error
     return json<ConfiguredProvidersResponse>({
-      providers: LOCAL_PROVIDERS.map((name) => ({
-        name,
-        isConfigured: false,
-        configMethod: 'none' as const,
-      })),
+      providers: [],
     });
   }
 };

@@ -16,8 +16,8 @@ const TAB_ALIASES: Record<string, TabType> = {
   'local-providers': 'local-providers',
   local: 'local-providers',
   github: 'github',
-  connection: 'github',
-  connections: 'github',
+  connection: 'connections',
+  connections: 'connections',
   gitlab: 'gitlab',
   netlify: 'netlify',
   vercel: 'vercel',
@@ -25,6 +25,13 @@ const TAB_ALIASES: Record<string, TabType> = {
   'event-logs': 'event-logs',
   logs: 'event-logs',
   mcp: 'mcp',
+  update: 'update',
+  updates: 'update',
+  debug: 'debug',
+  'task-manager': 'task-manager',
+  tasks: 'task-manager',
+  'service-status': 'service-status',
+  status: 'service-status',
 };
 
 export const meta: MetaFunction = ({ params }) => {
