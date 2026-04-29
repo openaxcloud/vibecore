@@ -265,6 +265,79 @@ test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
   });
 });
 
+test('platform typography tokens apply to the web IDE', async ({ page }) => {
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'IDE Typography Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
+  await page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool').click();
+  const toolMenu = page.locator('.bolt-project-tool-menu:visible').first();
+  await expect(toolMenu).toBeVisible();
+  await expect(toolMenu.locator('.bolt-project-tool-section').first()).toBeVisible();
+
+  const typography = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
+    const codeSample = document.createElement('code');
+    codeSample.textContent = 'const value = 1;';
+    codeSample.style.position = 'absolute';
+    codeSample.style.left = '-9999px';
+    codeSample.setAttribute('data-testid', 'typography-code-sample');
+    element.appendChild(codeSample);
+    const root = window.getComputedStyle(document.documentElement);
+    const shell = window.getComputedStyle(element);
+    const heading = window.getComputedStyle(element.querySelector('.bolt-project-welcome h2')!);
+    const label = window.getComputedStyle(document.querySelector('.bolt-project-tool-menu .bolt-project-tool-section')!);
+    const code = window.getComputedStyle(codeSample);
+
+    return {
+      interfaceFont: root.getPropertyValue('--vc-font-interface').trim(),
+      codeFont: root.getPropertyValue('--vc-font-code').trim(),
+      interfaceSize: root.getPropertyValue('--vc-type-interface-size').trim(),
+      codeSize: root.getPropertyValue('--vc-type-code-size').trim(),
+      headingSize: root.getPropertyValue('--vc-type-heading-size').trim(),
+      labelSize: root.getPropertyValue('--vc-type-label-size').trim(),
+      labelTracking: root.getPropertyValue('--vc-type-label-letter-spacing').trim(),
+      shellFont: shell.fontFamily,
+      shellSize: shell.fontSize,
+      shellLineHeight: shell.lineHeight,
+      headingSizeActual: heading.fontSize,
+      headingWeight: heading.fontWeight,
+      labelSizeActual: label.fontSize,
+      labelWeight: label.fontWeight,
+      labelTrackingActual: label.letterSpacing,
+      codeFontActual: code.fontFamily,
+      codeSizeActual: code.fontSize,
+      codeLigaturesActual: code.fontVariantLigatures,
+    };
+  });
+
+  expect(typography.interfaceFont).toContain('Inter');
+  expect(typography.codeFont).toContain('JetBrains Mono');
+  expect(typography.interfaceSize).toBe('13px');
+  expect(typography.codeSize).toBe('13px');
+  expect(typography.headingSize).toBe('15px');
+  expect(typography.labelSize).toBe('11px');
+  expect(typography.labelTracking).toBe('0.4px');
+  expect(typography.shellFont).toContain('Inter');
+  expect(typography.shellSize).toBe('13px');
+  expect(Number.parseFloat(typography.shellLineHeight)).toBeCloseTo(19.5, 1);
+  expect(typography.headingSizeActual).toBe('15px');
+  expect(typography.headingWeight).toBe('600');
+  expect(typography.labelSizeActual).toBe('11px');
+  expect(typography.labelWeight).toBe('500');
+  expect(typography.labelTrackingActual).toBe('0.4px');
+  expect(typography.codeFontActual).toContain('JetBrains Mono');
+  expect(typography.codeSizeActual).toBe('13px');
+  expect(typography.codeLigaturesActual).toContain('common-ligatures');
+});
+
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
   test.setTimeout(120_000);
   const auth = await authenticate(page);

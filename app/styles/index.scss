@@ -12,9 +12,26 @@ body {
   height: 100%;
   width: 100%;
   background-color: var(--bolt-elements-bg-depth-1);
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  font-optical-sizing: auto;
+  letter-spacing: 0;
 }
 
 :root {
+  --vc-font-interface: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  --vc-font-code: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --vc-type-interface-size: 13px;
+  --vc-type-interface-compact-size: 12px;
+  --vc-type-code-size: 13px;
+  --vc-type-heading-size: 15px;
+  --vc-type-heading-compact-size: 14px;
+  --vc-type-label-size: 11px;
+  --vc-type-line-height: 1.5;
+  --vc-type-label-letter-spacing: 0.4px;
   --gradient-opacity: 0.8;
   --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
   --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
@@ -22,6 +39,87 @@ body {
   // --primary-color: rgba(147, 112, 219, var(--gradient-opacity));
   // --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
   // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+}
+
+code,
+kbd,
+pre,
+samp,
+.font-mono,
+[class*='font-mono'],
+.xterm,
+.xterm * {
+  font-family: var(--vc-font-code) !important;
+  font-size: var(--vc-type-code-size);
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-heading-size);
+  font-weight: 600;
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--vc-type-heading-compact-size);
+}
+
+:where(.uppercase, [class*='uppercase'], label, legend, th) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-label-size);
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  line-height: var(--vc-type-line-height);
+}
+
+body :where(div, span, p, a, li, td, summary, button, input, select, textarea):not([class*='i-']) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+body :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-heading-size) !important;
+  font-weight: 600 !important;
+  line-height: var(--vc-type-line-height) !important;
+  letter-spacing: 0 !important;
+}
+
+body :where(h3, h4, h5, h6) {
+  font-size: var(--vc-type-heading-compact-size) !important;
+}
+
+body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-tool-section, .bolt-project-command-section) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-label-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: var(--vc-type-label-letter-spacing) !important;
+  line-height: var(--vc-type-line-height) !important;
 }
 
 .modern-scrollbar {
@@ -111,8 +209,8 @@ body {
   gap: 2px;
   border-radius: 8px;
   color: var(--bolt-elements-textTertiary);
-  font-size: 10px;
-  line-height: 1.1;
+  font-size: var(--vc-type-label-size);
+  line-height: var(--vc-type-line-height);
   touch-action: manipulation;
 }
 
@@ -226,21 +324,20 @@ body {
   border-radius: 7px;
   background: var(--bolt-elements-bg-depth-1);
   color: var(--bolt-elements-textPrimary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
+  font-family: var(--vc-font-code);
+  font-size: var(--vc-type-code-size);
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
   touch-action: manipulation;
 }
 
 .bolt-project-ide-shell {
   min-height: 0;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
 }
 
 .bolt-project-ide-shell .bolt-responsive-ide {
@@ -787,8 +884,8 @@ body {
   padding: 10px 8px 6px;
   color: #6e7681;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
 }
 
 .bolt-project-tool-item {
@@ -874,8 +971,9 @@ body {
 .bolt-project-welcome h2 {
   margin-top: 16px;
   color: #f5f9fc;
-  font-size: 18px;
+  font-size: var(--vc-type-heading-size);
   font-weight: 600;
+  line-height: var(--vc-type-line-height);
 }
 
 .bolt-project-welcome p {
@@ -1574,7 +1672,7 @@ body {
   border-bottom: 1px solid #2b3245;
   background: transparent;
   color: #f5f9fc;
-  font-size: 14px;
+  font-size: var(--vc-type-interface-size);
   outline: none;
   padding: 0 16px;
 }
@@ -1598,8 +1696,8 @@ body {
   padding: 8px 16px 4px;
   color: #6e7681;
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
   text-transform: uppercase;
 }
 

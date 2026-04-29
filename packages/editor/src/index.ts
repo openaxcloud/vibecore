@@ -341,10 +341,12 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
     EditorView.theme({
       '&': {
         height: '100%',
-        fontSize: '14px',
+        fontSize: '13px',
       },
       '.cm-scroller': {
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontFamily: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontVariantLigatures: 'contextual common-ligatures',
+        fontFeatureSettings: '"liga" 1, "calt" 1',
         overscrollBehavior: 'contain',
       },
       '.cm-content': {

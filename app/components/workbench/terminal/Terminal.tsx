@@ -42,8 +42,9 @@ export const Terminal = memo(
           convertEol: true,
           disableStdin: readonly,
           theme: getTerminalTheme(readonly ? { cursor: '#00000000' } : {}),
-          fontSize: 12,
-          fontFamily: 'Menlo, courier-new, courier, monospace',
+          fontFamily:
+            '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+          fontSize: 13,
           allowProposedApi: true,
           scrollback: 1000,
 

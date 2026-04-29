@@ -61,7 +61,10 @@ function getEditorTheme(settings: EditorSettings) {
     },
     '.cm-gutter': {
       '&.cm-lineNumbers': {
-        fontFamily: 'Roboto Mono, monospace',
+        fontFamily:
+          '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontVariantLigatures: 'contextual common-ligatures',
+        fontFeatureSettings: '"liga" 1, "calt" 1',
         fontSize: settings.gutterFontSize ?? settings.fontSize ?? '12px',
         minWidth: '40px',
       },
