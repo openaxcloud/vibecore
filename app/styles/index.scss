@@ -173,6 +173,16 @@ body {
   --bolt-elements-textPrimary: var(--vc-ide-text-primary);
   --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
   --bolt-elements-textTertiary: var(--vc-ide-text-muted);
+  --bolt-elements-background: var(--vc-ide-bg-app);
+  --bolt-elements-background-depth-1: var(--vc-ide-bg-panel);
+  --bolt-elements-background-depth-2: var(--vc-ide-bg-card);
+  --bolt-elements-background-depth-3: var(--vc-ide-bg-hover);
+  --bolt-elements-background-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-messages-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-code-background: var(--vc-ide-bg-panel);
+  --bolt-elements-messages-inlineCode-background: var(--vc-ide-bg-hover);
+  --bolt-elements-messages-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-prompt-background: rgb(26 32 48 / 0.86);
 }
 
 body,
@@ -416,6 +426,80 @@ body :where(.card, .panel, .bolt-project-action-card, .bolt-project-service-pane
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
   box-shadow: var(--vc-ui-shadow-md);
+}
+
+body
+  :where(
+    [class*='dark:bg-[#0A0A0A]'],
+    [class*='dark:bg-[#0a0a0a]'],
+    [class*='dark:bg-[#1A1A1A]'],
+    [class*='dark:bg-[#1a1a1a]'],
+    [class*='dark:bg-[#141414]'],
+    [class*='dark:bg-black'],
+    [class*='dark:bg-gray-900'],
+    [class*='dark:bg-zinc-900'],
+    [class*='dark:bg-neutral-900']
+  ) {
+  background-color: var(--vc-ide-bg-card) !important;
+}
+
+body
+  :where(
+    [class*='dark:border-[#1A1A1A]'],
+    [class*='dark:border-[#1a1a1a]'],
+    [class*='dark:border-[#333333]'],
+    [class*='dark:border-gray-800'],
+    [class*='dark:border-neutral-800'],
+    [class*='dark:border-zinc-800']
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+}
+
+body
+  :where(
+    [class*='dark:text-white'],
+    [class*='dark:text-gray-300'],
+    [class*='dark:text-gray-400'],
+    [class*='text-gray-900']
+  ) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+body
+  :where(
+    .message,
+    [data-message],
+    [data-testid*='message'],
+    [class*='message'],
+    [class*='Message'],
+    [class*='bg-bolt-elements-messages']
+  ) {
+  border-color: var(--vc-ide-border-visible);
+  background-color: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-panel
+  :where(
+    [class*='bg-[#0A0A0A]'],
+    [class*='bg-[#0a0a0a]'],
+    [class*='bg-[#1A1A1A]'],
+    [class*='bg-[#1a1a1a]'],
+    [class*='bg-black'],
+    [class*='dark:bg-'],
+    [class*='bg-bolt-elements-messages'],
+    [class*='bg-bolt-elements-background']
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel
+  :where(pre, code, [class*='code'], [class*='Code'], [class*='bg-bolt-elements-actions-code']) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
 }
 
 body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {

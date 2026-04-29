@@ -28,7 +28,7 @@ export default function ProjectLogsPage() {
       title="Logs"
       description="Workspace and project activity logs from real backend records."
     >
-      <div className="rounded-lg border border-bolt-elements-borderColor bg-black p-4 font-mono text-xs text-green-200">
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 font-mono text-xs text-bolt-elements-textSecondary">
         {lines.map((line) => (
           <div key={line}>{line}</div>
         ))}

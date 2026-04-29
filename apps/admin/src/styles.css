@@ -690,7 +690,7 @@ select:focus-visible {
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: var(--vc-ui-radius-input);
-  background: #09090b;
+  background: var(--panel-raised);
   color: var(--text);
   padding: 10px 12px;
 }
@@ -826,7 +826,7 @@ code,
 pre {
   border: 1px solid var(--border);
   border-radius: var(--vc-ui-radius-card);
-  background: #09090b;
+  background: var(--panel-raised);
   color: #d4d4d8;
 }
 
