@@ -100,10 +100,10 @@ body {
   --bolt-elements-terminals-buttonBackground: var(--vc-ide-bg-card);
   --bolt-elements-cta-background: var(--vc-ide-bg-card);
   --bolt-elements-cta-text: var(--vc-ide-text-primary);
-  --vc-font-interface: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-  --vc-font-code: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
+  --vc-font-interface:
+    'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vc-font-code:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-type-interface-size: 13px;
   --vc-type-interface-compact-size: 12px;
   --vc-type-code-size: 13px;
@@ -258,7 +258,16 @@ body :where(h3, h4, h5, h6) {
   font-size: var(--vc-type-heading-compact-size) !important;
 }
 
-body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-tool-section, .bolt-project-command-section) {
+body
+  :where(
+    .uppercase,
+    [class*='uppercase'],
+    label,
+    legend,
+    th,
+    .bolt-project-tool-section,
+    .bolt-project-command-section
+  ) {
   font-family: var(--vc-font-interface) !important;
   font-size: var(--vc-type-label-size) !important;
   font-weight: 500 !important;
@@ -288,11 +297,21 @@ body :where(button, [role='button'], .btn, .button, summary):where(:enabled:hove
   background-color: var(--vc-button-hover-bg);
 }
 
-body :where(button, [role='button'], .btn, .button, summary):where(:enabled:active, [aria-pressed='true'], [data-state='active']) {
+body
+  :where(button, [role='button'], .btn, .button, summary):where(
+    :enabled:active,
+    [aria-pressed='true'],
+    [data-state='active']
+  ) {
   background-color: var(--vc-button-active-bg);
 }
 
-body :where(button, [role='button'], .btn, .button, summary):where(:disabled, [aria-disabled='true'], [data-disabled='true']) {
+body
+  :where(button, [role='button'], .btn, .button, summary):where(
+    :disabled,
+    [aria-disabled='true'],
+    [data-disabled='true']
+  ) {
   cursor: not-allowed;
   opacity: var(--vc-button-disabled-opacity);
 }
@@ -302,17 +321,34 @@ button:disabled {
   opacity: var(--vc-button-disabled-opacity);
 }
 
-body :where(button[aria-busy='true'], button[data-loading='true'], [role='button'][aria-busy='true'], [role='button'][data-loading='true']) {
+body
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  ) {
   cursor: progress;
 }
 
 body
-  :where(button[aria-busy='true'], button[data-loading='true'], [role='button'][aria-busy='true'], [role='button'][data-loading='true'])
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  )
   > :where(svg, .lucide, [class*='i-']):first-child {
   opacity: 0;
 }
 
-body :where(button[aria-busy='true'], button[data-loading='true'], [role='button'][aria-busy='true'], [role='button'][data-loading='true'])::before {
+body
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  )::before {
   position: absolute;
   width: var(--vc-button-loading-spinner-size);
   height: var(--vc-button-loading-spinner-size);
@@ -509,7 +545,14 @@ body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
   transform-origin: center top;
 }
 
-body :where(.popover, [data-radix-popper-content-wrapper] > *, .bolt-project-tool-menu, .bolt-project-tab-menu, .bolt-project-user-menu) {
+body
+  :where(
+    .popover,
+    [data-radix-popper-content-wrapper] > *,
+    .bolt-project-tool-menu,
+    .bolt-project-tab-menu,
+    .bolt-project-user-menu
+  ) {
   border-radius: var(--vc-ui-radius-popover);
   box-shadow: var(--vc-ui-shadow-xl);
   animation: vc-popover-in var(--vc-animation-popover) ease-out both;
@@ -575,7 +618,12 @@ body :where(.vc-run-button[data-run-state='running'], button[data-run-state='run
   color: #ffffff;
 }
 
-body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app'])::before {
+body
+  :where(
+    .vc-run-button[data-run-state='running'],
+    button[data-run-state='running'],
+    button[aria-label='Stop app']
+  )::before {
   position: static;
   display: inline-block;
   width: var(--vc-button-loading-spinner-size);
@@ -1821,8 +1869,16 @@ body :where(.lucide, svg[data-lucide]) {
   grid-template-columns: 200px minmax(0, 1fr);
 }
 
+.bolt-project-deploy-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
 .bolt-project-database-tool aside,
-.bolt-project-git-tool section {
+.bolt-project-git-tool section,
+.bolt-project-deploy-history {
   min-height: 0;
   border-right: 1px solid #1a2030;
   color: #c2c8cc;
@@ -1947,6 +2003,151 @@ body :where(.lucide, svg[data-lucide]) {
   color: #6e7681;
   font-size: 12px;
   padding: 12px;
+}
+
+.bolt-project-deploy-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.bolt-project-deploy-summary div,
+.bolt-project-deploy-card,
+.bolt-project-deploy-wizard {
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0e1525;
+}
+
+.bolt-project-deploy-summary div {
+  padding: 10px;
+}
+
+.bolt-project-deploy-summary span,
+.bolt-project-deploy-card span,
+.bolt-project-deploy-wizard p,
+.bolt-project-deploy-wizard label {
+  color: #c2c8cc;
+  font-size: 12px;
+}
+
+.bolt-project-deploy-summary strong,
+.bolt-project-deploy-card strong,
+.bolt-project-deploy-wizard h3 {
+  display: block;
+  overflow: hidden;
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-deploy-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.bolt-project-deploy-card header {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bolt-project-deploy-card em {
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(210, 153, 34, 0.14);
+  color: #d29922;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 22px;
+  padding: 0 8px;
+}
+
+.bolt-project-deploy-card em[data-status='READY'] {
+  background: rgba(63, 185, 80, 0.14);
+  color: #3fb950;
+}
+
+.bolt-project-deploy-card em[data-status='FAILED'],
+.bolt-project-deploy-card em[data-status='CANCELED'] {
+  background: rgba(248, 81, 73, 0.14);
+  color: #f85149;
+}
+
+.bolt-project-deploy-card pre {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid #1a2030;
+  border-radius: 6px;
+  background: #0a0f1c;
+  color: #c2c8cc;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 10px;
+}
+
+.bolt-project-deploy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bolt-project-deploy-actions a {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  color: #f5f9fc;
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+.bolt-project-deploy-actions a:hover {
+  background: #2b3245;
+}
+
+.bolt-project-deploy-wizard {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.bolt-project-deploy-wizard select,
+.bolt-project-deploy-wizard input,
+.bolt-project-deploy-wizard textarea {
+  width: 100%;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0a0f1c;
+  color: #f5f9fc;
+  font-size: 13px;
+  margin-top: 6px;
+  padding: 8px 10px;
+}
+
+.bolt-project-deploy-wizard textarea {
+  min-height: 96px;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bolt-project-deploy-wizard .bolt-project-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-deploy-wizard .bolt-project-checkbox-row input {
+  width: auto;
+  margin: 0;
 }
 
 .bolt-project-main-stack {

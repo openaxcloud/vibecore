@@ -88,10 +88,40 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'deployments') {
-    await apiRequest(request, `/projects/${projectId}/deployments`, {
-      method: 'POST',
-      body: JSON.stringify({ provider: body.provider || 'preview', url: body.url || undefined }),
-    });
+    if (intent === 'cancel') {
+      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/cancel`, { method: 'POST' });
+    } else if (intent === 'redeploy') {
+      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/redeploy`, {
+        method: 'POST',
+      });
+    } else if (intent === 'rollback') {
+      await apiRequest(request, `/projects/${projectId}/deployments/${body.deploymentId}/rollback`, {
+        method: 'POST',
+      });
+    } else {
+      await apiRequest(request, `/projects/${projectId}/deployments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: body.provider || 'static',
+          environment: body.environment || 'preview',
+          buildCommand: body.buildCommand || 'npm run build',
+          outputDirectory: body.outputDirectory || 'dist',
+          framework: body.framework || undefined,
+          branch: body.branch || undefined,
+          commitSha: body.commitSha || undefined,
+          customDomain: body.customDomain || undefined,
+          previewDeployment: body.previewDeployment === 'on',
+          envVars: parseEnvVars(body.envVars ?? ''),
+          injectSecrets: (body.injectSecrets ?? '')
+            .split(',')
+            .map((secret) => secret.trim())
+            .filter(Boolean),
+          githubIntegration: body.repositoryUrl
+            ? { repositoryUrl: body.repositoryUrl, branch: body.branch || undefined }
+            : undefined,
+        }),
+      });
+    }
   } else if (panel === 'env') {
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
@@ -177,4 +207,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   }
 
   return json({ ok: true });
+}
+
+function parseEnvVars(value: string) {
+  return Object.fromEntries(
+    value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [key, ...rest] = line.split('=');
+
+        return [key.trim(), rest.join('=').trim()];
+      })
+      .filter(([key]) => key),
+  );
 }

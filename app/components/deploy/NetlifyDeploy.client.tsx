@@ -7,7 +7,7 @@ import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/r
 import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
-import { formatBuildFailureOutput } from './deployUtils';
+import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
 
 export function useNetlifyDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -56,7 +56,7 @@ export function useNetlifyDeploy() {
         actionId,
         action: {
           type: 'build' as const,
-          content: 'npm run build',
+          content: DEFAULT_DEPLOY_BUILD_COMMAND,
         },
       };
 
@@ -88,7 +88,7 @@ export function useNetlifyDeploy() {
       let finalBuildPath = buildPath;
 
       // List of common output directories to check if the specified build path doesn't exist
-      const commonOutputDirs = [buildPath, '/dist', '/build', '/out', '/output', '/.next', '/public'];
+      const commonOutputDirs = [buildPath, ...BOLT_DEPLOY_OUTPUT_DIRECTORIES];
 
       // Verify the build path exists, or try to find an alternative
       let buildPathExists = false;

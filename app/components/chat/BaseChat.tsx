@@ -29,6 +29,12 @@ import type { ProviderInfo } from '~/types/model';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
+import {
+  BOLT_DEPLOY_PROVIDERS,
+  DEFAULT_DEPLOY_BUILD_COMMAND,
+  DEFAULT_DEPLOY_OUTPUT_DIRECTORY,
+  detectFrameworkFromDeployConfig,
+} from '~/components/deploy/deployUtils';
 import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
@@ -3119,21 +3125,124 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'deployments') {
+    const deployments = data.deployments ?? [];
+    const latestDeployment = deployments[0];
+    const inferredFramework = detectFrameworkFromDeployConfig({
+      buildCommand: latestDeployment?.buildCommand,
+      outputDirectory: latestDeployment?.outputDirectory,
+    });
+
     return (
-      <PanelWithForm
-        rows={(data.deployments ?? []).map((deployment: any) => [
-          `${deployment.provider} ${deployment.status}`,
-          deployment.url ?? deployment.createdAt ?? 'No URL recorded',
-        ])}
-        empty="No deployments yet."
-        onSubmit={onSubmit}
-        busy={busy}
-        fields={[
-          { name: 'provider', placeholder: 'preview' },
-          { name: 'url', placeholder: 'https://preview.example.com' },
-        ]}
-        submitLabel="New deployment"
-      />
+      <div className="bolt-project-deploy-tool">
+        <section className="bolt-project-deploy-history">
+          <div className="bolt-project-deploy-summary">
+            <div>
+              <span>Latest status</span>
+              <strong>{latestDeployment?.status ?? 'No deployment'}</strong>
+            </div>
+            <div>
+              <span>Environment</span>
+              <strong>{latestDeployment?.environment ?? 'preview'}</strong>
+            </div>
+            <div>
+              <span>Framework</span>
+              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
+            </div>
+          </div>
+
+          {deployments.length ? (
+            deployments.map((deployment: any) => (
+              <article key={deployment.id} className="bolt-project-deploy-card">
+                <header>
+                  <div>
+                    <strong>
+                      {deployment.provider} · {deployment.environment ?? 'preview'}
+                    </strong>
+                    <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
+                  </div>
+                  <em data-status={deployment.status}>{deployment.status}</em>
+                </header>
+                <pre aria-label={`Deployment logs for ${deployment.id}`}>
+                  {(deployment.logs ?? [])
+                    .slice(-8)
+                    .map((log: any) => `[${log.level ?? 'info'}] ${log.message}`)
+                    .join('\n') || 'No deployment logs yet.'}
+                </pre>
+                <div className="bolt-project-deploy-actions">
+                  {deployment.url && (
+                    <a href={deployment.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  )}
+                  <ProjectDeploymentAction
+                    intent="redeploy"
+                    deploymentId={deployment.id}
+                    onSubmit={onSubmit}
+                    busy={busy}
+                  >
+                    Redeploy
+                  </ProjectDeploymentAction>
+                  <ProjectDeploymentAction
+                    intent="rollback"
+                    deploymentId={deployment.id}
+                    onSubmit={onSubmit}
+                    busy={busy}
+                  >
+                    Rollback
+                  </ProjectDeploymentAction>
+                  <ProjectDeploymentAction intent="cancel" deploymentId={deployment.id} onSubmit={onSubmit} busy={busy}>
+                    Cancel
+                  </ProjectDeploymentAction>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">No deployments yet. Create one from the wizard.</div>
+          )}
+        </section>
+
+        <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
+          <h3>Deployment wizard</h3>
+          <p>
+            Uses the existing Bolt build defaults and records the SaaS deployment with quotas, audit logs and redacted
+            output.
+          </p>
+          <label>
+            Provider
+            <select name="provider" defaultValue="static">
+              {BOLT_DEPLOY_PROVIDERS.map((provider) => (
+                <option key={provider.id} value={provider.id}>
+                  {provider.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Environment
+            <select name="environment" defaultValue="preview">
+              <option value="preview">Preview</option>
+              <option value="staging">Staging</option>
+              <option value="production">Production</option>
+            </select>
+          </label>
+          <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} />
+          <PanelInput name="outputDirectory" defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY} />
+          <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} />
+          <PanelInput name="branch" placeholder={project.gitDefaultBranch ?? 'main'} />
+          <PanelInput name="repositoryUrl" placeholder={project.gitRepositoryUrl ?? 'https://github.com/acme/app'} />
+          <PanelInput name="customDomain" placeholder="app.example.com" />
+          <textarea
+            name="envVars"
+            placeholder={'PUBLIC_API_URL=https://api.example.com\nSECRET_TOKEN=redacted-in-logs'}
+          />
+          <PanelInput name="injectSecrets" placeholder="DATABASE_URL,STRIPE_SECRET_KEY" />
+          <label className="bolt-project-checkbox-row">
+            <input name="previewDeployment" type="checkbox" defaultChecked />
+            Create preview URL for non-production deploys
+          </label>
+          <PanelButton disabled={busy}>Deploy project</PanelButton>
+        </form>
+      </div>
     );
   }
 
@@ -3345,6 +3454,30 @@ function PanelWithForm({ rows, empty, onSubmit, busy, fields, select, submitLabe
         <PanelButton disabled={busy}>{submitLabel}</PanelButton>
       </form>
     </div>
+  );
+}
+
+function ProjectDeploymentAction({
+  intent,
+  deploymentId,
+  onSubmit,
+  busy,
+  children,
+}: {
+  intent: string;
+  deploymentId: string;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  busy: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <form onSubmit={onSubmit}>
+      <input name="intent" value={intent} type="hidden" />
+      <input name="deploymentId" value={deploymentId} type="hidden" />
+      <PanelButton disabled={busy} variant="outline">
+        {children}
+      </PanelButton>
+    </form>
   );
 }
 

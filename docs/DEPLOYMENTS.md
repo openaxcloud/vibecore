@@ -14,7 +14,12 @@ VibeCore supports project deployments through the SaaS API at `POST /projects/:p
 
 ## Deployment Wizard Contract
 
-The UI submits:
+The deployment wizard is available in two places:
+
+- the project page `/projects/:projectId/deployments`
+- the existing Bolt IDE Deploy panel opened from `/projects/:projectId/ide?panel=deployments`
+
+Both surfaces submit the same backend contract:
 
 - `provider`
 - `environment`: `preview`, `staging`, or `production`
