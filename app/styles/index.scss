@@ -251,9 +251,9 @@ body {
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
   position: fixed;
-  inset: 36px 0 0 0;
+  inset: 0;
   width: 100vw;
-  height: calc(100vh - 36px);
+  height: 100vh;
   background: #0a0f1c;
   color: #f5f9fc;
 }
@@ -431,11 +431,13 @@ body {
 }
 
 .bolt-project-workspace-shell {
-  position: fixed;
+  position: absolute;
   top: 36px;
-  right: 0;
-  bottom: 24px;
   left: var(--project-agent-width);
+  width: calc(100vw - var(--project-agent-width));
+  height: calc(100vh - 36px);
+  padding-bottom: 24px;
+  box-sizing: border-box;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -533,7 +535,7 @@ body {
 .bolt-project-right-tab {
   display: inline-flex;
   min-width: 100px;
-  max-width: 220px;
+  max-width: 200px;
   align-items: center;
   gap: 8px;
   border-right: 1px solid #1a2030;

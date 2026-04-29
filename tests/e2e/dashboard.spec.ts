@@ -66,6 +66,7 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
   await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
@@ -95,6 +96,40 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(agentMetrics.width).toBe(420);
   expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
   expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
+  const workspaceMetrics = await page.locator('.bolt-project-workspace-shell').evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      position: style.position,
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      background: style.backgroundColor,
+    };
+  });
+  expect(workspaceMetrics.position).toBe('absolute');
+  expect(workspaceMetrics.top).toBe(36);
+  expect(workspaceMetrics.left).toBe(420);
+  expect(workspaceMetrics.width).toBe(1020);
+  expect(workspaceMetrics.height).toBe(864);
+  expect(workspaceMetrics.background).toBe('rgb(10, 15, 28)');
+  const tabBarMetrics = await page.locator('.bolt-project-tabbar').first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      height: rect.height,
+      background: style.backgroundColor,
+      borderBottom: style.borderBottomColor,
+      display: style.display,
+    };
+  });
+  expect(tabBarMetrics.height).toBe(36);
+  expect(tabBarMetrics.background).toBe('rgb(14, 21, 37)');
+  expect(tabBarMetrics.borderBottom).toBe('rgb(26, 32, 48)');
+  expect(tabBarMetrics.display).toBe('flex');
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
