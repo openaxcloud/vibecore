@@ -164,6 +164,33 @@ body {
   color: var(--bolt-elements-textPrimary);
 }
 
+.bolt-notifications-button--with-files-toggle {
+  right: calc(58px + env(safe-area-inset-right, 0px));
+}
+
+.bolt-files-panel-toggle {
+  position: fixed;
+  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 1000;
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 999px;
+  background: var(--bolt-elements-bg-depth-2);
+  color: var(--bolt-elements-textPrimary);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+
+.bolt-files-panel-toggle:hover,
+.bolt-files-panel-toggle[aria-pressed='true'] {
+  border-color: var(--bolt-elements-focus);
+  background: var(--bolt-elements-bg-depth-3);
+}
+
 .bolt-notifications-center {
   position: fixed;
   top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 54px);
@@ -302,6 +329,21 @@ body {
 
 .bolt-project-ide-tab:hover,
 .bolt-project-ide-tab[aria-current='page'] {
+  background: var(--bolt-elements-bg-depth-2);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-project-ide-icon-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--bolt-elements-textTertiary);
+}
+
+.bolt-project-ide-icon-button:hover {
   background: var(--bolt-elements-bg-depth-2);
   color: var(--bolt-elements-textPrimary);
 }

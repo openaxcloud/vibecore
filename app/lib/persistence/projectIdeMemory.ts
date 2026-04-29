@@ -17,6 +17,7 @@ export interface ProjectIdeMemory {
     selectedFile?: string;
     currentView?: string;
     rightPanel?: ProjectIdePanel;
+    rightPanelOpen?: boolean;
     mobilePanel?: ProjectMobilePanel;
     showWorkbench?: boolean;
     previewIndex?: number;

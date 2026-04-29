@@ -176,6 +176,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
     const [rightPanel, setRightPanel] = useState<'files' | 'search' | 'locks'>('files');
+    const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
@@ -242,6 +243,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (ui?.rightPanel && ['files', 'search', 'locks'].includes(ui.rightPanel)) {
             setRightPanel(ui.rightPanel);
+          }
+
+          if (typeof ui?.rightPanelOpen === 'boolean') {
+            setRightPanelOpen(ui.rightPanelOpen);
           }
 
           if (
@@ -316,6 +321,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             selectedFile,
             currentView,
             rightPanel,
+            rightPanelOpen,
             mobilePanel,
             showWorkbench: true,
           },
@@ -325,7 +331,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }, 400);
 
       return () => window.clearTimeout(saveTimer);
-    }, [projectIdeMode, projectId, projectStateReady, selectedFile, currentView, rightPanel, mobilePanel]);
+    }, [
+      projectIdeMode,
+      projectId,
+      projectStateReady,
+      selectedFile,
+      currentView,
+      rightPanel,
+      rightPanelOpen,
+      mobilePanel,
+    ]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -732,7 +747,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         </Panel>
         <PanelResizeHandle className="bolt-project-ide-resize-handle" />
         <Panel
-          defaultSize={projectPanelLayout.workspace.defaultSize}
+          defaultSize={
+            rightPanelOpen ? projectPanelLayout.workspace.defaultSize : 100 - projectPanelLayout.agent.defaultSize
+          }
           minSize={projectPanelLayout.workspace.minSize}
           className="min-w-0"
         >
@@ -795,52 +812,64 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </section>
         </Panel>
-        <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-        <Panel
-          defaultSize={projectPanelLayout.files.defaultSize}
-          minSize={projectPanelLayout.files.minSize}
-          maxSize={projectPanelLayout.files.maxSize}
-          className="min-w-0"
-        >
-          <section className="bolt-project-ide-panel" aria-label="Project files">
-            <div className="bolt-project-ide-panel-header">
-              {[
-                ['files', 'Files'],
-                ['search', 'Search'],
-                ['locks', 'Locks'],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className="bolt-project-ide-tab"
-                  aria-current={rightPanel === id ? 'page' : undefined}
-                  onClick={() => setRightPanel(id as typeof rightPanel)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto">
-              {rightPanel === 'files' && (
-                <FileTree
-                  className="h-full"
-                  files={projectFiles}
-                  hideRoot
-                  unsavedFiles={unsavedFiles}
-                  rootFolder={WORK_DIR}
-                  selectedFile={selectedFile}
-                  onFileSelect={(filePath) => {
-                    workbenchStore.setSelectedFile(filePath);
-                    workbenchStore.currentView.set('code');
-                    workbenchStore.setShowWorkbench(true);
-                  }}
-                />
-              )}
-              {rightPanel === 'search' && <Search />}
-              {rightPanel === 'locks' && <LockManager />}
-            </div>
-          </section>
-        </Panel>
+        {rightPanelOpen && (
+          <>
+            <PanelResizeHandle className="bolt-project-ide-resize-handle" />
+            <Panel
+              defaultSize={projectPanelLayout.files.defaultSize}
+              minSize={projectPanelLayout.files.minSize}
+              maxSize={projectPanelLayout.files.maxSize}
+              className="min-w-0"
+            >
+              <section className="bolt-project-ide-panel" aria-label="Project files">
+                <div className="bolt-project-ide-panel-header">
+                  {[
+                    ['files', 'Files'],
+                    ['search', 'Search'],
+                    ['locks', 'Locks'],
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="bolt-project-ide-tab"
+                      aria-current={rightPanel === id ? 'page' : undefined}
+                      onClick={() => setRightPanel(id as typeof rightPanel)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="bolt-project-ide-icon-button ml-auto"
+                    aria-label="Close project files"
+                    onClick={() => setRightPanelOpen(false)}
+                  >
+                    <span className="i-ph:sidebar-simple" aria-hidden />
+                  </button>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto">
+                  {rightPanel === 'files' && (
+                    <FileTree
+                      className="h-full"
+                      files={projectFiles}
+                      hideRoot
+                      unsavedFiles={unsavedFiles}
+                      rootFolder={WORK_DIR}
+                      selectedFile={selectedFile}
+                      onFileSelect={(filePath) => {
+                        workbenchStore.setSelectedFile(filePath);
+                        workbenchStore.currentView.set('code');
+                        workbenchStore.setShowWorkbench(true);
+                      }}
+                    />
+                  )}
+                  {rightPanel === 'search' && <Search />}
+                  {rightPanel === 'locks' && <LockManager />}
+                </div>
+              </section>
+            </Panel>
+          </>
+        )}
       </PanelGroup>
     );
 
@@ -861,13 +890,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         </div>
         <button
           type="button"
-          className="bolt-notifications-button"
+          className={classNames('bolt-notifications-button', {
+            'bolt-notifications-button--with-files-toggle': projectIdeMode && !useMobileIde,
+          })}
           aria-label="Notifications"
           aria-expanded={showNotifications}
           onClick={() => setShowNotifications((value) => !value)}
         >
           <span className="i-ph:bell" aria-hidden />
         </button>
+        {projectIdeMode && !useMobileIde && (
+          <button
+            type="button"
+            className="bolt-files-panel-toggle"
+            aria-label={rightPanelOpen ? 'Close project files' : 'Open project files'}
+            aria-pressed={rightPanelOpen}
+            data-testid="ide-files-panel-toggle"
+            onClick={() => setRightPanelOpen((value) => !value)}
+          >
+            <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:files'} aria-hidden />
+          </button>
+        )}
         {showNotifications && (
           <aside className="bolt-notifications-center" aria-label="Notifications center">
             <div className="font-medium text-bolt-elements-textPrimary">Notifications</div>
