@@ -594,6 +594,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <button
               key={id}
               type="button"
+              aria-label={label}
               aria-current={mobilePanel === id ? 'page' : undefined}
               onClick={() => {
                 setMobilePanel(id as typeof mobilePanel);
@@ -604,7 +605,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }}
             >
               <span className={icon} aria-hidden />
-              <span>{label}</span>
+              <span>{id === 'deploy' ? 'Ship' : label}</span>
             </button>
           ))}
         </nav>

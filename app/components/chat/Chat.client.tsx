@@ -31,7 +31,7 @@ import type { LlmErrorAlertType } from '~/types/actions';
 
 const logger = createScopedLogger('Chat');
 
-export function Chat() {
+export function Chat({ forceWorkbench = false }: { forceWorkbench?: boolean }) {
   renderLogger.trace('Chat');
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
@@ -41,11 +41,12 @@ export function Chat() {
   }, [initialMessages]);
 
   if (!ready) {
-    return <BaseChat />;
+    return <BaseChat chatStarted={forceWorkbench} />;
   }
 
   return (
     <ChatImpl
+      forceWorkbench={forceWorkbench}
       description={title}
       initialMessages={initialMessages}
       exportChat={exportChat}
@@ -74,6 +75,7 @@ const processSampledMessages = createSampler(
 );
 
 interface ChatProps {
+  forceWorkbench?: boolean;
   initialMessages: Message[];
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
@@ -82,7 +84,14 @@ interface ChatProps {
 }
 
 export const ChatImpl = memo(
-  ({ description, initialMessages, storeMessageHistory, importChat, exportChat }: ChatProps) => {
+  ({
+    forceWorkbench = false,
+    description,
+    initialMessages,
+    storeMessageHistory,
+    importChat,
+    exportChat,
+  }: ChatProps) => {
     useShortcuts();
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -614,7 +623,7 @@ export const ChatImpl = memo(
         textareaRef={textareaRef}
         input={input}
         showChat={showChat}
-        chatStarted={chatStarted}
+        chatStarted={forceWorkbench || chatStarted}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
           streamingState.set(streaming);

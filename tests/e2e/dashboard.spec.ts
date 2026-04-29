@@ -1,6 +1,35 @@
 import { expect, test } from '@playwright/test';
 
+async function authenticate(page: import('@playwright/test').Page) {
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const email = `e2e-${suffix}@local.test`;
+  const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+    data: {
+      email,
+      password: 'Password123!',
+      name: 'E2E User',
+      organizationName: `E2E Organization ${suffix}`,
+    },
+  });
+
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const payload = (await response.json()) as { token: string };
+
+  await page.context().addCookies([
+    {
+      name: 'vc_session',
+      value: payload.token,
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ]);
+}
+
 test('onboarding guides project setup', async ({ page }) => {
+  await authenticate(page);
   await page.goto('/onboarding');
   await expect(page.getByRole('heading', { name: 'Onboarding' })).toBeVisible();
   await expect(page.locator('section').getByRole('link', { name: 'Create project' })).toBeVisible();
@@ -8,6 +37,7 @@ test('onboarding guides project setup', async ({ page }) => {
 });
 
 test('project creation exposes templates and import paths', async ({ page }) => {
+  await authenticate(page);
   await page.goto('/projects/new');
   await expect(page.getByRole('heading', { name: 'Create project' })).toBeVisible();
   await expect(page.getByLabel('Project name')).toBeVisible();
@@ -16,6 +46,7 @@ test('project creation exposes templates and import paths', async ({ page }) => 
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
+  await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Presence ready')).toBeVisible();
@@ -23,6 +54,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
 });
 
 test('edit file workflow surfaces editor, files, terminal and preview affordances', async ({ page }) => {
+  await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Deploy')).toBeVisible();
@@ -30,6 +62,7 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
 });
 
 test('billing upgrade flow is reachable without frontend-only quota bypass', async ({ page }) => {
+  await authenticate(page);
   await page.goto('/billing');
   await expect(page.getByRole('heading', { name: 'Billing overview' })).toBeVisible();
   await page.getByRole('link', { name: 'Upgrade' }).click();

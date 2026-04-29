@@ -31,7 +31,7 @@ export default function ProjectIdeRoute() {
       <div className="flex h-full w-full flex-col bg-bolt-elements-background-depth-1">
         <Header />
         <IdeProjectToolbar projectId={projectId} />
-        <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
+        <ClientOnly fallback={<BaseChat chatStarted />}>{() => <Chat forceWorkbench />}</ClientOnly>
       </div>
     </ProjectWorkspaceProvider>
   );
@@ -64,7 +64,7 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
           className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
         >
           <Users className="h-3.5 w-3.5" aria-hidden />
-          Presence
+          Presence ready
         </Link>
         <Link
           to={`/projects/${projectId}/snapshots`}

@@ -20,6 +20,7 @@ import {
   LifeBuoy,
   Lock,
   MailPlus,
+  Menu,
   MonitorPlay,
   Rocket,
   Search,
@@ -100,10 +101,10 @@ export interface ProjectCard {
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <header className="sticky top-0 z-20 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-sm font-semibold" aria-label="VibeCore home">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-bolt-elements-background-depth-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 shadow-sm">
               <Sparkles className="h-4 w-4" aria-hidden />
             </span>
             VibeCore
@@ -124,6 +125,16 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <LinkButton to="/signup">Start</LinkButton>
           </div>
         </div>
+        <nav
+          className="mx-auto flex max-w-7xl gap-1 overflow-x-auto border-t border-bolt-elements-borderColor px-4 py-2 sm:px-6 md:hidden"
+          aria-label="Public mobile navigation"
+        >
+          {[...publicNav, { label: 'Status', to: '/status' }].map((item) => (
+            <NavButton key={item.to} to={item.to}>
+              {item.label}
+            </NavButton>
+          ))}
+        </nav>
       </header>
       {children}
     </main>
@@ -144,10 +155,15 @@ export function AppShell({
   return (
     <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
       <div className="grid min-h-screen lg:grid-cols-[256px_1fr]">
-        <aside className="border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+        <aside className="hidden border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block">
           <div className="flex h-14 items-center gap-2 border-b border-bolt-elements-borderColor px-4">
-            <Sparkles className="h-5 w-5" aria-hidden />
-            <span className="font-semibold">VibeCore</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+              <Sparkles className="h-4 w-4" aria-hidden />
+            </span>
+            <div>
+              <span className="block text-sm font-semibold">VibeCore</span>
+              <span className="block text-xs text-bolt-elements-textTertiary">SaaS workspace</span>
+            </div>
           </div>
           <nav className="space-y-6 p-3" aria-label="Application navigation">
             <NavGroup items={appNav} />
@@ -159,19 +175,57 @@ export function AppShell({
         </aside>
         <section className="min-w-0">
           <TopBar />
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
-                <p className="mt-2 max-w-3xl text-sm text-bolt-elements-textSecondary">{description}</p>
+          <MobileAppNav />
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+            <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="mb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">
+                    Workspace console
+                  </p>
+                  <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">{title}</h1>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">{description}</p>
+                </div>
+                {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
               </div>
-              {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
             </div>
             {children}
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+function MobileAppNav() {
+  return (
+    <nav
+      className="flex gap-1 overflow-x-auto border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 lg:hidden"
+      aria-label="Application mobile navigation"
+    >
+      {[...appNav, ...accountNav].map((item) => {
+        const Icon = item.icon;
+        const mobileLabel = item.to === '/projects/new' ? 'New project' : item.label;
+
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              classNames(
+                'inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                isActive
+                  ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                  : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+              )
+            }
+          >
+            <Icon className="h-4 w-4" aria-hidden />
+            {mobileLabel}
+          </NavLink>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -192,7 +246,7 @@ export function ProjectShell({
       description={description}
       actions={<LinkButton to={`/projects/${projectId}/ide`}>Open IDE</LinkButton>}
     >
-      <div className="mb-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2">
+      <div className="mb-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm">
         <nav className="flex min-w-max gap-1" aria-label="Project navigation">
           {projectNav.map((item) => {
             const Icon = item.icon;
@@ -228,13 +282,18 @@ export function StatGrid({ stats }: { stats: Array<{ label: string; value: strin
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
-          <Card key={stat.label}>
+          <Card
+            key={stat.label}
+            className="overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardDescription>{stat.label}</CardDescription>
-                <Icon className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
+                <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                  <Icon className="h-4 w-4 text-bolt-elements-textSecondary" aria-hidden />
+                </span>
               </div>
-              <CardTitle className="text-2xl">{stat.value}</CardTitle>
+              <CardTitle className="text-3xl">{stat.value}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xs text-bolt-elements-textSecondary">{stat.detail}</p>
@@ -262,7 +321,10 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       {projects.map((project) => (
-        <Card key={project.id} className="overflow-hidden">
+        <Card
+          key={project.id}
+          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
+        >
           <CardHeader>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -273,7 +335,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+            <div className="h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
               <div className="mb-2 h-2 w-2/3 rounded bg-bolt-elements-background-depth-3" />
               <div className="mb-2 h-2 w-1/2 rounded bg-bolt-elements-background-depth-3" />
               <div className="h-2 w-5/6 rounded bg-bolt-elements-background-depth-3" />
@@ -282,7 +344,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
               <span>Updated {project.updated ?? 'recently'}</span>
               <Link
                 to={`/projects/${project.id}`}
-                className="font-medium text-bolt-elements-textPrimary hover:underline"
+                className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
               >
                 Manage
               </Link>
@@ -298,7 +360,10 @@ export function TemplateGallery({ compact = false }: { compact?: boolean }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {templates.map((template) => (
-        <Card key={template.name}>
+        <Card
+          key={template.name}
+          className="border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
+        >
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-lg">{template.name}</CardTitle>
@@ -336,8 +401,10 @@ export function EmptyPanel({
   const PanelIcon = icon;
 
   return (
-    <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-8 text-center">
-      <PanelIcon className="mx-auto mb-3 h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
+    <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-8 text-center shadow-sm">
+      <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+        <PanelIcon className="h-6 w-6 text-bolt-elements-textSecondary" aria-hidden />
+      </span>
       <h2 className="text-base font-semibold">{title}</h2>
       <p className="mx-auto mt-2 max-w-xl text-sm text-bolt-elements-textSecondary">{description}</p>
       {actionLabel && to ? (
@@ -378,7 +445,7 @@ export function SettingsForm({
 
 export function ActivityList({ items }: { items: Array<{ title: string; detail: string; icon?: Icon }> }) {
   return (
-    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
       {items.map((item, index) => {
         const Icon = item.icon ?? Activity;
         return (
@@ -410,7 +477,7 @@ export function CommandPalettePreview() {
     'Rotate API key',
   ];
   return (
-    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
       <label className="flex items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm">
         <Command className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
         <input
@@ -473,11 +540,12 @@ export function LinkButton({
 
 function TopBar() {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 sm:px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
       <Link
         to="/organization-switcher"
         className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-bolt-elements-background-depth-2"
       >
+        <Menu className="h-4 w-4 lg:hidden" aria-hidden />
         <Building2 className="h-4 w-4" aria-hidden />
         Acme Workspace
       </Link>

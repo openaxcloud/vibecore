@@ -4,7 +4,8 @@ export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
   expect: { timeout: 5_000 },
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   reporter: [['list']],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',
@@ -23,7 +24,13 @@ export default defineConfig({
     },
     {
       name: 'tablet',
-      use: { ...devices['iPad Pro 11 landscape'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1194, height: 834 },
+        isMobile: false,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      },
     },
     {
       name: 'mobile',
