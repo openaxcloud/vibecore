@@ -1464,6 +1464,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const agentPanel = (
       <div
         data-testid="ide-agent-panel"
+        aria-live={projectIdeMode ? 'polite' : undefined}
         className={classNames(styles.Chat, 'flex h-full min-h-0 flex-col flex-grow', {
           'lg:min-w-[var(--chat-min-width)]': !projectIdeMode,
           'min-w-0 overflow-hidden bolt-project-agent-panel': projectIdeMode,
@@ -1487,7 +1488,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           resize="smooth"
           initial="smooth"
         >
-          <StickToBottom.Content className="flex flex-col gap-4 relative ">
+          <StickToBottom.Content
+            className="flex flex-col gap-4 relative "
+            role={projectIdeMode ? 'log' : undefined}
+            aria-live={projectIdeMode ? 'polite' : undefined}
+            aria-relevant={projectIdeMode ? 'additions text' : undefined}
+            aria-label={projectIdeMode ? 'Agent conversation history' : undefined}
+          >
             <ClientOnly>
               {() => {
                 return chatStarted ? (
@@ -1546,6 +1553,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
             </div>
             {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+            {projectIdeMode && isStreaming && (
+              <div className="vc-sr-only" role="status" aria-live="polite">
+                Agent is thinking
+              </div>
+            )}
             {projectIdeMode && agentToolAction && (
               <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
                 <div>

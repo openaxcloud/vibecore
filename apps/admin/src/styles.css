@@ -48,6 +48,10 @@
   --vc-animation-drop-zone: 100ms;
   --vc-animation-typing: 1.4s;
   --vc-run-stop-bg: #f85149;
+  --vc-accessibility-focus-width: 2px;
+  --vc-accessibility-reduced-motion-duration: 50ms;
+  --vc-accessibility-contrast-text: #f5f9fc;
+  --vc-accessibility-contrast-muted: #c2c8cc;
   font-family:
     var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
@@ -409,9 +413,36 @@ body :where(.vc-run-button[data-run-state="running"], button[data-run-state="run
   margin-right: 6px;
 }
 
-body :where(button, a, summary, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--vc-ui-focus-ring);
+body
+  :where(
+    button,
+    a,
+    summary,
+    input,
+    textarea,
+    select,
+    [tabindex],
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [contenteditable="true"]
+  ):focus-visible {
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
   outline-offset: 2px;
+}
+
+.sr-only,
+.vc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
 }
 
 body :where([role="tooltip"], .tooltip, .vc-tooltip, [data-radix-tooltip-content]) {
@@ -462,7 +493,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--vc-ui-focus-ring);
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
   outline-offset: 2px;
 }
 
@@ -470,6 +501,17 @@ select:focus-visible {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+  }
 }
 
 .sidebar {

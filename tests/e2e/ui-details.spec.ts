@@ -13,7 +13,11 @@ async function injectUiDetailsFixture(page: Page) {
       <button data-loading="true" data-testid="ui-button-loading" style="width: 28px; height: 28px;">
         <svg class="lucide" data-testid="ui-button-loading-icon" viewBox="0 0 24 24"><path d="M4 12h16" /></svg>
       </button>
+      <button aria-label="Icon settings" data-testid="ui-icon-only-button">
+        <svg class="lucide" viewBox="0 0 24 24"><path d="M4 12h16" /></svg>
+      </button>
       <button class="vc-run-button" data-run-state="running" data-testid="ui-run-button">Stop</button>
+      <div role="button" tabindex="0" data-testid="ui-role-button">Role button</div>
       <input data-testid="ui-details-input" value="Input" />
       <div class="card" data-testid="ui-details-card">Card</div>
       <div class="vc-animated-tab" role="tab" data-testid="ui-tab-open">Open tab</div>
@@ -26,6 +30,10 @@ async function injectUiDetailsFixture(page: Page) {
       <div class="vc-typing-indicator" data-testid="ui-typing-indicator">
         <span></span><span></span><span></span>
       </div>
+      <div class="vc-sr-only" data-testid="ui-sr-only">Screen reader only text</div>
+      <div role="status" aria-live="polite" data-testid="ui-live-region">Accessible live update</div>
+      <div data-testid="ui-contrast-primary" style="color: #F5F9FC; background: #0A0F1C;">Primary contrast</div>
+      <div data-testid="ui-contrast-secondary" style="color: #C2C8CC; background: #0A0F1C;">Secondary contrast</div>
       <div role="tooltip" data-testid="ui-details-tooltip">Tooltip</div>
       <svg class="tooltip-arrow" data-testid="ui-details-tooltip-arrow" viewBox="0 0 10 5"><path d="M0 0h10L5 5Z" /></svg>
       <svg class="lucide" data-testid="ui-details-icon" viewBox="0 0 24 24" stroke-width="2"><path d="M4 12h16" /></svg>
@@ -102,6 +110,109 @@ async function readUiDetails(page: Page) {
       scrollbarThumbBackground: scrollbarThumb.backgroundColor,
     };
   });
+}
+
+function contrastRatio(foreground: string, background: string) {
+  const parse = (value: string) => {
+    const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+
+    if (!match) {
+      throw new Error(`Unsupported color: ${value}`);
+    }
+
+    return [Number(match[1]), Number(match[2]), Number(match[3])].map((channel) => {
+      const normalized = channel / 255;
+
+      return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+  };
+  const luminance = (value: string) => {
+    const [r, g, b] = parse(value);
+
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const foregroundLuminance = luminance(foreground);
+  const backgroundLuminance = luminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+async function expectAccessibilityDetails(page: Page) {
+  const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
+    const root = window.getComputedStyle(document.documentElement);
+    const iconButton = document.querySelector('[data-testid="ui-icon-only-button"]')!;
+    const liveRegion = document.querySelector('[data-testid="ui-live-region"]')!;
+    const srOnly = window.getComputedStyle(document.querySelector('[data-testid="ui-sr-only"]')!);
+    const primaryContrast = window.getComputedStyle(document.querySelector('[data-testid="ui-contrast-primary"]')!);
+    const secondaryContrast = window.getComputedStyle(document.querySelector('[data-testid="ui-contrast-secondary"]')!);
+
+    return {
+      focusWidth: root.getPropertyValue('--vc-accessibility-focus-width').trim(),
+      reducedMotionDuration: root.getPropertyValue('--vc-accessibility-reduced-motion-duration').trim(),
+      contrastText: root.getPropertyValue('--vc-accessibility-contrast-text').trim().toLowerCase(),
+      contrastMuted: root.getPropertyValue('--vc-accessibility-contrast-muted').trim().toLowerCase(),
+      iconButtonLabel: iconButton.getAttribute('aria-label'),
+      liveRegionRole: liveRegion.getAttribute('role'),
+      liveRegionMode: liveRegion.getAttribute('aria-live'),
+      srOnlyPosition: srOnly.position,
+      srOnlyWidth: srOnly.width,
+      srOnlyHeight: srOnly.height,
+      srOnlyClipPath: srOnly.clipPath,
+      primaryColor: primaryContrast.color,
+      primaryBackground: primaryContrast.backgroundColor,
+      secondaryColor: secondaryContrast.color,
+      secondaryBackground: secondaryContrast.backgroundColor,
+    };
+  });
+
+  expect(details.focusWidth).toBe('2px');
+  expect(details.reducedMotionDuration).toBe('50ms');
+  expect(details.contrastText).toBe('#f5f9fc');
+  expect(details.contrastMuted).toBe('#c2c8cc');
+  expect(details.iconButtonLabel).toBe('Icon settings');
+  expect(details.liveRegionRole).toBe('status');
+  expect(details.liveRegionMode).toBe('polite');
+  expect(details.srOnlyPosition).toBe('absolute');
+  expect(details.srOnlyWidth).toBe('1px');
+  expect(details.srOnlyHeight).toBe('1px');
+  expect(details.srOnlyClipPath).toContain('inset(50');
+  expect(contrastRatio(details.primaryColor, details.primaryBackground)).toBeGreaterThanOrEqual(4.5);
+  expect(contrastRatio(details.secondaryColor, details.secondaryBackground)).toBeGreaterThanOrEqual(4.5);
+
+  const roleButton = page.getByTestId('ui-role-button');
+  for (let index = 0; index < 120; index += 1) {
+    const isFocused = await roleButton.evaluate((node) => node === document.activeElement);
+
+    if (isFocused) {
+      break;
+    }
+
+    await page.keyboard.press('Tab');
+  }
+
+  await expect(roleButton).toBeFocused();
+  await expect(roleButton).toHaveCSS('outline-width', '2px');
+  await expect(roleButton).toHaveCSS('outline-color', 'rgb(0, 153, 255)');
+}
+
+async function expectReducedMotionDetails(page: Page) {
+  const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
+    const tabOpen = window.getComputedStyle(document.querySelector('[data-testid="ui-tab-open"]')!);
+    const popover = window.getComputedStyle(document.querySelector('[data-testid="ui-details-popover"]')!);
+    const button = window.getComputedStyle(document.querySelector('[data-testid="ui-details-button"]')!);
+
+    return {
+      tabAnimationDuration: tabOpen.animationDuration,
+      popoverAnimationDuration: popover.animationDuration,
+      buttonTransitionDuration: button.transitionDuration,
+    };
+  });
+
+  expect(details.tabAnimationDuration).toBe('0.05s');
+  expect(details.popoverAnimationDuration).toBe('0.05s');
+  expect(details.buttonTransitionDuration).toContain('0.05s');
 }
 
 async function expectAnimationDetails(page: Page) {
@@ -328,4 +439,32 @@ test('admin console applies section 14 animation system', async ({ page }) => {
   await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
   await injectUiDetailsFixture(page);
   await expectAnimationDetails(page);
+});
+
+test('public platform applies section 15 accessibility system', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await injectUiDetailsFixture(page);
+  await expectAccessibilityDetails(page);
+});
+
+test('admin console applies section 15 accessibility system', async ({ page }) => {
+  await page.goto('http://127.0.0.1:5174', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
+  await injectUiDetailsFixture(page);
+  await expectAccessibilityDetails(page);
+});
+
+test('public platform applies section 15 reduced motion preference', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await injectUiDetailsFixture(page);
+  await expectReducedMotionDetails(page);
+});
+
+test('admin console applies section 15 reduced motion preference', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('http://127.0.0.1:5174', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
+  await injectUiDetailsFixture(page);
+  await expectReducedMotionDetails(page);
 });
