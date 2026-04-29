@@ -13,11 +13,19 @@ async function injectUiDetailsFixture(page: Page) {
       <button data-loading="true" data-testid="ui-button-loading" style="width: 28px; height: 28px;">
         <svg class="lucide" data-testid="ui-button-loading-icon" viewBox="0 0 24 24"><path d="M4 12h16" /></svg>
       </button>
+      <button class="vc-run-button" data-run-state="running" data-testid="ui-run-button">Stop</button>
       <input data-testid="ui-details-input" value="Input" />
       <div class="card" data-testid="ui-details-card">Card</div>
+      <div class="vc-animated-tab" role="tab" data-testid="ui-tab-open">Open tab</div>
+      <div class="vc-animated-tab" role="tab" data-closing="true" data-testid="ui-tab-closing">Closing tab</div>
       <div role="dialog" data-testid="ui-details-modal">Modal</div>
       <div class="popover" data-testid="ui-details-popover">Popover</div>
       <div class="overlay" data-testid="ui-details-overlay">Overlay</div>
+      <div class="vc-split-panel" data-testid="ui-split-panel" style="flex-basis: 50%;"></div>
+      <div class="vc-drop-zone" data-testid="ui-drop-zone"></div>
+      <div class="vc-typing-indicator" data-testid="ui-typing-indicator">
+        <span></span><span></span><span></span>
+      </div>
       <div role="tooltip" data-testid="ui-details-tooltip">Tooltip</div>
       <svg class="tooltip-arrow" data-testid="ui-details-tooltip-arrow" viewBox="0 0 10 5"><path d="M0 0h10L5 5Z" /></svg>
       <svg class="lucide" data-testid="ui-details-icon" viewBox="0 0 24 24" stroke-width="2"><path d="M4 12h16" /></svg>
@@ -94,6 +102,84 @@ async function readUiDetails(page: Page) {
       scrollbarThumbBackground: scrollbarThumb.backgroundColor,
     };
   });
+}
+
+async function expectAnimationDetails(page: Page) {
+  const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
+    const root = window.getComputedStyle(document.documentElement);
+    const tabOpen = window.getComputedStyle(document.querySelector('[data-testid="ui-tab-open"]')!);
+    const tabClosing = window.getComputedStyle(document.querySelector('[data-testid="ui-tab-closing"]')!);
+    const popover = window.getComputedStyle(document.querySelector('[data-testid="ui-details-popover"]')!);
+    const modal = window.getComputedStyle(document.querySelector('[data-testid="ui-details-modal"]')!);
+    const overlay = window.getComputedStyle(document.querySelector('[data-testid="ui-details-overlay"]')!);
+    const splitPanel = window.getComputedStyle(document.querySelector('[data-testid="ui-split-panel"]')!);
+    const dropZone = window.getComputedStyle(document.querySelector('[data-testid="ui-drop-zone"]')!);
+    const typingDot = window.getComputedStyle(document.querySelector('[data-testid="ui-typing-indicator"] span')!);
+    const runButton = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!);
+    const runButtonBefore = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!, '::before');
+
+    return {
+      tokenTabOpen: root.getPropertyValue('--vc-animation-tab-open').trim(),
+      tokenTabClose: root.getPropertyValue('--vc-animation-tab-close').trim(),
+      tokenPopover: root.getPropertyValue('--vc-animation-popover').trim(),
+      tokenModal: root.getPropertyValue('--vc-animation-modal').trim(),
+      tokenSplit: root.getPropertyValue('--vc-animation-split-panel').trim(),
+      tokenDropZone: root.getPropertyValue('--vc-animation-drop-zone').trim(),
+      tokenTyping: root.getPropertyValue('--vc-animation-typing').trim(),
+      tokenRunStop: root.getPropertyValue('--vc-run-stop-bg').trim().toLowerCase(),
+      tabOpenAnimationName: tabOpen.animationName,
+      tabOpenAnimationDuration: tabOpen.animationDuration,
+      tabClosingAnimationName: tabClosing.animationName,
+      tabClosingAnimationDuration: tabClosing.animationDuration,
+      popoverAnimationName: popover.animationName,
+      popoverAnimationDuration: popover.animationDuration,
+      modalAnimationName: modal.animationName,
+      modalAnimationDuration: modal.animationDuration,
+      overlayAnimationName: overlay.animationName,
+      overlayAnimationDuration: overlay.animationDuration,
+      splitTransitionDuration: splitPanel.transitionDuration,
+      splitTransitionProperty: splitPanel.transitionProperty,
+      dropZoneAnimationName: dropZone.animationName,
+      dropZoneAnimationDuration: dropZone.animationDuration,
+      typingAnimationName: typingDot.animationName,
+      typingAnimationDuration: typingDot.animationDuration,
+      runButtonBackground: runButton.backgroundColor,
+      runButtonColor: runButton.color,
+      runButtonBeforeContent: runButtonBefore.content,
+      runButtonBeforeWidth: runButtonBefore.width,
+      runButtonBeforeAnimationName: runButtonBefore.animationName,
+    };
+  });
+
+  expect(details.tokenTabOpen).toBe('200ms');
+  expect(details.tokenTabClose).toBe('150ms');
+  expect(details.tokenPopover).toBe('150ms');
+  expect(details.tokenModal).toBe('200ms');
+  expect(details.tokenSplit).toBe('250ms ease-out');
+  expect(details.tokenDropZone).toBe('100ms');
+  expect(details.tokenTyping).toBe('1.4s');
+  expect(details.tokenRunStop).toBe('#f85149');
+  expect(details.tabOpenAnimationName).toBe('vc-tab-slide-in');
+  expect(details.tabOpenAnimationDuration).toBe('0.2s');
+  expect(details.tabClosingAnimationName).toBe('vc-tab-fade-out');
+  expect(details.tabClosingAnimationDuration).toBe('0.15s');
+  expect(details.popoverAnimationName).toBe('vc-popover-in');
+  expect(details.popoverAnimationDuration).toBe('0.15s');
+  expect(details.modalAnimationName).toBe('vc-modal-in');
+  expect(details.modalAnimationDuration).toBe('0.2s');
+  expect(details.overlayAnimationName).toBe('vc-modal-backdrop-in');
+  expect(details.overlayAnimationDuration).toBe('0.2s');
+  expect(details.splitTransitionProperty).toContain('flex-basis');
+  expect(details.splitTransitionDuration).toContain('0.25s');
+  expect(details.dropZoneAnimationName).toBe('vc-drop-zone-in');
+  expect(details.dropZoneAnimationDuration).toBe('0.1s');
+  expect(details.typingAnimationName).toBe('vc-typing-dot');
+  expect(details.typingAnimationDuration).toBe('1.4s');
+  expect(details.runButtonBackground).toBe('rgb(248, 81, 73)');
+  expect(details.runButtonColor).toBe('rgb(255, 255, 255)');
+  expect(details.runButtonBeforeContent).toBe('""');
+  expect(details.runButtonBeforeWidth).toBe('14px');
+  expect(details.runButtonBeforeAnimationName).toBe('vc-button-spinner');
 }
 
 async function expectButtonStates(page: Page) {
@@ -229,4 +315,17 @@ test('admin console applies section 13 button states', async ({ page }) => {
   await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
   await injectUiDetailsFixture(page);
   await expectButtonStates(page);
+});
+
+test('public platform applies section 14 animation system', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await injectUiDetailsFixture(page);
+  await expectAnimationDetails(page);
+});
+
+test('admin console applies section 14 animation system', async ({ page }) => {
+  await page.goto('http://127.0.0.1:5174', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
+  await injectUiDetailsFixture(page);
+  await expectAnimationDetails(page);
 });

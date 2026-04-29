@@ -60,6 +60,14 @@ body {
   --vc-button-active-bg: #3b4358;
   --vc-button-disabled-opacity: 0.4;
   --vc-button-loading-spinner-size: 14px;
+  --vc-animation-tab-open: 200ms;
+  --vc-animation-tab-close: 150ms;
+  --vc-animation-popover: 150ms;
+  --vc-animation-modal: 200ms;
+  --vc-animation-split-panel: 250ms ease-out;
+  --vc-animation-drop-zone: 100ms;
+  --vc-animation-typing: 1.4s;
+  --vc-run-stop-bg: #f85149;
   --gradient-opacity: 0.8;
   --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
   --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
@@ -215,6 +223,86 @@ body :where(button[aria-busy='true'], button[data-loading='true'], [role='button
   }
 }
 
+@keyframes vc-tab-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes vc-tab-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vc-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-drop-zone-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
 body :where(input, select, textarea) {
   border-radius: var(--vc-ui-radius-input);
   transition:
@@ -232,11 +320,15 @@ body :where(.card, .panel, .bolt-project-action-card, .bolt-project-service-pane
 body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
   border-radius: var(--vc-ui-radius-modal);
   box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-modal-in var(--vc-animation-modal) ease-out both;
+  transform-origin: center top;
 }
 
 body :where(.popover, [data-radix-popper-content-wrapper] > *, .bolt-project-tool-menu, .bolt-project-tab-menu, .bolt-project-user-menu) {
   border-radius: var(--vc-ui-radius-popover);
   box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-popover-in var(--vc-animation-popover) ease-out both;
+  transform-origin: top center;
   transition:
     opacity var(--vc-ui-transition-popover),
     transform var(--vc-ui-transition-popover),
@@ -246,6 +338,69 @@ body :where(.popover, [data-radix-popper-content-wrapper] > *, .bolt-project-too
 body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay], .bolt-project-drop-overlay) {
   background: var(--vc-ui-overlay-bg);
   backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]):not(.bolt-project-drop-overlay) {
+  animation: vc-modal-backdrop-in var(--vc-animation-modal) ease-out both;
+}
+
+body :where(.vc-animated-tab, .tab, [role='tab'], .bolt-project-tab, .bolt-project-right-tab) {
+  animation: vc-tab-slide-in var(--vc-animation-tab-open) ease-out both;
+}
+
+body :where(.vc-animated-tab[data-closing='true'], .tab[data-closing='true'], [role='tab'][data-closing='true']) {
+  animation: vc-tab-fade-out var(--vc-animation-tab-close) ease-out both;
+}
+
+body :where(.vc-split-panel, [data-panel], .bolt-project-pane-leaf, .bolt-project-main-panes) {
+  transition:
+    flex-basis var(--vc-animation-split-panel),
+    width var(--vc-animation-split-panel),
+    height var(--vc-animation-split-panel);
+}
+
+body :where(.vc-drop-zone, .bolt-project-drop-zone, .bolt-project-drop-overlay) {
+  animation: vc-drop-zone-in var(--vc-animation-drop-zone) ease-out both;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
+  background: #7b61ff;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
+  background: var(--vc-run-stop-bg);
+  color: #ffffff;
+}
+
+body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app'])::before {
+  position: static;
+  display: inline-block;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: '';
+  margin-right: 6px;
 }
 
 body :where(button, a, summary, input, textarea, select, [tabindex]):focus-visible {
@@ -1607,7 +1762,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   min-height: 0;
   height: calc(100% - var(--project-terminal-bottom-height, 0px));
-  transition: height 200ms cubic-bezier(0.2, 0, 0, 1);
+  transition: height var(--vc-animation-split-panel);
 }
 
 .bolt-project-bottom-terminal-shell {
@@ -1616,6 +1771,9 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 100px;
   max-height: 600px;
   height: var(--project-terminal-height);
+  transition:
+    flex-basis var(--vc-animation-split-panel),
+    height var(--vc-animation-split-panel);
 }
 
 .bolt-project-bottom-terminal-frame {
