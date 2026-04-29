@@ -528,6 +528,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
+    const [draggedTab, setDraggedTab] = useState<{ paneId: string; tabId: string } | null>(null);
     const draggedTabRef = useRef<{ paneId: string; tabId: string } | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
@@ -922,6 +923,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setActivePaneId(targetPaneId);
         setDropTarget(null);
         draggedTabRef.current = null;
+        setDraggedTab(null);
       },
       [],
     );
@@ -1723,6 +1725,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onMoveToExistingPane={(tabId, targetPaneId) => moveTabToPane(leaf.id, tabId, targetPaneId)}
               onDragStart={(paneId, tabId) => {
                 draggedTabRef.current = { paneId, tabId };
+                setDraggedTab({ paneId, tabId });
               }}
               onDropTab={(paneId) => {
                 const dragged = draggedTabRef.current;
@@ -1732,32 +1735,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }
 
                 draggedTabRef.current = null;
+                setDraggedTab(null);
+              }}
+              onDragEnd={() => {
+                draggedTabRef.current = null;
+                setDraggedTab(null);
+                setDropTarget(null);
               }}
             />
-            {draggedTabRef.current && (
-              <div className="bolt-project-drop-zones" aria-hidden>
-                {(['center', 'left', 'right', 'top', 'bottom'] as IdeDropZone[]).map((zone) => (
-                  <div
-                    key={zone}
-                    className={`bolt-project-drop-zone bolt-project-drop-zone-${zone}`}
-                    data-active={dropTarget?.paneId === leaf.id && dropTarget.zone === zone}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      setDropTarget({ paneId: leaf.id, zone });
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
+            <div className="bolt-project-drop-zones" data-visible={draggedTab ? 'true' : 'false'} aria-hidden>
+              {(['center', 'left', 'right', 'top', 'bottom'] as IdeDropZone[]).map((zone) => (
+                <div
+                  key={zone}
+                  className={`bolt-project-drop-zone bolt-project-drop-zone-${zone}`}
+                  data-active={dropTarget?.paneId === leaf.id && dropTarget.zone === zone}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDropTarget({ paneId: leaf.id, zone });
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
 
-                      const dragged = draggedTabRef.current;
+                    const dragged = draggedTabRef.current;
 
-                      if (dragged) {
-                        dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+                    if (dragged) {
+                      dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
+                    }
+                  }}
+                  onMouseUp={() => {
+                    const dragged = draggedTabRef.current;
+
+                    if (dragged) {
+                      dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
+                    }
+                  }}
+                />
+              ))}
+            </div>
             <div
               className="bolt-project-pane-content"
               data-pane-id={leaf.id}
@@ -2520,6 +2534,7 @@ function IdeTabBar({
   onMoveToExistingPane,
   onDragStart,
   onDropTab,
+  onDragEnd,
 }: {
   paneId: string;
   activePanel: IdeWorkspacePanel;
@@ -2551,10 +2566,46 @@ function IdeTabBar({
   onMoveToExistingPane?: (tabId: string, targetPaneId: string) => void;
   onDragStart?: (paneId: string, tabId: string) => void;
   onDropTab?: (paneId: string) => void;
+  onDragEnd?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
+  const pointerDragStartRef = useRef<{ x: number; y: number; paneId: string; tabId: string } | null>(null);
+  const startManualTabDrag = useCallback(
+    (event: React.MouseEvent, tabId: string) => {
+      if (event.button !== 0) {
+        return;
+      }
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      let started = true;
+
+      onDragStart?.(paneId, tabId);
+
+      const onMove = (moveEvent: MouseEvent) => {
+        if (started) {
+          return;
+        }
+
+        if (Math.abs(moveEvent.clientX - startX) > 8 || Math.abs(moveEvent.clientY - startY) > 8) {
+          started = true;
+          onDragStart?.(paneId, tabId);
+        }
+      };
+
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        onDragEnd?.();
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [onDragEnd, onDragStart, paneId],
+  );
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
@@ -2580,6 +2631,14 @@ function IdeTabBar({
   return (
     <div
       className="bolt-project-tabbar"
+      onMouseDownCapture={(event) => {
+        const tabElement = (event.target as HTMLElement | null)?.closest<HTMLElement>('.bolt-project-tab');
+        const tabId = tabElement?.dataset.tabId;
+
+        if (tabId) {
+          startManualTabDrag(event, tabId);
+        }
+      }}
       onDragOver={(event) => event.preventDefault()}
       onDrop={() => onDropTab?.(paneId)}
     >
@@ -2588,16 +2647,54 @@ function IdeTabBar({
           <div
             key={tab.id}
             role="tab"
+            data-tab-id={tab.id}
             draggable
             aria-selected={activeTabId === tab.id}
             className="bolt-project-tab"
             onDragStart={() => onDragStart?.(paneId, tab.id)}
+            onDragEnd={() => onDragEnd?.()}
+            onMouseDownCapture={(event) => startManualTabDrag(event, tab.id)}
+            onPointerDown={(event) => {
+              if (event.button !== 0) {
+                return;
+              }
+
+              pointerDragStartRef.current = {
+                x: event.clientX,
+                y: event.clientY,
+                paneId,
+                tabId: tab.id,
+              };
+            }}
+            onPointerMove={(event) => {
+              const start = pointerDragStartRef.current;
+
+              if (!start || event.buttons !== 1) {
+                return;
+              }
+
+              if (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8) {
+                onDragStart?.(start.paneId, start.tabId);
+                pointerDragStartRef.current = null;
+              }
+            }}
+            onPointerUp={() => {
+              pointerDragStartRef.current = null;
+            }}
             onContextMenu={(event) => {
               event.preventDefault();
               setContextMenu({ x: event.clientX, y: event.clientY, tabId: tab.id });
             }}
           >
-            <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id, tab.panel)}>
+            <button
+              type="button"
+              className="bolt-project-tab-main"
+              draggable
+              onClick={() => onSelect(tab.id, tab.panel)}
+              onMouseDownCapture={(event) => startManualTabDrag(event, tab.id)}
+              onDragStart={() => onDragStart?.(paneId, tab.id)}
+              onDragEnd={() => onDragEnd?.()}
+            >
               <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />
               <span className={tab.preview || tab.dirty ? 'italic' : ''}>{tab.label}</span>
             </button>

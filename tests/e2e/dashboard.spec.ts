@@ -212,6 +212,55 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   await page.getByLabel('Split right').first().click();
   await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
+  await page.getByLabel('Split down').first().click();
+  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(3);
+  const splitHandles = page.locator('.bolt-project-ide-resize-handle:not(.bolt-project-ide-resize-handle-vertical)');
+  await expect(splitHandles.first()).toBeVisible();
+  const handleMetrics = await splitHandles.first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      width: rect.width,
+      background: style.backgroundColor,
+      cursor: style.cursor,
+    };
+  });
+  expect(handleMetrics.width).toBe(4);
+  expect(handleMetrics.background).toBe('rgba(0, 0, 0, 0)');
+  expect(handleMetrics.cursor).toBe('col-resize');
+  await expect(page.locator('.bolt-project-drop-zones').first()).toBeVisible();
+  const dropMetrics = await page.locator('.bolt-project-drop-zones').first().evaluate((element) => {
+    const host = element.getBoundingClientRect();
+    const center = element.querySelector('.bolt-project-drop-zone-center')!.getBoundingClientRect();
+    const left = element.querySelector('.bolt-project-drop-zone-left')!.getBoundingClientRect();
+    const right = element.querySelector('.bolt-project-drop-zone-right')!.getBoundingClientRect();
+    const top = element.querySelector('.bolt-project-drop-zone-top')!.getBoundingClientRect();
+    const bottom = element.querySelector('.bolt-project-drop-zone-bottom')!.getBoundingClientRect();
+
+    return {
+      centerWidthRatio: Math.round((center.width / host.width) * 100),
+      centerHeightRatio: Math.round((center.height / host.height) * 100),
+      leftWidthRatio: Math.round((left.width / host.width) * 100),
+      rightWidthRatio: Math.round((right.width / host.width) * 100),
+      topHeightRatio: Math.round((top.height / host.height) * 100),
+      bottomHeightRatio: Math.round((bottom.height / host.height) * 100),
+    };
+  });
+  expect(dropMetrics.centerWidthRatio).toBe(40);
+  expect(dropMetrics.centerHeightRatio).toBe(40);
+  expect(dropMetrics.leftWidthRatio).toBe(15);
+  expect(dropMetrics.rightWidthRatio).toBe(15);
+  expect(dropMetrics.topHeightRatio).toBe(15);
+  expect(dropMetrics.bottomHeightRatio).toBe(15);
+  await page.locator('.bolt-project-tab').first().click({ button: 'right' });
+  await expect(page.getByRole('button', { name: 'Move to new pane right' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move to new pane down' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move to new pane left' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Move to new pane up' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Move to existing pane/ }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Move to new pane down' }).click();
+  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(4);
   await page.getByLabel('Tab actions').first().click();
   await page.getByRole('button', { name: 'Close to right' }).first().click();
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
