@@ -34,6 +34,7 @@
     "infra:validate": "pnpm --filter @vibecore/infra validate",
     "sre:validate": "node scripts/validate-observability-assets.mjs && node scripts/backup-restore-dry-run.mjs",
     "cicd:validate": "node scripts/validate-ci-cd-assets.mjs",
+    "readiness:validate": "node scripts/validate-readiness-docs.mjs",
     "synthetic:health": "node scripts/synthetic-health-check.mjs",
     "deploy": "npm run build && wrangler pages deploy",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 remix vite:build",
