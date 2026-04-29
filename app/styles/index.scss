@@ -952,7 +952,8 @@ body {
   text-align: left;
 }
 
-.bolt-project-command-palette button:hover {
+.bolt-project-command-palette button:hover,
+.bolt-project-command-palette button[aria-current='page'] {
   background: #2b3245;
 }
 

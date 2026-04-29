@@ -26,6 +26,8 @@ interface Props {
   unsavedFiles?: Set<string>;
   fileHistory?: Record<string, FileHistory>;
   className?: string;
+  onFilePreview?: (filePath: string) => void;
+  onFileOpen?: (filePath: string) => void;
 }
 
 interface InlineInputProps {
@@ -49,6 +51,8 @@ export const FileTree = memo(
     className,
     unsavedFiles,
     fileHistory = {},
+    onFilePreview,
+    onFileOpen,
   }: Props) => {
     renderLogger.trace('FileTree');
 
@@ -161,7 +165,11 @@ export const FileTree = memo(
                     onCopyRelativePath(fileOrFolder);
                   }}
                   onClick={() => {
+                    onFilePreview?.(fileOrFolder.fullPath);
                     onFileSelect?.(fileOrFolder.fullPath);
+                  }}
+                  onDoubleClick={() => {
+                    onFileOpen?.(fileOrFolder.fullPath);
                   }}
                 />
               );
@@ -204,6 +212,7 @@ interface FolderProps {
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
+  onDoubleClick?: () => void;
 }
 
 interface FolderContextMenuProps {
@@ -286,6 +295,7 @@ function FileContextMenu({
 }: FolderContextMenuProps & { fullPath: string }) {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const depth = useMemo(() => fullPath.split('/').length, [fullPath]);
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
@@ -400,6 +410,97 @@ function FileContextMenu({
       toast.error(`Error deleting ${isFolder ? 'folder' : 'file'}`);
       logger.error(error);
     }
+  };
+
+  const handleRename = async (nextName: string) => {
+    const nextPath = path.join(path.dirname(fullPath), nextName);
+    const files = workbenchStore.files.get();
+
+    try {
+      if (isFolder) {
+        const folderEntries = Object.entries(files).filter(
+          ([entryPath]) => entryPath === fullPath || entryPath.startsWith(`${fullPath}/`),
+        );
+
+        await workbenchStore.createFolder(nextPath);
+
+        for (const [entryPath, entry] of folderEntries) {
+          const renamedPath = `${nextPath}${entryPath.slice(fullPath.length)}`;
+
+          if (entry?.type === 'folder') {
+            await workbenchStore.createFolder(renamedPath);
+          } else if (entry?.type === 'file') {
+            await workbenchStore.createFile(renamedPath, entry.content);
+          }
+        }
+
+        await workbenchStore.deleteFolder(fullPath);
+      } else {
+        const entry = files[fullPath];
+
+        if (entry?.type !== 'file') {
+          throw new Error('File content not available');
+        }
+
+        await workbenchStore.createFile(nextPath, entry.content);
+        await workbenchStore.deleteFile(fullPath);
+      }
+
+      toast.success(`${isFolder ? 'Folder' : 'File'} renamed`);
+    } catch (error) {
+      toast.error(`Failed to rename ${isFolder ? 'folder' : 'file'}`);
+      logger.error(error);
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleDuplicate = async () => {
+    const files = workbenchStore.files.get();
+    const extensionIndex = fileName.lastIndexOf('.');
+    const duplicateName =
+      !isFolder && extensionIndex > 0
+        ? `${fileName.slice(0, extensionIndex)} copy${fileName.slice(extensionIndex)}`
+        : `${fileName} copy`;
+    const duplicatePath = path.join(path.dirname(fullPath), duplicateName);
+
+    try {
+      if (isFolder) {
+        await workbenchStore.createFolder(duplicatePath);
+
+        for (const [entryPath, entry] of Object.entries(files)) {
+          if (!entryPath.startsWith(`${fullPath}/`)) {
+            continue;
+          }
+
+          const copiedPath = `${duplicatePath}${entryPath.slice(fullPath.length)}`;
+
+          if (entry?.type === 'folder') {
+            await workbenchStore.createFolder(copiedPath);
+          } else if (entry?.type === 'file') {
+            await workbenchStore.createFile(copiedPath, entry.content);
+          }
+        }
+      } else {
+        const entry = files[fullPath];
+
+        if (entry?.type !== 'file') {
+          throw new Error('File content not available');
+        }
+
+        await workbenchStore.createFile(duplicatePath, entry.content);
+      }
+
+      toast.success(`${isFolder ? 'Folder' : 'File'} duplicated`);
+    } catch (error) {
+      toast.error(`Failed to duplicate ${isFolder ? 'folder' : 'file'}`);
+      logger.error(error);
+    }
+  };
+
+  const handleReveal = () => {
+    workbenchStore.setSelectedFile(fullPath);
+    toast.info(`${fileName} revealed in project files`);
   };
 
   // Handler for locking a file with full lock
@@ -518,8 +619,11 @@ function FileContextMenu({
               </ContextMenuItem>
             </ContextMenu.Group>
             <ContextMenu.Group className="p-1">
+              <ContextMenuItem onSelect={() => setIsRenaming(true)}>Rename</ContextMenuItem>
+              <ContextMenuItem onSelect={handleDuplicate}>Duplicate</ContextMenuItem>
               <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
               <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
+              <ContextMenuItem onSelect={handleReveal}>Reveal in finder</ContextMenuItem>
             </ContextMenu.Group>
             {/* Add lock/unlock options for files and folders */}
             <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
@@ -583,6 +687,15 @@ function FileContextMenu({
           onCancel={() => setIsCreatingFolder(false)}
         />
       )}
+      {isRenaming && (
+        <InlineInput
+          depth={depth}
+          placeholder="Enter new name..."
+          initialValue={fileName}
+          onSubmit={handleRename}
+          onCancel={() => setIsRenaming(false)}
+        />
+      )}
     </>
   );
 }
@@ -628,11 +741,13 @@ interface FileProps {
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
+  onDoubleClick?: () => void;
 }
 
 function File({
   file,
   onClick,
+  onDoubleClick,
   onCopyPath,
   onCopyRelativePath,
   selected,
@@ -696,6 +811,7 @@ function File({
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
       >
         <div
           className={classNames('flex items-center', {
@@ -730,9 +846,10 @@ interface ButtonProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
-function NodeButton({ depth, iconClasses, onClick, className, children }: ButtonProps) {
+function NodeButton({ depth, iconClasses, onClick, onDoubleClick, className, children }: ButtonProps) {
   return (
     <button
       className={classNames(
@@ -741,6 +858,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
       )}
       style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
       onClick={() => onClick?.()}
+      onDoubleClick={() => onDoubleClick?.()}
     >
       <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
       <div className="truncate w-full text-left">{children}</div>

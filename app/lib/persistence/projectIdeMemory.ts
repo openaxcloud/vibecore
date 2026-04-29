@@ -28,6 +28,7 @@ export interface ProjectIdePaneTab {
   panel: ProjectIdeWorkspacePanel;
   pinned?: boolean;
   filePath?: string;
+  preview?: boolean;
 }
 
 export type ProjectIdePaneNode =
@@ -68,6 +69,7 @@ export interface ProjectIdeMemory {
     cursorPositions?: Record<string, { line: number; column: number; offset?: number }>;
     scrollPositions?: Record<string, number>;
     recentTabIds?: string[];
+    closedTabs?: ProjectIdePaneTab[];
     mobilePanel?: ProjectMobilePanel;
     showWorkbench?: boolean;
     previewIndex?: number;

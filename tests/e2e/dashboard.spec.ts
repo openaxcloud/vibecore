@@ -114,7 +114,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
 
   await page.getByLabel('Split right').first().click();
-  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(3);
+  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
   await page.getByLabel('Tab actions').first().click();
   await page.getByRole('button', { name: 'Close to right' }).first().click();
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
@@ -189,7 +189,13 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
-  await expect(page.getByRole('tab', { name: /Webview/ })).toBeVisible();
+  await expect(page.getByText('Bienvenue dans votre projet')).toBeVisible();
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
+  await expect(page.getByLabel('Command palette')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
+  await expect(page.getByLabel('Command palette')).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
 
