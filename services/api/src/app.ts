@@ -2358,6 +2358,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/auth/sessions', async (request) => ({ sessions: await store.listSessions(request.currentUser!.id) }));
+  app.post('/auth/logout', async (request) => {
+    const sessionId = request.currentSession!.id;
+    const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
+    await audit(request, store, { action: 'auth.session.logout', resourceType: 'session', resourceId: sessionId });
+
+    return { revoked };
+  });
   app.delete('/auth/sessions/:sessionId', async (request) => {
     const { sessionId } = parse(sessionParams, request.params);
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);

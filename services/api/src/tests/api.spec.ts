@@ -719,6 +719,29 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('logs out the current session', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'logout@example.com' });
+
+    const logout = await app.inject({
+      method: 'POST',
+      url: '/auth/logout',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(logout.statusCode).toBe(200);
+    expect(logout.json().revoked).toBe(true);
+
+    const blocked = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(blocked.statusCode).toBe(401);
+    expect((await store.listAuditLogs()).some((event) => event.action === 'auth.session.logout')).toBe(true);
+    await app.close();
+  });
+
   it('validates and stores encrypted SSO configs after admin re-authentication', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

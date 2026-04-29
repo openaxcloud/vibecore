@@ -18,6 +18,7 @@ import {
   KeyRound,
   Layers,
   LifeBuoy,
+  LogOut,
   Lock,
   MailPlus,
   Menu,
@@ -170,6 +171,9 @@ export function AppShell({
             <div>
               <p className="px-3 pb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">Account</p>
               <NavGroup items={accountNav} />
+              <div className="mt-2 px-1">
+                <SignOutButton className="w-full justify-start" />
+              </div>
             </div>
           </nav>
         </aside>
@@ -225,6 +229,7 @@ function MobileAppNav() {
           </NavLink>
         );
       })}
+      <SignOutButton className="shrink-0" compact />
     </nav>
   );
 }
@@ -581,8 +586,27 @@ function TopBar() {
         >
           <Bell className="h-4 w-4" aria-hidden />
         </Link>
+        <SignOutButton compact />
       </div>
     </header>
+  );
+}
+
+export function SignOutButton({ className, compact = false }: { className?: string; compact?: boolean }) {
+  return (
+    <Form method="post" action="/logout">
+      <button
+        type="submit"
+        className={classNames(
+          'inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
+          className,
+        )}
+        aria-label="Sign out"
+      >
+        <LogOut className="h-4 w-4" aria-hidden />
+        {!compact ? <span>Sign out</span> : <span className="hidden sm:inline">Sign out</span>}
+      </button>
+    </Form>
   );
 }
 

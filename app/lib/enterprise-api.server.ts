@@ -20,6 +20,10 @@ export function sessionCookie(token: string) {
   return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`;
 }
 
+export function clearSessionCookie() {
+  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
 export async function apiRequest<T = unknown>(request: Request, path: string, init: RequestInit = {}) {
   const token = readSessionToken(request);
   const headers = new Headers(init.headers);

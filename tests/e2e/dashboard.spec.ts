@@ -190,6 +190,25 @@ test('billing upgrade flow is reachable without frontend-only quota bypass', asy
   await expect(page.getByRole('heading', { name: 'Upgrade' })).toBeVisible();
 });
 
+test('authenticated users can sign out from the app shell', async ({ page }) => {
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out' }).first().click();
+  await expect(page).toHaveURL('/login');
+  await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+
+  const cookies = await page.context().cookies('http://localhost:5173');
+  expect(cookies.some((cookie) => cookie.name === 'vc_session')).toBe(false);
+
+  const me = await page.request.get(`${apiBaseUrl}/auth/me`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+  expect(me.status()).toBe(401);
+});
+
 test('public and authenticated routes render without route errors', async ({ page }) => {
   test.setTimeout(75_000);
 
