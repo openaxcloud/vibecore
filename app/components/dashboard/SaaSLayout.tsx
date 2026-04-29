@@ -1,5 +1,5 @@
 import type React from 'react';
-import { Link, NavLink } from '@remix-run/react';
+import { Form, Link, NavLink } from '@remix-run/react';
 import {
   Activity,
   Bell,
@@ -50,7 +50,7 @@ export const appNav = [
   { label: 'Dashboard', to: '/dashboard', icon: Gauge },
   { label: 'Projects', to: '/projects', icon: Boxes },
   { label: 'Create project', to: '/projects/new', icon: Sparkles },
-  { label: 'Templates', to: '/templates', icon: Layers },
+  { label: 'Templates', to: '/dashboard/templates', icon: Layers },
   { label: 'Usage', to: '/usage', icon: Activity },
   { label: 'Billing', to: '/billing', icon: CreditCard },
   { label: 'Team', to: '/organization-members', icon: Users },
@@ -81,12 +81,12 @@ export const projectNav = [
 ];
 
 export const templates = [
-  { name: 'React SaaS', stack: 'React, Vite, TypeScript', tag: 'Web app' },
-  { name: 'Next dashboard', stack: 'Next.js, Prisma, Tailwind', tag: 'Full stack' },
-  { name: 'Fastify API', stack: 'Node.js, Fastify, PostgreSQL', tag: 'Backend' },
-  { name: 'AI agent', stack: 'RuntimeAdapter, tools, streaming', tag: 'AI' },
-  { name: 'Landing page', stack: 'Remix, responsive content', tag: 'Marketing' },
-  { name: 'Mobile starter', stack: 'Expo, shared packages', tag: 'Mobile' },
+  { id: 'react-saas', name: 'React SaaS', stack: 'React, Vite, TypeScript', tag: 'Web app' },
+  { id: 'next-dashboard', name: 'Next dashboard', stack: 'Next.js, Prisma, Tailwind', tag: 'Full stack' },
+  { id: 'fastify-api', name: 'Fastify API', stack: 'Node.js, Fastify, PostgreSQL', tag: 'Backend' },
+  { id: 'ai-agent', name: 'AI agent', stack: 'RuntimeAdapter, tools, streaming', tag: 'AI' },
+  { id: 'landing-page', name: 'Landing page', stack: 'Remix, responsive content', tag: 'Marketing' },
+  { id: 'mobile-starter', name: 'Mobile starter', stack: 'Expo, shared packages', tag: 'Mobile' },
 ];
 
 export interface ProjectCard {
@@ -356,7 +356,13 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   );
 }
 
-export function TemplateGallery({ compact = false }: { compact?: boolean }) {
+export function TemplateGallery({
+  compact = false,
+  mode = 'public',
+}: {
+  compact?: boolean;
+  mode?: 'public' | 'authenticated';
+}) {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {templates.map((template) => (
@@ -374,9 +380,19 @@ export function TemplateGallery({ compact = false }: { compact?: boolean }) {
           {!compact ? (
             <CardContent className="flex items-center justify-between">
               <span className="text-sm text-bolt-elements-textSecondary">Production starter</span>
-              <LinkButton to="/projects/new" variant="outline">
-                Use template
-              </LinkButton>
+              {mode === 'authenticated' ? (
+                <Form method="post">
+                  <input type="hidden" name="templateName" value={template.id} />
+                  <input type="hidden" name="name" value={template.name} />
+                  <Button type="submit" variant="outline">
+                    Use template
+                  </Button>
+                </Form>
+              ) : (
+                <LinkButton to="/login" variant="outline">
+                  Sign in to use
+                </LinkButton>
+              )}
             </CardContent>
           ) : null}
         </Card>
@@ -677,7 +693,7 @@ export const importOptions = [
   {
     title: 'Use template',
     description: 'Pick a curated starter with runtime and deployment defaults.',
-    to: '/templates',
+    to: '/dashboard/templates',
     icon: Upload,
   },
 ];

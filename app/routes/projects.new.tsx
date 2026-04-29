@@ -72,7 +72,7 @@ export default function NewProjectPage() {
               ]}
             />
           </div>
-          <TemplateGallery compact />
+          <TemplateGallery compact mode="authenticated" />
         </div>
         <div className="space-y-3">
           <LinkButton to="/import-github" variant="outline">
@@ -87,7 +87,7 @@ export default function NewProjectPage() {
               Import zip
             </span>
           </LinkButton>
-          <LinkButton to="/templates" variant="outline">
+          <LinkButton to="/dashboard/templates" variant="outline">
             <span className="inline-flex items-center gap-2">
               <Sparkles className="h-4 w-4" aria-hidden />
               Browse templates

@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { AppShell, PublicShell, TemplateGallery, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { PublicShell, TemplateGallery, LinkButton } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [{ title: 'Templates - VibeCore' }];
 
@@ -14,18 +14,10 @@ export default function TemplatesPage() {
               Curated Bolt starters with persistent project defaults, runtime setup and deployment paths.
             </p>
           </div>
-          <LinkButton to="/projects/new">Create project</LinkButton>
+          <LinkButton to="/login">Sign in to use templates</LinkButton>
         </div>
         <TemplateGallery />
       </section>
     </PublicShell>
-  );
-}
-
-export function AuthenticatedTemplatesPage() {
-  return (
-    <AppShell title="Templates" description="Create persistent workspaces from curated starters.">
-      <TemplateGallery />
-    </AppShell>
   );
 }

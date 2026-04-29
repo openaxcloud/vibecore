@@ -45,6 +45,24 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.getByLabel('Project name')).toBeVisible();
   await expect(page.getByRole('link', { name: /Import GitHub/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Import zip/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Browse templates/ })).toHaveAttribute('href', '/dashboard/templates');
+});
+
+test('private templates create a project instead of opening the public gallery', async ({ page }) => {
+  await authenticate(page);
+  await page.goto('/dashboard/templates');
+  await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+  await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
+  await page.getByRole('button', { name: 'Use template' }).first().click();
+  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/);
+  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+});
+
+test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
+  await page.goto('/templates');
+  await expect(page.getByRole('heading', { name: 'Templates gallery' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Sign in to use templates' })).toHaveAttribute('href', '/login');
+  await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
