@@ -302,6 +302,59 @@ body {
   color: #f5f9fc;
 }
 
+.bolt-project-agent-action-card {
+  display: grid;
+  max-width: min(100%, var(--chat-max-width));
+  gap: 10px;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: #1a2030;
+  padding: 10px;
+}
+
+.bolt-project-agent-action-card > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bolt-project-agent-action-card > div > span:first-child {
+  width: 18px;
+  color: #d29922;
+}
+
+.bolt-project-agent-action-card strong,
+.bolt-project-agent-action-card small {
+  display: block;
+}
+
+.bolt-project-agent-action-card strong {
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-agent-action-card small {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-agent-action-card button {
+  justify-self: start;
+  height: 28px;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  background: #0e1525;
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.bolt-project-agent-action-card button:hover {
+  background: #2b3245;
+}
+
 .bolt-project-chatbox {
   min-height: 80px;
   border-color: #2b3245 !important;
@@ -644,7 +697,7 @@ body {
   overflow: auto;
   border: 1px solid #2b3245;
   border-radius: 12px;
-  background: rgb(26 32 48 / 0.96);
+  background: #1a2030;
   box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
   padding: 8px;
   backdrop-filter: blur(12px);
@@ -718,6 +771,12 @@ body {
   font-size: 10px;
   font-style: normal;
   padding: 2px 6px;
+}
+
+.bolt-project-tool-empty {
+  padding: 6px 12px;
+  color: #6e7681;
+  font-size: 11px;
 }
 
 .bolt-project-runtime-badge {
@@ -1025,7 +1084,7 @@ body {
   overflow: hidden;
   border: 1px solid #2b3245;
   border-radius: 12px;
-  background: rgb(26 32 48 / 0.98);
+  background: #1a2030;
   box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
 }
 
@@ -1052,6 +1111,15 @@ body {
 .bolt-project-command-palette button:hover,
 .bolt-project-command-palette button[aria-current='page'] {
   background: #2b3245;
+}
+
+.bolt-project-command-section {
+  padding: 8px 16px 4px;
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
 .bolt-project-command-palette strong,

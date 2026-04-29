@@ -130,6 +130,43 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(tabBarMetrics.background).toBe('rgb(14, 21, 37)');
   expect(tabBarMetrics.borderBottom).toBe('rgb(26, 32, 48)');
   expect(tabBarMetrics.display).toBe('flex');
+  await page.getByLabel('Open tool').first().click();
+  const toolMenu = page.locator('.bolt-project-tool-menu').first();
+  await expect(toolMenu).toBeVisible();
+  const toolMenuMetrics = await toolMenu.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      width: rect.width,
+      maxHeight: style.maxHeight,
+      background: style.backgroundColor,
+      border: style.borderColor,
+      borderRadius: style.borderRadius,
+      padding: style.paddingTop,
+    };
+  });
+  expect(toolMenuMetrics.width).toBe(320);
+  expect(toolMenuMetrics.maxHeight).toBe('480px');
+  expect(toolMenuMetrics.background).toBe('rgb(26, 32, 48)');
+  expect(toolMenuMetrics.border).toBe('rgb(43, 50, 69)');
+  expect(toolMenuMetrics.borderRadius).toBe('12px');
+  expect(toolMenuMetrics.padding).toBe('8px');
+  await expect(toolMenu.getByPlaceholder('Search tools and files...')).toBeVisible();
+  await expect(toolMenu.locator('.bolt-project-tool-section', { hasText: 'RECENT FILES' })).toBeVisible();
+  await expect(toolMenu.locator('.bolt-project-tool-section', { hasText: 'TOOLS' })).toBeVisible();
+  await expect(toolMenu.getByRole('button', { name: /Files Browse project files/ })).toBeVisible();
+  await expect(toolMenu.getByRole('button', { name: /Console Terminal/ })).toBeVisible();
+  await expect(toolMenu.getByRole('button', { name: /Database SQL browser/ })).toBeVisible();
+  await toolMenu.getByRole('button', { name: /Database SQL browser/ }).click();
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
+    timeout: 15000,
+  });
+  await page.getByPlaceholder('Describe what you want to build...').fill('Open files');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('region', { name: 'Open Files' })).toBeVisible();
+  await page.getByRole('region', { name: 'Open Files' }).getByRole('button', { name: /Open/ }).click();
+  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
@@ -199,7 +236,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
     ['Secrets', 'secrets'],
     ['Git', 'git'],
     ['Activity', 'activity'],
-    ['Logs', 'logs'],
+    ['Console', 'logs'],
     ['Collaborators', 'collaborators'],
     ['Domains', 'domains'],
   ] as const;
@@ -255,6 +292,29 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
   await page.keyboard.press('Escape');
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
   await expect(page.getByLabel('Command palette')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+  const commandPalette = page.getByLabel('Command palette');
+  await expect(commandPalette).toBeVisible();
+  const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      top: rect.top,
+      width: rect.width,
+      background: style.backgroundColor,
+      borderRadius: style.borderRadius,
+    };
+  });
+  expect(commandPaletteMetrics.top).toBe(120);
+  expect(commandPaletteMetrics.width).toBe(600);
+  expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
+  expect(commandPaletteMetrics.borderRadius).toBe('12px');
+  await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
+  await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
+  await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
+  await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });

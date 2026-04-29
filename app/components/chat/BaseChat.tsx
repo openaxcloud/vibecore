@@ -66,6 +66,29 @@ const IDE_MANAGEMENT_PANELS = [
 ] as const;
 const IDE_RIGHT_PANELS = ['files', 'search', 'locks'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', ...IDE_MANAGEMENT_PANELS] as const;
+const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
+  overview: 'Project summary',
+  database: 'SQL browser',
+  'object-storage': 'File storage',
+  packages: 'Dependencies manager',
+  monitoring: 'App metrics',
+  extensions: 'Marketplace',
+  deployments: 'Publish your app',
+  env: 'Environment variables',
+  secrets: 'Environment variables',
+  git: 'Version control',
+  activity: 'Project timeline',
+  logs: 'Terminal',
+  collaborators: 'Team access',
+  domains: 'Custom domains',
+  snapshots: 'Rollback points',
+  settings: 'Project settings',
+  editor: 'Code editor',
+  preview: 'App preview',
+  files: 'Browse project files',
+  search: 'Find in files',
+  locks: 'Locked files',
+};
 
 type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
 type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
@@ -78,6 +101,12 @@ type IdePaneTab = {
   preview?: boolean;
 };
 type IdeDropZone = 'center' | 'left' | 'right' | 'top' | 'bottom';
+type AgentToolAction = {
+  panel: IdeWorkspacePanel | IdeRightPanel;
+  title: string;
+  description: string;
+  icon: string;
+};
 type ProjectIdeBackendState = {
   workspace?: { id?: string; status?: string; runtimeMode?: string } | null;
   git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[] };
@@ -125,6 +154,41 @@ function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}
     panel,
     pinned: options.pinned,
     filePath: options.filePath,
+  };
+}
+
+function inferAgentToolAction(message: string | undefined): AgentToolAction | null {
+  const text = (message ?? '').toLowerCase();
+
+  const matches: Array<[RegExp, IdeWorkspacePanel | IdeRightPanel, string]> = [
+    [/\b(open|show|ouvre|affiche).*\b(files?|fichiers?|explorer)\b|\b(files?|fichiers?)\b/, 'files', 'Open Files'],
+    [/\b(search|find|recherche)\b/, 'search', 'Open Search'],
+    [/\b(database|sql|db|base de donn)/, 'database', 'Open Database'],
+    [/\b(terminal|console|logs?|shell)\b/, 'logs', 'Open Console'],
+    [/\b(preview|webview|aperçu|apercu)\b/, 'preview', 'Open Webview'],
+    [/\b(deploy|deployment|publish|publier|déploiement|deploiement)\b/, 'deployments', 'Open Deployments'],
+    [/\b(secret|env|environment variable)\b/, 'secrets', 'Open Secrets'],
+    [/\bgit\b|\bbranch\b|\bcommit\b/, 'git', 'Open Git'],
+    [/\b(package|dependency|dependencies|npm|pnpm)\b/, 'packages', 'Open Packages'],
+    [/\b(snapshot|checkpoint|restore|rollback)\b/, 'snapshots', 'Open Snapshots'],
+    [/\b(extension|marketplace)\b/, 'extensions', 'Open Extensions'],
+    [/\bmonitoring|metrics|observability\b/, 'monitoring', 'Open Monitoring'],
+    [/\bsettings|param(è|e)tres|configuration\b/, 'settings', 'Open Settings'],
+  ];
+
+  const match = matches.find(([pattern]) => pattern.test(text));
+
+  if (!match) {
+    return null;
+  }
+
+  const [, panel, title] = match;
+
+  return {
+    panel,
+    title,
+    description: IDE_TOOL_DESCRIPTIONS[panel],
+    icon: panelIcon(panel),
   };
 }
 
@@ -463,6 +527,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
     const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
+    const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const draggedTabRef = useRef<{ paneId: string; tabId: string } | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
@@ -775,6 +840,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [openWorkspacePanel],
     );
 
+    const openIdeTool = useCallback(
+      (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
+        if (isIdeRightPanel(panel)) {
+          setRightPanel(panel);
+          setRightPanelOpen(true);
+          setSearchParams({ panel });
+
+          return;
+        }
+
+        openWorkspacePanel(panel, { paneId });
+      },
+      [activePaneId, openWorkspacePanel, setSearchParams],
+    );
+
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
         setWorkspaceTabs((currentTabs) => {
@@ -957,6 +1037,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (key === 'j') {
           event.preventDefault();
           setTerminalBottomOpen((value) => !value);
+        } else if (key === '`') {
+          event.preventDefault();
+          setTerminalBottomOpen(true);
+        } else if (key === 'b') {
+          event.preventDefault();
+          textareaRef?.current?.focus();
+          setAgentWidth((width) => Math.min(640, Math.max(420, width)));
         } else if (key === ',') {
           event.preventDefault();
           openWorkspacePanel('settings');
@@ -1248,6 +1335,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    const handleProjectAgentSendMessage = useCallback(
+      (event: React.UIEvent, messageInput?: string) => {
+        if (projectIdeMode) {
+          const action = inferAgentToolAction(messageInput ?? input);
+
+          if (action) {
+            setAgentToolAction(action);
+          }
+        }
+
+        handleSendMessage?.(event, messageInput);
+      },
+      [handleSendMessage, input, projectIdeMode],
+    );
+
     const agentPanel = (
       <div
         data-testid="ide-agent-panel"
@@ -1333,13 +1435,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
             </div>
             {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+            {projectIdeMode && agentToolAction && (
+              <div className="bolt-project-agent-action-card" role="region" aria-label={agentToolAction.title}>
+                <div>
+                  <span className={agentToolAction.icon} aria-hidden />
+                  <span>
+                    <strong>{agentToolAction.title}</strong>
+                    <small>{agentToolAction.description}</small>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openIdeTool(agentToolAction.panel);
+                    setAgentToolAction(null);
+                  }}
+                >
+                  Open →
+                </button>
+              </div>
+            )}
             {projectIdeMode && (
               <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
                 {['Add a feature', 'Fix this bug', 'Deploy', 'Optimize performance'].map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
-                    onClick={(event) => handleSendMessage?.(event, suggestion)}
+                    onClick={(event) => handleProjectAgentSendMessage(event, suggestion)}
                     disabled={isStreaming}
                   >
                     {suggestion}
@@ -1371,7 +1493,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
               isStreaming={isStreaming}
               handleStop={handleStop}
-              handleSendMessage={handleSendMessage}
+              handleSendMessage={projectIdeMode ? handleProjectAgentSendMessage : handleSendMessage}
               enhancingPrompt={enhancingPrompt}
               enhancePrompt={enhancePrompt}
               isListening={isListening}
@@ -1415,21 +1537,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
         </div>
       </div>
-    );
-
-    const openIdeTool = useCallback(
-      (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
-        if (isIdeRightPanel(panel)) {
-          setRightPanel(panel);
-          setRightPanelOpen(true);
-          setSearchParams({ panel });
-
-          return;
-        }
-
-        openWorkspacePanel(panel, { paneId });
-      },
-      [activePaneId, openWorkspacePanel, setSearchParams],
     );
 
     const selectPaneTab = useCallback(
@@ -1607,6 +1714,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
               onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
+              recentFiles={Object.keys(projectFiles)
+                .filter((filePath) => projectFiles[filePath]?.type === 'file')
+                .slice(0, 5)}
+              onOpenFile={(filePath, preview) => openProjectFile(filePath, { paneId: leaf.id, preview })}
               paneTargets={flattenTabs(paneTree).length ? collectPaneTargets(paneTree, leaf.id) : []}
               onMoveToNewPane={(tabId, zone) => dropTabOnPane(leaf.id, tabId, leaf.id, zone)}
               onMoveToExistingPane={(tabId, targetPaneId) => moveTabToPane(leaf.id, tabId, targetPaneId)}
@@ -1989,6 +2100,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setCommandPaletteIndex(0);
     };
 
+    const commandPaletteSections = (['Files', 'Tools', 'Commands', 'Recent'] as const).map((name) => ({
+      name,
+      entries: commandPaletteEntries.filter((entry) => entry.section === name),
+    }));
+
     const baseChat = (
       <div
         ref={ref}
@@ -2087,24 +2203,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }
               }}
             />
-            {commandPaletteEntries.map((entry, index) => (
-              <button
-                key={entry.id}
-                type="button"
-                aria-current={commandPaletteIndex === index ? 'page' : undefined}
-                onClick={() => {
-                  runCommandPaletteEntry(entry);
-                }}
-              >
-                <span className={entry.icon} aria-hidden />
-                <span>
-                  <strong>{entry.title}</strong>
-                  <small>
-                    {entry.section} · {entry.description}
-                  </small>
-                </span>
-                <kbd>{entry.shortcut || '↵'}</kbd>
-              </button>
+            {commandPaletteSections.map((section) => (
+              <React.Fragment key={section.name}>
+                <div className="bolt-project-command-section">{section.name}</div>
+                {section.entries.map((entry) => {
+                  const index = commandPaletteEntries.findIndex((item) => item.id === entry.id);
+
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      aria-current={commandPaletteIndex === index ? 'page' : undefined}
+                      onClick={() => {
+                        runCommandPaletteEntry(entry);
+                      }}
+                    >
+                      <span className={entry.icon} aria-hidden />
+                      <span>
+                        <strong>{entry.title}</strong>
+                        <small>{entry.description}</small>
+                      </span>
+                      <kbd>{entry.shortcut || '↵'}</kbd>
+                    </button>
+                  );
+                })}
+              </React.Fragment>
             ))}
             {!commandPaletteEntries.length && (
               <div className="px-4 py-6 text-sm text-[#6E7681]">No matching command, tool, or file.</div>
@@ -2390,6 +2513,8 @@ function IdeTabBar({
   onCloseOthers,
   onCloseToRight,
   onCloseAll,
+  recentFiles = [],
+  onOpenFile,
   paneTargets,
   onMoveToNewPane,
   onMoveToExistingPane,
@@ -2419,6 +2544,8 @@ function IdeTabBar({
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
+  recentFiles?: string[];
+  onOpenFile?: (filePath: string, preview: boolean) => void;
   paneTargets?: Array<{ id: string; label: string }>;
   onMoveToNewPane?: (tabId: string, zone: IdeDropZone) => void;
   onMoveToExistingPane?: (tabId: string, targetPaneId: string) => void;
@@ -2432,7 +2559,7 @@ function IdeTabBar({
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
     ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', '#0099FF'],
-    ['logs', 'Logs', 'Terminal and server logs', 'i-ph:terminal-window', '#3FB950'],
+    ['logs', 'Console', 'Terminal', 'i-ph:terminal-window', '#3FB950'],
     ['preview', 'Webview', 'App preview', 'i-ph:browser', '#0099FF'],
     ['database', 'Database', 'SQL browser', 'i-ph:database', '#7B61FF'],
     ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', '#D29922'],
@@ -2607,23 +2734,24 @@ function IdeTabBar({
               <input placeholder="Search tools and files..." aria-label="Search tools and files" />
             </div>
             <div className="bolt-project-tool-section">RECENT FILES</div>
-            {tabs.slice(0, 3).map((tab) => (
+            {recentFiles.slice(0, 5).map((filePath) => (
               <button
-                key={`recent-${tab.id}`}
+                key={`recent-file-${filePath}`}
                 type="button"
                 className="bolt-project-tool-item"
                 onClick={() => {
                   setOpen(false);
-                  onSelect(tab.id, tab.panel);
+                  onOpenFile?.(filePath, false);
                 }}
               >
-                <span className={tab.icon} aria-hidden />
+                <span className="i-ph:file-code" aria-hidden />
                 <span>
-                  <strong>{tab.label}</strong>
-                  <small>Current workspace</small>
+                  <strong>{filePath.split('/').pop() || filePath}</strong>
+                  <small>{filePath.replace(WORK_DIR, '')}</small>
                 </span>
               </button>
             ))}
+            {!recentFiles.length && <div className="bolt-project-tool-empty">No recent files loaded.</div>}
             <div className="bolt-project-tool-section">TOOLS</div>
             {tools.map(([id, title, description, icon, color]) => (
               <button
