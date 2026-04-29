@@ -48,6 +48,11 @@ import { Link, useSearchParams } from '@remix-run/react';
 const TEXTAREA_MIN_HEIGHT = 76;
 const IDE_MANAGEMENT_PANELS = [
   'overview',
+  'database',
+  'object-storage',
+  'packages',
+  'monitoring',
+  'extensions',
   'deployments',
   'env',
   'secrets',
@@ -62,12 +67,47 @@ const IDE_MANAGEMENT_PANELS = [
 const IDE_RIGHT_PANELS = ['files', 'search', 'locks'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', ...IDE_MANAGEMENT_PANELS] as const;
 
-type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
 type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
 type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
+type IdePaneDirection = 'horizontal' | 'vertical';
+type IdePaneTab = {
+  id: string;
+  panel: IdeWorkspacePanel;
+  pinned?: boolean;
+  filePath?: string;
+};
+type IdePaneNode =
+  | { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string }
+  | {
+      type: 'split';
+      id: string;
+      direction: IdePaneDirection;
+      ratio: number;
+      first: IdePaneNode;
+      second: IdePaneNode;
+    };
 
-function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
-  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
+const DEFAULT_PANE_TREE: IdePaneNode = {
+  type: 'split',
+  id: 'root',
+  direction: 'vertical',
+  ratio: 56,
+  first: {
+    type: 'leaf',
+    id: 'pane-main',
+    tabs: [{ id: 'tab-editor', panel: 'editor', pinned: true }],
+    activeTabId: 'tab-editor',
+  },
+  second: {
+    type: 'leaf',
+    id: 'pane-preview',
+    tabs: [{ id: 'tab-preview', panel: 'preview', pinned: true }],
+    activeTabId: 'tab-preview',
+  },
+};
+
+function cloneDefaultPaneTree(): IdePaneNode {
+  return JSON.parse(JSON.stringify(DEFAULT_PANE_TREE));
 }
 
 function isIdeRightPanel(panel: string): panel is IdeRightPanel {
@@ -76,6 +116,104 @@ function isIdeRightPanel(panel: string): panel is IdeRightPanel {
 
 function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
   return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
+}
+
+function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}): IdePaneTab {
+  const suffix =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return {
+    id: options.id ?? `tab-${panel}-${suffix}`,
+    panel,
+    pinned: options.pinned,
+    filePath: options.filePath,
+  };
+}
+
+function isPaneNode(value: any): value is IdePaneNode {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  if (value.type === 'leaf') {
+    return typeof value.id === 'string' && Array.isArray(value.tabs);
+  }
+
+  return (
+    value.type === 'split' &&
+    typeof value.id === 'string' &&
+    (value.direction === 'horizontal' || value.direction === 'vertical') &&
+    typeof value.ratio === 'number' &&
+    isPaneNode(value.first) &&
+    isPaneNode(value.second)
+  );
+}
+
+function findLeaf(node: IdePaneNode, paneId: string): Extract<IdePaneNode, { type: 'leaf' }> | undefined {
+  if (node.type === 'leaf') {
+    return node.id === paneId ? node : undefined;
+  }
+
+  return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
+}
+
+function firstLeaf(node: IdePaneNode): Extract<IdePaneNode, { type: 'leaf' }> {
+  return node.type === 'leaf' ? node : firstLeaf(node.first);
+}
+
+function updateLeaf(
+  node: IdePaneNode,
+  paneId: string,
+  updater: (leaf: Extract<IdePaneNode, { type: 'leaf' }>) => IdePaneNode,
+): IdePaneNode {
+  if (node.type === 'leaf') {
+    return node.id === paneId ? updater(node) : node;
+  }
+
+  return { ...node, first: updateLeaf(node.first, paneId, updater), second: updateLeaf(node.second, paneId, updater) };
+}
+
+function splitLeaf(node: IdePaneNode, paneId: string, direction: IdePaneDirection): IdePaneNode {
+  return updateLeaf(node, paneId, (leaf) => {
+    const active = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0] ?? makePaneTab('editor');
+    const newPaneId = `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const clonedTab = { ...active, id: `${active.id}-split-${Date.now()}`, pinned: false };
+
+    return {
+      type: 'split',
+      id: `split-${leaf.id}-${Date.now()}`,
+      direction,
+      ratio: 50,
+      first: leaf,
+      second: { type: 'leaf', id: newPaneId, tabs: [clonedTab], activeTabId: clonedTab.id },
+    };
+  });
+}
+
+function removeTabFromTree(
+  node: IdePaneNode,
+  paneId: string,
+  tabId: string,
+): { tree: IdePaneNode; removed?: IdePaneTab } {
+  let removed: IdePaneTab | undefined;
+  const tree = updateLeaf(node, paneId, (leaf) => {
+    const tab = leaf.tabs.find((item) => item.id === tabId);
+
+    if (!tab || tab.pinned) {
+      return leaf;
+    }
+
+    removed = tab;
+
+    const tabs = leaf.tabs.filter((item) => item.id !== tabId);
+    const activeTabId = leaf.activeTabId === tabId ? tabs[tabs.length - 1]?.id : leaf.activeTabId;
+
+    return { ...leaf, tabs, activeTabId };
+  });
+
+  return { tree, removed };
 }
 
 interface BaseChatProps {
@@ -118,6 +256,7 @@ interface BaseChatProps {
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
   append?: (message: Message) => void;
+  resetChat?: () => void;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
   selectedElement?: ElementInfo | null;
@@ -168,6 +307,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatMode,
       setChatMode,
       append,
+      resetChat,
       designScheme,
       setDesignScheme,
       selectedElement,
@@ -210,6 +350,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
+    const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
+    const [activePaneId, setActivePaneId] = useState('pane-main');
+    const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+    const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
+    const draggedTabRef = useRef<{ paneId: string; tabId: string } | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
@@ -279,6 +425,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (ui?.activeWorkspacePanel && isIdeWorkspacePanel(ui.activeWorkspacePanel)) {
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
+          }
+
+          if (isPaneNode(ui?.paneTree)) {
+            setPaneTree(ui.paneTree);
+          }
+
+          if (typeof ui?.activePaneId === 'string') {
+            setActivePaneId(ui.activePaneId);
+          }
+
+          if (typeof ui?.terminalBottomOpen === 'boolean') {
+            setTerminalBottomOpen(ui.terminalBottomOpen);
           }
 
           if (
@@ -356,6 +514,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             rightPanelOpen,
             workspaceTabs,
             activeWorkspacePanel,
+            paneTree,
+            activePaneId,
+            terminalBottomOpen,
             mobilePanel,
             showWorkbench: true,
           },
@@ -375,13 +536,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       rightPanelOpen,
       workspaceTabs,
       activeWorkspacePanel,
+      paneTree,
+      activePaneId,
+      terminalBottomOpen,
       mobilePanel,
     ]);
 
     const openWorkspacePanel = useCallback(
-      (panel: IdeWorkspacePanel, options: { replaceUrl?: boolean } = {}) => {
+      (panel: IdeWorkspacePanel, options: { replaceUrl?: boolean; paneId?: string } = {}) => {
         setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
         setActiveWorkspacePanel(panel);
+
+        const targetPaneId = options.paneId ?? activePaneId;
+        setActivePaneId(targetPaneId);
+        setPaneTree((currentTree) =>
+          updateLeaf(currentTree, targetPaneId, (leaf) => {
+            const existing = leaf.tabs.find((tab) => tab.panel === panel);
+            const nextTab = existing ?? makePaneTab(panel, { pinned: panel === 'editor' || panel === 'preview' });
+            const tabs = existing ? leaf.tabs : [...leaf.tabs, nextTab];
+
+            return { ...leaf, tabs, activeTabId: nextTab.id };
+          }),
+        );
 
         if (panel === 'preview') {
           workbenchStore.currentView.set('preview');
@@ -392,11 +568,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setSearchParams(panel === 'editor' ? {} : { panel });
         }
       },
-      [setSearchParams],
+      [activePaneId, setSearchParams],
     );
 
     const closeWorkspacePanel = useCallback(
-      (panel: IdeWorkspacePanel) => {
+      (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
         setWorkspaceTabs((currentTabs) => {
           const nextTabs = currentTabs.filter((tab) => tab !== panel);
           const safeTabs: IdeWorkspacePanel[] = nextTabs.length ? nextTabs : ['editor'];
@@ -409,9 +585,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           return safeTabs;
         });
+        setPaneTree((currentTree) =>
+          updateLeaf(currentTree, paneId, (leaf) => {
+            const targetTab = tabId
+              ? leaf.tabs.find((tab) => tab.id === tabId)
+              : leaf.tabs.find((tab) => tab.panel === panel);
+
+            if (!targetTab || targetTab.pinned) {
+              return leaf;
+            }
+
+            const tabs = leaf.tabs.filter((tab) => tab.id !== targetTab.id);
+
+            return {
+              ...leaf,
+              tabs,
+              activeTabId: leaf.activeTabId === targetTab.id ? tabs[tabs.length - 1]?.id : leaf.activeTabId,
+            };
+          }),
+        );
       },
       [activeWorkspacePanel, setSearchParams],
     );
+
+    const splitWorkspacePane = useCallback(
+      (direction: IdePaneDirection, paneId = activePaneId) => {
+        setPaneTree((currentTree) => splitLeaf(currentTree, paneId, direction));
+      },
+      [activePaneId],
+    );
+
+    const moveTabToPane = useCallback((sourcePaneId: string, tabId: string, targetPaneId: string) => {
+      setPaneTree((currentTree) => {
+        const { tree, removed } = removeTabFromTree(currentTree, sourcePaneId, tabId);
+
+        if (!removed) {
+          return currentTree;
+        }
+
+        return updateLeaf(tree, targetPaneId, (leaf) => ({
+          ...leaf,
+          tabs: [...leaf.tabs, removed],
+          activeTabId: removed.id,
+        }));
+      });
+      setActivePaneId(targetPaneId);
+    }, []);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -433,6 +652,77 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
     }, []);
+
+    useEffect(() => {
+      if (!projectIdeMode || useMobileIde) {
+        return undefined;
+      }
+
+      const onKeyDown = (event: KeyboardEvent) => {
+        const command = event.metaKey || event.ctrlKey;
+
+        if (!command) {
+          return;
+        }
+
+        const key = event.key.toLowerCase();
+
+        if (key === 'k' || (event.shiftKey && key === 'p')) {
+          event.preventDefault();
+          setCommandPaletteOpen(true);
+        } else if (key === 't' || key === 'p') {
+          event.preventDefault();
+          setCommandPaletteOpen(true);
+        } else if (key === 'w') {
+          event.preventDefault();
+
+          const leaf = findLeaf(paneTree, activePaneId) ?? firstLeaf(paneTree);
+          const tab = leaf.tabs.find((item) => item.id === leaf.activeTabId);
+
+          if (tab) {
+            closeWorkspacePanel(tab.panel, leaf.id, tab.id);
+          }
+        } else if (key === 'j') {
+          event.preventDefault();
+          setTerminalBottomOpen((value) => !value);
+        } else if (key === ',') {
+          event.preventDefault();
+          openWorkspacePanel('settings');
+        } else if (key === 's') {
+          event.preventDefault();
+          onProjectEditorSave();
+        } else if (key === '\\') {
+          event.preventDefault();
+          splitWorkspacePane(event.shiftKey ? 'vertical' : 'horizontal');
+        } else if (/^[1-9]$/.test(key)) {
+          event.preventDefault();
+
+          const leaf = findLeaf(paneTree, activePaneId) ?? firstLeaf(paneTree);
+          const tab = leaf.tabs[Number(key) - 1];
+
+          if (tab) {
+            setPaneTree((currentTree) =>
+              updateLeaf(currentTree, leaf.id, (currentLeaf) => ({ ...currentLeaf, activeTabId: tab.id })),
+            );
+            setActivePaneId(leaf.id);
+            setActiveWorkspacePanel(tab.panel);
+          }
+        }
+      };
+
+      window.addEventListener('keydown', onKeyDown);
+
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }, [
+      activePaneId,
+      closeWorkspacePanel,
+      onProjectEditorSave,
+      openWorkspacePanel,
+      paneTree,
+      projectIdeMode,
+      splitWorkspacePane,
+      useMobileIde,
+    ]);
 
     useEffect(() => {
       if (expoUrl) {
@@ -817,6 +1107,214 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       </div>
     );
 
+    const openIdeTool = useCallback(
+      (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
+        if (isIdeRightPanel(panel)) {
+          setRightPanel(panel);
+          setRightPanelOpen(true);
+          setSearchParams({ panel });
+
+          return;
+        }
+
+        openWorkspacePanel(panel, { paneId });
+      },
+      [activePaneId, openWorkspacePanel, setSearchParams],
+    );
+
+    const selectPaneTab = useCallback(
+      (paneId: string, tabId: string, panel: IdeWorkspacePanel) => {
+        setPaneTree((currentTree) => updateLeaf(currentTree, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })));
+        setActivePaneId(paneId);
+        setActiveWorkspacePanel(panel);
+        setSearchParams(panel === 'editor' ? {} : { panel });
+
+        if (panel === 'preview') {
+          workbenchStore.currentView.set('preview');
+          workbenchStore.setShowWorkbench(true);
+        }
+      },
+      [setSearchParams],
+    );
+
+    const pinPaneTab = useCallback((paneId: string, tabId: string) => {
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, paneId, (leaf) => ({
+          ...leaf,
+          tabs: leaf.tabs.map((tab) => (tab.id === tabId ? { ...tab, pinned: !tab.pinned } : tab)),
+        })),
+      );
+    }, []);
+
+    const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right', tabId?: string) => {
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, paneId, (leaf) => {
+          const targetIndex = tabId ? leaf.tabs.findIndex((tab) => tab.id === tabId) : -1;
+          const tabs = leaf.tabs.filter((tab, index) => {
+            if (tab.pinned) {
+              return true;
+            }
+
+            if (mode === 'all') {
+              return false;
+            }
+
+            if (mode === 'others') {
+              return tab.id === tabId;
+            }
+
+            return targetIndex < 0 || index <= targetIndex;
+          });
+          const safeTabs = tabs.length ? tabs : [makePaneTab('editor', { pinned: true })];
+          const activeTabId = safeTabs.some((tab) => tab.id === leaf.activeTabId) ? leaf.activeTabId : safeTabs[0].id;
+
+          return { ...leaf, tabs: safeTabs, activeTabId };
+        }),
+      );
+    }, []);
+
+    const renderPaneContent = useCallback(
+      (panel: IdeWorkspacePanel) => {
+        if (panel === 'editor') {
+          return (
+            <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
+              {currentDocument && !currentDocument.isBinary ? (
+                <EditorAdapter
+                  className="h-full w-full"
+                  value={currentDocument.value}
+                  filePath={currentDocument.filePath}
+                  theme={theme === 'dark' ? 'dark' : 'light'}
+                  onSave={onProjectEditorSave}
+                  onChange={(update) => {
+                    workbenchStore.setCurrentDocumentContent(update.value);
+                  }}
+                />
+              ) : (
+                <ProjectWelcomeState files={Object.keys(projectFiles).slice(0, 5)} onOpenTool={openIdeTool} />
+              )}
+            </div>
+          );
+        }
+
+        if (panel === 'preview') {
+          return (
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+            </div>
+          );
+        }
+
+        return <ProjectIdeServicePanel projectId={projectId} panel={panel} />;
+      },
+      [currentDocument, onProjectEditorSave, openIdeTool, projectFiles, projectId, setSelectedElement, theme],
+    );
+
+    const renderPaneLeaf = useCallback(
+      (leaf: Extract<IdePaneNode, { type: 'leaf' }>) => {
+        const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
+
+        return (
+          <div
+            key={leaf.id}
+            className="bolt-project-pane-leaf"
+            data-active={activePaneId === leaf.id}
+            onMouseDown={() => setActivePaneId(leaf.id)}
+          >
+            <IdeTabBar
+              paneId={leaf.id}
+              activePanel={activeTab?.panel ?? 'editor'}
+              activeTabId={activeTab?.id}
+              tabs={leaf.tabs.map((tab) => ({
+                ...tab,
+                label:
+                  tab.panel === 'editor'
+                    ? currentDocument?.filePath?.replace(WORK_DIR, '') || 'Welcome'
+                    : panelTitle(tab.panel),
+                icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+                dirty:
+                  tab.panel === 'editor' &&
+                  !!currentDocument &&
+                  unsavedFiles instanceof Set &&
+                  unsavedFiles.has(currentDocument.filePath),
+                onSave: tab.panel === 'editor' ? onProjectEditorSave : undefined,
+                closable: !tab.pinned,
+              }))}
+              trailing={
+                activeTab?.panel === 'preview' ? (
+                  <span className="bolt-project-runtime-badge">Live runtime</span>
+                ) : undefined
+              }
+              onSelect={(tabId, panel) => selectPaneTab(leaf.id, tabId, panel)}
+              onClose={(tabId, panel) => closeWorkspacePanel(panel, leaf.id, tabId)}
+              onOpenTool={(panel) => openIdeTool(panel, leaf.id)}
+              onSplit={(direction) => splitWorkspacePane(direction, leaf.id)}
+              onPin={(tabId) => pinPaneTab(leaf.id, tabId)}
+              onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
+              onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
+              onCloseAll={() => closePaneTabs(leaf.id, 'all')}
+              onDragStart={(paneId, tabId) => {
+                draggedTabRef.current = { paneId, tabId };
+              }}
+              onDropTab={(paneId) => {
+                const dragged = draggedTabRef.current;
+
+                if (dragged && dragged.paneId !== paneId) {
+                  moveTabToPane(dragged.paneId, dragged.tabId, paneId);
+                }
+
+                draggedTabRef.current = null;
+              }}
+            />
+            {activeTab ? (
+              renderPaneContent(activeTab.panel)
+            ) : (
+              <ProjectWelcomeState files={Object.keys(projectFiles).slice(0, 5)} onOpenTool={openIdeTool} />
+            )}
+          </div>
+        );
+      },
+      [
+        activePaneId,
+        closePaneTabs,
+        closeWorkspacePanel,
+        currentDocument,
+        moveTabToPane,
+        onProjectEditorSave,
+        openIdeTool,
+        pinPaneTab,
+        projectFiles,
+        renderPaneContent,
+        selectPaneTab,
+        splitWorkspacePane,
+        unsavedFiles,
+      ],
+    );
+
+    const renderPaneNode = useCallback(
+      (node: IdePaneNode): React.ReactNode => {
+        if (node.type === 'leaf') {
+          return renderPaneLeaf(node);
+        }
+
+        return (
+          <PanelGroup key={node.id} direction={node.direction} className="min-h-0 flex-1">
+            <Panel defaultSize={node.ratio} minSize={15} className="min-h-0 min-w-0">
+              {renderPaneNode(node.first)}
+            </Panel>
+            <PanelResizeHandle
+              className={classNames('bolt-project-ide-resize-handle', {
+                'bolt-project-ide-resize-handle-vertical': node.direction === 'vertical',
+              })}
+            />
+            <Panel defaultSize={100 - node.ratio} minSize={15} className="min-h-0 min-w-0">
+              {renderPaneNode(node.second)}
+            </Panel>
+          </PanelGroup>
+        );
+      },
+      [renderPaneLeaf],
+    );
+
     const projectIdePanels = (
       <PanelGroup direction="horizontal" className="bolt-project-ide-panels">
         <Panel
@@ -840,10 +1338,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
               </div>
               <div className="ml-auto flex items-center gap-1">
-                <button type="button" className="bolt-project-ide-icon-button" aria-label="Conversation history">
+                <button
+                  type="button"
+                  className="bolt-project-ide-icon-button"
+                  aria-label="Conversation history"
+                  onClick={() => setConversationHistoryOpen((value) => !value)}
+                >
                   <span className="i-ph:clock" aria-hidden />
                 </button>
-                <button type="button" className="bolt-project-ide-icon-button" aria-label="New chat">
+                <button
+                  type="button"
+                  className="bolt-project-ide-icon-button"
+                  aria-label="New chat"
+                  onClick={resetChat}
+                >
                   <span className="i-ph:plus" aria-hidden />
                 </button>
                 <Link to="/settings/providers" className="bolt-project-ide-icon-button" aria-label="Agent settings">
@@ -851,6 +1359,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </Link>
               </div>
             </div>
+            {conversationHistoryOpen && (
+              <div className="bolt-project-conversation-history">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.4px] text-[#6E7681]">History</div>
+                {(messages ?? []).slice(-8).map((message, index) => (
+                  <button
+                    key={`${message.id ?? index}`}
+                    type="button"
+                    onClick={() => setConversationHistoryOpen(false)}
+                  >
+                    <strong>{message.role === 'user' ? 'You' : 'Agent'}</strong>
+                    <span>{String(message.content ?? '').slice(0, 92) || 'Tool call'}</span>
+                  </button>
+                ))}
+                {!(messages ?? []).length && <small>No messages in this project conversation yet.</small>}
+              </div>
+            )}
             <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
           </section>
         </Panel>
@@ -864,111 +1388,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         >
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
             <PanelGroup direction="vertical" className="min-h-0 flex-1">
-              <Panel defaultSize={54} minSize={28} className="min-h-0">
-                <div className="flex h-full min-h-0 flex-col">
-                  <IdeTabBar
-                    activePanel={activeWorkspacePanel}
-                    tabs={workspaceTabs.map((tab) => ({
-                      id: tab,
-                      label:
-                        tab === 'editor'
-                          ? currentDocument?.filePath?.replace(WORK_DIR, '') || 'Welcome'
-                          : panelTitle(tab),
-                      icon: tab === 'editor' ? 'i-ph:code' : panelIcon(tab),
-                      dirty:
-                        tab === 'editor' &&
-                        !!currentDocument &&
-                        unsavedFiles instanceof Set &&
-                        unsavedFiles.has(currentDocument.filePath),
-                      onSave: tab === 'editor' ? onProjectEditorSave : undefined,
-                      closable: workspaceTabs.length > 1 || tab !== 'editor',
-                    }))}
-                    onSelect={(panel) => openWorkspacePanel(panel)}
-                    onClose={(panel) => closeWorkspacePanel(panel)}
-                    onOpenTool={(panel) => {
-                      if (isIdeRightPanel(panel)) {
-                        setRightPanel(panel);
-                        setRightPanelOpen(true);
-                        setSearchParams({ panel });
-
-                        return;
-                      }
-
-                      if (isIdeWorkspacePanel(panel)) {
-                        openWorkspacePanel(panel);
-                      }
-                    }}
-                  />
-                  {activeWorkspacePanel === 'editor' && (
-                    <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
-                      {currentDocument && !currentDocument.isBinary ? (
-                        <EditorAdapter
-                          className="h-full w-full"
-                          value={currentDocument.value}
-                          filePath={currentDocument.filePath}
-                          theme={theme === 'dark' ? 'dark' : 'light'}
-                          onSave={onProjectEditorSave}
-                          onChange={(update) => {
-                            workbenchStore.setCurrentDocumentContent(update.value);
-                          }}
-                        />
-                      ) : (
-                        <ProjectWelcomeState
-                          files={Object.keys(projectFiles).slice(0, 5)}
-                          onOpenTool={(panel) => {
-                            if (isIdeRightPanel(panel)) {
-                              setRightPanel(panel);
-                              setRightPanelOpen(true);
-                              setSearchParams({ panel });
-
-                              return;
-                            }
-
-                            if (isIdeWorkspacePanel(panel)) {
-                              openWorkspacePanel(panel);
-                            }
-                          }}
-                        />
-                      )}
-                    </div>
-                  )}
-                  {activeWorkspacePanel === 'preview' && (
-                    <div className="min-h-0 flex-1 overflow-hidden">
-                      <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
-                    </div>
-                  )}
-                  {isIdeManagementPanel(activeWorkspacePanel) && (
-                    <ProjectIdeServicePanel projectId={projectId} panel={activeWorkspacePanel} />
-                  )}
-                </div>
+              <Panel defaultSize={terminalBottomOpen ? 70 : 100} minSize={30} className="min-h-0 min-w-0">
+                {renderPaneNode(paneTree)}
               </Panel>
-              <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
-              <Panel defaultSize={46} minSize={24} className="min-h-0">
-                <div className="flex h-full min-h-0 flex-col">
-                  <IdeTabBar
-                    activePanel="preview"
-                    tabs={[{ id: 'preview', label: 'Webview', icon: 'i-ph:browser', closable: false }]}
-                    trailing={<span className="bolt-project-runtime-badge">Live runtime</span>}
-                    onSelect={(panel) => openWorkspacePanel(panel)}
-                    onOpenTool={(panel) => {
-                      if (isIdeRightPanel(panel)) {
-                        setRightPanel(panel);
-                        setRightPanelOpen(true);
-                        setSearchParams({ panel });
-
-                        return;
-                      }
-
-                      if (isIdeWorkspacePanel(panel)) {
-                        openWorkspacePanel(panel);
-                      }
-                    }}
-                  />
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
-                  </div>
-                </div>
-              </Panel>
+              {terminalBottomOpen && (
+                <>
+                  <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
+                  <Panel defaultSize={30} minSize={12} maxSize={55} className="min-h-0">
+                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
+                  </Panel>
+                </>
+              )}
             </PanelGroup>
           </section>
         </Panel>
@@ -1085,6 +1515,45 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </aside>
         )}
+        {commandPaletteOpen && (
+          <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+            <input
+              autoFocus
+              placeholder="Search tools, files, and commands..."
+              aria-label="Search commands"
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setCommandPaletteOpen(false);
+                }
+              }}
+            />
+            {[
+              ['files', 'Files', 'Browse project files'],
+              ['preview', 'Webview', 'Open app preview'],
+              ['logs', 'Console', 'Open terminal logs'],
+              ['deployments', 'Deploy', 'Publish project'],
+              ['snapshots', 'Snapshots', 'Create or restore checkpoint'],
+              ['settings', 'Settings', 'Project settings'],
+            ].map(([panel, title, description]) => (
+              <button
+                key={panel}
+                type="button"
+                onClick={() => {
+                  openIdeTool(panel as IdeWorkspacePanel | IdeRightPanel);
+                  setCommandPaletteOpen(false);
+                }}
+              >
+                <span className={panelIcon(panel)} aria-hidden />
+                <span>
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </span>
+                <kbd>↵</kbd>
+              </button>
+            ))}
+            <footer>↑↓ navigate · ↵ select · esc close</footer>
+          </div>
+        )}
         <div
           className={classNames('flex w-full h-full min-h-0', {
             'overflow-hidden': projectIdeMode && !useMobileIde,
@@ -1147,16 +1616,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span>0</span>
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
               <span>0</span>
-              <button type="button" onClick={() => workbenchStore.currentView.set('preview')}>
+              <button type="button" onClick={() => openWorkspacePanel('preview')}>
                 Running on preview
               </button>
             </div>
             <div>
-              <span>Ln 1, Col 1</span>
+              <span>{currentDocument?.filePath ? currentDocument.filePath.replace(WORK_DIR, '') : 'No file'}</span>
               <span>Spaces: 2</span>
               <span>UTF-8</span>
-              <span>TypeScript</span>
-              <button type="button" aria-label="Toggle terminal" onClick={() => setMobilePanel('terminal')}>
+              <span>{currentDocument?.filePath?.split('.').pop()?.toUpperCase() ?? 'Project'}</span>
+              <button
+                type="button"
+                aria-label="Toggle terminal"
+                onClick={() => setTerminalBottomOpen((value) => !value)}
+              >
                 <span className="i-ph:terminal-window" aria-hidden />
               </button>
               <button type="button" aria-label="Toggle agent">
@@ -1279,40 +1752,109 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 }
 
+function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
+  const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
+
+  return (
+    <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
+      <div className="bolt-project-bottom-terminal-tabs">
+        {[
+          ['terminal', 'Terminal'],
+          ['output', 'Output'],
+          ['problems', 'Problems'],
+          ['debug', 'Debug Console'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-current={active === id ? 'page' : undefined}
+            onClick={() => setActive(id as any)}
+          >
+            {label}
+          </button>
+        ))}
+        <button type="button" className="ml-auto" aria-label="New terminal">
+          +
+        </button>
+        <button type="button" aria-label="Close terminal panel" onClick={onClose}>
+          ×
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        {active === 'terminal' ? (
+          <ProjectIdeServicePanel projectId={projectId} panel="logs" />
+        ) : (
+          <div className="h-full bg-[#0A0F1C] p-4 font-mono text-xs text-[#C2C8CC]">
+            {active === 'problems'
+              ? 'No runtime problems reported by the backend.'
+              : `${active} stream is connected through workspace logs.`}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function IdeTabBar({
-  activePanel,
+  paneId,
+  activePanel: _activePanel,
+  activeTabId,
   tabs,
   trailing,
   onSelect,
   onClose,
   onOpenTool,
+  onSplit,
+  onPin,
+  onCloseOthers,
+  onCloseToRight,
+  onCloseAll,
+  onDragStart,
+  onDropTab,
 }: {
+  paneId: string;
   activePanel: IdeWorkspacePanel;
+  activeTabId?: string;
   tabs: Array<{
-    id: IdeWorkspacePanel;
+    id: string;
+    panel: IdeWorkspacePanel;
     label: string;
     icon: string;
+    pinned?: boolean;
     dirty?: boolean;
     closable?: boolean;
     onSave?: () => void;
   }>;
   trailing?: React.ReactNode;
-  onSelect: (panel: IdeWorkspacePanel) => void;
-  onClose?: (panel: IdeWorkspacePanel) => void;
+  onSelect: (tabId: string, panel: IdeWorkspacePanel) => void;
+  onClose?: (tabId: string, panel: IdeWorkspacePanel) => void;
   onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
+  onSplit?: (direction: IdePaneDirection) => void;
+  onPin?: (tabId: string) => void;
+  onCloseOthers?: (tabId: string) => void;
+  onCloseToRight?: (tabId: string) => void;
+  onCloseAll?: () => void;
+  onDragStart?: (paneId: string, tabId: string) => void;
+  onDropTab?: (paneId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
     ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', '#0099FF'],
-    ['logs', 'Console', 'Terminal and logs', 'i-ph:terminal-window', '#3FB950'],
+    ['logs', 'Logs', 'Terminal and server logs', 'i-ph:terminal-window', '#3FB950'],
     ['preview', 'Webview', 'App preview', 'i-ph:browser', '#0099FF'],
+    ['database', 'Database', 'SQL browser', 'i-ph:database', '#7B61FF'],
+    ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', '#D29922'],
     ['env', 'Env vars', 'Environment variables', 'i-ph:brackets-curly', '#D29922'],
     ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', '#D29922'],
     ['git', 'Git', 'Version control', 'i-ph:git-branch', '#3FB950'],
+    ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', '#D29922'],
     ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', '#7B61FF'],
-    ['logs', 'Logs', 'Server logs', 'i-ph:list-magnifying-glass', '#C2C8CC'],
+    ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', '#0099FF'],
+    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', '#C2C8CC'],
     ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', '#7B61FF'],
     ['activity', 'Activity', 'Project timeline', 'i-ph:activity', '#0099FF'],
     ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', '#C2C8CC'],
@@ -1321,12 +1863,27 @@ function IdeTabBar({
   ];
 
   return (
-    <div className="bolt-project-tabbar">
+    <div
+      className="bolt-project-tabbar"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={() => onDropTab?.(paneId)}
+    >
       <div className="bolt-project-tabs" role="tablist">
         {tabs.map((tab) => (
-          <div key={tab.id} role="tab" aria-selected={activePanel === tab.id} className="bolt-project-tab">
-            <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id)}>
-              <span className={tab.icon} aria-hidden />
+          <div
+            key={tab.id}
+            role="tab"
+            draggable
+            aria-selected={activeTabId === tab.id}
+            className="bolt-project-tab"
+            onDragStart={() => onDragStart?.(paneId, tab.id)}
+            onContextMenu={(event) => {
+              event.preventDefault();
+              setContextMenu({ x: event.clientX, y: event.clientY, tabId: tab.id });
+            }}
+          >
+            <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id, tab.panel)}>
+              <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />
               <span className={tab.dirty ? 'italic' : ''}>{tab.label}</span>
             </button>
             {tab.dirty ? (
@@ -1348,7 +1905,7 @@ function IdeTabBar({
                 aria-label={`Close ${tab.label}`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  onClose(tab.id);
+                  onClose(tab.id, tab.panel);
                 }}
               >
                 ×
@@ -1361,6 +1918,59 @@ function IdeTabBar({
           </div>
         ))}
       </div>
+      {contextMenu && (
+        <div
+          className="bolt-project-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              onPin?.(contextMenu.tabId);
+              setContextMenu(null);
+            }}
+          >
+            Pin / unpin
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSplit?.('horizontal');
+              setContextMenu(null);
+            }}
+          >
+            Move to new pane right
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSplit?.('vertical');
+              setContextMenu(null);
+            }}
+          >
+            Move to new pane down
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onCloseOthers?.(contextMenu.tabId);
+              setContextMenu(null);
+            }}
+          >
+            Close others
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onCloseToRight?.(contextMenu.tabId);
+              setContextMenu(null);
+            }}
+          >
+            Close to right
+          </button>
+        </div>
+      )}
       {trailing}
       <div className="bolt-project-tool-popover">
         <button
@@ -1386,7 +1996,7 @@ function IdeTabBar({
                 className="bolt-project-tool-item"
                 onClick={() => {
                   setOpen(false);
-                  onSelect(tab.id);
+                  onSelect(tab.id, tab.panel);
                 }}
               >
                 <span className={tab.icon} aria-hidden />
@@ -1412,7 +2022,7 @@ function IdeTabBar({
                   <strong>{title}</strong>
                   <small>{description}</small>
                 </span>
-                {id === activePanel && <em>Open</em>}
+                {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
               </button>
             ))}
           </div>
@@ -1422,7 +2032,7 @@ function IdeTabBar({
         type="button"
         className="bolt-project-tab-action"
         aria-label="Split right"
-        onClick={() => onSelect(activePanel)}
+        onClick={() => onSplit?.('horizontal')}
       >
         <span className="i-ph:columns" aria-hidden />
       </button>
@@ -1430,13 +2040,52 @@ function IdeTabBar({
         type="button"
         className="bolt-project-tab-action"
         aria-label="Split down"
-        onClick={() => onSelect(activePanel)}
+        onClick={() => onSplit?.('vertical')}
       >
         <span className="i-ph:rows" aria-hidden />
       </button>
-      <button type="button" className="bolt-project-tab-action" aria-label="Tab actions">
-        <span className="i-ph:dots-three" aria-hidden />
-      </button>
+      <div className="bolt-project-tool-popover">
+        <button
+          type="button"
+          className="bolt-project-tab-action"
+          aria-label="Tab actions"
+          aria-expanded={actionsOpen}
+          onClick={() => setActionsOpen((value) => !value)}
+        >
+          <span className="i-ph:dots-three" aria-hidden />
+        </button>
+        {actionsOpen && (
+          <div className="bolt-project-tab-actions-menu">
+            <button
+              type="button"
+              onClick={() => {
+                onCloseOthers?.(activeTabId ?? tabs[0]?.id);
+                setActionsOpen(false);
+              }}
+            >
+              Close others
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseToRight?.(activeTabId ?? tabs[0]?.id);
+                setActionsOpen(false);
+              }}
+            >
+              Close to right
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onCloseAll?.();
+                setActionsOpen(false);
+              }}
+            >
+              Close saved
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1513,6 +2162,69 @@ function ProjectIdePanelContent({
     ];
 
     return <PanelRows rows={rows} events={data.recentActivity} empty="No project activity yet." />;
+  }
+
+  if (panel === 'database') {
+    return (
+      <PanelRows
+        rows={[
+          [
+            'Database status',
+            data.databaseUrlConfigured ? 'Connection configured' : 'No database connection configured for this project',
+          ],
+          ['Project', project.name ?? project.id],
+        ]}
+        empty="Database metadata is not configured for this project."
+      />
+    );
+  }
+
+  if (panel === 'object-storage') {
+    return (
+      <PanelRows
+        rows={[
+          ['Storage provider', data.storageProvider ?? 'No object storage bucket configured'],
+          ['Exports', `${data.exportsCount ?? 0} project exports recorded`],
+        ]}
+        empty="Object storage is not configured for this project."
+      />
+    );
+  }
+
+  if (panel === 'packages') {
+    const packageJson = (data.files ?? []).find((file: any) => String(file.path ?? '').endsWith('package.json'));
+
+    return (
+      <PanelRows
+        rows={[
+          ['Package manifest', packageJson ? packageJson.path : 'No package.json found in indexed project files'],
+          ['Files indexed', String(data.files?.length ?? 0)],
+        ]}
+      />
+    );
+  }
+
+  if (panel === 'monitoring') {
+    return (
+      <PanelRows
+        rows={[
+          ['Workspace status', data.workspace?.status ?? 'No active workspace'],
+          ['Runtime mode', data.workspace?.runtimeMode ?? 'No runtime session'],
+          ['Recent activity', String(data.recentActivity?.length ?? 0)],
+        ]}
+      />
+    );
+  }
+
+  if (panel === 'extensions') {
+    return (
+      <PanelRows
+        rows={[
+          ['Installed extensions', String(data.extensions?.length ?? 0)],
+          ['Marketplace', 'No organization extensions installed yet'],
+        ]}
+      />
+    );
   }
 
   if (panel === 'logs') {
@@ -1813,6 +2525,11 @@ function panelTitle(panel: string) {
   const titles: Record<string, string> = {
     editor: 'Editor',
     preview: 'Webview',
+    database: 'Database',
+    'object-storage': 'Object Storage',
+    packages: 'Packages',
+    monitoring: 'Monitoring',
+    extensions: 'Extensions',
     files: 'Files',
     search: 'Search',
     locks: 'Locks',
@@ -1836,6 +2553,11 @@ function panelIcon(panel: string) {
   const icons: Record<string, string> = {
     editor: 'i-ph:code',
     preview: 'i-ph:browser',
+    database: 'i-ph:database',
+    'object-storage': 'i-ph:package',
+    packages: 'i-ph:cube',
+    monitoring: 'i-ph:chart-line',
+    extensions: 'i-ph:puzzle-piece',
     files: 'i-ph:files',
     search: 'i-ph:magnifying-glass',
     locks: 'i-ph:lock',

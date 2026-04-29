@@ -360,6 +360,7 @@ body {
 }
 
 .bolt-project-agent-shell {
+  position: relative;
   border-right: 1px solid #1a2030;
 }
 
@@ -729,6 +730,189 @@ body {
   flex: 1;
   flex-direction: column;
   background: #0a0f1c;
+}
+
+.bolt-project-pane-leaf {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0a0f1c;
+}
+
+.bolt-project-pane-leaf[data-active='true'] {
+  box-shadow: inset 0 0 0 1px rgb(0 153 255 / 0.18);
+}
+
+.bolt-project-context-menu,
+.bolt-project-tab-actions-menu {
+  position: fixed;
+  z-index: 80;
+  display: grid;
+  min-width: 180px;
+  gap: 2px;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: rgb(26 32 48 / 0.98);
+  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  padding: 6px;
+}
+
+.bolt-project-tab-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 32px;
+}
+
+.bolt-project-context-menu button,
+.bolt-project-tab-actions-menu button {
+  height: 30px;
+  border-radius: 6px;
+  color: #f5f9fc;
+  font-size: 12px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.bolt-project-context-menu button:hover,
+.bolt-project-tab-actions-menu button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-bottom-terminal {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  border-top: 1px solid #1a2030;
+  background: #0a0f1c;
+}
+
+.bolt-project-bottom-terminal-tabs {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  padding: 0 6px;
+}
+
+.bolt-project-bottom-terminal-tabs button {
+  height: 24px;
+  border-radius: 4px;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.bolt-project-bottom-terminal-tabs button:hover,
+.bolt-project-bottom-terminal-tabs button[aria-current='page'] {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-conversation-history {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  left: 8px;
+  z-index: 30;
+  display: grid;
+  gap: 6px;
+  border: 1px solid #2b3245;
+  border-radius: 12px;
+  background: rgb(26 32 48 / 0.98);
+  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  padding: 10px;
+}
+
+.bolt-project-conversation-history button {
+  display: grid;
+  gap: 2px;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: left;
+}
+
+.bolt-project-conversation-history button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-conversation-history strong {
+  color: #f5f9fc;
+  font-size: 12px;
+}
+
+.bolt-project-conversation-history span,
+.bolt-project-conversation-history small {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-command-palette {
+  position: fixed;
+  top: 120px;
+  left: 50%;
+  z-index: 90;
+  display: grid;
+  width: min(600px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 1px solid #2b3245;
+  border-radius: 12px;
+  background: rgb(26 32 48 / 0.98);
+  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+}
+
+.bolt-project-command-palette input {
+  height: 52px;
+  border-bottom: 1px solid #2b3245;
+  background: transparent;
+  color: #f5f9fc;
+  font-size: 14px;
+  outline: none;
+  padding: 0 16px;
+}
+
+.bolt-project-command-palette button {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  text-align: left;
+}
+
+.bolt-project-command-palette button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-command-palette strong,
+.bolt-project-command-palette small {
+  display: block;
+}
+
+.bolt-project-command-palette strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-command-palette small,
+.bolt-project-command-palette kbd,
+.bolt-project-command-palette footer {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-command-palette footer {
+  border-top: 1px solid #2b3245;
+  padding: 8px 14px;
 }
 
 .bolt-project-statusbar {

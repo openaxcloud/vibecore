@@ -9,6 +9,11 @@ import {
 
 const panelEndpoints: Record<string, (projectId: string) => string> = {
   overview: (projectId) => `/projects/${projectId}/dashboard`,
+  database: (projectId) => `/projects/${projectId}/dashboard`,
+  'object-storage': (projectId) => `/projects/${projectId}/dashboard`,
+  packages: (projectId) => `/projects/${projectId}/dashboard`,
+  monitoring: (projectId) => `/projects/${projectId}/dashboard`,
+  extensions: (projectId) => `/projects/${projectId}/dashboard`,
   deployments: (projectId) => `/projects/${projectId}/deployments`,
   env: (projectId) => `/projects/${projectId}/env-vars`,
   secrets: (projectId) => `/projects/${projectId}/secrets`,

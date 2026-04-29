@@ -113,11 +113,19 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: /Deploy/ })).toBeVisible();
 
+  await page.getByLabel('Split right').first().click();
+  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(3);
+
   await page.getByRole('tab', { name: /Snapshots/ }).click();
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible();
 
   const inIdePanels = [
     ['Overview', 'overview'],
+    ['Database', 'database'],
+    ['Object Storage', 'object-storage'],
+    ['Packages', 'packages'],
+    ['Monitoring', 'monitoring'],
+    ['Extensions', 'extensions'],
     ['Env vars', 'env'],
     ['Secrets', 'secrets'],
     ['Git', 'git'],
@@ -147,7 +155,9 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await page.getByPlaceholder('VITE_API_URL').fill('E2E_FLAG');
   await page.getByPlaceholder('https://api.example.com').fill('enabled');
   await page.getByRole('button', { name: 'Save variable' }).click();
-  await expect(page.getByText('E2E_FLAG')).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.locator('[data-testid="ide-service-panel"][data-panel="env"]').filter({ hasText: 'E2E_FLAG' }).last(),
+  ).toBeVisible({ timeout: 15000 });
 
   expect(page.url()).not.toContain('/snapshots');
   expect(page.url()).not.toContain('/deployments');

@@ -698,6 +698,11 @@ export const ChatImpl = memo(
         chatMode={chatMode}
         setChatMode={setChatMode}
         append={append}
+        resetChat={() => {
+          setMessages([]);
+          setInput('');
+          setData(undefined);
+        }}
         designScheme={designScheme}
         setDesignScheme={setDesignScheme}
         selectedElement={selectedElement}

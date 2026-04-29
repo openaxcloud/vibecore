@@ -6,6 +6,11 @@ export type ProjectIdeWorkspacePanel =
   | 'editor'
   | 'preview'
   | 'overview'
+  | 'database'
+  | 'object-storage'
+  | 'packages'
+  | 'monitoring'
+  | 'extensions'
   | 'deployments'
   | 'env'
   | 'secrets'
@@ -17,6 +22,29 @@ export type ProjectIdeWorkspacePanel =
   | 'snapshots'
   | 'settings';
 export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
+
+export interface ProjectIdePaneTab {
+  id: string;
+  panel: ProjectIdeWorkspacePanel;
+  pinned?: boolean;
+  filePath?: string;
+}
+
+export type ProjectIdePaneNode =
+  | {
+      type: 'leaf';
+      id: string;
+      tabs: ProjectIdePaneTab[];
+      activeTabId?: string;
+    }
+  | {
+      type: 'split';
+      id: string;
+      direction: 'horizontal' | 'vertical';
+      ratio: number;
+      first: ProjectIdePaneNode;
+      second: ProjectIdePaneNode;
+    };
 
 export interface ProjectIdeMemory {
   chat?: {
@@ -34,6 +62,9 @@ export interface ProjectIdeMemory {
     rightPanelOpen?: boolean;
     workspaceTabs?: ProjectIdeWorkspacePanel[];
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
+    paneTree?: ProjectIdePaneNode;
+    activePaneId?: string;
+    terminalBottomOpen?: boolean;
     mobilePanel?: ProjectMobilePanel;
     showWorkbench?: boolean;
     previewIndex?: number;

@@ -123,24 +123,36 @@ function IdeProjectTopBar({ projectId, projectName }: { projectId: string; proje
               >
                 Rename
               </ProjectMenuItem>
-              <ProjectMenuItem to={`/projects/${projectId}/ide?panel=settings`} icon={<Copy className="h-3.5 w-3.5" />}>
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="fork"
+                projectName={projectName}
+                icon={<Copy className="h-3.5 w-3.5" />}
+              >
                 Fork
-              </ProjectMenuItem>
-              <ProjectMenuItem to={`/projects/${projectId}/ide?panel=settings`} icon={<Copy className="h-3.5 w-3.5" />}>
+              </ProjectMenuAction>
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="duplicate"
+                projectName={projectName}
+                icon={<Copy className="h-3.5 w-3.5" />}
+              >
                 Duplicate
-              </ProjectMenuItem>
+              </ProjectMenuAction>
               <ProjectMenuItem
-                to={`/api/projects/${projectId}/ide-panel/settings`}
+                to={`/api/projects/${projectId}/project-action?intent=export`}
                 icon={<Download className="h-3.5 w-3.5" />}
               >
                 Export
               </ProjectMenuItem>
-              <ProjectMenuItem
-                to={`/projects/${projectId}/ide?panel=settings`}
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="delete"
+                projectName={projectName}
                 icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
               >
                 Delete
-              </ProjectMenuItem>
+              </ProjectMenuAction>
             </div>
           )}
         </details>
@@ -248,5 +260,48 @@ function ProjectMenuItem({ to, icon, children }: { to: string; icon?: ReactNode;
       {icon}
       <span>{children}</span>
     </Link>
+  );
+}
+
+function ProjectMenuAction({
+  action,
+  intent,
+  projectName,
+  icon,
+  children,
+}: {
+  action: string;
+  intent: string;
+  projectName: string;
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-[#F5F9FC] hover:bg-[#2B3245] disabled:opacity-60"
+      onClick={async () => {
+        if (intent === 'delete' && !window.confirm(`Delete ${projectName}?`)) {
+          return;
+        }
+
+        setBusy(true);
+
+        try {
+          const form = new FormData();
+          form.set('intent', intent);
+          form.set('projectName', projectName);
+          await fetch(action, { method: 'POST', body: form, credentials: 'include' });
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {icon}
+      <span>{busy ? 'Working...' : children}</span>
+    </button>
   );
 }
