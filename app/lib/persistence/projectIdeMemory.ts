@@ -67,6 +67,7 @@ export interface ProjectIdeMemory {
     activePaneId?: string;
     agentWidth?: number;
     terminalBottomOpen?: boolean;
+    terminalBottomHeight?: number;
     cursorPositions?: Record<string, { line: number; column: number; offset?: number }>;
     scrollPositions?: Record<string, number>;
     recentTabIds?: string[];

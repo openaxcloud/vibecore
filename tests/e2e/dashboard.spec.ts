@@ -184,7 +184,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible({ timeout: 30000 });
 
   async function openIdeTool(name: RegExp) {
     await page.getByLabel('Open tool').first().click();
@@ -266,7 +266,40 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
-  await expect(page.getByLabel('Pinned terminal')).toBeVisible();
+  const pinnedTerminal = page.getByRole('region', { name: 'Pinned terminal' });
+  await expect(pinnedTerminal).toBeVisible();
+  await expect(page.getByLabel('Resize pinned terminal')).toBeVisible();
+  const terminalMetrics = await pinnedTerminal.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    const tabbar = element.querySelector('.bolt-project-bottom-terminal-tabs')!;
+    const tabbarRect = tabbar.getBoundingClientRect();
+    const tabbarStyle = window.getComputedStyle(tabbar);
+
+    return {
+      height: rect.height,
+      borderTop: style.borderTopColor,
+      background: style.backgroundColor,
+      tabbarHeight: tabbarRect.height,
+      tabbarBackground: tabbarStyle.backgroundColor,
+    };
+  });
+  expect(terminalMetrics.height).toBe(240);
+  expect(terminalMetrics.borderTop).toBe('rgb(26, 32, 48)');
+  expect(terminalMetrics.background).toBe('rgb(10, 15, 28)');
+  expect(terminalMetrics.tabbarHeight).toBe(32);
+  expect(terminalMetrics.tabbarBackground).toBe('rgb(14, 21, 37)');
+  await expect(pinnedTerminal.getByRole('button', { name: 'Terminal', exact: true })).toBeVisible();
+  await expect(pinnedTerminal.getByRole('button', { name: 'Output' })).toBeVisible();
+  await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
+  await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
+  await expect(pinnedTerminal.getByRole('button', { name: 'New terminal' })).toBeVisible();
+  await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
+  await expect(pinnedTerminal.getByText('output stream is connected through workspace logs.')).toBeVisible();
+  await page.getByLabel('Toggle terminal').click();
+  await expect(pinnedTerminal).toBeHidden();
+  await page.getByLabel('Toggle terminal').click();
+  await expect(pinnedTerminal).toBeVisible();
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
   await expect(page.getByLabel('Command palette')).toBeVisible();
   await page.keyboard.press('Escape');

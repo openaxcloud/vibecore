@@ -514,6 +514,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [agentWidth, setAgentWidth] = useState(420);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
+    const [terminalBottomHeight, setTerminalBottomHeight] = useState(240);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
@@ -645,6 +646,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setTerminalBottomOpen(ui.terminalBottomOpen);
           }
 
+          if (typeof ui?.terminalBottomHeight === 'number') {
+            setTerminalBottomHeight(Math.min(600, Math.max(100, ui.terminalBottomHeight)));
+          }
+
           if (ui?.cursorPositions && typeof ui.cursorPositions === 'object') {
             setCursorPositions(ui.cursorPositions);
           }
@@ -742,6 +747,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             activePaneId,
             agentWidth,
             terminalBottomOpen,
+            terminalBottomHeight,
             cursorPositions,
             scrollPositions,
             recentTabIds,
@@ -769,6 +775,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activePaneId,
       agentWidth,
       terminalBottomOpen,
+      terminalBottomHeight,
       cursorPositions,
       scrollPositions,
       recentTabIds,
@@ -970,6 +977,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.addEventListener('mouseup', onUp);
       },
       [agentWidth],
+    );
+
+    const startTerminalResize = useCallback(
+      (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+
+        const startY = event.clientY;
+        const startHeight = terminalBottomHeight;
+
+        const onMove = (moveEvent: MouseEvent) => {
+          const nextHeight = Math.min(600, Math.max(100, startHeight + startY - moveEvent.clientY));
+          setTerminalBottomHeight(nextHeight);
+        };
+
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      },
+      [terminalBottomHeight],
     );
 
     useEffect(() => {
@@ -1912,19 +1942,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <PanelGroup direction="horizontal" className="min-h-0 min-w-0 flex-1">
             <Panel defaultSize={rightPanelOpen ? 72 : 100} minSize={35} className="min-w-0">
               <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-                <PanelGroup direction="vertical" className="min-h-0 flex-1">
-                  <Panel defaultSize={terminalBottomOpen ? 70 : 100} minSize={30} className="min-h-0 min-w-0">
+                <div className="bolt-project-main-stack">
+                  <div
+                    className="bolt-project-main-panes"
+                    style={
+                      {
+                        '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
+                      } as React.CSSProperties
+                    }
+                  >
                     {renderPaneNode(paneTree)}
-                  </Panel>
+                  </div>
                   {terminalBottomOpen && (
-                    <>
-                      <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
-                      <Panel defaultSize={30} minSize={12} maxSize={55} className="min-h-0">
+                    <div
+                      className="bolt-project-bottom-terminal-shell"
+                      style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                    >
+                      <div
+                        className="bolt-project-terminal-resize-handle"
+                        role="separator"
+                        aria-orientation="horizontal"
+                        aria-label="Resize pinned terminal"
+                        onMouseDown={startTerminalResize}
+                      />
+                      <div className="bolt-project-bottom-terminal-frame">
                         <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
-                      </Panel>
-                    </>
+                      </div>
+                    </div>
                   )}
-                </PanelGroup>
+                </div>
               </section>
             </Panel>
             {rightPanelOpen && (

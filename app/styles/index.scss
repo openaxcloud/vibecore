@@ -890,6 +890,53 @@ body {
   background: #0a0f1c;
 }
 
+.bolt-project-main-stack {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bolt-project-main-panes {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100% - var(--project-terminal-bottom-height, 0px));
+  transition: height 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bolt-project-bottom-terminal-shell {
+  position: relative;
+  flex: 0 0 var(--project-terminal-height);
+  min-height: 100px;
+  max-height: 600px;
+  height: var(--project-terminal-height);
+}
+
+.bolt-project-bottom-terminal-frame {
+  height: 100%;
+  min-height: 0;
+}
+
+.bolt-project-terminal-resize-handle {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  height: 4px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-terminal-resize-handle:hover,
+.bolt-project-terminal-resize-handle:active {
+  background: rgb(0 153 255 / 0.5);
+}
+
 .bolt-project-pane-leaf {
   position: relative;
   display: flex;
