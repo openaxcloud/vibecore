@@ -28,9 +28,11 @@ import {
   redactSecrets,
   assertStrictCorsOrigin,
   decryptJson,
+  detectCommandAbuse,
   encryptJson,
   hasRecentReauth,
   isIpAllowed,
+  requireCsrfToken,
 } from '@vibecore/security';
 import {
   StripeBillingClient,
@@ -1238,6 +1240,53 @@ async function audit(
   });
 }
 
+async function recordAbuseSignal(
+  request: any,
+  store: ApiStore,
+  input: {
+    organizationId?: string;
+    userId?: string;
+    workspaceId?: string;
+    type: string;
+    severity: string;
+    reason: string;
+    action: string;
+  },
+) {
+  const abuseEvent = await store.createAbuseEvent({
+    organizationId: input.organizationId,
+    userId: input.userId,
+    type: input.type,
+    severity: input.severity,
+  });
+  await audit(request, store, {
+    organizationId: input.organizationId,
+    action: 'abuse.signal.detected',
+    resourceType: 'abuseEvent',
+    resourceId: abuseEvent.id,
+    metadata: {
+      type: input.type,
+      severity: input.severity,
+      reason: input.reason,
+      action: input.action,
+      workspaceId: input.workspaceId,
+    },
+  });
+
+  if (input.workspaceId && ['stop_workspace', 'suspend_org'].includes(input.action)) {
+    await store.updateWorkspaceStatus({ workspaceId: input.workspaceId, status: 'STOPPED' }).catch(() => undefined);
+  }
+
+  if (input.action === 'suspend_org' && input.organizationId) {
+    await writeSettingIds(store, 'admin.suspendedOrganizationIds', [
+      ...(await listSettingIds(store, 'admin.suspendedOrganizationIds')),
+      input.organizationId,
+    ]);
+  }
+
+  return abuseEvent;
+}
+
 function normalizeAiPath(path = '.') {
   const clean = path.replaceAll('\\', '/').replace(/^\/+/, '').split('/').filter(Boolean);
   const normalized: string[] = [];
@@ -1283,6 +1332,7 @@ function redactAiValue(value: unknown): unknown {
 
 function ensureAiCommandAllowed(command = '', args: string[] = []) {
   const line = [command, ...args].join(' ').trim();
+  const abuseSignal = detectCommandAbuse(command, args);
   const blocked = [
     /\brm\s+-rf\s+(\/|\*)/,
     /\bsudo\b/,
@@ -1294,10 +1344,11 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
     /:\(\)\s*\{\s*:\|:/,
   ];
 
-  if (blocked.some((pattern) => pattern.test(line))) {
+  if (abuseSignal || blocked.some((pattern) => pattern.test(line))) {
     throw Object.assign(new Error('Command requires explicit human confirmation'), {
       statusCode: 409,
-      code: 'AI_COMMAND_CONFIRMATION_REQUIRED',
+      code: abuseSignal ? `ABUSE_${abuseSignal.type.toUpperCase()}` : 'AI_COMMAND_CONFIRMATION_REQUIRED',
+      abuseSignal,
     });
   }
 }
@@ -1364,13 +1415,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   await seedBillingPlans(store);
 
-  await app.register(helmet);
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        'default-src': ["'self'"],
+        'base-uri': ["'self'"],
+        'frame-ancestors': ["'none'"],
+        'object-src': ["'none'"],
+        'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+        'font-src': ["'self'", 'data:'],
+        'connect-src': ["'self'", 'http:', 'https:', 'ws:', 'wss:'],
+        'worker-src': ["'self'", 'blob:'],
+        'frame-src': ["'self'", 'http:', 'https:'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'no-referrer' },
+  });
   await app.register(cookie, { secret: process.env.COOKIE_SECRET || 'dev-cookie-secret-change-me' });
   await app.register(jwt, { secret: options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me' });
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id'],
+    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token'],
     origin(origin, callback) {
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
@@ -1714,6 +1784,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
+    if (request.cookies.session && !request.headers.authorization) {
+      requireCsrfToken(request.headers as Record<string, string | string[] | undefined>, request.method);
+    }
+
     await requireAuth(request, reply, store);
 
     const orgId = orgIdFromRequest(request);
@@ -2010,6 +2084,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       output = { applied: true, snapshotId };
     } else if (toolName === 'run_command') {
+      const signal = detectCommandAbuse(input.command, input.args);
+      if (signal) {
+        await recordAbuseSignal(request, store, {
+          organizationId: project.organizationId,
+          userId: request.currentUser!.id,
+          workspaceId,
+          type: signal.type,
+          severity: signal.severity,
+          reason: signal.reason,
+          action: signal.action,
+        });
+      }
       ensureAiCommandAllowed(input.command, input.args);
       output = await agentRequest(workspaceId, '/commands/run', {
         method: 'POST',
@@ -2083,7 +2169,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         orgId: authorized.organizationId ?? 'unknown-org',
         projectId: authorized.projectId,
         workspaceId: authorized.workspaceId,
-        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:latest',
+        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
         plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
         resourceLimits: state
           ? {
@@ -2136,7 +2222,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         orgId: authorized.organizationId ?? 'unknown-org',
         projectId: authorized.projectId,
         workspaceId: authorized.workspaceId,
-        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:latest',
+        image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
         plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
         env: {},
         allowedSecretKeys: [],
@@ -2301,6 +2387,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeCommandSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const signal = detectCommandAbuse(body.command, body.args);
+    if (signal) {
+      await recordAbuseSignal(request, store, {
+        organizationId: authorized.organizationId,
+        userId: request.currentUser!.id,
+        workspaceId: authorized.workspaceId,
+        type: signal.type,
+        severity: signal.severity,
+        reason: signal.reason,
+        action: signal.action,
+      });
+      throw Object.assign(new Error('Command blocked by abuse prevention policy'), {
+        statusCode: 409,
+        code: `ABUSE_${signal.type.toUpperCase()}`,
+      });
+    }
     const result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
       authorized.workspaceId,
       '/commands/run',

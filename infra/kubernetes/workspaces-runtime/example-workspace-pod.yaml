@@ -26,7 +26,7 @@ spec:
       type: RuntimeDefault
   containers:
     - name: workspace-agent
-      image: vibecore/workspace-agent:latest
+      image: vibecore/workspace-agent:2026.04.0
       ports:
         - containerPort: 8080
           name: agent

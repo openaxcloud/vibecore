@@ -1,4 +1,5 @@
 import websocket from '@fastify/websocket';
+import { detectCommandAbuse } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -308,6 +309,14 @@ async function runCommand(
 ) {
   if (options.processes.size >= options.maxProcesses) {
     throw new Error('Process limit reached');
+  }
+  const signal = detectCommandAbuse(command, args);
+
+  if (signal) {
+    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
+      statusCode: 409,
+      code: `ABUSE_${signal.type.toUpperCase()}`,
+    });
   }
 
   const id = createHash('sha256').update(`${command}:${args.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);

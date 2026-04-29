@@ -39,6 +39,14 @@ export interface WorkspaceK8sClient {
   streamPodLogs(namespace: string, name: string): AsyncIterable<string>;
 }
 
+export function assertWorkspaceImageAllowed(image: string, production = process.env.NODE_ENV === 'production') {
+  if (production && /(^|:)latest$/i.test(image)) {
+    throw Object.assign(new Error('Workspace images must be pinned in production'), {
+      code: 'WORKSPACE_IMAGE_LATEST_FORBIDDEN',
+    });
+  }
+}
+
 const planResources: Record<WorkspacePlan, { cpuRequest: string; memoryRequest: string; cpuLimit: string; memoryLimit: string }> = {
   free: { cpuRequest: '250m', memoryRequest: '512Mi', cpuLimit: '1', memoryLimit: '1Gi' },
   pro: { cpuRequest: '500m', memoryRequest: '1Gi', cpuLimit: '2', memoryLimit: '4Gi' },
@@ -91,6 +99,7 @@ export function workspaceAgentSecret(input: WorkspaceRuntimeInput): K8sObject {
 }
 
 export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
+  assertWorkspaceImageAllowed(input.image);
   const resources = planResources[input.plan];
   const sandboxSchedulingEnabled = process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
   return {
@@ -98,6 +107,9 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
     kind: 'Pod',
     metadata: { name: `workspace-${input.workspaceId}`, namespace: input.namespace, labels: labels(input) },
     spec: {
+      hostNetwork: false,
+      hostPID: false,
+      hostIPC: false,
       ...(sandboxSchedulingEnabled
         ? {
             runtimeClassName: 'gvisor',
@@ -106,7 +118,13 @@ export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
           }
         : {}),
       automountServiceAccountToken: false,
-      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000, seccompProfile: { type: 'RuntimeDefault' } },
+      securityContext: {
+        runAsNonRoot: true,
+        runAsUser: 1000,
+        runAsGroup: 1000,
+        fsGroup: 1000,
+        seccompProfile: { type: 'RuntimeDefault' },
+      },
       containers: [
         {
           name: 'workspace-agent',

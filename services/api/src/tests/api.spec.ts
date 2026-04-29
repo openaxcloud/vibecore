@@ -229,6 +229,50 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('enforces strict CORS and CSRF for cookie-authenticated mutations', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore(), allowedOrigins: ['http://localhost:5173'] });
+    const registered = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: {
+        email: 'csrf@example.com',
+        password: 'password123',
+        name: 'CSRF User',
+      },
+    });
+    expect(registered.statusCode).toBe(201);
+    const cookie = registered.headers['set-cookie'];
+    expect(cookie).toBeDefined();
+
+    const blocked = await app.inject({
+      method: 'POST',
+      url: '/auth/logout-all',
+      headers: { cookie: Array.isArray(cookie) ? cookie[0] : cookie },
+    });
+    expect(blocked.statusCode).toBe(403);
+
+    const allowed = await app.inject({
+      method: 'POST',
+      url: '/auth/logout-all',
+      headers: {
+        cookie: Array.isArray(cookie) ? cookie[0] : cookie,
+        'x-csrf-token': 'csrf-local',
+      },
+    });
+    expect(allowed.statusCode).toBe(200);
+
+    const cors = await app.inject({
+      method: 'OPTIONS',
+      url: '/auth/me',
+      headers: {
+        origin: 'https://evil.example',
+        'access-control-request-method': 'GET',
+      },
+    });
+    expect(cors.headers['access-control-allow-origin']).toBeUndefined();
+    await app.close();
+  });
+
   it('persists account profile updates through the API', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'profile@example.com' });
@@ -1610,6 +1654,40 @@ describe('SaaS API', () => {
       });
       expect(command.statusCode).toBe(409);
       expect(runtime.calls).not.toContain('POST /commands/run');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('blocks abusive runtime commands, logs AbuseEvent, and stops the workspace before agent execution', async () => {
+    const store = new TestApiStore();
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'runtime-abuse@example.com', organizationName: 'Runtime Abuse Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Abuse Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { command: 'nmap', args: ['127.0.0.1'] },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json().code).toBe('ABUSE_PORT_SCANNING');
+      expect(runtime.calls).not.toContain('POST /commands/run');
+      const abuseEvents = await store.listAbuseEvents();
+      expect(abuseEvents).toHaveLength(1);
+      expect(abuseEvents[0]).toMatchObject({ organizationId: auth.organization.id, severity: 'high', type: 'port_scanning' });
+      expect(store.auditLogs.some((event) => event.action === 'abuse.signal.detected')).toBe(true);
     } finally {
       await runtime.close();
       await app.close();

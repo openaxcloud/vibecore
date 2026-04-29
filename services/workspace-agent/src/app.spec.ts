@@ -54,4 +54,15 @@ describe('workspace-agent', () => {
     });
     expect(response.json()).toMatchObject({ code: 0, stdout: 'ok\n' });
   });
+
+  it('blocks abuse command patterns before execution', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/commands/run',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { command: 'nmap', args: ['127.0.0.1'] },
+    });
+    expect(response.statusCode).toBe(409);
+  });
 });

@@ -740,6 +740,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
+      '@vibecore/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@vibecore/workspace-sdk':
         specifier: workspace:*
         version: link:../../packages/workspace-sdk

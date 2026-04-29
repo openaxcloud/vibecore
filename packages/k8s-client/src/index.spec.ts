@@ -1,5 +1,15 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { controlledEgressNetworkPolicy, managerAndPreviewIngressNetworkPolicy, workspaceAgentSecret, workspacePod, workspaceRuntimeClass, type WorkspaceRuntimeInput } from './index.js';
+import {
+  assertWorkspaceImageAllowed,
+  controlledEgressNetworkPolicy,
+  managerAndPreviewIngressNetworkPolicy,
+  workspaceAgentSecret,
+  workspacePod,
+  workspaceRuntimeClass,
+  type WorkspaceRuntimeInput,
+} from './index.js';
 
 const input: WorkspaceRuntimeInput = {
   namespace: 'workspaces',
@@ -20,11 +30,18 @@ describe('workspace Kubernetes manifests', () => {
     const container = (pod.spec?.containers as any[])[0];
 
     expect(pod.spec?.runtimeClassName).toBe('gvisor');
-    expect(pod.spec?.securityContext).toMatchObject({ runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 });
+    expect(pod.spec?.securityContext).toMatchObject({ runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 });
     expect(container.securityContext).toMatchObject({ allowPrivilegeEscalation: false, privileged: false, runAsNonRoot: true });
     expect(container.securityContext.capabilities.drop).toEqual(['ALL']);
-    expect(pod.spec?.hostNetwork).toBeUndefined();
-    expect(pod.spec?.hostPID).toBeUndefined();
+    expect(pod.spec?.hostNetwork).toBe(false);
+    expect(pod.spec?.hostPID).toBe(false);
+    expect(pod.spec?.hostIPC).toBe(false);
+    expect(JSON.stringify(pod.spec?.volumes)).not.toContain('hostPath');
+  });
+
+  it('rejects mutable latest workspace images in production', () => {
+    expect(() => assertWorkspaceImageAllowed('vibecore/workspace-agent:latest', true)).toThrow(/pinned/);
+    expect(() => assertWorkspaceImageAllowed('vibecore/workspace-agent:2026.04.0', true)).not.toThrow();
   });
 
   it('blocks metadata and private platform networks in controlled egress policy', () => {
@@ -54,5 +71,17 @@ describe('workspace Kubernetes manifests', () => {
       metadata: { name: 'gvisor' },
       spec: { handler: 'runsc' },
     });
+  });
+
+  it('ships admission policies for workspace pods', () => {
+    const policy = readFileSync(
+      fileURLToPath(new URL('../../../infra/admission/kyverno/workspace-security-policies.yaml', import.meta.url)),
+      'utf8',
+    );
+    expect(policy).toContain('require-gvisor-runtime');
+    expect(policy).toContain('block-privileged-workspace-pods');
+    expect(policy).toContain('require-resource-limits');
+    expect(policy).toContain('block-latest-tags');
+    expect(policy).toContain('require-health-probes');
   });
 });

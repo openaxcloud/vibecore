@@ -115,3 +115,88 @@ export function hasRecentReauth(lastReauthAt: string | undefined, maxAgeSeconds:
 
   return Date.now() - new Date(lastReauthAt).getTime() <= maxAgeSeconds * 1000;
 }
+
+export interface AbuseSignal {
+  type:
+    | 'crypto_mining'
+    | 'fork_bomb'
+    | 'port_scanning'
+    | 'suspicious_egress'
+    | 'spam_preview'
+    | 'excessive_ai_usage'
+    | 'failed_auth_spike'
+    | 'workspace_creation_spike'
+    | 'storage_abuse'
+    | 'cpu_abuse'
+    | 'malware_download'
+    | 'reverse_shell'
+    | 'command_injection';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  action: 'log' | 'throttle' | 'stop_workspace' | 'suspend_org' | 'alert_admin' | 'manual_review';
+  reason: string;
+}
+
+const abuseCommandPatterns: Array<{ pattern: RegExp; signal: AbuseSignal }> = [
+  {
+    pattern: /\b(xmrig|minerd|cpuminer|ethminer|monero|stratum\+tcp|nicehash)\b/i,
+    signal: { type: 'crypto_mining', severity: 'critical', action: 'stop_workspace', reason: 'crypto mining command pattern' },
+  },
+  {
+    pattern: /:\(\)\s*\{\s*:\|:|while\s+true.*fork|bomb/i,
+    signal: { type: 'fork_bomb', severity: 'critical', action: 'stop_workspace', reason: 'fork bomb pattern' },
+  },
+  {
+    pattern: /\b(nmap|masscan|zmap|hping3|nping)\b/i,
+    signal: { type: 'port_scanning', severity: 'high', action: 'stop_workspace', reason: 'port scanning tool' },
+  },
+  {
+    pattern: /\b(curl|wget|nc|netcat|socat)\b.*\b(169\.254\.169\.254|metadata\.google|metadata\.aws|100\.100\.100\.200)\b/i,
+    signal: { type: 'suspicious_egress', severity: 'critical', action: 'stop_workspace', reason: 'metadata service access attempt' },
+  },
+  {
+    pattern: /\b(curl|wget)\b.*\|\s*(sh|bash|zsh)|base64\s+-d\s*\|\s*(sh|bash|zsh)/i,
+    signal: { type: 'malware_download', severity: 'high', action: 'manual_review', reason: 'download and execute pattern' },
+  },
+  {
+    pattern: /\b(bash|sh|zsh|python|perl|ruby|php)\b.*\/dev\/tcp|nc\s+-e|socat\s+.*exec:|mkfifo\s+.*nc/i,
+    signal: { type: 'reverse_shell', severity: 'critical', action: 'stop_workspace', reason: 'reverse shell pattern' },
+  },
+  {
+    pattern: /;\s*(rm|curl|wget|bash|sh)\b|&&\s*(rm|curl|wget|bash|sh)\b|\|\s*(bash|sh|zsh)\b/i,
+    signal: { type: 'command_injection', severity: 'high', action: 'manual_review', reason: 'command chaining/injection pattern' },
+  },
+];
+
+export function detectCommandAbuse(command = '', args: string[] = []): AbuseSignal | undefined {
+  const line = [command, ...args].join(' ').trim();
+  return abuseCommandPatterns.find(({ pattern }) => pattern.test(line))?.signal;
+}
+
+export function detectUsageAbuse(input: {
+  aiMessages?: number;
+  failedAuthAttempts?: number;
+  workspaceCreations?: number;
+  storageBytes?: number;
+  cpuSeconds?: number;
+  previewRequests?: number;
+}): AbuseSignal | undefined {
+  if ((input.failedAuthAttempts ?? 0) >= 20) {
+    return { type: 'failed_auth_spike', severity: 'high', action: 'throttle', reason: 'many failed auth attempts' };
+  }
+  if ((input.workspaceCreations ?? 0) >= 30) {
+    return { type: 'workspace_creation_spike', severity: 'high', action: 'manual_review', reason: 'workspace creation spike' };
+  }
+  if ((input.aiMessages ?? 0) >= 1000) {
+    return { type: 'excessive_ai_usage', severity: 'medium', action: 'throttle', reason: 'excessive AI usage' };
+  }
+  if ((input.storageBytes ?? 0) >= 100 * 1024 * 1024 * 1024) {
+    return { type: 'storage_abuse', severity: 'high', action: 'manual_review', reason: 'storage abuse threshold exceeded' };
+  }
+  if ((input.cpuSeconds ?? 0) >= 6 * 60 * 60) {
+    return { type: 'cpu_abuse', severity: 'high', action: 'manual_review', reason: 'CPU abuse threshold exceeded' };
+  }
+  if ((input.previewRequests ?? 0) >= 10_000) {
+    return { type: 'spam_preview', severity: 'medium', action: 'throttle', reason: 'preview spam threshold exceeded' };
+  }
+  return undefined;
+}
