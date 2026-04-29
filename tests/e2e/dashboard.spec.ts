@@ -55,7 +55,7 @@ test('private templates create a project instead of opening the public gallery',
   await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
   await page.getByRole('button', { name: 'Use template' }).first().click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/);
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
 });
 
 test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
@@ -68,9 +68,10 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText('Presence ready')).toBeVisible();
-  await expect(page.getByText('Snapshots')).toBeVisible();
+  await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Agent', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
+  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
 
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
@@ -86,9 +87,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
 
-  await page.getByRole('link', { name: 'Snapshots' }).first().click();
+  await page.getByLabel('Open tool').first().click();
+  await page.getByRole('link', { name: /Snapshots/ }).click();
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=snapshots$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
     timeout: 15000,
@@ -98,7 +100,6 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await page.getByRole('button', { name: 'Create snapshot' }).click();
   await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
 
-  const projectMenu = page.getByLabel('Project IDE menu');
   const inIdePanels = [
     ['Overview', 'overview'],
     ['Deploy', 'deployments'],
@@ -112,21 +113,23 @@ test('IDE project services open as in-place panels instead of legacy project pag
   ] as const;
 
   for (const [label, panel] of inIdePanels) {
-    await projectMenu.getByRole('link', { name: label }).click();
+    await page.getByLabel('Open tool').first().click();
+    await page.getByRole('link', { name: new RegExp(label) }).click();
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${panel}$`));
     await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`)).toBeVisible({
       timeout: 15000,
     });
   }
 
-  await page.getByText('Panels').click();
-  await page.getByRole('group').getByRole('link', { name: 'Settings' }).click();
+  await page.getByLabel('Open tool').first().click();
+  await page.getByRole('link', { name: /Settings/ }).click();
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=settings$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]')).toBeVisible({
     timeout: 15000,
   });
 
-  await projectMenu.getByRole('link', { name: 'Env vars' }).click();
+  await page.getByLabel('Open tool').first().click();
+  await page.getByRole('link', { name: /Env vars/ }).click();
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
   await page.getByPlaceholder('VITE_API_URL').fill('E2E_FLAG');
@@ -142,9 +145,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
 test('edit file workflow surfaces editor, files, terminal and preview affordances', async ({ page }) => {
   await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText('Deploy')).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Shortcuts' })).toBeVisible();
+  await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Webview/ })).toBeVisible();
+  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
 
 test('reopens project IDE with persisted agent memory and panel state', async ({ page, isMobile }) => {
@@ -174,7 +178,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
 
   expect(saveState.ok(), await saveState.text()).toBeTruthy();
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(marker)).toBeVisible({ timeout: 15000 });
 
   if (!isMobile) {

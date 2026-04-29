@@ -43,7 +43,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
-import { useSearchParams } from '@remix-run/react';
+import { Link, useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -737,10 +737,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           maxSize={projectPanelLayout.agent.maxSize}
           className="min-w-0"
         >
-          <section className="bolt-project-ide-panel" aria-label="AI agent">
-            <div className="bolt-project-ide-panel-header">
-              <span className="i-ph:sparkle" aria-hidden />
-              <span>AI Agent</span>
+          <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
+            <div className="bolt-project-agent-header">
+              <div className="bolt-project-agent-avatar" aria-hidden>
+                <span className="i-ph:sparkle" />
+              </div>
+              <span className="bolt-project-agent-title">Agent</span>
+              <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
+                <button type="button" aria-pressed={chatMode === 'build'} onClick={() => setChatMode?.('build')}>
+                  Build
+                </button>
+                <button type="button" aria-pressed={chatMode === 'discuss'} onClick={() => setChatMode?.('discuss')}>
+                  Discuss
+                </button>
+              </div>
+              <div className="ml-auto flex items-center gap-1">
+                <button type="button" className="bolt-project-ide-icon-button" aria-label="Conversation history">
+                  <span className="i-ph:clock" aria-hidden />
+                </button>
+                <button type="button" className="bolt-project-ide-icon-button" aria-label="New chat">
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
+                <Link to="/settings/providers" className="bolt-project-ide-icon-button" aria-label="Agent settings">
+                  <span className="i-ph:sliders-horizontal" aria-hidden />
+                </Link>
+              </div>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
           </section>
@@ -755,24 +776,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         >
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
             {isManagementPanel ? (
-              <ProjectIdeServicePanel projectId={projectId} panel={activeProjectPanel} />
+              <>
+                <IdeTabBar
+                  projectId={projectId}
+                  activePanel={activeProjectPanel}
+                  tabs={[
+                    {
+                      id: activeProjectPanel,
+                      label: panelTitle(activeProjectPanel),
+                      icon: panelIcon(activeProjectPanel),
+                    },
+                  ]}
+                />
+                <ProjectIdeServicePanel projectId={projectId} panel={activeProjectPanel} />
+              </>
             ) : (
               <PanelGroup direction="vertical" className="min-h-0 flex-1">
                 <Panel defaultSize={activeProjectPanel === 'preview' ? 35 : 54} minSize={28} className="min-h-0">
                   <div className="flex h-full min-h-0 flex-col">
-                    <div className="bolt-project-ide-panel-header">
-                      <span className="i-ph:code" aria-hidden />
-                      <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'Editor'}</span>
-                      {currentDocument && unsavedFiles instanceof Set && unsavedFiles.has(currentDocument.filePath) && (
-                        <button
-                          type="button"
-                          className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
-                          onClick={onProjectEditorSave}
-                        >
-                          Save
-                        </button>
-                      )}
-                    </div>
+                    <IdeTabBar
+                      projectId={projectId}
+                      activePanel="editor"
+                      tabs={[
+                        {
+                          id: 'editor',
+                          label: currentDocument?.filePath?.replace(WORK_DIR, '') || 'Welcome',
+                          icon: 'i-ph:code',
+                          dirty:
+                            !!currentDocument &&
+                            unsavedFiles instanceof Set &&
+                            unsavedFiles.has(currentDocument.filePath),
+                          onSave: onProjectEditorSave,
+                        },
+                      ]}
+                    />
                     <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
                       {currentDocument && !currentDocument.isBinary ? (
                         <EditorAdapter
@@ -786,9 +823,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           }}
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center p-6 text-sm text-bolt-elements-textSecondary">
-                          Select a source file from the project files panel.
-                        </div>
+                        <ProjectWelcomeState projectId={projectId} files={Object.keys(projectFiles).slice(0, 5)} />
                       )}
                     </div>
                   </div>
@@ -796,13 +831,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
                 <Panel defaultSize={activeProjectPanel === 'preview' ? 65 : 46} minSize={24} className="min-h-0">
                   <div className="flex h-full min-h-0 flex-col">
-                    <div className="bolt-project-ide-panel-header">
-                      <span className="i-ph:browser" aria-hidden />
-                      <span>Preview</span>
-                      <span className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
-                        Live runtime
-                      </span>
-                    </div>
+                    <IdeTabBar
+                      projectId={projectId}
+                      activePanel="preview"
+                      tabs={[{ id: 'preview', label: 'Webview', icon: 'i-ph:browser' }]}
+                      trailing={<span className="bolt-project-runtime-badge">Live runtime</span>}
+                    />
                     <div className="min-h-0 flex-1 overflow-hidden">
                       <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
                     </div>
@@ -822,19 +856,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="min-w-0"
             >
               <section className="bolt-project-ide-panel" aria-label="Project files">
-                <div className="bolt-project-ide-panel-header">
+                <div className="bolt-project-right-tabs">
                   {[
-                    ['files', 'Files'],
-                    ['search', 'Search'],
-                    ['locks', 'Locks'],
-                  ].map(([id, label]) => (
+                    ['files', 'Files', 'i-ph:files'],
+                    ['search', 'Search', 'i-ph:magnifying-glass'],
+                    ['locks', 'Locks', 'i-ph:lock'],
+                  ].map(([id, label, icon]) => (
                     <button
                       key={id}
                       type="button"
-                      className="bolt-project-ide-tab"
+                      className="bolt-project-right-tab"
                       aria-current={rightPanel === id ? 'page' : undefined}
                       onClick={() => setRightPanel(id as typeof rightPanel)}
                     >
+                      <span className={icon} aria-hidden />
                       {label}
                     </button>
                   ))}
@@ -976,6 +1011,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </button>
           ))}
         </nav>
+        {projectIdeMode && !useMobileIde && (
+          <footer className="bolt-project-statusbar" aria-label="IDE status">
+            <div>
+              <span className="i-ph:git-branch" aria-hidden />
+              <span>main</span>
+              <span>↑0 ↓0</span>
+              <span className="i-ph:x-circle text-[#F85149]" aria-hidden />
+              <span>0</span>
+              <span className="i-ph:warning text-[#D29922]" aria-hidden />
+              <span>0</span>
+              <button type="button" onClick={() => workbenchStore.currentView.set('preview')}>
+                Running on preview
+              </button>
+            </div>
+            <div>
+              <span>Ln 1, Col 1</span>
+              <span>Spaces: 2</span>
+              <span>UTF-8</span>
+              <span>TypeScript</span>
+              <button type="button" aria-label="Toggle terminal" onClick={() => setMobilePanel('terminal')}>
+                <span className="i-ph:terminal-window" aria-hidden />
+              </button>
+              <button type="button" aria-label="Toggle agent">
+                <span className="i-ph:sparkle" aria-hidden />
+              </button>
+              <button type="button" aria-label="Notifications" onClick={() => setShowNotifications((value) => !value)}>
+                <span className="i-ph:bell" aria-hidden />
+              </button>
+            </div>
+          </footer>
+        )}
       </div>
     );
 
@@ -1081,6 +1147,171 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
           </div>
         ) : (
           <ProjectIdePanelContent panel={panel} data={data} project={project} onSubmit={submit} busy={busy} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function IdeTabBar({
+  projectId,
+  activePanel,
+  tabs,
+  trailing,
+}: {
+  projectId?: string;
+  activePanel: string;
+  tabs: Array<{ id: string; label: string; icon: string; dirty?: boolean; onSave?: () => void }>;
+  trailing?: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const tools = [
+    ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
+    ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
+    ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', '#0099FF'],
+    ['terminal', 'Console', 'Terminal', 'i-ph:terminal-window', '#3FB950'],
+    ['preview', 'Webview', 'App preview', 'i-ph:browser', '#0099FF'],
+    ['env', 'Env vars', 'Environment variables', 'i-ph:brackets-curly', '#D29922'],
+    ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', '#D29922'],
+    ['git', 'Git', 'Version control', 'i-ph:git-branch', '#3FB950'],
+    ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', '#7B61FF'],
+    ['logs', 'Logs', 'Server logs', 'i-ph:list-magnifying-glass', '#C2C8CC'],
+    ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', '#7B61FF'],
+    ['activity', 'Activity', 'Project timeline', 'i-ph:activity', '#0099FF'],
+    ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', '#C2C8CC'],
+    ['domains', 'Domains', 'Custom domains', 'i-ph:globe', '#0099FF'],
+    ['settings', 'Settings', 'Project settings', 'i-ph:gear', '#C2C8CC'],
+  ];
+
+  const hrefFor = (id: string) =>
+    projectId ? `/projects/${projectId}/ide${id === 'editor' ? '' : `?panel=${id}`}` : '#';
+
+  return (
+    <div className="bolt-project-tabbar">
+      <div className="bolt-project-tabs" role="tablist">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.id}
+            to={hrefFor(tab.id)}
+            role="tab"
+            aria-selected={activePanel === tab.id}
+            className="bolt-project-tab"
+          >
+            <span className={tab.icon} aria-hidden />
+            <span className={tab.dirty ? 'italic' : ''}>{tab.label}</span>
+            {tab.dirty ? (
+              <button
+                type="button"
+                className="bolt-project-tab-save"
+                aria-label={`Save ${tab.label}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  tab.onSave?.();
+                }}
+              >
+                ●
+              </button>
+            ) : (
+              <span className="bolt-project-tab-close" aria-hidden>
+                ×
+              </span>
+            )}
+          </Link>
+        ))}
+      </div>
+      {trailing}
+      <div className="bolt-project-tool-popover">
+        <button
+          type="button"
+          className="bolt-project-tab-action"
+          aria-label="Open tool"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          +
+        </button>
+        {open && (
+          <div className="bolt-project-tool-menu">
+            <div className="bolt-project-tool-search">
+              <span className="i-ph:magnifying-glass" aria-hidden />
+              <input placeholder="Search tools and files..." aria-label="Search tools and files" />
+            </div>
+            <div className="bolt-project-tool-section">RECENT FILES</div>
+            {tabs.slice(0, 3).map((tab) => (
+              <Link key={`recent-${tab.id}`} to={hrefFor(tab.id)} className="bolt-project-tool-item">
+                <span className={tab.icon} aria-hidden />
+                <span>
+                  <strong>{tab.label}</strong>
+                  <small>Current workspace</small>
+                </span>
+              </Link>
+            ))}
+            <div className="bolt-project-tool-section">TOOLS</div>
+            {tools.map(([id, title, description, icon, color]) => (
+              <Link key={id} to={hrefFor(id)} className="bolt-project-tool-item" onClick={() => setOpen(false)}>
+                <span className={icon} style={{ color }} aria-hidden />
+                <span>
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </span>
+                {id === activePanel && <em>Open</em>}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+      <Link to={hrefFor(activePanel)} className="bolt-project-tab-action" aria-label="Split right">
+        <span className="i-ph:columns" aria-hidden />
+      </Link>
+      <Link to={hrefFor(activePanel)} className="bolt-project-tab-action" aria-label="Split down">
+        <span className="i-ph:rows" aria-hidden />
+      </Link>
+      <button type="button" className="bolt-project-tab-action" aria-label="Tab actions">
+        <span className="i-ph:dots-three" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+function ProjectWelcomeState({ projectId, files }: { projectId?: string; files: string[] }) {
+  const shortcuts = [
+    ['i-ph:files', 'Open Files', '⌘P', 'files'],
+    ['i-ph:terminal-window', 'Open Console', '⌘`', 'terminal'],
+    ['i-ph:browser', 'View Preview', '⌘⇧V', 'preview'],
+    ['i-ph:command', 'All Commands', '⌘K', 'settings'],
+  ];
+
+  return (
+    <div className="bolt-project-welcome">
+      <div className="bolt-project-welcome-logo">
+        <span className="i-ph:sparkle" aria-hidden />
+      </div>
+      <h2>Bienvenue dans votre projet</h2>
+      <p>Ouvrez un outil ou demandez à l'agent de commencer.</p>
+      <div className="bolt-project-welcome-grid">
+        {shortcuts.map(([icon, label, shortcut, panel]) => (
+          <Link
+            key={label}
+            to={projectId ? `/projects/${projectId}/ide?panel=${panel}` : '#'}
+            className="bolt-project-welcome-card"
+          >
+            <span className={icon} aria-hidden />
+            <strong>{label}</strong>
+            <small>{shortcut}</small>
+          </Link>
+        ))}
+      </div>
+      <div className="bolt-project-welcome-recents">
+        <span>Récents</span>
+        {files.length ? (
+          files.map((file) => (
+            <button key={file} type="button">
+              <span className="i-ph:file-code" aria-hidden />
+              {file.replace(WORK_DIR, '')}
+            </button>
+          ))
+        ) : (
+          <small>No files loaded yet.</small>
         )}
       </div>
     </div>

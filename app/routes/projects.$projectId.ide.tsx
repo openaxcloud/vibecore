@@ -1,183 +1,252 @@
-import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
+import { type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { Link, useSearchParams } from '@remix-run/react';
-import { useState } from 'react';
+import { Link } from '@remix-run/react';
+import { useState, type ReactNode } from 'react';
 import { useStore } from '@nanostores/react';
 import {
-  Activity,
-  Braces,
-  Command,
-  FileCode2,
-  Gauge,
-  GitBranch,
-  Globe2,
-  Layers,
-  Lock,
+  Bell,
+  ChevronDown,
+  CircleHelp,
+  Copy,
+  Download,
+  PenLine,
   Rocket,
   Settings,
-  Terminal,
-  Users,
-  Zap,
+  Share2,
+  Sparkles,
+  Trash2,
+  User,
 } from 'lucide-react';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
-import { Header } from '~/components/header/Header';
+import { apiRequest, json } from '~/lib/enterprise-api.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { useResponsiveLayout } from '@vibecore/editor';
+
+type ProjectLoaderData = {
+  projectId: string;
+  project: {
+    id: string;
+    name: string;
+  };
+};
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data ? `Bolt IDE - ${data.projectId}` : 'Bolt IDE' },
   { name: 'description', content: 'Bolt IDE connected to a persistent project workspace.' },
 ];
 
-export const loader = ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!params.projectId) {
     throw new Response('Project not found', { status: 404 });
   }
 
-  return json({ projectId: params.projectId });
+  try {
+    const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(
+      request,
+      `/projects/${params.projectId}`,
+    );
+
+    return json<ProjectLoaderData>({ projectId: params.projectId, project: result.project });
+  } catch {
+    return json<ProjectLoaderData>({
+      projectId: params.projectId,
+      project: { id: params.projectId, name: params.projectId },
+    });
+  }
 };
 
 export default function ProjectIdeRoute() {
-  const { projectId } = useLoaderData<typeof loader>();
+  const { projectId, project } = useLoaderData<typeof loader>();
 
   return (
     <ProjectWorkspaceProvider projectId={projectId}>
-      <div className="bolt-project-ide-shell flex h-full w-full flex-col bg-bolt-elements-background-depth-1">
-        <Header />
-        <IdeProjectToolbar projectId={projectId} />
-        <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
-          {() => <Chat forceWorkbench projectIdeMode projectId={projectId} />}
-        </ClientOnly>
+      <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden bg-[#0A0F1C] text-[#F5F9FC]">
+        <IdeProjectTopBar projectId={projectId} projectName={project.name} />
+        <main className="h-dvh pt-9">
+          <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
+            {() => <Chat forceWorkbench projectIdeMode projectId={projectId} />}
+          </ClientOnly>
+        </main>
       </div>
     </ProjectWorkspaceProvider>
   );
 }
 
-function IdeProjectToolbar({ projectId }: { projectId: string }) {
-  const [searchParams] = useSearchParams();
+function IdeProjectTopBar({ projectId, projectName }: { projectId: string; projectName: string }) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
-  const [panelMenuOpen, setPanelMenuOpen] = useState(false);
-  const layout = useResponsiveLayout();
-  const showProjectMenu = !layout.isMobile;
-  const activePanel = searchParams.get('panel') ?? 'editor';
-  const statusLabel = loading
-    ? 'Workspace starting'
-    : error
-      ? 'Workspace error'
-      : status?.status
-        ? `Workspace ${status.status}`
-        : 'Workspace not started';
-
-  const projectMenu = [
-    { id: 'editor', label: 'Editor', to: `/projects/${projectId}/ide`, icon: FileCode2 },
-    { id: 'preview', label: 'Preview', to: `/projects/${projectId}/ide?panel=preview`, icon: Zap },
-    { id: 'overview', label: 'Overview', to: `/projects/${projectId}/ide?panel=overview`, icon: Gauge },
-    { id: 'deployments', label: 'Deploy', to: `/projects/${projectId}/ide?panel=deployments`, icon: Rocket },
-    { id: 'env', label: 'Env vars', to: `/projects/${projectId}/ide?panel=env`, icon: Braces },
-    { id: 'secrets', label: 'Secrets', to: `/projects/${projectId}/ide?panel=secrets`, icon: Lock },
-    { id: 'git', label: 'Git', to: `/projects/${projectId}/ide?panel=git`, icon: GitBranch },
-    { id: 'activity', label: 'Activity', to: `/projects/${projectId}/ide?panel=activity`, icon: Activity },
-    { id: 'logs', label: 'Logs', to: `/projects/${projectId}/ide?panel=logs`, icon: Terminal },
-    { id: 'collaborators', label: 'Collaborators', to: `/projects/${projectId}/ide?panel=collaborators`, icon: Users },
-    { id: 'domains', label: 'Domains', to: `/projects/${projectId}/ide?panel=domains`, icon: Globe2 },
-    { id: 'snapshots', label: 'Snapshots', to: `/projects/${projectId}/ide?panel=snapshots`, icon: Layers },
-    { id: 'settings', label: 'Settings', to: `/projects/${projectId}/ide?panel=settings`, icon: Settings },
-  ];
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
+  const statusLabel =
+    state === 'building'
+      ? 'Building...'
+      : state === 'crashed'
+        ? 'Crashed'
+        : state === 'running'
+          ? 'Running'
+          : 'Stopped';
 
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
-      <div className="flex min-w-0 items-center gap-2">
+    <header className="fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b border-[#1A2030] bg-[#0E1525] px-2.5 text-[12px]">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Link
+          to="/dashboard"
+          className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
+          aria-label="VibeCore dashboard"
+        >
+          <Sparkles className="h-5 w-5 text-[#7B61FF]" aria-hidden />
+        </Link>
+        <details
+          className="relative"
+          open={projectMenuOpen}
+          onToggle={(event) => setProjectMenuOpen(event.currentTarget.open)}
+        >
+          <summary className="inline-flex h-6 max-w-[220px] cursor-pointer list-none items-center gap-1 rounded px-1.5 text-[13px] font-medium text-[#F5F9FC] hover:bg-[#1A2030]">
+            <span className="truncate">{projectName}</span>
+            <ChevronDown className="h-3.5 w-3.5 text-[#6E7681]" aria-hidden />
+          </summary>
+          {projectMenuOpen && (
+            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[#2B3245] bg-[#1A2030] p-1.5 shadow-[0_24px_64px_rgba(0,4,20,0.7)]">
+              <ProjectMenuItem
+                to={`/projects/${projectId}/ide?panel=settings`}
+                icon={<Settings className="h-3.5 w-3.5" />}
+              >
+                Settings
+              </ProjectMenuItem>
+              <ProjectMenuItem
+                to={`/projects/${projectId}/ide?panel=settings`}
+                icon={<PenLine className="h-3.5 w-3.5" />}
+              >
+                Rename
+              </ProjectMenuItem>
+              <ProjectMenuItem to={`/projects/${projectId}/ide?panel=settings`} icon={<Copy className="h-3.5 w-3.5" />}>
+                Fork
+              </ProjectMenuItem>
+              <ProjectMenuItem to={`/projects/${projectId}/ide?panel=settings`} icon={<Copy className="h-3.5 w-3.5" />}>
+                Duplicate
+              </ProjectMenuItem>
+              <ProjectMenuItem
+                to={`/api/projects/${projectId}/ide-panel/settings`}
+                icon={<Download className="h-3.5 w-3.5" />}
+              >
+                Export
+              </ProjectMenuItem>
+              <ProjectMenuItem
+                to={`/projects/${projectId}/ide?panel=settings`}
+                icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
+              >
+                Delete
+              </ProjectMenuItem>
+            </div>
+          )}
+        </details>
         <Link
           to={`/projects/${projectId}/ide?panel=logs`}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+          className="inline-flex h-6 items-center gap-1.5 rounded px-1.5 text-[11px] text-[#C2C8CC] hover:bg-[#1A2030]"
         >
-          <Zap className="h-3.5 w-3.5" aria-hidden />
+          <span className="relative flex h-2 w-2">
+            {state === 'building' && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D29922] opacity-75" />
+            )}
+            <span
+              className="relative inline-flex h-1.5 w-1.5 rounded-full"
+              style={{
+                backgroundColor:
+                  state === 'running'
+                    ? '#3FB950'
+                    : state === 'building'
+                      ? '#D29922'
+                      : state === 'crashed'
+                        ? '#F85149'
+                        : '#6E7681',
+              }}
+            />
+          </span>
           {statusLabel}
         </Link>
-        <span className="inline-flex shrink-0 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-bolt-elements-textTertiary">
-          Presence ready
-        </span>
-        {layout.isMobile && (
-          <Link
-            to={`/projects/${projectId}/ide?panel=deployments`}
-            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-          >
-            <Rocket className="h-3.5 w-3.5" aria-hidden />
-            Deploy
-          </Link>
-        )}
+      </div>
+      <div aria-hidden className="flex-1" />
+      <div className="flex items-center gap-1.5">
         <Link
-          to={`/projects/${projectId}/ide?panel=snapshots`}
-          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+          to="/support"
+          className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
+          aria-label="Help"
         >
-          <Layers className="h-3.5 w-3.5" aria-hidden />
-          Snapshots
+          <CircleHelp className="h-3.5 w-3.5" aria-hidden />
         </Link>
-        {showProjectMenu && (
-          <div className="flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Project IDE menu">
-            {projectMenu.slice(0, 11).map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={[
-                    'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 hover:bg-bolt-elements-background-depth-3',
-                    activePanel === item.id ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary' : '',
-                  ].join(' ')}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-        <details
-          className="relative shrink-0"
-          open={panelMenuOpen}
-          onToggle={(event) => setPanelMenuOpen(event.currentTarget.open)}
+        <Link
+          to="/notifications"
+          className="relative inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
+          aria-label="Notifications"
         >
-          <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3">
-            <span className="text-sm leading-none">+</span>
-            Panels
+          <Bell className="h-3.5 w-3.5" aria-hidden />
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />
+        </Link>
+        <div className="flex items-center -space-x-1" aria-label="Collaborators">
+          {['A', 'M', 'S'].map((initial) => (
+            <span
+              key={initial}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#2B3245] text-[10px] font-semibold text-[#F5F9FC]"
+            >
+              {initial}
+            </span>
+          ))}
+        </div>
+        <Link
+          to={`/projects/${projectId}/ide?panel=collaborators`}
+          className="inline-flex h-6 items-center gap-1 rounded border border-[#2B3245] px-2.5 text-[12px] font-medium text-[#F5F9FC] hover:bg-[#1A2030]"
+        >
+          <Share2 className="h-3 w-3" aria-hidden />
+          Share
+        </Link>
+        <Link
+          to={`/projects/${projectId}/ide?panel=deployments`}
+          className="inline-flex h-6 items-center gap-1 rounded bg-gradient-to-r from-[#7B61FF] to-[#0099FF] px-3 text-[12px] font-medium text-white hover:brightness-110"
+        >
+          <Rocket className="h-3 w-3" aria-hidden />
+          Publish
+        </Link>
+        <details
+          className="relative"
+          open={userMenuOpen}
+          onToggle={(event) => setUserMenuOpen(event.currentTarget.open)}
+        >
+          <summary
+            className="inline-flex h-[22px] w-[22px] cursor-pointer list-none items-center justify-center rounded-full bg-[#2B3245] hover:ring-1 hover:ring-[#0099FF]"
+            aria-label="User menu"
+          >
+            <User className="h-3.5 w-3.5" aria-hidden />
           </summary>
-          {panelMenuOpen && (
-            <div className="absolute left-0 top-full z-50 mt-2 grid w-56 gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl">
-              {projectMenu.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={[
-                      'flex items-center gap-2 rounded-md px-2 py-2 hover:bg-bolt-elements-background-depth-3',
-                      activePanel === item.id
-                        ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                        : '',
-                    ].join(' ')}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                    {item.label}
-                  </Link>
-                );
-              })}
+          {userMenuOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[#2B3245] bg-[#1A2030] p-1.5 shadow-[0_24px_64px_rgba(0,4,20,0.7)]">
+              <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
+              <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
+              <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
+              <form method="post" action="/logout">
+                <button
+                  type="submit"
+                  className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]"
+                >
+                  Sign out
+                </button>
+              </form>
             </div>
           )}
         </details>
       </div>
-      <Link
-        to="/command-palette"
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-      >
-        <Command className="h-3.5 w-3.5" aria-hidden />
-        Shortcuts
-      </Link>
-    </div>
+    </header>
+  );
+}
+
+function ProjectMenuItem({ to, icon, children }: { to: string; icon?: ReactNode; children: ReactNode }) {
+  return (
+    <Link to={to} className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]">
+      {icon}
+      <span>{children}</span>
+    </Link>
   );
 }

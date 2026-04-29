@@ -233,6 +233,14 @@ body {
 
 .bolt-project-ide-shell {
   min-height: 0;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
 .bolt-project-ide-shell .bolt-responsive-ide {
@@ -242,11 +250,12 @@ body {
 
 .bolt-project-ide-panels {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 24px);
   min-height: 0;
   gap: 0;
-  padding: 10px;
-  background: var(--bolt-elements-bg-depth-1);
+  padding: 0;
+  background: #0a0f1c;
+  color: #f5f9fc;
 }
 
 .bolt-project-agent-panel {
@@ -270,20 +279,20 @@ body {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--bolt-elements-borderColor);
-  border-radius: 8px;
-  background: var(--bolt-elements-bg-depth-2);
+  border: 0;
+  border-radius: 0;
+  background: #0e1525;
 }
 
 .bolt-project-ide-panel-header {
   display: flex;
-  min-height: 38px;
+  min-height: 36px;
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid var(--bolt-elements-borderColor);
-  background: var(--bolt-elements-bg-depth-3);
-  color: var(--bolt-elements-textSecondary);
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  color: #c2c8cc;
   font-size: 12px;
   font-weight: 500;
   padding: 0 10px;
@@ -291,61 +300,462 @@ body {
 
 .bolt-project-ide-resize-handle {
   position: relative;
-  width: 8px;
-  flex: 0 0 8px;
+  width: 4px;
+  flex: 0 0 4px;
   outline: none;
+  background: transparent;
 }
 
 .bolt-project-ide-resize-handle-vertical {
   width: 100%;
-  height: 8px;
-  flex: 0 0 8px;
+  height: 4px;
+  flex: 0 0 4px;
 }
 
 .bolt-project-ide-resize-handle::after {
   position: absolute;
-  inset: 10px 3px;
+  inset: 0;
   border-radius: 999px;
-  background: var(--bolt-elements-borderColor);
+  background: transparent;
   content: '';
+  transition: background 150ms ease-out;
 }
 
 .bolt-project-ide-resize-handle-vertical::after {
-  inset: 3px 10px;
+  inset: 0;
 }
 
 .bolt-project-ide-resize-handle:hover::after,
 .bolt-project-ide-resize-handle[data-resize-handle-active]::after {
-  background: var(--bolt-elements-focus);
+  background: rgb(0 153 255 / 0.5);
 }
 
 .bolt-project-ide-tab {
   min-height: 28px;
-  border-radius: 6px;
-  color: var(--bolt-elements-textTertiary);
+  border-radius: 4px;
+  color: #6e7681;
   font-size: 12px;
   padding: 0 8px;
 }
 
 .bolt-project-ide-tab:hover,
 .bolt-project-ide-tab[aria-current='page'] {
-  background: var(--bolt-elements-bg-depth-2);
-  color: var(--bolt-elements-textPrimary);
+  background: #2b3245;
+  color: #f5f9fc;
 }
 
 .bolt-project-ide-icon-button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #6e7681;
+}
+
+.bolt-project-ide-icon-button:hover {
+  background: #1a2030;
+  color: #f5f9fc;
+}
+
+.bolt-project-agent-shell {
+  border-right: 1px solid #1a2030;
+}
+
+.bolt-project-agent-header {
+  display: flex;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  padding: 10px 12px;
+}
+
+.bolt-project-agent-avatar {
   display: inline-flex;
   width: 28px;
   height: 28px;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  color: var(--bolt-elements-textTertiary);
+  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  color: white;
 }
 
-.bolt-project-ide-icon-button:hover {
-  background: var(--bolt-elements-bg-depth-2);
-  color: var(--bolt-elements-textPrimary);
+.bolt-project-agent-title {
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-agent-mode {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  background: #1a2030;
+  padding: 2px;
+}
+
+.bolt-project-agent-mode button {
+  height: 20px;
+  border-radius: 999px;
+  padding: 0 8px;
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.bolt-project-agent-mode button[aria-pressed='true'] {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-tabbar,
+.bolt-project-right-tabs {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: stretch;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+}
+
+.bolt-project-tabs {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.bolt-project-tab,
+.bolt-project-right-tab {
+  display: inline-flex;
+  min-width: 100px;
+  max-width: 220px;
+  align-items: center;
+  gap: 8px;
+  border-right: 1px solid #1a2030;
+  color: #c2c8cc;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 12px;
+  position: relative;
+  transition: background 100ms ease-out;
+}
+
+.bolt-project-right-tab {
+  min-width: auto;
+  padding: 0 10px;
+}
+
+.bolt-project-tab[aria-selected='true'],
+.bolt-project-right-tab[aria-current='page'] {
+  background: #1a2030;
+  color: #f5f9fc;
+}
+
+.bolt-project-tab[aria-selected='true']::after,
+.bolt-project-right-tab[aria-current='page']::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: #f26207;
+  content: '';
+}
+
+.bolt-project-tab:hover,
+.bolt-project-right-tab:hover {
+  background: #1a2030;
+}
+
+.bolt-project-tab > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-tab-close,
+.bolt-project-tab-save {
+  margin-left: auto;
+  color: #6e7681;
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+}
+
+.bolt-project-tab:hover .bolt-project-tab-close,
+.bolt-project-tab-save {
+  opacity: 1;
+}
+
+.bolt-project-tab-save {
+  color: #f26207;
+}
+
+.bolt-project-tab-action {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  border-radius: 4px;
+  color: #c2c8cc;
+  margin-right: 4px;
+}
+
+.bolt-project-tab-action:hover {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-tool-popover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bolt-project-tool-popover summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.bolt-project-tool-menu {
+  position: absolute;
+  right: 0;
+  top: 32px;
+  z-index: 60;
+  width: 320px;
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid #2b3245;
+  border-radius: 12px;
+  background: rgb(26 32 48 / 0.96);
+  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  padding: 8px;
+  backdrop-filter: blur(12px);
+}
+
+.bolt-project-tool-search {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0e1525;
+  padding: 0 10px;
+  color: #6e7681;
+}
+
+.bolt-project-tool-search input {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  color: #f5f9fc;
+  font-size: 13px;
+  outline: none;
+}
+
+.bolt-project-tool-section {
+  padding: 10px 8px 6px;
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.bolt-project-tool-item {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.bolt-project-tool-item:hover {
+  background: #2b3245;
+}
+
+.bolt-project-tool-item strong,
+.bolt-project-tool-item small {
+  display: block;
+}
+
+.bolt-project-tool-item strong {
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bolt-project-tool-item small {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-tool-item em {
+  margin-left: auto;
+  border-radius: 999px;
+  background: rgb(63 185 80 / 0.15);
+  color: #3fb950;
+  font-size: 10px;
+  font-style: normal;
+  padding: 2px 6px;
+}
+
+.bolt-project-runtime-badge {
+  align-self: center;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  color: #6e7681;
+  font-size: 11px;
+  margin-right: 8px;
+  padding: 2px 8px;
+}
+
+.bolt-project-welcome {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.bolt-project-welcome-logo {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  color: white;
+  font-size: 32px;
+  opacity: 0.75;
+}
+
+.bolt-project-welcome h2 {
+  margin-top: 16px;
+  color: #f5f9fc;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bolt-project-welcome p {
+  margin-top: 6px;
+  color: #6e7681;
+  font-size: 13px;
+}
+
+.bolt-project-welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 200px));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.bolt-project-welcome-card {
+  display: grid;
+  min-height: 92px;
+  justify-items: start;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: #1a2030;
+  padding: 12px;
+  text-align: left;
+}
+
+.bolt-project-welcome-card:hover {
+  background: #2b3245;
+}
+
+.bolt-project-welcome-card strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-welcome-card small,
+.bolt-project-welcome-recents {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-welcome-recents {
+  display: grid;
+  width: min(420px, 100%);
+  gap: 6px;
+  margin-top: 22px;
+  text-align: left;
+}
+
+.bolt-project-welcome-recents button {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: #c2c8cc;
+}
+
+.bolt-project-welcome-recents button:hover {
+  background: #1a2030;
+}
+
+.bolt-project-service-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-statusbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: max(360px, 29vw);
+  z-index: 40;
+  display: flex;
+  height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #1a2030;
+  background: #0e1525;
+  color: #c2c8cc;
+  font-size: 11px;
+  padding: 0 12px;
+}
+
+.bolt-project-statusbar div,
+.bolt-project-statusbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-statusbar button:hover {
+  color: #f5f9fc;
+}
+
+.bolt-project-ide-shell button:focus-visible,
+.bolt-project-ide-shell a:focus-visible,
+.bolt-project-ide-shell summary:focus-visible,
+.bolt-project-ide-shell input:focus-visible,
+.bolt-project-ide-shell textarea:focus-visible {
+  outline: 2px solid #0099ff;
+  outline-offset: 2px;
 }
 
 @media (max-width: 767px) {
