@@ -20,7 +20,7 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   git: (projectId) => `/projects/${projectId}/git/status`,
   activity: (projectId) => `/projects/${projectId}/activity`,
   logs: (projectId) => `/projects/${projectId}/dashboard`,
-  collaborators: (projectId) => `/projects/${projectId}/collaborators`,
+  collaborators: (projectId) => `/projects/${projectId}/collaboration`,
   snapshots: (projectId) => `/projects/${projectId}/snapshots`,
   settings: (projectId) => `/projects/${projectId}/settings`,
 };
@@ -133,10 +133,39 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
     });
   } else if (panel === 'collaborators') {
-    await apiRequest(request, `/projects/${projectId}/collaborators`, {
-      method: 'POST',
-      body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'member' }),
-    });
+    if (intent === 'comment') {
+      await apiRequest(request, `/projects/${projectId}/collaboration/comments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          filePath: body.filePath || undefined,
+          line: body.line || undefined,
+          body: body.body,
+        }),
+      });
+    } else if (intent === 'share-link') {
+      await apiRequest(request, `/projects/${projectId}/collaboration/share-links`, {
+        method: 'POST',
+        body: JSON.stringify({
+          roleKey: body.roleKey || 'viewer',
+          expiresInMinutes: body.expiresInMinutes || 1440,
+        }),
+      });
+    } else if (intent === 'terminal-permission') {
+      await apiRequest(request, `/projects/${projectId}/collaboration/terminal-permissions`, {
+        method: 'POST',
+        body: JSON.stringify({ userId: body.userId, allowed: body.allowed === 'true' }),
+      });
+    } else if (intent === 'ai-sharing') {
+      await apiRequest(request, `/projects/${projectId}/collaboration/ai-conversation`, {
+        method: 'POST',
+        body: JSON.stringify({ shared: body.shared === 'true', mode: body.mode || 'comment' }),
+      });
+    } else {
+      await apiRequest(request, `/projects/${projectId}/collaborators`, {
+        method: 'POST',
+        body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'member' }),
+      });
+    }
   } else if (panel === 'domains') {
     const organization = await firstOrganization(request);
 

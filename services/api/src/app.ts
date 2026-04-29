@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import websocket from '@fastify/websocket';
 import { createVerify } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { Redis } from 'ioredis';
 import JSZip from 'jszip';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
@@ -14,6 +15,7 @@ import {
   createRecoveryCodes,
   createTotpSecret,
   createTotpUri,
+  hashToken,
   hashPassword,
   hashRecoveryCode,
   verifyPassword,
@@ -39,7 +41,14 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
-import { type ApiStore, type ProjectRecord, type SessionRecord, type WorkspaceRecord } from './store.js';
+import {
+  type ApiStore,
+  type CollaborationPresenceRecord,
+  type ProjectIdeStateRecord,
+  type ProjectRecord,
+  type SessionRecord,
+  type WorkspaceRecord,
+} from './store.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   GitCliProvider,
@@ -160,6 +169,41 @@ const projectKeyValueSchema = z.object({
 const collaboratorSchema = z.object({
   userId: z.string().min(1),
   roleKey: z.enum(['owner', 'admin', 'member', 'viewer']),
+});
+const collaborationPresenceSchema = z.object({
+  sessionId: z.string().min(1),
+  status: z.enum(['online', 'idle', 'offline']).default('online'),
+  filePath: z.string().optional(),
+  cursor: z.unknown().optional(),
+  selection: z.unknown().optional(),
+  mode: z.enum(['editing', 'read-only', 'pair-programming']).default('editing'),
+  terminalAccess: z.boolean().optional(),
+});
+const collaborationCommentSchema = z.object({
+  filePath: z.string().optional(),
+  line: z.coerce.number().int().positive().optional(),
+  selection: z.unknown().optional(),
+  body: z.string().min(1).max(8000),
+});
+const collaborationEditSchema = z.object({
+  filePath: z.string().min(1),
+  baseVersion: z.coerce.number().int().min(0).optional(),
+  content: z.string(),
+  cursor: z.unknown().optional(),
+  selection: z.unknown().optional(),
+});
+const collaborationTerminalPermissionSchema = z.object({
+  userId: z.string().min(1),
+  sessionId: z.string().min(1).optional(),
+  allowed: z.boolean().default(true),
+});
+const collaborationShareLinkSchema = z.object({
+  roleKey: z.enum(['viewer', 'member']).default('viewer'),
+  expiresInMinutes: z.coerce.number().int().min(5).max(60 * 24 * 30).default(60 * 24),
+});
+const collaborationAiSharingSchema = z.object({
+  shared: z.boolean().default(true),
+  mode: z.enum(['read-only', 'comment', 'pair-programming']).default('comment'),
 });
 const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
 const duplicateProjectSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
@@ -507,6 +551,53 @@ async function requireProject(
   await requireOrg(request, store, project.organizationId, permission);
 
   return project;
+}
+
+async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
+  if (!userId) {
+    return undefined;
+  }
+
+  return (await store.listProjectCollaborators(projectId)).find((collaborator) => collaborator.userId === userId)
+    ?.roleKey;
+}
+
+function isReadOnlyProjectRole(role?: string) {
+  return role === 'viewer';
+}
+
+function normalizeProjectPath(path?: string) {
+  if (!path) {
+    return undefined;
+  }
+
+  const normalized = path.replaceAll('\\', '/').replace(/^\/+/, '');
+
+  if (!normalized || normalized.includes('..') || normalized.startsWith('~')) {
+    throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+  }
+
+  return normalized;
+}
+
+function ideStateObject(state?: ProjectIdeStateRecord) {
+  return state?.state && typeof state.state === 'object' && !Array.isArray(state.state)
+    ? ({ ...(state.state as Record<string, unknown>) } as Record<string, unknown>)
+    : {};
+}
+
+function collaborationDocuments(state?: ProjectIdeStateRecord) {
+  const root = ideStateObject(state);
+  const collaboration =
+    root.collaboration && typeof root.collaboration === 'object' && !Array.isArray(root.collaboration)
+      ? ({ ...(root.collaboration as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+  const documents =
+    collaboration.documents && typeof collaboration.documents === 'object' && !Array.isArray(collaboration.documents)
+      ? ({ ...(collaboration.documents as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+
+  return { root, collaboration, documents };
 }
 
 async function requireWorkspace(
@@ -1067,6 +1158,64 @@ async function runtimeWebSocketData(data: unknown) {
   return String(data);
 }
 
+type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
+
+function createCollaborationBroker() {
+  const rooms = new Map<string, Set<CollaborationSocket>>();
+  const redisUrl = process.env.REDIS_URL;
+  const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
+  const publisher = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
+  const subscriber = redisUrl ? new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: 1 }) : undefined;
+
+  if (publisher && subscriber) {
+    publisher.connect().catch(() => undefined);
+    subscriber.connect().catch(() => undefined);
+    subscriber.on('message', (channel, message) => {
+      const projectId = channel.slice(`${channelPrefix}:`.length);
+      broadcastLocal(projectId, message);
+    });
+  }
+
+  function channel(projectId: string) {
+    return `${channelPrefix}:${projectId}`;
+  }
+
+  function broadcastLocal(projectId: string, message: string, except?: CollaborationSocket) {
+    for (const peer of rooms.get(projectId) ?? []) {
+      if (peer !== except) {
+        peer.send(message);
+      }
+    }
+  }
+
+  return {
+    join(projectId: string, socket: CollaborationSocket) {
+      if (!rooms.has(projectId)) {
+        rooms.set(projectId, new Set());
+        subscriber?.subscribe(channel(projectId)).catch(() => undefined);
+      }
+
+      rooms.get(projectId)!.add(socket);
+    },
+    leave(projectId: string, socket: CollaborationSocket) {
+      rooms.get(projectId)?.delete(socket);
+
+      if (!rooms.get(projectId)?.size) {
+        rooms.delete(projectId);
+        subscriber?.unsubscribe(channel(projectId)).catch(() => undefined);
+      }
+    },
+    publish(projectId: string, payload: unknown, except?: CollaborationSocket) {
+      const message = JSON.stringify({ ...((payload as Record<string, unknown>) ?? {}), timestamp: new Date().toISOString() });
+      broadcastLocal(projectId, message, except);
+      publisher?.publish(channel(projectId), message).catch(() => undefined);
+    },
+    async close() {
+      await Promise.allSettled([publisher?.quit(), subscriber?.quit()].filter(Boolean) as Array<Promise<unknown>>);
+    },
+  };
+}
+
 async function audit(
   request: any,
   store: ApiStore,
@@ -1191,6 +1340,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           baseUrl: process.env.STRIPE_API_BASE_URL,
         })
       : undefined;
+  const collaborationBroker = createCollaborationBroker();
 
   const app = Fastify({
     logger: {
@@ -1208,6 +1358,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     },
   }) as FastifyInstance;
+  app.addHook('onClose', async () => {
+    await collaborationBroker.close();
+  });
 
   await seedBillingPlans(store);
 
@@ -2304,6 +2457,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const role = await projectCollaborationRole(store, authorized.projectId, request.currentUser?.id);
+
+    if (isReadOnlyProjectRole(role)) {
+      const state = await store.getProjectIdeState(authorized.projectId);
+      const { collaboration } = collaborationDocuments(state);
+      const permissions =
+        collaboration.terminalPermissions &&
+        typeof collaboration.terminalPermissions === 'object' &&
+        !Array.isArray(collaboration.terminalPermissions)
+          ? (collaboration.terminalPermissions as Record<string, { allowed?: boolean }>)
+          : {};
+
+      if (!permissions[request.currentUser!.id]?.allowed) {
+        const client = normalizeRuntimeApiWebSocket(socket);
+        client.send(
+          JSON.stringify({
+            type: 'error',
+            error: { code: 'TERMINAL_ACCESS_DENIED', message: 'Terminal access is restricted for this project role' },
+            timestamp: new Date().toISOString(),
+          }),
+        );
+        client.close();
+        return;
+      }
+    }
+
     if (authorized.organizationId) {
       await ensureQuota(request, authorized.organizationId, 'terminals.concurrent');
       await recordUsage(request, authorized.organizationId, 'terminals.concurrent', 1, {
@@ -3247,6 +3426,365 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(201).send({ collaborator });
+  });
+  app.get('/projects/:projectId/collaboration', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const ideState = await store.getProjectIdeState(project.id);
+    const state = ideStateObject(ideState);
+    const collaborationState =
+      state.collaboration && typeof state.collaboration === 'object' && !Array.isArray(state.collaboration)
+        ? (state.collaboration as Record<string, unknown>)
+        : {};
+
+    return {
+      collaborators: await store.listProjectCollaborators(project.id),
+      presence: await store.listCollaborationPresence(project.id),
+      comments: await store.listCollaborationComments(project.id),
+      activity: await store.listProjectActivity(project.id),
+      shareLinks: (await store.listProjectShareLinks(project.id)).map(({ tokenHash: _tokenHash, ...link }) => link),
+      documents: collaborationState.documents ?? {},
+      terminalPermissions: collaborationState.terminalPermissions ?? {},
+      aiConversation: collaborationState.aiConversation ?? { shared: false, mode: 'comment' },
+      realtime: { websocketPath: `/projects/${project.id}/collaboration/ws`, redisPubSub: Boolean(process.env.REDIS_URL) },
+    };
+  });
+  app.post('/projects/:projectId/collaboration/presence', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const body = parse(collaborationPresenceSchema, request.body);
+    const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+    const presence = await store.upsertCollaborationPresence({
+      projectId: project.id,
+      userId: request.currentUser!.id,
+      sessionId: body.sessionId,
+      status: body.status,
+      filePath: normalizeProjectPath(body.filePath),
+      cursor: body.cursor,
+      selection: body.selection,
+      mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
+      terminalAccess: body.terminalAccess,
+    });
+    collaborationBroker.publish(project.id, { type: 'presence.update', presence });
+
+    return { presence };
+  });
+  app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const sessionId = z.object({ sessionId: z.string().min(1) }).parse(request.params).sessionId;
+    const removed = await store.removeCollaborationPresence(project.id, sessionId);
+    collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId });
+
+    return { removed };
+  });
+  app.post('/projects/:projectId/collaboration/comments', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const body = parse(collaborationCommentSchema, request.body);
+    const comment = await store.createCollaborationComment({
+      projectId: project.id,
+      userId: request.currentUser!.id,
+      filePath: normalizeProjectPath(body.filePath),
+      line: body.line,
+      selection: body.selection,
+      body: body.body,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.comment',
+      metadata: { filePath: comment.filePath, line: comment.line },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaboration.comment',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { commentId: comment.id, filePath: comment.filePath },
+    });
+    collaborationBroker.publish(project.id, { type: 'comment.create', comment });
+
+    return reply.code(201).send({ comment });
+  });
+  app.post('/projects/:projectId/collaboration/edit', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+
+    if (isReadOnlyProjectRole(role)) {
+      return reply.code(403).send({ code: 'COLLABORATION_READ_ONLY', error: 'Viewer collaborators cannot edit files' });
+    }
+
+    const body = parse(collaborationEditSchema, request.body);
+    const filePath = normalizeProjectPath(body.filePath)!;
+    const existingState = await store.getProjectIdeState(project.id);
+    const { root, collaboration, documents } = collaborationDocuments(existingState);
+    const existingDocument = (documents[filePath] && typeof documents[filePath] === 'object'
+      ? (documents[filePath] as Record<string, unknown>)
+      : {}) as { version?: number };
+    const currentVersion = Number(existingDocument.version ?? 0);
+
+    if (typeof body.baseVersion === 'number' && body.baseVersion !== currentVersion) {
+      return reply.code(409).send({
+        code: 'DOCUMENT_CONFLICT',
+        error: 'Document version conflict',
+        document: documents[filePath] ?? null,
+      });
+    }
+
+    const document = {
+      filePath,
+      content: body.content,
+      version: currentVersion + 1,
+      updatedByUserId: request.currentUser!.id,
+      updatedAt: new Date().toISOString(),
+      cursor: body.cursor,
+      selection: body.selection,
+    };
+    const ideState = await store.upsertProjectIdeState({
+      projectId: project.id,
+      updatedByUserId: request.currentUser!.id,
+      state: {
+        ...root,
+        collaboration: {
+          ...collaboration,
+          documents: { ...documents, [filePath]: document },
+        },
+      },
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.document.edit',
+      metadata: { filePath, version: document.version },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaboration.document.edit',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { filePath, version: document.version },
+    });
+    collaborationBroker.publish(project.id, { type: 'document.sync', document });
+
+    return { document, ideState };
+  });
+  app.post('/projects/:projectId/collaboration/terminal-permissions', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(collaborationTerminalPermissionSchema, request.body);
+    const existingState = await store.getProjectIdeState(project.id);
+    const { root, collaboration } = collaborationDocuments(existingState);
+    const terminalPermissions =
+      collaboration.terminalPermissions &&
+      typeof collaboration.terminalPermissions === 'object' &&
+      !Array.isArray(collaboration.terminalPermissions)
+        ? ({ ...(collaboration.terminalPermissions as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+    terminalPermissions[body.userId] = {
+      allowed: body.allowed,
+      grantedByUserId: request.currentUser!.id,
+      grantedAt: new Date().toISOString(),
+    };
+    const ideState = await store.upsertProjectIdeState({
+      projectId: project.id,
+      updatedByUserId: request.currentUser!.id,
+      state: { ...root, collaboration: { ...collaboration, terminalPermissions } },
+    });
+
+    if (body.sessionId) {
+      const presence = (await store.listCollaborationPresence(project.id)).find(
+        (candidate) => candidate.sessionId === body.sessionId && candidate.userId === body.userId,
+      );
+
+      if (presence) {
+        await store.upsertCollaborationPresence({ ...presence, terminalAccess: body.allowed });
+      }
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.terminal_permission',
+      metadata: { userId: body.userId, allowed: body.allowed },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaboration.terminal_permission',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { userId: body.userId, allowed: body.allowed },
+    });
+    collaborationBroker.publish(project.id, { type: 'terminal.permission', userId: body.userId, allowed: body.allowed });
+
+    return { terminalPermissions, ideState };
+  });
+  app.post('/projects/:projectId/collaboration/share-links', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(collaborationShareLinkSchema, request.body);
+    const token = createOpaqueToken('share');
+    const roleKey = body.roleKey ?? 'viewer';
+    const expiresInMinutes = body.expiresInMinutes ?? 60 * 24;
+    const link = await store.createProjectShareLink({
+      projectId: project.id,
+      tokenHash: hashToken(token),
+      roleKey,
+      expiresAt: new Date(Date.now() + expiresInMinutes * 60_000),
+      createdByUserId: request.currentUser!.id,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.share_link.create',
+      metadata: { roleKey, expiresAt: link.expiresAt },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.collaboration.share_link.create',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { roleKey, expiresAt: link.expiresAt },
+    });
+
+    const { tokenHash: _tokenHash, ...safeLink } = link;
+    return reply.code(201).send({ shareLink: safeLink, token });
+  });
+  app.post('/projects/:projectId/collaboration/ai-conversation', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(collaborationAiSharingSchema, request.body);
+    const existingState = await store.getProjectIdeState(project.id);
+    const { root, collaboration } = collaborationDocuments(existingState);
+    const aiConversation = {
+      shared: body.shared,
+      mode: body.mode,
+      updatedByUserId: request.currentUser!.id,
+      updatedAt: new Date().toISOString(),
+    };
+    const ideState = await store.upsertProjectIdeState({
+      projectId: project.id,
+      updatedByUserId: request.currentUser!.id,
+      state: { ...root, collaboration: { ...collaboration, aiConversation } },
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.collaboration.ai_conversation.share',
+      metadata: aiConversation,
+    });
+    collaborationBroker.publish(project.id, { type: 'ai_conversation.share', aiConversation });
+
+    return { aiConversation, ideState };
+  });
+  app.get('/projects/:projectId/collaboration/ws', { websocket: true }, async (socket, request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const client = normalizeRuntimeApiWebSocket(socket);
+    const query = request.query as { sessionId?: string };
+    const sessionId = query.sessionId || request.currentSession?.id || `ws:${request.currentUser!.id}`;
+    const presence = await store.upsertCollaborationPresence({
+      projectId: project.id,
+      userId: request.currentUser!.id,
+      sessionId,
+      status: 'online',
+    });
+    collaborationBroker.join(project.id, client);
+    collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
+    client.send(
+      JSON.stringify({
+        type: 'collaboration.ready',
+        projectId: project.id,
+        presence: await store.listCollaborationPresence(project.id),
+        comments: await store.listCollaborationComments(project.id),
+        timestamp: new Date().toISOString(),
+      }),
+    );
+    client.onMessage(async (message) => {
+      try {
+        const event = JSON.parse(message.toString()) as { type?: string; payload?: unknown };
+
+        if (event.type === 'presence.update') {
+          const body = parse(collaborationPresenceSchema.partial({ sessionId: true }), {
+            ...(event.payload as Record<string, unknown>),
+            sessionId,
+          });
+          const updated = await store.upsertCollaborationPresence({
+            projectId: project.id,
+            userId: request.currentUser!.id,
+            sessionId,
+            status: body.status,
+            filePath: normalizeProjectPath(body.filePath),
+            cursor: body.cursor,
+            selection: body.selection,
+            mode: body.mode,
+            terminalAccess: body.terminalAccess,
+          });
+          collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+          return;
+        }
+
+        if (event.type === 'comment.create') {
+          const body = parse(collaborationCommentSchema, event.payload ?? {});
+          const comment = await store.createCollaborationComment({
+            projectId: project.id,
+            userId: request.currentUser!.id,
+            filePath: normalizeProjectPath(body.filePath),
+            line: body.line,
+            selection: body.selection,
+            body: body.body,
+          });
+          collaborationBroker.publish(project.id, { type: 'comment.create', comment }, client);
+          return;
+        }
+
+        collaborationBroker.publish(project.id, event, client);
+      } catch (error: any) {
+        client.send(JSON.stringify({ type: 'error', error: { message: error.message }, timestamp: new Date().toISOString() }));
+      }
+    });
+    client.onClose(async () => {
+      collaborationBroker.leave(project.id, client);
+      await store.removeCollaborationPresence(project.id, sessionId);
+      collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId }, client);
+    });
   });
   app.get('/projects/:projectId/activity', async (request) => {
     const project = await requireProject(

@@ -3301,19 +3301,170 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'collaborators') {
+    const collaborators = data.collaborators ?? [];
+    const presence = data.presence ?? [];
+    const comments = data.comments ?? [];
+    const activity = data.activity ?? [];
+    const shareLinks = data.shareLinks ?? [];
+    const terminalPermissions = data.terminalPermissions ?? {};
+    const aiConversation = data.aiConversation ?? { shared: false, mode: 'comment' };
+
     return (
-      <PanelWithForm
-        rows={(data.collaborators ?? []).map((collaborator: any) => [
-          collaborator.userId,
-          `Role: ${collaborator.roleKey}`,
-        ])}
-        empty="No project collaborators."
-        onSubmit={onSubmit}
-        busy={busy}
-        fields={[{ name: 'userId', placeholder: 'User ID', required: true }]}
-        select={{ name: 'roleKey', options: ['viewer', 'member', 'admin', 'owner'] }}
-        submitLabel="Add collaborator"
-      />
+      <div className="bolt-project-collaboration-tool">
+        <section className="bolt-project-collaboration-card">
+          <div className="bolt-project-collaboration-header">
+            <div>
+              <h3>Presence</h3>
+              <p>{presence.length} online users with live cursor and selection sync.</p>
+            </div>
+            <span className="bolt-project-collaboration-live">Live</span>
+          </div>
+          <div className="bolt-project-collaboration-users">
+            {presence.length ? (
+              presence.map((user: any) => (
+                <div key={user.sessionId} className="bolt-project-collaboration-user">
+                  <span className="bolt-project-collaboration-avatar">{String(user.userId ?? 'U').slice(0, 2)}</span>
+                  <div>
+                    <strong>{user.userId}</strong>
+                    <small>
+                      {user.mode ?? 'editing'} {user.filePath ? `in ${user.filePath}` : ''}
+                    </small>
+                  </div>
+                  <em>{user.status ?? 'online'}</em>
+                </div>
+              ))
+            ) : (
+              <div className="bolt-project-empty-panel">No active presence yet.</div>
+            )}
+          </div>
+        </section>
+
+        <section className="bolt-project-collaboration-card">
+          <div className="bolt-project-collaboration-header">
+            <div>
+              <h3>Role-based collaborators</h3>
+              <p>Project access is enforced by the backend before editing, comments and terminal access.</p>
+            </div>
+          </div>
+          <div className="bolt-project-collaboration-list">
+            {collaborators.length ? (
+              collaborators.map((collaborator: any) => (
+                <div key={collaborator.id} className="bolt-project-collaboration-row">
+                  <span>{collaborator.userId}</span>
+                  <strong>{collaborator.roleKey}</strong>
+                  <form method="post" onSubmit={onSubmit}>
+                    <input type="hidden" name="intent" value="terminal-permission" />
+                    <input type="hidden" name="userId" value={collaborator.userId} />
+                    <input
+                      type="hidden"
+                      name="allowed"
+                      value={terminalPermissions[collaborator.userId]?.allowed ? 'false' : 'true'}
+                    />
+                    <PanelButton disabled={busy} variant="outline">
+                      {terminalPermissions[collaborator.userId]?.allowed ? 'Revoke terminal' : 'Allow terminal'}
+                    </PanelButton>
+                  </form>
+                </div>
+              ))
+            ) : (
+              <div className="bolt-project-empty-panel">No project collaborators.</div>
+            )}
+          </div>
+          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
+            <PanelInput name="userId" placeholder="User ID" required />
+            <select name="roleKey" defaultValue="member">
+              {['viewer', 'member', 'admin', 'owner'].map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+            <PanelButton disabled={busy}>Invite to project</PanelButton>
+          </form>
+        </section>
+
+        <section className="bolt-project-collaboration-card">
+          <div className="bolt-project-collaboration-header">
+            <div>
+              <h3>Comments</h3>
+              <p>Members can leave file comments without requiring a file lock.</p>
+            </div>
+          </div>
+          <div className="bolt-project-collaboration-list">
+            {comments.length ? (
+              comments.slice(-6).map((comment: any) => (
+                <div key={comment.id} className="bolt-project-collaboration-comment">
+                  <strong>
+                    {comment.filePath ?? 'Project'} {comment.line ? `:${comment.line}` : ''}
+                  </strong>
+                  <p>{comment.body}</p>
+                  <small>{comment.userId}</small>
+                </div>
+              ))
+            ) : (
+              <div className="bolt-project-empty-panel">No comments yet.</div>
+            )}
+          </div>
+          <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
+            <input type="hidden" name="intent" value="comment" />
+            <PanelInput name="filePath" placeholder="src/App.tsx" />
+            <PanelInput name="line" placeholder="Line" />
+            <PanelInput name="body" placeholder="Comment" required />
+            <PanelButton disabled={busy}>Add comment</PanelButton>
+          </form>
+        </section>
+
+        <section className="bolt-project-collaboration-card">
+          <div className="bolt-project-collaboration-header">
+            <div>
+              <h3>Sharing and pair programming</h3>
+              <p>Expiring links, shared AI conversation policy and read-only modes stay scoped to this project.</p>
+            </div>
+          </div>
+          <div className="bolt-project-collaboration-grid">
+            <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
+              <input type="hidden" name="intent" value="share-link" />
+              <select name="roleKey" defaultValue="viewer">
+                <option value="viewer">Read-only link</option>
+                <option value="member">Pair-programming link</option>
+              </select>
+              <PanelInput name="expiresInMinutes" placeholder="Expires in minutes" defaultValue="1440" />
+              <PanelButton disabled={busy}>Create expiring link</PanelButton>
+            </form>
+            <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
+              <input type="hidden" name="intent" value="ai-sharing" />
+              <input type="hidden" name="shared" value={aiConversation.shared ? 'false' : 'true'} />
+              <select name="mode" defaultValue={aiConversation.mode ?? 'comment'}>
+                <option value="read-only">AI read-only</option>
+                <option value="comment">AI comments</option>
+                <option value="pair-programming">AI pair programming</option>
+              </select>
+              <PanelButton disabled={busy} variant="outline">
+                {aiConversation.shared ? 'Disable shared AI' : 'Enable shared AI'}
+              </PanelButton>
+            </form>
+          </div>
+          <PanelRows
+            rows={shareLinks.map((link: any) => [link.roleKey, `Expires ${link.expiresAt}`])}
+            empty="No active share links."
+          />
+        </section>
+
+        <section className="bolt-project-collaboration-card">
+          <div className="bolt-project-collaboration-header">
+            <div>
+              <h3>Activity feed</h3>
+              <p>Collaboration actions create audit and project activity events.</p>
+            </div>
+          </div>
+          <PanelRows
+            rows={activity
+              .slice(-8)
+              .map((event: any) => [event.action, event.actorUserId ? `By ${event.actorUserId}` : 'System'])}
+            empty="No collaboration activity yet."
+          />
+        </section>
+      </div>
     );
   }
 

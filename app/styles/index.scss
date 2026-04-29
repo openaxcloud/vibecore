@@ -2005,6 +2005,157 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 12px;
 }
 
+.bolt-project-collaboration-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.bolt-project-collaboration-card {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0e1525;
+  box-shadow: 0 4px 12px rgb(0 4 20 / 0.5);
+  padding: 12px;
+}
+
+.bolt-project-collaboration-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bolt-project-collaboration-header h3 {
+  margin: 0;
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-collaboration-header p,
+.bolt-project-collaboration-comment p {
+  margin: 3px 0 0;
+  color: #6e7681;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-project-collaboration-live {
+  border: 1px solid rgb(63 185 80 / 0.35);
+  border-radius: 999px;
+  background: rgb(63 185 80 / 0.1);
+  color: #3fb950;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.bolt-project-collaboration-users,
+.bolt-project-collaboration-list,
+.bolt-project-collaboration-form {
+  display: grid;
+  gap: 8px;
+}
+
+.bolt-project-collaboration-user,
+.bolt-project-collaboration-row,
+.bolt-project-collaboration-comment {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #1a2030;
+  border-radius: 6px;
+  background: #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 8px;
+}
+
+.bolt-project-collaboration-user {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bolt-project-collaboration-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.bolt-project-collaboration-avatar {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #0e1525;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bolt-project-collaboration-user strong,
+.bolt-project-collaboration-row span,
+.bolt-project-collaboration-comment strong {
+  display: block;
+  overflow: hidden;
+  color: #f5f9fc;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-collaboration-user small,
+.bolt-project-collaboration-comment small {
+  display: block;
+  overflow: hidden;
+  color: #6e7681;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-collaboration-user em,
+.bolt-project-collaboration-row strong {
+  border: 1px solid #2b3245;
+  border-radius: 999px;
+  color: #c2c8cc;
+  font-size: 11px;
+  font-style: normal;
+  padding: 2px 7px;
+}
+
+.bolt-project-collaboration-form select,
+.bolt-project-collaboration-form input {
+  min-height: 32px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0a0f1c;
+  color: #f5f9fc;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.bolt-project-collaboration-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .bolt-project-collaboration-tool,
+  .bolt-project-collaboration-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bolt-project-deploy-summary {
   display: grid;
   gap: 8px;

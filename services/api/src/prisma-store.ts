@@ -12,6 +12,8 @@ import type {
   AiToolCallRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
+  CollaborationCommentRecord,
+  CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
@@ -27,6 +29,7 @@ import type {
   ProjectIdeStateRecord,
   ProjectRecord,
   ProjectSecretRecord,
+  ProjectShareLinkRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -516,6 +519,91 @@ export class PrismaApiStore implements ApiStore {
           version: { increment: 1 },
         },
       }),
+    );
+  }
+
+  async upsertCollaborationPresence(input: {
+    projectId: string;
+    userId: string;
+    sessionId: string;
+    status?: CollaborationPresenceRecord['status'];
+    filePath?: string;
+    cursor?: unknown;
+    selection?: unknown;
+    mode?: CollaborationPresenceRecord['mode'];
+    terminalAccess?: boolean;
+  }) {
+    return mapCollaborationPresence(
+      await this.prisma.collaborationPresence.upsert({
+        where: { projectId_sessionId: { projectId: input.projectId, sessionId: input.sessionId } },
+        create: {
+          projectId: input.projectId,
+          userId: input.userId,
+          sessionId: input.sessionId,
+          status: input.status ?? 'online',
+          filePath: input.filePath,
+          cursor: input.cursor as any,
+          selection: input.selection as any,
+          mode: input.mode ?? 'editing',
+          terminalAccess: input.terminalAccess ?? false,
+        },
+        update: {
+          status: input.status ?? 'online',
+          filePath: input.filePath,
+          cursor: input.cursor as any,
+          selection: input.selection as any,
+          mode: input.mode ?? 'editing',
+          terminalAccess: input.terminalAccess ?? false,
+        },
+      }),
+    );
+  }
+
+  async removeCollaborationPresence(projectId: string, sessionId: string) {
+    const deleted = await this.prisma.collaborationPresence.deleteMany({ where: { projectId, sessionId } });
+    return deleted.count > 0;
+  }
+
+  async listCollaborationPresence(projectId: string) {
+    return (
+      await this.prisma.collaborationPresence.findMany({ where: { projectId }, orderBy: { updatedAt: 'desc' } })
+    ).map(mapCollaborationPresence);
+  }
+
+  async createCollaborationComment(input: {
+    projectId: string;
+    userId: string;
+    filePath?: string;
+    line?: number;
+    selection?: unknown;
+    body: string;
+  }) {
+    return mapCollaborationComment(
+      await this.prisma.collaborationComment.create({
+        data: { ...input, selection: (input.selection ?? undefined) as any },
+      }),
+    );
+  }
+
+  async listCollaborationComments(projectId: string) {
+    return (
+      await this.prisma.collaborationComment.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' } })
+    ).map(mapCollaborationComment);
+  }
+
+  async createProjectShareLink(input: {
+    projectId: string;
+    tokenHash: string;
+    roleKey: ProjectShareLinkRecord['roleKey'];
+    expiresAt: Date;
+    createdByUserId?: string;
+  }) {
+    return mapProjectShareLink(await this.prisma.projectShareLink.create({ data: input }));
+  }
+
+  async listProjectShareLinks(projectId: string) {
+    return (await this.prisma.projectShareLink.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
+      mapProjectShareLink,
     );
   }
 
@@ -1508,6 +1596,50 @@ function mapProjectIdeState(state: any): ProjectIdeStateRecord {
     updatedByUserId: state.updatedByUserId ?? undefined,
     updatedAt: toIso(state.updatedAt)!,
     createdAt: toIso(state.createdAt)!,
+  };
+}
+
+function mapCollaborationPresence(presence: any): CollaborationPresenceRecord {
+  return {
+    id: presence.id,
+    projectId: presence.projectId,
+    userId: presence.userId,
+    sessionId: presence.sessionId,
+    status: presence.status,
+    filePath: presence.filePath ?? undefined,
+    cursor: presence.cursor ?? undefined,
+    selection: presence.selection ?? undefined,
+    mode: presence.mode,
+    terminalAccess: presence.terminalAccess,
+    createdAt: toIso(presence.createdAt)!,
+    updatedAt: toIso(presence.updatedAt)!,
+  };
+}
+
+function mapCollaborationComment(comment: any): CollaborationCommentRecord {
+  return {
+    id: comment.id,
+    projectId: comment.projectId,
+    userId: comment.userId,
+    filePath: comment.filePath ?? undefined,
+    line: comment.line ?? undefined,
+    selection: comment.selection ?? undefined,
+    body: comment.body,
+    resolvedAt: toIso(comment.resolvedAt),
+    createdAt: toIso(comment.createdAt)!,
+  };
+}
+
+function mapProjectShareLink(link: any): ProjectShareLinkRecord {
+  return {
+    id: link.id,
+    projectId: link.projectId,
+    tokenHash: link.tokenHash,
+    roleKey: link.roleKey,
+    expiresAt: toIso(link.expiresAt)!,
+    createdByUserId: link.createdByUserId ?? undefined,
+    revokedAt: toIso(link.revokedAt),
+    createdAt: toIso(link.createdAt)!,
   };
 }
 

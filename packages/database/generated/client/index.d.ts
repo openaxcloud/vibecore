@@ -94,6 +94,21 @@ export type ProjectCollaborator = $Result.DefaultSelection<Prisma.$ProjectCollab
  */
 export type ProjectActivity = $Result.DefaultSelection<Prisma.$ProjectActivityPayload>
 /**
+ * Model CollaborationPresence
+ * 
+ */
+export type CollaborationPresence = $Result.DefaultSelection<Prisma.$CollaborationPresencePayload>
+/**
+ * Model CollaborationComment
+ * 
+ */
+export type CollaborationComment = $Result.DefaultSelection<Prisma.$CollaborationCommentPayload>
+/**
+ * Model ProjectShareLink
+ * 
+ */
+export type ProjectShareLink = $Result.DefaultSelection<Prisma.$ProjectShareLinkPayload>
+/**
  * Model ProjectTemplate
  * 
  */
@@ -623,6 +638,36 @@ export class PrismaClient<
     * ```
     */
   get projectActivity(): Prisma.ProjectActivityDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.collaborationPresence`: Exposes CRUD operations for the **CollaborationPresence** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CollaborationPresences
+    * const collaborationPresences = await prisma.collaborationPresence.findMany()
+    * ```
+    */
+  get collaborationPresence(): Prisma.CollaborationPresenceDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.collaborationComment`: Exposes CRUD operations for the **CollaborationComment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CollaborationComments
+    * const collaborationComments = await prisma.collaborationComment.findMany()
+    * ```
+    */
+  get collaborationComment(): Prisma.CollaborationCommentDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectShareLink`: Exposes CRUD operations for the **ProjectShareLink** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectShareLinks
+    * const projectShareLinks = await prisma.projectShareLink.findMany()
+    * ```
+    */
+  get projectShareLink(): Prisma.ProjectShareLinkDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectTemplate`: Exposes CRUD operations for the **ProjectTemplate** model.
@@ -1443,6 +1488,9 @@ export namespace Prisma {
     ProjectEnvVar: 'ProjectEnvVar',
     ProjectCollaborator: 'ProjectCollaborator',
     ProjectActivity: 'ProjectActivity',
+    CollaborationPresence: 'CollaborationPresence',
+    CollaborationComment: 'CollaborationComment',
+    ProjectShareLink: 'ProjectShareLink',
     ProjectTemplate: 'ProjectTemplate',
     Workspace: 'Workspace',
     WorkspaceSession: 'WorkspaceSession',
@@ -1495,7 +1543,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2680,6 +2728,228 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectActivityCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectActivityCountAggregateOutputType> | number
+          }
+        }
+      }
+      CollaborationPresence: {
+        payload: Prisma.$CollaborationPresencePayload<ExtArgs>
+        fields: Prisma.CollaborationPresenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CollaborationPresenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CollaborationPresenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          findFirst: {
+            args: Prisma.CollaborationPresenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CollaborationPresenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          findMany: {
+            args: Prisma.CollaborationPresenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>[]
+          }
+          create: {
+            args: Prisma.CollaborationPresenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          createMany: {
+            args: Prisma.CollaborationPresenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CollaborationPresenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>[]
+          }
+          delete: {
+            args: Prisma.CollaborationPresenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          update: {
+            args: Prisma.CollaborationPresenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          deleteMany: {
+            args: Prisma.CollaborationPresenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CollaborationPresenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CollaborationPresenceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>[]
+          }
+          upsert: {
+            args: Prisma.CollaborationPresenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationPresencePayload>
+          }
+          aggregate: {
+            args: Prisma.CollaborationPresenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCollaborationPresence>
+          }
+          groupBy: {
+            args: Prisma.CollaborationPresenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CollaborationPresenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CollaborationPresenceCountArgs<ExtArgs>
+            result: $Utils.Optional<CollaborationPresenceCountAggregateOutputType> | number
+          }
+        }
+      }
+      CollaborationComment: {
+        payload: Prisma.$CollaborationCommentPayload<ExtArgs>
+        fields: Prisma.CollaborationCommentFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CollaborationCommentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CollaborationCommentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          findFirst: {
+            args: Prisma.CollaborationCommentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CollaborationCommentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          findMany: {
+            args: Prisma.CollaborationCommentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>[]
+          }
+          create: {
+            args: Prisma.CollaborationCommentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          createMany: {
+            args: Prisma.CollaborationCommentCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CollaborationCommentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>[]
+          }
+          delete: {
+            args: Prisma.CollaborationCommentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          update: {
+            args: Prisma.CollaborationCommentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          deleteMany: {
+            args: Prisma.CollaborationCommentDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CollaborationCommentUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CollaborationCommentUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>[]
+          }
+          upsert: {
+            args: Prisma.CollaborationCommentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CollaborationCommentPayload>
+          }
+          aggregate: {
+            args: Prisma.CollaborationCommentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCollaborationComment>
+          }
+          groupBy: {
+            args: Prisma.CollaborationCommentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CollaborationCommentGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CollaborationCommentCountArgs<ExtArgs>
+            result: $Utils.Optional<CollaborationCommentCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectShareLink: {
+        payload: Prisma.$ProjectShareLinkPayload<ExtArgs>
+        fields: Prisma.ProjectShareLinkFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectShareLinkFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectShareLinkFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectShareLinkFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectShareLinkFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectShareLinkFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectShareLinkCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectShareLinkCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectShareLinkCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectShareLinkDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          update: {
+            args: Prisma.ProjectShareLinkUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectShareLinkDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectShareLinkUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectShareLinkUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectShareLinkUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectShareLinkPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectShareLinkAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectShareLink>
+          }
+          groupBy: {
+            args: Prisma.ProjectShareLinkGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectShareLinkGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectShareLinkCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectShareLinkCountAggregateOutputType> | number
           }
         }
       }
@@ -5545,6 +5815,9 @@ export namespace Prisma {
     projectEnvVar?: ProjectEnvVarOmit
     projectCollaborator?: ProjectCollaboratorOmit
     projectActivity?: ProjectActivityOmit
+    collaborationPresence?: CollaborationPresenceOmit
+    collaborationComment?: CollaborationCommentOmit
+    projectShareLink?: ProjectShareLinkOmit
     projectTemplate?: ProjectTemplateOmit
     workspace?: WorkspaceOmit
     workspaceSession?: WorkspaceSessionOmit
@@ -5678,6 +5951,9 @@ export namespace Prisma {
     projectActivity: number
     projectSnapshots: number
     projectIdeStateUpdates: number
+    collaborationPresence: number
+    collaborationComments: number
+    collaborationShareLinks: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5697,6 +5973,9 @@ export namespace Prisma {
     projectActivity?: boolean | UserCountOutputTypeCountProjectActivityArgs
     projectSnapshots?: boolean | UserCountOutputTypeCountProjectSnapshotsArgs
     projectIdeStateUpdates?: boolean | UserCountOutputTypeCountProjectIdeStateUpdatesArgs
+    collaborationPresence?: boolean | UserCountOutputTypeCountCollaborationPresenceArgs
+    collaborationComments?: boolean | UserCountOutputTypeCountCollaborationCommentsArgs
+    collaborationShareLinks?: boolean | UserCountOutputTypeCountCollaborationShareLinksArgs
   }
 
   // Custom InputTypes
@@ -5820,6 +6099,27 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountProjectIdeStateUpdatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectIdeStateWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCollaborationPresenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationPresenceWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCollaborationCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationCommentWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountCollaborationShareLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectShareLinkWhereInput
   }
 
 
@@ -6121,6 +6421,9 @@ export namespace Prisma {
     deployments: number
     fileSnapshots: number
     conversations: number
+    collaborationPresence: number
+    collaborationComments: number
+    shareLinks: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6135,6 +6438,9 @@ export namespace Prisma {
     deployments?: boolean | ProjectCountOutputTypeCountDeploymentsArgs
     fileSnapshots?: boolean | ProjectCountOutputTypeCountFileSnapshotsArgs
     conversations?: boolean | ProjectCountOutputTypeCountConversationsArgs
+    collaborationPresence?: boolean | ProjectCountOutputTypeCountCollaborationPresenceArgs
+    collaborationComments?: boolean | ProjectCountOutputTypeCountCollaborationCommentsArgs
+    shareLinks?: boolean | ProjectCountOutputTypeCountShareLinksArgs
   }
 
   // Custom InputTypes
@@ -6223,6 +6529,27 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountConversationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AiConversationWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountCollaborationPresenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationPresenceWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountCollaborationCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationCommentWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountShareLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectShareLinkWhereInput
   }
 
 
@@ -6623,6 +6950,9 @@ export namespace Prisma {
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
     projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
+    collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
+    collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
+    collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -6683,6 +7013,9 @@ export namespace Prisma {
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
     projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
+    collaborationPresence?: boolean | User$collaborationPresenceArgs<ExtArgs>
+    collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
+    collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -6707,6 +7040,9 @@ export namespace Prisma {
       projectActivity: Prisma.$ProjectActivityPayload<ExtArgs>[]
       projectSnapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       projectIdeStateUpdates: Prisma.$ProjectIdeStatePayload<ExtArgs>[]
+      collaborationPresence: Prisma.$CollaborationPresencePayload<ExtArgs>[]
+      collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
+      collaborationShareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7129,6 +7465,9 @@ export namespace Prisma {
     projectActivity<T extends User$projectActivityArgs<ExtArgs> = {}>(args?: Subset<T, User$projectActivityArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectSnapshots<T extends User$projectSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectIdeStateUpdates<T extends User$projectIdeStateUpdatesArgs<ExtArgs> = {}>(args?: Subset<T, User$projectIdeStateUpdatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    collaborationPresence<T extends User$collaborationPresenceArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationPresenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    collaborationComments<T extends User$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    collaborationShareLinks<T extends User$collaborationShareLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationShareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7942,6 +8281,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectIdeStateScalarFieldEnum | ProjectIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * User.collaborationPresence
+   */
+  export type User$collaborationPresenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    where?: CollaborationPresenceWhereInput
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    cursor?: CollaborationPresenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CollaborationPresenceScalarFieldEnum | CollaborationPresenceScalarFieldEnum[]
+  }
+
+  /**
+   * User.collaborationComments
+   */
+  export type User$collaborationCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    where?: CollaborationCommentWhereInput
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    cursor?: CollaborationCommentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CollaborationCommentScalarFieldEnum | CollaborationCommentScalarFieldEnum[]
+  }
+
+  /**
+   * User.collaborationShareLinks
+   */
+  export type User$collaborationShareLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    where?: ProjectShareLinkWhereInput
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    cursor?: ProjectShareLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
   }
 
   /**
@@ -17449,6 +17860,9 @@ export namespace Prisma {
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
+    collaborationPresence?: boolean | Project$collaborationPresenceArgs<ExtArgs>
+    collaborationComments?: boolean | Project$collaborationCommentsArgs<ExtArgs>
+    shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -17517,6 +17931,9 @@ export namespace Prisma {
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
+    collaborationPresence?: boolean | Project$collaborationPresenceArgs<ExtArgs>
+    collaborationComments?: boolean | Project$collaborationCommentsArgs<ExtArgs>
+    shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -17542,6 +17959,9 @@ export namespace Prisma {
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
       ideState: Prisma.$ProjectIdeStatePayload<ExtArgs> | null
+      collaborationPresence: Prisma.$CollaborationPresencePayload<ExtArgs>[]
+      collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
+      shareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -17964,6 +18384,9 @@ export namespace Prisma {
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ideState<T extends Project$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Project$ideStateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    collaborationPresence<T extends Project$collaborationPresenceArgs<ExtArgs> = {}>(args?: Subset<T, Project$collaborationPresenceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    collaborationComments<T extends Project$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    shareLinks<T extends Project$shareLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$shareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -18687,6 +19110,78 @@ export namespace Prisma {
      */
     include?: ProjectIdeStateInclude<ExtArgs> | null
     where?: ProjectIdeStateWhereInput
+  }
+
+  /**
+   * Project.collaborationPresence
+   */
+  export type Project$collaborationPresenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    where?: CollaborationPresenceWhereInput
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    cursor?: CollaborationPresenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CollaborationPresenceScalarFieldEnum | CollaborationPresenceScalarFieldEnum[]
+  }
+
+  /**
+   * Project.collaborationComments
+   */
+  export type Project$collaborationCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    where?: CollaborationCommentWhereInput
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    cursor?: CollaborationCommentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CollaborationCommentScalarFieldEnum | CollaborationCommentScalarFieldEnum[]
+  }
+
+  /**
+   * Project.shareLinks
+   */
+  export type Project$shareLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    where?: ProjectShareLinkWhereInput
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    cursor?: ProjectShareLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
   }
 
   /**
@@ -25223,6 +25718,3442 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectActivityInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CollaborationPresence
+   */
+
+  export type AggregateCollaborationPresence = {
+    _count: CollaborationPresenceCountAggregateOutputType | null
+    _min: CollaborationPresenceMinAggregateOutputType | null
+    _max: CollaborationPresenceMaxAggregateOutputType | null
+  }
+
+  export type CollaborationPresenceMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userId: string | null
+    sessionId: string | null
+    status: string | null
+    filePath: string | null
+    mode: string | null
+    terminalAccess: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CollaborationPresenceMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userId: string | null
+    sessionId: string | null
+    status: string | null
+    filePath: string | null
+    mode: string | null
+    terminalAccess: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CollaborationPresenceCountAggregateOutputType = {
+    id: number
+    projectId: number
+    userId: number
+    sessionId: number
+    status: number
+    filePath: number
+    cursor: number
+    selection: number
+    mode: number
+    terminalAccess: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CollaborationPresenceMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    sessionId?: true
+    status?: true
+    filePath?: true
+    mode?: true
+    terminalAccess?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CollaborationPresenceMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    sessionId?: true
+    status?: true
+    filePath?: true
+    mode?: true
+    terminalAccess?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CollaborationPresenceCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    sessionId?: true
+    status?: true
+    filePath?: true
+    cursor?: true
+    selection?: true
+    mode?: true
+    terminalAccess?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CollaborationPresenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CollaborationPresence to aggregate.
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationPresences to fetch.
+     */
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CollaborationPresenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationPresences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationPresences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CollaborationPresences
+    **/
+    _count?: true | CollaborationPresenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CollaborationPresenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CollaborationPresenceMaxAggregateInputType
+  }
+
+  export type GetCollaborationPresenceAggregateType<T extends CollaborationPresenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateCollaborationPresence]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCollaborationPresence[P]>
+      : GetScalarType<T[P], AggregateCollaborationPresence[P]>
+  }
+
+
+
+
+  export type CollaborationPresenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationPresenceWhereInput
+    orderBy?: CollaborationPresenceOrderByWithAggregationInput | CollaborationPresenceOrderByWithAggregationInput[]
+    by: CollaborationPresenceScalarFieldEnum[] | CollaborationPresenceScalarFieldEnum
+    having?: CollaborationPresenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CollaborationPresenceCountAggregateInputType | true
+    _min?: CollaborationPresenceMinAggregateInputType
+    _max?: CollaborationPresenceMaxAggregateInputType
+  }
+
+  export type CollaborationPresenceGroupByOutputType = {
+    id: string
+    projectId: string
+    userId: string
+    sessionId: string
+    status: string
+    filePath: string | null
+    cursor: JsonValue | null
+    selection: JsonValue | null
+    mode: string
+    terminalAccess: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: CollaborationPresenceCountAggregateOutputType | null
+    _min: CollaborationPresenceMinAggregateOutputType | null
+    _max: CollaborationPresenceMaxAggregateOutputType | null
+  }
+
+  type GetCollaborationPresenceGroupByPayload<T extends CollaborationPresenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CollaborationPresenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CollaborationPresenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CollaborationPresenceGroupByOutputType[P]>
+            : GetScalarType<T[P], CollaborationPresenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CollaborationPresenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    status?: boolean
+    filePath?: boolean
+    cursor?: boolean
+    selection?: boolean
+    mode?: boolean
+    terminalAccess?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationPresence"]>
+
+  export type CollaborationPresenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    status?: boolean
+    filePath?: boolean
+    cursor?: boolean
+    selection?: boolean
+    mode?: boolean
+    terminalAccess?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationPresence"]>
+
+  export type CollaborationPresenceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    status?: boolean
+    filePath?: boolean
+    cursor?: boolean
+    selection?: boolean
+    mode?: boolean
+    terminalAccess?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationPresence"]>
+
+  export type CollaborationPresenceSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    sessionId?: boolean
+    status?: boolean
+    filePath?: boolean
+    cursor?: boolean
+    selection?: boolean
+    mode?: boolean
+    terminalAccess?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CollaborationPresenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "userId" | "sessionId" | "status" | "filePath" | "cursor" | "selection" | "mode" | "terminalAccess" | "createdAt" | "updatedAt", ExtArgs["result"]["collaborationPresence"]>
+  export type CollaborationPresenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type CollaborationPresenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type CollaborationPresenceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $CollaborationPresencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CollaborationPresence"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      userId: string
+      sessionId: string
+      status: string
+      filePath: string | null
+      cursor: Prisma.JsonValue | null
+      selection: Prisma.JsonValue | null
+      mode: string
+      terminalAccess: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["collaborationPresence"]>
+    composites: {}
+  }
+
+  type CollaborationPresenceGetPayload<S extends boolean | null | undefined | CollaborationPresenceDefaultArgs> = $Result.GetResult<Prisma.$CollaborationPresencePayload, S>
+
+  type CollaborationPresenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CollaborationPresenceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CollaborationPresenceCountAggregateInputType | true
+    }
+
+  export interface CollaborationPresenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CollaborationPresence'], meta: { name: 'CollaborationPresence' } }
+    /**
+     * Find zero or one CollaborationPresence that matches the filter.
+     * @param {CollaborationPresenceFindUniqueArgs} args - Arguments to find a CollaborationPresence
+     * @example
+     * // Get one CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CollaborationPresenceFindUniqueArgs>(args: SelectSubset<T, CollaborationPresenceFindUniqueArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CollaborationPresence that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CollaborationPresenceFindUniqueOrThrowArgs} args - Arguments to find a CollaborationPresence
+     * @example
+     * // Get one CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CollaborationPresenceFindUniqueOrThrowArgs>(args: SelectSubset<T, CollaborationPresenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CollaborationPresence that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceFindFirstArgs} args - Arguments to find a CollaborationPresence
+     * @example
+     * // Get one CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CollaborationPresenceFindFirstArgs>(args?: SelectSubset<T, CollaborationPresenceFindFirstArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CollaborationPresence that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceFindFirstOrThrowArgs} args - Arguments to find a CollaborationPresence
+     * @example
+     * // Get one CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CollaborationPresenceFindFirstOrThrowArgs>(args?: SelectSubset<T, CollaborationPresenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CollaborationPresences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CollaborationPresences
+     * const collaborationPresences = await prisma.collaborationPresence.findMany()
+     * 
+     * // Get first 10 CollaborationPresences
+     * const collaborationPresences = await prisma.collaborationPresence.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const collaborationPresenceWithIdOnly = await prisma.collaborationPresence.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CollaborationPresenceFindManyArgs>(args?: SelectSubset<T, CollaborationPresenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CollaborationPresence.
+     * @param {CollaborationPresenceCreateArgs} args - Arguments to create a CollaborationPresence.
+     * @example
+     * // Create one CollaborationPresence
+     * const CollaborationPresence = await prisma.collaborationPresence.create({
+     *   data: {
+     *     // ... data to create a CollaborationPresence
+     *   }
+     * })
+     * 
+     */
+    create<T extends CollaborationPresenceCreateArgs>(args: SelectSubset<T, CollaborationPresenceCreateArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CollaborationPresences.
+     * @param {CollaborationPresenceCreateManyArgs} args - Arguments to create many CollaborationPresences.
+     * @example
+     * // Create many CollaborationPresences
+     * const collaborationPresence = await prisma.collaborationPresence.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CollaborationPresenceCreateManyArgs>(args?: SelectSubset<T, CollaborationPresenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CollaborationPresences and returns the data saved in the database.
+     * @param {CollaborationPresenceCreateManyAndReturnArgs} args - Arguments to create many CollaborationPresences.
+     * @example
+     * // Create many CollaborationPresences
+     * const collaborationPresence = await prisma.collaborationPresence.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CollaborationPresences and only return the `id`
+     * const collaborationPresenceWithIdOnly = await prisma.collaborationPresence.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CollaborationPresenceCreateManyAndReturnArgs>(args?: SelectSubset<T, CollaborationPresenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CollaborationPresence.
+     * @param {CollaborationPresenceDeleteArgs} args - Arguments to delete one CollaborationPresence.
+     * @example
+     * // Delete one CollaborationPresence
+     * const CollaborationPresence = await prisma.collaborationPresence.delete({
+     *   where: {
+     *     // ... filter to delete one CollaborationPresence
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CollaborationPresenceDeleteArgs>(args: SelectSubset<T, CollaborationPresenceDeleteArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CollaborationPresence.
+     * @param {CollaborationPresenceUpdateArgs} args - Arguments to update one CollaborationPresence.
+     * @example
+     * // Update one CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CollaborationPresenceUpdateArgs>(args: SelectSubset<T, CollaborationPresenceUpdateArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CollaborationPresences.
+     * @param {CollaborationPresenceDeleteManyArgs} args - Arguments to filter CollaborationPresences to delete.
+     * @example
+     * // Delete a few CollaborationPresences
+     * const { count } = await prisma.collaborationPresence.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CollaborationPresenceDeleteManyArgs>(args?: SelectSubset<T, CollaborationPresenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CollaborationPresences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CollaborationPresences
+     * const collaborationPresence = await prisma.collaborationPresence.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CollaborationPresenceUpdateManyArgs>(args: SelectSubset<T, CollaborationPresenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CollaborationPresences and returns the data updated in the database.
+     * @param {CollaborationPresenceUpdateManyAndReturnArgs} args - Arguments to update many CollaborationPresences.
+     * @example
+     * // Update many CollaborationPresences
+     * const collaborationPresence = await prisma.collaborationPresence.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CollaborationPresences and only return the `id`
+     * const collaborationPresenceWithIdOnly = await prisma.collaborationPresence.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CollaborationPresenceUpdateManyAndReturnArgs>(args: SelectSubset<T, CollaborationPresenceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CollaborationPresence.
+     * @param {CollaborationPresenceUpsertArgs} args - Arguments to update or create a CollaborationPresence.
+     * @example
+     * // Update or create a CollaborationPresence
+     * const collaborationPresence = await prisma.collaborationPresence.upsert({
+     *   create: {
+     *     // ... data to create a CollaborationPresence
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CollaborationPresence we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CollaborationPresenceUpsertArgs>(args: SelectSubset<T, CollaborationPresenceUpsertArgs<ExtArgs>>): Prisma__CollaborationPresenceClient<$Result.GetResult<Prisma.$CollaborationPresencePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CollaborationPresences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceCountArgs} args - Arguments to filter CollaborationPresences to count.
+     * @example
+     * // Count the number of CollaborationPresences
+     * const count = await prisma.collaborationPresence.count({
+     *   where: {
+     *     // ... the filter for the CollaborationPresences we want to count
+     *   }
+     * })
+    **/
+    count<T extends CollaborationPresenceCountArgs>(
+      args?: Subset<T, CollaborationPresenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CollaborationPresenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CollaborationPresence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CollaborationPresenceAggregateArgs>(args: Subset<T, CollaborationPresenceAggregateArgs>): Prisma.PrismaPromise<GetCollaborationPresenceAggregateType<T>>
+
+    /**
+     * Group by CollaborationPresence.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationPresenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CollaborationPresenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CollaborationPresenceGroupByArgs['orderBy'] }
+        : { orderBy?: CollaborationPresenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CollaborationPresenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCollaborationPresenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CollaborationPresence model
+   */
+  readonly fields: CollaborationPresenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CollaborationPresence.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CollaborationPresenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CollaborationPresence model
+   */
+  interface CollaborationPresenceFieldRefs {
+    readonly id: FieldRef<"CollaborationPresence", 'String'>
+    readonly projectId: FieldRef<"CollaborationPresence", 'String'>
+    readonly userId: FieldRef<"CollaborationPresence", 'String'>
+    readonly sessionId: FieldRef<"CollaborationPresence", 'String'>
+    readonly status: FieldRef<"CollaborationPresence", 'String'>
+    readonly filePath: FieldRef<"CollaborationPresence", 'String'>
+    readonly cursor: FieldRef<"CollaborationPresence", 'Json'>
+    readonly selection: FieldRef<"CollaborationPresence", 'Json'>
+    readonly mode: FieldRef<"CollaborationPresence", 'String'>
+    readonly terminalAccess: FieldRef<"CollaborationPresence", 'Boolean'>
+    readonly createdAt: FieldRef<"CollaborationPresence", 'DateTime'>
+    readonly updatedAt: FieldRef<"CollaborationPresence", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CollaborationPresence findUnique
+   */
+  export type CollaborationPresenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationPresence to fetch.
+     */
+    where: CollaborationPresenceWhereUniqueInput
+  }
+
+  /**
+   * CollaborationPresence findUniqueOrThrow
+   */
+  export type CollaborationPresenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationPresence to fetch.
+     */
+    where: CollaborationPresenceWhereUniqueInput
+  }
+
+  /**
+   * CollaborationPresence findFirst
+   */
+  export type CollaborationPresenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationPresence to fetch.
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationPresences to fetch.
+     */
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CollaborationPresences.
+     */
+    cursor?: CollaborationPresenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationPresences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationPresences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationPresences.
+     */
+    distinct?: CollaborationPresenceScalarFieldEnum | CollaborationPresenceScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationPresence findFirstOrThrow
+   */
+  export type CollaborationPresenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationPresence to fetch.
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationPresences to fetch.
+     */
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CollaborationPresences.
+     */
+    cursor?: CollaborationPresenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationPresences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationPresences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationPresences.
+     */
+    distinct?: CollaborationPresenceScalarFieldEnum | CollaborationPresenceScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationPresence findMany
+   */
+  export type CollaborationPresenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationPresences to fetch.
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationPresences to fetch.
+     */
+    orderBy?: CollaborationPresenceOrderByWithRelationInput | CollaborationPresenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CollaborationPresences.
+     */
+    cursor?: CollaborationPresenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationPresences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationPresences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationPresences.
+     */
+    distinct?: CollaborationPresenceScalarFieldEnum | CollaborationPresenceScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationPresence create
+   */
+  export type CollaborationPresenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CollaborationPresence.
+     */
+    data: XOR<CollaborationPresenceCreateInput, CollaborationPresenceUncheckedCreateInput>
+  }
+
+  /**
+   * CollaborationPresence createMany
+   */
+  export type CollaborationPresenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CollaborationPresences.
+     */
+    data: CollaborationPresenceCreateManyInput | CollaborationPresenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CollaborationPresence createManyAndReturn
+   */
+  export type CollaborationPresenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * The data used to create many CollaborationPresences.
+     */
+    data: CollaborationPresenceCreateManyInput | CollaborationPresenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CollaborationPresence update
+   */
+  export type CollaborationPresenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CollaborationPresence.
+     */
+    data: XOR<CollaborationPresenceUpdateInput, CollaborationPresenceUncheckedUpdateInput>
+    /**
+     * Choose, which CollaborationPresence to update.
+     */
+    where: CollaborationPresenceWhereUniqueInput
+  }
+
+  /**
+   * CollaborationPresence updateMany
+   */
+  export type CollaborationPresenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CollaborationPresences.
+     */
+    data: XOR<CollaborationPresenceUpdateManyMutationInput, CollaborationPresenceUncheckedUpdateManyInput>
+    /**
+     * Filter which CollaborationPresences to update
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * Limit how many CollaborationPresences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CollaborationPresence updateManyAndReturn
+   */
+  export type CollaborationPresenceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * The data used to update CollaborationPresences.
+     */
+    data: XOR<CollaborationPresenceUpdateManyMutationInput, CollaborationPresenceUncheckedUpdateManyInput>
+    /**
+     * Filter which CollaborationPresences to update
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * Limit how many CollaborationPresences to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CollaborationPresence upsert
+   */
+  export type CollaborationPresenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CollaborationPresence to update in case it exists.
+     */
+    where: CollaborationPresenceWhereUniqueInput
+    /**
+     * In case the CollaborationPresence found by the `where` argument doesn't exist, create a new CollaborationPresence with this data.
+     */
+    create: XOR<CollaborationPresenceCreateInput, CollaborationPresenceUncheckedCreateInput>
+    /**
+     * In case the CollaborationPresence was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CollaborationPresenceUpdateInput, CollaborationPresenceUncheckedUpdateInput>
+  }
+
+  /**
+   * CollaborationPresence delete
+   */
+  export type CollaborationPresenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+    /**
+     * Filter which CollaborationPresence to delete.
+     */
+    where: CollaborationPresenceWhereUniqueInput
+  }
+
+  /**
+   * CollaborationPresence deleteMany
+   */
+  export type CollaborationPresenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CollaborationPresences to delete
+     */
+    where?: CollaborationPresenceWhereInput
+    /**
+     * Limit how many CollaborationPresences to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CollaborationPresence without action
+   */
+  export type CollaborationPresenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationPresence
+     */
+    select?: CollaborationPresenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationPresence
+     */
+    omit?: CollaborationPresenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationPresenceInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CollaborationComment
+   */
+
+  export type AggregateCollaborationComment = {
+    _count: CollaborationCommentCountAggregateOutputType | null
+    _avg: CollaborationCommentAvgAggregateOutputType | null
+    _sum: CollaborationCommentSumAggregateOutputType | null
+    _min: CollaborationCommentMinAggregateOutputType | null
+    _max: CollaborationCommentMaxAggregateOutputType | null
+  }
+
+  export type CollaborationCommentAvgAggregateOutputType = {
+    line: number | null
+  }
+
+  export type CollaborationCommentSumAggregateOutputType = {
+    line: number | null
+  }
+
+  export type CollaborationCommentMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userId: string | null
+    filePath: string | null
+    line: number | null
+    body: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type CollaborationCommentMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userId: string | null
+    filePath: string | null
+    line: number | null
+    body: string | null
+    resolvedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type CollaborationCommentCountAggregateOutputType = {
+    id: number
+    projectId: number
+    userId: number
+    filePath: number
+    line: number
+    selection: number
+    body: number
+    resolvedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type CollaborationCommentAvgAggregateInputType = {
+    line?: true
+  }
+
+  export type CollaborationCommentSumAggregateInputType = {
+    line?: true
+  }
+
+  export type CollaborationCommentMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    filePath?: true
+    line?: true
+    body?: true
+    resolvedAt?: true
+    createdAt?: true
+  }
+
+  export type CollaborationCommentMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    filePath?: true
+    line?: true
+    body?: true
+    resolvedAt?: true
+    createdAt?: true
+  }
+
+  export type CollaborationCommentCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    userId?: true
+    filePath?: true
+    line?: true
+    selection?: true
+    body?: true
+    resolvedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type CollaborationCommentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CollaborationComment to aggregate.
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationComments to fetch.
+     */
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CollaborationCommentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationComments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationComments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CollaborationComments
+    **/
+    _count?: true | CollaborationCommentCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CollaborationCommentAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CollaborationCommentSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CollaborationCommentMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CollaborationCommentMaxAggregateInputType
+  }
+
+  export type GetCollaborationCommentAggregateType<T extends CollaborationCommentAggregateArgs> = {
+        [P in keyof T & keyof AggregateCollaborationComment]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCollaborationComment[P]>
+      : GetScalarType<T[P], AggregateCollaborationComment[P]>
+  }
+
+
+
+
+  export type CollaborationCommentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CollaborationCommentWhereInput
+    orderBy?: CollaborationCommentOrderByWithAggregationInput | CollaborationCommentOrderByWithAggregationInput[]
+    by: CollaborationCommentScalarFieldEnum[] | CollaborationCommentScalarFieldEnum
+    having?: CollaborationCommentScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CollaborationCommentCountAggregateInputType | true
+    _avg?: CollaborationCommentAvgAggregateInputType
+    _sum?: CollaborationCommentSumAggregateInputType
+    _min?: CollaborationCommentMinAggregateInputType
+    _max?: CollaborationCommentMaxAggregateInputType
+  }
+
+  export type CollaborationCommentGroupByOutputType = {
+    id: string
+    projectId: string
+    userId: string
+    filePath: string | null
+    line: number | null
+    selection: JsonValue | null
+    body: string
+    resolvedAt: Date | null
+    createdAt: Date
+    _count: CollaborationCommentCountAggregateOutputType | null
+    _avg: CollaborationCommentAvgAggregateOutputType | null
+    _sum: CollaborationCommentSumAggregateOutputType | null
+    _min: CollaborationCommentMinAggregateOutputType | null
+    _max: CollaborationCommentMaxAggregateOutputType | null
+  }
+
+  type GetCollaborationCommentGroupByPayload<T extends CollaborationCommentGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CollaborationCommentGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CollaborationCommentGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CollaborationCommentGroupByOutputType[P]>
+            : GetScalarType<T[P], CollaborationCommentGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CollaborationCommentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    filePath?: boolean
+    line?: boolean
+    selection?: boolean
+    body?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationComment"]>
+
+  export type CollaborationCommentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    filePath?: boolean
+    line?: boolean
+    selection?: boolean
+    body?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationComment"]>
+
+  export type CollaborationCommentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    filePath?: boolean
+    line?: boolean
+    selection?: boolean
+    body?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["collaborationComment"]>
+
+  export type CollaborationCommentSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    userId?: boolean
+    filePath?: boolean
+    line?: boolean
+    selection?: boolean
+    body?: boolean
+    resolvedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type CollaborationCommentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "userId" | "filePath" | "line" | "selection" | "body" | "resolvedAt" | "createdAt", ExtArgs["result"]["collaborationComment"]>
+  export type CollaborationCommentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type CollaborationCommentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type CollaborationCommentIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $CollaborationCommentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CollaborationComment"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      userId: string
+      filePath: string | null
+      line: number | null
+      selection: Prisma.JsonValue | null
+      body: string
+      resolvedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["collaborationComment"]>
+    composites: {}
+  }
+
+  type CollaborationCommentGetPayload<S extends boolean | null | undefined | CollaborationCommentDefaultArgs> = $Result.GetResult<Prisma.$CollaborationCommentPayload, S>
+
+  type CollaborationCommentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CollaborationCommentFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CollaborationCommentCountAggregateInputType | true
+    }
+
+  export interface CollaborationCommentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CollaborationComment'], meta: { name: 'CollaborationComment' } }
+    /**
+     * Find zero or one CollaborationComment that matches the filter.
+     * @param {CollaborationCommentFindUniqueArgs} args - Arguments to find a CollaborationComment
+     * @example
+     * // Get one CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CollaborationCommentFindUniqueArgs>(args: SelectSubset<T, CollaborationCommentFindUniqueArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CollaborationComment that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CollaborationCommentFindUniqueOrThrowArgs} args - Arguments to find a CollaborationComment
+     * @example
+     * // Get one CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CollaborationCommentFindUniqueOrThrowArgs>(args: SelectSubset<T, CollaborationCommentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CollaborationComment that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentFindFirstArgs} args - Arguments to find a CollaborationComment
+     * @example
+     * // Get one CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CollaborationCommentFindFirstArgs>(args?: SelectSubset<T, CollaborationCommentFindFirstArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CollaborationComment that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentFindFirstOrThrowArgs} args - Arguments to find a CollaborationComment
+     * @example
+     * // Get one CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CollaborationCommentFindFirstOrThrowArgs>(args?: SelectSubset<T, CollaborationCommentFindFirstOrThrowArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CollaborationComments that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CollaborationComments
+     * const collaborationComments = await prisma.collaborationComment.findMany()
+     * 
+     * // Get first 10 CollaborationComments
+     * const collaborationComments = await prisma.collaborationComment.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const collaborationCommentWithIdOnly = await prisma.collaborationComment.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CollaborationCommentFindManyArgs>(args?: SelectSubset<T, CollaborationCommentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CollaborationComment.
+     * @param {CollaborationCommentCreateArgs} args - Arguments to create a CollaborationComment.
+     * @example
+     * // Create one CollaborationComment
+     * const CollaborationComment = await prisma.collaborationComment.create({
+     *   data: {
+     *     // ... data to create a CollaborationComment
+     *   }
+     * })
+     * 
+     */
+    create<T extends CollaborationCommentCreateArgs>(args: SelectSubset<T, CollaborationCommentCreateArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CollaborationComments.
+     * @param {CollaborationCommentCreateManyArgs} args - Arguments to create many CollaborationComments.
+     * @example
+     * // Create many CollaborationComments
+     * const collaborationComment = await prisma.collaborationComment.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CollaborationCommentCreateManyArgs>(args?: SelectSubset<T, CollaborationCommentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CollaborationComments and returns the data saved in the database.
+     * @param {CollaborationCommentCreateManyAndReturnArgs} args - Arguments to create many CollaborationComments.
+     * @example
+     * // Create many CollaborationComments
+     * const collaborationComment = await prisma.collaborationComment.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CollaborationComments and only return the `id`
+     * const collaborationCommentWithIdOnly = await prisma.collaborationComment.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CollaborationCommentCreateManyAndReturnArgs>(args?: SelectSubset<T, CollaborationCommentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CollaborationComment.
+     * @param {CollaborationCommentDeleteArgs} args - Arguments to delete one CollaborationComment.
+     * @example
+     * // Delete one CollaborationComment
+     * const CollaborationComment = await prisma.collaborationComment.delete({
+     *   where: {
+     *     // ... filter to delete one CollaborationComment
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CollaborationCommentDeleteArgs>(args: SelectSubset<T, CollaborationCommentDeleteArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CollaborationComment.
+     * @param {CollaborationCommentUpdateArgs} args - Arguments to update one CollaborationComment.
+     * @example
+     * // Update one CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CollaborationCommentUpdateArgs>(args: SelectSubset<T, CollaborationCommentUpdateArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CollaborationComments.
+     * @param {CollaborationCommentDeleteManyArgs} args - Arguments to filter CollaborationComments to delete.
+     * @example
+     * // Delete a few CollaborationComments
+     * const { count } = await prisma.collaborationComment.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CollaborationCommentDeleteManyArgs>(args?: SelectSubset<T, CollaborationCommentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CollaborationComments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CollaborationComments
+     * const collaborationComment = await prisma.collaborationComment.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CollaborationCommentUpdateManyArgs>(args: SelectSubset<T, CollaborationCommentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CollaborationComments and returns the data updated in the database.
+     * @param {CollaborationCommentUpdateManyAndReturnArgs} args - Arguments to update many CollaborationComments.
+     * @example
+     * // Update many CollaborationComments
+     * const collaborationComment = await prisma.collaborationComment.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CollaborationComments and only return the `id`
+     * const collaborationCommentWithIdOnly = await prisma.collaborationComment.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CollaborationCommentUpdateManyAndReturnArgs>(args: SelectSubset<T, CollaborationCommentUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CollaborationComment.
+     * @param {CollaborationCommentUpsertArgs} args - Arguments to update or create a CollaborationComment.
+     * @example
+     * // Update or create a CollaborationComment
+     * const collaborationComment = await prisma.collaborationComment.upsert({
+     *   create: {
+     *     // ... data to create a CollaborationComment
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CollaborationComment we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CollaborationCommentUpsertArgs>(args: SelectSubset<T, CollaborationCommentUpsertArgs<ExtArgs>>): Prisma__CollaborationCommentClient<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CollaborationComments.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentCountArgs} args - Arguments to filter CollaborationComments to count.
+     * @example
+     * // Count the number of CollaborationComments
+     * const count = await prisma.collaborationComment.count({
+     *   where: {
+     *     // ... the filter for the CollaborationComments we want to count
+     *   }
+     * })
+    **/
+    count<T extends CollaborationCommentCountArgs>(
+      args?: Subset<T, CollaborationCommentCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CollaborationCommentCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CollaborationComment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CollaborationCommentAggregateArgs>(args: Subset<T, CollaborationCommentAggregateArgs>): Prisma.PrismaPromise<GetCollaborationCommentAggregateType<T>>
+
+    /**
+     * Group by CollaborationComment.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CollaborationCommentGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CollaborationCommentGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CollaborationCommentGroupByArgs['orderBy'] }
+        : { orderBy?: CollaborationCommentGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CollaborationCommentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCollaborationCommentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CollaborationComment model
+   */
+  readonly fields: CollaborationCommentFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CollaborationComment.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CollaborationCommentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CollaborationComment model
+   */
+  interface CollaborationCommentFieldRefs {
+    readonly id: FieldRef<"CollaborationComment", 'String'>
+    readonly projectId: FieldRef<"CollaborationComment", 'String'>
+    readonly userId: FieldRef<"CollaborationComment", 'String'>
+    readonly filePath: FieldRef<"CollaborationComment", 'String'>
+    readonly line: FieldRef<"CollaborationComment", 'Int'>
+    readonly selection: FieldRef<"CollaborationComment", 'Json'>
+    readonly body: FieldRef<"CollaborationComment", 'String'>
+    readonly resolvedAt: FieldRef<"CollaborationComment", 'DateTime'>
+    readonly createdAt: FieldRef<"CollaborationComment", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CollaborationComment findUnique
+   */
+  export type CollaborationCommentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationComment to fetch.
+     */
+    where: CollaborationCommentWhereUniqueInput
+  }
+
+  /**
+   * CollaborationComment findUniqueOrThrow
+   */
+  export type CollaborationCommentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationComment to fetch.
+     */
+    where: CollaborationCommentWhereUniqueInput
+  }
+
+  /**
+   * CollaborationComment findFirst
+   */
+  export type CollaborationCommentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationComment to fetch.
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationComments to fetch.
+     */
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CollaborationComments.
+     */
+    cursor?: CollaborationCommentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationComments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationComments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationComments.
+     */
+    distinct?: CollaborationCommentScalarFieldEnum | CollaborationCommentScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationComment findFirstOrThrow
+   */
+  export type CollaborationCommentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationComment to fetch.
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationComments to fetch.
+     */
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CollaborationComments.
+     */
+    cursor?: CollaborationCommentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationComments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationComments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationComments.
+     */
+    distinct?: CollaborationCommentScalarFieldEnum | CollaborationCommentScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationComment findMany
+   */
+  export type CollaborationCommentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter, which CollaborationComments to fetch.
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CollaborationComments to fetch.
+     */
+    orderBy?: CollaborationCommentOrderByWithRelationInput | CollaborationCommentOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CollaborationComments.
+     */
+    cursor?: CollaborationCommentWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CollaborationComments from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CollaborationComments.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CollaborationComments.
+     */
+    distinct?: CollaborationCommentScalarFieldEnum | CollaborationCommentScalarFieldEnum[]
+  }
+
+  /**
+   * CollaborationComment create
+   */
+  export type CollaborationCommentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CollaborationComment.
+     */
+    data: XOR<CollaborationCommentCreateInput, CollaborationCommentUncheckedCreateInput>
+  }
+
+  /**
+   * CollaborationComment createMany
+   */
+  export type CollaborationCommentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CollaborationComments.
+     */
+    data: CollaborationCommentCreateManyInput | CollaborationCommentCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CollaborationComment createManyAndReturn
+   */
+  export type CollaborationCommentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * The data used to create many CollaborationComments.
+     */
+    data: CollaborationCommentCreateManyInput | CollaborationCommentCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CollaborationComment update
+   */
+  export type CollaborationCommentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CollaborationComment.
+     */
+    data: XOR<CollaborationCommentUpdateInput, CollaborationCommentUncheckedUpdateInput>
+    /**
+     * Choose, which CollaborationComment to update.
+     */
+    where: CollaborationCommentWhereUniqueInput
+  }
+
+  /**
+   * CollaborationComment updateMany
+   */
+  export type CollaborationCommentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CollaborationComments.
+     */
+    data: XOR<CollaborationCommentUpdateManyMutationInput, CollaborationCommentUncheckedUpdateManyInput>
+    /**
+     * Filter which CollaborationComments to update
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * Limit how many CollaborationComments to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CollaborationComment updateManyAndReturn
+   */
+  export type CollaborationCommentUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * The data used to update CollaborationComments.
+     */
+    data: XOR<CollaborationCommentUpdateManyMutationInput, CollaborationCommentUncheckedUpdateManyInput>
+    /**
+     * Filter which CollaborationComments to update
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * Limit how many CollaborationComments to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CollaborationComment upsert
+   */
+  export type CollaborationCommentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CollaborationComment to update in case it exists.
+     */
+    where: CollaborationCommentWhereUniqueInput
+    /**
+     * In case the CollaborationComment found by the `where` argument doesn't exist, create a new CollaborationComment with this data.
+     */
+    create: XOR<CollaborationCommentCreateInput, CollaborationCommentUncheckedCreateInput>
+    /**
+     * In case the CollaborationComment was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CollaborationCommentUpdateInput, CollaborationCommentUncheckedUpdateInput>
+  }
+
+  /**
+   * CollaborationComment delete
+   */
+  export type CollaborationCommentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+    /**
+     * Filter which CollaborationComment to delete.
+     */
+    where: CollaborationCommentWhereUniqueInput
+  }
+
+  /**
+   * CollaborationComment deleteMany
+   */
+  export type CollaborationCommentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CollaborationComments to delete
+     */
+    where?: CollaborationCommentWhereInput
+    /**
+     * Limit how many CollaborationComments to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CollaborationComment without action
+   */
+  export type CollaborationCommentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CollaborationComment
+     */
+    select?: CollaborationCommentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CollaborationComment
+     */
+    omit?: CollaborationCommentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CollaborationCommentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectShareLink
+   */
+
+  export type AggregateProjectShareLink = {
+    _count: ProjectShareLinkCountAggregateOutputType | null
+    _min: ProjectShareLinkMinAggregateOutputType | null
+    _max: ProjectShareLinkMaxAggregateOutputType | null
+  }
+
+  export type ProjectShareLinkMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    tokenHash: string | null
+    roleKey: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    revokedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectShareLinkMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    tokenHash: string | null
+    roleKey: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    revokedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectShareLinkCountAggregateOutputType = {
+    id: number
+    projectId: number
+    tokenHash: number
+    roleKey: number
+    expiresAt: number
+    createdByUserId: number
+    revokedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProjectShareLinkMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    tokenHash?: true
+    roleKey?: true
+    expiresAt?: true
+    createdByUserId?: true
+    revokedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectShareLinkMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    tokenHash?: true
+    roleKey?: true
+    expiresAt?: true
+    createdByUserId?: true
+    revokedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectShareLinkCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    tokenHash?: true
+    roleKey?: true
+    expiresAt?: true
+    createdByUserId?: true
+    revokedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProjectShareLinkAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectShareLink to aggregate.
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectShareLinks to fetch.
+     */
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectShareLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectShareLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectShareLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectShareLinks
+    **/
+    _count?: true | ProjectShareLinkCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectShareLinkMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectShareLinkMaxAggregateInputType
+  }
+
+  export type GetProjectShareLinkAggregateType<T extends ProjectShareLinkAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectShareLink]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectShareLink[P]>
+      : GetScalarType<T[P], AggregateProjectShareLink[P]>
+  }
+
+
+
+
+  export type ProjectShareLinkGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectShareLinkWhereInput
+    orderBy?: ProjectShareLinkOrderByWithAggregationInput | ProjectShareLinkOrderByWithAggregationInput[]
+    by: ProjectShareLinkScalarFieldEnum[] | ProjectShareLinkScalarFieldEnum
+    having?: ProjectShareLinkScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectShareLinkCountAggregateInputType | true
+    _min?: ProjectShareLinkMinAggregateInputType
+    _max?: ProjectShareLinkMaxAggregateInputType
+  }
+
+  export type ProjectShareLinkGroupByOutputType = {
+    id: string
+    projectId: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date
+    createdByUserId: string | null
+    revokedAt: Date | null
+    createdAt: Date
+    _count: ProjectShareLinkCountAggregateOutputType | null
+    _min: ProjectShareLinkMinAggregateOutputType | null
+    _max: ProjectShareLinkMaxAggregateOutputType | null
+  }
+
+  type GetProjectShareLinkGroupByPayload<T extends ProjectShareLinkGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectShareLinkGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectShareLinkGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectShareLinkGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectShareLinkGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectShareLinkSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    tokenHash?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    revokedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectShareLink"]>
+
+  export type ProjectShareLinkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    tokenHash?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    revokedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectShareLink"]>
+
+  export type ProjectShareLinkSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    tokenHash?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    revokedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectShareLink"]>
+
+  export type ProjectShareLinkSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    tokenHash?: boolean
+    roleKey?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    revokedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProjectShareLinkOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "tokenHash" | "roleKey" | "expiresAt" | "createdByUserId" | "revokedAt" | "createdAt", ExtArgs["result"]["projectShareLink"]>
+  export type ProjectShareLinkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }
+  export type ProjectShareLinkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }
+  export type ProjectShareLinkIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectShareLink$createdByArgs<ExtArgs>
+  }
+
+  export type $ProjectShareLinkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectShareLink"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      createdBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      tokenHash: string
+      roleKey: string
+      expiresAt: Date
+      createdByUserId: string | null
+      revokedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["projectShareLink"]>
+    composites: {}
+  }
+
+  type ProjectShareLinkGetPayload<S extends boolean | null | undefined | ProjectShareLinkDefaultArgs> = $Result.GetResult<Prisma.$ProjectShareLinkPayload, S>
+
+  type ProjectShareLinkCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectShareLinkFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectShareLinkCountAggregateInputType | true
+    }
+
+  export interface ProjectShareLinkDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectShareLink'], meta: { name: 'ProjectShareLink' } }
+    /**
+     * Find zero or one ProjectShareLink that matches the filter.
+     * @param {ProjectShareLinkFindUniqueArgs} args - Arguments to find a ProjectShareLink
+     * @example
+     * // Get one ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectShareLinkFindUniqueArgs>(args: SelectSubset<T, ProjectShareLinkFindUniqueArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectShareLink that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectShareLinkFindUniqueOrThrowArgs} args - Arguments to find a ProjectShareLink
+     * @example
+     * // Get one ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectShareLinkFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectShareLinkFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectShareLink that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkFindFirstArgs} args - Arguments to find a ProjectShareLink
+     * @example
+     * // Get one ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectShareLinkFindFirstArgs>(args?: SelectSubset<T, ProjectShareLinkFindFirstArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectShareLink that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkFindFirstOrThrowArgs} args - Arguments to find a ProjectShareLink
+     * @example
+     * // Get one ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectShareLinkFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectShareLinkFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectShareLinks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectShareLinks
+     * const projectShareLinks = await prisma.projectShareLink.findMany()
+     * 
+     * // Get first 10 ProjectShareLinks
+     * const projectShareLinks = await prisma.projectShareLink.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectShareLinkWithIdOnly = await prisma.projectShareLink.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectShareLinkFindManyArgs>(args?: SelectSubset<T, ProjectShareLinkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectShareLink.
+     * @param {ProjectShareLinkCreateArgs} args - Arguments to create a ProjectShareLink.
+     * @example
+     * // Create one ProjectShareLink
+     * const ProjectShareLink = await prisma.projectShareLink.create({
+     *   data: {
+     *     // ... data to create a ProjectShareLink
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectShareLinkCreateArgs>(args: SelectSubset<T, ProjectShareLinkCreateArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectShareLinks.
+     * @param {ProjectShareLinkCreateManyArgs} args - Arguments to create many ProjectShareLinks.
+     * @example
+     * // Create many ProjectShareLinks
+     * const projectShareLink = await prisma.projectShareLink.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectShareLinkCreateManyArgs>(args?: SelectSubset<T, ProjectShareLinkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectShareLinks and returns the data saved in the database.
+     * @param {ProjectShareLinkCreateManyAndReturnArgs} args - Arguments to create many ProjectShareLinks.
+     * @example
+     * // Create many ProjectShareLinks
+     * const projectShareLink = await prisma.projectShareLink.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectShareLinks and only return the `id`
+     * const projectShareLinkWithIdOnly = await prisma.projectShareLink.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectShareLinkCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectShareLinkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectShareLink.
+     * @param {ProjectShareLinkDeleteArgs} args - Arguments to delete one ProjectShareLink.
+     * @example
+     * // Delete one ProjectShareLink
+     * const ProjectShareLink = await prisma.projectShareLink.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectShareLink
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectShareLinkDeleteArgs>(args: SelectSubset<T, ProjectShareLinkDeleteArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectShareLink.
+     * @param {ProjectShareLinkUpdateArgs} args - Arguments to update one ProjectShareLink.
+     * @example
+     * // Update one ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectShareLinkUpdateArgs>(args: SelectSubset<T, ProjectShareLinkUpdateArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectShareLinks.
+     * @param {ProjectShareLinkDeleteManyArgs} args - Arguments to filter ProjectShareLinks to delete.
+     * @example
+     * // Delete a few ProjectShareLinks
+     * const { count } = await prisma.projectShareLink.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectShareLinkDeleteManyArgs>(args?: SelectSubset<T, ProjectShareLinkDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectShareLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectShareLinks
+     * const projectShareLink = await prisma.projectShareLink.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectShareLinkUpdateManyArgs>(args: SelectSubset<T, ProjectShareLinkUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectShareLinks and returns the data updated in the database.
+     * @param {ProjectShareLinkUpdateManyAndReturnArgs} args - Arguments to update many ProjectShareLinks.
+     * @example
+     * // Update many ProjectShareLinks
+     * const projectShareLink = await prisma.projectShareLink.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectShareLinks and only return the `id`
+     * const projectShareLinkWithIdOnly = await prisma.projectShareLink.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectShareLinkUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectShareLinkUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectShareLink.
+     * @param {ProjectShareLinkUpsertArgs} args - Arguments to update or create a ProjectShareLink.
+     * @example
+     * // Update or create a ProjectShareLink
+     * const projectShareLink = await prisma.projectShareLink.upsert({
+     *   create: {
+     *     // ... data to create a ProjectShareLink
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectShareLink we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectShareLinkUpsertArgs>(args: SelectSubset<T, ProjectShareLinkUpsertArgs<ExtArgs>>): Prisma__ProjectShareLinkClient<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectShareLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkCountArgs} args - Arguments to filter ProjectShareLinks to count.
+     * @example
+     * // Count the number of ProjectShareLinks
+     * const count = await prisma.projectShareLink.count({
+     *   where: {
+     *     // ... the filter for the ProjectShareLinks we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectShareLinkCountArgs>(
+      args?: Subset<T, ProjectShareLinkCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectShareLinkCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectShareLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectShareLinkAggregateArgs>(args: Subset<T, ProjectShareLinkAggregateArgs>): Prisma.PrismaPromise<GetProjectShareLinkAggregateType<T>>
+
+    /**
+     * Group by ProjectShareLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectShareLinkGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectShareLinkGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectShareLinkGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectShareLinkGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectShareLinkGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectShareLinkGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectShareLink model
+   */
+  readonly fields: ProjectShareLinkFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectShareLink.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectShareLinkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    createdBy<T extends ProjectShareLink$createdByArgs<ExtArgs> = {}>(args?: Subset<T, ProjectShareLink$createdByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectShareLink model
+   */
+  interface ProjectShareLinkFieldRefs {
+    readonly id: FieldRef<"ProjectShareLink", 'String'>
+    readonly projectId: FieldRef<"ProjectShareLink", 'String'>
+    readonly tokenHash: FieldRef<"ProjectShareLink", 'String'>
+    readonly roleKey: FieldRef<"ProjectShareLink", 'String'>
+    readonly expiresAt: FieldRef<"ProjectShareLink", 'DateTime'>
+    readonly createdByUserId: FieldRef<"ProjectShareLink", 'String'>
+    readonly revokedAt: FieldRef<"ProjectShareLink", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectShareLink", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectShareLink findUnique
+   */
+  export type ProjectShareLinkFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectShareLink to fetch.
+     */
+    where: ProjectShareLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectShareLink findUniqueOrThrow
+   */
+  export type ProjectShareLinkFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectShareLink to fetch.
+     */
+    where: ProjectShareLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectShareLink findFirst
+   */
+  export type ProjectShareLinkFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectShareLink to fetch.
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectShareLinks to fetch.
+     */
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectShareLinks.
+     */
+    cursor?: ProjectShareLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectShareLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectShareLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectShareLinks.
+     */
+    distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectShareLink findFirstOrThrow
+   */
+  export type ProjectShareLinkFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectShareLink to fetch.
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectShareLinks to fetch.
+     */
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectShareLinks.
+     */
+    cursor?: ProjectShareLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectShareLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectShareLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectShareLinks.
+     */
+    distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectShareLink findMany
+   */
+  export type ProjectShareLinkFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectShareLinks to fetch.
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectShareLinks to fetch.
+     */
+    orderBy?: ProjectShareLinkOrderByWithRelationInput | ProjectShareLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectShareLinks.
+     */
+    cursor?: ProjectShareLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectShareLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectShareLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectShareLinks.
+     */
+    distinct?: ProjectShareLinkScalarFieldEnum | ProjectShareLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectShareLink create
+   */
+  export type ProjectShareLinkCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectShareLink.
+     */
+    data: XOR<ProjectShareLinkCreateInput, ProjectShareLinkUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectShareLink createMany
+   */
+  export type ProjectShareLinkCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectShareLinks.
+     */
+    data: ProjectShareLinkCreateManyInput | ProjectShareLinkCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectShareLink createManyAndReturn
+   */
+  export type ProjectShareLinkCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectShareLinks.
+     */
+    data: ProjectShareLinkCreateManyInput | ProjectShareLinkCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectShareLink update
+   */
+  export type ProjectShareLinkUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectShareLink.
+     */
+    data: XOR<ProjectShareLinkUpdateInput, ProjectShareLinkUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectShareLink to update.
+     */
+    where: ProjectShareLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectShareLink updateMany
+   */
+  export type ProjectShareLinkUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectShareLinks.
+     */
+    data: XOR<ProjectShareLinkUpdateManyMutationInput, ProjectShareLinkUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectShareLinks to update
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * Limit how many ProjectShareLinks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectShareLink updateManyAndReturn
+   */
+  export type ProjectShareLinkUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectShareLinks.
+     */
+    data: XOR<ProjectShareLinkUpdateManyMutationInput, ProjectShareLinkUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectShareLinks to update
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * Limit how many ProjectShareLinks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectShareLink upsert
+   */
+  export type ProjectShareLinkUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectShareLink to update in case it exists.
+     */
+    where: ProjectShareLinkWhereUniqueInput
+    /**
+     * In case the ProjectShareLink found by the `where` argument doesn't exist, create a new ProjectShareLink with this data.
+     */
+    create: XOR<ProjectShareLinkCreateInput, ProjectShareLinkUncheckedCreateInput>
+    /**
+     * In case the ProjectShareLink was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectShareLinkUpdateInput, ProjectShareLinkUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectShareLink delete
+   */
+  export type ProjectShareLinkDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectShareLink to delete.
+     */
+    where: ProjectShareLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectShareLink deleteMany
+   */
+  export type ProjectShareLinkDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectShareLinks to delete
+     */
+    where?: ProjectShareLinkWhereInput
+    /**
+     * Limit how many ProjectShareLinks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectShareLink.createdBy
+   */
+  export type ProjectShareLink$createdByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ProjectShareLink without action
+   */
+  export type ProjectShareLinkDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectShareLink
+     */
+    select?: ProjectShareLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectShareLink
+     */
+    omit?: ProjectShareLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectShareLinkInclude<ExtArgs> | null
   }
 
 
@@ -66576,6 +70507,53 @@ export namespace Prisma {
   export type ProjectActivityScalarFieldEnum = (typeof ProjectActivityScalarFieldEnum)[keyof typeof ProjectActivityScalarFieldEnum]
 
 
+  export const CollaborationPresenceScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    userId: 'userId',
+    sessionId: 'sessionId',
+    status: 'status',
+    filePath: 'filePath',
+    cursor: 'cursor',
+    selection: 'selection',
+    mode: 'mode',
+    terminalAccess: 'terminalAccess',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CollaborationPresenceScalarFieldEnum = (typeof CollaborationPresenceScalarFieldEnum)[keyof typeof CollaborationPresenceScalarFieldEnum]
+
+
+  export const CollaborationCommentScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    userId: 'userId',
+    filePath: 'filePath',
+    line: 'line',
+    selection: 'selection',
+    body: 'body',
+    resolvedAt: 'resolvedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type CollaborationCommentScalarFieldEnum = (typeof CollaborationCommentScalarFieldEnum)[keyof typeof CollaborationCommentScalarFieldEnum]
+
+
+  export const ProjectShareLinkScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    tokenHash: 'tokenHash',
+    roleKey: 'roleKey',
+    expiresAt: 'expiresAt',
+    createdByUserId: 'createdByUserId',
+    revokedAt: 'revokedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ProjectShareLinkScalarFieldEnum = (typeof ProjectShareLinkScalarFieldEnum)[keyof typeof ProjectShareLinkScalarFieldEnum]
+
+
   export const ProjectTemplateScalarFieldEnum: {
     id: 'id',
     sourceProjectId: 'sourceProjectId',
@@ -67283,6 +71261,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
     projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
+    collaborationPresence?: CollaborationPresenceListRelationFilter
+    collaborationComments?: CollaborationCommentListRelationFilter
+    collaborationShareLinks?: ProjectShareLinkListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -67312,6 +71293,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityOrderByRelationAggregateInput
     projectSnapshots?: ProjectSnapshotOrderByRelationAggregateInput
     projectIdeStateUpdates?: ProjectIdeStateOrderByRelationAggregateInput
+    collaborationPresence?: CollaborationPresenceOrderByRelationAggregateInput
+    collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
+    collaborationShareLinks?: ProjectShareLinkOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -67344,6 +71328,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
     projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
+    collaborationPresence?: CollaborationPresenceListRelationFilter
+    collaborationComments?: CollaborationCommentListRelationFilter
+    collaborationShareLinks?: ProjectShareLinkListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -67947,6 +71934,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
+    collaborationPresence?: CollaborationPresenceListRelationFilter
+    collaborationComments?: CollaborationCommentListRelationFilter
+    shareLinks?: ProjectShareLinkListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -67976,6 +71966,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
     ideState?: ProjectIdeStateOrderByWithRelationInput
+    collaborationPresence?: CollaborationPresenceOrderByRelationAggregateInput
+    collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
+    shareLinks?: ProjectShareLinkOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -68009,6 +72002,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
+    collaborationPresence?: CollaborationPresenceListRelationFilter
+    collaborationComments?: CollaborationCommentListRelationFilter
+    shareLinks?: ProjectShareLinkListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -68412,6 +72408,253 @@ export namespace Prisma {
     action?: StringWithAggregatesFilter<"ProjectActivity"> | string
     metadata?: JsonNullableWithAggregatesFilter<"ProjectActivity">
     createdAt?: DateTimeWithAggregatesFilter<"ProjectActivity"> | Date | string
+  }
+
+  export type CollaborationPresenceWhereInput = {
+    AND?: CollaborationPresenceWhereInput | CollaborationPresenceWhereInput[]
+    OR?: CollaborationPresenceWhereInput[]
+    NOT?: CollaborationPresenceWhereInput | CollaborationPresenceWhereInput[]
+    id?: StringFilter<"CollaborationPresence"> | string
+    projectId?: StringFilter<"CollaborationPresence"> | string
+    userId?: StringFilter<"CollaborationPresence"> | string
+    sessionId?: StringFilter<"CollaborationPresence"> | string
+    status?: StringFilter<"CollaborationPresence"> | string
+    filePath?: StringNullableFilter<"CollaborationPresence"> | string | null
+    cursor?: JsonNullableFilter<"CollaborationPresence">
+    selection?: JsonNullableFilter<"CollaborationPresence">
+    mode?: StringFilter<"CollaborationPresence"> | string
+    terminalAccess?: BoolFilter<"CollaborationPresence"> | boolean
+    createdAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+    updatedAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type CollaborationPresenceOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    status?: SortOrder
+    filePath?: SortOrderInput | SortOrder
+    cursor?: SortOrderInput | SortOrder
+    selection?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    terminalAccess?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type CollaborationPresenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_sessionId?: CollaborationPresenceProjectIdSessionIdCompoundUniqueInput
+    AND?: CollaborationPresenceWhereInput | CollaborationPresenceWhereInput[]
+    OR?: CollaborationPresenceWhereInput[]
+    NOT?: CollaborationPresenceWhereInput | CollaborationPresenceWhereInput[]
+    projectId?: StringFilter<"CollaborationPresence"> | string
+    userId?: StringFilter<"CollaborationPresence"> | string
+    sessionId?: StringFilter<"CollaborationPresence"> | string
+    status?: StringFilter<"CollaborationPresence"> | string
+    filePath?: StringNullableFilter<"CollaborationPresence"> | string | null
+    cursor?: JsonNullableFilter<"CollaborationPresence">
+    selection?: JsonNullableFilter<"CollaborationPresence">
+    mode?: StringFilter<"CollaborationPresence"> | string
+    terminalAccess?: BoolFilter<"CollaborationPresence"> | boolean
+    createdAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+    updatedAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "projectId_sessionId">
+
+  export type CollaborationPresenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    status?: SortOrder
+    filePath?: SortOrderInput | SortOrder
+    cursor?: SortOrderInput | SortOrder
+    selection?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    terminalAccess?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CollaborationPresenceCountOrderByAggregateInput
+    _max?: CollaborationPresenceMaxOrderByAggregateInput
+    _min?: CollaborationPresenceMinOrderByAggregateInput
+  }
+
+  export type CollaborationPresenceScalarWhereWithAggregatesInput = {
+    AND?: CollaborationPresenceScalarWhereWithAggregatesInput | CollaborationPresenceScalarWhereWithAggregatesInput[]
+    OR?: CollaborationPresenceScalarWhereWithAggregatesInput[]
+    NOT?: CollaborationPresenceScalarWhereWithAggregatesInput | CollaborationPresenceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    projectId?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    userId?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    sessionId?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    status?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    filePath?: StringNullableWithAggregatesFilter<"CollaborationPresence"> | string | null
+    cursor?: JsonNullableWithAggregatesFilter<"CollaborationPresence">
+    selection?: JsonNullableWithAggregatesFilter<"CollaborationPresence">
+    mode?: StringWithAggregatesFilter<"CollaborationPresence"> | string
+    terminalAccess?: BoolWithAggregatesFilter<"CollaborationPresence"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"CollaborationPresence"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CollaborationPresence"> | Date | string
+  }
+
+  export type CollaborationCommentWhereInput = {
+    AND?: CollaborationCommentWhereInput | CollaborationCommentWhereInput[]
+    OR?: CollaborationCommentWhereInput[]
+    NOT?: CollaborationCommentWhereInput | CollaborationCommentWhereInput[]
+    id?: StringFilter<"CollaborationComment"> | string
+    projectId?: StringFilter<"CollaborationComment"> | string
+    userId?: StringFilter<"CollaborationComment"> | string
+    filePath?: StringNullableFilter<"CollaborationComment"> | string | null
+    line?: IntNullableFilter<"CollaborationComment"> | number | null
+    selection?: JsonNullableFilter<"CollaborationComment">
+    body?: StringFilter<"CollaborationComment"> | string
+    resolvedAt?: DateTimeNullableFilter<"CollaborationComment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CollaborationComment"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type CollaborationCommentOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    filePath?: SortOrderInput | SortOrder
+    line?: SortOrderInput | SortOrder
+    selection?: SortOrderInput | SortOrder
+    body?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type CollaborationCommentWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CollaborationCommentWhereInput | CollaborationCommentWhereInput[]
+    OR?: CollaborationCommentWhereInput[]
+    NOT?: CollaborationCommentWhereInput | CollaborationCommentWhereInput[]
+    projectId?: StringFilter<"CollaborationComment"> | string
+    userId?: StringFilter<"CollaborationComment"> | string
+    filePath?: StringNullableFilter<"CollaborationComment"> | string | null
+    line?: IntNullableFilter<"CollaborationComment"> | number | null
+    selection?: JsonNullableFilter<"CollaborationComment">
+    body?: StringFilter<"CollaborationComment"> | string
+    resolvedAt?: DateTimeNullableFilter<"CollaborationComment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CollaborationComment"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type CollaborationCommentOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    filePath?: SortOrderInput | SortOrder
+    line?: SortOrderInput | SortOrder
+    selection?: SortOrderInput | SortOrder
+    body?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: CollaborationCommentCountOrderByAggregateInput
+    _avg?: CollaborationCommentAvgOrderByAggregateInput
+    _max?: CollaborationCommentMaxOrderByAggregateInput
+    _min?: CollaborationCommentMinOrderByAggregateInput
+    _sum?: CollaborationCommentSumOrderByAggregateInput
+  }
+
+  export type CollaborationCommentScalarWhereWithAggregatesInput = {
+    AND?: CollaborationCommentScalarWhereWithAggregatesInput | CollaborationCommentScalarWhereWithAggregatesInput[]
+    OR?: CollaborationCommentScalarWhereWithAggregatesInput[]
+    NOT?: CollaborationCommentScalarWhereWithAggregatesInput | CollaborationCommentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CollaborationComment"> | string
+    projectId?: StringWithAggregatesFilter<"CollaborationComment"> | string
+    userId?: StringWithAggregatesFilter<"CollaborationComment"> | string
+    filePath?: StringNullableWithAggregatesFilter<"CollaborationComment"> | string | null
+    line?: IntNullableWithAggregatesFilter<"CollaborationComment"> | number | null
+    selection?: JsonNullableWithAggregatesFilter<"CollaborationComment">
+    body?: StringWithAggregatesFilter<"CollaborationComment"> | string
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"CollaborationComment"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"CollaborationComment"> | Date | string
+  }
+
+  export type ProjectShareLinkWhereInput = {
+    AND?: ProjectShareLinkWhereInput | ProjectShareLinkWhereInput[]
+    OR?: ProjectShareLinkWhereInput[]
+    NOT?: ProjectShareLinkWhereInput | ProjectShareLinkWhereInput[]
+    id?: StringFilter<"ProjectShareLink"> | string
+    projectId?: StringFilter<"ProjectShareLink"> | string
+    tokenHash?: StringFilter<"ProjectShareLink"> | string
+    roleKey?: StringFilter<"ProjectShareLink"> | string
+    expiresAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+    createdByUserId?: StringNullableFilter<"ProjectShareLink"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ProjectShareLink"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type ProjectShareLinkOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    tokenHash?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    createdBy?: UserOrderByWithRelationInput
+  }
+
+  export type ProjectShareLinkWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    tokenHash?: string
+    AND?: ProjectShareLinkWhereInput | ProjectShareLinkWhereInput[]
+    OR?: ProjectShareLinkWhereInput[]
+    NOT?: ProjectShareLinkWhereInput | ProjectShareLinkWhereInput[]
+    projectId?: StringFilter<"ProjectShareLink"> | string
+    roleKey?: StringFilter<"ProjectShareLink"> | string
+    expiresAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+    createdByUserId?: StringNullableFilter<"ProjectShareLink"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ProjectShareLink"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "tokenHash">
+
+  export type ProjectShareLinkOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    tokenHash?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ProjectShareLinkCountOrderByAggregateInput
+    _max?: ProjectShareLinkMaxOrderByAggregateInput
+    _min?: ProjectShareLinkMinOrderByAggregateInput
+  }
+
+  export type ProjectShareLinkScalarWhereWithAggregatesInput = {
+    AND?: ProjectShareLinkScalarWhereWithAggregatesInput | ProjectShareLinkScalarWhereWithAggregatesInput[]
+    OR?: ProjectShareLinkScalarWhereWithAggregatesInput[]
+    NOT?: ProjectShareLinkScalarWhereWithAggregatesInput | ProjectShareLinkScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectShareLink"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectShareLink"> | string
+    tokenHash?: StringWithAggregatesFilter<"ProjectShareLink"> | string
+    roleKey?: StringWithAggregatesFilter<"ProjectShareLink"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"ProjectShareLink"> | Date | string
+    createdByUserId?: StringNullableWithAggregatesFilter<"ProjectShareLink"> | string | null
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"ProjectShareLink"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectShareLink"> | Date | string
   }
 
   export type ProjectTemplateWhereInput = {
@@ -70951,6 +75194,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -70980,6 +75226,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUpdateInput = {
@@ -71009,6 +75258,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -71038,6 +75290,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -71670,6 +75925,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -71698,6 +75956,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -71726,6 +75987,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -71754,6 +76018,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -72155,6 +76422,266 @@ export namespace Prisma {
     actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
     action?: StringFieldUpdateOperationsInput | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceCreateInput = {
+    id?: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCollaborationPresenceInput
+    user: UserCreateNestedOneWithoutCollaborationPresenceInput
+  }
+
+  export type CollaborationPresenceUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    userId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationPresenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCollaborationPresenceNestedInput
+    user?: UserUpdateOneRequiredWithoutCollaborationPresenceNestedInput
+  }
+
+  export type CollaborationPresenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceCreateManyInput = {
+    id?: string
+    projectId: string
+    userId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationPresenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentCreateInput = {
+    id?: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCollaborationCommentsInput
+    user: UserCreateNestedOneWithoutCollaborationCommentsInput
+  }
+
+  export type CollaborationCommentUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    userId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CollaborationCommentUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCollaborationCommentsNestedInput
+    user?: UserUpdateOneRequiredWithoutCollaborationCommentsNestedInput
+  }
+
+  export type CollaborationCommentUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentCreateManyInput = {
+    id?: string
+    projectId: string
+    userId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CollaborationCommentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkCreateInput = {
+    id?: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutShareLinksInput
+    createdBy?: UserCreateNestedOneWithoutCollaborationShareLinksInput
+  }
+
+  export type ProjectShareLinkUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    createdByUserId?: string | null
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+    createdBy?: UserUpdateOneWithoutCollaborationShareLinksNestedInput
+  }
+
+  export type ProjectShareLinkUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkCreateManyInput = {
+    id?: string
+    projectId: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    createdByUserId?: string | null
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -74939,6 +79466,24 @@ export namespace Prisma {
     none?: ProjectIdeStateWhereInput
   }
 
+  export type CollaborationPresenceListRelationFilter = {
+    every?: CollaborationPresenceWhereInput
+    some?: CollaborationPresenceWhereInput
+    none?: CollaborationPresenceWhereInput
+  }
+
+  export type CollaborationCommentListRelationFilter = {
+    every?: CollaborationCommentWhereInput
+    some?: CollaborationCommentWhereInput
+    none?: CollaborationCommentWhereInput
+  }
+
+  export type ProjectShareLinkListRelationFilter = {
+    every?: ProjectShareLinkWhereInput
+    some?: ProjectShareLinkWhereInput
+    none?: ProjectShareLinkWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -75005,6 +79550,18 @@ export namespace Prisma {
   }
 
   export type ProjectIdeStateOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CollaborationPresenceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CollaborationCommentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectShareLinkOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -75968,6 +80525,154 @@ export namespace Prisma {
     _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
+  export type CollaborationPresenceProjectIdSessionIdCompoundUniqueInput = {
+    projectId: string
+    sessionId: string
+  }
+
+  export type CollaborationPresenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    status?: SortOrder
+    filePath?: SortOrder
+    cursor?: SortOrder
+    selection?: SortOrder
+    mode?: SortOrder
+    terminalAccess?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CollaborationPresenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    status?: SortOrder
+    filePath?: SortOrder
+    mode?: SortOrder
+    terminalAccess?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CollaborationPresenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    sessionId?: SortOrder
+    status?: SortOrder
+    filePath?: SortOrder
+    mode?: SortOrder
+    terminalAccess?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type CollaborationCommentCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    filePath?: SortOrder
+    line?: SortOrder
+    selection?: SortOrder
+    body?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CollaborationCommentAvgOrderByAggregateInput = {
+    line?: SortOrder
+  }
+
+  export type CollaborationCommentMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    filePath?: SortOrder
+    line?: SortOrder
+    body?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CollaborationCommentMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userId?: SortOrder
+    filePath?: SortOrder
+    line?: SortOrder
+    body?: SortOrder
+    resolvedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type CollaborationCommentSumOrderByAggregateInput = {
+    line?: SortOrder
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
+  }
+
+  export type ProjectShareLinkCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    tokenHash?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    revokedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectShareLinkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    tokenHash?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    revokedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectShareLinkMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    tokenHash?: SortOrder
+    roleKey?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    revokedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type ProjectTemplateCountOrderByAggregateInput = {
     id?: SortOrder
     sourceProjectId?: SortOrder
@@ -76178,17 +80883,6 @@ export namespace Prisma {
     sizeBytes?: SortOrder
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type ProjectSnapshotCountOrderByAggregateInput = {
     id?: SortOrder
     projectId?: SortOrder
@@ -76229,22 +80923,6 @@ export namespace Prisma {
 
   export type ProjectSnapshotSumOrderByAggregateInput = {
     byteLength?: SortOrder
-  }
-
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type EnumDeploymentStatusFilter<$PrismaModel = never> = {
@@ -77493,6 +82171,27 @@ export namespace Prisma {
     connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
   }
 
+  export type CollaborationPresenceCreateNestedManyWithoutUserInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput> | CollaborationPresenceCreateWithoutUserInput[] | CollaborationPresenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutUserInput | CollaborationPresenceCreateOrConnectWithoutUserInput[]
+    createMany?: CollaborationPresenceCreateManyUserInputEnvelope
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+  }
+
+  export type CollaborationCommentCreateNestedManyWithoutUserInput = {
+    create?: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput> | CollaborationCommentCreateWithoutUserInput[] | CollaborationCommentUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutUserInput | CollaborationCommentCreateOrConnectWithoutUserInput[]
+    createMany?: CollaborationCommentCreateManyUserInputEnvelope
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+  }
+
+  export type ProjectShareLinkCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput> | ProjectShareLinkCreateWithoutCreatedByInput[] | ProjectShareLinkUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -77603,6 +82302,27 @@ export namespace Prisma {
     connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
     createMany?: ProjectIdeStateCreateManyUpdatedByInputEnvelope
     connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+  }
+
+  export type CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput> | CollaborationPresenceCreateWithoutUserInput[] | CollaborationPresenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutUserInput | CollaborationPresenceCreateOrConnectWithoutUserInput[]
+    createMany?: CollaborationPresenceCreateManyUserInputEnvelope
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+  }
+
+  export type CollaborationCommentUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput> | CollaborationCommentCreateWithoutUserInput[] | CollaborationCommentUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutUserInput | CollaborationCommentCreateOrConnectWithoutUserInput[]
+    createMany?: CollaborationCommentCreateManyUserInputEnvelope
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+  }
+
+  export type ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput> | ProjectShareLinkCreateWithoutCreatedByInput[] | ProjectShareLinkUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -77849,6 +82569,48 @@ export namespace Prisma {
     deleteMany?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
   }
 
+  export type CollaborationPresenceUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput> | CollaborationPresenceCreateWithoutUserInput[] | CollaborationPresenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutUserInput | CollaborationPresenceCreateOrConnectWithoutUserInput[]
+    upsert?: CollaborationPresenceUpsertWithWhereUniqueWithoutUserInput | CollaborationPresenceUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CollaborationPresenceCreateManyUserInputEnvelope
+    set?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    disconnect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    delete?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    update?: CollaborationPresenceUpdateWithWhereUniqueWithoutUserInput | CollaborationPresenceUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CollaborationPresenceUpdateManyWithWhereWithoutUserInput | CollaborationPresenceUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+  }
+
+  export type CollaborationCommentUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput> | CollaborationCommentCreateWithoutUserInput[] | CollaborationCommentUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutUserInput | CollaborationCommentCreateOrConnectWithoutUserInput[]
+    upsert?: CollaborationCommentUpsertWithWhereUniqueWithoutUserInput | CollaborationCommentUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CollaborationCommentCreateManyUserInputEnvelope
+    set?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    disconnect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    delete?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    update?: CollaborationCommentUpdateWithWhereUniqueWithoutUserInput | CollaborationCommentUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CollaborationCommentUpdateManyWithWhereWithoutUserInput | CollaborationCommentUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+  }
+
+  export type ProjectShareLinkUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput> | ProjectShareLinkCreateWithoutCreatedByInput[] | ProjectShareLinkUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ProjectShareLinkUpsertWithWhereUniqueWithoutCreatedByInput | ProjectShareLinkUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
+    set?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    disconnect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    delete?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    update?: ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput | ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput | ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -78071,6 +82833,48 @@ export namespace Prisma {
     update?: ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput | ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput[]
     updateMany?: ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput | ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput[]
     deleteMany?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
+  }
+
+  export type CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput> | CollaborationPresenceCreateWithoutUserInput[] | CollaborationPresenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutUserInput | CollaborationPresenceCreateOrConnectWithoutUserInput[]
+    upsert?: CollaborationPresenceUpsertWithWhereUniqueWithoutUserInput | CollaborationPresenceUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CollaborationPresenceCreateManyUserInputEnvelope
+    set?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    disconnect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    delete?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    update?: CollaborationPresenceUpdateWithWhereUniqueWithoutUserInput | CollaborationPresenceUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CollaborationPresenceUpdateManyWithWhereWithoutUserInput | CollaborationPresenceUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+  }
+
+  export type CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput> | CollaborationCommentCreateWithoutUserInput[] | CollaborationCommentUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutUserInput | CollaborationCommentCreateOrConnectWithoutUserInput[]
+    upsert?: CollaborationCommentUpsertWithWhereUniqueWithoutUserInput | CollaborationCommentUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: CollaborationCommentCreateManyUserInputEnvelope
+    set?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    disconnect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    delete?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    update?: CollaborationCommentUpdateWithWhereUniqueWithoutUserInput | CollaborationCommentUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: CollaborationCommentUpdateManyWithWhereWithoutUserInput | CollaborationCommentUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+  }
+
+  export type ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput> | ProjectShareLinkCreateWithoutCreatedByInput[] | ProjectShareLinkUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutCreatedByInput | ProjectShareLinkCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ProjectShareLinkUpsertWithWhereUniqueWithoutCreatedByInput | ProjectShareLinkUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ProjectShareLinkCreateManyCreatedByInputEnvelope
+    set?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    disconnect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    delete?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    update?: ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput | ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput | ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -79360,6 +84164,27 @@ export namespace Prisma {
     connect?: ProjectIdeStateWhereUniqueInput
   }
 
+  export type CollaborationPresenceCreateNestedManyWithoutProjectInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput> | CollaborationPresenceCreateWithoutProjectInput[] | CollaborationPresenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutProjectInput | CollaborationPresenceCreateOrConnectWithoutProjectInput[]
+    createMany?: CollaborationPresenceCreateManyProjectInputEnvelope
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+  }
+
+  export type CollaborationCommentCreateNestedManyWithoutProjectInput = {
+    create?: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput> | CollaborationCommentCreateWithoutProjectInput[] | CollaborationCommentUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutProjectInput | CollaborationCommentCreateOrConnectWithoutProjectInput[]
+    createMany?: CollaborationCommentCreateManyProjectInputEnvelope
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+  }
+
+  export type ProjectShareLinkCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput> | ProjectShareLinkCreateWithoutProjectInput[] | ProjectShareLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutProjectInput | ProjectShareLinkCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectShareLinkCreateManyProjectInputEnvelope
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -79441,6 +84266,27 @@ export namespace Prisma {
     create?: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
     connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutProjectInput
     connect?: ProjectIdeStateWhereUniqueInput
+  }
+
+  export type CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput> | CollaborationPresenceCreateWithoutProjectInput[] | CollaborationPresenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutProjectInput | CollaborationPresenceCreateOrConnectWithoutProjectInput[]
+    createMany?: CollaborationPresenceCreateManyProjectInputEnvelope
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+  }
+
+  export type CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput> | CollaborationCommentCreateWithoutProjectInput[] | CollaborationCommentUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutProjectInput | CollaborationCommentCreateOrConnectWithoutProjectInput[]
+    createMany?: CollaborationCommentCreateManyProjectInputEnvelope
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+  }
+
+  export type ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput> | ProjectShareLinkCreateWithoutProjectInput[] | ProjectShareLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutProjectInput | ProjectShareLinkCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectShareLinkCreateManyProjectInputEnvelope
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -79615,6 +84461,48 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectIdeStateUpdateToOneWithWhereWithoutProjectInput, ProjectIdeStateUpdateWithoutProjectInput>, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
   }
 
+  export type CollaborationPresenceUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput> | CollaborationPresenceCreateWithoutProjectInput[] | CollaborationPresenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutProjectInput | CollaborationPresenceCreateOrConnectWithoutProjectInput[]
+    upsert?: CollaborationPresenceUpsertWithWhereUniqueWithoutProjectInput | CollaborationPresenceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: CollaborationPresenceCreateManyProjectInputEnvelope
+    set?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    disconnect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    delete?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    update?: CollaborationPresenceUpdateWithWhereUniqueWithoutProjectInput | CollaborationPresenceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: CollaborationPresenceUpdateManyWithWhereWithoutProjectInput | CollaborationPresenceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+  }
+
+  export type CollaborationCommentUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput> | CollaborationCommentCreateWithoutProjectInput[] | CollaborationCommentUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutProjectInput | CollaborationCommentCreateOrConnectWithoutProjectInput[]
+    upsert?: CollaborationCommentUpsertWithWhereUniqueWithoutProjectInput | CollaborationCommentUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: CollaborationCommentCreateManyProjectInputEnvelope
+    set?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    disconnect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    delete?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    update?: CollaborationCommentUpdateWithWhereUniqueWithoutProjectInput | CollaborationCommentUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: CollaborationCommentUpdateManyWithWhereWithoutProjectInput | CollaborationCommentUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+  }
+
+  export type ProjectShareLinkUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput> | ProjectShareLinkCreateWithoutProjectInput[] | ProjectShareLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutProjectInput | ProjectShareLinkCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectShareLinkUpsertWithWhereUniqueWithoutProjectInput | ProjectShareLinkUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectShareLinkCreateManyProjectInputEnvelope
+    set?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    disconnect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    delete?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    update?: ProjectShareLinkUpdateWithWhereUniqueWithoutProjectInput | ProjectShareLinkUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectShareLinkUpdateManyWithWhereWithoutProjectInput | ProjectShareLinkUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -79779,6 +84667,48 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectIdeStateUpdateToOneWithWhereWithoutProjectInput, ProjectIdeStateUpdateWithoutProjectInput>, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
   }
 
+  export type CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput> | CollaborationPresenceCreateWithoutProjectInput[] | CollaborationPresenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationPresenceCreateOrConnectWithoutProjectInput | CollaborationPresenceCreateOrConnectWithoutProjectInput[]
+    upsert?: CollaborationPresenceUpsertWithWhereUniqueWithoutProjectInput | CollaborationPresenceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: CollaborationPresenceCreateManyProjectInputEnvelope
+    set?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    disconnect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    delete?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    connect?: CollaborationPresenceWhereUniqueInput | CollaborationPresenceWhereUniqueInput[]
+    update?: CollaborationPresenceUpdateWithWhereUniqueWithoutProjectInput | CollaborationPresenceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: CollaborationPresenceUpdateManyWithWhereWithoutProjectInput | CollaborationPresenceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+  }
+
+  export type CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput> | CollaborationCommentCreateWithoutProjectInput[] | CollaborationCommentUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: CollaborationCommentCreateOrConnectWithoutProjectInput | CollaborationCommentCreateOrConnectWithoutProjectInput[]
+    upsert?: CollaborationCommentUpsertWithWhereUniqueWithoutProjectInput | CollaborationCommentUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: CollaborationCommentCreateManyProjectInputEnvelope
+    set?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    disconnect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    delete?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    connect?: CollaborationCommentWhereUniqueInput | CollaborationCommentWhereUniqueInput[]
+    update?: CollaborationCommentUpdateWithWhereUniqueWithoutProjectInput | CollaborationCommentUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: CollaborationCommentUpdateManyWithWhereWithoutProjectInput | CollaborationCommentUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+  }
+
+  export type ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput> | ProjectShareLinkCreateWithoutProjectInput[] | ProjectShareLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectShareLinkCreateOrConnectWithoutProjectInput | ProjectShareLinkCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectShareLinkUpsertWithWhereUniqueWithoutProjectInput | ProjectShareLinkUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectShareLinkCreateManyProjectInputEnvelope
+    set?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    disconnect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    delete?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    connect?: ProjectShareLinkWhereUniqueInput | ProjectShareLinkWhereUniqueInput[]
+    update?: ProjectShareLinkUpdateWithWhereUniqueWithoutProjectInput | ProjectShareLinkUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectShareLinkUpdateManyWithWhereWithoutProjectInput | ProjectShareLinkUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+  }
+
   export type ProjectCreateNestedOneWithoutIdeStateInput = {
     create?: XOR<ProjectCreateWithoutIdeStateInput, ProjectUncheckedCreateWithoutIdeStateInput>
     connectOrCreate?: ProjectCreateOrConnectWithoutIdeStateInput
@@ -79915,6 +84845,100 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectActivityInput, UserUpdateWithoutProjectActivityInput>, UserUncheckedUpdateWithoutProjectActivityInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutCollaborationPresenceInput = {
+    create?: XOR<ProjectCreateWithoutCollaborationPresenceInput, ProjectUncheckedCreateWithoutCollaborationPresenceInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCollaborationPresenceInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutCollaborationPresenceInput = {
+    create?: XOR<UserCreateWithoutCollaborationPresenceInput, UserUncheckedCreateWithoutCollaborationPresenceInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationPresenceInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutCollaborationPresenceNestedInput = {
+    create?: XOR<ProjectCreateWithoutCollaborationPresenceInput, ProjectUncheckedCreateWithoutCollaborationPresenceInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCollaborationPresenceInput
+    upsert?: ProjectUpsertWithoutCollaborationPresenceInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutCollaborationPresenceInput, ProjectUpdateWithoutCollaborationPresenceInput>, ProjectUncheckedUpdateWithoutCollaborationPresenceInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutCollaborationPresenceNestedInput = {
+    create?: XOR<UserCreateWithoutCollaborationPresenceInput, UserUncheckedCreateWithoutCollaborationPresenceInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationPresenceInput
+    upsert?: UserUpsertWithoutCollaborationPresenceInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCollaborationPresenceInput, UserUpdateWithoutCollaborationPresenceInput>, UserUncheckedUpdateWithoutCollaborationPresenceInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutCollaborationCommentsInput = {
+    create?: XOR<ProjectCreateWithoutCollaborationCommentsInput, ProjectUncheckedCreateWithoutCollaborationCommentsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCollaborationCommentsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutCollaborationCommentsInput = {
+    create?: XOR<UserCreateWithoutCollaborationCommentsInput, UserUncheckedCreateWithoutCollaborationCommentsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationCommentsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type NullableIntFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type ProjectUpdateOneRequiredWithoutCollaborationCommentsNestedInput = {
+    create?: XOR<ProjectCreateWithoutCollaborationCommentsInput, ProjectUncheckedCreateWithoutCollaborationCommentsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCollaborationCommentsInput
+    upsert?: ProjectUpsertWithoutCollaborationCommentsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutCollaborationCommentsInput, ProjectUpdateWithoutCollaborationCommentsInput>, ProjectUncheckedUpdateWithoutCollaborationCommentsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutCollaborationCommentsNestedInput = {
+    create?: XOR<UserCreateWithoutCollaborationCommentsInput, UserUncheckedCreateWithoutCollaborationCommentsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationCommentsInput
+    upsert?: UserUpsertWithoutCollaborationCommentsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCollaborationCommentsInput, UserUpdateWithoutCollaborationCommentsInput>, UserUncheckedUpdateWithoutCollaborationCommentsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutShareLinksInput = {
+    create?: XOR<ProjectCreateWithoutShareLinksInput, ProjectUncheckedCreateWithoutShareLinksInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutShareLinksInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutCollaborationShareLinksInput = {
+    create?: XOR<UserCreateWithoutCollaborationShareLinksInput, UserUncheckedCreateWithoutCollaborationShareLinksInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationShareLinksInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutShareLinksNestedInput = {
+    create?: XOR<ProjectCreateWithoutShareLinksInput, ProjectUncheckedCreateWithoutShareLinksInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutShareLinksInput
+    upsert?: ProjectUpsertWithoutShareLinksInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutShareLinksInput, ProjectUpdateWithoutShareLinksInput>, ProjectUncheckedUpdateWithoutShareLinksInput>
+  }
+
+  export type UserUpdateOneWithoutCollaborationShareLinksNestedInput = {
+    create?: XOR<UserCreateWithoutCollaborationShareLinksInput, UserUncheckedCreateWithoutCollaborationShareLinksInput>
+    connectOrCreate?: UserCreateOrConnectWithoutCollaborationShareLinksInput
+    upsert?: UserUpsertWithoutCollaborationShareLinksInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutCollaborationShareLinksInput, UserUpdateWithoutCollaborationShareLinksInput>, UserUncheckedUpdateWithoutCollaborationShareLinksInput>
   }
 
   export type ProjectCreateNestedOneWithoutTemplatesInput = {
@@ -80157,14 +85181,6 @@ export namespace Prisma {
     create?: XOR<UserCreateWithoutProjectSnapshotsInput, UserUncheckedCreateWithoutProjectSnapshotsInput>
     connectOrCreate?: UserCreateOrConnectWithoutProjectSnapshotsInput
     connect?: UserWhereUniqueInput
-  }
-
-  export type NullableIntFieldUpdateOperationsInput = {
-    set?: number | null
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type ProjectUpdateOneRequiredWithoutSnapshotsNestedInput = {
@@ -81144,23 +86160,6 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type NestedEnumWorkspaceStatusFilter<$PrismaModel = never> = {
-    equals?: $Enums.WorkspaceStatus | EnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumWorkspaceStatusFilter<$PrismaModel> | $Enums.WorkspaceStatus
-  }
-
-  export type NestedEnumWorkspaceStatusWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.WorkspaceStatus | EnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    in?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    notIn?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
-    not?: NestedEnumWorkspaceStatusWithAggregatesFilter<$PrismaModel> | $Enums.WorkspaceStatus
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
-    _max?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
-  }
-
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -81186,6 +86185,23 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedEnumWorkspaceStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceStatus | EnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceStatusFilter<$PrismaModel> | $Enums.WorkspaceStatus
+  }
+
+  export type NestedEnumWorkspaceStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceStatus | EnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceStatus[] | ListEnumWorkspaceStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceStatusWithAggregatesFilter<$PrismaModel> | $Enums.WorkspaceStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
+    _max?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
   }
 
   export type NestedEnumDeploymentStatusFilter<$PrismaModel = never> = {
@@ -81679,6 +86695,106 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type CollaborationPresenceCreateWithoutUserInput = {
+    id?: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCollaborationPresenceInput
+  }
+
+  export type CollaborationPresenceUncheckedCreateWithoutUserInput = {
+    id?: string
+    projectId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationPresenceCreateOrConnectWithoutUserInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    create: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput>
+  }
+
+  export type CollaborationPresenceCreateManyUserInputEnvelope = {
+    data: CollaborationPresenceCreateManyUserInput | CollaborationPresenceCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CollaborationCommentCreateWithoutUserInput = {
+    id?: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCollaborationCommentsInput
+  }
+
+  export type CollaborationCommentUncheckedCreateWithoutUserInput = {
+    id?: string
+    projectId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CollaborationCommentCreateOrConnectWithoutUserInput = {
+    where: CollaborationCommentWhereUniqueInput
+    create: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput>
+  }
+
+  export type CollaborationCommentCreateManyUserInputEnvelope = {
+    data: CollaborationCommentCreateManyUserInput | CollaborationCommentCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectShareLinkCreateWithoutCreatedByInput = {
+    id?: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutShareLinksInput
+  }
+
+  export type ProjectShareLinkUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    projectId: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkCreateOrConnectWithoutCreatedByInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    create: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ProjectShareLinkCreateManyCreatedByInputEnvelope = {
+    data: ProjectShareLinkCreateManyCreatedByInput | ProjectShareLinkCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -82138,6 +87254,101 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
   }
 
+  export type CollaborationPresenceUpsertWithWhereUniqueWithoutUserInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    update: XOR<CollaborationPresenceUpdateWithoutUserInput, CollaborationPresenceUncheckedUpdateWithoutUserInput>
+    create: XOR<CollaborationPresenceCreateWithoutUserInput, CollaborationPresenceUncheckedCreateWithoutUserInput>
+  }
+
+  export type CollaborationPresenceUpdateWithWhereUniqueWithoutUserInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    data: XOR<CollaborationPresenceUpdateWithoutUserInput, CollaborationPresenceUncheckedUpdateWithoutUserInput>
+  }
+
+  export type CollaborationPresenceUpdateManyWithWhereWithoutUserInput = {
+    where: CollaborationPresenceScalarWhereInput
+    data: XOR<CollaborationPresenceUpdateManyMutationInput, CollaborationPresenceUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type CollaborationPresenceScalarWhereInput = {
+    AND?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+    OR?: CollaborationPresenceScalarWhereInput[]
+    NOT?: CollaborationPresenceScalarWhereInput | CollaborationPresenceScalarWhereInput[]
+    id?: StringFilter<"CollaborationPresence"> | string
+    projectId?: StringFilter<"CollaborationPresence"> | string
+    userId?: StringFilter<"CollaborationPresence"> | string
+    sessionId?: StringFilter<"CollaborationPresence"> | string
+    status?: StringFilter<"CollaborationPresence"> | string
+    filePath?: StringNullableFilter<"CollaborationPresence"> | string | null
+    cursor?: JsonNullableFilter<"CollaborationPresence">
+    selection?: JsonNullableFilter<"CollaborationPresence">
+    mode?: StringFilter<"CollaborationPresence"> | string
+    terminalAccess?: BoolFilter<"CollaborationPresence"> | boolean
+    createdAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+    updatedAt?: DateTimeFilter<"CollaborationPresence"> | Date | string
+  }
+
+  export type CollaborationCommentUpsertWithWhereUniqueWithoutUserInput = {
+    where: CollaborationCommentWhereUniqueInput
+    update: XOR<CollaborationCommentUpdateWithoutUserInput, CollaborationCommentUncheckedUpdateWithoutUserInput>
+    create: XOR<CollaborationCommentCreateWithoutUserInput, CollaborationCommentUncheckedCreateWithoutUserInput>
+  }
+
+  export type CollaborationCommentUpdateWithWhereUniqueWithoutUserInput = {
+    where: CollaborationCommentWhereUniqueInput
+    data: XOR<CollaborationCommentUpdateWithoutUserInput, CollaborationCommentUncheckedUpdateWithoutUserInput>
+  }
+
+  export type CollaborationCommentUpdateManyWithWhereWithoutUserInput = {
+    where: CollaborationCommentScalarWhereInput
+    data: XOR<CollaborationCommentUpdateManyMutationInput, CollaborationCommentUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type CollaborationCommentScalarWhereInput = {
+    AND?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+    OR?: CollaborationCommentScalarWhereInput[]
+    NOT?: CollaborationCommentScalarWhereInput | CollaborationCommentScalarWhereInput[]
+    id?: StringFilter<"CollaborationComment"> | string
+    projectId?: StringFilter<"CollaborationComment"> | string
+    userId?: StringFilter<"CollaborationComment"> | string
+    filePath?: StringNullableFilter<"CollaborationComment"> | string | null
+    line?: IntNullableFilter<"CollaborationComment"> | number | null
+    selection?: JsonNullableFilter<"CollaborationComment">
+    body?: StringFilter<"CollaborationComment"> | string
+    resolvedAt?: DateTimeNullableFilter<"CollaborationComment"> | Date | string | null
+    createdAt?: DateTimeFilter<"CollaborationComment"> | Date | string
+  }
+
+  export type ProjectShareLinkUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    update: XOR<ProjectShareLinkUpdateWithoutCreatedByInput, ProjectShareLinkUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<ProjectShareLinkCreateWithoutCreatedByInput, ProjectShareLinkUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ProjectShareLinkUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    data: XOR<ProjectShareLinkUpdateWithoutCreatedByInput, ProjectShareLinkUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type ProjectShareLinkUpdateManyWithWhereWithoutCreatedByInput = {
+    where: ProjectShareLinkScalarWhereInput
+    data: XOR<ProjectShareLinkUpdateManyMutationInput, ProjectShareLinkUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type ProjectShareLinkScalarWhereInput = {
+    AND?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+    OR?: ProjectShareLinkScalarWhereInput[]
+    NOT?: ProjectShareLinkScalarWhereInput | ProjectShareLinkScalarWhereInput[]
+    id?: StringFilter<"ProjectShareLink"> | string
+    projectId?: StringFilter<"ProjectShareLink"> | string
+    tokenHash?: StringFilter<"ProjectShareLink"> | string
+    roleKey?: StringFilter<"ProjectShareLink"> | string
+    expiresAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+    createdByUserId?: StringNullableFilter<"ProjectShareLink"> | string | null
+    revokedAt?: DateTimeNullableFilter<"ProjectShareLink"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectShareLink"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -82164,6 +87375,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -82192,6 +87406,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -82236,6 +87453,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -82264,6 +87484,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -82292,6 +87515,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -82320,6 +87546,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -82364,6 +87593,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -82392,6 +87624,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -82473,6 +87708,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -82500,6 +87738,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -83731,6 +88972,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -83759,6 +89003,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -83895,6 +89142,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -83923,6 +89173,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -84810,6 +90063,106 @@ export namespace Prisma {
     create: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
   }
 
+  export type CollaborationPresenceCreateWithoutProjectInput = {
+    id?: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutCollaborationPresenceInput
+  }
+
+  export type CollaborationPresenceUncheckedCreateWithoutProjectInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationPresenceCreateOrConnectWithoutProjectInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    create: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput>
+  }
+
+  export type CollaborationPresenceCreateManyProjectInputEnvelope = {
+    data: CollaborationPresenceCreateManyProjectInput | CollaborationPresenceCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CollaborationCommentCreateWithoutProjectInput = {
+    id?: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutCollaborationCommentsInput
+  }
+
+  export type CollaborationCommentUncheckedCreateWithoutProjectInput = {
+    id?: string
+    userId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type CollaborationCommentCreateOrConnectWithoutProjectInput = {
+    where: CollaborationCommentWhereUniqueInput
+    create: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput>
+  }
+
+  export type CollaborationCommentCreateManyProjectInputEnvelope = {
+    data: CollaborationCommentCreateManyProjectInput | CollaborationCommentCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectShareLinkCreateWithoutProjectInput = {
+    id?: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+    createdBy?: UserCreateNestedOneWithoutCollaborationShareLinksInput
+  }
+
+  export type ProjectShareLinkUncheckedCreateWithoutProjectInput = {
+    id?: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    createdByUserId?: string | null
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkCreateOrConnectWithoutProjectInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    create: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectShareLinkCreateManyProjectInputEnvelope = {
+    data: ProjectShareLinkCreateManyProjectInput | ProjectShareLinkCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -85173,6 +90526,54 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CollaborationPresenceUpsertWithWhereUniqueWithoutProjectInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    update: XOR<CollaborationPresenceUpdateWithoutProjectInput, CollaborationPresenceUncheckedUpdateWithoutProjectInput>
+    create: XOR<CollaborationPresenceCreateWithoutProjectInput, CollaborationPresenceUncheckedCreateWithoutProjectInput>
+  }
+
+  export type CollaborationPresenceUpdateWithWhereUniqueWithoutProjectInput = {
+    where: CollaborationPresenceWhereUniqueInput
+    data: XOR<CollaborationPresenceUpdateWithoutProjectInput, CollaborationPresenceUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type CollaborationPresenceUpdateManyWithWhereWithoutProjectInput = {
+    where: CollaborationPresenceScalarWhereInput
+    data: XOR<CollaborationPresenceUpdateManyMutationInput, CollaborationPresenceUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type CollaborationCommentUpsertWithWhereUniqueWithoutProjectInput = {
+    where: CollaborationCommentWhereUniqueInput
+    update: XOR<CollaborationCommentUpdateWithoutProjectInput, CollaborationCommentUncheckedUpdateWithoutProjectInput>
+    create: XOR<CollaborationCommentCreateWithoutProjectInput, CollaborationCommentUncheckedCreateWithoutProjectInput>
+  }
+
+  export type CollaborationCommentUpdateWithWhereUniqueWithoutProjectInput = {
+    where: CollaborationCommentWhereUniqueInput
+    data: XOR<CollaborationCommentUpdateWithoutProjectInput, CollaborationCommentUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type CollaborationCommentUpdateManyWithWhereWithoutProjectInput = {
+    where: CollaborationCommentScalarWhereInput
+    data: XOR<CollaborationCommentUpdateManyMutationInput, CollaborationCommentUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ProjectShareLinkUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    update: XOR<ProjectShareLinkUpdateWithoutProjectInput, ProjectShareLinkUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectShareLinkCreateWithoutProjectInput, ProjectShareLinkUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectShareLinkUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectShareLinkWhereUniqueInput
+    data: XOR<ProjectShareLinkUpdateWithoutProjectInput, ProjectShareLinkUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectShareLinkUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectShareLinkScalarWhereInput
+    data: XOR<ProjectShareLinkUpdateManyMutationInput, ProjectShareLinkUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type ProjectCreateWithoutIdeStateInput = {
     id?: string
     name: string
@@ -85198,6 +90599,9 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -85225,6 +90629,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -85258,6 +90665,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -85286,6 +90696,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -85329,6 +90742,9 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -85356,6 +90772,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -85395,6 +90814,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -85423,6 +90845,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -85450,6 +90875,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -85477,6 +90905,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -85520,6 +90951,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -85547,6 +90981,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -85574,6 +91011,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -85601,6 +91041,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -85644,6 +91087,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -85671,6 +91117,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -85698,6 +91147,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -85725,6 +91177,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -85768,6 +91223,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -85795,6 +91253,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -85822,6 +91283,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -85849,6 +91313,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -85882,6 +91349,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -85910,6 +91380,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -85953,6 +91426,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -85980,6 +91456,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -86019,6 +91498,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -86047,6 +91529,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -86074,6 +91559,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -86101,6 +91589,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -86134,6 +91625,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -86162,6 +91656,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -86205,6 +91702,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -86232,6 +91732,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -86271,6 +91774,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -86299,6 +91805,837 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type ProjectCreateWithoutCollaborationPresenceInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutCollaborationPresenceInput, ProjectUncheckedCreateWithoutCollaborationPresenceInput>
+  }
+
+  export type UserCreateWithoutCollaborationPresenceInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCollaborationPresenceInput, UserUncheckedCreateWithoutCollaborationPresenceInput>
+  }
+
+  export type ProjectUpsertWithoutCollaborationPresenceInput = {
+    update: XOR<ProjectUpdateWithoutCollaborationPresenceInput, ProjectUncheckedUpdateWithoutCollaborationPresenceInput>
+    create: XOR<ProjectCreateWithoutCollaborationPresenceInput, ProjectUncheckedCreateWithoutCollaborationPresenceInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutCollaborationPresenceInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutCollaborationPresenceInput, ProjectUncheckedUpdateWithoutCollaborationPresenceInput>
+  }
+
+  export type ProjectUpdateWithoutCollaborationPresenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutCollaborationPresenceInput = {
+    update: XOR<UserUpdateWithoutCollaborationPresenceInput, UserUncheckedUpdateWithoutCollaborationPresenceInput>
+    create: XOR<UserCreateWithoutCollaborationPresenceInput, UserUncheckedCreateWithoutCollaborationPresenceInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCollaborationPresenceInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCollaborationPresenceInput, UserUncheckedUpdateWithoutCollaborationPresenceInput>
+  }
+
+  export type UserUpdateWithoutCollaborationPresenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type ProjectCreateWithoutCollaborationCommentsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutCollaborationCommentsInput, ProjectUncheckedCreateWithoutCollaborationCommentsInput>
+  }
+
+  export type UserCreateWithoutCollaborationCommentsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCollaborationCommentsInput, UserUncheckedCreateWithoutCollaborationCommentsInput>
+  }
+
+  export type ProjectUpsertWithoutCollaborationCommentsInput = {
+    update: XOR<ProjectUpdateWithoutCollaborationCommentsInput, ProjectUncheckedUpdateWithoutCollaborationCommentsInput>
+    create: XOR<ProjectCreateWithoutCollaborationCommentsInput, ProjectUncheckedCreateWithoutCollaborationCommentsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutCollaborationCommentsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutCollaborationCommentsInput, ProjectUncheckedUpdateWithoutCollaborationCommentsInput>
+  }
+
+  export type ProjectUpdateWithoutCollaborationCommentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutCollaborationCommentsInput = {
+    update: XOR<UserUpdateWithoutCollaborationCommentsInput, UserUncheckedUpdateWithoutCollaborationCommentsInput>
+    create: XOR<UserCreateWithoutCollaborationCommentsInput, UserUncheckedCreateWithoutCollaborationCommentsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCollaborationCommentsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCollaborationCommentsInput, UserUncheckedUpdateWithoutCollaborationCommentsInput>
+  }
+
+  export type UserUpdateWithoutCollaborationCommentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type ProjectCreateWithoutShareLinksInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutShareLinksInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutShareLinksInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutShareLinksInput, ProjectUncheckedCreateWithoutShareLinksInput>
+  }
+
+  export type UserCreateWithoutCollaborationShareLinksInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutCollaborationShareLinksInput, UserUncheckedCreateWithoutCollaborationShareLinksInput>
+  }
+
+  export type ProjectUpsertWithoutShareLinksInput = {
+    update: XOR<ProjectUpdateWithoutShareLinksInput, ProjectUncheckedUpdateWithoutShareLinksInput>
+    create: XOR<ProjectCreateWithoutShareLinksInput, ProjectUncheckedCreateWithoutShareLinksInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutShareLinksInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutShareLinksInput, ProjectUncheckedUpdateWithoutShareLinksInput>
+  }
+
+  export type ProjectUpdateWithoutShareLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutShareLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutCollaborationShareLinksInput = {
+    update: XOR<UserUpdateWithoutCollaborationShareLinksInput, UserUncheckedUpdateWithoutCollaborationShareLinksInput>
+    create: XOR<UserCreateWithoutCollaborationShareLinksInput, UserUncheckedCreateWithoutCollaborationShareLinksInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutCollaborationShareLinksInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutCollaborationShareLinksInput, UserUncheckedUpdateWithoutCollaborationShareLinksInput>
+  }
+
+  export type UserUpdateWithoutCollaborationShareLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -86326,6 +92663,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -86353,6 +92693,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -86459,6 +92802,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -86486,6 +92832,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -86582,6 +92931,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -86609,6 +92961,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -86734,6 +93089,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -86761,6 +93119,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -86988,6 +93349,9 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -87015,6 +93379,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -87087,6 +93454,9 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -87114,6 +93484,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -87176,6 +93549,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -87203,6 +93579,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -87236,6 +93615,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -87264,6 +93646,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -87307,6 +93692,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -87334,6 +93722,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -87373,6 +93764,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -87401,6 +93795,9 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -87428,6 +93825,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -87455,6 +93855,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -87513,6 +93916,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -87540,6 +93946,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -87728,6 +94137,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -87756,6 +94168,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -87869,6 +94284,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -87897,6 +94315,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -87925,6 +94346,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -87953,6 +94377,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -87997,6 +94424,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -88025,6 +94455,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -88952,6 +95385,9 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -88979,6 +95415,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -89012,6 +95451,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -89040,6 +95482,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -89111,6 +95556,9 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -89138,6 +95586,9 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -89177,6 +95628,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -89205,6 +95659,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -89849,6 +96306,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -89877,6 +96337,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -89990,6 +96453,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -90018,6 +96484,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -90178,6 +96647,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -90206,6 +96678,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -90250,6 +96725,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -90278,6 +96756,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -90306,6 +96787,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -90334,6 +96818,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -90378,6 +96865,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -90406,6 +96896,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -90434,6 +96927,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -90462,6 +96958,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -90506,6 +97005,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -90534,6 +97036,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -91417,6 +97922,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -91445,6 +97953,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -91558,6 +98069,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -91586,6 +98100,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -91614,6 +98131,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -91642,6 +98162,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -91686,6 +98209,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -91714,6 +98240,9 @@ export namespace Prisma {
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
     projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AccountCreateManyUserInput = {
@@ -91852,6 +98381,41 @@ export namespace Prisma {
     state: JsonNullValueInput | InputJsonValue
     version?: number
     updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type CollaborationPresenceCreateManyUserInput = {
+    id?: string
+    projectId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationCommentCreateManyUserInput = {
+    id?: string
+    projectId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkCreateManyCreatedByInput = {
+    id?: string
+    projectId: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    revokedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -92274,6 +98838,111 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type CollaborationPresenceUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCollaborationPresenceNestedInput
+  }
+
+  export type CollaborationPresenceUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCollaborationCommentsNestedInput
+  }
+
+  export type CollaborationCommentUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+  }
+
+  export type ProjectShareLinkUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -92544,6 +99213,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -92571,6 +99243,9 @@ export namespace Prisma {
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -93282,6 +99957,41 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type CollaborationPresenceCreateManyProjectInput = {
+    id?: string
+    userId: string
+    sessionId: string
+    status?: string
+    filePath?: string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: string
+    terminalAccess?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CollaborationCommentCreateManyProjectInput = {
+    id?: string
+    userId: string
+    filePath?: string | null
+    line?: number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body: string
+    resolvedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectShareLinkCreateManyProjectInput = {
+    id?: string
+    tokenHash: string
+    roleKey: string
+    expiresAt: Date | string
+    createdByUserId?: string | null
+    revokedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -93611,6 +100321,111 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     title?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutCollaborationPresenceNestedInput
+  }
+
+  export type CollaborationPresenceUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationPresenceUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessionId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    cursor?: NullableJsonNullValueInput | InputJsonValue
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    mode?: StringFieldUpdateOperationsInput | string
+    terminalAccess?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutCollaborationCommentsNestedInput
+  }
+
+  export type CollaborationCommentUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CollaborationCommentUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    filePath?: NullableStringFieldUpdateOperationsInput | string | null
+    line?: NullableIntFieldUpdateOperationsInput | number | null
+    selection?: NullableJsonNullValueInput | InputJsonValue
+    body?: StringFieldUpdateOperationsInput | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: UserUpdateOneWithoutCollaborationShareLinksNestedInput
+  }
+
+  export type ProjectShareLinkUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectShareLinkUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    roleKey?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

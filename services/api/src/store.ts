@@ -333,6 +333,44 @@ export interface ProjectIdeStateRecord {
   createdAt: string;
 }
 
+export interface CollaborationPresenceRecord {
+  id: string;
+  projectId: string;
+  userId: string;
+  sessionId: string;
+  status: 'online' | 'idle' | 'offline';
+  filePath?: string;
+  cursor?: unknown;
+  selection?: unknown;
+  mode: 'editing' | 'read-only' | 'pair-programming';
+  terminalAccess: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollaborationCommentRecord {
+  id: string;
+  projectId: string;
+  userId: string;
+  filePath?: string;
+  line?: number;
+  selection?: unknown;
+  body: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface ProjectShareLinkRecord {
+  id: string;
+  projectId: string;
+  tokenHash: string;
+  roleKey: 'viewer' | 'member';
+  expiresAt: string;
+  createdByUserId?: string;
+  revokedAt?: string;
+  createdAt: string;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -492,6 +530,36 @@ export interface ApiStore {
     state: unknown;
     updatedByUserId?: string;
   }): Promise<ProjectIdeStateRecord>;
+  upsertCollaborationPresence(input: {
+    projectId: string;
+    userId: string;
+    sessionId: string;
+    status?: CollaborationPresenceRecord['status'];
+    filePath?: string;
+    cursor?: unknown;
+    selection?: unknown;
+    mode?: CollaborationPresenceRecord['mode'];
+    terminalAccess?: boolean;
+  }): Promise<CollaborationPresenceRecord>;
+  removeCollaborationPresence(projectId: string, sessionId: string): Promise<boolean>;
+  listCollaborationPresence(projectId: string): Promise<CollaborationPresenceRecord[]>;
+  createCollaborationComment(input: {
+    projectId: string;
+    userId: string;
+    filePath?: string;
+    line?: number;
+    selection?: unknown;
+    body: string;
+  }): Promise<CollaborationCommentRecord>;
+  listCollaborationComments(projectId: string): Promise<CollaborationCommentRecord[]>;
+  createProjectShareLink(input: {
+    projectId: string;
+    tokenHash: string;
+    roleKey: ProjectShareLinkRecord['roleKey'];
+    expiresAt: Date;
+    createdByUserId?: string;
+  }): Promise<ProjectShareLinkRecord>;
+  listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
   createWorkspace(input: { projectId: string; name: string; runtimeMode: string }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;

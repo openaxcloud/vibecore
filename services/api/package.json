@@ -11,6 +11,7 @@
     "@vibecore/rbac": "workspace:*",
     "@vibecore/security": "workspace:*",
     "@fastify/websocket": "^11.2.0",
+    "ioredis": "^5.10.1",
     "jszip": "^3.10.1"
   },
   "scripts": {

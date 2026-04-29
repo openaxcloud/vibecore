@@ -1170,6 +1170,138 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('supports realtime collaboration presence, edits, comments, terminal permissions and cleanup', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'collab-owner@example.com', organizationName: 'Collab Org' });
+    const member = await register(app, { email: 'collab-member@example.com' });
+    const viewer = await register(app, { email: 'collab-viewer@example.com' });
+    await store.addMember({ organizationId: owner.organization.id, userId: member.user.id, roleKey: 'member' });
+    await store.addMember({ organizationId: owner.organization.id, userId: viewer.user.id, roleKey: 'viewer' });
+
+    const create = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects/from-template`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Realtime App', templateName: 'react-basic-starter' },
+    });
+    expect(create.statusCode).toBe(201);
+    const projectId = create.json().project.id as string;
+
+    for (const collaborator of [
+      { userId: member.user.id, roleKey: 'member' },
+      { userId: viewer.user.id, roleKey: 'viewer' },
+    ]) {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/collaborators`,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: collaborator,
+      });
+      expect(response.statusCode).toBe(201);
+    }
+
+    for (const input of [
+      { token: owner.token, sessionId: 'owner-session', filePath: 'src/App.tsx', cursor: { line: 1, column: 1 } },
+      {
+        token: member.token,
+        sessionId: 'member-session',
+        filePath: 'src/App.tsx',
+        cursor: { line: 2, column: 5 },
+        selection: { anchor: 1, head: 2 },
+      },
+    ]) {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/collaboration/presence`,
+        headers: { authorization: `Bearer ${input.token}` },
+        payload: input,
+      });
+      expect(response.statusCode).toBe(200);
+    }
+
+    const ownerEdit = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/edit`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { filePath: 'src/App.tsx', baseVersion: 0, content: 'export default function App() { return null; }' },
+    });
+    expect(ownerEdit.statusCode).toBe(200);
+    expect(ownerEdit.json().document.version).toBe(1);
+
+    const memberEdit = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/edit`,
+      headers: { authorization: `Bearer ${member.token}` },
+      payload: { filePath: 'src/App.tsx', baseVersion: 1, content: 'export default function App() { return "ok"; }' },
+    });
+    expect(memberEdit.statusCode).toBe(200);
+    expect(memberEdit.json().document.version).toBe(2);
+
+    const conflict = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/edit`,
+      headers: { authorization: `Bearer ${member.token}` },
+      payload: { filePath: 'src/App.tsx', baseVersion: 1, content: 'stale' },
+    });
+    expect(conflict.statusCode).toBe(409);
+
+    const viewerEdit = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/edit`,
+      headers: { authorization: `Bearer ${viewer.token}` },
+      payload: { filePath: 'src/App.tsx', baseVersion: 2, content: 'blocked' },
+    });
+    expect(viewerEdit.statusCode).toBe(403);
+
+    const comment = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/comments`,
+      headers: { authorization: `Bearer ${member.token}` },
+      payload: { filePath: 'src/App.tsx', line: 1, body: 'Pairing note' },
+    });
+    expect(comment.statusCode).toBe(201);
+
+    const terminalPermission = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/terminal-permissions`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { userId: viewer.user.id, sessionId: 'viewer-session', allowed: true },
+    });
+    expect(terminalPermission.statusCode).toBe(200);
+    expect(terminalPermission.json().terminalPermissions[viewer.user.id].allowed).toBe(true);
+
+    const shareLink = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/share-links`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'viewer', expiresInMinutes: 30 },
+    });
+    expect(shareLink.statusCode).toBe(201);
+    expect(shareLink.json().token).toMatch(/^share_/);
+    expect(shareLink.json().shareLink.tokenHash).toBeUndefined();
+
+    const cleanup = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}/collaboration/presence/member-session`,
+      headers: { authorization: `Bearer ${member.token}` },
+    });
+    expect(cleanup.statusCode).toBe(200);
+    expect(cleanup.json().removed).toBe(true);
+
+    const collaboration = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/collaboration`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(collaboration.statusCode).toBe(200);
+    expect(collaboration.json().presence).toHaveLength(1);
+    expect(collaboration.json().comments).toHaveLength(1);
+    expect(collaboration.json().documents['src/App.tsx'].version).toBe(2);
+
+    await app.close();
+  });
+
   it('imports and exports project zip archives', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'zip@example.com', organizationName: 'Zip Org' });

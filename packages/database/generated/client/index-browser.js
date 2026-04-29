@@ -268,6 +268,44 @@ exports.Prisma.ProjectActivityScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.CollaborationPresenceScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userId: 'userId',
+  sessionId: 'sessionId',
+  status: 'status',
+  filePath: 'filePath',
+  cursor: 'cursor',
+  selection: 'selection',
+  mode: 'mode',
+  terminalAccess: 'terminalAccess',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CollaborationCommentScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userId: 'userId',
+  filePath: 'filePath',
+  line: 'line',
+  selection: 'selection',
+  body: 'body',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ProjectShareLinkScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  tokenHash: 'tokenHash',
+  roleKey: 'roleKey',
+  expiresAt: 'expiresAt',
+  createdByUserId: 'createdByUserId',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ProjectTemplateScalarFieldEnum = {
   id: 'id',
   sourceProjectId: 'sourceProjectId',
@@ -722,6 +760,9 @@ exports.Prisma.ModelName = {
   ProjectEnvVar: 'ProjectEnvVar',
   ProjectCollaborator: 'ProjectCollaborator',
   ProjectActivity: 'ProjectActivity',
+  CollaborationPresence: 'CollaborationPresence',
+  CollaborationComment: 'CollaborationComment',
+  ProjectShareLink: 'ProjectShareLink',
   ProjectTemplate: 'ProjectTemplate',
   Workspace: 'Workspace',
   WorkspaceSession: 'WorkspaceSession',

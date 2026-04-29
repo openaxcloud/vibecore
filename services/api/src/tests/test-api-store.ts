@@ -12,6 +12,8 @@ import type {
   AiToolCallRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
+  CollaborationCommentRecord,
+  CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
@@ -27,6 +29,7 @@ import type {
   ProjectIdeStateRecord,
   ProjectRecord,
   ProjectSecretRecord,
+  ProjectShareLinkRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -74,6 +77,9 @@ export class TestApiStore implements ApiStore {
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
   readonly projectActivity = new Map<string, ProjectActivityRecord>();
   readonly projectIdeStates = new Map<string, ProjectIdeStateRecord>();
+  readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
+  readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
+  readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
@@ -559,6 +565,96 @@ export class TestApiStore implements ApiStore {
     };
     this.projectIdeStates.set(input.projectId, record);
     return record;
+  }
+
+  async upsertCollaborationPresence(input: {
+    projectId: string;
+    userId: string;
+    sessionId: string;
+    status?: CollaborationPresenceRecord['status'];
+    filePath?: string;
+    cursor?: unknown;
+    selection?: unknown;
+    mode?: CollaborationPresenceRecord['mode'];
+    terminalAccess?: boolean;
+  }) {
+    const existing = [...this.collaborationPresence.values()].find(
+      (presence) => presence.projectId === input.projectId && presence.sessionId === input.sessionId,
+    );
+    const record: CollaborationPresenceRecord = {
+      id: existing?.id ?? id('presence'),
+      projectId: input.projectId,
+      userId: input.userId,
+      sessionId: input.sessionId,
+      status: input.status ?? 'online',
+      filePath: input.filePath,
+      cursor: input.cursor,
+      selection: input.selection,
+      mode: input.mode ?? 'editing',
+      terminalAccess: input.terminalAccess ?? existing?.terminalAccess ?? false,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
+    this.collaborationPresence.set(record.id, record);
+    return record;
+  }
+
+  async removeCollaborationPresence(projectId: string, sessionId: string) {
+    const existing = [...this.collaborationPresence.values()].find(
+      (presence) => presence.projectId === projectId && presence.sessionId === sessionId,
+    );
+
+    if (!existing) {
+      return false;
+    }
+
+    this.collaborationPresence.delete(existing.id);
+    return true;
+  }
+
+  async listCollaborationPresence(projectId: string) {
+    return [...this.collaborationPresence.values()].filter((presence) => presence.projectId === projectId);
+  }
+
+  async createCollaborationComment(input: {
+    projectId: string;
+    userId: string;
+    filePath?: string;
+    line?: number;
+    selection?: unknown;
+    body: string;
+  }) {
+    const comment: CollaborationCommentRecord = { id: id('comment'), ...input, createdAt: now() };
+    this.collaborationComments.set(comment.id, comment);
+    return comment;
+  }
+
+  async listCollaborationComments(projectId: string) {
+    return [...this.collaborationComments.values()].filter((comment) => comment.projectId === projectId);
+  }
+
+  async createProjectShareLink(input: {
+    projectId: string;
+    tokenHash: string;
+    roleKey: ProjectShareLinkRecord['roleKey'];
+    expiresAt: Date;
+    createdByUserId?: string;
+  }) {
+    const link: ProjectShareLinkRecord = {
+      id: id('share'),
+      projectId: input.projectId,
+      tokenHash: input.tokenHash,
+      roleKey: input.roleKey,
+      expiresAt: input.expiresAt.toISOString(),
+      createdByUserId: input.createdByUserId,
+      createdAt: now(),
+    };
+    this.projectShareLinks.set(link.id, link);
+    return link;
+  }
+
+  async listProjectShareLinks(projectId: string) {
+    return [...this.projectShareLinks.values()].filter((link) => link.projectId === projectId);
   }
 
   async createWorkspace(input: { projectId: string; name: string; runtimeMode: string }) {

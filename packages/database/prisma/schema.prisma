@@ -65,6 +65,9 @@ model User {
   projectActivity         ProjectActivity[]
   projectSnapshots        ProjectSnapshot[]
   projectIdeStateUpdates  ProjectIdeState[]
+  collaborationPresence   CollaborationPresence[]
+  collaborationComments   CollaborationComment[]
+  collaborationShareLinks ProjectShareLink[]
 }
 
 model Account {
@@ -209,6 +212,9 @@ model Project {
   fileSnapshots         FileSnapshot[]
   conversations         AiConversation[]
   ideState              ProjectIdeState?
+  collaborationPresence CollaborationPresence[]
+  collaborationComments CollaborationComment[]
+  shareLinks            ProjectShareLink[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -285,6 +291,59 @@ model ProjectActivity {
 
   @@index([projectId])
   @@index([actorUserId])
+}
+
+model CollaborationPresence {
+  id             String   @id @default(cuid())
+  projectId      String
+  userId         String
+  sessionId      String
+  status         String   @default("online")
+  filePath       String?
+  cursor         Json?
+  selection      Json?
+  mode           String   @default("editing")
+  terminalAccess Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, sessionId])
+  @@index([projectId, updatedAt])
+  @@index([userId])
+}
+
+model CollaborationComment {
+  id         String    @id @default(cuid())
+  projectId  String
+  userId     String
+  filePath   String?
+  line       Int?
+  selection  Json?
+  body       String
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([userId])
+}
+
+model ProjectShareLink {
+  id              String    @id @default(cuid())
+  projectId       String
+  tokenHash       String    @unique
+  roleKey         String
+  expiresAt       DateTime
+  createdByUserId String?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy       User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, expiresAt])
 }
 
 model ProjectTemplate {
