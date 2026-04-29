@@ -110,6 +110,7 @@ function IdeProjectTopBar({
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
   const statusLabel =
@@ -223,14 +224,53 @@ function IdeProjectTopBar({
         >
           <CircleHelp className="h-3.5 w-3.5" aria-hidden />
         </Link>
-        <Link
-          to="/notifications"
-          className="relative inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
-          aria-label="Notifications"
-        >
-          <Bell className="h-3.5 w-3.5" aria-hidden />
-          {notifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />}
-        </Link>
+        <div className="relative">
+          <button
+            type="button"
+            className="relative inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
+            aria-label="Notifications"
+            aria-expanded={notificationsOpen}
+            onClick={() => setNotificationsOpen((value) => !value)}
+          >
+            <Bell className="h-3.5 w-3.5" aria-hidden />
+            {notifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />}
+          </button>
+          {notificationsOpen && (
+            <div
+              className="absolute right-0 top-full z-50 mt-1 w-80 rounded-xl border border-[#2B3245] bg-[#1A2030] p-3 shadow-[0_24px_64px_rgba(0,4,20,0.7)]"
+              role="dialog"
+              aria-label="Project notifications"
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <strong className="text-[13px] font-semibold text-[#F5F9FC]">Notifications</strong>
+                <span className="text-[11px] text-[#6E7681]">{notifications.length} project events</span>
+              </div>
+              {notifications.length ? (
+                <div className="grid max-h-80 gap-2 overflow-y-auto pr-1">
+                  {notifications.slice(0, 8).map((notification, index) => (
+                    <Link
+                      key={`${notification.action}-${notification.createdAt ?? index}`}
+                      to={`/projects/${projectId}/ide?panel=activity`}
+                      className="rounded-md border border-[#2B3245] bg-[#0E1525] p-2.5 text-left hover:bg-[#2B3245]"
+                      onClick={() => setNotificationsOpen(false)}
+                    >
+                      <span className="block text-[12px] font-medium text-[#F5F9FC]">{notification.action}</span>
+                      <span className="mt-1 block text-[11px] text-[#C2C8CC]">
+                        {notification.createdAt
+                          ? new Date(notification.createdAt).toLocaleString()
+                          : 'Recorded by backend'}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-md border border-[#2B3245] bg-[#0E1525] p-3 text-[12px] text-[#C2C8CC]">
+                  No project notifications recorded yet.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex items-center -space-x-1" aria-label="Collaborators">
           {(collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }])
             .slice(0, 3)

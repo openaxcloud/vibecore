@@ -796,26 +796,6 @@ body :where(.lucide, svg[data-lucide]) {
   opacity: 1;
 }
 
-.bolt-notifications-button {
-  position: fixed;
-  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
-  right: calc(12px + env(safe-area-inset-right, 0px));
-  z-index: 1000;
-  display: flex;
-  width: 38px;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--bolt-elements-borderColor);
-  border-radius: 999px;
-  background: var(--bolt-elements-bg-depth-2);
-  color: var(--bolt-elements-textPrimary);
-}
-
-.bolt-notifications-button--with-files-toggle {
-  right: calc(58px + env(safe-area-inset-right, 0px));
-}
-
 .bolt-files-panel-toggle {
   position: fixed;
   top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
@@ -837,19 +817,6 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-files-panel-toggle[aria-pressed='true'] {
   border-color: var(--bolt-elements-focus);
   background: var(--bolt-elements-bg-depth-3);
-}
-
-.bolt-notifications-center {
-  position: fixed;
-  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 54px);
-  right: calc(12px + env(safe-area-inset-right, 0px));
-  z-index: 1001;
-  width: min(360px, calc(100vw - 24px));
-  border: 1px solid var(--bolt-elements-borderColor);
-  border-radius: var(--vc-ui-radius-popover);
-  background: var(--bolt-elements-bg-depth-2);
-  box-shadow: var(--vc-ui-shadow-xl);
-  padding: 12px;
 }
 
 .vc-touch-symbol-toolbar {

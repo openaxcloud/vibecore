@@ -430,7 +430,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       'chat',
     );
     const [isOnline, setIsOnline] = useState(true);
-    const [showNotifications, setShowNotifications] = useState(false);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
@@ -2165,17 +2164,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
           {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
         </div>
-        <button
-          type="button"
-          className={classNames('bolt-notifications-button', {
-            'bolt-notifications-button--with-files-toggle': projectIdeMode && !useMobileIde,
-          })}
-          aria-label="Notifications"
-          aria-expanded={showNotifications}
-          onClick={() => setShowNotifications((value) => !value)}
-        >
-          <span className="i-ph:bell" aria-hidden />
-        </button>
         {projectIdeMode && !useMobileIde && (
           <button
             type="button"
@@ -2187,35 +2175,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:browser'} aria-hidden />
           </button>
-        )}
-        {showNotifications && (
-          <aside className="bolt-notifications-center" aria-label="Notifications center">
-            <div className="font-medium text-bolt-elements-textPrimary">Notifications</div>
-            {(projectBackendState.recentActivity ?? []).slice(-6).length ? (
-              <div className="mt-2 grid gap-2">
-                {(projectBackendState.recentActivity ?? []).slice(-6).map((event, index) => (
-                  <button
-                    key={`${event.action}-${event.createdAt ?? index}`}
-                    type="button"
-                    className="rounded-md border border-bolt-elements-borderColor p-3 text-left text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
-                    onClick={() => openWorkspacePanel('activity')}
-                  >
-                    <strong className="block text-bolt-elements-textPrimary">{event.action}</strong>
-                    <span>{event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by backend'}</span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-2 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
-                No project notifications recorded yet.
-              </div>
-            )}
-            {!isOnline && (
-              <div className="mt-2 rounded-md border border-orange-500/40 bg-orange-500/10 p-3 text-xs text-orange-300">
-                Poor connection detected. Terminal streams and preview refresh may pause.
-              </div>
-            )}
-          </aside>
         )}
         {commandPaletteOpen && (
           <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
@@ -2363,9 +2322,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
               <button type="button" aria-label="Toggle agent" onClick={() => textareaRef?.current?.focus()}>
                 <span className="i-ph:sparkle" aria-hidden />
-              </button>
-              <button type="button" aria-label="Notifications" onClick={() => setShowNotifications((value) => !value)}>
-                <span className="i-ph:bell" aria-hidden />
               </button>
             </div>
           </footer>
