@@ -20,4 +20,4 @@ Date: 2026-04-29
 | R-014 | Abuse controls need tuning | High | Medium | Abuse detection implemented | Cost/security incidents may not be stopped quickly enough | Run abuse drills, tune thresholds, alert admins | Trust/Safety | Open |
 | R-015 | Observability not proven live | High | Medium | Dashboards/alerts validate as assets | Incidents may be invisible | Deploy metrics/logging/tracing stack and run synthetic checks | SRE | Open |
 | R-016 | GitHub/deployment providers not fully live-tested | High | Medium | Provider code/tests/docs exist | Deployments may fail for real users | Test provider sandboxes and document required credentials | Deployments | Open |
-
+| R-017 | Native iOS/Android release readiness not proven | Medium | Medium | Mobile scaffold/workflow references exist, but no native release/device evidence in this review | Mobile users may receive unstable or undistributable apps if included in launch | Define native scope, signing, stores, release artifacts, and device test matrix separately | Mobile | Open |

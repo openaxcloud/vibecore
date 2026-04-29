@@ -25,6 +25,8 @@ const requiredItems = [
   'Quotas',
   'Admin',
   'Desktop app',
+  'iOS app',
+  'Android app',
   'Tablet UX',
   'Mobile editor fallback',
   'Collaboration',
@@ -42,8 +44,6 @@ const requiredItems = [
   'Documentation',
   'Legal/compliance pages',
 ];
-
-const excludedItems = ['iOS app', 'Android app'];
 
 const docs = new Map(requiredDocs.map((file) => [file, readFileSync(file, 'utf8')]));
 const readiness = docs.get('docs/PRODUCTION_READINESS.md') ?? '';
@@ -68,15 +68,6 @@ if (!readiness.includes('Private beta')) {
 for (const item of requiredItems) {
   if (!matrix.includes(`| ${requiredItems.indexOf(item) + 1} | ${item} |`)) {
     failures.push(`COMPLETION_MATRIX.md is missing item: ${item}`);
-  }
-}
-
-for (const item of excludedItems) {
-  if (!matrix.includes(`| ${item} | Explicitly excluded from this review`)) {
-    failures.push(`COMPLETION_MATRIX.md is missing excluded item: ${item}`);
-  }
-  if (matrix.includes(`| 17 | ${item} |`) || matrix.includes(`| 18 | ${item} |`)) {
-    failures.push(`COMPLETION_MATRIX.md must not score excluded item: ${item}`);
   }
 }
 

@@ -2,13 +2,15 @@
 
 Date: 2026-04-29
 
-Scope: final strict repo-level review for private beta, paid users, 1,000 users, and 10,000 users. iOS and Android apps are explicitly excluded from this gate because they have not been requested yet.
+Scope: final strict repo-level review for private beta, paid users, 1,000 users, and 10,000 users across the 34 requested areas, including iOS and Android app readiness.
 
 ## Verdict
 
 This repository is not approved for production launch, paid users, 1,000 users, or 10,000 users.
 
 The codebase has substantial SaaS, runtime, security, infrastructure, CI/CD, and documentation foundations. It can be treated as a private-beta candidate only after the live environment gates in this document are executed successfully. The current evidence is repo-local plus Docker/PostgreSQL-backed API tests, not a proven live production deployment.
+
+This product is not assessed as an MVP. The review only accepts real, typed, tested, documented, integrated implementation evidence. Permanent mocks are not acceptable substitutes for critical production flows. Bolt IDE preservation remains a hard requirement.
 
 ## Readiness By Stage
 
@@ -81,6 +83,7 @@ Live-environment proof is still missing for:
 - Cloud SQL backup restore and project snapshot restore drills.
 - k6 load results for 1,000 and 10,000 user targets.
 - GitHub Actions runs with real environment secrets and manual production approval.
+- iOS and Android native app release evidence.
 
 ## Required Next Gate
 

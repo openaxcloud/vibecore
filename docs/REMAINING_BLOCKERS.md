@@ -57,6 +57,7 @@ Date: 2026-04-29
 6. Validate project import/export/snapshot/restore end-to-end.
 7. Validate deployment provider selected for beta.
 8. Validate legal/compliance pages with product/legal owner.
+9. If iOS/Android are in any beta scope, define and implement native app release, signing, device QA, and store distribution requirements first.
 
 ## P2 Follow-Ups
 
@@ -64,4 +65,3 @@ Date: 2026-04-29
 2. SAML/SCIM certification-style tests before Enterprise launch.
 3. External penetration test before public launch.
 4. SOC2 control owner assignment and evidence collection.
-
