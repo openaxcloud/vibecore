@@ -460,7 +460,7 @@ body :where(.vc-split-panel, [data-panel], .bolt-project-pane-leaf, .bolt-projec
     height var(--vc-animation-split-panel);
 }
 
-body :where(.vc-drop-zone, .bolt-project-drop-zone, .bolt-project-drop-overlay) {
+body :where(.vc-drop-zone) {
   animation: vc-drop-zone-in var(--vc-animation-drop-zone) ease-out both;
 }
 
@@ -1938,70 +1938,6 @@ body :where(.lucide, svg[data-lucide]) {
   background: #0a0f1c;
 }
 
-.bolt-project-drop-zones {
-  position: absolute;
-  inset: 36px 0 0;
-  z-index: 25;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 100ms ease-out;
-}
-
-.bolt-project-drop-zones[data-visible='true'] {
-  opacity: 1;
-}
-
-.bolt-project-drop-zones[data-visible='true'] .bolt-project-drop-zone {
-  pointer-events: auto;
-}
-
-.bolt-project-drop-zone {
-  position: absolute;
-  border: 1px solid transparent;
-  background: transparent;
-  pointer-events: none;
-  transition:
-    background 200ms ease-out,
-    border-color 200ms ease-out;
-}
-
-.bolt-project-drop-zone[data-active='true'] {
-  border-color: rgb(0 153 255 / 0.8);
-  background: rgb(0 153 255 / 0.2);
-}
-
-.bolt-project-drop-zone-center {
-  inset: 30% 30%;
-}
-
-.bolt-project-drop-zone-left {
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 15%;
-}
-
-.bolt-project-drop-zone-right {
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 15%;
-}
-
-.bolt-project-drop-zone-top {
-  top: 0;
-  right: 15%;
-  left: 15%;
-  height: 15%;
-}
-
-.bolt-project-drop-zone-bottom {
-  right: 15%;
-  bottom: 0;
-  left: 15%;
-  height: 15%;
-}
-
 .bolt-project-pane-leaf[data-active='true'] {
   box-shadow: inset 0 0 0 1px rgb(0 153 255 / 0.18);
 }
@@ -2014,7 +1950,6 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: auto;
 }
 
-.bolt-project-context-menu,
 .bolt-project-tab-actions-menu {
   position: fixed;
   z-index: 80;
@@ -2035,7 +1970,6 @@ body :where(.lucide, svg[data-lucide]) {
   top: 32px;
 }
 
-.bolt-project-context-menu button,
 .bolt-project-tab-actions-menu button {
   height: 30px;
   border-radius: 6px;
@@ -2045,7 +1979,6 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: left;
 }
 
-.bolt-project-context-menu button:hover,
 .bolt-project-tab-actions-menu button:hover {
   background: #2b3245;
 }

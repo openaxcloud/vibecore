@@ -64,7 +64,7 @@ const IDE_MANAGEMENT_PANELS = [
   'snapshots',
   'settings',
 ] as const;
-const IDE_RIGHT_PANELS = ['webview', 'console', 'network'] as const;
+const IDE_RIGHT_PANELS = ['files', 'webview', 'console', 'network'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
@@ -103,7 +103,6 @@ type IdePaneTab = {
   filePath?: string;
   preview?: boolean;
 };
-type IdeDropZone = 'center' | 'left' | 'right' | 'top' | 'bottom';
 type AgentToolAction = {
   panel: IdeWorkspacePanel | IdeRightPanel;
   title: string;
@@ -292,23 +291,6 @@ function updateLeaf(
   return { ...node, first: updateLeaf(node.first, paneId, updater), second: updateLeaf(node.second, paneId, updater) };
 }
 
-function splitLeaf(node: IdePaneNode, paneId: string, direction: IdePaneDirection): IdePaneNode {
-  return updateLeaf(node, paneId, (leaf) => {
-    const active = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0] ?? makePaneTab('editor');
-    const newPaneId = `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const clonedTab = { ...active, id: `${active.id}-split-${Date.now()}`, pinned: false };
-
-    return {
-      type: 'split',
-      id: `split-${leaf.id}-${Date.now()}`,
-      direction,
-      ratio: 50,
-      first: leaf,
-      second: { type: 'leaf', id: newPaneId, tabs: [clonedTab], activeTabId: clonedTab.id },
-    };
-  });
-}
-
 function updateSplitRatio(node: IdePaneNode, splitId: string, ratio: number): IdePaneNode {
   if (node.type === 'leaf') {
     return node;
@@ -327,102 +309,12 @@ function updateSplitRatio(node: IdePaneNode, splitId: string, ratio: number): Id
   };
 }
 
-function removeTabFromTree(
-  node: IdePaneNode,
-  paneId: string,
-  tabId: string,
-): { tree: IdePaneNode; removed?: IdePaneTab } {
-  let removed: IdePaneTab | undefined;
-  const tree = updateLeaf(node, paneId, (leaf) => {
-    const tab = leaf.tabs.find((item) => item.id === tabId);
-
-    if (!tab || tab.pinned) {
-      return leaf;
-    }
-
-    removed = tab;
-
-    const tabs = leaf.tabs.filter((item) => item.id !== tabId);
-    const activeTabId = leaf.activeTabId === tabId ? tabs[tabs.length - 1]?.id : leaf.activeTabId;
-
-    return { ...leaf, tabs, activeTabId };
-  });
-
-  return { tree, removed };
-}
-
-function dropTabIntoTree(
-  node: IdePaneNode,
-  sourcePaneId: string,
-  tabId: string,
-  targetPaneId: string,
-  zone: IdeDropZone,
-): IdePaneNode {
-  if (zone === 'center') {
-    if (sourcePaneId === targetPaneId) {
-      return node;
-    }
-
-    const { tree, removed } = removeTabFromTree(node, sourcePaneId, tabId);
-
-    if (!removed) {
-      return node;
-    }
-
-    return updateLeaf(tree, targetPaneId, (leaf) => ({
-      ...leaf,
-      tabs: [...leaf.tabs, removed],
-      activeTabId: removed.id,
-    }));
-  }
-
-  const sourceLeaf = findLeaf(node, sourcePaneId);
-  const dragged = sourceLeaf?.tabs.find((tab) => tab.id === tabId);
-
-  if (!dragged) {
-    return node;
-  }
-
-  const { tree, removed } = removeTabFromTree(node, sourcePaneId, tabId);
-  const tab = removed ?? { ...dragged, id: `${dragged.id}-split-${Date.now()}`, pinned: false };
-  const direction: IdePaneDirection = zone === 'left' || zone === 'right' ? 'horizontal' : 'vertical';
-  const newLeaf: Extract<IdePaneNode, { type: 'leaf' }> = {
-    type: 'leaf',
-    id: `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    tabs: [tab],
-    activeTabId: tab.id,
-  };
-
-  return updateLeaf(tree, targetPaneId, (targetLeaf) => ({
-    type: 'split',
-    id: `split-${targetLeaf.id}-${Date.now()}`,
-    direction,
-    ratio: 50,
-    first: zone === 'left' || zone === 'top' ? newLeaf : targetLeaf,
-    second: zone === 'left' || zone === 'top' ? targetLeaf : newLeaf,
-  }));
-}
-
 function flattenTabs(node: IdePaneNode): IdePaneTab[] {
   if (node.type === 'leaf') {
     return node.tabs;
   }
 
   return [...flattenTabs(node.first), ...flattenTabs(node.second)];
-}
-
-function collectPaneTargets(node: IdePaneNode, excludePaneId?: string): Array<{ id: string; label: string }> {
-  if (node.type === 'leaf') {
-    if (node.id === excludePaneId) {
-      return [];
-    }
-
-    const activeTab = node.tabs.find((tab) => tab.id === node.activeTabId) ?? node.tabs[0];
-
-    return [{ id: node.id, label: activeTab ? panelTitle(activeTab.panel) : 'Empty pane' }];
-  }
-
-  return [...collectPaneTargets(node.first, excludePaneId), ...collectPaneTargets(node.second, excludePaneId)];
 }
 
 interface BaseChatProps {
@@ -555,7 +447,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('webview');
+    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('files');
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
@@ -570,7 +462,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
-    const [dropTarget, setDropTarget] = useState<{ paneId: string; zone: IdeDropZone } | null>(null);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
     const [cursorPositions, setCursorPositions] = useState<
       Record<string, { line: number; column: number; offset?: number }>
@@ -579,8 +470,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
-    const [draggedTab, setDraggedTab] = useState<{ paneId: string; tabId: string } | null>(null);
-    const draggedTabRef = useRef<{ paneId: string; tabId: string } | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
@@ -660,7 +549,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const ui = memory.ui;
 
-          if (ui?.rightPanel && ['webview', 'console', 'network'].includes(ui.rightPanel)) {
+          if (ui?.rightPanel && isIdeRightPanel(ui.rightPanel)) {
             setRightPanel(ui.rightPanel as IdeRightPanel);
           }
 
@@ -956,41 +845,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activeWorkspacePanel, setSearchParams],
     );
 
-    const splitWorkspacePane = useCallback(
-      (direction: IdePaneDirection, paneId = activePaneId) => {
-        setPaneTree((currentTree) => splitLeaf(currentTree, paneId, direction));
-      },
-      [activePaneId],
-    );
-
-    const moveTabToPane = useCallback((sourcePaneId: string, tabId: string, targetPaneId: string) => {
-      setPaneTree((currentTree) => {
-        const { tree, removed } = removeTabFromTree(currentTree, sourcePaneId, tabId);
-
-        if (!removed) {
-          return currentTree;
-        }
-
-        return updateLeaf(tree, targetPaneId, (leaf) => ({
-          ...leaf,
-          tabs: [...leaf.tabs, removed],
-          activeTabId: removed.id,
-        }));
-      });
-      setActivePaneId(targetPaneId);
-    }, []);
-
-    const dropTabOnPane = useCallback(
-      (sourcePaneId: string, tabId: string, targetPaneId: string, zone: IdeDropZone) => {
-        setPaneTree((currentTree) => dropTabIntoTree(currentTree, sourcePaneId, tabId, targetPaneId, zone));
-        setActivePaneId(targetPaneId);
-        setDropTarget(null);
-        draggedTabRef.current = null;
-        setDraggedTab(null);
-      },
-      [],
-    );
-
     useEffect(() => {
       if (!projectIdeMode) {
         return;
@@ -1161,9 +1015,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (key === 's') {
           event.preventDefault();
           onProjectEditorSave();
-        } else if (key === '\\') {
-          event.preventDefault();
-          splitWorkspacePane(event.shiftKey ? 'vertical' : 'horizontal');
         } else if (/^[1-9]$/.test(key)) {
           event.preventDefault();
 
@@ -1212,7 +1063,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       paneTree,
       projectIdeMode,
       recentTabIds,
-      splitWorkspacePane,
       useMobileIde,
     ]);
 
@@ -1685,15 +1535,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [paneTree, setSearchParams],
     );
 
-    const pinPaneTab = useCallback((paneId: string, tabId: string) => {
-      setPaneTree((currentTree) =>
-        updateLeaf(currentTree, paneId, (leaf) => ({
-          ...leaf,
-          tabs: leaf.tabs.map((tab) => (tab.id === tabId ? { ...tab, pinned: !tab.pinned } : tab)),
-        })),
-      );
-    }, []);
-
     const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right', tabId?: string) => {
       setPaneTree((currentTree) =>
         updateLeaf(currentTree, paneId, (leaf) => {
@@ -1852,23 +1693,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             className="bolt-project-pane-leaf"
             data-active={activePaneId === leaf.id}
             onMouseDown={() => setActivePaneId(leaf.id)}
-            onDragOver={(event) => {
-              if (!draggedTabRef.current) {
-                return;
-              }
-
-              event.preventDefault();
-            }}
-            onDragLeave={(event) => {
-              if (event.currentTarget.contains(event.relatedTarget as Node)) {
-                return;
-              }
-
-              setDropTarget((target) => (target?.paneId === leaf.id ? null : target));
-            }}
           >
             <IdeTabBar
-              paneId={leaf.id}
               activePanel={activeTab?.panel ?? 'editor'}
               activeTabId={activeTab?.id}
               tabs={leaf.tabs.map((tab) => ({
@@ -1906,8 +1732,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 closeWorkspacePanel(panel, leaf.id, tabId);
               }}
               onOpenTool={(panel) => openIdeTool(panel, leaf.id)}
-              onSplit={(direction) => splitWorkspacePane(direction, leaf.id)}
-              onPin={(tabId) => pinPaneTab(leaf.id, tabId)}
               onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
               onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
@@ -1915,58 +1739,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 .filter((filePath) => projectFiles[filePath]?.type === 'file')
                 .slice(0, 5)}
               onOpenFile={(filePath, preview) => openProjectFile(filePath, { paneId: leaf.id, preview })}
-              paneTargets={flattenTabs(paneTree).length ? collectPaneTargets(paneTree, leaf.id) : []}
-              onMoveToNewPane={(tabId, zone) => dropTabOnPane(leaf.id, tabId, leaf.id, zone)}
-              onMoveToExistingPane={(tabId, targetPaneId) => moveTabToPane(leaf.id, tabId, targetPaneId)}
-              onDragStart={(paneId, tabId) => {
-                draggedTabRef.current = { paneId, tabId };
-                setDraggedTab({ paneId, tabId });
-              }}
-              onDropTab={(paneId) => {
-                const dragged = draggedTabRef.current;
-
-                if (dragged && dragged.paneId !== paneId) {
-                  moveTabToPane(dragged.paneId, dragged.tabId, paneId);
-                }
-
-                draggedTabRef.current = null;
-                setDraggedTab(null);
-              }}
-              onDragEnd={() => {
-                draggedTabRef.current = null;
-                setDraggedTab(null);
-                setDropTarget(null);
-              }}
             />
-            <div className="bolt-project-drop-zones" data-visible={draggedTab ? 'true' : 'false'} aria-hidden>
-              {(['center', 'left', 'right', 'top', 'bottom'] as IdeDropZone[]).map((zone) => (
-                <div
-                  key={zone}
-                  className={`bolt-project-drop-zone bolt-project-drop-zone-${zone}`}
-                  data-active={dropTarget?.paneId === leaf.id && dropTarget.zone === zone}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setDropTarget({ paneId: leaf.id, zone });
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-
-                    const dragged = draggedTabRef.current;
-
-                    if (dragged) {
-                      dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
-                    }
-                  }}
-                  onMouseUp={() => {
-                    const dragged = draggedTabRef.current;
-
-                    if (dragged) {
-                      dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
-                    }
-                  }}
-                />
-              ))}
-            </div>
             <div
               className="bolt-project-pane-content"
               data-pane-id={leaf.id}
@@ -1992,19 +1765,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         activePaneId,
         closePaneTabs,
         closeWorkspacePanel,
-        dropTabOnPane,
         currentDocument,
-        dropTarget,
-        moveTabToPane,
         onProjectEditorSave,
         openIdeTool,
-        paneTree,
-        pinPaneTab,
         projectFiles,
         renderPaneContent,
         selectPaneTab,
         scrollPositions,
-        splitWorkspacePane,
         unsavedFiles,
       ],
     );
@@ -2156,6 +1923,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             />
             <div className="bolt-project-right-tabs" role="tablist" aria-label="Right panel tools">
               {[
+                ['files', 'Files', 'i-ph:files'],
                 ['webview', 'Webview', 'i-ph:browser'],
                 ['console', 'Console', 'i-ph:terminal-window'],
                 ['network', 'Network', 'i-ph:activity'],
@@ -2183,6 +1951,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
             </div>
             <div className="bolt-project-right-panel-content">
+              {rightPanel === 'files' && (
+                <ProjectFilesTool
+                  files={projectFiles}
+                  selectedFile={selectedFile}
+                  unsavedFiles={unsavedFiles}
+                  onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                  onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+                />
+              )}
               {rightPanel === 'webview' && (
                 <div className="bolt-project-webview-tool">
                   <div className="bolt-project-webview-toolbar">
@@ -2263,8 +2040,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ['deploy', 'Deploy', 'Open deployment panel', ''],
         ['theme', 'Toggle theme', 'Use existing theme controls', ''],
         ['reset-layout', 'Reset layout', 'Restore default IDE layout', ''],
-        ['split-right', 'Split right', 'Split active pane vertically', '⌘\\'],
-        ['split-down', 'Split down', 'Split active pane horizontally', '⌘⇧\\'],
       ].map(([command, title, description, shortcut]) => ({
         id: `command:${command}`,
         section: 'Commands',
@@ -2325,10 +2100,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (entry.command === 'reset-layout') {
           setPaneTree(cloneDefaultPaneTree());
           setActivePaneId('pane-main');
-        } else if (entry.command === 'split-right') {
-          splitWorkspacePane('horizontal');
-        } else if (entry.command === 'split-down') {
-          splitWorkspacePane('vertical');
         } else if (entry.command === 'deploy') {
           openWorkspacePanel('deployments');
         } else if (entry.command === 'run') {
@@ -2867,7 +2638,6 @@ function ProjectFilesTool({
 }
 
 function IdeTabBar({
-  paneId,
   activePanel: _activePanel,
   activeTabId,
   tabs,
@@ -2875,21 +2645,12 @@ function IdeTabBar({
   onSelect,
   onClose,
   onOpenTool,
-  onSplit,
-  onPin,
   onCloseOthers,
   onCloseToRight,
   onCloseAll,
   recentFiles = [],
   onOpenFile,
-  paneTargets,
-  onMoveToNewPane,
-  onMoveToExistingPane,
-  onDragStart,
-  onDropTab,
-  onDragEnd,
 }: {
-  paneId: string;
   activePanel: IdeWorkspacePanel;
   activeTabId?: string;
   tabs: Array<{
@@ -2907,58 +2668,14 @@ function IdeTabBar({
   onSelect: (tabId: string, panel: IdeWorkspacePanel) => void;
   onClose?: (tabId: string, panel: IdeWorkspacePanel) => void;
   onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
-  onSplit?: (direction: IdePaneDirection) => void;
-  onPin?: (tabId: string) => void;
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
   recentFiles?: string[];
   onOpenFile?: (filePath: string, preview: boolean) => void;
-  paneTargets?: Array<{ id: string; label: string }>;
-  onMoveToNewPane?: (tabId: string, zone: IdeDropZone) => void;
-  onMoveToExistingPane?: (tabId: string, targetPaneId: string) => void;
-  onDragStart?: (paneId: string, tabId: string) => void;
-  onDropTab?: (paneId: string) => void;
-  onDragEnd?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tabId: string } | null>(null);
-  const pointerDragStartRef = useRef<{ x: number; y: number; paneId: string; tabId: string } | null>(null);
-  const startManualTabDrag = useCallback(
-    (event: React.MouseEvent, tabId: string) => {
-      if (event.button !== 0) {
-        return;
-      }
-
-      const startX = event.clientX;
-      const startY = event.clientY;
-      let started = true;
-
-      onDragStart?.(paneId, tabId);
-
-      const onMove = (moveEvent: MouseEvent) => {
-        if (started) {
-          return;
-        }
-
-        if (Math.abs(moveEvent.clientX - startX) > 8 || Math.abs(moveEvent.clientY - startY) > 8) {
-          started = true;
-          onDragStart?.(paneId, tabId);
-        }
-      };
-
-      const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-        onDragEnd?.();
-      };
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
-    },
-    [onDragEnd, onDragStart, paneId],
-  );
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
@@ -2982,72 +2699,17 @@ function IdeTabBar({
   ];
 
   return (
-    <div
-      className="bolt-project-tabbar"
-      onMouseDownCapture={(event) => {
-        const tabElement = (event.target as HTMLElement | null)?.closest<HTMLElement>('.bolt-project-tab');
-        const tabId = tabElement?.dataset.tabId;
-
-        if (tabId) {
-          startManualTabDrag(event, tabId);
-        }
-      }}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={() => onDropTab?.(paneId)}
-    >
+    <div className="bolt-project-tabbar">
       <div className="bolt-project-tabs" role="tablist">
         {tabs.map((tab) => (
           <div
             key={tab.id}
             role="tab"
             data-tab-id={tab.id}
-            draggable
             aria-selected={activeTabId === tab.id}
             className="bolt-project-tab"
-            onDragStart={() => onDragStart?.(paneId, tab.id)}
-            onDragEnd={() => onDragEnd?.()}
-            onMouseDownCapture={(event) => startManualTabDrag(event, tab.id)}
-            onPointerDown={(event) => {
-              if (event.button !== 0) {
-                return;
-              }
-
-              pointerDragStartRef.current = {
-                x: event.clientX,
-                y: event.clientY,
-                paneId,
-                tabId: tab.id,
-              };
-            }}
-            onPointerMove={(event) => {
-              const start = pointerDragStartRef.current;
-
-              if (!start || event.buttons !== 1) {
-                return;
-              }
-
-              if (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8) {
-                onDragStart?.(start.paneId, start.tabId);
-                pointerDragStartRef.current = null;
-              }
-            }}
-            onPointerUp={() => {
-              pointerDragStartRef.current = null;
-            }}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              setContextMenu({ x: event.clientX, y: event.clientY, tabId: tab.id });
-            }}
           >
-            <button
-              type="button"
-              className="bolt-project-tab-main"
-              draggable
-              onClick={() => onSelect(tab.id, tab.panel)}
-              onMouseDownCapture={(event) => startManualTabDrag(event, tab.id)}
-              onDragStart={() => onDragStart?.(paneId, tab.id)}
-              onDragEnd={() => onDragEnd?.()}
-            >
+            <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id, tab.panel)}>
               <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />
               <span className={tab.preview || tab.dirty ? 'italic' : ''}>{tab.label}</span>
             </button>
@@ -3083,89 +2745,6 @@ function IdeTabBar({
           </div>
         ))}
       </div>
-      {contextMenu && (
-        <div
-          className="bolt-project-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onMouseLeave={() => setContextMenu(null)}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              onPin?.(contextMenu.tabId);
-              setContextMenu(null);
-            }}
-          >
-            Pin / unpin
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onMoveToNewPane?.(contextMenu.tabId, 'right');
-              setContextMenu(null);
-            }}
-          >
-            Move to new pane right
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onMoveToNewPane?.(contextMenu.tabId, 'bottom');
-              setContextMenu(null);
-            }}
-          >
-            Move to new pane down
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onMoveToNewPane?.(contextMenu.tabId, 'left');
-              setContextMenu(null);
-            }}
-          >
-            Move to new pane left
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onMoveToNewPane?.(contextMenu.tabId, 'top');
-              setContextMenu(null);
-            }}
-          >
-            Move to new pane up
-          </button>
-          {(paneTargets ?? []).map((pane) => (
-            <button
-              key={pane.id}
-              type="button"
-              onClick={() => {
-                onMoveToExistingPane?.(contextMenu.tabId, pane.id);
-                setContextMenu(null);
-              }}
-            >
-              Move to existing pane - {pane.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              onCloseOthers?.(contextMenu.tabId);
-              setContextMenu(null);
-            }}
-          >
-            Close others
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onCloseToRight?.(contextMenu.tabId);
-              setContextMenu(null);
-            }}
-          >
-            Close to right
-          </button>
-        </div>
-      )}
       {trailing}
       <div className="bolt-project-tool-popover">
         <button
@@ -3229,24 +2808,6 @@ function IdeTabBar({
           </div>
         )}
       </div>
-      <button
-        type="button"
-        className="bolt-project-tab-action"
-        aria-label="Split right"
-        onMouseDown={(event) => event.stopPropagation()}
-        onClick={() => onSplit?.('horizontal')}
-      >
-        <span className="i-ph:columns" aria-hidden />
-      </button>
-      <button
-        type="button"
-        className="bolt-project-tab-action"
-        aria-label="Split down"
-        onMouseDown={(event) => event.stopPropagation()}
-        onClick={() => onSplit?.('vertical')}
-      >
-        <span className="i-ph:rows" aria-hidden />
-      </button>
       <div className="bolt-project-tool-popover">
         <button
           type="button"

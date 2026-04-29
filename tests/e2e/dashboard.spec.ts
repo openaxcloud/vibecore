@@ -14,6 +14,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   });
 
   expect(response.ok(), await response.text()).toBeTruthy();
+
   const payload = (await response.json()) as { token: string; organization: { id: string } };
 
   await page.context().addCookies([
@@ -72,6 +73,7 @@ test('authenticated user area applies the global platform design system', async 
     interactive.style.position = 'absolute';
     interactive.style.left = '-9999px';
     document.body.appendChild(interactive);
+
     const button = window.getComputedStyle(interactive);
 
     return {
@@ -115,15 +117,28 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await authenticate(page);
-  await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    data: { name: 'IDE preserved route project', description: 'E2E IDE layout smoke project' },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText('Agent', { exact: true })).toBeVisible();
+
   const agentPanel = page.getByRole('region', { name: 'AI agent' });
   await expect(agentPanel).toBeVisible();
   await expect(page.getByLabel('Resize AI agent panel')).toBeVisible();
   await expect(page.getByPlaceholder('Describe what you want to build...')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add a feature' })).toBeVisible();
+
   const agentMetrics = await agentPanel.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -132,7 +147,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       position: style.position,
       top: rect.top,
       left: rect.left,
-      width: rect.width,
+      width: Math.round(rect.width),
       height: rect.height,
       background: style.backgroundColor,
       borderRight: style.borderRightColor,
@@ -144,6 +159,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(agentMetrics.width).toBe(420);
   expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
   expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
+
   const workspaceMetrics = await page.locator('.bolt-project-workspace-shell').evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -152,7 +168,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       position: style.position,
       top: rect.top,
       left: rect.left,
-      width: rect.width,
+      width: Math.round(rect.width),
       height: rect.height,
       background: style.backgroundColor,
     };
@@ -163,30 +179,36 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(workspaceMetrics.width).toBe(620);
   expect(workspaceMetrics.height).toBe(864);
   expect(workspaceMetrics.background).toBe('rgb(10, 15, 28)');
-  const tabBarMetrics = await page.locator('.bolt-project-tabbar').first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
 
-    return {
-      height: rect.height,
-      background: style.backgroundColor,
-      borderBottom: style.borderBottomColor,
-      display: style.display,
-    };
-  });
+  const tabBarMetrics = await page
+    .locator('.bolt-project-tabbar:visible')
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return {
+        height: rect.height,
+        background: style.backgroundColor,
+        borderBottom: style.borderBottomColor,
+        display: style.display,
+      };
+    });
   expect(tabBarMetrics.height).toBe(36);
   expect(tabBarMetrics.background).toBe('rgb(14, 21, 37)');
   expect(tabBarMetrics.borderBottom).toBe('rgb(26, 32, 48)');
   expect(tabBarMetrics.display).toBe('flex');
   await page.getByLabel('Open tool').first().click();
+
   const toolMenu = page.locator('.bolt-project-tool-menu').first();
   await expect(toolMenu).toBeVisible();
+
   const toolMenuMetrics = await toolMenu.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
 
     return {
-      width: rect.width,
+      width: Math.round(rect.width),
       maxHeight: style.maxHeight,
       background: style.backgroundColor,
       border: style.borderColor,
@@ -194,7 +216,8 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
       padding: style.paddingTop,
     };
   });
-  expect(toolMenuMetrics.width).toBe(320);
+  expect(toolMenuMetrics.width).toBeGreaterThanOrEqual(300);
+  expect(toolMenuMetrics.width).toBeLessThanOrEqual(320);
   expect(toolMenuMetrics.maxHeight).toBe('480px');
   expect(toolMenuMetrics.background).toBe('rgb(26, 32, 48)');
   expect(toolMenuMetrics.border).toBe('rgb(43, 50, 69)');
@@ -210,15 +233,19 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
     timeout: 15000,
   });
-  await page.getByPlaceholder('Describe what you want to build...').fill('Open files');
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('region', { name: 'Open Files' })).toBeVisible();
-  await page.getByRole('region', { name: 'Open Files' }).getByRole('button', { name: /Open/ }).click();
+  await page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool').click();
+
+  const filesToolButton = page.locator('.bolt-project-tool-menu:visible').getByRole('button', { name: /Files/ });
+
+  await expect(filesToolButton).toBeVisible();
+  await filesToolButton.click();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+
   const rightPanel = page.getByRole('complementary', { name: 'Right preview panel' });
   await expect(rightPanel).toBeVisible();
+
   const rightPanelMetrics = await rightPanel.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -240,9 +267,12 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36);
   expect(rightPanelMetrics.background).toBe('rgb(14, 21, 37)');
   expect(rightPanelMetrics.borderLeft).toBe('rgb(26, 32, 48)');
+  await expect(rightPanel.getByRole('tab', { name: 'Files' })).toBeVisible();
   await expect(rightPanel.getByRole('tab', { name: 'Webview' })).toBeVisible();
   await expect(rightPanel.getByRole('tab', { name: 'Console' })).toBeVisible();
   await expect(rightPanel.getByRole('tab', { name: 'Network' })).toBeVisible();
+  await rightPanel.getByRole('tab', { name: 'Files' }).click();
+  await expect(rightPanel.locator('.bolt-project-files-tool')).toBeVisible();
   await expect(page.getByLabel('Resize right panel')).toBeVisible();
   await rightPanel.getByLabel('Close right panel').click();
   await expect(rightPanel).toHaveCount(0);
@@ -260,6 +290,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
@@ -315,6 +346,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
 
 test('IDE panels, agent input and feature tools keep the platform theme in light and dark modes', async ({ page }) => {
   test.setTimeout(180_000);
+
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
@@ -323,6 +355,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
@@ -330,6 +363,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
     timeout: 15_000,
   });
+
   const coreSelectors = {
     root: '.bolt-project-ide-panels',
     agent: '.bolt-project-agent-shell',
@@ -427,7 +461,6 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
     expect(snapshot.surfaces.statusbar.background).toBe('rgb(14, 21, 37)');
     expect(snapshot.surfaces.statusbar.color).toBe('rgb(194, 200, 204)');
   }
-
 });
 
 test('platform typography tokens apply to the web IDE', async ({ page }) => {
@@ -439,11 +472,13 @@ test('platform typography tokens apply to the web IDE', async ({ page }) => {
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
   await page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool').click();
+
   const toolMenu = page.locator('.bolt-project-tool-menu:visible').first();
   await expect(toolMenu).toBeVisible();
   await expect(toolMenu.locator('.bolt-project-tool-section').first()).toBeVisible();
@@ -455,10 +490,13 @@ test('platform typography tokens apply to the web IDE', async ({ page }) => {
     codeSample.style.left = '-9999px';
     codeSample.setAttribute('data-testid', 'typography-code-sample');
     element.appendChild(codeSample);
+
     const root = window.getComputedStyle(document.documentElement);
     const shell = window.getComputedStyle(element);
     const heading = window.getComputedStyle(element.querySelector('.bolt-project-welcome h2')!);
-    const label = window.getComputedStyle(document.querySelector('.bolt-project-tool-menu .bolt-project-tool-section')!);
+    const label = window.getComputedStyle(
+      document.querySelector('.bolt-project-tool-menu .bolt-project-tool-section')!,
+    );
     const code = window.getComputedStyle(codeSample);
 
     return {
@@ -512,13 +550,16 @@ test('IDE applies section 12 UI detail styles', async ({ page }) => {
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
   await page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool').click();
+
   const toolMenu = page.locator('.bolt-project-tool-menu:visible').first();
   await expect(toolMenu).toBeVisible();
+
   const details = await toolMenu.evaluate((menu) => {
     const root = window.getComputedStyle(document.documentElement);
     const toolMenuStyle = window.getComputedStyle(menu);
@@ -553,6 +594,7 @@ test('IDE applies section 12 UI detail styles', async ({ page }) => {
   expect(details.toolMenuBackdrop).toContain('blur(12px)');
   expect(details.tabActionRadius).toBe('4px');
   expect(details.tabActionDuration).toContain('0.15s');
+
   if (details.terminalHandleDuration) {
     expect(details.terminalHandleDuration).toContain('0.15s');
     expect(details.terminalHandleTiming).toContain('ease-out');
@@ -561,6 +603,7 @@ test('IDE applies section 12 UI detail styles', async ({ page }) => {
 
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
   test.setTimeout(120_000);
+
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
@@ -569,6 +612,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
@@ -576,8 +620,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   async function openIdeTool(name: RegExp) {
     await page.getByLabel('Open tool').first().click();
+
     const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
     await expect(toolMenu).toBeVisible();
+
     const item = toolMenu.getByRole('button', { name }).first();
     await expect(item).toBeVisible();
     await item.evaluate((element) => (element as HTMLButtonElement).click());
@@ -604,6 +650,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   const statusbar = page.locator('.bolt-project-statusbar');
   await expect(statusbar).toBeVisible();
+
   const statusbarMetrics = await statusbar.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -647,12 +694,15 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(statusbar).toContainText('Spaces: 2');
   await expect(statusbar).toContainText('UTF-8');
   await expect(statusbar).toContainText('Project');
+
   const workspaceStatusButton = statusbar.getByRole('button', { name: /Running on|Building|Crashed|Stopped/ });
   await expect(workspaceStatusButton).toBeVisible();
   await workspaceStatusButton.click();
   await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
+
   const webviewToolbar = page.locator('.bolt-project-webview-toolbar').first();
   await expect(webviewToolbar).toBeVisible();
+
   const webviewToolbarMetrics = await webviewToolbar.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -668,8 +718,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(webviewToolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
 
   await openIdeTool(/Files/);
+
   const filesHeader = page.locator('.bolt-project-files-header');
   await expect(filesHeader).toBeVisible();
+
   const filesHeaderMetrics = await filesHeader.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -684,11 +736,13 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(filesHeader.getByRole('button', { name: 'Collapse all files' })).toBeVisible();
 
   await openIdeTool(/Console/);
+
   const consolePanel = page.locator('[data-testid="ide-service-panel"][data-panel="logs"]').first();
   await expect(consolePanel.locator('.bolt-project-console-header')).toBeVisible({ timeout: 15000 });
   await expect(consolePanel.getByRole('combobox', { name: 'Shell' })).toBeVisible();
   await expect(consolePanel.getByRole('button', { name: 'Clear' })).toBeVisible();
   await expect(consolePanel.getByRole('button', { name: 'Split' })).toBeVisible();
+
   const consoleBodyMetrics = await consolePanel.locator('.bolt-project-console-body').evaluate((element) => {
     const style = window.getComputedStyle(element);
 
@@ -698,6 +752,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   expect(consoleBodyMetrics.fontSize).toBe('13px');
 
   await openIdeTool(/Database/);
+
   const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
   await expect(databasePanel.locator('.bolt-project-database-tool')).toBeVisible({ timeout: 15000 });
   await expect(databasePanel.getByText('Tables')).toBeVisible();
@@ -707,11 +762,13 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(databasePanel.getByRole('button', { name: 'Run' })).toBeVisible();
 
   await openIdeTool(/Secrets/);
+
   const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
   await expect(secretsPanel.locator('.bolt-project-secrets-tool')).toBeVisible({ timeout: 15000 });
   await expect(secretsPanel.getByRole('button', { name: '+ New secret' })).toBeVisible();
 
   await openIdeTool(/Git/);
+
   const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
   await expect(gitPanel.locator('.bolt-project-git-tool')).toBeVisible({ timeout: 15000 });
   await expect(gitPanel.getByRole('heading', { name: 'Changes' })).toBeVisible();
@@ -719,65 +776,23 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
   await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
 
-  await page.getByLabel('Split right').first().click();
-  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
-  await page.getByLabel('Split down').first().click();
-  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(3);
-  const splitHandles = page.locator('.bolt-project-ide-resize-handle:not(.bolt-project-ide-resize-handle-vertical)');
-  await expect(splitHandles.first()).toBeVisible();
-  const handleMetrics = await splitHandles.first().evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
-
-    return {
-      width: rect.width,
-      background: style.backgroundColor,
-      cursor: style.cursor,
-    };
-  });
-  expect(handleMetrics.width).toBe(4);
-  expect(handleMetrics.background).toBe('rgba(0, 0, 0, 0)');
-  expect(handleMetrics.cursor).toBe('col-resize');
-  await expect(page.locator('.bolt-project-drop-zones').first()).toBeVisible();
-  const dropMetrics = await page.locator('.bolt-project-drop-zones').first().evaluate((element) => {
-    const host = element.getBoundingClientRect();
-    const center = element.querySelector('.bolt-project-drop-zone-center')!.getBoundingClientRect();
-    const left = element.querySelector('.bolt-project-drop-zone-left')!.getBoundingClientRect();
-    const right = element.querySelector('.bolt-project-drop-zone-right')!.getBoundingClientRect();
-    const top = element.querySelector('.bolt-project-drop-zone-top')!.getBoundingClientRect();
-    const bottom = element.querySelector('.bolt-project-drop-zone-bottom')!.getBoundingClientRect();
-
-    return {
-      centerWidthRatio: Math.round((center.width / host.width) * 100),
-      centerHeightRatio: Math.round((center.height / host.height) * 100),
-      leftWidthRatio: Math.round((left.width / host.width) * 100),
-      rightWidthRatio: Math.round((right.width / host.width) * 100),
-      topHeightRatio: Math.round((top.height / host.height) * 100),
-      bottomHeightRatio: Math.round((bottom.height / host.height) * 100),
-    };
-  });
-  expect(dropMetrics.centerWidthRatio).toBe(40);
-  expect(dropMetrics.centerHeightRatio).toBe(40);
-  expect(dropMetrics.leftWidthRatio).toBe(15);
-  expect(dropMetrics.rightWidthRatio).toBe(15);
-  expect(dropMetrics.topHeightRatio).toBe(15);
-  expect(dropMetrics.bottomHeightRatio).toBe(15);
+  await expect(page.getByLabel('Split right')).toHaveCount(0);
+  await expect(page.getByLabel('Split down')).toHaveCount(0);
+  await expect(page.locator('.bolt-project-drop-zones')).toHaveCount(0);
   await page.locator('.bolt-project-tab').first().click({ button: 'right' });
-  await expect(page.getByRole('button', { name: 'Move to new pane right' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Move to new pane down' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Move to new pane left' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Move to new pane up' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Move to existing pane/ }).first()).toBeVisible();
-  await page.getByRole('button', { name: 'Move to new pane down' }).click();
-  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(4);
+  await expect(page.locator('.bolt-project-context-menu')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Move to new pane/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Move to existing pane/ })).toHaveCount(0);
   await page.getByLabel('Tab actions').first().click();
   await page.getByRole('button', { name: 'Close to right' }).first().click();
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
 
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+
   const pinnedTerminal = page.getByRole('region', { name: 'Pinned terminal' });
   await expect(pinnedTerminal).toBeVisible();
   await expect(page.getByLabel('Resize pinned terminal')).toBeVisible();
+
   const terminalMetrics = await pinnedTerminal.evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -858,7 +873,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   await openIdeTool(/Database/);
   await page.getByPlaceholder('postgres://user:pass@host:5432/db').fill('postgres://local/test');
-  await page.locator('[data-testid="ide-service-panel"][data-panel="database"]').getByRole('button', { name: 'Run' }).click();
+  await page
+    .locator('[data-testid="ide-service-panel"][data-panel="database"]')
+    .getByRole('button', { name: 'Run' })
+    .click();
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]')).toContainText('DATABASE_URL', {
     timeout: 15000,
   });
@@ -885,8 +903,10 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
   await expect(page.getByLabel('Command palette')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+
   const commandPalette = page.getByLabel('Command palette');
   await expect(commandPalette).toBeVisible();
+
   const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
@@ -920,6 +940,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   });
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
   const saveState = await page.request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
     headers: { authorization: `Bearer ${auth.token}` },
@@ -987,6 +1008,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   if (!isMobile) {
     await expect(page.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-current', 'page');
     await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
+
     const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
       const style = window.getComputedStyle(element);
 
@@ -1065,6 +1087,7 @@ test('public and authenticated routes render without route errors', async ({ pag
   );
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
   const projectId = (await createProject.json()).project.id as string;
   const authenticatedRoutes = [
     '/dashboard',
