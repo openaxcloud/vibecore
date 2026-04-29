@@ -54,7 +54,11 @@ function toIso(value: Date | string | null | undefined) {
 }
 
 function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function assertFound<T>(value: T | null | undefined, message: string, code: string): T {
@@ -68,19 +72,40 @@ function assertFound<T>(value: T | null | undefined, message: string, code: stri
 export class PrismaApiStore implements ApiStore {
   constructor(readonly prisma: DatabaseClient = createDatabaseClient()) {}
 
-  async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }): Promise<UserRecord> {
+  async createUser(input: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    platformAdmin?: boolean;
+  }): Promise<UserRecord> {
     return mapUser(
       await this.prisma.user.create({
-        data: { email: input.email.toLowerCase(), name: input.name, passwordHash: input.passwordHash, platformAdmin: input.platformAdmin },
+        data: {
+          email: input.email.toLowerCase(),
+          name: input.name,
+          passwordHash: input.passwordHash,
+          platformAdmin: input.platformAdmin,
+        },
       }),
     );
   }
 
-  async updateUser(input: { userId: string; passwordHash?: string; emailVerifiedAt?: string; mfaEnabled?: boolean; mfaSecretEncrypted?: string; platformAdmin?: boolean }) {
+  async updateUser(input: {
+    userId: string;
+    email?: string;
+    name?: string;
+    passwordHash?: string;
+    emailVerifiedAt?: string;
+    mfaEnabled?: boolean;
+    mfaSecretEncrypted?: string;
+    platformAdmin?: boolean;
+  }) {
     return mapUser(
       await this.prisma.user.update({
         where: { id: input.userId },
         data: {
+          email: input.email?.toLowerCase(),
+          name: input.name,
           passwordHash: input.passwordHash,
           emailVerifiedAt: input.emailVerifiedAt ? new Date(input.emailVerifiedAt) : undefined,
           mfaEnabled: input.mfaEnabled,
@@ -101,7 +126,13 @@ export class PrismaApiStore implements ApiStore {
     return user ? mapUser(user) : undefined;
   }
 
-  async createSession(input: { userId: string; token: string; expiresAt: Date; ipAddress?: string; userAgent?: string }) {
+  async createSession(input: {
+    userId: string;
+    token: string;
+    expiresAt: Date;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
     return mapSession(
       await this.prisma.session.create({
         data: {
@@ -212,7 +243,15 @@ export class PrismaApiStore implements ApiStore {
     const records = await Promise.all(
       codeHashes.map((codeHash) => this.prisma.mfaRecoveryCode.create({ data: { userId, codeHash } })),
     );
-    return records.map((record): RecoveryCodeRecord => ({ id: record.id, userId: record.userId, codeHash: record.codeHash, usedAt: toIso(record.usedAt), createdAt: toIso(record.createdAt)! }));
+    return records.map(
+      (record): RecoveryCodeRecord => ({
+        id: record.id,
+        userId: record.userId,
+        codeHash: record.codeHash,
+        usedAt: toIso(record.usedAt),
+        createdAt: toIso(record.createdAt)!,
+      }),
+    );
   }
 
   async consumeRecoveryCode(userId: string, codeHash: string) {
@@ -269,12 +308,21 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listMembers(organizationId: string) {
-    return (
-      await this.prisma.organizationMember.findMany({ where: { organizationId }, include: { role: true } })
-    ).map(mapMembership);
+    return (await this.prisma.organizationMember.findMany({ where: { organizationId }, include: { role: true } })).map(
+      mapMembership,
+    );
   }
 
-  async createProject(input: { organizationId: string; name: string; slug: string; description?: string; sourceType?: ProjectRecord['sourceType']; templateName?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }) {
+  async createProject(input: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    description?: string;
+    sourceType?: ProjectRecord['sourceType'];
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }) {
     return mapProject(
       await this.prisma.project.create({
         data: {
@@ -297,7 +345,13 @@ export class PrismaApiStore implements ApiStore {
     return project ? mapProject(project) : undefined;
   }
 
-  async updateProject(input: { projectId: string; name?: string; description?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }) {
+  async updateProject(input: {
+    projectId: string;
+    name?: string;
+    description?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }) {
     return mapProject(
       await this.prisma.project.update({
         where: { id: input.projectId },
@@ -326,11 +380,20 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
-    return mapProject(await this.prisma.project.update({ where: { id: input.projectId }, data: { organizationId: input.targetOrganizationId } }));
+    return mapProject(
+      await this.prisma.project.update({
+        where: { id: input.projectId },
+        data: { organizationId: input.targetOrganizationId },
+      }),
+    );
   }
 
   async duplicateProject(input: { projectId: string; name: string; slug: string }) {
-    const source = assertFound(await this.prisma.project.findUnique({ where: { id: input.projectId } }), 'Project not found', 'PROJECT_NOT_FOUND');
+    const source = assertFound(
+      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
+      'Project not found',
+      'PROJECT_NOT_FOUND',
+    );
     return this.createProject({
       organizationId: source.organizationId,
       name: input.name,
@@ -343,15 +406,24 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-  async createProjectTemplate(input: { sourceProjectId: string; organizationId: string; name: string; description?: string }) {
+  async createProjectTemplate(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    name: string;
+    description?: string;
+  }) {
     const template = await this.prisma.projectTemplate.create({ data: input });
     return { ...template, description: template.description ?? undefined, createdAt: toIso(template.createdAt)! };
   }
 
   async listProjectTemplates(organizationId: string) {
-    return (
-      await this.prisma.projectTemplate.findMany({ where: { organizationId } })
-    ).map((template): ProjectTemplateRecord => ({ ...template, description: template.description ?? undefined, createdAt: toIso(template.createdAt)! }));
+    return (await this.prisma.projectTemplate.findMany({ where: { organizationId } })).map(
+      (template): ProjectTemplateRecord => ({
+        ...template,
+        description: template.description ?? undefined,
+        createdAt: toIso(template.createdAt)!,
+      }),
+    );
   }
 
   async upsertProjectEnvVar(input: { projectId: string; key: string; value: string }) {
@@ -405,13 +477,22 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectCollaborator.findMany({ where: { projectId } })).map(mapProjectCollaborator);
   }
 
-  async recordProjectActivity(input: { projectId: string; actorUserId?: string; action: string; metadata?: Record<string, unknown> }) {
-    const activity = await this.prisma.projectActivity.create({ data: { ...input, metadata: (input.metadata ?? undefined) as any } });
+  async recordProjectActivity(input: {
+    projectId: string;
+    actorUserId?: string;
+    action: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const activity = await this.prisma.projectActivity.create({
+      data: { ...input, metadata: (input.metadata ?? undefined) as any },
+    });
     return mapProjectActivity(activity);
   }
 
   async listProjectActivity(projectId: string) {
-    return (await this.prisma.projectActivity.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' } })).map(mapProjectActivity);
+    return (await this.prisma.projectActivity.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' } })).map(
+      mapProjectActivity,
+    );
   }
 
   async createWorkspace(input: { projectId: string; name: string; runtimeMode: string }) {
@@ -424,10 +505,20 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listWorkspaces(projectId: string) {
-    return (await this.prisma.workspace.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(mapWorkspace);
+    return (await this.prisma.workspace.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
+      mapWorkspace,
+    );
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; kind?: SnapshotRecord['kind']; manifest: unknown; storageKey?: string; byteLength?: number; createdByUserId?: string }) {
+  async createSnapshot(input: {
+    projectId: string;
+    label?: string;
+    kind?: SnapshotRecord['kind'];
+    manifest: unknown;
+    storageKey?: string;
+    byteLength?: number;
+    createdByUserId?: string;
+  }) {
     return mapSnapshot(
       await this.prisma.projectSnapshot.create({
         data: {
@@ -449,7 +540,9 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listSnapshots(projectId: string) {
-    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(mapSnapshot);
+    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
+      mapSnapshot,
+    );
   }
 
   async createDeployment(input: { projectId: string; provider: string; url?: string }) {
@@ -457,11 +550,15 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listDeployments(projectId: string) {
-    return (await this.prisma.deployment.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(mapDeployment);
+    return (await this.prisma.deployment.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
+      mapDeployment,
+    );
   }
 
   async createSupportTicket(input: { organizationId: string; userId: string; subject: string }) {
-    const ticket = await this.prisma.supportTicket.create({ data: { organizationId: input.organizationId, userId: input.userId, subject: input.subject } });
+    const ticket = await this.prisma.supportTicket.create({
+      data: { organizationId: input.organizationId, userId: input.userId, subject: input.subject },
+    });
     return mapSupportTicket(ticket);
   }
 
@@ -475,14 +572,22 @@ export class PrismaApiStore implements ApiStore {
     });
 
     if (existing) {
-      return mapFeatureFlag(await this.prisma.featureFlag.update({ where: { id: existing.id }, data: { enabled: input.enabled } }));
+      return mapFeatureFlag(
+        await this.prisma.featureFlag.update({ where: { id: existing.id }, data: { enabled: input.enabled } }),
+      );
     }
 
-    return mapFeatureFlag(await this.prisma.featureFlag.create({ data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled } }));
+    return mapFeatureFlag(
+      await this.prisma.featureFlag.create({
+        data: { organizationId: input.organizationId, key: input.key, enabled: input.enabled },
+      }),
+    );
   }
 
   async listFeatureFlags(organizationId?: string) {
-    return (await this.prisma.featureFlag.findMany({ where: { organizationId: organizationId ?? null } })).map(mapFeatureFlag);
+    return (await this.prisma.featureFlag.findMany({ where: { organizationId: organizationId ?? null } })).map(
+      mapFeatureFlag,
+    );
   }
 
   async createAbuseEvent(input: { organizationId?: string; userId?: string; type: string; severity: string }) {
@@ -510,13 +615,21 @@ export class PrismaApiStore implements ApiStore {
   async getEnterpriseSettings(organizationId: string) {
     const settings = await this.prisma.enterpriseOrganizationSettings.upsert({
       where: { organizationId },
-      create: { organizationId, ipAllowlist: [], requireMfaForAdmins: true, dataRetentionDays: 365, legalHoldEnabled: false },
+      create: {
+        organizationId,
+        ipAllowlist: [],
+        requireMfaForAdmins: true,
+        dataRetentionDays: 365,
+        legalHoldEnabled: false,
+      },
       update: {},
     });
     return mapEnterpriseSettings(settings);
   }
 
-  async updateEnterpriseSettings(input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string }) {
+  async updateEnterpriseSettings(
+    input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string },
+  ) {
     return mapEnterpriseSettings(
       await this.prisma.enterpriseOrganizationSettings.upsert({
         where: { organizationId: input.organizationId },
@@ -558,14 +671,21 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    return mapDomainVerification(await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { verifiedAt: new Date() } }));
+    return mapDomainVerification(
+      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { verifiedAt: new Date() } }),
+    );
   }
 
   async listDomainVerifications(organizationId: string) {
     return (await this.prisma.verifiedDomain.findMany({ where: { organizationId } })).map(mapDomainVerification);
   }
 
-  async upsertSsoConfig(input: { organizationId: string; type: 'oidc' | 'saml'; enabled: boolean; encryptedConfig: string }) {
+  async upsertSsoConfig(input: {
+    organizationId: string;
+    type: 'oidc' | 'saml';
+    enabled: boolean;
+    encryptedConfig: string;
+  }) {
     return mapSsoConfig(
       await this.prisma.ssoConfiguration.upsert({
         where: { organizationId_type: { organizationId: input.organizationId, type: input.type } },
@@ -576,13 +696,17 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getSsoConfig(organizationId: string, type: 'oidc' | 'saml') {
-    const config = await this.prisma.ssoConfiguration.findUnique({ where: { organizationId_type: { organizationId, type } } });
+    const config = await this.prisma.ssoConfiguration.findUnique({
+      where: { organizationId_type: { organizationId, type } },
+    });
     return config ? mapSsoConfig(config) : undefined;
   }
 
   async createScimToken(input: { organizationId: string; name: string; token: string }) {
     return mapScimToken(
-      await this.prisma.scimToken.create({ data: { organizationId: input.organizationId, name: input.name, tokenHash: hashToken(input.token) } }),
+      await this.prisma.scimToken.create({
+        data: { organizationId: input.organizationId, name: input.name, tokenHash: hashToken(input.token) },
+      }),
     );
   }
 
@@ -594,7 +718,9 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    return mapScimToken(await this.prisma.scimToken.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }));
+    return mapScimToken(
+      await this.prisma.scimToken.update({ where: { id: record.id }, data: { lastUsedAt: new Date() } }),
+    );
   }
 
   async createCustomRole(input: { organizationId: string; key: string; name: string; permissions: PermissionKey[] }) {
@@ -611,7 +737,13 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.customRole.findMany({ where: { organizationId } })).map(mapCustomRole);
   }
 
-  async createSiemWebhook(input: { organizationId: string; url: string; secret: string; secretCiphertext: string; enabled: boolean }) {
+  async createSiemWebhook(input: {
+    organizationId: string;
+    url: string;
+    secret: string;
+    secretCiphertext: string;
+    enabled: boolean;
+  }) {
     return mapSiemWebhook(
       await this.prisma.siemWebhook.create({
         data: {
@@ -629,7 +761,13 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.siemWebhook.findMany({ where: { organizationId } })).map(mapSiemWebhook);
   }
 
-  async createOrganizationInvite(input: { organizationId: string; email: string; roleKey: string; token: string; expiresAt: Date }) {
+  async createOrganizationInvite(input: {
+    organizationId: string;
+    email: string;
+    roleKey: string;
+    token: string;
+    expiresAt: Date;
+  }) {
     const role = await this.ensureRole(input.roleKey);
     const invite = await this.prisma.organizationInvite.create({
       data: {
@@ -668,7 +806,9 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listOrganizationInvites(organizationId: string) {
-    return (await this.prisma.organizationInvite.findMany({ where: { organizationId }, include: { role: true } })).map(mapOrganizationInvite);
+    return (await this.prisma.organizationInvite.findMany({ where: { organizationId }, include: { role: true } })).map(
+      mapOrganizationInvite,
+    );
   }
 
   async resendOrganizationInvite(inviteId: string, token: string, expiresAt: Date) {
@@ -688,16 +828,31 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async expireOrganizationInvite(inviteId: string) {
-    const invite = await this.prisma.organizationInvite.findUnique({ where: { id: inviteId }, include: { role: true } });
+    const invite = await this.prisma.organizationInvite.findUnique({
+      where: { id: inviteId },
+      include: { role: true },
+    });
 
     if (!invite) {
       return undefined;
     }
 
-    return mapOrganizationInvite(await this.prisma.organizationInvite.update({ where: { id: inviteId }, data: { expiresAt: new Date() }, include: { role: true } }));
+    return mapOrganizationInvite(
+      await this.prisma.organizationInvite.update({
+        where: { id: inviteId },
+        data: { expiresAt: new Date() },
+        include: { role: true },
+      }),
+    );
   }
 
-  async upsertOAuthConnection(input: { userId: string; provider: string; externalId: string; accessToken: string; refreshToken?: string }) {
+  async upsertOAuthConnection(input: {
+    userId: string;
+    provider: string;
+    externalId: string;
+    accessToken: string;
+    refreshToken?: string;
+  }) {
     return mapOAuthConnection(
       await this.prisma.oAuthConnection.upsert({
         where: { provider_externalId: { provider: input.provider, externalId: input.externalId } },
@@ -726,40 +881,91 @@ export class PrismaApiStore implements ApiStore {
     return conversation ? mapAiConversation(conversation) : undefined;
   }
 
-  async createAiMessage(input: { conversationId: string; role: 'system' | 'user' | 'assistant' | 'tool'; content: string }) {
+  async createAiMessage(input: {
+    conversationId: string;
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    content: string;
+  }) {
     return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
   }
 
   async listAiMessages(conversationId: string) {
-    return (await this.prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } })).map(mapAiMessage);
+    return (await this.prisma.aiMessage.findMany({ where: { conversationId }, orderBy: { createdAt: 'asc' } })).map(
+      mapAiMessage,
+    );
   }
 
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {
     return mapAiToolCall(
       await this.prisma.aiToolCall.create({
-        data: { messageId: input.messageId, name: input.name, input: (input.input ?? null) as any, output: (input.output ?? null) as any },
+        data: {
+          messageId: input.messageId,
+          name: input.name,
+          input: (input.input ?? null) as any,
+          output: (input.output ?? null) as any,
+        },
       }),
     );
   }
 
-  async createAiTokenUsage(input: { messageId: string; provider: string; model: string; inputTokens: number; outputTokens: number; estimatedCostCents: number }) {
+  async createAiTokenUsage(input: {
+    messageId: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostCents: number;
+  }) {
     return mapAiTokenUsage(await this.prisma.aiTokenUsage.create({ data: input }));
   }
 
-  async recordAiCost(input: { organizationId: string; projectId?: string; conversationId?: string; messageId?: string; provider: string; model: string; inputTokens: number; outputTokens: number; costCents: number; reason: string }) {
+  async recordAiCost(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    messageId?: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    costCents: number;
+    reason: string;
+  }) {
     return mapAiCostLedger(await this.prisma.aiCostLedger.create({ data: input }));
   }
 
   async listAiCosts(organizationId: string) {
-    return (await this.prisma.aiCostLedger.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(mapAiCostLedger);
+    return (await this.prisma.aiCostLedger.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
+      mapAiCostLedger,
+    );
   }
 
-  async upsertBillingPlan(input: { key: PlanKey; name: string; monthlyCents: number; limits: Record<string, number>; stripeProductId?: string; stripePriceId?: string }) {
+  async upsertBillingPlan(input: {
+    key: PlanKey;
+    name: string;
+    monthlyCents: number;
+    limits: Record<string, number>;
+    stripeProductId?: string;
+    stripePriceId?: string;
+  }) {
     return mapBillingPlan(
       await this.prisma.plan.upsert({
         where: { key: input.key },
-        create: { key: input.key, name: input.name, monthlyCents: input.monthlyCents, limits: input.limits as any, stripeProductId: input.stripeProductId, stripePriceId: input.stripePriceId },
-        update: { name: input.name, monthlyCents: input.monthlyCents, limits: input.limits as any, stripeProductId: input.stripeProductId, stripePriceId: input.stripePriceId },
+        create: {
+          key: input.key,
+          name: input.name,
+          monthlyCents: input.monthlyCents,
+          limits: input.limits as any,
+          stripeProductId: input.stripeProductId,
+          stripePriceId: input.stripePriceId,
+        },
+        update: {
+          name: input.name,
+          monthlyCents: input.monthlyCents,
+          limits: input.limits as any,
+          stripeProductId: input.stripeProductId,
+          stripePriceId: input.stripePriceId,
+        },
       }),
     );
   }
@@ -788,11 +994,24 @@ export class PrismaApiStore implements ApiStore {
     return customer ? mapBillingCustomer(customer) : undefined;
   }
 
-  async upsertSubscription(input: { organizationId: string; planKey: PlanKey; externalId?: string; status: SubscriptionRecord['status']; cancelAtPeriodEnd?: boolean; trialEndsAt?: Date; currentPeriodStart?: Date; currentPeriodEnd?: Date }) {
+  async upsertSubscription(input: {
+    organizationId: string;
+    planKey: PlanKey;
+    externalId?: string;
+    status: SubscriptionRecord['status'];
+    cancelAtPeriodEnd?: boolean;
+    trialEndsAt?: Date;
+    currentPeriodStart?: Date;
+    currentPeriodEnd?: Date;
+  }) {
     const plan = await this.ensurePlan(input.planKey);
     const existing = input.externalId
       ? await this.prisma.subscription.findUnique({ where: { externalId: input.externalId }, include: { plan: true } })
-      : await this.prisma.subscription.findFirst({ where: { organizationId: input.organizationId }, include: { plan: true }, orderBy: { createdAt: 'desc' } });
+      : await this.prisma.subscription.findFirst({
+          where: { organizationId: input.organizationId },
+          include: { plan: true },
+          orderBy: { createdAt: 'desc' },
+        });
     const data = {
       organizationId: input.organizationId,
       planId: plan.id,
@@ -805,40 +1024,72 @@ export class PrismaApiStore implements ApiStore {
     };
 
     if (existing) {
-      return mapSubscription(await this.prisma.subscription.update({ where: { id: existing.id }, data, include: { plan: true } }));
+      return mapSubscription(
+        await this.prisma.subscription.update({ where: { id: existing.id }, data, include: { plan: true } }),
+      );
     }
 
     return mapSubscription(await this.prisma.subscription.create({ data, include: { plan: true } }));
   }
 
   async getSubscription(organizationId: string) {
-    const subscription = await this.prisma.subscription.findFirst({ where: { organizationId }, include: { plan: true }, orderBy: { createdAt: 'desc' } });
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { organizationId },
+      include: { plan: true },
+      orderBy: { createdAt: 'desc' },
+    });
     return subscription ? mapSubscription(subscription) : undefined;
   }
 
-  async recordUsageEvent(input: { organizationId: string; userId?: string; type: string; quantity?: number; metadata?: unknown }) {
+  async recordUsageEvent(input: {
+    organizationId: string;
+    userId?: string;
+    type: string;
+    quantity?: number;
+    metadata?: unknown;
+  }) {
     return mapUsageEvent(
       await this.prisma.usageEvent.create({
-        data: { organizationId: input.organizationId, userId: input.userId, type: input.type, quantity: input.quantity ?? 1, metadata: (input.metadata ?? null) as any },
+        data: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+          type: input.type,
+          quantity: input.quantity ?? 1,
+          metadata: (input.metadata ?? null) as any,
+        },
       }),
     );
   }
 
   async listUsageEvents(organizationId: string) {
-    return (await this.prisma.usageEvent.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(mapUsageEvent);
+    return (await this.prisma.usageEvent.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
+      mapUsageEvent,
+    );
   }
 
   async sumUsage(organizationId: string, type: string) {
-    const result = await this.prisma.usageEvent.aggregate({ where: { organizationId, type }, _sum: { quantity: true } });
+    const result = await this.prisma.usageEvent.aggregate({
+      where: { organizationId, type },
+      _sum: { quantity: true },
+    });
     return result._sum.quantity ?? 0;
   }
 
-  async createQuotaOverride(input: { organizationId: string; key: QuotaKey; limit: number; reason: string; createdByUserId?: string; expiresAt?: Date }) {
+  async createQuotaOverride(input: {
+    organizationId: string;
+    key: QuotaKey;
+    limit: number;
+    reason: string;
+    createdByUserId?: string;
+    expiresAt?: Date;
+  }) {
     return mapQuotaOverride(await this.prisma.quotaOverride.create({ data: input }));
   }
 
   async listQuotaOverrides(organizationId: string) {
-    return (await this.prisma.quotaOverride.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(mapQuotaOverride);
+    return (
+      await this.prisma.quotaOverride.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })
+    ).map(mapQuotaOverride);
   }
 
   async getQuotaOverride(organizationId: string, key: QuotaKey) {
@@ -857,7 +1108,11 @@ export class PrismaApiStore implements ApiStore {
     }
 
     return {
-      event: mapStripeEvent(await this.prisma.stripeEvent.create({ data: { id: input.id, organizationId: input.organizationId, type: input.type, payload: input.payload as any } })),
+      event: mapStripeEvent(
+        await this.prisma.stripeEvent.create({
+          data: { id: input.id, organizationId: input.organizationId, type: input.type, payload: input.payload as any },
+        }),
+      ),
       created: true,
     };
   }
@@ -878,18 +1133,19 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAuditLogs(organizationId?: string) {
-    return (
-      await this.prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })
-    ).map((event) => ({
-      organizationId: event.organizationId ?? undefined,
-      actorUserId: event.actorUserId ?? undefined,
-      action: event.action,
-      resourceType: event.resourceType,
-      resourceId: event.resourceId ?? undefined,
-      metadata: (event.metadata as Record<string, unknown> | null) ?? undefined,
-      ipAddress: event.ipAddress ?? undefined,
-      createdAt: toIso(event.createdAt)!,
-    }) as AuditEvent);
+    return (await this.prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: 'desc' } })).map(
+      (event) =>
+        ({
+          organizationId: event.organizationId ?? undefined,
+          actorUserId: event.actorUserId ?? undefined,
+          action: event.action,
+          resourceType: event.resourceType,
+          resourceId: event.resourceId ?? undefined,
+          metadata: (event.metadata as Record<string, unknown> | null) ?? undefined,
+          ipAddress: event.ipAddress ?? undefined,
+          createdAt: toIso(event.createdAt)!,
+        }) as AuditEvent,
+    );
   }
 
   async listAdminUsers() {
@@ -897,7 +1153,9 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAdminOrganizations() {
-    return (await this.prisma.organization.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })).map(mapOrganization);
+    return (await this.prisma.organization.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })).map(
+      mapOrganization,
+    );
   }
 
   async listAdminProjects() {
@@ -913,7 +1171,9 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAdminSupportTickets() {
-    return (await this.prisma.supportTicket.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })).map(mapSupportTicket);
+    return (await this.prisma.supportTicket.findMany({ orderBy: { createdAt: 'desc' }, take: 500 })).map(
+      mapSupportTicket,
+    );
   }
 
   async listAdminUsageEvents() {
@@ -921,23 +1181,41 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listAdminAiCosts() {
-    return (await this.prisma.aiCostLedger.findMany({ orderBy: { createdAt: 'desc' }, take: 1000 })).map(mapAiCostLedger);
+    return (await this.prisma.aiCostLedger.findMany({ orderBy: { createdAt: 'desc' }, take: 1000 })).map(
+      mapAiCostLedger,
+    );
   }
 
   async updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }) {
-    return mapWorkspace(await this.prisma.workspace.update({ where: { id: input.workspaceId }, data: { status: input.status } }));
+    return mapWorkspace(
+      await this.prisma.workspace.update({ where: { id: input.workspaceId }, data: { status: input.status } }),
+    );
   }
 
   async updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }) {
     const existing = await this.prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
-    const metadata = { ...((existing?.metadata as Record<string, unknown> | null) ?? {}), ...(input.response ? { latestAdminResponse: input.response } : {}) };
-    return mapSupportTicket(await this.prisma.supportTicket.update({ where: { id: input.ticketId }, data: { status: input.status, metadata: metadata as any } }));
+    const metadata = {
+      ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+      ...(input.response ? { latestAdminResponse: input.response } : {}),
+    };
+    return mapSupportTicket(
+      await this.prisma.supportTicket.update({
+        where: { id: input.ticketId },
+        data: { status: input.status, metadata: metadata as any },
+      }),
+    );
   }
 
   async updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }) {
     const existing = await this.prisma.abuseEvent.findUnique({ where: { id: input.abuseEventId } });
-    const metadata = { ...((existing?.metadata as Record<string, unknown> | null) ?? {}), resolved: input.resolved ?? true, resolvedAt: new Date().toISOString() };
-    return mapAbuseEvent(await this.prisma.abuseEvent.update({ where: { id: input.abuseEventId }, data: { metadata: metadata as any } }));
+    const metadata = {
+      ...((existing?.metadata as Record<string, unknown> | null) ?? {}),
+      resolved: input.resolved ?? true,
+      resolvedAt: new Date().toISOString(),
+    };
+    return mapAbuseEvent(
+      await this.prisma.abuseEvent.update({ where: { id: input.abuseEventId }, data: { metadata: metadata as any } }),
+    );
   }
 
   async recordAdminAudit(event: AdminAuditLogRecord) {
@@ -1013,11 +1291,21 @@ function mapSession(session: any): SessionRecord {
 }
 
 function mapOrganization(organization: any): OrganizationRecord {
-  return { id: organization.id, slug: organization.slug, name: organization.name, createdAt: toIso(organization.createdAt)! };
+  return {
+    id: organization.id,
+    slug: organization.slug,
+    name: organization.name,
+    createdAt: toIso(organization.createdAt)!,
+  };
 }
 
 function mapMembership(member: any): MembershipRecord {
-  return { id: member.id, organizationId: member.organizationId, userId: member.userId, roleKey: member.role?.key ?? member.roleKey ?? 'member' };
+  return {
+    id: member.id,
+    organizationId: member.organizationId,
+    userId: member.userId,
+    roleKey: member.role?.key ?? member.roleKey ?? 'member',
+  };
 }
 
 function mapProject(project: any): ProjectRecord {
@@ -1039,7 +1327,14 @@ function mapProject(project: any): ProjectRecord {
 }
 
 function mapWorkspace(workspace: any): WorkspaceRecord {
-  return { id: workspace.id, projectId: workspace.projectId, name: workspace.name, status: workspace.status, runtimeMode: workspace.runtimeMode, createdAt: toIso(workspace.createdAt)! };
+  return {
+    id: workspace.id,
+    projectId: workspace.projectId,
+    name: workspace.name,
+    status: workspace.status,
+    runtimeMode: workspace.runtimeMode,
+    createdAt: toIso(workspace.createdAt)!,
+  };
 }
 
 function mapSnapshot(snapshot: any): SnapshotRecord {
@@ -1057,27 +1352,68 @@ function mapSnapshot(snapshot: any): SnapshotRecord {
 }
 
 function mapEnvVar(envVar: any): ProjectEnvironmentRecord {
-  return { id: envVar.id, projectId: envVar.projectId, key: envVar.key, value: envVar.value, createdAt: toIso(envVar.createdAt)!, updatedAt: toIso(envVar.updatedAt)! };
+  return {
+    id: envVar.id,
+    projectId: envVar.projectId,
+    key: envVar.key,
+    value: envVar.value,
+    createdAt: toIso(envVar.createdAt)!,
+    updatedAt: toIso(envVar.updatedAt)!,
+  };
 }
 
 function mapSecret(secret: any): ProjectSecretRecord {
-  return { id: secret.id, projectId: secret.projectId, key: secret.key, valueEncrypted: secret.valueEncrypted ?? '', createdAt: toIso(secret.createdAt)!, updatedAt: toIso(secret.updatedAt)! };
+  return {
+    id: secret.id,
+    projectId: secret.projectId,
+    key: secret.key,
+    valueEncrypted: secret.valueEncrypted ?? '',
+    createdAt: toIso(secret.createdAt)!,
+    updatedAt: toIso(secret.updatedAt)!,
+  };
 }
 
 function mapProjectCollaborator(collaborator: any): ProjectCollaboratorRecord {
-  return { id: collaborator.id, projectId: collaborator.projectId, userId: collaborator.userId, roleKey: collaborator.roleKey, createdAt: toIso(collaborator.createdAt)! };
+  return {
+    id: collaborator.id,
+    projectId: collaborator.projectId,
+    userId: collaborator.userId,
+    roleKey: collaborator.roleKey,
+    createdAt: toIso(collaborator.createdAt)!,
+  };
 }
 
 function mapProjectActivity(activity: any): ProjectActivityRecord {
-  return { id: activity.id, projectId: activity.projectId, actorUserId: activity.actorUserId ?? undefined, action: activity.action, metadata: activity.metadata ?? undefined, createdAt: toIso(activity.createdAt)! };
+  return {
+    id: activity.id,
+    projectId: activity.projectId,
+    actorUserId: activity.actorUserId ?? undefined,
+    action: activity.action,
+    metadata: activity.metadata ?? undefined,
+    createdAt: toIso(activity.createdAt)!,
+  };
 }
 
 function mapDeployment(deployment: any): DeploymentRecord {
-  return { id: deployment.id, projectId: deployment.projectId, provider: deployment.provider, status: deployment.status, url: deployment.url ?? undefined, createdAt: toIso(deployment.createdAt)! };
+  return {
+    id: deployment.id,
+    projectId: deployment.projectId,
+    provider: deployment.provider,
+    status: deployment.status,
+    url: deployment.url ?? undefined,
+    createdAt: toIso(deployment.createdAt)!,
+  };
 }
 
 function mapSupportTicket(ticket: any): SupportTicketRecord {
-  return { id: ticket.id, organizationId: ticket.organizationId, userId: ticket.userId, subject: ticket.subject, status: ticket.status, createdAt: toIso(ticket.createdAt)! };
+  return {
+    id: ticket.id,
+    organizationId: ticket.organizationId,
+    userId: ticket.userId,
+    subject: ticket.subject,
+    status: ticket.status,
+    createdAt: toIso(ticket.createdAt)!,
+  };
 }
 
 function mapFeatureFlag(flag: any): FeatureFlagRecord {
@@ -1085,7 +1421,14 @@ function mapFeatureFlag(flag: any): FeatureFlagRecord {
 }
 
 function mapAbuseEvent(event: any): AbuseEventRecord {
-  return { id: event.id, organizationId: event.organizationId ?? undefined, userId: event.userId ?? undefined, type: event.type, severity: event.severity, createdAt: toIso(event.createdAt)! };
+  return {
+    id: event.id,
+    organizationId: event.organizationId ?? undefined,
+    userId: event.userId ?? undefined,
+    type: event.type,
+    severity: event.severity,
+    createdAt: toIso(event.createdAt)!,
+  };
 }
 
 function mapSystemSetting(setting: any): SystemSettingRecord {
@@ -1105,19 +1448,48 @@ function mapEnterpriseSettings(settings: any): EnterpriseSettingsRecord {
 }
 
 function mapDomainVerification(domain: any): DomainVerificationRecord {
-  return { id: domain.id, organizationId: domain.organizationId, domain: domain.domain, verificationToken: domain.verificationToken, verifiedAt: toIso(domain.verifiedAt), createdAt: toIso(domain.createdAt)! };
+  return {
+    id: domain.id,
+    organizationId: domain.organizationId,
+    domain: domain.domain,
+    verificationToken: domain.verificationToken,
+    verifiedAt: toIso(domain.verifiedAt),
+    createdAt: toIso(domain.createdAt)!,
+  };
 }
 
 function mapSsoConfig(config: any): SsoConfigRecord {
-  return { id: config.id, organizationId: config.organizationId, type: config.type, enabled: config.enabled, encryptedConfig: config.encryptedConfig, createdAt: toIso(config.createdAt)!, updatedAt: toIso(config.updatedAt)! };
+  return {
+    id: config.id,
+    organizationId: config.organizationId,
+    type: config.type,
+    enabled: config.enabled,
+    encryptedConfig: config.encryptedConfig,
+    createdAt: toIso(config.createdAt)!,
+    updatedAt: toIso(config.updatedAt)!,
+  };
 }
 
 function mapScimToken(token: any): ScimTokenRecord {
-  return { id: token.id, organizationId: token.organizationId, name: token.name, tokenHash: token.tokenHash, createdAt: toIso(token.createdAt)!, lastUsedAt: toIso(token.lastUsedAt) };
+  return {
+    id: token.id,
+    organizationId: token.organizationId,
+    name: token.name,
+    tokenHash: token.tokenHash,
+    createdAt: toIso(token.createdAt)!,
+    lastUsedAt: toIso(token.lastUsedAt),
+  };
 }
 
 function mapCustomRole(role: any): CustomRoleRecord {
-  return { id: role.id, organizationId: role.organizationId, key: role.key, name: role.name, permissions: role.permissions, createdAt: toIso(role.createdAt)! };
+  return {
+    id: role.id,
+    organizationId: role.organizationId,
+    key: role.key,
+    name: role.name,
+    permissions: role.permissions,
+    createdAt: toIso(role.createdAt)!,
+  };
 }
 
 function mapSiemWebhook(webhook: any): SiemWebhookRecord {

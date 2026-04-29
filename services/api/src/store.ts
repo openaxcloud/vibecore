@@ -371,11 +371,31 @@ export interface StripeEventRecord {
 }
 
 export interface ApiStore {
-  createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }): Promise<UserRecord>;
-  updateUser(input: { userId: string; passwordHash?: string; emailVerifiedAt?: string; mfaEnabled?: boolean; mfaSecretEncrypted?: string; platformAdmin?: boolean }): Promise<UserRecord>;
+  createUser(input: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    platformAdmin?: boolean;
+  }): Promise<UserRecord>;
+  updateUser(input: {
+    userId: string;
+    email?: string;
+    name?: string;
+    passwordHash?: string;
+    emailVerifiedAt?: string;
+    mfaEnabled?: boolean;
+    mfaSecretEncrypted?: string;
+    platformAdmin?: boolean;
+  }): Promise<UserRecord>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
-  createSession(input: { userId: string; token: string; expiresAt: Date; ipAddress?: string; userAgent?: string }): Promise<SessionRecord>;
+  createSession(input: {
+    userId: string;
+    token: string;
+    expiresAt: Date;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<SessionRecord>;
   findSessionByToken(token: string): Promise<SessionRecord | undefined>;
   listSessions(userId: string): Promise<SessionRecord[]>;
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
@@ -393,29 +413,66 @@ export interface ApiStore {
   addMember(input: { organizationId: string; userId: string; roleKey: string }): Promise<MembershipRecord>;
   getMembership(userId: string, organizationId: string): Promise<MembershipRecord | undefined>;
   listMembers(organizationId: string): Promise<MembershipRecord[]>;
-  createProject(input: { organizationId: string; name: string; slug: string; description?: string; sourceType?: ProjectRecord['sourceType']; templateName?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }): Promise<ProjectRecord>;
+  createProject(input: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    description?: string;
+    sourceType?: ProjectRecord['sourceType'];
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }): Promise<ProjectRecord>;
   getProject(id: string): Promise<ProjectRecord | undefined>;
-  updateProject(input: { projectId: string; name?: string; description?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }): Promise<ProjectRecord>;
+  updateProject(input: {
+    projectId: string;
+    name?: string;
+    description?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }): Promise<ProjectRecord>;
   listProjects(organizationId: string): Promise<ProjectRecord[]>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
   transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
   duplicateProject(input: { projectId: string; name: string; slug: string }): Promise<ProjectRecord>;
-  createProjectTemplate(input: { sourceProjectId: string; organizationId: string; name: string; description?: string }): Promise<ProjectTemplateRecord>;
+  createProjectTemplate(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    name: string;
+    description?: string;
+  }): Promise<ProjectTemplateRecord>;
   listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
   upsertProjectEnvVar(input: { projectId: string; key: string; value: string }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
-  addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }): Promise<ProjectCollaboratorRecord>;
+  addProjectCollaborator(input: {
+    projectId: string;
+    userId: string;
+    roleKey: string;
+  }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
-  recordProjectActivity(input: { projectId: string; actorUserId?: string; action: string; metadata?: Record<string, unknown> }): Promise<ProjectActivityRecord>;
+  recordProjectActivity(input: {
+    projectId: string;
+    actorUserId?: string;
+    action: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ProjectActivityRecord>;
   listProjectActivity(projectId: string): Promise<ProjectActivityRecord[]>;
   createWorkspace(input: { projectId: string; name: string; runtimeMode: string }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
-  createSnapshot(input: { projectId: string; label?: string; kind?: SnapshotRecord['kind']; manifest: unknown; storageKey?: string; byteLength?: number; createdByUserId?: string }): Promise<SnapshotRecord>;
+  createSnapshot(input: {
+    projectId: string;
+    label?: string;
+    kind?: SnapshotRecord['kind'];
+    manifest: unknown;
+    storageKey?: string;
+    byteLength?: number;
+    createdByUserId?: string;
+  }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
   createDeployment(input: { projectId: string; provider: string; url?: string }): Promise<DeploymentRecord>;
@@ -424,51 +481,159 @@ export interface ApiStore {
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;
   setFeatureFlag(input: { organizationId?: string; key: string; enabled: boolean }): Promise<FeatureFlagRecord>;
   listFeatureFlags(organizationId?: string): Promise<FeatureFlagRecord[]>;
-  createAbuseEvent(input: { organizationId?: string; userId?: string; type: string; severity: string }): Promise<AbuseEventRecord>;
+  createAbuseEvent(input: {
+    organizationId?: string;
+    userId?: string;
+    type: string;
+    severity: string;
+  }): Promise<AbuseEventRecord>;
   listAbuseEvents(): Promise<AbuseEventRecord[]>;
   setSystemSetting(input: { key: string; value?: unknown }): Promise<SystemSettingRecord>;
   listSystemSettings(): Promise<SystemSettingRecord[]>;
   getEnterpriseSettings(organizationId: string): Promise<EnterpriseSettingsRecord>;
-  updateEnterpriseSettings(input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string }): Promise<EnterpriseSettingsRecord>;
-  createDomainVerification(input: { organizationId: string; domain: string; verificationToken: string }): Promise<DomainVerificationRecord>;
+  updateEnterpriseSettings(
+    input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string },
+  ): Promise<EnterpriseSettingsRecord>;
+  createDomainVerification(input: {
+    organizationId: string;
+    domain: string;
+    verificationToken: string;
+  }): Promise<DomainVerificationRecord>;
   verifyDomain(input: { organizationId: string; domain: string }): Promise<DomainVerificationRecord | undefined>;
   listDomainVerifications(organizationId: string): Promise<DomainVerificationRecord[]>;
-  upsertSsoConfig(input: { organizationId: string; type: 'oidc' | 'saml'; enabled: boolean; encryptedConfig: string }): Promise<SsoConfigRecord>;
+  upsertSsoConfig(input: {
+    organizationId: string;
+    type: 'oidc' | 'saml';
+    enabled: boolean;
+    encryptedConfig: string;
+  }): Promise<SsoConfigRecord>;
   getSsoConfig(organizationId: string, type: 'oidc' | 'saml'): Promise<SsoConfigRecord | undefined>;
   createScimToken(input: { organizationId: string; name: string; token: string }): Promise<ScimTokenRecord>;
   findScimToken(token: string): Promise<ScimTokenRecord | undefined>;
-  createCustomRole(input: { organizationId: string; key: string; name: string; permissions: PermissionKey[] }): Promise<CustomRoleRecord>;
+  createCustomRole(input: {
+    organizationId: string;
+    key: string;
+    name: string;
+    permissions: PermissionKey[];
+  }): Promise<CustomRoleRecord>;
   listCustomRoles(organizationId: string): Promise<CustomRoleRecord[]>;
-  createSiemWebhook(input: { organizationId: string; url: string; secret: string; secretCiphertext: string; enabled: boolean }): Promise<SiemWebhookRecord>;
+  createSiemWebhook(input: {
+    organizationId: string;
+    url: string;
+    secret: string;
+    secretCiphertext: string;
+    enabled: boolean;
+  }): Promise<SiemWebhookRecord>;
   listSiemWebhooks(organizationId: string): Promise<SiemWebhookRecord[]>;
-  createOrganizationInvite(input: { organizationId: string; email: string; roleKey: string; token: string; expiresAt: Date }): Promise<OrganizationInviteRecord>;
+  createOrganizationInvite(input: {
+    organizationId: string;
+    email: string;
+    roleKey: string;
+    token: string;
+    expiresAt: Date;
+  }): Promise<OrganizationInviteRecord>;
   consumeOrganizationInvite(token: string, userId: string): Promise<OrganizationInviteRecord | undefined>;
   listOrganizationInvites(organizationId: string): Promise<OrganizationInviteRecord[]>;
-  resendOrganizationInvite(inviteId: string, token: string, expiresAt: Date): Promise<OrganizationInviteRecord | undefined>;
+  resendOrganizationInvite(
+    inviteId: string,
+    token: string,
+    expiresAt: Date,
+  ): Promise<OrganizationInviteRecord | undefined>;
   expireOrganizationInvite(inviteId: string): Promise<OrganizationInviteRecord | undefined>;
-  upsertOAuthConnection(input: { userId: string; provider: string; externalId: string; accessToken: string; refreshToken?: string }): Promise<OAuthConnectionRecord>;
+  upsertOAuthConnection(input: {
+    userId: string;
+    provider: string;
+    externalId: string;
+    accessToken: string;
+    refreshToken?: string;
+  }): Promise<OAuthConnectionRecord>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
-  createAiMessage(input: { conversationId: string; role: AiMessageRecord['role']; content: string }): Promise<AiMessageRecord>;
+  createAiMessage(input: {
+    conversationId: string;
+    role: AiMessageRecord['role'];
+    content: string;
+  }): Promise<AiMessageRecord>;
   listAiMessages(conversationId: string): Promise<AiMessageRecord[]>;
-  createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }): Promise<AiToolCallRecord>;
-  createAiTokenUsage(input: { messageId: string; provider: string; model: string; inputTokens: number; outputTokens: number; estimatedCostCents: number }): Promise<AiTokenUsageRecord>;
-  recordAiCost(input: { organizationId: string; projectId?: string; conversationId?: string; messageId?: string; provider: string; model: string; inputTokens: number; outputTokens: number; costCents: number; reason: string }): Promise<AiCostLedgerRecord>;
+  createAiToolCall(input: {
+    messageId: string;
+    name: string;
+    input?: unknown;
+    output?: unknown;
+  }): Promise<AiToolCallRecord>;
+  createAiTokenUsage(input: {
+    messageId: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostCents: number;
+  }): Promise<AiTokenUsageRecord>;
+  recordAiCost(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    messageId?: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    costCents: number;
+    reason: string;
+  }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string): Promise<AiCostLedgerRecord[]>;
-  upsertBillingPlan(input: { key: PlanKey; name: string; monthlyCents: number; limits: Record<string, number>; stripeProductId?: string; stripePriceId?: string }): Promise<BillingPlanRecord>;
+  upsertBillingPlan(input: {
+    key: PlanKey;
+    name: string;
+    monthlyCents: number;
+    limits: Record<string, number>;
+    stripeProductId?: string;
+    stripePriceId?: string;
+  }): Promise<BillingPlanRecord>;
   listBillingPlans(): Promise<BillingPlanRecord[]>;
   getBillingPlan(key: PlanKey): Promise<BillingPlanRecord | undefined>;
-  upsertBillingCustomer(input: { organizationId: string; provider: string; externalId: string }): Promise<BillingCustomerRecord>;
+  upsertBillingCustomer(input: {
+    organizationId: string;
+    provider: string;
+    externalId: string;
+  }): Promise<BillingCustomerRecord>;
   getBillingCustomer(organizationId: string): Promise<BillingCustomerRecord | undefined>;
-  upsertSubscription(input: { organizationId: string; planKey: PlanKey; externalId?: string; status: SubscriptionRecord['status']; cancelAtPeriodEnd?: boolean; trialEndsAt?: Date; currentPeriodStart?: Date; currentPeriodEnd?: Date }): Promise<SubscriptionRecord>;
+  upsertSubscription(input: {
+    organizationId: string;
+    planKey: PlanKey;
+    externalId?: string;
+    status: SubscriptionRecord['status'];
+    cancelAtPeriodEnd?: boolean;
+    trialEndsAt?: Date;
+    currentPeriodStart?: Date;
+    currentPeriodEnd?: Date;
+  }): Promise<SubscriptionRecord>;
   getSubscription(organizationId: string): Promise<SubscriptionRecord | undefined>;
-  recordUsageEvent(input: { organizationId: string; userId?: string; type: string; quantity?: number; metadata?: unknown }): Promise<UsageEventRecord>;
+  recordUsageEvent(input: {
+    organizationId: string;
+    userId?: string;
+    type: string;
+    quantity?: number;
+    metadata?: unknown;
+  }): Promise<UsageEventRecord>;
   listUsageEvents(organizationId: string): Promise<UsageEventRecord[]>;
   sumUsage(organizationId: string, type: string): Promise<number>;
-  createQuotaOverride(input: { organizationId: string; key: QuotaKey; limit: number; reason: string; createdByUserId?: string; expiresAt?: Date }): Promise<QuotaOverrideRecord>;
+  createQuotaOverride(input: {
+    organizationId: string;
+    key: QuotaKey;
+    limit: number;
+    reason: string;
+    createdByUserId?: string;
+    expiresAt?: Date;
+  }): Promise<QuotaOverrideRecord>;
   listQuotaOverrides(organizationId: string): Promise<QuotaOverrideRecord[]>;
   getQuotaOverride(organizationId: string, key: QuotaKey): Promise<QuotaOverrideRecord | undefined>;
-  recordStripeEvent(input: { id: string; organizationId?: string; type: string; payload: unknown }): Promise<{ event: StripeEventRecord; created: boolean }>;
+  recordStripeEvent(input: {
+    id: string;
+    organizationId?: string;
+    type: string;
+    payload: unknown;
+  }): Promise<{ event: StripeEventRecord; created: boolean }>;
   recordAudit(event: AuditEvent): Promise<void>;
   listAuditLogs(organizationId?: string): Promise<AuditEvent[]>;
   listAdminUsers(): Promise<UserRecord[]>;
@@ -480,7 +645,11 @@ export interface ApiStore {
   listAdminUsageEvents(): Promise<UsageEventRecord[]>;
   listAdminAiCosts(): Promise<AiCostLedgerRecord[]>;
   updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }): Promise<WorkspaceRecord>;
-  updateSupportTicket(input: { ticketId: string; status: SupportTicketRecord['status']; response?: string }): Promise<SupportTicketRecord>;
+  updateSupportTicket(input: {
+    ticketId: string;
+    status: SupportTicketRecord['status'];
+    response?: string;
+  }): Promise<SupportTicketRecord>;
   updateAbuseEvent(input: { abuseEventId: string; resolved?: boolean }): Promise<AbuseEventRecord>;
   recordAdminAudit(event: AdminAuditLogRecord): Promise<void>;
   listAdminAuditLogs(): Promise<AdminAuditLogRecord[]>;

@@ -29,7 +29,11 @@ class TestGitProvider implements GitProvider {
       remoteUrl: input.repositoryUrl,
       files: [
         { path: 'README.md', content: `# Imported from ${input.repositoryUrl}\n`, updatedAt: new Date().toISOString() },
-        { path: 'package.json', content: '{\n  "scripts": {\n    "dev": "vite"\n  }\n}\n', updatedAt: new Date().toISOString() },
+        {
+          path: 'package.json',
+          content: '{\n  "scripts": {\n    "dev": "vite"\n  }\n}\n',
+          updatedAt: new Date().toISOString(),
+        },
       ],
     };
   }
@@ -105,7 +109,13 @@ async function startRuntimeServices() {
       } else if (request.method === 'GET' && url.pathname === '/ports') {
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
-        response.end(JSON.stringify({ id: 'runtime-snapshot', createdAt: new Date().toISOString(), files: [...files.keys()].map((path) => ({ path, size: files.get(path)?.length ?? 0 })) }));
+        response.end(
+          JSON.stringify({
+            id: 'runtime-snapshot',
+            createdAt: new Date().toISOString(),
+            files: [...files.keys()].map((path) => ({ path, size: files.get(path)?.length ?? 0 })),
+          }),
+        );
       } else if (request.method === 'POST' && url.pathname === '/snapshots/restore') {
         response.end(JSON.stringify({ restored: true }));
       } else if (request.method === 'POST' && url.pathname === '/patch/apply') {
@@ -155,7 +165,9 @@ async function startRuntimeServices() {
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
       process.env.WORKSPACE_AGENT_URL_TEMPLATE = previousAgent;
-      await Promise.all([agent, manager].map((server: Server) => new Promise<void>((resolve) => server.close(() => resolve()))));
+      await Promise.all(
+        [agent, manager].map((server: Server) => new Promise<void>((resolve) => server.close(() => resolve()))),
+      );
     },
   };
 }
@@ -164,7 +176,10 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
   return buildApiApp({ gitProvider: new TestGitProvider(), emailProvider: new TestEmailProvider(), ...options });
 }
 
-async function register(app: Awaited<ReturnType<typeof buildTestApiApp>>, input: { email: string; password?: string; name?: string; organizationName?: string }) {
+async function register(
+  app: Awaited<ReturnType<typeof buildTestApiApp>>,
+  input: { email: string; password?: string; name?: string; organizationName?: string },
+) {
   const response = await app.inject({
     method: 'POST',
     url: '/auth/register',
@@ -177,7 +192,12 @@ async function register(app: Awaited<ReturnType<typeof buildTestApiApp>>, input:
 
   expect(response.statusCode).toBe(201);
 
-  return response.json() as { token: string; verificationToken: string; user: { id: string; email: string }; organization: { id: string; name: string } };
+  return response.json() as {
+    token: string;
+    verificationToken: string;
+    user: { id: string; email: string };
+    organization: { id: string; name: string };
+  };
 }
 
 async function reauth(app: Awaited<ReturnType<typeof buildTestApiApp>>, token: string) {
@@ -206,6 +226,43 @@ describe('SaaS API', () => {
 
     expect(me.statusCode).toBe(200);
     expect(me.json().user.email).toBe('auth@example.com');
+    await app.close();
+  });
+
+  it('persists account profile updates through the API', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'profile@example.com' });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Updated User', email: 'updated-profile@example.com', timezone: 'UTC' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().user).toMatchObject({ name: 'Updated User', email: 'updated-profile@example.com' });
+    await app.close();
+  });
+
+  it('accepts public contact sales requests through the email provider', async () => {
+    const emailProvider = new TestEmailProvider();
+    const app = await buildTestApiApp({ store: new TestApiStore(), emailProvider });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/contact-sales',
+      payload: {
+        email: 'buyer@example.com',
+        company: 'Buyer Corp',
+        teamSize: '500',
+        requirements: 'SSO and private runtime',
+      },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(emailProvider.messages).toHaveLength(1);
+    expect(emailProvider.messages[0].text).toContain('Buyer Corp');
     await app.close();
   });
 
@@ -271,7 +328,9 @@ describe('SaaS API', () => {
     });
 
     expect(auditLogs.statusCode).toBe(200);
-    expect(auditLogs.json().auditLogs.some((event: { action: string }) => event.action === 'project.create')).toBe(true);
+    expect(auditLogs.json().auditLogs.some((event: { action: string }) => event.action === 'project.create')).toBe(
+      true,
+    );
     await app.close();
   });
 
@@ -282,17 +341,33 @@ describe('SaaS API', () => {
     const auth = await register(app, { email: 'verify@example.com' });
     expect(emailProvider.messages.some((message) => message.subject === 'Verify your email')).toBe(true);
 
-    const verify = await app.inject({ method: 'POST', url: '/auth/verify-email', payload: { token: auth.verificationToken } });
+    const verify = await app.inject({
+      method: 'POST',
+      url: '/auth/verify-email',
+      payload: { token: auth.verificationToken },
+    });
     expect(verify.statusCode).toBe(200);
     expect((await store.findUserByEmail('verify@example.com'))?.emailVerifiedAt).toBeTruthy();
 
-    const resetRequest = await app.inject({ method: 'POST', url: '/auth/password-reset/request', payload: { email: 'verify@example.com' } });
+    const resetRequest = await app.inject({
+      method: 'POST',
+      url: '/auth/password-reset/request',
+      payload: { email: 'verify@example.com' },
+    });
     expect(emailProvider.messages.some((message) => message.subject === 'Reset your password')).toBe(true);
     const resetToken = resetRequest.json().resetToken as string;
-    const reset = await app.inject({ method: 'POST', url: '/auth/password-reset/confirm', payload: { token: resetToken, password: 'newpassword123' } });
+    const reset = await app.inject({
+      method: 'POST',
+      url: '/auth/password-reset/confirm',
+      payload: { token: resetToken, password: 'newpassword123' },
+    });
     expect(reset.statusCode).toBe(200);
 
-    const oldSession = await app.inject({ method: 'GET', url: '/auth/me', headers: { authorization: `Bearer ${auth.token}` } });
+    const oldSession = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(oldSession.statusCode).toBe(401);
     await app.close();
   });
@@ -403,7 +478,10 @@ describe('SaaS API', () => {
     const assertionXml =
       '<Assertion><Subject><NameID>saml-user@example.com</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>saml_1</AttributeValue></Attribute><Attribute Name="name"><AttributeValue>SAML User</AttributeValue></Attribute></AttributeStatement></Assertion>';
     const signature = createSign('RSA-SHA256').update(assertionXml).end().sign(privateKey, 'base64');
-    const assertion = Buffer.from(`<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`, 'utf8').toString('base64url');
+    const assertion = Buffer.from(
+      `<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
+      'utf8',
+    ).toString('base64url');
     const saml = await app.inject({
       method: 'POST',
       url: `/auth/saml/${owner.organization.id}/acs`,
@@ -429,9 +507,18 @@ describe('SaaS API', () => {
     });
     expect(blocked.statusCode).toBe(403);
 
-    const setup = await app.inject({ method: 'POST', url: '/auth/mfa/setup', headers: { authorization: `Bearer ${platform.token}` } });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${platform.token}` },
+    });
     const code = createTotpCode(setup.json().secret);
-    await app.inject({ method: 'POST', url: '/auth/mfa/verify', headers: { authorization: `Bearer ${platform.token}` }, payload: { code } });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${platform.token}` },
+      payload: { code },
+    });
     await reauth(app, platform.token);
     const promoted = await app.inject({
       method: 'PATCH',
@@ -450,16 +537,33 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const normal = await register(app, { email: 'not-admin@example.com', organizationName: 'Normal Org' });
 
-    const denied = await app.inject({ method: 'GET', url: '/admin/overview', headers: { authorization: `Bearer ${normal.token}` } });
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/admin/overview',
+      headers: { authorization: `Bearer ${normal.token}` },
+    });
     expect(denied.statusCode).toBe(403);
 
     process.env.PLATFORM_ADMIN_EMAILS = 'console-admin@example.com';
     const admin = await register(app, { email: 'console-admin@example.com', organizationName: 'Admin Org' });
-    const setup = await app.inject({ method: 'POST', url: '/auth/mfa/setup', headers: { authorization: `Bearer ${admin.token}` } });
-    await app.inject({ method: 'POST', url: '/auth/mfa/verify', headers: { authorization: `Bearer ${admin.token}` }, payload: { code: createTotpCode(setup.json().secret) } });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
     await reauth(app, admin.token);
 
-    const response = await app.inject({ method: 'POST', url: `/admin/users/${normal.user.id}/force-logout`, headers: { authorization: `Bearer ${admin.token}` } });
+    const response = await app.inject({
+      method: 'POST',
+      url: `/admin/users/${normal.user.id}/force-logout`,
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
     expect(response.statusCode).toBe(200);
     expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.user.force_logout')).toBe(true);
     delete process.env.PLATFORM_ADMIN_EMAILS;
@@ -470,10 +574,23 @@ describe('SaaS API', () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'danger-admin@example.com';
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const admin = await register(app, { email: 'danger-admin@example.com', organizationName: 'Danger Org' });
-    const setup = await app.inject({ method: 'POST', url: '/auth/mfa/setup', headers: { authorization: `Bearer ${admin.token}` } });
-    await app.inject({ method: 'POST', url: '/auth/mfa/verify', headers: { authorization: `Bearer ${admin.token}` }, payload: { code: createTotpCode(setup.json().secret) } });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
 
-    const response = await app.inject({ method: 'POST', url: `/admin/orgs/${admin.organization.id}/suspend`, headers: { authorization: `Bearer ${admin.token}` } });
+    const response = await app.inject({
+      method: 'POST',
+      url: `/admin/orgs/${admin.organization.id}/suspend`,
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
     expect(response.statusCode).toBe(403);
     expect(response.json().code).toBe('ADMIN_REAUTH_REQUIRED');
     delete process.env.PLATFORM_ADMIN_EMAILS;
@@ -485,8 +602,17 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'ops-admin@example.com', organizationName: 'Ops Org' });
-    const setup = await app.inject({ method: 'POST', url: '/auth/mfa/setup', headers: { authorization: `Bearer ${admin.token}` } });
-    await app.inject({ method: 'POST', url: '/auth/mfa/verify', headers: { authorization: `Bearer ${admin.token}` }, payload: { code: createTotpCode(setup.json().secret) } });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
     await reauth(app, admin.token);
     const projectResponse = await app.inject({
       method: 'POST',
@@ -503,11 +629,19 @@ describe('SaaS API', () => {
     });
     const workspace = workspaceResponse.json().workspace;
 
-    const stopped = await app.inject({ method: 'POST', url: `/admin/workspaces/${workspace.id}/stop`, headers: { authorization: `Bearer ${admin.token}` } });
+    const stopped = await app.inject({
+      method: 'POST',
+      url: `/admin/workspaces/${workspace.id}/stop`,
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
     expect(stopped.statusCode).toBe(200);
     expect(stopped.json().workspace.status).toBe('STOPPED');
 
-    const suspended = await app.inject({ method: 'POST', url: `/admin/orgs/${admin.organization.id}/suspend`, headers: { authorization: `Bearer ${admin.token}` } });
+    const suspended = await app.inject({
+      method: 'POST',
+      url: `/admin/orgs/${admin.organization.id}/suspend`,
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
     expect(suspended.statusCode).toBe(200);
     const blocked = await app.inject({
       method: 'POST',
@@ -527,14 +661,27 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'mfa@example.com' });
 
-    const setup = await app.inject({ method: 'POST', url: '/auth/mfa/setup', headers: { authorization: `Bearer ${auth.token}` } });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(setup.statusCode).toBe(200);
     const code = createTotpCode(setup.json().secret);
-    const verify = await app.inject({ method: 'POST', url: '/auth/mfa/verify', headers: { authorization: `Bearer ${auth.token}` }, payload: { code } });
+    const verify = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { code },
+    });
     expect(verify.statusCode).toBe(200);
     expect((await store.findUserByEmail('mfa@example.com'))?.mfaEnabled).toBe(true);
 
-    const recovery = await app.inject({ method: 'POST', url: '/auth/recovery-codes', headers: { authorization: `Bearer ${auth.token}` } });
+    const recovery = await app.inject({
+      method: 'POST',
+      url: '/auth/recovery-codes',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(recovery.statusCode).toBe(200);
     expect(recovery.json().codes).toHaveLength(10);
     await app.close();
@@ -543,15 +690,31 @@ describe('SaaS API', () => {
   it('lists sessions and revokes all other devices', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'sessions@example.com' });
-    const secondLogin = await app.inject({ method: 'POST', url: '/auth/login', payload: { email: 'sessions@example.com', password: 'password123' } });
+    const secondLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'sessions@example.com', password: 'password123' },
+    });
     expect(secondLogin.statusCode).toBe(200);
 
-    const sessions = await app.inject({ method: 'GET', url: '/auth/sessions', headers: { authorization: `Bearer ${auth.token}` } });
+    const sessions = await app.inject({
+      method: 'GET',
+      url: '/auth/sessions',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(sessions.json().sessions.length).toBe(2);
 
-    const revoke = await app.inject({ method: 'POST', url: '/auth/logout-all', headers: { authorization: `Bearer ${auth.token}` } });
+    const revoke = await app.inject({
+      method: 'POST',
+      url: '/auth/logout-all',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(revoke.statusCode).toBe(200);
-    const blocked = await app.inject({ method: 'GET', url: '/auth/me', headers: { authorization: `Bearer ${secondLogin.json().token}` } });
+    const blocked = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${secondLogin.json().token}` },
+    });
     expect(blocked.statusCode).toBe(401);
     await app.close();
   });
@@ -603,7 +766,11 @@ describe('SaaS API', () => {
       method: 'POST',
       url: `/scim/v2/${auth.organization.id}/Users`,
       headers: { authorization: `Bearer ${token}` },
-      payload: { userName: 'provisioned@example.com', name: { givenName: 'Provisioned', familyName: 'User' }, active: true },
+      payload: {
+        userName: 'provisioned@example.com',
+        name: { givenName: 'Provisioned', familyName: 'User' },
+        active: true,
+      },
     });
     expect(provision.statusCode).toBe(201);
     expect(await store.findUserByEmail('provisioned@example.com')).toBeTruthy();
@@ -614,11 +781,19 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'export@example.com', organizationName: 'Export Org' });
 
-    const json = await app.inject({ method: 'GET', url: `/orgs/${auth.organization.id}/audit-logs/export`, headers: { authorization: `Bearer ${auth.token}` } });
+    const json = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/audit-logs/export`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(json.statusCode).toBe(200);
     expect(Array.isArray(json.json().auditLogs)).toBe(true);
 
-    const csv = await app.inject({ method: 'GET', url: `/orgs/${auth.organization.id}/audit-logs/export?format=csv`, headers: { authorization: `Bearer ${auth.token}` } });
+    const csv = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/audit-logs/export?format=csv`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(csv.statusCode).toBe(200);
     expect(csv.body).toContain('createdAt,organizationId,actorUserId,action');
     await app.close();
@@ -660,7 +835,10 @@ describe('SaaS API', () => {
       const valid = await app.inject({
         method: 'POST',
         url: '/billing/stripe/webhook',
-        headers: { 'stripe-signature': stripeSignature(payload, 'whsec_test_secret'), 'content-type': 'application/json' },
+        headers: {
+          'stripe-signature': stripeSignature(payload, 'whsec_test_secret'),
+          'content-type': 'application/json',
+        },
         payload: Buffer.from(payload),
       });
       expect(valid.statusCode).toBe(200);
@@ -669,7 +847,10 @@ describe('SaaS API', () => {
       const duplicate = await app.inject({
         method: 'POST',
         url: '/billing/stripe/webhook',
-        headers: { 'stripe-signature': stripeSignature(payload, 'whsec_test_secret'), 'content-type': 'application/json' },
+        headers: {
+          'stripe-signature': stripeSignature(payload, 'whsec_test_secret'),
+          'content-type': 'application/json',
+        },
         payload: Buffer.from(payload),
       });
       expect(duplicate.json().duplicate).toBe(true);
@@ -754,12 +935,19 @@ describe('SaaS API', () => {
       const webhook = await app.inject({
         method: 'POST',
         url: '/billing/stripe/webhook',
-        headers: { 'stripe-signature': stripeSignature(payload, 'whsec_upgrade_secret'), 'content-type': 'application/json' },
+        headers: {
+          'stripe-signature': stripeSignature(payload, 'whsec_upgrade_secret'),
+          'content-type': 'application/json',
+        },
         payload: Buffer.from(payload),
       });
       expect(webhook.statusCode).toBe(200);
 
-      const billing = await app.inject({ method: 'GET', url: `/orgs/${auth.organization.id}/billing`, headers: { authorization: `Bearer ${auth.token}` } });
+      const billing = await app.inject({
+        method: 'GET',
+        url: `/orgs/${auth.organization.id}/billing`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
       expect(billing.json().subscription.planKey).toBe('pro');
       expect(billing.json().limits['projects.count']).toBeGreaterThan(3);
     } finally {
@@ -847,14 +1035,24 @@ describe('SaaS API', () => {
     const payload = JSON.stringify({
       id: 'evt_cancel',
       type: 'customer.subscription.deleted',
-      data: { object: { id: 'sub_cancel', customer: 'cus_cancel', status: 'canceled', metadata: { organizationId: auth.organization.id } } },
+      data: {
+        object: {
+          id: 'sub_cancel',
+          customer: 'cus_cancel',
+          status: 'canceled',
+          metadata: { organizationId: auth.organization.id },
+        },
+      },
     });
 
     try {
       const response = await app.inject({
         method: 'POST',
         url: '/billing/stripe/webhook',
-        headers: { 'stripe-signature': stripeSignature(payload, 'whsec_cancel_secret'), 'content-type': 'application/json' },
+        headers: {
+          'stripe-signature': stripeSignature(payload, 'whsec_cancel_secret'),
+          'content-type': 'application/json',
+        },
         payload: Buffer.from(payload),
       });
       expect(response.statusCode).toBe(200);
@@ -879,7 +1077,11 @@ describe('SaaS API', () => {
     expect(create.statusCode).toBe(201);
     const projectId = create.json().project.id as string;
 
-    const dashboard = await app.inject({ method: 'GET', url: `/projects/${projectId}/dashboard`, headers: { authorization: `Bearer ${auth.token}` } });
+    const dashboard = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/dashboard`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
 
@@ -900,11 +1102,21 @@ describe('SaaS API', () => {
     });
     expect(collaborator.statusCode).toBe(201);
 
-    const deleted = await app.inject({ method: 'DELETE', url: `/projects/${projectId}`, headers: { authorization: `Bearer ${auth.token}` } });
+    const deleted = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(deleted.statusCode).toBe(200);
-    expect((await store.listProjects(auth.organization.id)).find((project) => project.id === projectId)).toBeUndefined();
+    expect(
+      (await store.listProjects(auth.organization.id)).find((project) => project.id === projectId),
+    ).toBeUndefined();
 
-    const restored = await app.inject({ method: 'POST', url: `/projects/${projectId}/restore`, headers: { authorization: `Bearer ${auth.token}` } });
+    const restored = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/restore`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(restored.statusCode).toBe(200);
     expect((await store.listProjects(auth.organization.id)).find((project) => project.id === projectId)).toBeTruthy();
     await app.close();
@@ -988,11 +1200,25 @@ describe('SaaS API', () => {
     expect(imported.statusCode).toBe(201);
     const projectId = imported.json().project.id as string;
 
-    const status = await app.inject({ method: 'GET', url: `/projects/${projectId}/git/status`, headers: { authorization: `Bearer ${auth.token}` } });
+    const status = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/status`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
     expect(status.statusCode).toBe(200);
-    const commit = await app.inject({ method: 'POST', url: `/projects/${projectId}/git/commit`, headers: { authorization: `Bearer ${auth.token}` }, payload: { message: 'Initial import' } });
+    const commit = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/commit`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { message: 'Initial import' },
+    });
     expect(commit.statusCode).toBe(200);
-    const push = await app.inject({ method: 'POST', url: `/projects/${projectId}/git/push`, headers: { authorization: `Bearer ${auth.token}` }, payload: { branch: 'main' } });
+    const push = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/push`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { branch: 'main' },
+    });
     expect(push.json().pushed).toBe(true);
     const pullRequest = await app.inject({
       method: 'POST',
@@ -1008,7 +1234,10 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const owner = await register(app, { email: 'project-owner@example.com', organizationName: 'Project Owner Org' });
-    const outsider = await register(app, { email: 'project-outsider@example.com', organizationName: 'Project Outsider Org' });
+    const outsider = await register(app, {
+      email: 'project-outsider@example.com',
+      organizationName: 'Project Outsider Org',
+    });
     const create = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/projects`,
@@ -1017,7 +1246,11 @@ describe('SaaS API', () => {
     });
     const projectId = create.json().project.id as string;
 
-    const denied = await app.inject({ method: 'GET', url: `/projects/${projectId}/dashboard`, headers: { authorization: `Bearer ${outsider.token}` } });
+    const denied = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/dashboard`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
     expect(denied.statusCode).toBe(404);
     await app.close();
   });

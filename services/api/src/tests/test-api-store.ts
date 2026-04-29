@@ -53,7 +53,11 @@ function now() {
 }
 
 function slugify(value: string) {
-  return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 export class TestApiStore implements ApiStore {
@@ -74,8 +78,14 @@ export class TestApiStore implements ApiStore {
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
   readonly systemSettings = new Map<string, SystemSettingRecord>();
-  readonly emailVerifications = new Map<string, { userId: string; tokenHash: string; expiresAt: string; usedAt?: string }>();
-  readonly passwordResets = new Map<string, { userId: string; tokenHash: string; expiresAt: string; usedAt?: string }>();
+  readonly emailVerifications = new Map<
+    string,
+    { userId: string; tokenHash: string; expiresAt: string; usedAt?: string }
+  >();
+  readonly passwordResets = new Map<
+    string,
+    { userId: string; tokenHash: string; expiresAt: string; usedAt?: string }
+  >();
   readonly recoveryCodes = new Map<string, RecoveryCodeRecord>();
   readonly enterpriseSettings = new Map<string, EnterpriseSettingsRecord>();
   readonly domainVerifications = new Map<string, DomainVerificationRecord>();
@@ -100,13 +110,29 @@ export class TestApiStore implements ApiStore {
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
 
   async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
-    const user = { id: id('user'), email: input.email.toLowerCase(), name: input.name, passwordHash: input.passwordHash, platformAdmin: input.platformAdmin, createdAt: now() };
+    const user = {
+      id: id('user'),
+      email: input.email.toLowerCase(),
+      name: input.name,
+      passwordHash: input.passwordHash,
+      platformAdmin: input.platformAdmin,
+      createdAt: now(),
+    };
     this.users.set(user.id, user);
 
     return user;
   }
 
-  async updateUser(input: { userId: string; passwordHash?: string; emailVerifiedAt?: string; mfaEnabled?: boolean; mfaSecretEncrypted?: string; platformAdmin?: boolean }) {
+  async updateUser(input: {
+    userId: string;
+    email?: string;
+    name?: string;
+    passwordHash?: string;
+    emailVerifiedAt?: string;
+    mfaEnabled?: boolean;
+    mfaSecretEncrypted?: string;
+    platformAdmin?: boolean;
+  }) {
     const user = this.users.get(input.userId);
 
     if (!user) {
@@ -114,6 +140,8 @@ export class TestApiStore implements ApiStore {
     }
 
     Object.assign(user, {
+      email: input.email?.toLowerCase() ?? user.email,
+      name: input.name ?? user.name,
       passwordHash: input.passwordHash ?? user.passwordHash,
       emailVerifiedAt: input.emailVerifiedAt ?? user.emailVerifiedAt,
       mfaEnabled: input.mfaEnabled ?? user.mfaEnabled,
@@ -132,7 +160,13 @@ export class TestApiStore implements ApiStore {
     return this.users.get(userId);
   }
 
-  async createSession(input: { userId: string; token: string; expiresAt: Date; ipAddress?: string; userAgent?: string }) {
+  async createSession(input: {
+    userId: string;
+    token: string;
+    expiresAt: Date;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
     const session = {
       id: id('session'),
       userId: input.userId,
@@ -196,7 +230,11 @@ export class TestApiStore implements ApiStore {
   }
 
   async createEmailVerification(input: { userId: string; token: string; expiresAt: Date }) {
-    this.emailVerifications.set(hashToken(input.token), { userId: input.userId, tokenHash: hashToken(input.token), expiresAt: input.expiresAt.toISOString() });
+    this.emailVerifications.set(hashToken(input.token), {
+      userId: input.userId,
+      tokenHash: hashToken(input.token),
+      expiresAt: input.expiresAt.toISOString(),
+    });
   }
 
   async consumeEmailVerification(token: string) {
@@ -211,7 +249,11 @@ export class TestApiStore implements ApiStore {
   }
 
   async createPasswordReset(input: { userId: string; token: string; expiresAt: Date }) {
-    this.passwordResets.set(hashToken(input.token), { userId: input.userId, tokenHash: hashToken(input.token), expiresAt: input.expiresAt.toISOString() });
+    this.passwordResets.set(hashToken(input.token), {
+      userId: input.userId,
+      tokenHash: hashToken(input.token),
+      expiresAt: input.expiresAt.toISOString(),
+    });
   }
 
   async consumePasswordReset(token: string, passwordHash: string) {
@@ -242,7 +284,9 @@ export class TestApiStore implements ApiStore {
   }
 
   async consumeRecoveryCode(userId: string, codeHash: string) {
-    const record = [...this.recoveryCodes.values()].find((item) => item.userId === userId && item.codeHash === codeHash && !item.usedAt);
+    const record = [...this.recoveryCodes.values()].find(
+      (item) => item.userId === userId && item.codeHash === codeHash && !item.usedAt,
+    );
 
     if (!record) {
       return false;
@@ -261,7 +305,9 @@ export class TestApiStore implements ApiStore {
   }
 
   async listOrganizations(userId: string) {
-    const orgIds = [...this.memberships.values()].filter((member) => member.userId === userId).map((member) => member.organizationId);
+    const orgIds = [...this.memberships.values()]
+      .filter((member) => member.userId === userId)
+      .map((member) => member.organizationId);
 
     return orgIds.map((orgId) => this.organizations.get(orgId)).filter(Boolean) as OrganizationRecord[];
   }
@@ -285,14 +331,25 @@ export class TestApiStore implements ApiStore {
   }
 
   async getMembership(userId: string, organizationId: string) {
-    return [...this.memberships.values()].find((member) => member.userId === userId && member.organizationId === organizationId);
+    return [...this.memberships.values()].find(
+      (member) => member.userId === userId && member.organizationId === organizationId,
+    );
   }
 
   async listMembers(organizationId: string) {
     return [...this.memberships.values()].filter((member) => member.organizationId === organizationId);
   }
 
-  async createProject(input: { organizationId: string; name: string; slug: string; description?: string; sourceType?: ProjectRecord['sourceType']; templateName?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }) {
+  async createProject(input: {
+    organizationId: string;
+    name: string;
+    slug: string;
+    description?: string;
+    sourceType?: ProjectRecord['sourceType'];
+    templateName?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }) {
     const createdAt = now();
     const project: ProjectRecord = {
       id: id('project'),
@@ -317,7 +374,13 @@ export class TestApiStore implements ApiStore {
     return this.projects.get(id);
   }
 
-  async updateProject(input: { projectId: string; name?: string; description?: string; gitRepositoryUrl?: string; gitDefaultBranch?: string }) {
+  async updateProject(input: {
+    projectId: string;
+    name?: string;
+    description?: string;
+    gitRepositoryUrl?: string;
+    gitDefaultBranch?: string;
+  }) {
     const project = this.projects.get(input.projectId);
 
     if (!project) {
@@ -336,7 +399,9 @@ export class TestApiStore implements ApiStore {
   }
 
   async listProjects(organizationId: string) {
-    return [...this.projects.values()].filter((project) => project.organizationId === organizationId && !project.deletedAt);
+    return [...this.projects.values()].filter(
+      (project) => project.organizationId === organizationId && !project.deletedAt,
+    );
   }
 
   async softDeleteProject(projectId: string) {
@@ -382,7 +447,12 @@ export class TestApiStore implements ApiStore {
     });
   }
 
-  async createProjectTemplate(input: { sourceProjectId: string; organizationId: string; name: string; description?: string }) {
+  async createProjectTemplate(input: {
+    sourceProjectId: string;
+    organizationId: string;
+    name: string;
+    description?: string;
+  }) {
     const template: ProjectTemplateRecord = { id: id('template'), ...input, createdAt: now() };
     this.projectTemplates.set(template.id, template);
 
@@ -396,7 +466,12 @@ export class TestApiStore implements ApiStore {
   async upsertProjectEnvVar(input: { projectId: string; key: string; value: string }) {
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectEnvVars.get(key);
-    const envVar: ProjectEnvironmentRecord = { id: existing?.id ?? id('env'), ...input, createdAt: existing?.createdAt ?? now(), updatedAt: now() };
+    const envVar: ProjectEnvironmentRecord = {
+      id: existing?.id ?? id('env'),
+      ...input,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
     this.projectEnvVars.set(key, envVar);
 
     return envVar;
@@ -409,7 +484,12 @@ export class TestApiStore implements ApiStore {
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectSecrets.get(key);
-    const secret: ProjectSecretRecord = { id: existing?.id ?? id('secret'), ...input, createdAt: existing?.createdAt ?? now(), updatedAt: now() };
+    const secret: ProjectSecretRecord = {
+      id: existing?.id ?? id('secret'),
+      ...input,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
     this.projectSecrets.set(key, secret);
 
     return secret;
@@ -426,7 +506,9 @@ export class TestApiStore implements ApiStore {
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }) {
-    const existing = [...this.projectCollaborators.values()].find((collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId);
+    const existing = [...this.projectCollaborators.values()].find(
+      (collaborator) => collaborator.projectId === input.projectId && collaborator.userId === input.userId,
+    );
 
     if (existing) {
       existing.roleKey = input.roleKey;
@@ -443,7 +525,12 @@ export class TestApiStore implements ApiStore {
     return [...this.projectCollaborators.values()].filter((collaborator) => collaborator.projectId === projectId);
   }
 
-  async recordProjectActivity(input: { projectId: string; actorUserId?: string; action: string; metadata?: Record<string, unknown> }) {
+  async recordProjectActivity(input: {
+    projectId: string;
+    actorUserId?: string;
+    action: string;
+    metadata?: Record<string, unknown>;
+  }) {
     const activity: ProjectActivityRecord = { id: id('activity'), ...input, createdAt: now() };
     this.projectActivity.set(activity.id, activity);
 
@@ -469,7 +556,15 @@ export class TestApiStore implements ApiStore {
     return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; kind?: SnapshotRecord['kind']; manifest: unknown; storageKey?: string; byteLength?: number; createdByUserId?: string }) {
+  async createSnapshot(input: {
+    projectId: string;
+    label?: string;
+    kind?: SnapshotRecord['kind'];
+    manifest: unknown;
+    storageKey?: string;
+    byteLength?: number;
+    createdByUserId?: string;
+  }) {
     const snapshot: SnapshotRecord = { id: id('snapshot'), ...input, kind: input.kind ?? 'manual', createdAt: now() };
     this.snapshots.set(snapshot.id, snapshot);
 
@@ -561,7 +656,9 @@ export class TestApiStore implements ApiStore {
     return defaults;
   }
 
-  async updateEnterpriseSettings(input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string }) {
+  async updateEnterpriseSettings(
+    input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string },
+  ) {
     const current = await this.getEnterpriseSettings(input.organizationId);
     const updated = { ...current, ...input, updatedAt: now() };
     this.enterpriseSettings.set(input.organizationId, updated);
@@ -570,14 +667,21 @@ export class TestApiStore implements ApiStore {
   }
 
   async createDomainVerification(input: { organizationId: string; domain: string; verificationToken: string }) {
-    const record: DomainVerificationRecord = { id: id('domain'), ...input, domain: input.domain.toLowerCase(), createdAt: now() };
+    const record: DomainVerificationRecord = {
+      id: id('domain'),
+      ...input,
+      domain: input.domain.toLowerCase(),
+      createdAt: now(),
+    };
     this.domainVerifications.set(record.id, record);
 
     return record;
   }
 
   async verifyDomain(input: { organizationId: string; domain: string }) {
-    const record = [...this.domainVerifications.values()].find((item) => item.organizationId === input.organizationId && item.domain === input.domain.toLowerCase());
+    const record = [...this.domainVerifications.values()].find(
+      (item) => item.organizationId === input.organizationId && item.domain === input.domain.toLowerCase(),
+    );
 
     if (record) {
       record.verifiedAt = now();
@@ -590,7 +694,12 @@ export class TestApiStore implements ApiStore {
     return [...this.domainVerifications.values()].filter((item) => item.organizationId === organizationId);
   }
 
-  async upsertSsoConfig(input: { organizationId: string; type: 'oidc' | 'saml'; enabled: boolean; encryptedConfig: string }) {
+  async upsertSsoConfig(input: {
+    organizationId: string;
+    type: 'oidc' | 'saml';
+    enabled: boolean;
+    encryptedConfig: string;
+  }) {
     const key = `${input.organizationId}:${input.type}`;
     const current = this.ssoConfigs.get(key);
     const record: SsoConfigRecord = {
@@ -612,7 +721,13 @@ export class TestApiStore implements ApiStore {
   }
 
   async createScimToken(input: { organizationId: string; name: string; token: string }) {
-    const record: ScimTokenRecord = { id: id('scim'), organizationId: input.organizationId, name: input.name, tokenHash: hashToken(input.token), createdAt: now() };
+    const record: ScimTokenRecord = {
+      id: id('scim'),
+      organizationId: input.organizationId,
+      name: input.name,
+      tokenHash: hashToken(input.token),
+      createdAt: now(),
+    };
     this.scimTokens.set(record.id, record);
 
     return record;
@@ -640,7 +755,13 @@ export class TestApiStore implements ApiStore {
     return [...this.customRoles.values()].filter((role) => role.organizationId === organizationId);
   }
 
-  async createSiemWebhook(input: { organizationId: string; url: string; secret: string; secretCiphertext: string; enabled: boolean }) {
+  async createSiemWebhook(input: {
+    organizationId: string;
+    url: string;
+    secret: string;
+    secretCiphertext: string;
+    enabled: boolean;
+  }) {
     const record: SiemWebhookRecord = {
       id: id('siem'),
       organizationId: input.organizationId,
@@ -659,7 +780,13 @@ export class TestApiStore implements ApiStore {
     return [...this.siemWebhooks.values()].filter((webhook) => webhook.organizationId === organizationId);
   }
 
-  async createOrganizationInvite(input: { organizationId: string; email: string; roleKey: string; token: string; expiresAt: Date }) {
+  async createOrganizationInvite(input: {
+    organizationId: string;
+    email: string;
+    roleKey: string;
+    token: string;
+    expiresAt: Date;
+  }) {
     const record: OrganizationInviteRecord = {
       id: id('invite'),
       organizationId: input.organizationId,
@@ -713,7 +840,13 @@ export class TestApiStore implements ApiStore {
     return invite;
   }
 
-  async upsertOAuthConnection(input: { userId: string; provider: string; externalId: string; accessToken: string; refreshToken?: string }) {
+  async upsertOAuthConnection(input: {
+    userId: string;
+    provider: string;
+    externalId: string;
+    accessToken: string;
+    refreshToken?: string;
+  }) {
     const key = `${input.provider}:${input.externalId}`;
     const existing = this.oauthConnections.get(key);
     const record: OAuthConnectionRecord = {
@@ -755,13 +888,31 @@ export class TestApiStore implements ApiStore {
     return toolCall;
   }
 
-  async createAiTokenUsage(input: { messageId: string; provider: string; model: string; inputTokens: number; outputTokens: number; estimatedCostCents: number }) {
+  async createAiTokenUsage(input: {
+    messageId: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    estimatedCostCents: number;
+  }) {
     const usage: AiTokenUsageRecord = { id: id('ai_usage'), ...input, createdAt: now() };
     this.aiTokenUsages.set(usage.id, usage);
     return usage;
   }
 
-  async recordAiCost(input: { organizationId: string; projectId?: string; conversationId?: string; messageId?: string; provider: string; model: string; inputTokens: number; outputTokens: number; costCents: number; reason: string }) {
+  async recordAiCost(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    messageId?: string;
+    provider: string;
+    model: string;
+    inputTokens: number;
+    outputTokens: number;
+    costCents: number;
+    reason: string;
+  }) {
     const cost: AiCostLedgerRecord = { id: id('ai_cost'), ...input, createdAt: now() };
     this.aiCostLedger.set(cost.id, cost);
     return cost;
@@ -771,7 +922,14 @@ export class TestApiStore implements ApiStore {
     return [...this.aiCostLedger.values()].filter((cost) => cost.organizationId === organizationId);
   }
 
-  async upsertBillingPlan(input: { key: PlanKey; name: string; monthlyCents: number; limits: Record<string, number>; stripeProductId?: string; stripePriceId?: string }) {
+  async upsertBillingPlan(input: {
+    key: PlanKey;
+    name: string;
+    monthlyCents: number;
+    limits: Record<string, number>;
+    stripeProductId?: string;
+    stripePriceId?: string;
+  }) {
     const plan: BillingPlanRecord = { id: this.billingPlans.get(input.key)?.id ?? id('plan'), ...input };
     this.billingPlans.set(input.key, plan);
     return plan;
@@ -787,7 +945,11 @@ export class TestApiStore implements ApiStore {
 
   async upsertBillingCustomer(input: { organizationId: string; provider: string; externalId: string }) {
     const existing = this.billingCustomers.get(input.organizationId);
-    const customer: BillingCustomerRecord = { id: existing?.id ?? id('customer'), ...input, createdAt: existing?.createdAt ?? now() };
+    const customer: BillingCustomerRecord = {
+      id: existing?.id ?? id('customer'),
+      ...input,
+      createdAt: existing?.createdAt ?? now(),
+    };
     this.billingCustomers.set(input.organizationId, customer);
     return customer;
   }
@@ -796,9 +958,24 @@ export class TestApiStore implements ApiStore {
     return this.billingCustomers.get(organizationId);
   }
 
-  async upsertSubscription(input: { organizationId: string; planKey: PlanKey; externalId?: string; status: SubscriptionRecord['status']; cancelAtPeriodEnd?: boolean; trialEndsAt?: Date; currentPeriodStart?: Date; currentPeriodEnd?: Date }) {
-    const plan = this.billingPlans.get(input.planKey) ?? (await this.upsertBillingPlan({ key: input.planKey, name: input.planKey, monthlyCents: 0, limits: {} }));
-    const existing = [...this.subscriptions.values()].find((subscription) => (input.externalId && subscription.externalId === input.externalId) || subscription.organizationId === input.organizationId);
+  async upsertSubscription(input: {
+    organizationId: string;
+    planKey: PlanKey;
+    externalId?: string;
+    status: SubscriptionRecord['status'];
+    cancelAtPeriodEnd?: boolean;
+    trialEndsAt?: Date;
+    currentPeriodStart?: Date;
+    currentPeriodEnd?: Date;
+  }) {
+    const plan =
+      this.billingPlans.get(input.planKey) ??
+      (await this.upsertBillingPlan({ key: input.planKey, name: input.planKey, monthlyCents: 0, limits: {} }));
+    const existing = [...this.subscriptions.values()].find(
+      (subscription) =>
+        (input.externalId && subscription.externalId === input.externalId) ||
+        subscription.organizationId === input.organizationId,
+    );
     const subscription: SubscriptionRecord = {
       id: existing?.id ?? id('sub'),
       organizationId: input.organizationId,
@@ -821,8 +998,22 @@ export class TestApiStore implements ApiStore {
     return [...this.subscriptions.values()].find((subscription) => subscription.organizationId === organizationId);
   }
 
-  async recordUsageEvent(input: { organizationId: string; userId?: string; type: string; quantity?: number; metadata?: unknown }) {
-    const event: UsageEventRecord = { id: id('usage'), organizationId: input.organizationId, userId: input.userId, type: input.type, quantity: input.quantity ?? 1, metadata: input.metadata, createdAt: now() };
+  async recordUsageEvent(input: {
+    organizationId: string;
+    userId?: string;
+    type: string;
+    quantity?: number;
+    metadata?: unknown;
+  }) {
+    const event: UsageEventRecord = {
+      id: id('usage'),
+      organizationId: input.organizationId,
+      userId: input.userId,
+      type: input.type,
+      quantity: input.quantity ?? 1,
+      metadata: input.metadata,
+      createdAt: now(),
+    };
     this.usageEvents.set(event.id, event);
     return event;
   }
@@ -832,11 +1023,25 @@ export class TestApiStore implements ApiStore {
   }
 
   async sumUsage(organizationId: string, type: string) {
-    return [...this.usageEvents.values()].filter((event) => event.organizationId === organizationId && event.type === type).reduce((sum, event) => sum + event.quantity, 0);
+    return [...this.usageEvents.values()]
+      .filter((event) => event.organizationId === organizationId && event.type === type)
+      .reduce((sum, event) => sum + event.quantity, 0);
   }
 
-  async createQuotaOverride(input: { organizationId: string; key: QuotaKey; limit: number; reason: string; createdByUserId?: string; expiresAt?: Date }) {
-    const override: QuotaOverrideRecord = { id: id('quota_override'), ...input, expiresAt: input.expiresAt?.toISOString(), createdAt: now() };
+  async createQuotaOverride(input: {
+    organizationId: string;
+    key: QuotaKey;
+    limit: number;
+    reason: string;
+    createdByUserId?: string;
+    expiresAt?: Date;
+  }) {
+    const override: QuotaOverrideRecord = {
+      id: id('quota_override'),
+      ...input,
+      expiresAt: input.expiresAt?.toISOString(),
+      createdAt: now(),
+    };
     this.quotaOverrides.set(override.id, override);
     return override;
   }
@@ -847,7 +1052,12 @@ export class TestApiStore implements ApiStore {
 
   async getQuotaOverride(organizationId: string, key: QuotaKey) {
     return [...this.quotaOverrides.values()]
-      .filter((override) => override.organizationId === organizationId && override.key === key && (!override.expiresAt || new Date(override.expiresAt).getTime() > Date.now()))
+      .filter(
+        (override) =>
+          override.organizationId === organizationId &&
+          override.key === key &&
+          (!override.expiresAt || new Date(override.expiresAt).getTime() > Date.now()),
+      )
       .at(-1);
   }
 

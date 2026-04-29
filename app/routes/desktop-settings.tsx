@@ -12,7 +12,7 @@ export default function DesktopSettingsRoute() {
   const [settings, setSettings] = useState<DesktopSettingsState>({
     proxy: { mode: 'system' },
     trayEnabled: false,
-    devicePolicy: { managed: false, source: 'placeholder' },
+    devicePolicy: { managed: false, source: 'local-defaults' },
   });
   const [authState, setAuthState] = useState<{ encryptionAvailable?: boolean; hasToken?: boolean }>({});
   const [status, setStatus] = useState('Desktop bridge not detected.');
@@ -35,8 +35,37 @@ export default function DesktopSettingsRoute() {
 
   async function save(next: DesktopSettingsState) {
     setSettings(next);
-    await window.vibecoreDesktop?.settings.set(next);
+
+    if (!window.vibecoreDesktop) {
+      setStatus('Desktop bridge not detected. Settings are staged in this browser session.');
+      return;
+    }
+
+    await window.vibecoreDesktop.settings.set(next);
     setStatus('Desktop settings saved.');
+  }
+
+  async function showTestNotification() {
+    if (!window.vibecoreDesktop) {
+      setStatus('Desktop bridge not detected. Native notifications require Electron.');
+      return;
+    }
+
+    await window.vibecoreDesktop.notifications.show({
+      title: 'VibeCore',
+      body: 'Native notifications are enabled.',
+    });
+    setStatus('Test notification sent.');
+  }
+
+  async function openLocalFolder() {
+    if (!window.vibecoreDesktop) {
+      setStatus('Desktop bridge not detected. Local folder import requires Electron.');
+      return;
+    }
+
+    const folder = await window.vibecoreDesktop.files.openLocalFolder();
+    setStatus(folder ? `Folder selected: ${folder}` : 'Folder selection canceled.');
   }
 
   return (
@@ -102,22 +131,13 @@ export default function DesktopSettingsRoute() {
           </button>
           <button
             className="rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm"
-            onClick={() =>
-              window.vibecoreDesktop?.notifications.show({
-                title: 'VibeCore',
-                body: 'Native notifications are enabled.',
-              })
-            }
+            onClick={showTestNotification}
           >
             Test notification
           </button>
           <button
             className="rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm"
-            onClick={() =>
-              window.vibecoreDesktop?.files
-                .openLocalFolder()
-                .then((folder) => folder && setStatus(`Folder selected: ${folder}`))
-            }
+            onClick={openLocalFolder}
           >
             Open local folder
           </button>
