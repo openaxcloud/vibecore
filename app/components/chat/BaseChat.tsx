@@ -1562,6 +1562,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, []);
 
+    const reorderPaneTab = useCallback((paneId: string, sourceTabId: string, targetTabId: string) => {
+      if (sourceTabId === targetTabId) {
+        return;
+      }
+
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, paneId, (leaf) => {
+          const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
+          const targetIndex = leaf.tabs.findIndex((tab) => tab.id === targetTabId);
+
+          if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+            return leaf;
+          }
+
+          const tabs = [...leaf.tabs];
+          const [moved] = tabs.splice(sourceIndex, 1);
+
+          tabs.splice(targetIndex, 0, moved);
+
+          return { ...leaf, tabs };
+        }),
+      );
+    }, []);
+
     const renderPaneContent = useCallback(
       (panel: IdeWorkspacePanel) => {
         if (panel === 'editor') {
@@ -1735,6 +1759,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
               onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
+              onReorder={(sourceTabId, targetTabId) => reorderPaneTab(leaf.id, sourceTabId, targetTabId)}
               recentFiles={Object.keys(projectFiles)
                 .filter((filePath) => projectFiles[filePath]?.type === 'file')
                 .slice(0, 5)}
@@ -1770,6 +1795,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openIdeTool,
         projectFiles,
         renderPaneContent,
+        reorderPaneTab,
         selectPaneTab,
         scrollPositions,
         unsavedFiles,
@@ -2648,6 +2674,7 @@ function IdeTabBar({
   onCloseOthers,
   onCloseToRight,
   onCloseAll,
+  onReorder,
   recentFiles = [],
   onOpenFile,
 }: {
@@ -2671,11 +2698,13 @@ function IdeTabBar({
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
+  onReorder?: (sourceTabId: string, targetTabId: string) => void;
   recentFiles?: string[];
   onOpenFile?: (filePath: string, preview: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [draggingTabId, setDraggingTabId] = useState<string | null>(null);
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
@@ -2707,7 +2736,29 @@ function IdeTabBar({
             role="tab"
             data-tab-id={tab.id}
             aria-selected={activeTabId === tab.id}
+            aria-grabbed={draggingTabId === tab.id}
             className="bolt-project-tab"
+            data-dragging={draggingTabId === tab.id ? 'true' : 'false'}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'move';
+              event.dataTransfer.setData('text/plain', tab.id);
+              setDraggingTabId(tab.id);
+            }}
+            onDragOver={(event) => {
+              if (!draggingTabId || draggingTabId === tab.id) {
+                return;
+              }
+
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+              onReorder?.(draggingTabId, tab.id);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDraggingTabId(null);
+            }}
+            onDragEnd={() => setDraggingTabId(null)}
           >
             <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id, tab.panel)}>
               <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />

@@ -1203,6 +1203,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   flex: 1;
   overflow-x: auto;
+  scroll-behavior: smooth;
   scrollbar-width: thin;
 }
 
@@ -1219,7 +1220,28 @@ body :where(.lucide, svg[data-lucide]) {
   font-weight: 500;
   padding: 0 12px;
   position: relative;
-  transition: background 100ms ease-out;
+  transition:
+    background 100ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    opacity 150ms ease-out,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+}
+
+.bolt-project-tab {
+  cursor: grab;
+}
+
+.bolt-project-tab:active {
+  cursor: grabbing;
+}
+
+.bolt-project-tab[data-dragging='true'] {
+  opacity: 0.72;
+  transform: scale(0.98);
+  box-shadow: 0 8px 24px rgb(0 4 20 / 0.45);
+  z-index: 3;
 }
 
 .bolt-project-tab-main {
