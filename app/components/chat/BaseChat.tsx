@@ -3,13 +3,20 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, Message } from 'ai';
-import React, { type RefCallback, useEffect, useState } from 'react';
+import React, { type RefCallback, useCallback, useEffect, useMemo, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { EditorAdapter } from '@vibecore/editor';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
+import { Preview } from '~/components/workbench/Preview';
+import { FileTree } from '~/components/workbench/FileTree';
+import { Search } from '~/components/workbench/Search';
+import { LockManager } from '~/components/workbench/LockManager';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
-import { PROVIDER_LIST } from '~/utils/constants';
+import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import { Messages } from './Messages.client';
 import { getApiKeysFromCookies } from './APIKeyManager';
 import Cookies from 'js-cookie';
@@ -84,6 +91,7 @@ interface BaseChatProps {
   setSelectedElement?: (element: ElementInfo | null) => void;
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
+  projectIdeMode?: boolean;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -134,6 +142,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         throw new Error('addToolResult not implemented');
       },
       onWebSearchResult,
+      projectIdeMode = false,
     },
     ref,
   ) => {
@@ -155,6 +164,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const projectFiles = useStore(workbenchStore.files);
+    const selectedFile = useStore(workbenchStore.selectedFile);
+    const currentDocument = useStore(workbenchStore.currentDocument);
+    const unsavedFiles = useStore(workbenchStore.unsavedFiles);
+    const theme = useStore(themeStore);
+    const [rightPanel, setRightPanel] = useState<'files' | 'search' | 'locks'>('files');
+
+    const firstProjectFile = useMemo(() => {
+      return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
+    }, [projectFiles]);
+
+    useEffect(() => {
+      workbenchStore.setDocuments(projectFiles);
+    }, [projectFiles]);
+
+    useEffect(() => {
+      if (!projectIdeMode || selectedFile || !firstProjectFile) {
+        return;
+      }
+
+      workbenchStore.setSelectedFile(firstProjectFile);
+      workbenchStore.currentView.set('code');
+      workbenchStore.setShowWorkbench(true);
+    }, [firstProjectFile, projectIdeMode, selectedFile]);
+
+    const onProjectEditorSave = useCallback(() => {
+      workbenchStore.saveCurrentDocument().catch(() => undefined);
+    }, []);
 
     useEffect(() => {
       if (expoUrl) {
@@ -386,6 +423,268 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
+    const agentPanel = (
+      <div
+        className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full', {
+          hidden: useMobileIde && mobilePanel !== 'chat',
+        })}
+      >
+        {!chatStarted && (
+          <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
+            <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
+              Where ideas begin
+            </h1>
+            <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
+              Bring ideas to life in seconds or get help on existing projects.
+            </p>
+          </div>
+        )}
+        <StickToBottom
+          className={classNames('pt-6 px-2 sm:px-6 relative', {
+            'h-full flex flex-col modern-scrollbar': chatStarted,
+          })}
+          resize="smooth"
+          initial="smooth"
+        >
+          <StickToBottom.Content className="flex flex-col gap-4 relative ">
+            <ClientOnly>
+              {() => {
+                return chatStarted ? (
+                  <Messages
+                    className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                    messages={messages}
+                    isStreaming={isStreaming}
+                    append={append}
+                    chatMode={chatMode}
+                    setChatMode={setChatMode}
+                    provider={provider}
+                    model={model}
+                    addToolResult={addToolResult}
+                  />
+                ) : null;
+              }}
+            </ClientOnly>
+            <ScrollToBottom />
+          </StickToBottom.Content>
+          <div
+            className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
+              'sticky bottom-2': chatStarted,
+            })}
+          >
+            <div className="flex flex-col gap-2">
+              {deployAlert && (
+                <DeployChatAlert
+                  alert={deployAlert}
+                  clearAlert={() => clearDeployAlert?.()}
+                  postMessage={(message: string | undefined) => {
+                    sendMessage?.({} as any, message);
+                    clearSupabaseAlert?.();
+                  }}
+                />
+              )}
+              {supabaseAlert && (
+                <SupabaseChatAlert
+                  alert={supabaseAlert}
+                  clearAlert={() => clearSupabaseAlert?.()}
+                  postMessage={(message) => {
+                    sendMessage?.({} as any, message);
+                    clearSupabaseAlert?.();
+                  }}
+                />
+              )}
+              {actionAlert && (
+                <ChatAlert
+                  alert={actionAlert}
+                  clearAlert={() => clearAlert?.()}
+                  postMessage={(message) => {
+                    sendMessage?.({} as any, message);
+                    clearAlert?.();
+                  }}
+                />
+              )}
+              {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
+            </div>
+            {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+            <ChatBox
+              isModelSettingsCollapsed={isModelSettingsCollapsed}
+              setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
+              provider={provider}
+              setProvider={setProvider}
+              providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+              model={model}
+              setModel={setModel}
+              modelList={modelList}
+              apiKeys={apiKeys}
+              isModelLoading={isModelLoading}
+              onApiKeysChange={onApiKeysChange}
+              uploadedFiles={uploadedFiles}
+              setUploadedFiles={setUploadedFiles}
+              imageDataList={imageDataList}
+              setImageDataList={setImageDataList}
+              textareaRef={textareaRef}
+              input={input}
+              handleInputChange={handleInputChange}
+              handlePaste={handlePaste}
+              TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
+              TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
+              isStreaming={isStreaming}
+              handleStop={handleStop}
+              handleSendMessage={handleSendMessage}
+              enhancingPrompt={enhancingPrompt}
+              enhancePrompt={enhancePrompt}
+              isListening={isListening}
+              startListening={startListening}
+              stopListening={stopListening}
+              chatStarted={chatStarted}
+              exportChat={exportChat}
+              qrModalOpen={qrModalOpen}
+              setQrModalOpen={setQrModalOpen}
+              handleFileUpload={handleFileUpload}
+              chatMode={chatMode}
+              setChatMode={setChatMode}
+              designScheme={designScheme}
+              setDesignScheme={setDesignScheme}
+              selectedElement={selectedElement}
+              setSelectedElement={setSelectedElement}
+              onWebSearchResult={onWebSearchResult}
+            />
+          </div>
+        </StickToBottom>
+        <div className="flex flex-col justify-center">
+          {!chatStarted && (
+            <div className="flex justify-center gap-2">
+              {ImportButtons(importChat)}
+              <GitCloneButton importChat={importChat} />
+            </div>
+          )}
+          <div className="flex flex-col gap-5">
+            {!chatStarted &&
+              ExamplePrompts((event, messageInput) => {
+                if (isStreaming) {
+                  handleStop?.();
+                  return;
+                }
+
+                handleSendMessage?.(event, messageInput);
+              })}
+            {!chatStarted && <StarterTemplates />}
+          </div>
+        </div>
+      </div>
+    );
+
+    const projectIdePanels = (
+      <PanelGroup direction="horizontal" className="bolt-project-ide-panels">
+        <Panel defaultSize={34} minSize={24} maxSize={48} className="min-w-0">
+          <section className="bolt-project-ide-panel" aria-label="AI agent">
+            <div className="bolt-project-ide-panel-header">
+              <span className="i-ph:sparkle" aria-hidden />
+              <span>AI Agent</span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+          </section>
+        </Panel>
+        <PanelResizeHandle className="bolt-project-ide-resize-handle" />
+        <Panel defaultSize={43} minSize={28} className="min-w-0">
+          <section className="bolt-project-ide-panel" aria-label="Editor and preview">
+            <PanelGroup direction="vertical" className="min-h-0 flex-1">
+              <Panel defaultSize={54} minSize={28} className="min-h-0">
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="bolt-project-ide-panel-header">
+                    <span className="i-ph:code" aria-hidden />
+                    <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'Editor'}</span>
+                    {currentDocument && unsavedFiles instanceof Set && unsavedFiles.has(currentDocument.filePath) && (
+                      <button
+                        type="button"
+                        className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+                        onClick={onProjectEditorSave}
+                      >
+                        Save
+                      </button>
+                    )}
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
+                    {currentDocument && !currentDocument.isBinary ? (
+                      <EditorAdapter
+                        className="h-full w-full"
+                        value={currentDocument.value}
+                        filePath={currentDocument.filePath}
+                        theme={theme === 'dark' ? 'dark' : 'light'}
+                        onSave={onProjectEditorSave}
+                        onChange={(update) => {
+                          workbenchStore.setCurrentDocumentContent(update.value);
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center p-6 text-sm text-bolt-elements-textSecondary">
+                        Select a source file from the project files panel.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Panel>
+              <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
+              <Panel defaultSize={46} minSize={24} className="min-h-0">
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="bolt-project-ide-panel-header">
+                    <span className="i-ph:browser" aria-hidden />
+                    <span>Preview</span>
+                    <span className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
+                      Live runtime
+                    </span>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-hidden">
+                    <Preview setSelectedElement={setSelectedElement} />
+                  </div>
+                </div>
+              </Panel>
+            </PanelGroup>
+          </section>
+        </Panel>
+        <PanelResizeHandle className="bolt-project-ide-resize-handle" />
+        <Panel defaultSize={23} minSize={18} maxSize={34} className="min-w-0">
+          <section className="bolt-project-ide-panel" aria-label="Project files">
+            <div className="bolt-project-ide-panel-header">
+              {[
+                ['files', 'Files'],
+                ['search', 'Search'],
+                ['locks', 'Locks'],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="bolt-project-ide-tab"
+                  aria-current={rightPanel === id ? 'page' : undefined}
+                  onClick={() => setRightPanel(id as typeof rightPanel)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+              {rightPanel === 'files' && (
+                <FileTree
+                  className="h-full"
+                  files={projectFiles}
+                  hideRoot
+                  unsavedFiles={unsavedFiles}
+                  rootFolder={WORK_DIR}
+                  selectedFile={selectedFile}
+                  onFileSelect={(filePath) => {
+                    workbenchStore.setSelectedFile(filePath);
+                    workbenchStore.currentView.set('code');
+                    workbenchStore.setShowWorkbench(true);
+                  }}
+                />
+              )}
+              {rightPanel === 'search' && <Search />}
+              {rightPanel === 'locks' && <LockManager />}
+            </div>
+          </section>
+        </Panel>
+      </PanelGroup>
+    );
+
     const baseChat = (
       <div
         ref={ref}
@@ -423,164 +722,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </aside>
         )}
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div
-            className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full', {
-              hidden: useMobileIde && mobilePanel !== 'chat',
-            })}
-          >
-            {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
-                </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
-                </p>
-              </div>
-            )}
-            <StickToBottom
-              className={classNames('pt-6 px-2 sm:px-6 relative', {
-                'h-full flex flex-col modern-scrollbar': chatStarted,
-              })}
-              resize="smooth"
-              initial="smooth"
-            >
-              <StickToBottom.Content className="flex flex-col gap-4 relative ">
-                <ClientOnly>
-                  {() => {
-                    return chatStarted ? (
-                      <Messages
-                        className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
-                        messages={messages}
-                        isStreaming={isStreaming}
-                        append={append}
-                        chatMode={chatMode}
-                        setChatMode={setChatMode}
-                        provider={provider}
-                        model={model}
-                        addToolResult={addToolResult}
-                      />
-                    ) : null;
-                  }}
-                </ClientOnly>
-                <ScrollToBottom />
-              </StickToBottom.Content>
-              <div
-                className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
-                  'sticky bottom-2': chatStarted,
-                })}
-              >
-                <div className="flex flex-col gap-2">
-                  {deployAlert && (
-                    <DeployChatAlert
-                      alert={deployAlert}
-                      clearAlert={() => clearDeployAlert?.()}
-                      postMessage={(message: string | undefined) => {
-                        sendMessage?.({} as any, message);
-                        clearSupabaseAlert?.();
-                      }}
-                    />
-                  )}
-                  {supabaseAlert && (
-                    <SupabaseChatAlert
-                      alert={supabaseAlert}
-                      clearAlert={() => clearSupabaseAlert?.()}
-                      postMessage={(message) => {
-                        sendMessage?.({} as any, message);
-                        clearSupabaseAlert?.();
-                      }}
-                    />
-                  )}
-                  {actionAlert && (
-                    <ChatAlert
-                      alert={actionAlert}
-                      clearAlert={() => clearAlert?.()}
-                      postMessage={(message) => {
-                        sendMessage?.({} as any, message);
-                        clearAlert?.();
-                      }}
-                    />
-                  )}
-                  {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
-                </div>
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
-                <ChatBox
-                  isModelSettingsCollapsed={isModelSettingsCollapsed}
-                  setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
-                  provider={provider}
-                  setProvider={setProvider}
-                  providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
-                  model={model}
-                  setModel={setModel}
-                  modelList={modelList}
-                  apiKeys={apiKeys}
-                  isModelLoading={isModelLoading}
-                  onApiKeysChange={onApiKeysChange}
-                  uploadedFiles={uploadedFiles}
-                  setUploadedFiles={setUploadedFiles}
-                  imageDataList={imageDataList}
-                  setImageDataList={setImageDataList}
-                  textareaRef={textareaRef}
-                  input={input}
-                  handleInputChange={handleInputChange}
-                  handlePaste={handlePaste}
-                  TEXTAREA_MIN_HEIGHT={TEXTAREA_MIN_HEIGHT}
-                  TEXTAREA_MAX_HEIGHT={TEXTAREA_MAX_HEIGHT}
-                  isStreaming={isStreaming}
-                  handleStop={handleStop}
-                  handleSendMessage={handleSendMessage}
-                  enhancingPrompt={enhancingPrompt}
-                  enhancePrompt={enhancePrompt}
-                  isListening={isListening}
-                  startListening={startListening}
-                  stopListening={stopListening}
-                  chatStarted={chatStarted}
-                  exportChat={exportChat}
-                  qrModalOpen={qrModalOpen}
-                  setQrModalOpen={setQrModalOpen}
-                  handleFileUpload={handleFileUpload}
-                  chatMode={chatMode}
-                  setChatMode={setChatMode}
-                  designScheme={designScheme}
-                  setDesignScheme={setDesignScheme}
-                  selectedElement={selectedElement}
-                  setSelectedElement={setSelectedElement}
-                  onWebSearchResult={onWebSearchResult}
-                />
-              </div>
-            </StickToBottom>
-            <div className="flex flex-col justify-center">
-              {!chatStarted && (
-                <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
-                  <GitCloneButton importChat={importChat} />
-                </div>
-              )}
-              <div className="flex flex-col gap-5">
-                {!chatStarted &&
-                  ExamplePrompts((event, messageInput) => {
-                    if (isStreaming) {
-                      handleStop?.();
-                      return;
-                    }
-
-                    handleSendMessage?.(event, messageInput);
-                  })}
-                {!chatStarted && <StarterTemplates />}
-              </div>
-            </div>
-          </div>
-          <ClientOnly>
-            {() => (
-              <Workbench
-                chatStarted={chatStarted || useMobileIde}
-                isStreaming={isStreaming}
-                setSelectedElement={setSelectedElement}
-                mobilePanel={mobilePanel === 'chat' ? 'editor' : mobilePanel}
-              />
-            )}
-          </ClientOnly>
+        <div
+          className={classNames('flex w-full h-full min-h-0', {
+            'overflow-hidden': projectIdeMode && !useMobileIde,
+            'flex-col lg:flex-row overflow-y-auto': !projectIdeMode || useMobileIde,
+          })}
+        >
+          {projectIdeMode && !useMobileIde ? (
+            projectIdePanels
+          ) : (
+            <>
+              {agentPanel}
+              <ClientOnly>
+                {() => (
+                  <Workbench
+                    chatStarted={chatStarted || useMobileIde}
+                    isStreaming={isStreaming}
+                    setSelectedElement={setSelectedElement}
+                    mobilePanel={mobilePanel === 'chat' ? 'editor' : mobilePanel}
+                  />
+                )}
+              </ClientOnly>
+            </>
+          )}
         </div>
         <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
           {[

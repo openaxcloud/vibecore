@@ -2,13 +2,30 @@ import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/clo
 import { useLoaderData } from '@remix-run/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Link } from '@remix-run/react';
+import { useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { Command, Layers, Rocket, Users, Zap } from 'lucide-react';
+import {
+  Activity,
+  Braces,
+  Command,
+  FileCode2,
+  Gauge,
+  GitBranch,
+  Globe2,
+  Layers,
+  Lock,
+  Rocket,
+  Settings,
+  Terminal,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { useResponsiveLayout } from '@vibecore/editor';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data ? `Bolt IDE - ${data.projectId}` : 'Bolt IDE' },
@@ -28,10 +45,12 @@ export default function ProjectIdeRoute() {
 
   return (
     <ProjectWorkspaceProvider projectId={projectId}>
-      <div className="flex h-full w-full flex-col bg-bolt-elements-background-depth-1">
+      <div className="bolt-project-ide-shell flex h-full w-full flex-col bg-bolt-elements-background-depth-1">
         <Header />
         <IdeProjectToolbar projectId={projectId} />
-        <ClientOnly fallback={<BaseChat chatStarted />}>{() => <Chat forceWorkbench />}</ClientOnly>
+        <ClientOnly fallback={<BaseChat chatStarted projectIdeMode />}>
+          {() => <Chat forceWorkbench projectIdeMode />}
+        </ClientOnly>
       </div>
     </ProjectWorkspaceProvider>
   );
@@ -41,6 +60,9 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
+  const [panelMenuOpen, setPanelMenuOpen] = useState(false);
+  const layout = useResponsiveLayout();
+  const showProjectMenu = !layout.isMobile;
   const statusLabel = loading
     ? 'Workspace starting'
     : error
@@ -49,43 +71,95 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
         ? `Workspace ${status.status}`
         : 'Workspace not started';
 
+  const projectMenu = [
+    { label: 'Editor', to: `/projects/${projectId}/ide`, icon: FileCode2 },
+    { label: 'Preview', to: `/projects/${projectId}/ide?panel=preview`, icon: Zap },
+    { label: 'Overview', to: `/projects/${projectId}`, icon: Gauge },
+    { label: 'Deploy', to: `/projects/${projectId}/deployments`, icon: Rocket },
+    { label: 'Env vars', to: `/projects/${projectId}/env`, icon: Braces },
+    { label: 'Secrets', to: `/projects/${projectId}/secrets`, icon: Lock },
+    { label: 'Git', to: `/projects/${projectId}/git`, icon: GitBranch },
+    { label: 'Activity', to: `/projects/${projectId}/activity`, icon: Activity },
+    { label: 'Logs', to: `/projects/${projectId}/logs`, icon: Terminal },
+    { label: 'Collaborators', to: `/projects/${projectId}/collaborators`, icon: Users },
+    { label: 'Domains', to: `/projects/${projectId}/domains`, icon: Globe2 },
+    { label: 'Snapshots', to: `/projects/${projectId}/snapshots`, icon: Layers },
+    { label: 'Settings', to: `/projects/${projectId}/settings`, icon: Settings },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
+      <div className="flex min-w-0 items-center gap-2">
         <Link
           to={`/projects/${projectId}/logs`}
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
         >
           <Zap className="h-3.5 w-3.5" aria-hidden />
           {statusLabel}
         </Link>
-        <Link
-          to={`/projects/${projectId}/collaborators`}
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-        >
-          <Users className="h-3.5 w-3.5" aria-hidden />
+        <span className="inline-flex shrink-0 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-bolt-elements-textTertiary">
           Presence ready
-        </Link>
+        </span>
+        {layout.isMobile && (
+          <Link
+            to={`/projects/${projectId}/deployments`}
+            className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+          >
+            <Rocket className="h-3.5 w-3.5" aria-hidden />
+            Deploy
+          </Link>
+        )}
         <Link
           to={`/projects/${projectId}/snapshots`}
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
         >
           <Layers className="h-3.5 w-3.5" aria-hidden />
           Snapshots
         </Link>
-        <Link
-          to={`/projects/${projectId}/deployments`}
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+        {showProjectMenu && (
+          <div className="flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Project IDE menu">
+            {projectMenu.slice(0, 11).map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        <details
+          className="relative shrink-0"
+          open={panelMenuOpen}
+          onToggle={(event) => setPanelMenuOpen(event.currentTarget.open)}
         >
-          <Rocket className="h-3.5 w-3.5" aria-hidden />
-          Deploy
-        </Link>
-        <Link
-          to={`/projects/${projectId}/ide?panel=preview`}
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-        >
-          Preview
-        </Link>
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3">
+            <span className="text-sm leading-none">+</span>
+            Panels
+          </summary>
+          {panelMenuOpen && (
+            <div className="absolute left-0 top-full z-50 mt-2 grid w-56 gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-xl">
+              {projectMenu.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-bolt-elements-background-depth-3"
+                  >
+                    <Icon className="h-4 w-4" aria-hidden />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </details>
       </div>
       <Link
         to="/command-palette"

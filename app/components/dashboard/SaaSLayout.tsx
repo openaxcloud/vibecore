@@ -343,10 +343,10 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
             <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
               <span>Updated {project.updated ?? 'recently'}</span>
               <Link
-                to={`/projects/${project.id}`}
+                to={`/projects/${project.id}/ide`}
                 className="rounded-md px-2 py-1 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
               >
-                Manage
+                Open IDE
               </Link>
             </div>
           </CardContent>

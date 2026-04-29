@@ -31,7 +31,13 @@ import type { LlmErrorAlertType } from '~/types/actions';
 
 const logger = createScopedLogger('Chat');
 
-export function Chat({ forceWorkbench = false }: { forceWorkbench?: boolean }) {
+export function Chat({
+  forceWorkbench = false,
+  projectIdeMode = false,
+}: {
+  forceWorkbench?: boolean;
+  projectIdeMode?: boolean;
+}) {
   renderLogger.trace('Chat');
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
@@ -41,12 +47,13 @@ export function Chat({ forceWorkbench = false }: { forceWorkbench?: boolean }) {
   }, [initialMessages]);
 
   if (!ready) {
-    return <BaseChat chatStarted={forceWorkbench} />;
+    return <BaseChat chatStarted={forceWorkbench} projectIdeMode={projectIdeMode} />;
   }
 
   return (
     <ChatImpl
       forceWorkbench={forceWorkbench}
+      projectIdeMode={projectIdeMode}
       description={title}
       initialMessages={initialMessages}
       exportChat={exportChat}
@@ -76,6 +83,7 @@ const processSampledMessages = createSampler(
 
 interface ChatProps {
   forceWorkbench?: boolean;
+  projectIdeMode?: boolean;
   initialMessages: Message[];
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
@@ -86,6 +94,7 @@ interface ChatProps {
 export const ChatImpl = memo(
   ({
     forceWorkbench = false,
+    projectIdeMode = false,
     description,
     initialMessages,
     storeMessageHistory,
@@ -624,6 +633,7 @@ export const ChatImpl = memo(
         input={input}
         showChat={showChat}
         chatStarted={forceWorkbench || chatStarted}
+        projectIdeMode={projectIdeMode}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
           streamingState.set(streaming);
