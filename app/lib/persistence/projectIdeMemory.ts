@@ -94,6 +94,76 @@ type IdeStateEnvelope = {
 
 const memoryCache = new Map<string, ProjectIdeMemory>();
 const pendingSaves = new Map<string, Promise<void>>();
+export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
+
+export function getProjectIdeMemoryStorageKey(projectId: string) {
+  return `${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:${projectId}`;
+}
+
+function localStorageAvailable() {
+  return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined';
+}
+
+function readLocalProjectIdeMemory(projectId: string): ProjectIdeMemory | undefined {
+  if (!localStorageAvailable()) {
+    return undefined;
+  }
+
+  try {
+    const raw = globalThis.localStorage.getItem(getProjectIdeMemoryStorageKey(projectId));
+
+    if (!raw) {
+      return undefined;
+    }
+
+    const parsed = JSON.parse(raw) as ProjectIdeMemory;
+
+    return parsed && typeof parsed === 'object' ? parsed : undefined;
+  } catch (error) {
+    console.error('Failed to read local project IDE memory', error);
+
+    return undefined;
+  }
+}
+
+function writeLocalProjectIdeMemory(projectId: string, memory: ProjectIdeMemory) {
+  if (!localStorageAvailable()) {
+    return;
+  }
+
+  try {
+    globalThis.localStorage.setItem(getProjectIdeMemoryStorageKey(projectId), JSON.stringify(memory));
+  } catch (error) {
+    console.error('Failed to write local project IDE memory', error);
+  }
+}
+
+function newerMemory(first: ProjectIdeMemory | undefined, second: ProjectIdeMemory | undefined) {
+  if (!first) {
+    return second ?? {};
+  }
+
+  if (!second) {
+    return first;
+  }
+
+  const firstUpdated = first.updatedAt ? Date.parse(first.updatedAt) : 0;
+  const secondUpdated = second.updatedAt ? Date.parse(second.updatedAt) : 0;
+
+  return secondUpdated > firstUpdated ? second : first;
+}
+
+export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
+  if (projectId) {
+    memoryCache.delete(projectId);
+    pendingSaves.delete(projectId);
+
+    return;
+  }
+
+  memoryCache.clear();
+  pendingSaves.clear();
+}
 
 export async function getProjectIdeMemory(projectId: string): Promise<ProjectIdeMemory> {
   const cached = memoryCache.get(projectId);
@@ -102,20 +172,35 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
     return cached;
   }
 
-  const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
-    credentials: 'include',
-    headers: { accept: 'application/json' },
-  });
+  const localMemory = readLocalProjectIdeMemory(projectId);
 
-  if (!response.ok) {
-    throw new Error(`Failed to load project IDE memory (${response.status})`);
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+      credentials: 'include',
+      headers: { accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load project IDE memory (${response.status})`);
+    }
+
+    const payload = (await response.json()) as IdeStateEnvelope;
+    const serverMemory = payload.ideState?.state ?? {};
+    const memory = newerMemory(serverMemory, localMemory);
+
+    memoryCache.set(projectId, memory);
+    writeLocalProjectIdeMemory(projectId, memory);
+
+    return memory;
+  } catch (error) {
+    if (localMemory) {
+      memoryCache.set(projectId, localMemory);
+
+      return localMemory;
+    }
+
+    throw error;
   }
-
-  const payload = (await response.json()) as IdeStateEnvelope;
-  const memory = payload.ideState?.state ?? {};
-  memoryCache.set(projectId, memory);
-
-  return memory;
 }
 
 export async function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {
@@ -128,6 +213,7 @@ export async function saveProjectIdeMemory(projectId: string, patch: ProjectIdeM
     updatedAt: new Date().toISOString(),
   };
   memoryCache.set(projectId, next);
+  writeLocalProjectIdeMemory(projectId, next);
 
   const previous = pendingSaves.get(projectId) ?? Promise.resolve();
   const save = previous

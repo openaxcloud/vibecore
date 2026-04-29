@@ -765,7 +765,31 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
           description: 'Persistent project agent',
           messages: [{ id: 'memory-user-message', role: 'user', content: marker }],
         },
-        ui: { currentView: 'preview', rightPanel: 'network', showWorkbench: true },
+        ui: {
+          currentView: 'preview',
+          rightPanel: 'network',
+          rightPanelOpen: true,
+          rightPanelWidth: 512,
+          showWorkbench: true,
+          agentWidth: 520,
+          terminalBottomOpen: true,
+          terminalBottomHeight: 320,
+          activePaneId: 'pane-main',
+          activeWorkspacePanel: 'snapshots',
+          paneTree: {
+            type: 'leaf',
+            id: 'pane-main',
+            tabs: [
+              { id: 'tab-files-persisted', panel: 'files' },
+              { id: 'tab-snapshots-persisted', panel: 'snapshots' },
+            ],
+            activeTabId: 'tab-snapshots-persisted',
+          },
+          cursorPositions: { '/home/project/src/App.tsx': { line: 42, column: 7, offset: 900 } },
+          scrollPositions: { 'pane-main': 88 },
+          recentTabIds: ['tab-snapshots-persisted', 'tab-files-persisted'],
+          closedTabs: [{ id: 'tab-logs-closed', panel: 'logs' }],
+        },
       },
     },
   });
@@ -774,9 +798,40 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(marker)).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('tab', { name: 'Snapshots' })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
+    timeout: 15000,
+  });
+
+  const persistedLocalState = await page.evaluate((id) => {
+    const raw = localStorage.getItem(`vibecore.projectIdeMemory:${id}`);
+
+    return raw ? JSON.parse(raw) : null;
+  }, projectId);
+
+  expect(persistedLocalState?.chat?.messages?.[0]?.content).toBe(marker);
+  expect(persistedLocalState?.ui?.paneTree?.activeTabId).toBe('tab-snapshots-persisted');
+  expect(persistedLocalState?.ui?.agentWidth).toBe(520);
+  expect(persistedLocalState?.ui?.terminalBottomHeight).toBe(320);
+  expect(persistedLocalState?.ui?.cursorPositions?.['/home/project/src/App.tsx']).toEqual({
+    line: 42,
+    column: 7,
+    offset: 900,
+  });
 
   if (!isMobile) {
     await expect(page.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
+    const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
+      const style = window.getComputedStyle(element);
+
+      return {
+        agentWidth: style.getPropertyValue('--project-agent-width').trim(),
+        rightPanelWidth: style.getPropertyValue('--project-right-panel-width').trim(),
+      };
+    });
+    expect(persistedMetrics.agentWidth).toBe('520px');
+    expect(persistedMetrics.rightPanelWidth).toBe('512px');
   }
 });
 
