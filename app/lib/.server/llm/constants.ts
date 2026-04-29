@@ -35,12 +35,29 @@ export const PROVIDER_COMPLETION_LIMITS: Record<string, number> = {
  * These models use internal reasoning tokens and have different API parameter requirements
  */
 export function isReasoningModel(modelName: string): boolean {
-  const result = /^(o1|o3|gpt-5)/i.test(modelName);
+  return /^(o1|o3|gpt-5)/i.test(modelName);
+}
 
-  // DEBUG: Test regex matching
-  console.log(`REGEX TEST: "${modelName}" matches reasoning pattern: ${result}`);
+function canonicalModelName(modelName: string): string {
+  return modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
 
-  return result;
+export function modelDisallowsTemperature(modelName: string, providerName?: string): boolean {
+  const canonicalName = canonicalModelName(modelName);
+  const canonicalProvider = providerName ? canonicalModelName(providerName) : '';
+
+  return (
+    canonicalName.includes('claude-opus-4-7') ||
+    (canonicalProvider === 'anthropic' && canonicalName.includes('opus-4-7'))
+  );
+}
+
+export function temperatureOptionsForModel(modelName: string, providerName?: string): { temperature?: number } {
+  if (modelDisallowsTemperature(modelName, providerName)) {
+    return {};
+  }
+
+  return isReasoningModel(modelName) ? { temperature: 1 } : { temperature: 0 };
 }
 
 // limits the number of model responses that can be returned in a single request

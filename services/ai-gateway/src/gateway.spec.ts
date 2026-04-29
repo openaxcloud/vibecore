@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AiGateway } from './gateway.js';
+import { AiGateway, modelDisallowsTemperature } from './gateway.js';
 
 async function startProvider(responder: (body: string, response: import('node:http').ServerResponse) => void) {
   const server = createServer((request, response) => {
@@ -27,6 +27,8 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_BASE_URL;
+  delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.ANTHROPIC_BASE_URL;
   delete process.env.AI_FALLBACK_PROVIDERS;
 });
 
@@ -37,7 +39,9 @@ describe('AiGateway', () => {
     });
     const working = await startProvider((body, response) => {
       expect(JSON.parse(body).messages[1].content).toContain('change');
-      response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ choices: [{ message: { content: 'patched' } }] }));
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ choices: [{ message: { content: 'patched' } }] }));
     });
     servers.push(failing.server, working.server);
     process.env.OPENAI_API_KEY = 'openai-key';
@@ -87,7 +91,40 @@ describe('AiGateway', () => {
       chunks.push(chunk);
     }
 
-    expect(chunks.filter((chunk) => chunk.type === 'delta').map((chunk) => chunk.content).join('')).toBe('hello');
+    expect(
+      chunks
+        .filter((chunk) => chunk.type === 'delta')
+        .map((chunk) => chunk.content)
+        .join(''),
+    ).toBe('hello');
     expect(chunks.at(-1)?.type).toBe('done');
+  });
+
+  it('does not send deprecated temperature to Claude Opus 4.7', async () => {
+    const provider = await startProvider((body, response) => {
+      const payload = JSON.parse(body);
+      expect(payload.model).toBe('claude-opus-4-7');
+      expect(payload).not.toHaveProperty('temperature');
+      response.writeHead(200, { 'content-type': 'application/json' }).end(
+        JSON.stringify({
+          content: [{ type: 'text', text: 'temperature omitted' }],
+        }),
+      );
+    });
+    servers.push(provider.server);
+    process.env.ANTHROPIC_API_KEY = 'anthropic-key';
+    process.env.ANTHROPIC_BASE_URL = provider.url.replace(/\/v1$/, '');
+
+    const gateway = new AiGateway();
+    const result = await gateway.complete({
+      plan: 'enterprise',
+      provider: 'anthropic',
+      model: 'claude-opus-4-7',
+      temperature: 0,
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(modelDisallowsTemperature('claude-opus-4-7')).toBe(true);
+    expect(result.content).toBe('temperature omitted');
   });
 });
