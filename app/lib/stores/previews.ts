@@ -1,5 +1,6 @@
-import type { WebContainer } from '@webcontainer/api';
+import type { RuntimeAdapter, WorkspacePort } from '@vibecore/runtime-contract';
 import { atom } from 'nanostores';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 
 // Extend Window interface to include our custom property
 declare global {
@@ -19,7 +20,7 @@ const PREVIEW_CHANNEL = 'preview-updates';
 
 export class PreviewsStore {
   #availablePreviews = new Map<number, PreviewInfo>();
-  #webcontainer: Promise<WebContainer>;
+  #runtime: RuntimeAdapter;
   #broadcastChannel?: BroadcastChannel;
   #lastUpdate = new Map<string, number>();
   #watchedFiles = new Set<string>();
@@ -29,8 +30,8 @@ export class PreviewsStore {
 
   previews = atom<PreviewInfo[]>([]);
 
-  constructor(webcontainerPromise: Promise<WebContainer>) {
-    this.#webcontainer = webcontainerPromise;
+  constructor(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
     this.#broadcastChannel = this.#maybeCreateChannel(PREVIEW_CHANNEL);
     this.#storageChannel = this.#maybeCreateChannel('storage-sync-channel');
 
@@ -167,45 +168,55 @@ export class PreviewsStore {
   }
 
   async #init() {
-    const webcontainer = await this.#webcontainer;
+    try {
+      await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+    } catch (error) {
+      console.warn('[Preview] Runtime port watch is not ready yet:', error);
+    }
+  }
 
-    // Listen for server ready events
-    webcontainer.on('server-ready', (port, url) => {
-      console.log('[Preview] Server ready on port:', port, url);
-      this.broadcastUpdate(url);
+  setRuntime(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
+    this.#availablePreviews.clear();
+    this.previews.set([]);
+    void this.#init();
+  }
 
-      // Initial storage sync when preview is ready
-      this._broadcastStorageSync();
-    });
+  async refreshPorts() {
+    const ports = await this.#runtime.listPorts();
+    ports.forEach((port) => this.#applyPortEvent(port));
+  }
 
-    // Listen for port events
-    webcontainer.on('port', (port, type, url) => {
-      let previewInfo = this.#availablePreviews.get(port);
+  #applyPortEvent({ port, type, url, ready }: WorkspacePort) {
+    let previewInfo = this.#availablePreviews.get(port);
 
-      if (type === 'close' && previewInfo) {
-        this.#availablePreviews.delete(port);
-        this.previews.set(this.previews.get().filter((preview) => preview.port !== port));
+    if (type === 'close' && previewInfo) {
+      this.#availablePreviews.delete(port);
+      this.previews.set(this.previews.get().filter((preview) => preview.port !== port));
 
-        return;
-      }
+      return;
+    }
 
-      const previews = this.previews.get();
+    if (!url) {
+      return;
+    }
 
-      if (!previewInfo) {
-        previewInfo = { port, ready: type === 'open', baseUrl: url };
-        this.#availablePreviews.set(port, previewInfo);
-        previews.push(previewInfo);
-      }
+    console.log('[Preview] Runtime port event:', port, url);
+    this.broadcastUpdate(url);
+    this._broadcastStorageSync();
 
-      previewInfo.ready = type === 'open';
-      previewInfo.baseUrl = url;
+    const previews = this.previews.get();
 
-      this.previews.set([...previews]);
+    if (!previewInfo) {
+      previewInfo = { port, ready: ready ?? type === 'open', baseUrl: url };
+      this.#availablePreviews.set(port, previewInfo);
+      previews.push(previewInfo);
+    }
 
-      if (type === 'open') {
-        this.broadcastUpdate(url);
-      }
-    });
+    previewInfo.ready = ready ?? type === 'open';
+    previewInfo.baseUrl = url;
+
+    this.previews.set([...previews]);
   }
 
   // Helper to extract preview ID from URL
@@ -302,11 +313,7 @@ let previewsStore: PreviewsStore | null = null;
 
 export function usePreviewStore() {
   if (!previewsStore) {
-    /*
-     * Initialize with a Promise that resolves to WebContainer
-     * This should match how you're initializing WebContainer elsewhere
-     */
-    previewsStore = new PreviewsStore(Promise.resolve({} as WebContainer));
+    previewsStore = new PreviewsStore(runtimeAdapter);
   }
 
   return previewsStore;

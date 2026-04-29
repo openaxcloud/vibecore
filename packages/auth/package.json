@@ -1,0 +1,12 @@
+{
+  "name": "@vibecore/auth",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo \"auth package is TypeScript source\"",
+    "test": "echo \"auth package tests are covered by services/api\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm run typecheck"
+  }
+}

@@ -1,0 +1,325 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #09090b;
+  color: #f4f4f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+}
+
+.sidebar {
+  border-right: 1px solid #27272a;
+  background: #111113;
+  padding: 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.brand h1,
+.panel h2,
+.page-title h1 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.nav {
+  display: grid;
+  gap: 4px;
+}
+
+.nav button,
+.icon-button,
+.action,
+.danger,
+.secondary {
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  color: #f4f4f5;
+  background: #18181b;
+}
+
+.nav button {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.nav button[aria-current="page"],
+.action {
+  background: #2563eb;
+  border-color: #3b82f6;
+}
+
+.danger {
+  background: #7f1d1d;
+  border-color: #b91c1c;
+}
+
+.main {
+  min-width: 0;
+  padding: 24px;
+}
+
+.topbar,
+.page-title,
+.toolbar,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.token-form {
+  display: flex;
+  gap: 8px;
+  min-width: min(100%, 520px);
+}
+
+.token-form input,
+.toolbar input,
+.toolbar select,
+.dialog input,
+.dialog textarea,
+.dialog select {
+  min-width: 0;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  background: #09090b;
+  color: #f4f4f5;
+  padding: 10px 12px;
+}
+
+.token-form input {
+  flex: 1;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.metrics {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.card,
+.panel,
+.dialog {
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #111113;
+}
+
+.card,
+.panel {
+  padding: 16px;
+}
+
+.metric {
+  color: #a1a1aa;
+  font-size: 13px;
+}
+
+.metric strong {
+  display: block;
+  color: #f4f4f5;
+  font-size: 28px;
+  margin-top: 8px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #3f3f46;
+  border-radius: 999px;
+  color: #d4d4d8;
+  background: #18181b;
+}
+
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #22c55e;
+}
+
+.status.warn::before {
+  background: #f59e0b;
+}
+
+.status.bad::before {
+  background: #ef4444;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+th,
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid #27272a;
+  text-align: left;
+  vertical-align: top;
+}
+
+th button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+td {
+  color: #d4d4d8;
+}
+
+.muted {
+  color: #a1a1aa;
+}
+
+.skeleton {
+  min-height: 220px;
+  background: linear-gradient(90deg, #18181b, #27272a, #18181b);
+  background-size: 200% 100%;
+  animation: pulse 1.3s infinite;
+}
+
+@keyframes pulse {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(420px, calc(100vw - 32px));
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  background: #18181b;
+  padding: 12px;
+  z-index: 20;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 0.66);
+  z-index: 30;
+}
+
+.dialog {
+  width: min(560px, 100%);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.dialog textarea {
+  min-height: 110px;
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: relative;
+    height: auto;
+  }
+
+  .nav {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    background: #f4f4f5;
+    color: #18181b;
+  }
+
+  .sidebar,
+  .card,
+  .panel,
+  .dialog {
+    background: #ffffff;
+    border-color: #d4d4d8;
+  }
+
+  .nav button,
+  .icon-button,
+  .secondary,
+  .token-form input,
+  .toolbar input,
+  .toolbar select,
+  .dialog input,
+  .dialog textarea,
+  .dialog select {
+    background: #ffffff;
+    color: #18181b;
+    border-color: #d4d4d8;
+  }
+
+  .metric strong,
+  td {
+    color: #18181b;
+  }
+}
+

@@ -1,6 +1,7 @@
-/**
- * This client-only module that contains everything related to auth and is used
- * to avoid importing `@webcontainer/api` in the server bundle.
- */
+import { loadWebContainerAuth } from '@vibecore/runtime-webcontainer';
 
-export { auth, type AuthAPI } from '@webcontainer/api';
+export type AuthAPI = Awaited<ReturnType<typeof loadWebContainerAuth>>;
+
+export async function auth(): Promise<AuthAPI> {
+  return loadWebContainerAuth();
+}

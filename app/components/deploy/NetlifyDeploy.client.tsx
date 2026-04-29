@@ -2,8 +2,8 @@ import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
-import { path } from '~/utils/path';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/runtime-files';
 import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
@@ -80,11 +80,7 @@ export function useNetlifyDeploy() {
       // Notify that build succeeded and deployment is starting
       deployArtifact.runner.handleDeployAction('deploying', 'running', { source: 'netlify' });
 
-      // Get the build files
-      const container = await webcontainer;
-
-      // Remove /home/project from buildPath if it exists
-      const buildPath = buildOutput.path.replace('/home/project', '');
+      const buildPath = buildOutput.path.replace(runtimeAdapter.workdir, '');
 
       console.log('Original buildPath', buildPath);
 
@@ -98,16 +94,11 @@ export function useNetlifyDeploy() {
       let buildPathExists = false;
 
       for (const dir of commonOutputDirs) {
-        try {
-          await container.fs.readdir(dir);
+        if (await runtimeDirectoryExists(runtimeAdapter, dir)) {
           finalBuildPath = dir;
           buildPathExists = true;
           console.log(`Using build directory: ${finalBuildPath}`);
           break;
-        } catch (error) {
-          // Directory doesn't exist, try the next one
-          console.log(`Directory ${dir} doesn't exist, trying next option. ${error}`);
-          continue;
         }
       }
 
@@ -115,29 +106,9 @@ export function useNetlifyDeploy() {
         throw new Error('Could not find build output directory. Please check your build configuration.');
       }
 
-      async function getAllFiles(dirPath: string): Promise<Record<string, string>> {
-        const files: Record<string, string> = {};
-        const entries = await container.fs.readdir(dirPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-
-          if (entry.isFile()) {
-            const content = await container.fs.readFile(fullPath, 'utf-8');
-
-            // Remove build path prefix from the path
-            const deployPath = fullPath.replace(finalBuildPath, '');
-            files[deployPath] = content;
-          } else if (entry.isDirectory()) {
-            const subFiles = await getAllFiles(fullPath);
-            Object.assign(files, subFiles);
-          }
-        }
-
-        return files;
-      }
-
-      const fileContents = await getAllFiles(finalBuildPath);
+      const fileContents = await collectRuntimeTextFiles(runtimeAdapter, finalBuildPath, {
+        stripPrefix: finalBuildPath,
+      });
 
       // Use chatId instead of artifact.id
       const existingSiteId = localStorage.getItem(`netlify-site-${currentChatId}`);

@@ -1,0 +1,50 @@
+import { Form, useActionData } from '@remix-run/react';
+import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+
+export async function action({ request }: EnterpriseActionArgs) {
+  const body = formObject(await request.formData()) as {
+    orgId?: string;
+    sessionDurationMinutes?: string;
+    ipAllowlist?: string;
+  };
+
+  if (!body.orgId) {
+    return json({ error: 'Organization ID is required.' }, { status: 400 });
+  }
+
+  await apiRequest(request, `/orgs/${body.orgId}/enterprise-settings`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      sessionDurationMinutes: body.sessionDurationMinutes ? Number(body.sessionDurationMinutes) : undefined,
+      ipAllowlist: body.ipAllowlist
+        ? body.ipAllowlist
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : undefined,
+    }),
+  });
+
+  return json({ status: 'Session security policy saved.' });
+}
+
+export default function SessionSecurityPage() {
+  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+
+  return (
+    <EnterpriseFormPage
+      title="Session security"
+      description="Inspect active devices, revoke sessions and manage organization session duration policy."
+      status={actionData?.status}
+      error={actionData?.error}
+    >
+      <Form method="post" className="space-y-4">
+        <TextField label="Organization ID" name="orgId" required />
+        <TextField label="Session duration minutes" name="sessionDurationMinutes" type="number" />
+        <TextField label="IP allowlist" name="ipAllowlist" placeholder="203.0.113.10,198.51.100.0/24" />
+        <PrimaryButton>Save policy</PrimaryButton>
+      </Form>
+    </EnterpriseFormPage>
+  );
+}

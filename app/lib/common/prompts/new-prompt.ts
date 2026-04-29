@@ -161,7 +161,7 @@ The year is 2025.
 
   2. Maximum one <boltArtifact> per response
   3. Current working directory: ${cwd}
-  4. ALWAYS use latest file modifications, NEVER fake placeholder code
+  4. ALWAYS use latest file modifications, NEVER placeholder code
   5. Structure: <boltArtifact id="kebab-case" title="Title"><boltAction>...</boltAction></boltArtifact>
 
   Action Types:

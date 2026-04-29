@@ -40,18 +40,18 @@ export function Chat() {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
+  if (!ready) {
+    return <BaseChat />;
+  }
+
   return (
-    <>
-      {ready && (
-        <ChatImpl
-          description={title}
-          initialMessages={initialMessages}
-          exportChat={exportChat}
-          storeMessageHistory={storeMessageHistory}
-          importChat={importChat}
-        />
-      )}
-    </>
+    <ChatImpl
+      description={title}
+      initialMessages={initialMessages}
+      exportChat={exportChat}
+      storeMessageHistory={storeMessageHistory}
+      importChat={importChat}
+    />
   );
 }
 

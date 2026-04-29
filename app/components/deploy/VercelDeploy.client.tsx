@@ -2,8 +2,8 @@ import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { vercelConnection } from '~/lib/stores/vercel';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
-import { path } from '~/utils/path';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/runtime-files';
 import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
@@ -79,11 +79,7 @@ export function useVercelDeploy() {
       // Notify that build succeeded and deployment is starting
       deployArtifact.runner.handleDeployAction('deploying', 'running', { source: 'vercel' });
 
-      // Get the build files
-      const container = await webcontainer;
-
-      // Remove /home/project from buildPath if it exists
-      const buildPath = buildOutput.path.replace('/home/project', '');
+      const buildPath = buildOutput.path.replace(runtimeAdapter.workdir, '');
 
       // Check if the build path exists
       let finalBuildPath = buildPath;
@@ -95,14 +91,10 @@ export function useVercelDeploy() {
       let buildPathExists = false;
 
       for (const dir of commonOutputDirs) {
-        try {
-          await container.fs.readdir(dir);
+        if (await runtimeDirectoryExists(runtimeAdapter, dir)) {
           finalBuildPath = dir;
           buildPathExists = true;
           break;
-        } catch {
-          // Directory doesn't exist, expected — just skip it
-          continue;
         }
       }
 
@@ -110,71 +102,19 @@ export function useVercelDeploy() {
         throw new Error('Could not find build output directory. Please check your build configuration.');
       }
 
-      // Get all files recursively
-      async function getAllFiles(dirPath: string): Promise<Record<string, string>> {
-        const files: Record<string, string> = {};
-        const entries = await container.fs.readdir(dirPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-
-          if (entry.isFile()) {
-            const content = await container.fs.readFile(fullPath, 'utf-8');
-
-            // Remove build path prefix from the path
-            const deployPath = fullPath.replace(finalBuildPath, '');
-            files[deployPath] = content;
-          } else if (entry.isDirectory()) {
-            const subFiles = await getAllFiles(fullPath);
-            Object.assign(files, subFiles);
-          }
-        }
-
-        return files;
-      }
-
-      const fileContents = await getAllFiles(finalBuildPath);
+      const fileContents = await collectRuntimeTextFiles(runtimeAdapter, finalBuildPath, {
+        stripPrefix: finalBuildPath,
+      });
 
       // Get all source project files for framework detection
       const allProjectFiles: Record<string, string> = {};
 
-      async function getAllProjectFiles(dirPath: string): Promise<void> {
-        const entries = await container.fs.readdir(dirPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-
-          if (entry.isFile()) {
-            try {
-              const content = await container.fs.readFile(fullPath, 'utf-8');
-
-              // Store with relative path from project root
-              let relativePath = fullPath;
-
-              if (fullPath.startsWith('/home/project/')) {
-                relativePath = fullPath.replace('/home/project/', '');
-              } else if (fullPath.startsWith('./')) {
-                relativePath = fullPath.replace('./', '');
-              }
-
-              allProjectFiles[relativePath] = content;
-            } catch (error) {
-              // Skip binary files or files that can't be read as text
-              console.log(`Skipping file ${entry.name}: ${error}`);
-            }
-          } else if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-            await getAllProjectFiles(fullPath);
-          }
-        }
-      }
-
-      // Try to read from the current directory first
-      try {
-        await getAllProjectFiles('.');
-      } catch {
-        // Fallback to /home/project if current directory doesn't work
-        await getAllProjectFiles('/home/project');
-      }
+      Object.assign(
+        allProjectFiles,
+        await collectRuntimeTextFiles(runtimeAdapter, '.', {
+          excludeDirectory: (name) => name.startsWith('.') || name === 'node_modules',
+        }),
+      );
 
       // Use chatId instead of artifact.id
       const existingProjectId = localStorage.getItem(`vercel-project-${currentChatId}`);

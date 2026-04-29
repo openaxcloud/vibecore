@@ -1,0 +1,36 @@
+namespace: workspaces
+
+runtimeClass:
+  enabled: true
+  name: gvisor
+  handler: runsc
+
+sandboxNodeSelector:
+  vibecore.ai/node-pool: sandbox
+
+resourceQuota:
+  pods: "500"
+  requestsCpu: "250"
+  requestsMemory: 500Gi
+  limitsCpu: "1000"
+  limitsMemory: 2Ti
+  persistentVolumeClaims: "500"
+
+limitRange:
+  defaultRequest:
+    cpu: 250m
+    memory: 512Mi
+  default:
+    cpu: "1"
+    memory: 1Gi
+  max:
+    cpu: "4"
+    memory: 8Gi
+
+network:
+  packageRegistryCidr: 0.0.0.0/0
+  blockedCidrs:
+    - 169.254.169.254/32
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16

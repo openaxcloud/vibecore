@@ -7,6 +7,7 @@ import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { Workbench } from '~/components/workbench/Workbench.client';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { Messages } from './Messages.client';
@@ -33,6 +34,7 @@ import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
+import { useResponsiveLayout } from '@vibecore/editor';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -136,6 +138,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    const layout = useResponsiveLayout();
+    const useMobileIde = layout.isMobile || layout.isTabletPortrait;
+    const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
+      'chat',
+    );
+    const [isOnline, setIsOnline] = useState(true);
+    const [showNotifications, setShowNotifications] = useState(false);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
@@ -168,6 +177,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
+
+    useEffect(() => {
+      const updateOnlineState = () => setIsOnline(navigator.onLine);
+      updateOnlineState();
+      window.addEventListener('online', updateOnlineState);
+      window.addEventListener('offline', updateOnlineState);
+
+      return () => {
+        window.removeEventListener('online', updateOnlineState);
+        window.removeEventListener('offline', updateOnlineState);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!useMobileIde) {
+        return undefined;
+      }
+
+      const panels: Array<typeof mobilePanel> = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'];
+      const onKeyDown = (event: KeyboardEvent) => {
+        const index = Number(event.key) - 1;
+
+        if ((event.metaKey || event.ctrlKey) && index >= 0 && index < panels.length) {
+          event.preventDefault();
+          setMobilePanel(panels[index]);
+
+          if (panels[index] !== 'chat') {
+            workbenchStore.setShowWorkbench(true);
+          }
+        }
+      };
+
+      window.addEventListener('keydown', onKeyDown);
+
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }, [mobilePanel, useMobileIde]);
 
     useEffect(() => {
       if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -344,12 +389,46 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const baseChat = (
       <div
         ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
+        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden bolt-responsive-ide', {
+          'bolt-responsive-ide-mobile': useMobileIde,
+          'bolt-responsive-ide-tablet-landscape': layout.isTabletLandscape,
+          'bolt-responsive-ide-desktop': layout.isDesktop,
+        })}
         data-chat-visible={showChat}
+        data-mobile-panel={mobilePanel}
       >
         <ClientOnly>{() => <Menu />}</ClientOnly>
+        <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
+          {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
+        </div>
+        <button
+          type="button"
+          className="bolt-notifications-button"
+          aria-label="Notifications"
+          aria-expanded={showNotifications}
+          onClick={() => setShowNotifications((value) => !value)}
+        >
+          <span className="i-ph:bell" aria-hidden />
+        </button>
+        {showNotifications && (
+          <aside className="bolt-notifications-center" aria-label="Notifications center">
+            <div className="font-medium text-bolt-elements-textPrimary">Notifications</div>
+            <div className="mt-2 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
+              Workspace, billing, deploy, and quota notifications appear here without interrupting the IDE.
+            </div>
+            {!isOnline && (
+              <div className="mt-2 rounded-md border border-orange-500/40 bg-orange-500/10 p-3 text-xs text-orange-300">
+                Poor connection detected. Terminal streams and preview refresh may pause.
+              </div>
+            )}
+          </aside>
+        )}
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
+          <div
+            className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full', {
+              hidden: useMobileIde && mobilePanel !== 'chat',
+            })}
+          >
             {!chatStarted && (
               <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
@@ -494,10 +573,41 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </div>
           <ClientOnly>
             {() => (
-              <Workbench chatStarted={chatStarted} isStreaming={isStreaming} setSelectedElement={setSelectedElement} />
+              <Workbench
+                chatStarted={chatStarted || useMobileIde}
+                isStreaming={isStreaming}
+                setSelectedElement={setSelectedElement}
+                mobilePanel={mobilePanel === 'chat' ? 'editor' : mobilePanel}
+              />
             )}
           </ClientOnly>
         </div>
+        <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
+          {[
+            ['chat', 'i-ph:chat-circle-text', 'Chat'],
+            ['files', 'i-ph:files', 'Files'],
+            ['editor', 'i-ph:code', 'Editor'],
+            ['terminal', 'i-ph:terminal-window', 'Terminal'],
+            ['preview', 'i-ph:browser', 'Preview'],
+            ['deploy', 'i-ph:rocket-launch', 'Deploy'],
+          ].map(([id, icon, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={mobilePanel === id ? 'page' : undefined}
+              onClick={() => {
+                setMobilePanel(id as typeof mobilePanel);
+
+                if (id !== 'chat') {
+                  workbenchStore.setShowWorkbench(true);
+                }
+              }}
+            >
+              <span className={icon} aria-hidden />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
       </div>
     );
 

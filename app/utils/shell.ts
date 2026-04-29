@@ -1,74 +1,66 @@
-import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
+import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import type { ITerminal } from '~/types/terminal';
 import { withResolvers } from './promises';
 import { atom } from 'nanostores';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 
-export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
-  const args: string[] = [];
-
-  // we spawn a JSH process with a fallback cols and rows in case the process is not attached yet to a visible terminal
-  const process = await webcontainer.spawn('/bin/jsh', ['--osc', ...args], {
+export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITerminal) {
+  const session = await runtime.openTerminal({
+    command: '/bin/jsh',
+    args: ['--osc'],
     terminal: {
       cols: terminal.cols ?? 80,
       rows: terminal.rows ?? 15,
     },
   });
 
-  const input = process.input.getWriter();
-  const output = process.output;
-
   const jshReady = withResolvers<void>();
-
   let isInteractive = false;
-  output.pipeTo(
-    new WritableStream({
-      write(data) {
-        if (!isInteractive) {
-          const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
 
-          if (osc === 'interactive') {
-            // wait until we see the interactive OSC
-            isInteractive = true;
+  void (async () => {
+    for await (const event of session.events) {
+      const data = event.data ?? '';
 
-            jshReady.resolve();
-          }
+      if (!data) {
+        continue;
+      }
+
+      if (!isInteractive) {
+        const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
+
+        if (osc === 'interactive') {
+          isInteractive = true;
+          jshReady.resolve();
         }
+      }
 
-        terminal.write(data);
+      terminal.write(data);
 
-        // Capture terminal output for debugging
-        try {
-          import('~/utils/debugLogger')
-            .then(({ captureTerminalLog }) => {
-              // Clean the data by removing ANSI escape sequences for logging
-              const cleanData = data.replace(/\x1b\[[0-9;]*[mG]/g, '').trim();
-
-              if (cleanData) {
-                captureTerminalLog(cleanData, 'output');
-              }
-            })
-            .catch(() => {
-              // Ignore if debug logger is not available
-            });
-        } catch {
-          // Ignore errors in debug logging
-        }
-      },
-    }),
-  );
-
-  terminal.onData((data) => {
-    // console.log('terminal onData', { data, isInteractive });
-
-    if (isInteractive) {
-      input.write(data);
-
-      // Capture terminal input for debugging
       try {
         import('~/utils/debugLogger')
           .then(({ captureTerminalLog }) => {
-            // Clean the data and check if it's a command (not just cursor movement)
+            const cleanData = data.replace(/\x1b\[[0-9;]*[mG]/g, '').trim();
+
+            if (cleanData) {
+              captureTerminalLog(cleanData, 'output');
+            }
+          })
+          .catch(() => {
+            // Ignore if debug logger is not available
+          });
+      } catch {
+        // Ignore errors in debug logging
+      }
+    }
+  })();
+
+  terminal.onData((data) => {
+    if (isInteractive) {
+      session.write(data);
+
+      try {
+        import('~/utils/debugLogger')
+          .then(({ captureTerminalLog }) => {
             const cleanData = data.replace(/\x1b\[[0-9;]*[A-Z]/g, '').trim();
 
             if (cleanData && cleanData !== '\r' && cleanData !== '\n') {
@@ -86,7 +78,7 @@ export async function newShellProcess(webcontainer: WebContainer, terminal: ITer
 
   await jshReady.promise;
 
-  return process;
+  return session;
 }
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
@@ -94,14 +86,14 @@ export type ExecutionResult = { output: string; exitCode: number } | undefined;
 export class BoltShell {
   #initialized: (() => void) | undefined;
   #readyPromise: Promise<void>;
-  #webcontainer: WebContainer | undefined;
+  #runtime: RuntimeAdapter | undefined;
   #terminal: ITerminal | undefined;
-  #process: WebContainerProcess | undefined;
+  #process: TerminalSession | undefined;
   executionState = atom<
     { sessionId: string; active: boolean; executionPrms?: Promise<any>; abort?: () => void } | undefined
   >();
-  #outputStream: ReadableStreamDefaultReader<string> | undefined;
-  #shellInputStream: WritableStreamDefaultWriter<string> | undefined;
+  #outputQueue: string[] = [];
+  #outputWaiters: Array<(value: string | undefined) => void> = [];
 
   constructor() {
     this.#readyPromise = new Promise((resolve) => {
@@ -113,97 +105,79 @@ export class BoltShell {
     return this.#readyPromise;
   }
 
-  async init(webcontainer: WebContainer, terminal: ITerminal) {
-    this.#webcontainer = webcontainer;
+  async init(runtime: RuntimeAdapter, terminal: ITerminal) {
+    this.#runtime = runtime;
     this.#terminal = terminal;
 
-    // Use all three streams from tee: one for terminal, one for command execution, one for Expo URL detection
-    const { process, commandStream, expoUrlStream } = await this.newBoltShellProcess(webcontainer, terminal);
-    this.#process = process;
-    this.#outputStream = commandStream.getReader();
-
-    // Start background Expo URL watcher immediately
-    this._watchExpoUrlInBackground(expoUrlStream);
+    this.#process = await this.newBoltShellProcess(runtime, terminal);
 
     await this.waitTillOscCode('interactive');
     this.#initialized?.();
   }
 
-  async newBoltShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
-    const args: string[] = [];
-    const process = await webcontainer.spawn('/bin/jsh', ['--osc', ...args], {
+  async newBoltShellProcess(runtime: RuntimeAdapter, terminal: ITerminal) {
+    const session = await runtime.openTerminal({
+      command: '/bin/jsh',
+      args: ['--osc'],
       terminal: {
         cols: terminal.cols ?? 80,
         rows: terminal.rows ?? 15,
       },
     });
 
-    const input = process.input.getWriter();
-    this.#shellInputStream = input;
-
-    // Tee the output so we can have three independent readers
-    const [streamA, streamB] = process.output.tee();
-    const [streamC, streamD] = streamB.tee();
-
-    const jshReady = withResolvers<void>();
     let isInteractive = false;
-    streamA.pipeTo(
-      new WritableStream({
-        write(data) {
-          if (!isInteractive) {
-            const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
 
-            if (osc === 'interactive') {
-              isInteractive = true;
-              jshReady.resolve();
-            }
+    void (async () => {
+      for await (const event of session.events) {
+        const data = event.data ?? '';
+
+        if (!data) {
+          continue;
+        }
+
+        if (!isInteractive) {
+          const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
+
+          if (osc === 'interactive') {
+            isInteractive = true;
           }
+        }
 
-          terminal.write(data);
-        },
-      }),
-    );
+        terminal.write(data);
+        this.#pushOutput(data);
+        this.#watchExpoUrl(data);
+      }
+
+      this.#pushOutput(undefined);
+    })();
 
     terminal.onData((data) => {
       if (isInteractive) {
-        input.write(data);
+        session.write(data);
       }
     });
 
-    await jshReady.promise;
-
-    // Return all streams for use in init
-    return { process, terminalStream: streamA, commandStream: streamC, expoUrlStream: streamD };
+    return session;
   }
 
-  // Dedicated background watcher for Expo URL
-  private async _watchExpoUrlInBackground(stream: ReadableStream<string>) {
-    const reader = stream.getReader();
-    let buffer = '';
+  #expoBuffer = '';
+
+  #watchExpoUrl(data: string) {
+    this.#expoBuffer += data;
+
     const expoUrlRegex = /(exp:\/\/[^\s]+)/;
+    const expoUrlMatch = this.#expoBuffer.match(expoUrlRegex);
 
-    while (true) {
-      const { value, done } = await reader.read();
+    if (expoUrlMatch) {
+      const cleanUrl = expoUrlMatch[1]
+        .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
+        .replace(/[^\x20-\x7E]+$/g, '');
+      expoUrlAtom.set(cleanUrl);
+      this.#expoBuffer = this.#expoBuffer.slice(this.#expoBuffer.indexOf(expoUrlMatch[1]) + expoUrlMatch[1].length);
+    }
 
-      if (done) {
-        break;
-      }
-
-      buffer += value || '';
-
-      const expoUrlMatch = buffer.match(expoUrlRegex);
-
-      if (expoUrlMatch) {
-        const cleanUrl = expoUrlMatch[1]
-          .replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
-          .replace(/[^\x20-\x7E]+$/g, '');
-        expoUrlAtom.set(cleanUrl);
-        buffer = buffer.slice(buffer.indexOf(expoUrlMatch[1]) + expoUrlMatch[1].length);
-      }
-
-      if (buffer.length > 2048) {
-        buffer = buffer.slice(-2048);
-      }
+    if (this.#expoBuffer.length > 2048) {
+      this.#expoBuffer = this.#expoBuffer.slice(-2048);
     }
   }
 
@@ -270,19 +244,17 @@ export class BoltShell {
     let exitCode: number = 0;
     let buffer = ''; // <-- Add a buffer to accumulate output
 
-    if (!this.#outputStream) {
+    if (!this.#process) {
       return { output: fullOutput, exitCode };
     }
-
-    const tappedStream = this.#outputStream;
 
     // Regex for Expo URL
     const expoUrlRegex = /(exp:\/\/[^\s]+)/;
 
     while (true) {
-      const { value, done } = await tappedStream.read();
+      const value = await this.#readOutput();
 
-      if (done) {
+      if (value === undefined) {
         break;
       }
 
@@ -317,6 +289,29 @@ export class BoltShell {
     }
 
     return { output: fullOutput, exitCode };
+  }
+
+  #pushOutput(value: string | undefined) {
+    const waiter = this.#outputWaiters.shift();
+
+    if (waiter) {
+      waiter(value);
+      return;
+    }
+
+    if (value !== undefined) {
+      this.#outputQueue.push(value);
+    }
+  }
+
+  #readOutput() {
+    const value = this.#outputQueue.shift();
+
+    if (value !== undefined) {
+      return Promise.resolve(value);
+    }
+
+    return new Promise<string | undefined>((resolve) => this.#outputWaiters.push(resolve));
   }
 }
 

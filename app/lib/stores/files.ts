@@ -1,9 +1,7 @@
-import type { PathWatcherEvent, WebContainer } from '@webcontainer/api';
-import { getEncoding } from 'istextorbinary';
+import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { map, type MapStore } from 'nanostores';
 import { Buffer } from 'node:buffer';
 import { path } from '~/utils/path';
-import { bufferWatchEvents } from '~/utils/buffer';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
@@ -45,7 +43,7 @@ type Dirent = File | Folder;
 export type FileMap = Record<string, Dirent | undefined>;
 
 export class FilesStore {
-  #webcontainer: Promise<WebContainer>;
+  #runtime: RuntimeAdapter;
 
   /**
    * Tracks the number of files without folders.
@@ -65,7 +63,7 @@ export class FilesStore {
   #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
 
   /**
-   * Map of files that matches the state of WebContainer.
+   * Map of files that matches the state of the active runtime.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
 
@@ -73,8 +71,8 @@ export class FilesStore {
     return this.#size;
   }
 
-  constructor(webcontainerPromise: Promise<WebContainer>) {
-    this.#webcontainer = webcontainerPromise;
+  constructor(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
 
     // Load deleted paths from localStorage if available
     try {
@@ -122,6 +120,40 @@ export class FilesStore {
     }
 
     this.#init();
+  }
+
+  setRuntime(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
+    void this.#init();
+  }
+
+  async reloadFromRuntime(rootPath = '.') {
+    const nodes = await this.#runtime.listFiles(rootPath);
+    const nextFiles: FileMap = {};
+    let fileCount = 0;
+
+    const visit = (node: FileNode) => {
+      const workbenchPath = this.#toWorkbenchPath(node.path).replace(/\/+$/g, '');
+
+      if (node.type === 'directory') {
+        nextFiles[workbenchPath] = { type: 'folder' };
+        node.children?.forEach(visit);
+
+        return;
+      }
+
+      nextFiles[workbenchPath] = {
+        type: 'file',
+        content: node.content ?? '',
+        isBinary: node.encoding === 'base64' || node.encoding === 'binary',
+      };
+      fileCount++;
+    };
+
+    nodes.forEach(visit);
+    this.#size = fileCount;
+    this.files.set(nextFiles);
+    this.#loadLockedFiles();
   }
 
   /**
@@ -548,10 +580,11 @@ export class FilesStore {
   }
 
   async saveFile(filePath: string, content: string) {
-    const webcontainer = await this.#webcontainer;
+    const currentFile = this.files.get()[filePath];
+    const optimisticPreviousFile = currentFile;
 
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
+      const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
@@ -563,26 +596,30 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
-      await webcontainer.fs.writeFile(relativePath, content);
+      this.files.setKey(filePath, {
+        type: 'file',
+        content,
+        isBinary: false,
+        isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
+      });
+
+      if (this.#runtime.mode === 'remote-kubernetes') {
+        const remoteContent = await this.#runtime.readFile(relativePath).catch(() => oldContent);
+
+        if (remoteContent !== oldContent) {
+          throw new Error(`Remote file changed since it was loaded: ${filePath}`);
+        }
+      }
+
+      await this.#runtime.writeFile(relativePath, content);
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, oldContent);
       }
 
-      // Get the current lock state before updating
-      const currentFile = this.files.get()[filePath];
-      const isLocked = currentFile?.type === 'file' ? currentFile.isLocked : false;
-
-      // we immediately update the file and don't rely on the `change` event coming from the watcher
-      this.files.setKey(filePath, {
-        type: 'file',
-        content,
-        isBinary: false,
-        isLocked,
-      });
-
       logger.info('File updated');
     } catch (error) {
+      this.files.setKey(filePath, optimisticPreviousFile);
       logger.error('Failed to update file content\n\n', error);
 
       throw error;
@@ -590,20 +627,15 @@ export class FilesStore {
   }
 
   async #init() {
-    const webcontainer = await this.#webcontainer;
-
     // Clean up any files that were previously deleted
     this.#cleanupDeletedFiles();
 
     // Set up file watcher
-    webcontainer.internal.watchPaths(
-      {
-        include: [`${WORK_DIR}/**`],
-        exclude: ['**/node_modules', '.git', '**/package-lock.json'],
-        includeContent: true,
-      },
-      bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
-    );
+    try {
+      await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
+    } catch (error) {
+      logger.warn('Runtime file watch is not ready yet', error);
+    }
 
     // Get the current chat ID
     const currentChatId = getCurrentChatId();
@@ -693,65 +725,34 @@ export class FilesStore {
     }
   }
 
-  #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
-    const watchEvents = events.flat(2);
+  #processFileChange(change: FileChange) {
+    const sanitizedPath = this.#toWorkbenchPath(change.path).replace(/\/+$/g, '');
 
-    for (const { type, path, buffer } of watchEvents) {
-      // remove any trailing slashes
-      const sanitizedPath = path.replace(/\/+$/g, '');
+    if (change.type === 'delete') {
+      const existing = this.files.get()[sanitizedPath];
+      this.files.setKey(sanitizedPath, undefined);
 
-      switch (type) {
-        case 'add_dir': {
-          // we intentionally add a trailing slash so we can distinguish files from folders in the file tree
-          this.files.setKey(sanitizedPath, { type: 'folder' });
-          break;
-        }
-        case 'remove_dir': {
-          this.files.setKey(sanitizedPath, undefined);
-
-          for (const [direntPath] of Object.entries(this.files)) {
-            if (direntPath.startsWith(sanitizedPath)) {
-              this.files.setKey(direntPath, undefined);
-            }
-          }
-
-          break;
-        }
-        case 'add_file':
-        case 'change': {
-          if (type === 'add_file') {
-            this.#size++;
-          }
-
-          let content = '';
-
-          /**
-           * @note This check is purely for the editor. The way we detect this is not
-           * bullet-proof and it's a best guess so there might be false-positives.
-           * The reason we do this is because we don't want to display binary files
-           * in the editor nor allow to edit them.
-           */
-          const isBinary = isBinaryFile(buffer);
-
-          if (!isBinary) {
-            content = this.#decodeFileContent(buffer);
-          }
-
-          this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
-
-          break;
-        }
-        case 'remove_file': {
-          this.#size--;
-          this.files.setKey(sanitizedPath, undefined);
-          break;
-        }
-        case 'update_directory': {
-          // we don't care about these events
-          break;
-        }
+      if (existing?.type === 'file') {
+        this.#size--;
       }
+
+      return;
     }
+
+    if (change.type === 'create' && change.content === undefined) {
+      this.files.setKey(sanitizedPath, { type: 'folder' });
+      return;
+    }
+
+    const content = change.content ?? '';
+    const isBinary = change.binary ?? false;
+    const existing = this.files.get()[sanitizedPath];
+
+    if (!existing && change.type === 'create') {
+      this.#size++;
+    }
+
+    this.files.setKey(sanitizedPath, { type: 'file', content, isBinary });
   }
 
   #decodeFileContent(buffer?: Uint8Array) {
@@ -768,27 +769,18 @@ export class FilesStore {
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
-    const webcontainer = await this.#webcontainer;
-
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
+      const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
       }
 
-      const dirPath = path.dirname(relativePath);
-
-      if (dirPath !== '.') {
-        await webcontainer.fs.mkdir(dirPath, { recursive: true });
-      }
-
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
-        await webcontainer.fs.writeFile(relativePath, Buffer.from(content));
-
         const base64Content = Buffer.from(content).toString('base64');
+        await this.#runtime.writeFile(relativePath, base64Content);
         this.files.setKey(filePath, {
           type: 'file',
           content: base64Content,
@@ -799,7 +791,7 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
-        await webcontainer.fs.writeFile(relativePath, contentToWrite);
+        await this.#runtime.createFile(relativePath, contentToWrite);
 
         this.files.setKey(filePath, {
           type: 'file',
@@ -821,16 +813,14 @@ export class FilesStore {
   }
 
   async createFolder(folderPath: string) {
-    const webcontainer = await this.#webcontainer;
-
     try {
-      const relativePath = path.relative(webcontainer.workdir, folderPath);
+      const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
       }
 
-      await webcontainer.fs.mkdir(relativePath, { recursive: true });
+      await this.#runtime.createDirectory(relativePath);
 
       this.files.setKey(folderPath, { type: 'folder' });
 
@@ -844,16 +834,14 @@ export class FilesStore {
   }
 
   async deleteFile(filePath: string) {
-    const webcontainer = await this.#webcontainer;
-
     try {
-      const relativePath = path.relative(webcontainer.workdir, filePath);
+      const relativePath = this.#toRuntimePath(filePath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid file path, delete '${relativePath}'`);
       }
 
-      await webcontainer.fs.rm(relativePath);
+      await this.#runtime.deleteFile(relativePath);
 
       this.#deletedPaths.add(filePath);
 
@@ -876,16 +864,14 @@ export class FilesStore {
   }
 
   async deleteFolder(folderPath: string) {
-    const webcontainer = await this.#webcontainer;
-
     try {
-      const relativePath = path.relative(webcontainer.workdir, folderPath);
+      const relativePath = this.#toRuntimePath(folderPath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid folder path, delete '${relativePath}'`);
       }
 
-      await webcontainer.fs.rm(relativePath, { recursive: true });
+      await this.#runtime.deleteFile(relativePath);
 
       this.#deletedPaths.add(folderPath);
 
@@ -930,22 +916,28 @@ export class FilesStore {
       logger.error('Failed to persist deleted paths to localStorage', error);
     }
   }
-}
 
-function isBinaryFile(buffer: Uint8Array | undefined) {
-  if (buffer === undefined) {
-    return false;
+  #toRuntimePath(filePath: string) {
+    if (filePath.startsWith(`${this.#runtime.workdir}/`)) {
+      return filePath.slice(this.#runtime.workdir.length + 1);
+    }
+
+    if (filePath.startsWith(`${WORK_DIR}/`)) {
+      return filePath.slice(WORK_DIR.length + 1);
+    }
+
+    return filePath.replace(/^\/+/, '');
   }
 
-  return getEncoding(convertToBuffer(buffer), { chunkLength: 100 }) === 'binary';
-}
+  #toWorkbenchPath(filePath: string) {
+    if (filePath.startsWith(WORK_DIR)) {
+      return filePath;
+    }
 
-/**
- * Converts a `Uint8Array` into a Node.js `Buffer` by copying the prototype.
- * The goal is to  avoid expensive copies. It does create a new typed array
- * but that's generally cheap as long as it uses the same underlying
- * array buffer.
- */
-function convertToBuffer(view: Uint8Array): Buffer {
-  return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
+    if (filePath.startsWith(this.#runtime.workdir)) {
+      return filePath.replace(this.#runtime.workdir, WORK_DIR);
+    }
+
+    return path.join(WORK_DIR, filePath.replace(/^\/+/, ''));
+  }
 }

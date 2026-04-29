@@ -1,0 +1,14 @@
+{
+  "name": "@vibecore/mobile",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"mobile app scaffolded\"",
+    "build": "echo \"mobile app scaffolded\"",
+    "sync": "echo \"mobile app scaffolded\"",
+    "test": "echo \"mobile app scaffolded\"",
+    "typecheck": "echo \"mobile app scaffolded\"",
+    "lint": "echo \"mobile app scaffolded\""
+  }
+}
+

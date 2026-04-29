@@ -248,6 +248,25 @@ export const CodeMirrorEditor = memo(
     }, [theme]);
 
     useEffect(() => {
+      const insertText = (event: Event) => {
+        const view = viewRef.current;
+        const detail = (event as CustomEvent<{ text?: string }>).detail;
+        const text = detail?.text;
+
+        if (!view || !text || view.state.readOnly) {
+          return;
+        }
+
+        view.dispatch(view.state.replaceSelection(text));
+        view.focus();
+      };
+
+      window.addEventListener('bolt:insert-editor-text', insertText);
+
+      return () => window.removeEventListener('bolt:insert-editor-text', insertText);
+    }, []);
+
+    useEffect(() => {
       editorStatesRef.current = new Map<string, EditorState>();
     }, [id]);
 

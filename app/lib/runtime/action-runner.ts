@@ -1,4 +1,4 @@
-import type { WebContainer } from '@webcontainer/api';
+import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { path as nodePath } from '~/utils/path';
 import { atom, map, type MapStore } from 'nanostores';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
@@ -64,7 +64,7 @@ class ActionCommandError extends Error {
 }
 
 export class ActionRunner {
-  #webcontainer: Promise<WebContainer>;
+  #runtime: RuntimeAdapter;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #shellTerminal: () => BoltShell;
   runnerId = atom<string>(`${Date.now()}`);
@@ -75,13 +75,13 @@ export class ActionRunner {
   buildOutput?: { path: string; exitCode: number; output: string };
 
   constructor(
-    webcontainerPromise: Promise<WebContainer>,
+    runtime: RuntimeAdapter,
     getShellTerminal: () => BoltShell,
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
   ) {
-    this.#webcontainer = webcontainerPromise;
+    this.#runtime = runtime;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
@@ -313,8 +313,7 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
-    const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+    const relativePath = this.#toRuntimePath(action.filePath);
 
     let folder = nodePath.dirname(relativePath);
 
@@ -323,7 +322,7 @@ export class ActionRunner {
 
     if (folder !== '.') {
       try {
-        await webcontainer.fs.mkdir(folder, { recursive: true });
+        await this.#runtime.createDirectory(folder);
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);
@@ -331,7 +330,7 @@ export class ActionRunner {
     }
 
     try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
+      await this.#runtime.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
@@ -346,9 +345,8 @@ export class ActionRunner {
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
     try {
-      const webcontainer = await this.#webcontainer;
       const historyPath = this.#getHistoryPath(filePath);
-      const content = await webcontainer.fs.readFile(historyPath, 'utf-8');
+      const content = await this.#runtime.readFile(historyPath);
 
       return JSON.parse(content);
     } catch (error) {
@@ -358,7 +356,6 @@ export class ActionRunner {
   }
 
   async saveFileHistory(filePath: string, history: FileHistory) {
-    // const webcontainer = await this.#webcontainer;
     const historyPath = this.#getHistoryPath(filePath);
 
     await this.#runFileAction({
@@ -389,24 +386,7 @@ export class ActionRunner {
       source: 'netlify',
     });
 
-    const webcontainer = await this.#webcontainer;
-
-    // Create a new terminal specifically for the build
-    const buildProcess = await webcontainer.spawn('npm', ['run', 'build']);
-
-    let output = '';
-    const outputPromise = buildProcess.output.pipeTo(
-      new WritableStream({
-        write(data) {
-          output += data;
-        },
-      }),
-    );
-
-    const exitCode = await buildProcess.exit;
-    await outputPromise.catch(() => {
-      // Ignore output piping errors; we still have whatever was captured
-    });
+    const { exitCode, output } = await this.#runtime.runCommand({ command: 'npm', args: ['run', 'build'] });
 
     let buildDir = '';
 
@@ -450,10 +430,10 @@ export class ActionRunner {
 
     // Try to find the first existing build directory
     for (const dir of commonBuildDirs) {
-      const dirPath = nodePath.join(webcontainer.workdir, dir);
+      const dirPath = nodePath.join(this.#runtime.workdir, dir);
 
       try {
-        await webcontainer.fs.readdir(dirPath);
+        await this.#runtime.listFiles(dir);
         buildDir = dirPath;
         break;
       } catch {
@@ -463,7 +443,7 @@ export class ActionRunner {
 
     // If no build directory was found, use the default (dist)
     if (!buildDir) {
-      buildDir = nodePath.join(webcontainer.workdir, 'dist');
+      buildDir = nodePath.join(this.#runtime.workdir, 'dist');
     }
 
     const buildResult = {
@@ -588,9 +568,8 @@ export class ActionRunner {
       if (rmMatch) {
         const filePaths = rmMatch[1].split(/\s+/);
 
-        // Check if any of the files exist using WebContainer
+        // Check if any of the files exist using the active runtime adapter.
         try {
-          const webcontainer = await this.#webcontainer;
           const existingFiles = [];
 
           for (const filePath of filePaths) {
@@ -599,7 +578,7 @@ export class ActionRunner {
             } // Skip flags
 
             try {
-              await webcontainer.fs.readFile(filePath);
+              await this.#runtime.readFile(filePath);
               existingFiles.push(filePath);
             } catch {
               // File doesn't exist, skip it
@@ -635,8 +614,7 @@ export class ActionRunner {
         const targetDir = cdMatch[1].trim();
 
         try {
-          const webcontainer = await this.#webcontainer;
-          await webcontainer.fs.readdir(targetDir);
+          await this.#runtime.listFiles(targetDir);
         } catch {
           return {
             shouldModify: true,
@@ -655,8 +633,7 @@ export class ActionRunner {
         const sourceFile = parts[1];
 
         try {
-          const webcontainer = await this.#webcontainer;
-          await webcontainer.fs.readFile(sourceFile);
+          await this.#runtime.readFile(sourceFile);
         } catch {
           return {
             shouldModify: false,
@@ -716,7 +693,7 @@ export class ActionRunner {
         pattern: /command not found/,
         title: 'Command Not Found',
         getMessage: () =>
-          `The command '${firstWord}' is not available in WebContainer.\n\nSuggestion: Check available commands or use a package manager to install it.`,
+          `The command '${firstWord}' is not available in the active runtime.\n\nSuggestion: Check available commands or use a package manager to install it.`,
       },
       {
         pattern: /Is a directory/,
@@ -756,5 +733,13 @@ export class ActionRunner {
       title: `Command Failed (exit code: ${exitCode})`,
       details: `Command: ${trimmedCommand}\n\nOutput: ${output || 'No output available'}${suggestion}`,
     };
+  }
+
+  #toRuntimePath(filePath: string) {
+    if (filePath.startsWith(`${this.#runtime.workdir}/`)) {
+      return filePath.slice(this.#runtime.workdir.length + 1);
+    }
+
+    return filePath.replace(/^\/+/, '');
   }
 }

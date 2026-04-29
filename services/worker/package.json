@@ -1,0 +1,18 @@
+{
+  "name": "@vibecore/worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vibecore/database": "workspace:*",
+    "@vibecore/security": "workspace:*",
+    "bullmq": "^5.76.2",
+    "ioredis": "^5.10.1"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts",
+    "test": "echo \"worker queue tests are covered by integration tests\"",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts",
+    "lint": "pnpm run typecheck"
+  }
+}

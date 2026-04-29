@@ -1,22 +1,35 @@
-import type { WebContainer, WebContainerProcess } from '@webcontainer/api';
+import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
 import { newBoltShellProcess, newShellProcess } from '~/utils/shell';
 import { coloredText } from '~/utils/terminal';
 
 export class TerminalStore {
-  #webcontainer: Promise<WebContainer>;
-  #terminals: Array<{ terminal: ITerminal; process: WebContainerProcess }> = [];
+  #runtime: RuntimeAdapter;
+  #terminals: Array<{ terminal: ITerminal; process: TerminalSession }> = [];
   #boltTerminal = newBoltShellProcess();
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
 
-  constructor(webcontainerPromise: Promise<WebContainer>) {
-    this.#webcontainer = webcontainerPromise;
+  constructor(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
 
     if (import.meta.hot) {
       import.meta.hot.data.showTerminal = this.showTerminal;
     }
+  }
+
+  setRuntime(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
+    this.#terminals.forEach(({ process }) => {
+      try {
+        process.kill();
+      } catch {
+        // terminal cleanup is best-effort when switching project workspaces
+      }
+    });
+    this.#terminals = [];
+    this.#boltTerminal = newBoltShellProcess();
   }
   get boltTerminal() {
     return this.#boltTerminal;
@@ -27,8 +40,7 @@ export class TerminalStore {
   }
   async attachBoltTerminal(terminal: ITerminal) {
     try {
-      const wc = await this.#webcontainer;
-      await this.#boltTerminal.init(wc, terminal);
+      await this.#boltTerminal.init(this.#runtime, terminal);
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn bolt shell\n\n') + error.message);
       return;
@@ -37,7 +49,7 @@ export class TerminalStore {
 
   async attachTerminal(terminal: ITerminal) {
     try {
-      const shellProcess = await newShellProcess(await this.#webcontainer, terminal);
+      const shellProcess = await newShellProcess(this.#runtime, terminal);
       this.#terminals.push({ terminal, process: shellProcess });
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn shell\n\n') + error.message);
@@ -47,7 +59,7 @@ export class TerminalStore {
 
   onTerminalResize(cols: number, rows: number) {
     for (const { process } of this.#terminals) {
-      process.resize({ cols, rows });
+      process.resize(cols, rows);
     }
   }
 

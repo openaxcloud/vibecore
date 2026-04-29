@@ -1,0 +1,19 @@
+{
+  "name": "@vibecore/admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm run typecheck"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.19",
+    "vitest": "^2.1.9"
+  },
+  "devDependencies": {}
+}

@@ -19,7 +19,7 @@ import {
 } from './db';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
-import { webcontainer } from '~/lib/webcontainer';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
 
@@ -39,6 +39,15 @@ export const db = persistenceEnabled ? await openDatabase() : undefined;
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
+
+function toRuntimePath(filePath: string) {
+  if (filePath.startsWith(`${runtimeAdapter.workdir}/`)) {
+    return filePath.slice(runtimeAdapter.workdir.length + 1);
+  }
+
+  return filePath.replace(/^\/+/, '');
+}
+
 export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
@@ -224,8 +233,6 @@ ${value.content}
 
   const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
     // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
-
     const validSnapshot = snapshot || { chatIndex: '', files: {} };
 
     if (!validSnapshot?.files) {
@@ -233,21 +240,15 @@ ${value.content}
     }
 
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
-      }
+      key = toRuntimePath(key);
 
       if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
+        await runtimeAdapter.createDirectory(key);
       }
     });
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
       if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
-        }
-
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
+        await runtimeAdapter.writeFile(toRuntimePath(key), value.content);
       } else {
       }
     });

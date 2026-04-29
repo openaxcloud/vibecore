@@ -29,6 +29,7 @@ import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportCh
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useResponsiveLayout } from '@vibecore/editor';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -38,6 +39,7 @@ interface WorkspaceProps {
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
+  mobilePanel?: 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
 }
 
 const viewTransition = { ease: cubicEasingFn };
@@ -287,6 +289,7 @@ export const Workbench = memo(
     metadata: _metadata,
     updateChatMestaData: _updateChatMestaData,
     setSelectedElement,
+    mobilePanel,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
@@ -305,6 +308,8 @@ export const Workbench = memo(
     const canHideChat = showWorkbench || !showChat;
 
     const isSmallViewport = useViewport(1024);
+    const layout = useResponsiveLayout();
+    const useMobileWorkbench = layout.isMobile || layout.isTabletPortrait;
     const streaming = useStore(streamingState);
     const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
@@ -314,14 +319,24 @@ export const Workbench = memo(
     };
 
     useEffect(() => {
+      if (useMobileWorkbench) {
+        return;
+      }
+
       if (hasPreview) {
         setSelectedView('preview');
       }
-    }, [hasPreview]);
+    }, [hasPreview, useMobileWorkbench]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
     }, [files]);
+
+    useEffect(() => {
+      if (useMobileWorkbench && mobilePanel === 'terminal') {
+        workbenchStore.toggleTerminal(true);
+      }
+    }, [mobilePanel, useMobileWorkbench]);
 
     const onEditorChange = useCallback<OnEditorChange>((update) => {
       workbenchStore.setCurrentDocumentContent(update.content);
@@ -372,19 +387,26 @@ export const Workbench = memo(
       }
     }, []);
 
+    const activeWorkbenchView: WorkbenchViewType =
+      useMobileWorkbench && mobilePanel === 'preview' ? 'preview' : selectedView;
+
     return (
       chatStarted && (
         <motion.div
           initial="closed"
           animate={showWorkbench ? 'open' : 'closed'}
           variants={workbenchVariants}
-          className="z-workbench"
+          className={classNames('z-workbench', {
+            'bolt-workbench-mobile': useMobileWorkbench,
+          })}
         >
           <div
             className={classNames(
               'fixed top-[calc(var(--header-height)+1.2rem)] bottom-6 w-[var(--workbench-inner-width)] z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
+                'top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))]':
+                  useMobileWorkbench,
                 'left-0': showWorkbench && isSmallViewport,
                 'left-[var(--workbench-left)]': showWorkbench,
                 'left-[100%]': !showWorkbench,
@@ -393,7 +415,7 @@ export const Workbench = memo(
           >
             <div className="absolute inset-0 px-2 lg:px-4">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5">
+                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5 overflow-x-auto">
                   <button
                     className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
                     disabled={!canHideChat || isSmallViewport}
@@ -403,9 +425,26 @@ export const Workbench = memo(
                       }
                     }}
                   />
-                  <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
+                  {!useMobileWorkbench && (
+                    <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
+                  )}
+                  {useMobileWorkbench && (
+                    <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+                      <span className="truncate">
+                        {mobilePanel === 'files'
+                          ? 'Files'
+                          : mobilePanel === 'terminal'
+                            ? 'Terminal'
+                            : mobilePanel === 'preview'
+                              ? 'Preview'
+                              : mobilePanel === 'deploy'
+                                ? 'Deploy'
+                                : 'Editor'}
+                      </span>
+                    </div>
+                  )}
                   <div className="ml-auto" />
-                  {selectedView === 'code' && (
+                  {selectedView === 'code' && !useMobileWorkbench && (
                     <div className="flex overflow-y-auto">
                       {/* Export Chat Button */}
                       <ExportChatButton exportChat={exportChat} />
@@ -467,8 +506,16 @@ export const Workbench = memo(
                     </div>
                   )}
 
-                  {selectedView === 'diff' && (
+                  {selectedView === 'diff' && !useMobileWorkbench && (
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
+                  )}
+                  {useMobileWorkbench && mobilePanel === 'editor' && (
+                    <button
+                      className="ml-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textSecondary"
+                      onClick={() => setSelectedView(selectedView === 'diff' ? 'code' : 'diff')}
+                    >
+                      {selectedView === 'diff' ? 'Editor' : 'Review diff'}
+                    </button>
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
@@ -480,7 +527,7 @@ export const Workbench = memo(
                   />
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
+                  <View initial={{ x: '0%' }} animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}>
                     <EditorPanel
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
@@ -493,15 +540,22 @@ export const Workbench = memo(
                       onEditorChange={onEditorChange}
                       onFileSave={onFileSave}
                       onFileReset={onFileReset}
+                      mobilePanel={
+                        mobilePanel === 'files' || mobilePanel === 'terminal' || mobilePanel === 'deploy'
+                          ? mobilePanel
+                          : 'editor'
+                      }
                     />
                   </View>
                   <View
                     initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
+                    animate={{
+                      x: activeWorkbenchView === 'diff' ? '0%' : activeWorkbenchView === 'code' ? '100%' : '-100%',
+                    }}
                   >
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}>
                     <Preview setSelectedElement={setSelectedElement} />
                   </View>
                 </div>

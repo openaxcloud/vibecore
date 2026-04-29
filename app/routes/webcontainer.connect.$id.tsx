@@ -1,4 +1,5 @@
 import { type LoaderFunction } from '@remix-run/cloudflare';
+import { webContainerConnectModuleUrl } from '@vibecore/runtime-webcontainer';
 
 export const loader: LoaderFunction = async ({ request }) => {
   const url = new URL(request.url);
@@ -16,7 +17,7 @@ export const loader: LoaderFunction = async ({ request }) => {
       <body>
         <script type="module">
           (async () => {
-            const { setupConnect } = await import('https://cdn.jsdelivr.net/npm/@webcontainer/api@latest/dist/connect.js');
+            const { setupConnect } = await import('${webContainerConnectModuleUrl}');
             setupConnect({
               editorOrigin: '${editorOrigin}'
             });

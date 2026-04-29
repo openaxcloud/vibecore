@@ -1,0 +1,39 @@
+import type { MetaFunction } from '@remix-run/cloudflare';
+import { useLoaderData } from '@remix-run/react';
+import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
+import { apiRequest, firstOrganization, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+
+export const meta: MetaFunction = () => [{ title: 'Recent projects - VibeCore' }];
+
+type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
+
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const organization = await firstOrganization(request);
+  const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
+
+  return {
+    projects: result.projects
+      .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
+      .map((project) => ({
+        id: project.id,
+        name: project.name,
+        status: 'Ready',
+        updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
+        stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
+        sourceType: project.sourceType,
+      })),
+  };
+}
+
+export default function RecentProjectsPage() {
+  const { projects } = useLoaderData<typeof loader>();
+
+  return (
+    <AppShell
+      title="Recent projects"
+      description="Continue from the projects and workspaces you touched most recently."
+    >
+      <ProjectGrid projects={projects} />
+    </AppShell>
+  );
+}

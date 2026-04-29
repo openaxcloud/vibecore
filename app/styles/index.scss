@@ -71,3 +71,197 @@ body {
   // Firefox support for inverted colors
   scrollbar-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%) transparent;
 }
+
+.bolt-responsive-ide {
+  min-height: 100dvh;
+  color-scheme: light dark;
+}
+
+.bolt-responsive-ide-mobile {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.bolt-mobile-tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  display: none;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 2px;
+  min-height: calc(58px + env(safe-area-inset-bottom, 0px));
+  padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px))
+    max(6px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--bolt-elements-borderColor);
+  background: color-mix(in srgb, var(--bolt-elements-bg-depth-2), transparent 4%);
+  backdrop-filter: blur(18px);
+}
+
+.bolt-mobile-tabbar button {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 8px;
+  color: var(--bolt-elements-textTertiary);
+  font-size: 10px;
+  line-height: 1.1;
+  touch-action: manipulation;
+}
+
+.bolt-mobile-tabbar button span:first-child {
+  font-size: 18px;
+}
+
+.bolt-mobile-tabbar button[aria-current='page'] {
+  background: var(--bolt-elements-bg-depth-3);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-connection-status {
+  position: fixed;
+  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
+  left: 50%;
+  z-index: 1000;
+  max-width: min(92vw, 560px);
+  transform: translateX(-50%);
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 999px;
+  background: var(--bolt-elements-bg-depth-2);
+  color: var(--bolt-elements-textSecondary);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  padding: 8px 12px;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.bolt-connection-status[data-online='false'] {
+  opacity: 1;
+}
+
+.bolt-notifications-button {
+  position: fixed;
+  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 1000;
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 999px;
+  background: var(--bolt-elements-bg-depth-2);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-notifications-center {
+  position: fixed;
+  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 54px);
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  z-index: 1001;
+  width: min(360px, calc(100vw - 24px));
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  background: var(--bolt-elements-bg-depth-2);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+  padding: 12px;
+}
+
+.vc-touch-symbol-toolbar {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-bottom: 1px solid var(--bolt-elements-borderColor);
+  background: var(--bolt-elements-bg-depth-2);
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.vc-touch-symbol-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.vc-touch-symbol-toolbar button {
+  min-width: 36px;
+  min-height: 34px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 7px;
+  background: var(--bolt-elements-bg-depth-1);
+  color: var(--bolt-elements-textPrimary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  touch-action: manipulation;
+}
+
+@media (max-width: 767px) {
+  .bolt-mobile-tabbar {
+    display: grid;
+  }
+
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  .bolt-responsive-ide-mobile [data-chat-visible] {
+    min-height: 100dvh;
+  }
+
+  .bolt-workbench-mobile {
+    --workbench-inner-width: 100vw;
+  }
+
+  .bolt-responsive-ide-mobile .Toastify__toast-container {
+    right: 8px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    left: 8px;
+    width: auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .bolt-mobile-tabbar {
+    display: grid;
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    max-width: 720px;
+    margin: 0 auto;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 14px;
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  :root {
+    --workbench-width: min(62vw, 760px);
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --workbench-width: min(58vw, 980px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

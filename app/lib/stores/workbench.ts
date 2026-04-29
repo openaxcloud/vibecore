@@ -1,8 +1,9 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
+import type { CommandEvent, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { webcontainer } from '~/lib/webcontainer';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
@@ -36,10 +37,11 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
-  #previewsStore = new PreviewsStore(webcontainer);
-  #filesStore = new FilesStore(webcontainer);
+  #runtime: RuntimeAdapter = runtimeAdapter;
+  #previewsStore = new PreviewsStore(this.#runtime);
+  #filesStore = new FilesStore(this.#runtime);
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(webcontainer);
+  #terminalStore = new TerminalStore(this.#runtime);
 
   #reloadedMessages = new Set<string>();
 
@@ -56,6 +58,17 @@ export class WorkbenchStore {
     import.meta.hot?.data.deployAlert ?? atom<DeployAlert | undefined>(undefined);
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
+  workspaceStatus: WritableAtom<WorkspaceSession | undefined> =
+    import.meta.hot?.data.workspaceStatus ?? atom<WorkspaceSession | undefined>(undefined);
+  workspaceLoading: WritableAtom<boolean> = import.meta.hot?.data.workspaceLoading ?? atom(false);
+  workspaceError: WritableAtom<string | undefined> =
+    import.meta.hot?.data.workspaceError ?? atom<string | undefined>(undefined);
+  workspaceLogs: WritableAtom<string[]> = import.meta.hot?.data.workspaceLogs ?? atom<string[]>([]);
+  quotaWarning: WritableAtom<string | undefined> =
+    import.meta.hot?.data.quotaWarning ?? atom<string | undefined>(undefined);
+  billingUpgradePrompt: WritableAtom<string | undefined> =
+    import.meta.hot?.data.billingUpgradePrompt ?? atom<string | undefined>(undefined);
+  #snapshottedArtifacts = new Set<string>();
   #globalExecutionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
@@ -66,6 +79,12 @@ export class WorkbenchStore {
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
+      import.meta.hot.data.workspaceStatus = this.workspaceStatus;
+      import.meta.hot.data.workspaceLoading = this.workspaceLoading;
+      import.meta.hot.data.workspaceError = this.workspaceError;
+      import.meta.hot.data.workspaceLogs = this.workspaceLogs;
+      import.meta.hot.data.quotaWarning = this.quotaWarning;
+      import.meta.hot.data.billingUpgradePrompt = this.billingUpgradePrompt;
 
       // Ensure binary files are properly preserved across hot reloads
       const filesMap = this.files.get();
@@ -77,6 +96,34 @@ export class WorkbenchStore {
         }
       }
     }
+  }
+
+  configureRuntime(runtime: RuntimeAdapter) {
+    if (this.#runtime === runtime) {
+      return;
+    }
+
+    this.#runtime = runtime;
+    this.#previewsStore.setRuntime(runtime);
+    this.#filesStore.setRuntime(runtime);
+    this.#terminalStore.setRuntime(runtime);
+    this.artifacts.set({});
+    this.artifactIdList = [];
+    this.#snapshottedArtifacts.clear();
+  }
+
+  async loadRuntimeFiles(rootPath = '.') {
+    await this.#filesStore.reloadFromRuntime(rootPath);
+    this.setDocuments(this.files.get());
+  }
+
+  async refreshRuntimePorts() {
+    await this.#previewsStore.refreshPorts();
+  }
+
+  appendWorkspaceLog(event: CommandEvent | string) {
+    const line = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
+    this.workspaceLogs.set([...this.workspaceLogs.get(), line].slice(-500));
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
@@ -482,7 +529,7 @@ export class WorkbenchStore {
       closed: false,
       type,
       runner: new ActionRunner(
-        webcontainer,
+        this.#runtime,
         () => this.boltTerminal,
         (alert) => {
           if (this.#reloadedMessages.has(messageId)) {
@@ -562,8 +609,9 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
-      const wc = await webcontainer;
-      const fullPath = path.join(wc.workdir, data.action.filePath);
+      await this.#createAutomaticSnapshotBeforeLargeAiChange(data);
+
+      const fullPath = path.join(this.#runtime.workdir, data.action.filePath);
 
       /*
        * For scoped locks, we would need to implement diff checking here
@@ -597,6 +645,30 @@ export class WorkbenchStore {
       }
     } else {
       await artifact.runner.runAction(data);
+    }
+  }
+
+  async #createAutomaticSnapshotBeforeLargeAiChange(data: ActionCallbackData) {
+    if (this.#runtime.mode !== 'remote-kubernetes') {
+      return;
+    }
+
+    if (this.#snapshottedArtifacts.has(data.artifactId)) {
+      return;
+    }
+
+    const contentLength = data.action.type === 'file' ? data.action.content.length : 0;
+
+    if (contentLength < 8_000) {
+      return;
+    }
+
+    this.#snapshottedArtifacts.add(data.artifactId);
+
+    try {
+      await this.#runtime.createSnapshot(`Before AI changes ${data.artifactId}`);
+    } catch (error) {
+      console.warn('Failed to create automatic pre-AI snapshot:', error);
     }
   }
 

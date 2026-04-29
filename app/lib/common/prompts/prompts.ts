@@ -498,7 +498,7 @@ ULTRA IMPORTANT: Think first and reply with the artifact that contains all neces
       - Always include a index.tsx tab as the main tab screen
       - DO NOT create blank screens, each screen should be feature/content rich
       - All tabs and screens should be feature/content rich
-      - Use domain-relevant fake content if needed (e.g., product names, avatars)
+      - Use domain-relevant sample content if needed (e.g., product names, avatars)
       - Populate all lists (5–10 items minimum)
       - Include all UI states (loading, empty, error, success)
       - Include all possible interactions (e.g., buttons, links, etc.)

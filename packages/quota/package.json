@@ -1,0 +1,12 @@
+{
+  "name": "@vibecore/quota",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo \"quota package is TypeScript source\"",
+    "test": "echo \"quota package tests are covered by services/api\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm run typecheck"
+  }
+}

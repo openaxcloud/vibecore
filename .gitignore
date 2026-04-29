@@ -26,6 +26,9 @@ dist-ssr
 /.cache
 /build
 functions/build/
+.vibecore-project-storage/
+**/.vibecore/
+test-results/
 .env.local
 .env
 .dev.vars
@@ -45,4 +48,6 @@ changelogUI.md
 docs/instructions/Roadmap.md
 .cursorrules
 *.md
+!docs/*.md
+!docs/**/*.md
 .qodo

@@ -12,6 +12,10 @@ import { createWindow } from './ui/window';
 import { initCookies, storeCookies } from './utils/cookie';
 import { loadServerBuild, serveAsset } from './utils/serve';
 import { reloadOnChange } from './utils/reload';
+import { setupDesktopAuthIpc } from './desktop/auth';
+import { setupCrashReporting } from './desktop/crash-reporting';
+import { setupDeepLinks } from './desktop/deep-links';
+import { setupNativeDesktopServices } from './desktop/native-services';
 
 Object.assign(console, log.functions);
 
@@ -68,9 +72,20 @@ declare global {
   var __electron__: typeof electron;
 }
 
+let mainWindow: BrowserWindow | undefined;
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
+setupDeepLinks(() => mainWindow);
+setupCrashReporting();
+
 (async () => {
   await app.whenReady();
   console.log('App is ready');
+  setupDesktopAuthIpc();
 
   // Load any existing cookies from ElectronStore, set as cookie
   await initCookies();
@@ -170,10 +185,12 @@ declare global {
   console.log('Using renderer URL:', rendererURL);
 
   const win = await createWindow(rendererURL);
+  mainWindow = win;
+  setupNativeDesktopServices(() => mainWindow);
 
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      await createWindow(rendererURL);
+      mainWindow = await createWindow(rendererURL);
     }
   });
 

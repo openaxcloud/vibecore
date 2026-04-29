@@ -84,6 +84,8 @@ export default defineConfig((config) => {
       'OLLAMA_API_BASE_URL',
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
+      'RUNTIME_MODE',
+      'RUNTIME_API_BASE_URL',
     ],
     css: {
       preprocessorOptions: {
@@ -100,6 +102,7 @@ export default defineConfig((config) => {
         '**/.{idea,git,cache,output,temp}/**',
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
+        '**/tests/e2e/**',
       ],
     },
   };

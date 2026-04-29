@@ -1,0 +1,13 @@
+{
+  "name": "@vibecore/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -C ../.. dev",
+    "build": "pnpm -C ../.. build",
+    "test": "pnpm -C ../.. test",
+    "typecheck": "pnpm -C ../.. typecheck",
+    "lint": "pnpm -C ../.. lint"
+  }
+}
+

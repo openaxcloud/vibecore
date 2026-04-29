@@ -1,6 +1,6 @@
-import type { WebContainer } from '@webcontainer/api';
+import type { FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { webcontainer as webcontainerPromise } from '~/lib/webcontainer';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import git, { type GitAuth, type PromiseFsClient } from 'isomorphic-git';
 import http from 'isomorphic-git/http/web';
 import Cookies from 'js-cookie';
@@ -30,22 +30,22 @@ const saveGitAuth = (url: string, auth: GitAuth) => {
 
 export function useGit() {
   const [ready, setReady] = useState(false);
-  const [webcontainer, setWebcontainer] = useState<WebContainer>();
+  const [runtime, setRuntime] = useState<RuntimeAdapter>();
   const [fs, setFs] = useState<PromiseFsClient>();
   const fileData = useRef<Record<string, { data: any; encoding?: string }>>({});
   useEffect(() => {
-    webcontainerPromise.then((container) => {
+    runtimeAdapter.startWorkspace().then(() => {
       fileData.current = {};
-      setWebcontainer(container);
-      setFs(getFs(container, fileData));
+      setRuntime(runtimeAdapter);
+      setFs(getFs(runtimeAdapter, fileData));
       setReady(true);
     });
   }, []);
 
   const gitClone = useCallback(
     async (url: string, retryCount = 0) => {
-      if (!webcontainer || !fs || !ready) {
-        throw new Error('Webcontainer not initialized. Please try again later.');
+      if (!runtime || !fs || !ready) {
+        throw new Error('Runtime not initialized. Please try again later.');
       }
 
       fileData.current = {};
@@ -84,7 +84,7 @@ export function useGit() {
         await git.clone({
           fs,
           http,
-          dir: webcontainer.workdir,
+          dir: runtime.workdir,
           url: baseUrl,
           depth: 1,
           singleBranch: true,
@@ -135,7 +135,7 @@ export function useGit() {
           data[key] = value;
         }
 
-        return { workdir: webcontainer.workdir, data };
+        return { workdir: runtime.workdir, data };
       } catch (error) {
         console.error('Git clone error:', error);
 
@@ -175,23 +175,22 @@ export function useGit() {
         }
       }
     },
-    [webcontainer, fs, ready],
+    [runtime, fs, ready],
   );
 
   return { ready, gitClone };
 }
 
 const getFs = (
-  webcontainer: WebContainer,
+  runtime: RuntimeAdapter,
   record: MutableRefObject<Record<string, { data: any; encoding?: string }>>,
 ) => ({
   promises: {
-    readFile: async (path: string, options: any) => {
-      const encoding = options?.encoding;
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+    readFile: async (path: string, _options: any) => {
+      const relativePath = toRuntimePath(runtime, path);
 
       try {
-        const result = await webcontainer.fs.readFile(relativePath, encoding);
+        const result = await runtime.readFile(relativePath);
 
         return result;
       } catch (error) {
@@ -199,85 +198,74 @@ const getFs = (
       }
     },
     writeFile: async (path: string, data: any, options: any = {}) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+      const relativePath = toRuntimePath(runtime, path);
 
       if (record.current) {
         record.current[relativePath] = { data, encoding: options?.encoding };
       }
 
       try {
-        // Handle encoding properly based on data type
         if (data instanceof Uint8Array) {
-          // For binary data, don't pass encoding
-          const result = await webcontainer.fs.writeFile(relativePath, data);
-          return result;
+          await runtime.writeFile(relativePath, new TextDecoder().decode(data));
         } else {
-          // For text data, use the encoding if provided
-          const encoding = options?.encoding || 'utf8';
-          const result = await webcontainer.fs.writeFile(relativePath, data, encoding);
-
-          return result;
+          await runtime.writeFile(relativePath, String(data));
         }
       } catch (error) {
         throw error;
       }
     },
-    mkdir: async (path: string, options: any) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+    mkdir: async (path: string, _options: any) => {
+      const relativePath = toRuntimePath(runtime, path);
 
       try {
-        const result = await webcontainer.fs.mkdir(relativePath, { ...options, recursive: true });
-
-        return result;
+        await runtime.createDirectory(relativePath);
       } catch (error) {
         throw error;
       }
     },
     readdir: async (path: string, options: any) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+      const relativePath = toRuntimePath(runtime, path);
 
       try {
-        const result = await webcontainer.fs.readdir(relativePath, options);
+        const result = await runtime.listFiles(relativePath);
 
-        return result;
+        if (options?.withFileTypes) {
+          return result.map(toDirent);
+        }
+
+        return result.map((node) => node.name);
       } catch (error) {
         throw error;
       }
     },
-    rm: async (path: string, options: any) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+    rm: async (path: string, _options: any) => {
+      const relativePath = toRuntimePath(runtime, path);
 
       try {
-        const result = await webcontainer.fs.rm(relativePath, { ...(options || {}) });
-
-        return result;
+        await runtime.deleteFile(relativePath);
       } catch (error) {
         throw error;
       }
     },
-    rmdir: async (path: string, options: any) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
+    rmdir: async (path: string, _options: any) => {
+      const relativePath = toRuntimePath(runtime, path);
 
       try {
-        const result = await webcontainer.fs.rm(relativePath, { recursive: true, ...options });
-
-        return result;
+        await runtime.deleteFile(relativePath);
       } catch (error) {
         throw error;
       }
     },
     unlink: async (path: string) => {
-      const relativePath = pathUtils.relative(webcontainer.workdir, path);
-
       try {
-        return await webcontainer.fs.rm(relativePath, { recursive: false });
+        return await runtime.deleteFile(toRuntimePath(runtime, path));
       } catch (error) {
         throw error;
       }
     },
     stat: async (path: string) => {
       try {
-        const relativePath = pathUtils.relative(webcontainer.workdir, path);
+        const relativePath = toRuntimePath(runtime, path);
         const dirPath = pathUtils.dirname(relativePath);
         const fileName = pathUtils.basename(relativePath);
 
@@ -308,7 +296,7 @@ const getFs = (
           };
         }
 
-        const resp = await webcontainer.fs.readdir(dirPath, { withFileTypes: true });
+        const resp = (await runtime.listFiles(dirPath)).map(toDirent);
         const fileInfo = resp.find((x) => x.name === fileName);
 
         if (!fileInfo) {
@@ -355,28 +343,48 @@ const getFs = (
       }
     },
     lstat: async (path: string) => {
-      return await getFs(webcontainer, record).promises.stat(path);
+      return await getFs(runtime, record).promises.stat(path);
     },
     readlink: async (path: string) => {
       throw new Error(`EINVAL: invalid argument, readlink '${path}'`);
     },
     symlink: async (target: string, path: string) => {
       /*
-       * Since WebContainer doesn't support symlinks,
-       * we'll throw a "operation not supported" error
+       * The runtime-backed git filesystem does not support symlinks yet,
+       * so we throw an "operation not supported" error.
        */
       throw new Error(`EPERM: operation not permitted, symlink '${target}' -> '${path}'`);
     },
 
     chmod: async (_path: string, _mode: number) => {
       /*
-       * WebContainer doesn't support changing permissions,
-       * but we can pretend it succeeded for compatibility
+       * Permission changes are not supported by the runtime-backed git filesystem yet,
+       * but we can pretend they succeeded for compatibility.
        */
       return await Promise.resolve();
     },
   },
 });
+
+function toRuntimePath(runtime: RuntimeAdapter, filePath: string) {
+  if (filePath === runtime.workdir) {
+    return '.';
+  }
+
+  if (filePath.startsWith(`${runtime.workdir}/`)) {
+    return filePath.slice(runtime.workdir.length + 1);
+  }
+
+  return filePath.replace(/^\/+/, '') || '.';
+}
+
+function toDirent(node: FileNode) {
+  return {
+    name: node.name,
+    isFile: () => node.type === 'file',
+    isDirectory: () => node.type === 'directory',
+  };
+}
 
 const pathUtils = {
   dirname: (path: string) => {

@@ -1,8 +1,8 @@
 import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
-import { path } from '~/utils/path';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { useState } from 'react';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { chatId } from '~/lib/persistence/useChatHistory';
@@ -82,58 +82,10 @@ export function useGitHubDeploy() {
         source: 'github',
       });
 
-      // Get all project files instead of just the build directory since we're deploying to a repository
-      const container = await webcontainer;
-
-      // Get all files recursively - we'll deploy the entire project, not just the build directory
-      async function getAllFiles(dirPath: string, basePath: string = ''): Promise<Record<string, string>> {
-        const files: Record<string, string> = {};
-        const entries = await container.fs.readdir(dirPath, { withFileTypes: true });
-
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-
-          // Create a relative path without the leading slash for GitHub
-          const relativePath = basePath ? `${basePath}/${entry.name}` : entry.name;
-
-          // Skip node_modules, .git directories and other common excludes
-          if (
-            entry.isDirectory() &&
-            (entry.name === 'node_modules' ||
-              entry.name === '.git' ||
-              entry.name === 'dist' ||
-              entry.name === 'build' ||
-              entry.name === '.cache' ||
-              entry.name === '.next')
-          ) {
-            continue;
-          }
-
-          if (entry.isFile()) {
-            // Skip binary files, large files and other common excludes
-            if (entry.name.endsWith('.DS_Store') || entry.name.endsWith('.log') || entry.name.startsWith('.env')) {
-              continue;
-            }
-
-            try {
-              const content = await container.fs.readFile(fullPath, 'utf-8');
-
-              // Store the file with its relative path, not the full system path
-              files[relativePath] = content;
-            } catch (error) {
-              console.warn(`Could not read file ${fullPath}:`, error);
-              continue;
-            }
-          } else if (entry.isDirectory()) {
-            const subFiles = await getAllFiles(fullPath, relativePath);
-            Object.assign(files, subFiles);
-          }
-        }
-
-        return files;
-      }
-
-      const fileContents = await getAllFiles('/');
+      const fileContents = await collectRuntimeTextFiles(runtimeAdapter, '/', {
+        excludeDirectory: (name) => ['node_modules', '.git', 'dist', 'build', '.cache', '.next'].includes(name),
+        excludeFile: (name) => name.endsWith('.DS_Store') || name.endsWith('.log') || name.startsWith('.env'),
+      });
 
       /*
        * Show GitHub deployment dialog here - it will handle the actual deployment
