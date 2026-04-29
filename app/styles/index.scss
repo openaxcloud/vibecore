@@ -222,6 +222,20 @@ body {
   background: var(--bolt-elements-bg-depth-1);
 }
 
+.bolt-project-agent-panel {
+  --chat-max-width: min(100%, 34rem);
+  width: 100%;
+  container-type: inline-size;
+}
+
+.bolt-project-agent-panel .max-w-chat {
+  max-width: min(100%, var(--chat-max-width));
+}
+
+.bolt-project-agent-panel textarea {
+  min-width: 0;
+}
+
 .bolt-project-ide-panel {
   display: flex;
   height: 100%;
@@ -335,11 +349,30 @@ body {
   :root {
     --workbench-width: min(62vw, 760px);
   }
+
+  .bolt-project-ide-panels {
+    padding: 8px;
+  }
+
+  .bolt-project-agent-panel {
+    --chat-max-width: min(100%, 30rem);
+  }
+
+  .bolt-project-agent-panel [class*='px-6'] {
+    padding-right: 0.875rem;
+    padding-left: 0.875rem;
+  }
 }
 
 @media (min-width: 1200px) {
   :root {
     --workbench-width: min(58vw, 980px);
+  }
+}
+
+@media (min-width: 1440px) {
+  .bolt-project-agent-panel {
+    --chat-max-width: min(100%, 38rem);
   }
 }
 

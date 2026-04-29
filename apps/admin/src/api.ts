@@ -30,7 +30,7 @@ export interface AdminRecord {
   [key: string]: unknown;
 }
 
-const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001').replace(/\/+$/, '');
+const API_URL = (import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3001').replace(/\/+$/, '');
 
 function authHeaders() {
   const token = localStorage.getItem('vibecore_admin_token') ?? '';

@@ -182,6 +182,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
     }, [projectFiles]);
 
+    const projectPanelLayout = useMemo(() => {
+      if (layout.isTabletLandscape) {
+        return {
+          agent: { defaultSize: 31, minSize: 24, maxSize: 42 },
+          workspace: { defaultSize: 45, minSize: 34 },
+          files: { defaultSize: 24, minSize: 20, maxSize: 32 },
+        };
+      }
+
+      return {
+        agent: { defaultSize: 32, minSize: 22, maxSize: 44 },
+        workspace: { defaultSize: 45, minSize: 32 },
+        files: { defaultSize: 23, minSize: 18, maxSize: 34 },
+      };
+    }, [layout.isTabletLandscape]);
+
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       restoredProjectId.current = undefined;
@@ -531,7 +547,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const agentPanel = (
       <div
-        className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full', {
+        data-testid="ide-agent-panel"
+        className={classNames(styles.Chat, 'flex h-full min-h-0 flex-col flex-grow', {
+          'lg:min-w-[var(--chat-min-width)]': !projectIdeMode,
+          'min-w-0 overflow-hidden bolt-project-agent-panel': projectIdeMode,
           hidden: useMobileIde && mobilePanel !== 'chat',
         })}
       >
@@ -681,7 +700,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const projectIdePanels = (
       <PanelGroup direction="horizontal" className="bolt-project-ide-panels">
-        <Panel defaultSize={34} minSize={24} maxSize={48} className="min-w-0">
+        <Panel
+          defaultSize={projectPanelLayout.agent.defaultSize}
+          minSize={projectPanelLayout.agent.minSize}
+          maxSize={projectPanelLayout.agent.maxSize}
+          className="min-w-0"
+        >
           <section className="bolt-project-ide-panel" aria-label="AI agent">
             <div className="bolt-project-ide-panel-header">
               <span className="i-ph:sparkle" aria-hidden />
@@ -691,7 +715,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </section>
         </Panel>
         <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-        <Panel defaultSize={43} minSize={28} className="min-w-0">
+        <Panel
+          defaultSize={projectPanelLayout.workspace.defaultSize}
+          minSize={projectPanelLayout.workspace.minSize}
+          className="min-w-0"
+        >
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
             <PanelGroup direction="vertical" className="min-h-0 flex-1">
               <Panel defaultSize={54} minSize={28} className="min-h-0">
@@ -748,7 +776,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           </section>
         </Panel>
         <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-        <Panel defaultSize={23} minSize={18} maxSize={34} className="min-w-0">
+        <Panel
+          defaultSize={projectPanelLayout.files.defaultSize}
+          minSize={projectPanelLayout.files.minSize}
+          maxSize={projectPanelLayout.files.maxSize}
+          className="min-w-0"
+        >
           <section className="bolt-project-ide-panel" aria-label="Project files">
             <div className="bolt-project-ide-panel-header">
               {[

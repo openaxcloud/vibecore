@@ -1208,6 +1208,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await app.register(jwt, { secret: options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me' });
   await app.register(cors, {
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id'],
     origin(origin, callback) {
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
@@ -1312,14 +1314,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: user.id,
     });
 
-    return reply
-      .code(201)
-      .send({
-        token,
-        verificationToken: isProduction ? undefined : verificationToken,
-        user: { id: user.id, email: user.email, name: user.name },
-        organization,
-      });
+    return reply.code(201).send({
+      token,
+      verificationToken: isProduction ? undefined : verificationToken,
+      user: { id: user.id, email: user.email, name: user.name },
+      organization,
+    });
   });
 
   app.post('/auth/login', async (request, reply) => {
@@ -1536,6 +1536,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.addHook('preHandler', async (request, reply) => {
     if (
+      request.method === 'OPTIONS' ||
       request.url === '/health' ||
       request.url === '/ready' ||
       request.url.startsWith('/auth/register') ||

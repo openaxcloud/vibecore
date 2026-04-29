@@ -36,6 +36,13 @@ test.describe('responsive IDE shell', () => {
     await page.goto('/projects/project_responsive/ide', { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
+
+    const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
+    const viewport = page.viewportSize();
+    expect(agentBox?.width).toBeGreaterThan(260);
+    expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   });
 
   test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {
@@ -55,5 +62,20 @@ test.describe('responsive IDE shell', () => {
 
     await mobileNav.getByRole('button', { name: 'Terminal', exact: true }).tap();
     await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
+  });
+
+  test('tablet landscape sizes the agent panel fluidly without horizontal overflow', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'tablet landscape assertion');
+    await page.setViewportSize({ width: 1024, height: 768 });
+
+    await authenticate(page);
+    await page.goto('/projects/project_tablet_landscape/ide', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible({ timeout: 15000 });
+
+    const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
+    expect(agentBox?.width).toBeGreaterThan(220);
+    expect(agentBox?.width).toBeLessThan(460);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   });
 });

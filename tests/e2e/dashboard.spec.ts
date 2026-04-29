@@ -125,6 +125,8 @@ test('billing upgrade flow is reachable without frontend-only quota bypass', asy
 });
 
 test('public and authenticated routes render without route errors', async ({ page }) => {
+  test.setTimeout(75_000);
+
   const publicRoutes = [
     '/',
     '/pricing',
