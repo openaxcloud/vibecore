@@ -70,6 +70,31 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Agent', { exact: true })).toBeVisible();
+  const agentPanel = page.getByRole('region', { name: 'AI agent' });
+  await expect(agentPanel).toBeVisible();
+  await expect(page.getByLabel('Resize AI agent panel')).toBeVisible();
+  await expect(page.getByPlaceholder('Describe what you want to build...')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add a feature' })).toBeVisible();
+  const agentMetrics = await agentPanel.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      position: style.position,
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      background: style.backgroundColor,
+      borderRight: style.borderRightColor,
+    };
+  });
+  expect(agentMetrics.position).toBe('fixed');
+  expect(agentMetrics.left).toBe(0);
+  expect(agentMetrics.top).toBe(36);
+  expect(agentMetrics.width).toBe(420);
+  expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
+  expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });

@@ -65,6 +65,7 @@ export interface ProjectIdeMemory {
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
     paneTree?: ProjectIdePaneNode;
     activePaneId?: string;
+    agentWidth?: number;
     terminalBottomOpen?: boolean;
     cursorPositions?: Record<string, { line: number; column: number; offset?: number }>;
     scrollPositions?: Record<string, number>;

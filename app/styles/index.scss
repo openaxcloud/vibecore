@@ -249,11 +249,11 @@ body {
 }
 
 .bolt-project-ide-panels {
-  width: 100%;
-  height: calc(100% - 24px);
-  min-height: 0;
-  gap: 0;
-  padding: 0;
+  --project-agent-width: 420px;
+  position: fixed;
+  inset: 36px 0 0 0;
+  width: 100vw;
+  height: calc(100vh - 36px);
   background: #0a0f1c;
   color: #f5f9fc;
 }
@@ -270,6 +270,66 @@ body {
 
 .bolt-project-agent-panel textarea {
   min-width: 0;
+}
+
+.bolt-project-agent-panel [data-radix-scroll-area-viewport],
+.bolt-project-agent-panel .modern-scrollbar {
+  scrollbar-width: thin;
+}
+
+.bolt-project-agent-suggestions {
+  display: flex;
+  max-width: min(100%, var(--chat-max-width));
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 2px 2px;
+  scrollbar-width: none;
+}
+
+.bolt-project-agent-suggestions button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  border: 1px solid #2b3245;
+  border-radius: 999px;
+  background: #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+
+.bolt-project-agent-suggestions button:hover {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-chatbox {
+  min-height: 80px;
+  border-color: #2b3245 !important;
+  border-radius: 12px !important;
+  background: #1a2030 !important;
+  padding: 8px !important;
+  box-shadow: none !important;
+}
+
+.bolt-project-chatbox textarea {
+  min-height: 76px;
+  padding: 8px 44px 8px 8px !important;
+  color: #f5f9fc;
+  font-size: 13px !important;
+}
+
+.bolt-project-chatbox textarea::placeholder {
+  color: #6e7681;
+}
+
+.bolt-project-chatbox > div {
+  border-color: #2b3245 !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+}
+
+.bolt-project-chatbox:focus-within {
+  border-color: #0099ff !important;
 }
 
 .bolt-project-ide-panel {
@@ -360,8 +420,43 @@ body {
 }
 
 .bolt-project-agent-shell {
-  position: relative;
+  position: fixed;
+  top: 36px;
+  left: 0;
+  z-index: 35;
+  width: var(--project-agent-width);
+  height: calc(100vh - 36px);
   border-right: 1px solid #1a2030;
+  background: #0e1525;
+}
+
+.bolt-project-workspace-shell {
+  position: fixed;
+  top: 36px;
+  right: 0;
+  bottom: 24px;
+  left: var(--project-agent-width);
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: #0a0f1c;
+}
+
+.bolt-project-agent-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  z-index: 4;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-agent-resize-handle:hover,
+.bolt-project-agent-resize-handle:active {
+  background: #0099ff;
 }
 
 .bolt-project-agent-header {
@@ -983,7 +1078,7 @@ body {
   position: fixed;
   right: 0;
   bottom: 0;
-  left: max(360px, 29vw);
+  left: var(--project-agent-width, 420px);
   z-index: 40;
   display: flex;
   height: 24px;

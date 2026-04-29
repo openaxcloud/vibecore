@@ -448,6 +448,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
     const [activePaneId, setActivePaneId] = useState('pane-main');
+    const [agentWidth, setAgentWidth] = useState(420);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
@@ -471,22 +472,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
     }, [projectFiles]);
-
-    const projectPanelLayout = useMemo(() => {
-      if (layout.isTabletLandscape) {
-        return {
-          agent: { defaultSize: 31, minSize: 24, maxSize: 42 },
-          workspace: { defaultSize: 45, minSize: 34 },
-          files: { defaultSize: 24, minSize: 20, maxSize: 32 },
-        };
-      }
-
-      return {
-        agent: { defaultSize: 29.17, minSize: 25, maxSize: 44.45 },
-        workspace: { defaultSize: 47.83, minSize: 32 },
-        files: { defaultSize: 23, minSize: 18, maxSize: 34 },
-      };
-    }, [layout.isTabletLandscape]);
 
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
@@ -584,6 +569,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (typeof ui?.activePaneId === 'string') {
             setActivePaneId(ui.activePaneId);
+          }
+
+          if (typeof ui?.agentWidth === 'number') {
+            setAgentWidth(Math.min(640, Math.max(360, ui.agentWidth)));
           }
 
           if (typeof ui?.terminalBottomOpen === 'boolean') {
@@ -685,6 +674,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             activeWorkspacePanel,
             paneTree,
             activePaneId,
+            agentWidth,
             terminalBottomOpen,
             cursorPositions,
             scrollPositions,
@@ -711,6 +701,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeWorkspacePanel,
       paneTree,
       activePaneId,
+      agentWidth,
       terminalBottomOpen,
       cursorPositions,
       scrollPositions,
@@ -875,6 +866,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
     }, []);
+
+    const startAgentResize = useCallback(
+      (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+
+        const startX = event.clientX;
+        const startWidth = agentWidth;
+
+        const onMove = (moveEvent: MouseEvent) => {
+          const nextWidth = Math.min(640, Math.max(360, startWidth + moveEvent.clientX - startX));
+          setAgentWidth(nextWidth);
+        };
+
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      },
+      [agentWidth],
+    );
 
     useEffect(() => {
       if (!projectIdeMode || useMobileIde) {
@@ -1319,6 +1333,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
             </div>
             {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+            {projectIdeMode && (
+              <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
+                {['Add a feature', 'Fix this bug', 'Deploy', 'Optimize performance'].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={(event) => handleSendMessage?.(event, suggestion)}
+                    disabled={isStreaming}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
             <ChatBox
               isModelSettingsCollapsed={isModelSettingsCollapsed}
               setIsModelSettingsCollapsed={setIsModelSettingsCollapsed}
@@ -1361,6 +1389,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               selectedElement={selectedElement}
               setSelectedElement={setSelectedElement}
               onWebSearchResult={onWebSearchResult}
+              projectIdeMode={projectIdeMode}
+              placeholder={projectIdeMode ? 'Describe what you want to build...' : undefined}
             />
           </div>
         </StickToBottom>
@@ -1697,154 +1727,140 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const projectIdePanels = (
-      <PanelGroup direction="horizontal" className="bolt-project-ide-panels">
-        <Panel
-          defaultSize={projectPanelLayout.agent.defaultSize}
-          minSize={projectPanelLayout.agent.minSize}
-          maxSize={projectPanelLayout.agent.maxSize}
-          className="min-w-0"
-        >
-          <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
-            <div className="bolt-project-agent-header">
-              <div className="bolt-project-agent-avatar" aria-hidden>
-                <span className="i-ph:sparkle" />
-              </div>
-              <span className="bolt-project-agent-title">Agent</span>
-              <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
-                <button type="button" aria-pressed={chatMode === 'build'} onClick={() => setChatMode?.('build')}>
-                  Build
-                </button>
-                <button type="button" aria-pressed={chatMode === 'discuss'} onClick={() => setChatMode?.('discuss')}>
-                  Discuss
-                </button>
-              </div>
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="Conversation history"
-                  onClick={() => setConversationHistoryOpen((value) => !value)}
-                >
-                  <span className="i-ph:clock" aria-hidden />
-                </button>
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="New chat"
-                  onClick={resetChat}
-                >
-                  <span className="i-ph:plus" aria-hidden />
-                </button>
-                <Link to="/settings/providers" className="bolt-project-ide-icon-button" aria-label="Agent settings">
-                  <span className="i-ph:sliders-horizontal" aria-hidden />
-                </Link>
-              </div>
+      <div
+        className="bolt-project-ide-panels"
+        style={{ '--project-agent-width': `${agentWidth}px` } as React.CSSProperties}
+      >
+        <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
+          <div className="bolt-project-agent-header">
+            <div className="bolt-project-agent-avatar" aria-hidden>
+              <span className="i-ph:sparkle" />
             </div>
-            {conversationHistoryOpen && (
-              <div className="bolt-project-conversation-history">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.4px] text-[#6E7681]">History</div>
-                {(messages ?? []).slice(-8).map((message, index) => (
-                  <button
-                    key={`${message.id ?? index}`}
-                    type="button"
-                    onClick={() => setConversationHistoryOpen(false)}
-                  >
-                    <strong>{message.role === 'user' ? 'You' : 'Agent'}</strong>
-                    <span>{String(message.content ?? '').slice(0, 92) || 'Tool call'}</span>
-                  </button>
-                ))}
-                {!(messages ?? []).length && <small>No messages in this project conversation yet.</small>}
-              </div>
-            )}
-            <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
-          </section>
-        </Panel>
-        <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-        <Panel
-          defaultSize={
-            rightPanelOpen ? projectPanelLayout.workspace.defaultSize : 100 - projectPanelLayout.agent.defaultSize
-          }
-          minSize={projectPanelLayout.workspace.minSize}
-          className="min-w-0"
-        >
-          <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-            <PanelGroup direction="vertical" className="min-h-0 flex-1">
-              <Panel defaultSize={terminalBottomOpen ? 70 : 100} minSize={30} className="min-h-0 min-w-0">
-                {renderPaneNode(paneTree)}
-              </Panel>
-              {terminalBottomOpen && (
-                <>
-                  <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
-                  <Panel defaultSize={30} minSize={12} maxSize={55} className="min-h-0">
-                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
+            <span className="bolt-project-agent-title">Agent</span>
+            <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
+              <button type="button" aria-pressed={chatMode === 'build'} onClick={() => setChatMode?.('build')}>
+                Build
+              </button>
+              <button type="button" aria-pressed={chatMode === 'discuss'} onClick={() => setChatMode?.('discuss')}>
+                Discuss
+              </button>
+            </div>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                className="bolt-project-ide-icon-button"
+                aria-label="Conversation history"
+                onClick={() => setConversationHistoryOpen((value) => !value)}
+              >
+                <span className="i-ph:clock" aria-hidden />
+              </button>
+              <button type="button" className="bolt-project-ide-icon-button" aria-label="New chat" onClick={resetChat}>
+                <span className="i-ph:plus" aria-hidden />
+              </button>
+              <Link to="/settings/providers" className="bolt-project-ide-icon-button" aria-label="Agent settings">
+                <span className="i-ph:sliders-horizontal" aria-hidden />
+              </Link>
+            </div>
+          </div>
+          {conversationHistoryOpen && (
+            <div className="bolt-project-conversation-history">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.4px] text-[#6E7681]">History</div>
+              {(messages ?? []).slice(-8).map((message, index) => (
+                <button key={`${message.id ?? index}`} type="button" onClick={() => setConversationHistoryOpen(false)}>
+                  <strong>{message.role === 'user' ? 'You' : 'Agent'}</strong>
+                  <span>{String(message.content ?? '').slice(0, 92) || 'Tool call'}</span>
+                </button>
+              ))}
+              {!(messages ?? []).length && <small>No messages in this project conversation yet.</small>}
+            </div>
+          )}
+          <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+          <div
+            className="bolt-project-agent-resize-handle"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize AI agent panel"
+            onMouseDown={startAgentResize}
+          />
+        </section>
+        <div className="bolt-project-workspace-shell">
+          <PanelGroup direction="horizontal" className="min-h-0 min-w-0 flex-1">
+            <Panel defaultSize={rightPanelOpen ? 72 : 100} minSize={35} className="min-w-0">
+              <section className="bolt-project-ide-panel" aria-label="Editor and preview">
+                <PanelGroup direction="vertical" className="min-h-0 flex-1">
+                  <Panel defaultSize={terminalBottomOpen ? 70 : 100} minSize={30} className="min-h-0 min-w-0">
+                    {renderPaneNode(paneTree)}
                   </Panel>
-                </>
-              )}
-            </PanelGroup>
-          </section>
-        </Panel>
-        {rightPanelOpen && (
-          <>
-            <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-            <Panel
-              defaultSize={projectPanelLayout.files.defaultSize}
-              minSize={projectPanelLayout.files.minSize}
-              maxSize={projectPanelLayout.files.maxSize}
-              className="min-w-0"
-            >
-              <section className="bolt-project-ide-panel" aria-label="Project files">
-                <div className="bolt-project-right-tabs">
-                  {[
-                    ['files', 'Files', 'i-ph:files'],
-                    ['search', 'Search', 'i-ph:magnifying-glass'],
-                    ['locks', 'Locks', 'i-ph:lock'],
-                  ].map(([id, label, icon]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className="bolt-project-right-tab"
-                      aria-current={rightPanel === id ? 'page' : undefined}
-                      onClick={() => setRightPanel(id as typeof rightPanel)}
-                    >
-                      <span className={icon} aria-hidden />
-                      {label}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="bolt-project-ide-icon-button ml-auto"
-                    aria-label="Close project files"
-                    onClick={() => setRightPanelOpen(false)}
-                  >
-                    <span className="i-ph:sidebar-simple" aria-hidden />
-                  </button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-auto">
-                  {rightPanel === 'files' && (
-                    <FileTree
-                      className="h-full"
-                      files={projectFiles}
-                      hideRoot
-                      unsavedFiles={unsavedFiles}
-                      rootFolder={WORK_DIR}
-                      selectedFile={selectedFile}
-                      onFileSelect={(filePath) => {
-                        workbenchStore.setSelectedFile(filePath);
-                        workbenchStore.currentView.set('code');
-                        workbenchStore.setShowWorkbench(true);
-                      }}
-                      onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                      onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                    />
+                  {terminalBottomOpen && (
+                    <>
+                      <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
+                      <Panel defaultSize={30} minSize={12} maxSize={55} className="min-h-0">
+                        <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
+                      </Panel>
+                    </>
                   )}
-                  {rightPanel === 'search' && <Search />}
-                  {rightPanel === 'locks' && <LockManager />}
-                </div>
+                </PanelGroup>
               </section>
             </Panel>
-          </>
-        )}
-      </PanelGroup>
+            {rightPanelOpen && (
+              <>
+                <PanelResizeHandle className="bolt-project-ide-resize-handle" />
+                <Panel defaultSize={28} minSize={18} maxSize={38} className="min-w-0">
+                  <section className="bolt-project-ide-panel" aria-label="Project files">
+                    <div className="bolt-project-right-tabs">
+                      {[
+                        ['files', 'Files', 'i-ph:files'],
+                        ['search', 'Search', 'i-ph:magnifying-glass'],
+                        ['locks', 'Locks', 'i-ph:lock'],
+                      ].map(([id, label, icon]) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className="bolt-project-right-tab"
+                          aria-current={rightPanel === id ? 'page' : undefined}
+                          onClick={() => setRightPanel(id as typeof rightPanel)}
+                        >
+                          <span className={icon} aria-hidden />
+                          {label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="bolt-project-ide-icon-button ml-auto"
+                        aria-label="Close project files"
+                        onClick={() => setRightPanelOpen(false)}
+                      >
+                        <span className="i-ph:sidebar-simple" aria-hidden />
+                      </button>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-auto">
+                      {rightPanel === 'files' && (
+                        <FileTree
+                          className="h-full"
+                          files={projectFiles}
+                          hideRoot
+                          unsavedFiles={unsavedFiles}
+                          rootFolder={WORK_DIR}
+                          selectedFile={selectedFile}
+                          onFileSelect={(filePath) => {
+                            workbenchStore.setSelectedFile(filePath);
+                            workbenchStore.currentView.set('code');
+                            workbenchStore.setShowWorkbench(true);
+                          }}
+                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+                        />
+                      )}
+                      {rightPanel === 'search' && <Search />}
+                      {rightPanel === 'locks' && <LockManager />}
+                    </div>
+                  </section>
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
+        </div>
+      </div>
     );
 
     const commandPaletteEntries = [
@@ -1981,6 +1997,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           'bolt-responsive-ide-tablet-landscape': layout.isTabletLandscape,
           'bolt-responsive-ide-desktop': layout.isDesktop,
         })}
+        style={
+          projectIdeMode && !useMobileIde
+            ? ({ '--project-agent-width': `${agentWidth}px` } as React.CSSProperties)
+            : undefined
+        }
         data-chat-visible={showChat}
         data-mobile-panel={mobilePanel}
       >
