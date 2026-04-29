@@ -34,6 +34,12 @@
   --vc-ui-scrollbar-size: 10px;
   --vc-ui-scrollbar-thumb: rgb(43 50 69 / 0.72);
   --vc-ui-scrollbar-thumb-hover: #3b4358;
+  --vc-button-bg: transparent;
+  --vc-button-solid-bg: #1a2030;
+  --vc-button-hover-bg: #2b3245;
+  --vc-button-active-bg: #3b4358;
+  --vc-button-disabled-opacity: 0.4;
+  --vc-button-loading-spinner-size: 14px;
   font-family:
     var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
@@ -43,8 +49,8 @@
   color: #f4f4f5;
   --bg: #0a0a0b;
   --panel: #121214;
-  --panel-raised: #18181b;
-  --panel-soft: #202024;
+  --panel-raised: #1a2030;
+  --panel-soft: #2b3245;
   --border: #2f2f35;
   --border-strong: #46464f;
   --text: #f4f4f5;
@@ -151,7 +157,10 @@ body :where(.uppercase, [class*="uppercase"], label, legend, th) {
 }
 
 body :where(button, [role="button"], .btn, .button, summary) {
+  position: relative;
   border-radius: var(--vc-ui-radius-button);
+  background-color: var(--vc-button-bg);
+  cursor: pointer;
   transition:
     background-color var(--vc-ui-transition-hover),
     border-color var(--vc-ui-transition-hover),
@@ -159,6 +168,57 @@ body :where(button, [role="button"], .btn, .button, summary) {
     opacity var(--vc-ui-transition-hover),
     filter var(--vc-ui-transition-hover),
     transform var(--vc-ui-transition-hover);
+}
+
+body :where(button[data-variant="default"], button[data-variant="secondary"], .vc-button-solid) {
+  background-color: var(--vc-button-solid-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled="true"]):hover) {
+  background-color: var(--vc-button-hover-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:active, [aria-pressed="true"], [data-state="active"]) {
+  background-color: var(--vc-button-active-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"]) {
+  cursor: progress;
+}
+
+body
+  :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])
+  > :where(svg, .lucide, [class*="i-"]):first-child {
+  opacity: 0;
+}
+
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])::before {
+  position: absolute;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: "";
+  inset: 50% auto auto 50%;
+  margin: calc(var(--vc-button-loading-spinner-size) / -2) 0 0 calc(var(--vc-button-loading-spinner-size) / -2);
+}
+
+@keyframes vc-button-spinner {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 body :where(input, select, textarea) {
@@ -241,10 +301,6 @@ body :where(.lucide, svg[data-lucide]) {
 *::-webkit-scrollbar-thumb:hover {
   background: var(--vc-ui-scrollbar-thumb-hover);
   background-clip: content-box;
-}
-
-button {
-  cursor: pointer;
 }
 
 button:focus-visible,

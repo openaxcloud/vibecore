@@ -6,6 +6,13 @@ async function injectUiDetailsFixture(page: Page) {
     fixture.setAttribute('data-testid', 'ui-details-fixture');
     fixture.innerHTML = `
       <button data-testid="ui-details-button">Button</button>
+      <button class="vc-button-solid" data-testid="ui-button-solid">Solid</button>
+      <button data-testid="ui-button-hover">Hover</button>
+      <button data-testid="ui-button-active">Active</button>
+      <button disabled data-testid="ui-button-disabled">Disabled</button>
+      <button data-loading="true" data-testid="ui-button-loading" style="width: 28px; height: 28px;">
+        <svg class="lucide" data-testid="ui-button-loading-icon" viewBox="0 0 24 24"><path d="M4 12h16" /></svg>
+      </button>
       <input data-testid="ui-details-input" value="Input" />
       <div class="card" data-testid="ui-details-card">Card</div>
       <div role="dialog" data-testid="ui-details-modal">Modal</div>
@@ -56,6 +63,12 @@ async function readUiDetails(page: Page) {
       tooltipBorder: root.getPropertyValue('--vc-ui-tooltip-border').trim().toLowerCase(),
       tooltipDelay: root.getPropertyValue('--vc-ui-tooltip-delay').trim(),
       scrollbarSize: root.getPropertyValue('--vc-ui-scrollbar-size').trim(),
+      buttonBgToken: root.getPropertyValue('--vc-button-bg').trim(),
+      buttonSolidBgToken: root.getPropertyValue('--vc-button-solid-bg').trim().toLowerCase(),
+      buttonHoverBgToken: root.getPropertyValue('--vc-button-hover-bg').trim().toLowerCase(),
+      buttonActiveBgToken: root.getPropertyValue('--vc-button-active-bg').trim().toLowerCase(),
+      buttonDisabledOpacityToken: root.getPropertyValue('--vc-button-disabled-opacity').trim(),
+      buttonLoadingSpinnerSizeToken: root.getPropertyValue('--vc-button-loading-spinner-size').trim(),
       buttonRadius: button.borderRadius,
       buttonTransitionDuration: button.transitionDuration,
       buttonTransitionTiming: button.transitionTimingFunction,
@@ -83,6 +96,67 @@ async function readUiDetails(page: Page) {
   });
 }
 
+async function expectButtonStates(page: Page) {
+  const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
+    const root = window.getComputedStyle(document.documentElement);
+    const plain = window.getComputedStyle(document.querySelector('[data-testid="ui-details-button"]')!);
+    const solid = window.getComputedStyle(document.querySelector('[data-testid="ui-button-solid"]')!);
+    const disabled = window.getComputedStyle(document.querySelector('[data-testid="ui-button-disabled"]')!);
+    const loading = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!);
+    const loadingBefore = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!, '::before');
+    const loadingIcon = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading-icon"]')!);
+
+    return {
+      tokenDefault: root.getPropertyValue('--vc-button-bg').trim(),
+      tokenSolid: root.getPropertyValue('--vc-button-solid-bg').trim().toLowerCase(),
+      tokenHover: root.getPropertyValue('--vc-button-hover-bg').trim().toLowerCase(),
+      tokenActive: root.getPropertyValue('--vc-button-active-bg').trim().toLowerCase(),
+      tokenDisabledOpacity: root.getPropertyValue('--vc-button-disabled-opacity').trim(),
+      tokenSpinnerSize: root.getPropertyValue('--vc-button-loading-spinner-size').trim(),
+      plainBackground: plain.backgroundColor,
+      solidBackground: solid.backgroundColor,
+      disabledOpacity: disabled.opacity,
+      disabledCursor: disabled.cursor,
+      loadingCursor: loading.cursor,
+      loadingBeforeContent: loadingBefore.content,
+      loadingBeforeWidth: loadingBefore.width,
+      loadingBeforeHeight: loadingBefore.height,
+      loadingBeforeBorderRadius: loadingBefore.borderRadius,
+      loadingBeforeAnimationName: loadingBefore.animationName,
+      loadingIconOpacity: loadingIcon.opacity,
+    };
+  });
+
+  expect(details.tokenDefault).toBe('transparent');
+  expect(details.tokenSolid).toBe('#1a2030');
+  expect(details.tokenHover).toBe('#2b3245');
+  expect(details.tokenActive).toBe('#3b4358');
+  expect(details.tokenDisabledOpacity).toBe('0.4');
+  expect(details.tokenSpinnerSize).toBe('14px');
+  expect(details.plainBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(details.solidBackground).toBe('rgb(26, 32, 48)');
+  expect(details.disabledOpacity).toBe('0.4');
+  expect(details.disabledCursor).toBe('not-allowed');
+  expect(details.loadingCursor).toBe('progress');
+  expect(details.loadingBeforeContent).toBe('""');
+  expect(details.loadingBeforeWidth).toBe('14px');
+  expect(details.loadingBeforeHeight).toBe('14px');
+  expect(details.loadingBeforeBorderRadius).toBe('9999px');
+  expect(details.loadingBeforeAnimationName).toBe('vc-button-spinner');
+  expect(details.loadingIconOpacity).toBe('0');
+
+  await page.getByTestId('ui-button-hover').hover();
+  await expect(page.getByTestId('ui-button-hover')).toHaveCSS('background-color', 'rgb(43, 50, 69)');
+
+  const activeButton = page.getByTestId('ui-button-active');
+  const box = await activeButton.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await expect(activeButton).toHaveCSS('background-color', 'rgb(59, 67, 88)');
+  await page.mouse.up();
+}
+
 function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(details.radiusButton).toBe('4px');
   expect(details.radiusInput).toBe('6px');
@@ -101,6 +175,12 @@ function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(details.tooltipBorder).toBe('#2b3245');
   expect(details.tooltipDelay).toBe('500ms');
   expect(details.scrollbarSize).toBe('10px');
+  expect(details.buttonBgToken).toBe('transparent');
+  expect(details.buttonSolidBgToken).toBe('#1a2030');
+  expect(details.buttonHoverBgToken).toBe('#2b3245');
+  expect(details.buttonActiveBgToken).toBe('#3b4358');
+  expect(details.buttonDisabledOpacityToken).toBe('0.4');
+  expect(details.buttonLoadingSpinnerSizeToken).toBe('14px');
   expect(details.buttonRadius).toBe('4px');
   expect(details.buttonTransitionDuration).toContain('0.15s');
   expect(details.buttonTransitionTiming).toContain('ease-out');
@@ -136,4 +216,17 @@ test('admin console applies section 12 UI detail tokens', async ({ page }) => {
   await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
   await injectUiDetailsFixture(page);
   expectUiDetails(await readUiDetails(page));
+});
+
+test('public platform applies section 13 button states', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await injectUiDetailsFixture(page);
+  await expectButtonStates(page);
+});
+
+test('admin console applies section 13 button states', async ({ page }) => {
+  await page.goto('http://127.0.0.1:5174', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
+  await injectUiDetailsFixture(page);
+  await expectButtonStates(page);
 });
