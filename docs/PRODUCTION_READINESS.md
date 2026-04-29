@@ -4,6 +4,8 @@ Date: 2026-04-29
 
 Scope: final strict repo-level review for private beta, paid users, 1,000 users, and 10,000 users across the 34 requested areas, including iOS and Android app readiness.
 
+Reviewed commit: `f8cbdd2` plus this readiness update.
+
 ## Verdict
 
 This repository is not approved for production launch, paid users, 1,000 users, or 10,000 users.
@@ -11,6 +13,16 @@ This repository is not approved for production launch, paid users, 1,000 users, 
 The codebase has substantial SaaS, runtime, security, infrastructure, CI/CD, and documentation foundations. It can be treated as a private-beta candidate only after the live environment gates in this document are executed successfully. The current evidence is repo-local plus Docker/PostgreSQL-backed API tests, not a proven live production deployment.
 
 This product is not assessed as an MVP. The review only accepts real, typed, tested, documented, integrated implementation evidence. Permanent mocks are not acceptable substitutes for critical production flows. Bolt IDE preservation remains a hard requirement.
+
+## Acceptance Criteria Status
+
+| Criterion | Status | Evidence |
+| --- | --- | --- |
+| Code is real, typed, tested, documented, and integrated | partial | Repo-local checks pass, but live runtime, provider, billing, backup, and load evidence is missing. |
+| No permanent mock replaces a critical feature | partial | The review flags provider/live-environment gaps as blockers instead of accepting mocks as production substitutes. |
+| Existing Bolt IDE is not removed | complete | Bolt workbench/chat/editor/terminal/preview files remain present and are still part of the build. |
+| Tests, build, typecheck, docs, and acceptance checks pass before claiming completion | complete for repo-local gate | `typecheck`, `lint`, `test`, `build`, API Prisma tests, and `readiness:validate` passed in this review cycle. |
+| Platform can be called production ready | missing | Live GKE isolation, Stripe webhooks, load tests, backup restore, external provider checks, and desktop/mobile release evidence are still missing. |
 
 ## Readiness By Stage
 

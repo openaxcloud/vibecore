@@ -65,6 +65,21 @@ if (!readiness.includes('Private beta')) {
   failures.push('PRODUCTION_READINESS.md must include private beta readiness');
 }
 
+const strictPhrases = [
+  'This product is not assessed as an MVP',
+  'Permanent mocks are not acceptable substitutes for critical production flows',
+  'Bolt IDE preservation remains a hard requirement',
+  'Acceptance Criteria Status',
+  'Platform can be called production ready',
+  'missing',
+];
+
+for (const phrase of strictPhrases) {
+  if (!readiness.includes(phrase)) {
+    failures.push(`PRODUCTION_READINESS.md is missing strict readiness phrase: ${phrase}`);
+  }
+}
+
 for (const item of requiredItems) {
   if (!matrix.includes(`| ${requiredItems.indexOf(item) + 1} | ${item} |`)) {
     failures.push(`COMPLETION_MATRIX.md is missing item: ${item}`);
