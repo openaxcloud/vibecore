@@ -1,0 +1,19 @@
+{{- if .Values.global.dns01.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.ingress.issuerName }}
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  acme:
+    email: ops@{{ .Values.global.appDomain }}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: {{ .Values.ingress.issuerName }}-account-key
+    solvers:
+      - dns01:
+          cloudDNS:
+            project: {{ .Values.global.dns01.project | quote }}
+            hostedZoneName: {{ .Values.global.dns01.hostedZoneName | quote }}
+{{- end }}

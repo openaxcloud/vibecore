@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-app
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts: [{{ .Values.global.appDomain | quote }}]
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.global.appDomain | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" . }}-web
+                port:
+                  name: http
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" . }}-api
+                port:
+                  name: http
+          - path: /runtime
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" . }}-workspace-manager
+                port:
+                  name: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-preview
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts: ["*.{{ .Values.global.previewDomain }}"]
+      secretName: {{ .Values.ingress.previewTlsSecretName }}
+  rules:
+    - host: "*.{{ .Values.global.previewDomain }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" . }}-preview-proxy
+                port:
+                  name: http

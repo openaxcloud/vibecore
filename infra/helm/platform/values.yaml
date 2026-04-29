@@ -1,0 +1,100 @@
+global:
+  environment: staging
+  imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore
+  imageTag: latest
+  appDomain: staging.example.com
+  previewDomain: preview.staging.example.com
+  dns01:
+    enabled: true
+    project: PROJECT
+    hostedZoneName: staging-example-com
+  labels:
+    app.kubernetes.io/part-of: vibecore
+  workloadIdentity:
+    web: ""
+    admin: ""
+    api: ""
+    worker: ""
+    aiGateway: ""
+    workspaceManager: ""
+    previewProxy: ""
+
+secrets:
+  existingSecret: vibecore-platform-secrets
+
+ingress:
+  className: nginx
+  issuerName: letsencrypt-dns01
+  tlsSecretName: vibecore-platform-tls
+  previewTlsSecretName: vibecore-preview-wildcard-tls
+
+services:
+  web:
+    enabled: true
+    image: web
+    port: 3000
+    replicas: 3
+    command: []
+    path: /
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  admin:
+    enabled: true
+    image: admin
+    port: 3000
+    replicas: 2
+    path: /admin
+    resources:
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  api:
+    enabled: true
+    image: api
+    port: 3001
+    replicas: 3
+    path: /api
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  worker:
+    enabled: true
+    image: worker
+    port: 3002
+    replicas: 2
+    path: ""
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  aiGateway:
+    enabled: true
+    image: ai-gateway
+    port: 3010
+    replicas: 3
+    path: /ai
+    resources:
+      requests: { cpu: 500m, memory: 1Gi }
+      limits: { cpu: "2", memory: 2Gi }
+  workspaceManager:
+    enabled: true
+    image: workspace-manager
+    port: 3020
+    replicas: 2
+    path: /runtime
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+  previewProxy:
+    enabled: true
+    image: preview-proxy
+    port: 3030
+    replicas: 3
+    path: /
+    host: "*.preview.staging.example.com"
+    resources:
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
+
+podSecurity:
+  enabled: true
+  enforce: restricted

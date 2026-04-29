@@ -1,0 +1,82 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: vibecore-workspace-restricted
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-gvisor-runtime
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+              namespaces: ["workspaces"]
+      validate:
+        message: "Workspace pods must use runtimeClassName: gvisor."
+        pattern:
+          spec:
+            runtimeClassName: gvisor
+    - name: block-privileged-and-host-access
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+              namespaces: ["workspaces"]
+      validate:
+        message: "Workspace pods cannot use privileged mode, host namespaces, hostPath, or privilege escalation."
+        pattern:
+          spec:
+            =(hostNetwork): "false"
+            =(hostPID): "false"
+            =(hostIPC): "false"
+            =(volumes):
+              - X(hostPath): "null"
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: false
+                  privileged: false
+                  runAsNonRoot: true
+                  capabilities:
+                    drop: ["ALL"]
+    - name: require-resources-labels-probes
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+              namespaces: ["workspaces"]
+      validate:
+        message: "Workspace pods require labels, resource requests/limits, liveness and readiness probes."
+        pattern:
+          metadata:
+            labels:
+              orgId: "?*"
+              projectId: "?*"
+              workspaceId: "?*"
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"
+                livenessProbe: "?*"
+                readinessProbe: "?*"
+    - name: block-latest-tag
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+              namespaces: ["workspaces"]
+      validate:
+        message: "Production workspace images cannot use the latest tag."
+        deny:
+          conditions:
+            any:
+              - key: "{{ images.containers.*.tag || '' }}"
+                operator: AnyIn
+                value: ["latest"]
