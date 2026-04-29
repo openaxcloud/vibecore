@@ -488,8 +488,9 @@ body {
 .bolt-project-workspace-shell {
   position: absolute;
   top: 36px;
+  right: var(--project-right-panel-width, 0px);
   left: var(--project-agent-width);
-  width: calc(100vw - var(--project-agent-width));
+  width: auto;
   height: calc(100vh - 36px);
   padding-bottom: 24px;
   box-sizing: border-box;
@@ -497,6 +498,46 @@ body {
   min-width: 0;
   min-height: 0;
   background: #0a0f1c;
+}
+
+.bolt-project-right-panel-shell {
+  position: fixed;
+  top: 36px;
+  right: 0;
+  z-index: 38;
+  display: flex;
+  width: var(--project-right-panel-width, 400px);
+  min-width: 300px;
+  max-width: 700px;
+  height: calc(100vh - 36px);
+  flex-direction: column;
+  border-left: 1px solid #1a2030;
+  background: #0e1525;
+  box-shadow: -12px 0 32px rgb(0 4 20 / 0.35);
+}
+
+.bolt-project-right-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  z-index: 2;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-right-resize-handle:hover,
+.bolt-project-right-resize-handle:active {
+  background: #0099ff;
+}
+
+.bolt-project-right-panel-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .bolt-project-agent-resize-handle {
@@ -691,7 +732,7 @@ body {
 
 .bolt-project-tool-menu {
   position: absolute;
-  right: 0;
+  left: 0;
   top: 32px;
   z-index: 60;
   width: 320px;
@@ -888,6 +929,63 @@ body {
   flex: 1;
   flex-direction: column;
   background: #0a0f1c;
+}
+
+.bolt-project-network-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-network-grid {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.bolt-project-network-grid > div {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: #0e1525;
+  padding: 12px;
+}
+
+.bolt-project-network-grid strong {
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bolt-project-network-grid button,
+.bolt-project-network-grid p {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 8px;
+  border-radius: 6px;
+  color: #c2c8cc;
+  font-size: 12px;
+  margin: 0;
+  padding: 8px;
+  text-align: left;
+}
+
+.bolt-project-network-grid button:hover {
+  background: #1a2030;
+}
+
+.bolt-project-network-grid small {
+  grid-column: 2;
+  overflow: hidden;
+  color: #6e7681;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bolt-project-files-tool {

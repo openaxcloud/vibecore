@@ -1118,7 +1118,7 @@ describe('SaaS API', () => {
             id: `project:${projectId}`,
             messages: [{ id: 'msg_1', role: 'user', content: 'Continue from yesterday' }],
           },
-          ui: { selectedFile: '/workspace/src/App.tsx', currentView: 'preview', rightPanel: 'files' },
+          ui: { selectedFile: '/workspace/src/App.tsx', currentView: 'preview', rightPanel: 'webview' },
         },
       },
     });

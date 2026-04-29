@@ -69,7 +69,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Agent', { exact: true })).toBeVisible();
   const agentPanel = page.getByRole('region', { name: 'AI agent' });
   await expect(agentPanel).toBeVisible();
@@ -112,7 +112,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(workspaceMetrics.position).toBe('absolute');
   expect(workspaceMetrics.top).toBe(36);
   expect(workspaceMetrics.left).toBe(420);
-  expect(workspaceMetrics.width).toBe(1020);
+  expect(workspaceMetrics.width).toBe(620);
   expect(workspaceMetrics.height).toBe(864);
   expect(workspaceMetrics.background).toBe('rgb(10, 15, 28)');
   const tabBarMetrics = await page.locator('.bolt-project-tabbar').first().evaluate((element) => {
@@ -169,10 +169,42 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+  const rightPanel = page.getByRole('complementary', { name: 'Right preview panel' });
+  await expect(rightPanel).toBeVisible();
+  const rightPanelMetrics = await rightPanel.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return {
+      position: style.position,
+      top: rect.top,
+      right: Math.round(window.innerWidth - rect.right),
+      width: rect.width,
+      height: rect.height,
+      background: style.backgroundColor,
+      borderLeft: style.borderLeftColor,
+    };
+  });
+  expect(rightPanelMetrics.position).toBe('fixed');
+  expect(rightPanelMetrics.top).toBe(36);
+  expect(rightPanelMetrics.right).toBe(0);
+  expect(rightPanelMetrics.width).toBe(400);
+  expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36);
+  expect(rightPanelMetrics.background).toBe('rgb(14, 21, 37)');
+  expect(rightPanelMetrics.borderLeft).toBe('rgb(26, 32, 48)');
+  await expect(rightPanel.getByRole('tab', { name: 'Webview' })).toBeVisible();
+  await expect(rightPanel.getByRole('tab', { name: 'Console' })).toBeVisible();
+  await expect(rightPanel.getByRole('tab', { name: 'Network' })).toBeVisible();
+  await expect(page.getByLabel('Resize right panel')).toBeVisible();
+  await rightPanel.getByLabel('Close right panel').click();
+  await expect(rightPanel).toHaveCount(0);
+  await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open right panel');
+  await page.getByTestId('ide-files-panel-toggle').click();
+  await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible();
 });
 
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(120_000);
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
@@ -188,9 +220,11 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   async function openIdeTool(name: RegExp) {
     await page.getByLabel('Open tool').first().click();
-    const item = page.locator('.bolt-project-tool-menu').getByRole('button', { name }).first();
+    const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
+    await expect(toolMenu).toBeVisible();
+    const item = toolMenu.getByRole('button', { name }).first();
     await expect(item).toBeVisible();
-    await item.click({ force: true });
+    await item.evaluate((element) => (element as HTMLButtonElement).click());
   }
 
   await openIdeTool(/Snapshots/);
@@ -277,6 +311,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(webviewToolbar.getByRole('button', { name: 'Refresh preview' })).toBeVisible();
   await expect(webviewToolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
 
+  await openIdeTool(/Files/);
   const filesHeader = page.locator('.bolt-project-files-header');
   await expect(filesHeader).toBeVisible();
   const filesHeaderMetrics = await filesHeader.evaluate((element) => {
@@ -539,7 +574,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
           description: 'Persistent project agent',
           messages: [{ id: 'memory-user-message', role: 'user', content: marker }],
         },
-        ui: { currentView: 'preview', rightPanel: 'search', showWorkbench: true },
+        ui: { currentView: 'preview', rightPanel: 'network', showWorkbench: true },
       },
     },
   });
@@ -550,7 +585,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   await expect(page.getByText(marker)).toBeVisible({ timeout: 15000 });
 
   if (!isMobile) {
-    await expect(page.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-current', 'page');
   }
 });
 

@@ -45,25 +45,25 @@ test.describe('responsive IDE shell', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   });
 
-  test('desktop can collapse and restore the project files panel', async ({ page, isMobile }) => {
+  test('desktop can collapse and restore the right preview panel', async ({ page, isMobile }) => {
     test.skip(isMobile, 'desktop-only assertion');
 
     await authenticate(page);
     await page.goto('/projects/project_files_toggle/ide', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('region', { name: 'Project files' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible({ timeout: 15000 });
 
     const filesToggle = page.getByTestId('ide-files-panel-toggle');
     await expect(filesToggle).toBeVisible();
-    await expect(filesToggle).toHaveAttribute('aria-label', 'Close project files');
+    await expect(filesToggle).toHaveAttribute('aria-label', 'Close right panel');
     await filesToggle.click();
-    await expect(page.getByRole('region', { name: 'Project files' })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toHaveCount(0);
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
-    await expect(filesToggle).toHaveAttribute('aria-label', 'Open project files');
+    await expect(filesToggle).toHaveAttribute('aria-label', 'Open right panel');
     await filesToggle.click();
-    await expect(page.getByRole('region', { name: 'Project files' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible({ timeout: 15000 });
   });
 
   test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {

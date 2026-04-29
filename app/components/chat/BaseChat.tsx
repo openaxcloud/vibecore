@@ -64,8 +64,8 @@ const IDE_MANAGEMENT_PANELS = [
   'snapshots',
   'settings',
 ] as const;
-const IDE_RIGHT_PANELS = ['files', 'search', 'locks'] as const;
-const IDE_WORKSPACE_PANELS = ['editor', 'preview', ...IDE_MANAGEMENT_PANELS] as const;
+const IDE_RIGHT_PANELS = ['webview', 'console', 'network'] as const;
+const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
   database: 'SQL browser',
@@ -85,6 +85,9 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   settings: 'Project settings',
   editor: 'Code editor',
   preview: 'App preview',
+  webview: 'App preview',
+  console: 'Terminal',
+  network: 'Workspace network',
   files: 'Browse project files',
   search: 'Find in files',
   locks: 'Locked files',
@@ -552,8 +555,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('files');
+    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('webview');
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
+    const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
@@ -656,12 +660,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           const ui = memory.ui;
 
-          if (ui?.rightPanel && ['files', 'search', 'locks'].includes(ui.rightPanel)) {
+          if (ui?.rightPanel && ['webview', 'console', 'network'].includes(ui.rightPanel)) {
             setRightPanel(ui.rightPanel as IdeRightPanel);
           }
 
           if (typeof ui?.rightPanelOpen === 'boolean') {
             setRightPanelOpen(ui.rightPanelOpen);
+          }
+
+          if (typeof ui?.rightPanelWidth === 'number') {
+            setRightPanelWidth(Math.min(700, Math.max(300, ui.rightPanelWidth)));
           }
 
           const restoredTabs = Array.isArray(ui?.workspaceTabs)
@@ -787,6 +795,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             currentView,
             rightPanel,
             rightPanelOpen,
+            rightPanelWidth,
             workspaceTabs,
             activeWorkspacePanel,
             paneTree,
@@ -815,6 +824,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       currentView,
       rightPanel,
       rightPanelOpen,
+      rightPanelWidth,
       workspaceTabs,
       activeWorkspacePanel,
       paneTree,
@@ -1046,6 +1056,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.addEventListener('mouseup', onUp);
       },
       [terminalBottomHeight],
+    );
+
+    const startRightPanelResize = useCallback(
+      (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+
+        const startX = event.clientX;
+        const startWidth = rightPanelWidth;
+
+        const onMove = (moveEvent: MouseEvent) => {
+          const nextWidth = Math.min(700, Math.max(300, startWidth + startX - moveEvent.clientX));
+          setRightPanelWidth(nextWidth);
+        };
+
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove);
+          window.removeEventListener('mouseup', onUp);
+        };
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+      },
+      [rightPanelWidth],
     );
 
     useEffect(() => {
@@ -1722,6 +1755,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           );
         }
 
+        if (panel === 'files') {
+          return (
+            <ProjectFilesTool
+              files={projectFiles}
+              selectedFile={selectedFile}
+              unsavedFiles={unsavedFiles}
+              onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+              onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+            />
+          );
+        }
+
+        if (panel === 'search') {
+          return <Search />;
+        }
+
+        if (panel === 'locks') {
+          return <LockManager />;
+        }
+
         if (panel === 'preview') {
           return (
             <div className="bolt-project-webview-tool">
@@ -1766,11 +1819,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         currentDocument,
         onProjectEditorSave,
         openIdeTool,
+        openProjectFile,
         projectBackendState.ports,
         projectFiles,
         projectId,
+        selectedFile,
         setSelectedElement,
         theme,
+        unsavedFiles,
       ],
     );
 
@@ -1981,7 +2037,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const projectIdePanels = (
       <div
         className="bolt-project-ide-panels"
-        style={{ '--project-agent-width': `${agentWidth}px` } as React.CSSProperties}
+        style={
+          {
+            '--project-agent-width': `${agentWidth}px`,
+            '--project-right-panel-width': rightPanelOpen ? `${rightPanelWidth}px` : '0px',
+          } as React.CSSProperties
+        }
       >
         <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
           <div className="bolt-project-agent-header">
@@ -2036,90 +2097,111 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           />
         </section>
         <div className="bolt-project-workspace-shell">
-          <PanelGroup direction="horizontal" className="min-h-0 min-w-0 flex-1">
-            <Panel defaultSize={rightPanelOpen ? 72 : 100} minSize={35} className="min-w-0">
-              <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-                <div className="bolt-project-main-stack">
+          <section className="bolt-project-ide-panel" aria-label="Editor and preview">
+            <div className="bolt-project-main-stack">
+              <div
+                className="bolt-project-main-panes"
+                style={
+                  {
+                    '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
+                  } as React.CSSProperties
+                }
+              >
+                {renderPaneNode(paneTree)}
+              </div>
+              {terminalBottomOpen && (
+                <div
+                  className="bolt-project-bottom-terminal-shell"
+                  style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                >
                   <div
-                    className="bolt-project-main-panes"
-                    style={
-                      {
-                        '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {renderPaneNode(paneTree)}
+                    className="bolt-project-terminal-resize-handle"
+                    role="separator"
+                    aria-orientation="horizontal"
+                    aria-label="Resize pinned terminal"
+                    onMouseDown={startTerminalResize}
+                  />
+                  <div className="bolt-project-bottom-terminal-frame">
+                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
                   </div>
-                  {terminalBottomOpen && (
-                    <div
-                      className="bolt-project-bottom-terminal-shell"
-                      style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
-                    >
-                      <div
-                        className="bolt-project-terminal-resize-handle"
-                        role="separator"
-                        aria-orientation="horizontal"
-                        aria-label="Resize pinned terminal"
-                        onMouseDown={startTerminalResize}
-                      />
-                      <div className="bolt-project-bottom-terminal-frame">
-                        <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </section>
-            </Panel>
-            {rightPanelOpen && (
-              <>
-                <PanelResizeHandle className="bolt-project-ide-resize-handle" />
-                <Panel defaultSize={28} minSize={18} maxSize={38} className="min-w-0">
-                  <section className="bolt-project-ide-panel" aria-label="Project files">
-                    <div className="bolt-project-right-tabs">
-                      {[
-                        ['files', 'Files', 'i-ph:files'],
-                        ['search', 'Search', 'i-ph:magnifying-glass'],
-                        ['locks', 'Locks', 'i-ph:lock'],
-                      ].map(([id, label, icon]) => (
-                        <button
-                          key={id}
-                          type="button"
-                          className="bolt-project-right-tab"
-                          aria-current={rightPanel === id ? 'page' : undefined}
-                          onClick={() => setRightPanel(id as typeof rightPanel)}
-                        >
-                          <span className={icon} aria-hidden />
-                          {label}
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        className="bolt-project-ide-icon-button ml-auto"
-                        aria-label="Close project files"
-                        onClick={() => setRightPanelOpen(false)}
-                      >
-                        <span className="i-ph:sidebar-simple" aria-hidden />
-                      </button>
-                    </div>
-                    <div className="min-h-0 flex-1 overflow-auto">
-                      {rightPanel === 'files' && (
-                        <ProjectFilesTool
-                          files={projectFiles}
-                          selectedFile={selectedFile}
-                          unsavedFiles={unsavedFiles}
-                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                        />
-                      )}
-                      {rightPanel === 'search' && <Search />}
-                      {rightPanel === 'locks' && <LockManager />}
-                    </div>
-                  </section>
-                </Panel>
-              </>
-            )}
-          </PanelGroup>
+              )}
+            </div>
+          </section>
         </div>
+        {rightPanelOpen && (
+          <aside
+            className="bolt-project-right-panel-shell"
+            aria-label="Right preview panel"
+            style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
+          >
+            <div
+              className="bolt-project-right-resize-handle"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize right panel"
+              onMouseDown={startRightPanelResize}
+            />
+            <div className="bolt-project-right-tabs" role="tablist" aria-label="Right panel tools">
+              {[
+                ['webview', 'Webview', 'i-ph:browser'],
+                ['console', 'Console', 'i-ph:terminal-window'],
+                ['network', 'Network', 'i-ph:activity'],
+              ].map(([id, label, icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className="bolt-project-right-tab"
+                  role="tab"
+                  aria-selected={rightPanel === id}
+                  aria-current={rightPanel === id ? 'page' : undefined}
+                  onClick={() => setRightPanel(id as typeof rightPanel)}
+                >
+                  <span className={icon} aria-hidden />
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="bolt-project-ide-icon-button ml-auto"
+                aria-label="Close right panel"
+                onClick={() => setRightPanelOpen(false)}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
+            </div>
+            <div className="bolt-project-right-panel-content">
+              {rightPanel === 'webview' && (
+                <div className="bolt-project-webview-tool">
+                  <div className="bolt-project-webview-toolbar">
+                    <button type="button" aria-label="Back">
+                      <span className="i-ph:arrow-left" aria-hidden />
+                    </button>
+                    <button type="button" aria-label="Forward">
+                      <span className="i-ph:arrow-right" aria-hidden />
+                    </button>
+                    <button type="button" aria-label="Refresh preview">
+                      <span className="i-ph:arrow-clockwise" aria-hidden />
+                    </button>
+                    <input
+                      aria-label="Preview URL"
+                      readOnly
+                      value={projectBackendState.ports?.[0]?.url ?? 'Runtime preview'}
+                    />
+                    <button type="button" aria-label="Open preview in new tab">
+                      <span className="i-ph:arrow-square-out" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="bolt-project-webview-frame">
+                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+                  </div>
+                </div>
+              )}
+              {rightPanel === 'console' && <ProjectIdeServicePanel projectId={projectId} panel="logs" />}
+              {rightPanel === 'network' && <ProjectNetworkPanel state={projectBackendState} />}
+            </div>
+          </aside>
+        )}
       </div>
     );
 
@@ -2289,12 +2371,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <button
             type="button"
             className="bolt-files-panel-toggle"
-            aria-label={rightPanelOpen ? 'Close project files' : 'Open project files'}
+            aria-label={rightPanelOpen ? 'Close right panel' : 'Open right panel'}
             aria-pressed={rightPanelOpen}
             data-testid="ide-files-panel-toggle"
             onClick={() => setRightPanelOpen((value) => !value)}
           >
-            <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:files'} aria-hidden />
+            <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:browser'} aria-hidden />
           </button>
         )}
         {showNotifications && (
@@ -2600,6 +2682,57 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
         )}
       </div>
     </div>
+  );
+}
+
+function ProjectNetworkPanel({ state }: { state: ProjectIdeBackendState }) {
+  const ports = state.ports ?? [];
+  const activity = state.recentActivity ?? [];
+
+  return (
+    <section className="bolt-project-network-panel" aria-label="Network">
+      <div className="bolt-project-ide-panel-header">
+        <span className="i-ph:activity" aria-hidden />
+        <h2 className="m-0 text-sm font-semibold">Network</h2>
+      </div>
+      <div className="bolt-project-network-grid">
+        <div>
+          <strong>Detected ports</strong>
+          {ports.length ? (
+            ports.map((port) => (
+              <button
+                key={`${port.port}-${port.url ?? 'local'}`}
+                type="button"
+                onClick={() => {
+                  if (port.url) {
+                    window.open(port.url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+              >
+                <span className={port.ready === false ? 'i-ph:circle' : 'i-ph:check-circle'} aria-hidden />
+                <span>:{port.port ?? 'unknown'}</span>
+                <small>{port.url ?? port.type ?? 'workspace port'}</small>
+              </button>
+            ))
+          ) : (
+            <p>No runtime ports reported by the backend yet.</p>
+          )}
+        </div>
+        <div>
+          <strong>Recent network activity</strong>
+          {activity.length ? (
+            activity.slice(-6).map((event, index) => (
+              <p key={`${event.action}-${event.createdAt ?? index}`}>
+                <span>{event.action}</span>
+                <small>{event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded'}</small>
+              </p>
+            ))
+          ) : (
+            <p>No network events recorded yet.</p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -3028,7 +3161,12 @@ function IdeTabBar({
           className="bolt-project-tab-action"
           aria-label="Open tool"
           aria-expanded={open}
-          onClick={() => setOpen((value) => !value)}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          onClick={(event) => event.preventDefault()}
         >
           +
         </button>
@@ -3083,6 +3221,7 @@ function IdeTabBar({
         type="button"
         className="bolt-project-tab-action"
         aria-label="Split right"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={() => onSplit?.('horizontal')}
       >
         <span className="i-ph:columns" aria-hidden />
@@ -3091,6 +3230,7 @@ function IdeTabBar({
         type="button"
         className="bolt-project-tab-action"
         aria-label="Split down"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={() => onSplit?.('vertical')}
       >
         <span className="i-ph:rows" aria-hidden />
@@ -3101,6 +3241,7 @@ function IdeTabBar({
           className="bolt-project-tab-action"
           aria-label="Tab actions"
           aria-expanded={actionsOpen}
+          onMouseDown={(event) => event.stopPropagation()}
           onClick={() => setActionsOpen((value) => !value)}
         >
           <span className="i-ph:dots-three" aria-hidden />
@@ -3685,6 +3826,9 @@ function panelTitle(panel: string) {
   const titles: Record<string, string> = {
     editor: 'Editor',
     preview: 'Webview',
+    webview: 'Webview',
+    console: 'Console',
+    network: 'Network',
     database: 'Database',
     'object-storage': 'Object Storage',
     packages: 'Packages',
@@ -3713,6 +3857,9 @@ function panelIcon(panel: string) {
   const icons: Record<string, string> = {
     editor: 'i-ph:code',
     preview: 'i-ph:browser',
+    webview: 'i-ph:browser',
+    console: 'i-ph:terminal-window',
+    network: 'i-ph:activity',
     database: 'i-ph:database',
     'object-storage': 'i-ph:package',
     packages: 'i-ph:cube',

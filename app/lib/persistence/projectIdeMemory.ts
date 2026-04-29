@@ -1,10 +1,13 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
 
-export type ProjectIdePanel = 'files' | 'search' | 'locks';
+export type ProjectIdePanel = 'webview' | 'console' | 'network';
 export type ProjectIdeWorkspacePanel =
   | 'editor'
   | 'preview'
+  | 'files'
+  | 'search'
+  | 'locks'
   | 'overview'
   | 'database'
   | 'object-storage'
@@ -61,6 +64,7 @@ export interface ProjectIdeMemory {
     currentView?: string;
     rightPanel?: ProjectIdePanel;
     rightPanelOpen?: boolean;
+    rightPanelWidth?: number;
     workspaceTabs?: ProjectIdeWorkspacePanel[];
     activeWorkspacePanel?: ProjectIdeWorkspacePanel;
     paneTree?: ProjectIdePaneNode;
