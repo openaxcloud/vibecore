@@ -210,6 +210,56 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
   await expect(page.getByRole('tab', { name: /Deploy/ }).first()).toBeVisible();
 
+  const statusbar = page.locator('.bolt-project-statusbar');
+  await expect(statusbar).toBeVisible();
+  const statusbarMetrics = await statusbar.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    const leftGroup = element.querySelector('div')!;
+    const leftGroupStyle = window.getComputedStyle(leftGroup);
+    const icon = element.querySelector('[class*="i-ph:"]')!;
+    const iconRect = icon.getBoundingClientRect();
+
+    return {
+      position: style.position,
+      bottom: Math.round(window.innerHeight - rect.bottom),
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+      background: style.backgroundColor,
+      borderTop: style.borderTopColor,
+      paddingLeft: style.paddingLeft,
+      paddingRight: style.paddingRight,
+      fontSize: style.fontSize,
+      gap: leftGroupStyle.gap,
+      iconWidth: iconRect.width,
+      iconHeight: iconRect.height,
+    };
+  });
+  expect(statusbarMetrics.position).toBe('fixed');
+  expect(statusbarMetrics.bottom).toBe(0);
+  expect(statusbarMetrics.left).toBe(420);
+  expect(statusbarMetrics.width).toBe(860);
+  expect(statusbarMetrics.height).toBe(24);
+  expect(statusbarMetrics.background).toBe('rgb(14, 21, 37)');
+  expect(statusbarMetrics.borderTop).toBe('rgb(26, 32, 48)');
+  expect(statusbarMetrics.paddingLeft).toBe('12px');
+  expect(statusbarMetrics.paddingRight).toBe('12px');
+  expect(statusbarMetrics.fontSize).toBe('11px');
+  expect(statusbarMetrics.gap).toBe('12px');
+  expect(statusbarMetrics.iconWidth).toBe(12);
+  expect(statusbarMetrics.iconHeight).toBe(12);
+  await expect(statusbar).toContainText(/main|stable/);
+  await expect(statusbar).toContainText(/↑\d+ ↓\d+/);
+  await expect(statusbar).toContainText('Ln 1, Col 1');
+  await expect(statusbar).toContainText('Spaces: 2');
+  await expect(statusbar).toContainText('UTF-8');
+  await expect(statusbar).toContainText('Project');
+  const workspaceStatusButton = statusbar.getByRole('button', { name: /Running on|Building|Crashed|Stopped/ });
+  await expect(workspaceStatusButton).toBeVisible();
+  await workspaceStatusButton.click();
+  await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
+
   await page.getByLabel('Split right').first().click();
   await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
   await page.getByLabel('Split down').first().click();

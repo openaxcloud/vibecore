@@ -1217,6 +1217,7 @@ body {
   background: #0e1525;
   color: #c2c8cc;
   font-size: 11px;
+  line-height: 1;
   padding: 0 12px;
 }
 
@@ -1224,7 +1225,22 @@ body {
 .bolt-project-statusbar button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.bolt-project-statusbar button {
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.bolt-project-statusbar [class*='i-ph:'] {
+  width: 12px;
+  height: 12px;
+  font-size: 12px;
+  line-height: 12px;
 }
 
 .bolt-project-statusbar button:hover {

@@ -109,6 +109,7 @@ type AgentToolAction = {
 };
 type ProjectIdeBackendState = {
   workspace?: { id?: string; status?: string; runtimeMode?: string } | null;
+  ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
   git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[] };
   files?: Array<{ path: string; sizeBytes?: number }>;
   recentActivity?: Array<{ action: string; createdAt?: string }>;
@@ -124,6 +125,51 @@ type IdePaneNode =
       first: IdePaneNode;
       second: IdePaneNode;
     };
+
+function projectStatusLabel(state: ProjectIdeBackendState) {
+  const status = state.workspace?.status?.toLowerCase();
+  const previewPort = state.ports?.find((port) => port.ready !== false)?.port ?? state.ports?.[0]?.port;
+
+  if (status === 'running') {
+    return previewPort ? `Running on :${previewPort}` : 'Running';
+  }
+
+  if (status === 'building' || status === 'starting' || status === 'pending') {
+    return 'Building...';
+  }
+
+  if (status === 'crashed' || status === 'failed' || status === 'error') {
+    return 'Crashed';
+  }
+
+  return 'Stopped';
+}
+
+function fileTypeLabel(filePath?: string) {
+  const extension = filePath?.split('.').pop()?.toLowerCase();
+
+  if (extension === 'ts' || extension === 'tsx') {
+    return 'TypeScript';
+  }
+
+  if (extension === 'js' || extension === 'jsx') {
+    return 'JavaScript';
+  }
+
+  if (extension === 'json') {
+    return 'JSON';
+  }
+
+  if (extension === 'css' || extension === 'scss') {
+    return 'Stylesheet';
+  }
+
+  if (extension === 'md' || extension === 'mdx') {
+    return 'Markdown';
+  }
+
+  return extension ? extension.toUpperCase() : 'Project';
+}
 
 const DEFAULT_PANE_TREE: IdePaneNode = {
   type: 'leaf',
@@ -2360,9 +2406,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
               <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
               <button type="button" onClick={() => openWorkspacePanel('preview')}>
-                {projectBackendState.workspace?.status === 'running'
-                  ? `Running on ${projectBackendState.workspace.runtimeMode ?? 'runtime'}`
-                  : 'Workspace idle'}
+                {projectStatusLabel(projectBackendState)}
               </button>
             </div>
             <div>
@@ -2375,7 +2419,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </span>
               <span>Spaces: 2</span>
               <span>UTF-8</span>
-              <span>{currentDocument?.filePath?.split('.').pop()?.toUpperCase() ?? 'Project'}</span>
+              <span>{fileTypeLabel(currentDocument?.filePath)}</span>
               <button
                 type="button"
                 aria-label="Toggle terminal"
