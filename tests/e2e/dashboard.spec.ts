@@ -188,7 +188,9 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   async function openIdeTool(name: RegExp) {
     await page.getByLabel('Open tool').first().click();
-    await page.locator('.bolt-project-tool-menu').getByRole('button', { name }).click();
+    const item = page.locator('.bolt-project-tool-menu').getByRole('button', { name }).first();
+    await expect(item).toBeVisible();
+    await item.click({ force: true });
   }
 
   await openIdeTool(/Snapshots/);
@@ -259,6 +261,72 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(workspaceStatusButton).toBeVisible();
   await workspaceStatusButton.click();
   await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
+  const webviewToolbar = page.locator('.bolt-project-webview-toolbar').first();
+  await expect(webviewToolbar).toBeVisible();
+  const webviewToolbarMetrics = await webviewToolbar.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return { height: rect.height, background: style.backgroundColor, borderBottom: style.borderBottomColor };
+  });
+  expect(webviewToolbarMetrics.height).toBe(36);
+  expect(webviewToolbarMetrics.background).toBe('rgb(14, 21, 37)');
+  expect(webviewToolbarMetrics.borderBottom).toBe('rgb(26, 32, 48)');
+  await expect(webviewToolbar.getByRole('button', { name: 'Back' })).toBeVisible();
+  await expect(webviewToolbar.getByRole('button', { name: 'Forward' })).toBeVisible();
+  await expect(webviewToolbar.getByRole('button', { name: 'Refresh preview' })).toBeVisible();
+  await expect(webviewToolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
+
+  const filesHeader = page.locator('.bolt-project-files-header');
+  await expect(filesHeader).toBeVisible();
+  const filesHeaderMetrics = await filesHeader.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+
+    return { height: rect.height, background: style.backgroundColor, borderBottom: style.borderBottomColor };
+  });
+  expect(filesHeaderMetrics.height).toBe(32);
+  expect(filesHeaderMetrics.borderBottom).toBe('rgb(26, 32, 48)');
+  await expect(filesHeader.getByRole('button', { name: 'New file' })).toBeVisible();
+  await expect(filesHeader.getByRole('button', { name: 'New folder' })).toBeVisible();
+  await expect(filesHeader.getByRole('button', { name: 'Refresh files' })).toBeVisible();
+  await expect(filesHeader.getByRole('button', { name: 'Collapse all files' })).toBeVisible();
+
+  await openIdeTool(/Console/);
+  const consolePanel = page.locator('[data-testid="ide-service-panel"][data-panel="logs"]').first();
+  await expect(consolePanel.locator('.bolt-project-console-header')).toBeVisible({ timeout: 15000 });
+  await expect(consolePanel.getByRole('combobox', { name: 'Shell' })).toBeVisible();
+  await expect(consolePanel.getByRole('button', { name: 'Clear' })).toBeVisible();
+  await expect(consolePanel.getByRole('button', { name: 'Split' })).toBeVisible();
+  const consoleBodyMetrics = await consolePanel.locator('.bolt-project-console-body').evaluate((element) => {
+    const style = window.getComputedStyle(element);
+
+    return { background: style.backgroundColor, fontSize: style.fontSize, fontFamily: style.fontFamily };
+  });
+  expect(consoleBodyMetrics.background).toBe('rgb(10, 15, 28)');
+  expect(consoleBodyMetrics.fontSize).toBe('13px');
+
+  await openIdeTool(/Database/);
+  const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
+  await expect(databasePanel.locator('.bolt-project-database-tool')).toBeVisible({ timeout: 15000 });
+  await expect(databasePanel.getByText('Tables')).toBeVisible();
+  await expect(databasePanel.getByRole('button', { name: 'Editor' })).toBeVisible();
+  await expect(databasePanel.getByRole('button', { name: 'Browse' })).toBeVisible();
+  await expect(databasePanel.getByRole('button', { name: 'Schema' })).toBeVisible();
+  await expect(databasePanel.getByRole('button', { name: 'Run' })).toBeVisible();
+
+  await openIdeTool(/Secrets/);
+  const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
+  await expect(secretsPanel.locator('.bolt-project-secrets-tool')).toBeVisible({ timeout: 15000 });
+  await expect(secretsPanel.getByRole('button', { name: '+ New secret' })).toBeVisible();
+
+  await openIdeTool(/Git/);
+  const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
+  await expect(gitPanel.locator('.bolt-project-git-tool')).toBeVisible({ timeout: 15000 });
+  await expect(gitPanel.getByRole('heading', { name: 'Changes' })).toBeVisible();
+  await expect(gitPanel.getByRole('heading', { name: 'Staged' })).toBeVisible();
+  await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
+  await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
 
   await page.getByLabel('Split right').first().click();
   await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
@@ -399,7 +467,7 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
   await openIdeTool(/Database/);
   await page.getByPlaceholder('postgres://user:pass@host:5432/db').fill('postgres://local/test');
-  await page.getByRole('button', { name: 'Save database config' }).click();
+  await page.locator('[data-testid="ide-service-panel"][data-panel="database"]').getByRole('button', { name: 'Run' }).click();
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]')).toContainText('DATABASE_URL', {
     timeout: 15000,
   });

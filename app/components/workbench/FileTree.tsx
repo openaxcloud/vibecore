@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -11,7 +11,7 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_PADDING_LEFT = 8;
+const NODE_PADDING_LEFT = 16;
 const DEFAULT_HIDDEN_FILES = [/\/node_modules\//, /\/\.next/, /\/\.astro/];
 
 interface Props {
@@ -710,13 +710,15 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
         className={classNames('group', {
           'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
             !selected,
-          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
+          'bolt-project-file-selected bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+            selected,
         })}
         depth={folder.depth}
         iconClasses={classNames({
           'i-ph:caret-right scale-98': collapsed,
           'i-ph:caret-down scale-98': !collapsed,
         })}
+        iconStyle={{ color: '#D29922' }}
         onClick={onClick}
       >
         <div className="flex items-center w-full">
@@ -804,12 +806,14 @@ function File({
         className={classNames('group', {
           'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault':
             !selected,
-          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
+          'bolt-project-file-selected bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+            selected,
         })}
         depth={depth}
         iconClasses={classNames('i-ph:file-duotone scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
+        iconStyle={{ color: fileIconColor(name) }}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
       >
@@ -843,13 +847,14 @@ function File({
 interface ButtonProps {
   depth: number;
   iconClasses: string;
+  iconStyle?: CSSProperties;
   children: ReactNode;
   className?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
 }
 
-function NodeButton({ depth, iconClasses, onClick, onDoubleClick, className, children }: ButtonProps) {
+function NodeButton({ depth, iconClasses, iconStyle, onClick, onDoubleClick, className, children }: ButtonProps) {
   return (
     <button
       className={classNames(
@@ -860,10 +865,36 @@ function NodeButton({ depth, iconClasses, onClick, onDoubleClick, className, chi
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
     >
-      <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
+      <div className={classNames('scale-120 shrink-0', iconClasses)} style={iconStyle}></div>
       <div className="truncate w-full text-left">{children}</div>
     </button>
   );
+}
+
+function fileIconColor(fileName: string) {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+
+  if (extension === 'ts' || extension === 'tsx' || extension === 'js' || extension === 'jsx') {
+    return '#0099FF';
+  }
+
+  if (extension === 'json') {
+    return '#D29922';
+  }
+
+  if (extension === 'css' || extension === 'scss') {
+    return '#FF6B9D';
+  }
+
+  if (extension === 'md' || extension === 'mdx') {
+    return '#6E7681';
+  }
+
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension ?? '')) {
+    return '#7B61FF';
+  }
+
+  return '#C2C8CC';
 }
 
 type Node = FileNode | FolderNode;

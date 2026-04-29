@@ -890,6 +890,314 @@ body {
   background: #0a0f1c;
 }
 
+.bolt-project-files-tool {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  background: #0e1525;
+}
+
+.bolt-project-files-header {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #1a2030;
+  padding: 0 8px;
+}
+
+.bolt-project-files-header > div {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.bolt-project-files-header strong {
+  overflow: hidden;
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-files-header span {
+  color: #6e7681;
+  font-size: 10px;
+}
+
+.bolt-project-files-header button,
+.bolt-project-editor-toolbar button,
+.bolt-project-webview-toolbar button,
+.bolt-project-console-header button,
+.bolt-project-secret-row button {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.bolt-project-files-header button:hover,
+.bolt-project-editor-toolbar button:hover,
+.bolt-project-webview-toolbar button:hover,
+.bolt-project-console-header button:hover,
+.bolt-project-secret-row button:hover {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-files-header [class*='i-ph:'] {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+.bolt-project-file-tree {
+  flex: 1;
+  min-height: 0;
+  background: #0e1525;
+  color: #c2c8cc;
+  font-size: 13px;
+}
+
+.bolt-project-file-tree button {
+  min-height: 24px;
+  border-width: 0 0 0 2px;
+  border-left-color: transparent;
+  border-radius: 0;
+}
+
+.bolt-project-file-tree button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-file-tree .bolt-project-file-selected {
+  border-left-color: #f26207;
+  background: #2b3245;
+}
+
+.bolt-project-file-tree [class*='i-ph:'] {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+.bolt-project-editor-tool,
+.bolt-project-webview-tool,
+.bolt-project-console-tool {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-editor-toolbar,
+.bolt-project-webview-toolbar,
+.bolt-project-console-header {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  padding: 0 8px;
+}
+
+.bolt-project-editor-toolbar span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #c2c8cc;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-editor-adapter,
+.bolt-project-webview-frame {
+  flex: 1;
+  min-height: 0;
+}
+
+.bolt-project-webview-toolbar input {
+  height: 24px;
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  background: #0a0f1c;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.bolt-project-webview-toolbar select,
+.bolt-project-console-header select {
+  height: 24px;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  background: #1a2030;
+  color: #f5f9fc;
+  font-size: 12px;
+}
+
+.bolt-project-console-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #0a0f1c;
+  color: #3fb950;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 12px;
+}
+
+.bolt-project-database-tool,
+.bolt-project-git-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
+.bolt-project-database-tool aside,
+.bolt-project-git-tool section {
+  min-height: 0;
+  border-right: 1px solid #1a2030;
+  color: #c2c8cc;
+  padding: 12px;
+}
+
+.bolt-project-database-tool aside strong,
+.bolt-project-git-tool h3 {
+  display: block;
+  margin: 0 0 10px;
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-database-tool summary {
+  cursor: pointer;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.bolt-project-database-tool aside button {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  color: #6e7681;
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.bolt-project-tool-tabs {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+}
+
+.bolt-project-tool-tabs button {
+  height: 32px;
+  border-right: 1px solid #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+.bolt-project-tool-tabs button[aria-current='page'] {
+  background: #1a2030;
+  color: #f5f9fc;
+  box-shadow: inset 0 -2px 0 #f26207;
+}
+
+.bolt-project-sql-editor,
+.bolt-project-inline-form {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #1a2030;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.bolt-project-sql-editor textarea,
+.bolt-project-git-tool textarea {
+  min-height: 120px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0a0f1c;
+  color: #f5f9fc;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 10px;
+}
+
+.bolt-project-secrets-tool {
+  display: grid;
+  gap: 12px;
+}
+
+.bolt-project-secret-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0e1525;
+}
+
+.bolt-project-secret-row,
+.bolt-project-git-file {
+  display: grid;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  grid-template-columns: minmax(120px, 1fr) minmax(80px, 120px) repeat(4, auto);
+  padding: 0 12px;
+}
+
+.bolt-project-secret-row strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-git-file {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bolt-project-git-file em {
+  color: #d29922;
+  font-style: normal;
+}
+
+.bolt-project-empty-panel {
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #1a2030;
+  color: #6e7681;
+  font-size: 12px;
+  padding: 12px;
+}
+
 .bolt-project-main-stack {
   display: flex;
   min-width: 0;

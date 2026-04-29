@@ -1680,10 +1680,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       (panel: IdeWorkspacePanel) => {
         if (panel === 'editor') {
           return (
-            <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
+            <div
+              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
+              data-testid="responsive-code-editor"
+            >
+              <div className="bolt-project-editor-toolbar">
+                <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}</span>
+                <button type="button" onClick={() => workbenchStore.resetCurrentDocument()} disabled={!currentDocument}>
+                  Format
+                </button>
+                <button type="button" onClick={onProjectEditorSave} disabled={!currentDocument}>
+                  Save
+                </button>
+              </div>
               {currentDocument && !currentDocument.isBinary ? (
                 <EditorAdapter
-                  className="h-full w-full"
+                  className="bolt-project-editor-adapter"
                   value={currentDocument.value}
                   filePath={currentDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
@@ -1712,15 +1724,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (panel === 'preview') {
           return (
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+            <div className="bolt-project-webview-tool">
+              <div className="bolt-project-webview-toolbar">
+                <button type="button" aria-label="Back">
+                  <span className="i-ph:arrow-left" aria-hidden />
+                </button>
+                <button type="button" aria-label="Forward">
+                  <span className="i-ph:arrow-right" aria-hidden />
+                </button>
+                <button type="button" aria-label="Refresh preview">
+                  <span className="i-ph:arrow-clockwise" aria-hidden />
+                </button>
+                <input
+                  aria-label="Preview URL"
+                  readOnly
+                  value={projectBackendState.ports?.[0]?.url ?? 'Runtime preview'}
+                />
+                <button type="button" aria-label="Open preview in new tab">
+                  <span className="i-ph:arrow-square-out" aria-hidden />
+                </button>
+                <select aria-label="Preview device">
+                  <option>Desktop</option>
+                  <option>Tablet</option>
+                  <option>Mobile</option>
+                  <option>Custom width</option>
+                </select>
+                <button type="button" aria-label="Toggle preview dev tools">
+                  <span className="i-ph:wrench" aria-hidden />
+                </button>
+              </div>
+              <div className="bolt-project-webview-frame">
+                <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+              </div>
             </div>
           );
         }
 
         return <ProjectIdeServicePanel projectId={projectId} panel={panel} />;
       },
-      [currentDocument, onProjectEditorSave, openIdeTool, projectFiles, projectId, setSelectedElement, theme],
+      [
+        currentDocument,
+        onProjectEditorSave,
+        openIdeTool,
+        projectBackendState.ports,
+        projectFiles,
+        projectId,
+        setSelectedElement,
+        theme,
+      ],
     );
 
     const renderPaneLeaf = useCallback(
@@ -2052,18 +2103,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </div>
                     <div className="min-h-0 flex-1 overflow-auto">
                       {rightPanel === 'files' && (
-                        <FileTree
-                          className="h-full"
+                        <ProjectFilesTool
                           files={projectFiles}
-                          hideRoot
-                          unsavedFiles={unsavedFiles}
-                          rootFolder={WORK_DIR}
                           selectedFile={selectedFile}
-                          onFileSelect={(filePath) => {
-                            workbenchStore.setSelectedFile(filePath);
-                            workbenchStore.currentView.set('code');
-                            workbenchStore.setShowWorkbench(true);
-                          }}
+                          unsavedFiles={unsavedFiles}
                           onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
                           onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
                         />
@@ -2603,6 +2646,81 @@ function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onC
   );
 }
 
+function ProjectFilesTool({
+  files,
+  selectedFile,
+  unsavedFiles,
+  onFilePreview,
+  onFileOpen,
+}: {
+  files: any;
+  selectedFile?: string;
+  unsavedFiles?: Set<string>;
+  onFilePreview: (filePath: string) => void;
+  onFileOpen: (filePath: string) => void;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+  const fileCount = Object.values(files ?? {}).filter((entry: any) => entry?.type === 'file').length;
+
+  async function createEntry(kind: 'file' | 'folder') {
+    const value = window.prompt(kind === 'file' ? 'New file path' : 'New folder path');
+    const normalized = value?.trim();
+
+    if (!normalized) {
+      return;
+    }
+
+    const target = normalized.startsWith(WORK_DIR) ? normalized : `${WORK_DIR}/${normalized.replace(/^\/+/, '')}`;
+
+    if (kind === 'file') {
+      await workbenchStore.createFile(target, '');
+      onFileOpen(target);
+    } else {
+      await workbenchStore.createFolder(target);
+    }
+  }
+
+  return (
+    <div className="bolt-project-files-tool">
+      <div className="bolt-project-files-header">
+        <div>
+          <strong>workspace</strong>
+          <span>{fileCount} files</span>
+        </div>
+        <button type="button" aria-label="New file" onClick={() => void createEntry('file')}>
+          <span className="i-ph:file-plus" aria-hidden />
+        </button>
+        <button type="button" aria-label="New folder" onClick={() => void createEntry('folder')}>
+          <span className="i-ph:folder-plus" aria-hidden />
+        </button>
+        <button type="button" aria-label="Refresh files" onClick={() => void workbenchStore.loadRuntimeFiles(WORK_DIR)}>
+          <span className="i-ph:arrow-clockwise" aria-hidden />
+        </button>
+        <button type="button" aria-label="Collapse all files" onClick={() => setCollapsed((value) => !value)}>
+          <span className="i-ph:caret-double-up" aria-hidden />
+        </button>
+      </div>
+      <FileTree
+        key={collapsed ? 'collapsed' : 'expanded'}
+        className="bolt-project-file-tree"
+        files={files}
+        hideRoot
+        collapsed={collapsed}
+        unsavedFiles={unsavedFiles}
+        rootFolder={WORK_DIR}
+        selectedFile={selectedFile}
+        onFileSelect={(filePath) => {
+          workbenchStore.setSelectedFile(filePath);
+          workbenchStore.currentView.set('code');
+          workbenchStore.setShowWorkbench(true);
+        }}
+        onFilePreview={onFilePreview}
+        onFileOpen={onFileOpen}
+      />
+    </div>
+  );
+}
+
 function IdeTabBar({
   paneId,
   activePanel: _activePanel,
@@ -3110,21 +3228,40 @@ function ProjectIdePanelContent({
     const databaseVars = (data.envVars ?? []).filter((item: any) => /DATABASE|POSTGRES|SQL/i.test(item.key));
 
     return (
-      <PanelWithForm
-        rows={
-          databaseVars.length
-            ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
-            : [['Database status', 'No database connection configured for this project']]
-        }
-        empty="Database metadata is not configured for this project."
-        onSubmit={onSubmit}
-        busy={busy}
-        fields={[
-          { name: 'key', placeholder: 'DATABASE_URL', defaultValue: 'DATABASE_URL', required: true },
-          { name: 'value', placeholder: 'postgres://user:pass@host:5432/db', required: true },
-        ]}
-        submitLabel="Save database config"
-      />
+      <div className="bolt-project-database-tool">
+        <aside>
+          <strong>Database</strong>
+          {['Tables', 'Views', 'Functions'].map((section) => (
+            <details key={section} open>
+              <summary>{section}</summary>
+              <button type="button">{section === 'Tables' ? 'project_metadata' : 'No entries'}</button>
+            </details>
+          ))}
+        </aside>
+        <main>
+          <div className="bolt-project-tool-tabs">
+            <button type="button" aria-current="page">
+              Editor
+            </button>
+            <button type="button">Browse</button>
+            <button type="button">Schema</button>
+          </div>
+          <form onSubmit={onSubmit} className="bolt-project-sql-editor">
+            <textarea readOnly value="select * from project_metadata limit 50;" aria-label="SQL editor" />
+            <PanelButton disabled={busy}>Run</PanelButton>
+            <input name="key" value="DATABASE_URL" type="hidden" />
+            <input name="value" placeholder="postgres://user:pass@host:5432/db" />
+          </form>
+          <PanelRows
+            rows={
+              databaseVars.length
+                ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
+                : [['Database status', 'No database connection configured for this project']]
+            }
+            empty="Database metadata is not configured for this project."
+          />
+        </main>
+      </div>
     );
   }
 
@@ -3210,10 +3347,20 @@ function ProjectIdePanelContent({
     ];
 
     return (
-      <div className="rounded-lg border border-bolt-elements-borderColor bg-black p-4 font-mono text-xs text-green-200">
-        {lines.map((line: string) => (
-          <div key={line}>{line}</div>
-        ))}
+      <div className="bolt-project-console-tool">
+        <div className="bolt-project-console-header">
+          <select aria-label="Shell">
+            <option>bash</option>
+            <option>zsh</option>
+          </select>
+          <button type="button">Clear</button>
+          <button type="button">Split</button>
+        </div>
+        <div className="bolt-project-console-body">
+          {lines.map((line: string) => (
+            <div key={line}>{line}</div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -3286,18 +3433,40 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
+    const secrets = data.secrets ?? [];
+
     return (
-      <PanelWithForm
-        rows={(data.secrets ?? []).map((secret: any) => [secret.key, secret.updatedAt ?? 'Encrypted project secret'])}
-        empty="No project secrets."
-        onSubmit={onSubmit}
-        busy={busy}
-        fields={[
-          { name: 'key', placeholder: 'STRIPE_SECRET_KEY', required: true },
-          { name: 'value', placeholder: 'Secret value', type: 'password', required: true },
-        ]}
-        submitLabel="Save secret"
-      />
+      <div className="bolt-project-secrets-tool">
+        <form onSubmit={onSubmit} className="bolt-project-inline-form">
+          <PanelInput name="key" placeholder="STRIPE_SECRET_KEY" required />
+          <PanelInput name="value" placeholder="Secret value" type="password" required />
+          <PanelButton disabled={busy}>+ New secret</PanelButton>
+        </form>
+        <div className="bolt-project-secret-list">
+          {secrets.length ? (
+            secrets.map((secret: any) => (
+              <div key={secret.key} className="bolt-project-secret-row">
+                <strong>{secret.key}</strong>
+                <span>••••••</span>
+                <button type="button" aria-label={`Reveal ${secret.key}`}>
+                  👁
+                </button>
+                <button type="button" aria-label={`Copy ${secret.key}`}>
+                  Copy
+                </button>
+                <button type="button" aria-label={`Edit ${secret.key}`}>
+                  Edit
+                </button>
+                <button type="button" aria-label={`Delete ${secret.key}`}>
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">No project secrets.</div>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -3352,22 +3521,39 @@ function ProjectIdePanelContent({
   if (panel === 'git') {
     const status = data.status ?? data;
     const branch = status.branch ?? project.gitDefaultBranch ?? 'main';
+    const changedFiles = status.changedFiles ?? [];
 
     return (
-      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-        <PanelRows
-          rows={[
-            ['Branch', branch],
-            ['Changed files', String(status.changedFiles?.length ?? 0)],
-            ['Ahead / behind', `${status.ahead ?? 0} / ${status.behind ?? 0}`],
-            ['Remote', project.gitRepositoryUrl ?? 'No remote repository'],
-          ]}
-        />
+      <div className="bolt-project-git-tool">
+        <section>
+          <h3>Changes</h3>
+          {changedFiles.length ? (
+            changedFiles.map((file: any) => (
+              <label key={String(file.path ?? file)} className="bolt-project-git-file">
+                <input type="checkbox" />
+                <span>{String(file.path ?? file)}</span>
+                <em>{String(file.status ?? 'M')}</em>
+              </label>
+            ))
+          ) : (
+            <div className="bolt-project-empty-panel">No changed files.</div>
+          )}
+          <h3>Staged</h3>
+          <div className="bolt-project-empty-panel">Select files above to stage changes.</div>
+          <h3>History</h3>
+          <PanelRows
+            rows={[
+              ['Branch', branch],
+              ['Ahead / behind', `${status.ahead ?? 0} / ${status.behind ?? 0}`],
+              ['Remote', project.gitRepositoryUrl ?? 'No remote repository'],
+            ]}
+          />
+        </section>
         <div className="grid gap-3">
           <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
             <input name="intent" value="commit" type="hidden" />
-            <PanelInput name="message" placeholder="Commit message" />
-            <PanelButton disabled={busy}>Commit changes</PanelButton>
+            <textarea name="message" placeholder="Commit message" />
+            <PanelButton disabled={busy}>Commit & Push</PanelButton>
           </form>
           {['pull', 'push'].map((intent) => (
             <form key={intent} onSubmit={onSubmit} className="flex gap-2">

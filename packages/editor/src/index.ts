@@ -195,18 +195,52 @@ export function DesktopCodeEditor({
       }
 
       monacoRef.current = monaco;
+      monaco.editor.defineTheme('vibecore-vs-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [
+          { token: '', foreground: 'F5F9FC', background: '0A0F1C' },
+          { token: 'comment', foreground: '6E7681' },
+          { token: 'keyword', foreground: '0099FF' },
+          { token: 'string', foreground: '3FB950' },
+          { token: 'number', foreground: 'D29922' },
+        ],
+        colors: {
+          'editor.background': '#0A0F1C',
+          'editor.foreground': '#F5F9FC',
+          'editorLineNumber.foreground': '#6E7681',
+          'editorLineNumber.activeForeground': '#C2C8CC',
+          'editorIndentGuide.background1': '#2B3245',
+          'editorIndentGuide.activeBackground1': '#3B4358',
+          'editor.lineHighlightBackground': '#1A2030',
+          'editor.selectionBackground': '#0099FF4D',
+          'editor.inactiveSelectionBackground': '#0099FF26',
+          'editorSuggestWidget.background': '#1A2030',
+          'editorSuggestWidget.border': '#2B3245',
+          'editorSuggestWidget.foreground': '#F5F9FC',
+          'editorSuggestWidget.selectedBackground': '#2B3245',
+          'editorError.foreground': '#F85149',
+          'editorWarning.foreground': '#D29922',
+          'editorGutter.background': '#0A0F1C',
+        },
+      });
 
       const editor = monaco.editor.create(containerRef.current, {
         value,
         language: languageForPath(filePath, language),
         readOnly,
         automaticLayout: true,
-        minimap: { enabled: false },
+        minimap: { enabled: true },
         fontSize: 13,
+        fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace',
+        fontLigatures: true,
         tabSize: 2,
         wordWrap: 'on',
         scrollBeyondLastLine: false,
-        theme: theme === 'dark' ? 'vs-dark' : 'vs',
+        guides: { indentation: true, highlightActiveIndentation: true },
+        roundedSelection: false,
+        overviewRulerBorder: false,
+        theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vs',
         padding: { top: 12, bottom: 12 },
       });
 
@@ -257,7 +291,7 @@ export function DesktopCodeEditor({
   }, [filePath, language, readOnly, value]);
 
   useEffect(() => {
-    monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vs-dark' : 'vs');
+    monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vs');
   }, [theme]);
 
   return createElement('div', { ref: containerRef, className, 'data-editor-kind': 'monaco' });
