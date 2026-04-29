@@ -173,8 +173,11 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
     const request = store.getAllKeys();
 
     request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
+      const highestId = request.result.reduce<number>((highest, key) => {
+        const numericKey = Number(key);
+        return Number.isFinite(numericKey) ? Math.max(highest, numericKey) : highest;
+      }, 0);
+      resolve(String(highestId + 1));
     };
 
     request.onerror = () => reject(request.error);

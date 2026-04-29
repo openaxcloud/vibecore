@@ -3,7 +3,7 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, Message } from 'ai';
-import React, { type RefCallback, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { EditorAdapter } from '@vibecore/editor';
@@ -42,6 +42,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
+import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -92,6 +93,7 @@ interface BaseChatProps {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
+  projectId?: string;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -143,6 +145,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       onWebSearchResult,
       projectIdeMode = false,
+      projectId,
     },
     ref,
   ) => {
@@ -166,28 +169,131 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
     const selectedFile = useStore(workbenchStore.selectedFile);
+    const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
     const [rightPanel, setRightPanel] = useState<'files' | 'search' | 'locks'>('files');
+    const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
+    const restoredProjectId = useRef<string | undefined>(undefined);
+    const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
     }, [projectFiles]);
 
     useEffect(() => {
+      setProjectStateReady(!projectIdeMode || !projectId);
+      restoredProjectId.current = undefined;
+      pendingProjectSelectedFile.current = undefined;
+    }, [projectIdeMode, projectId]);
+
+    useEffect(() => {
       workbenchStore.setDocuments(projectFiles);
     }, [projectFiles]);
 
     useEffect(() => {
-      if (!projectIdeMode || selectedFile || !firstProjectFile) {
+      if (!projectIdeMode || !projectId || restoredProjectId.current === projectId) {
+        return undefined;
+      }
+
+      let cancelled = false;
+      restoredProjectId.current = projectId;
+
+      getProjectIdeMemory(projectId)
+        .then((memory) => {
+          if (cancelled) {
+            return;
+          }
+
+          const ui = memory.ui;
+
+          if (ui?.rightPanel && ['files', 'search', 'locks'].includes(ui.rightPanel)) {
+            setRightPanel(ui.rightPanel);
+          }
+
+          if (
+            ui?.mobilePanel &&
+            ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
+          ) {
+            setMobilePanel(ui.mobilePanel);
+          }
+
+          if (ui?.currentView) {
+            workbenchStore.currentView.set(ui.currentView as any);
+          }
+
+          if (typeof ui?.showWorkbench === 'boolean') {
+            workbenchStore.setShowWorkbench(ui.showWorkbench);
+          } else {
+            workbenchStore.setShowWorkbench(true);
+          }
+
+          if (ui?.selectedFile) {
+            if (projectFiles[ui.selectedFile]?.type === 'file') {
+              workbenchStore.setSelectedFile(ui.selectedFile);
+              pendingProjectSelectedFile.current = undefined;
+            } else {
+              pendingProjectSelectedFile.current = ui.selectedFile;
+            }
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to restore project IDE state', error);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setProjectStateReady(true);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [projectFiles, projectIdeMode, projectId]);
+
+    useEffect(() => {
+      const pendingSelectedFile = pendingProjectSelectedFile.current;
+
+      if (!projectIdeMode || !pendingSelectedFile || projectFiles[pendingSelectedFile]?.type !== 'file') {
+        return;
+      }
+
+      workbenchStore.setSelectedFile(pendingSelectedFile);
+      pendingProjectSelectedFile.current = undefined;
+    }, [projectFiles, projectIdeMode]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {
         return;
       }
 
       workbenchStore.setSelectedFile(firstProjectFile);
       workbenchStore.currentView.set('code');
       workbenchStore.setShowWorkbench(true);
-    }, [firstProjectFile, projectIdeMode, selectedFile]);
+    }, [firstProjectFile, projectIdeMode, projectStateReady, selectedFile]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectId || !projectStateReady) {
+        return undefined;
+      }
+
+      const saveTimer = window.setTimeout(() => {
+        saveProjectIdeMemory(projectId, {
+          ui: {
+            selectedFile,
+            currentView,
+            rightPanel,
+            mobilePanel,
+            showWorkbench: true,
+          },
+        }).catch((error) => {
+          console.error('Failed to persist project IDE state', error);
+        });
+      }, 400);
+
+      return () => window.clearTimeout(saveTimer);
+    }, [projectIdeMode, projectId, projectStateReady, selectedFile, currentView, rightPanel, mobilePanel]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -634,7 +740,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </span>
                   </div>
                   <div className="min-h-0 flex-1 overflow-hidden">
-                    <Preview setSelectedElement={setSelectedElement} />
+                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
                   </div>
                 </div>
               </Panel>
@@ -740,6 +846,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     isStreaming={isStreaming}
                     setSelectedElement={setSelectedElement}
                     mobilePanel={mobilePanel === 'chat' ? 'editor' : mobilePanel}
+                    projectId={projectId}
                   />
                 )}
               </ClientOnly>

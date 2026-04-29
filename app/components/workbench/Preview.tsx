@@ -7,11 +7,13 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import type { ElementInfo } from './Inspector';
+import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 type ResizeSide = 'left' | 'right' | null;
 
 interface PreviewProps {
   setSelectedElement?: (element: ElementInfo | null) => void;
+  projectId?: string;
 }
 
 interface WindowSize {
@@ -52,7 +54,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
+export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +91,54 @@ export const Preview = memo(({ setSelectedElement }: PreviewProps) => {
   const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
   const expoUrl = useStore(expoUrlAtom);
   const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!projectId || previews.length === 0) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    getProjectIdeMemory(projectId)
+      .then((memory) => {
+        if (cancelled) {
+          return;
+        }
+
+        const previewIndex = memory.ui?.previewIndex;
+
+        if (typeof previewIndex === 'number' && previews[previewIndex]) {
+          setActivePreviewIndex(previewIndex);
+          hasSelectedPreview.current = true;
+        }
+
+        if (memory.ui?.previewPath) {
+          setDisplayPath(memory.ui.previewPath);
+        }
+      })
+      .catch((error) => console.error('Failed to restore preview memory', error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, previews]);
+
+  useEffect(() => {
+    if (!projectId) {
+      return undefined;
+    }
+
+    const saveTimer = window.setTimeout(() => {
+      saveProjectIdeMemory(projectId, {
+        ui: {
+          previewIndex: activePreviewIndex,
+          previewPath: displayPath,
+        },
+      }).catch((error) => console.error('Failed to persist preview memory', error));
+    }, 400);
+
+    return () => window.clearTimeout(saveTimer);
+  }, [projectId, activePreviewIndex, displayPath]);
 
   useEffect(() => {
     if (!activePreview) {

@@ -64,6 +64,7 @@ model User {
   projectCollaborations   ProjectCollaborator[]
   projectActivity         ProjectActivity[]
   projectSnapshots        ProjectSnapshot[]
+  projectIdeStateUpdates  ProjectIdeState[]
 }
 
 model Account {
@@ -207,9 +208,21 @@ model Project {
   deployments           Deployment[]
   fileSnapshots         FileSnapshot[]
   conversations         AiConversation[]
+  ideState              ProjectIdeState?
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+model ProjectIdeState {
+  projectId       String   @id
+  state           Json
+  version         Int      @default(1)
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  updatedBy       User?    @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 model ProjectEnvironment {

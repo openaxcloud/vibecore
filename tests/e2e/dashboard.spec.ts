@@ -14,7 +14,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   });
 
   expect(response.ok(), await response.text()).toBeTruthy();
-  const payload = (await response.json()) as { token: string };
+  const payload = (await response.json()) as { token: string; organization: { id: string } };
 
   await page.context().addCookies([
     {
@@ -26,6 +26,8 @@ async function authenticate(page: import('@playwright/test').Page) {
       sameSite: 'Lax',
     },
   ]);
+
+  return payload;
 }
 
 test('onboarding guides project setup', async ({ page }) => {
@@ -59,6 +61,41 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
   await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
   await expect(page.getByText('Deploy')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Shortcuts' })).toBeVisible();
+});
+
+test('reopens project IDE with persisted agent memory and panel state', async ({ page, isMobile }) => {
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const marker = `Persisted enterprise memory ${Date.now()}`;
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'Memory Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+  const saveState = await page.request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: {
+      state: {
+        chat: {
+          id: `project:${projectId}`,
+          description: 'Persistent project agent',
+          messages: [{ id: 'memory-user-message', role: 'user', content: marker }],
+        },
+        ui: { currentView: 'preview', rightPanel: 'search', showWorkbench: true },
+      },
+    },
+  });
+
+  expect(saveState.ok(), await saveState.text()).toBeTruthy();
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+  await expect(page.getByText(marker)).toBeVisible({ timeout: 15000 });
+
+  if (!isMobile) {
+    await expect(page.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
+  }
 });
 
 test('billing upgrade flow is reachable without frontend-only quota bypass', async ({ page }) => {

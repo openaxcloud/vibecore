@@ -308,6 +308,15 @@ export interface AiCostLedgerRecord {
   createdAt: string;
 }
 
+export interface ProjectIdeStateRecord {
+  projectId: string;
+  state: unknown;
+  version: number;
+  updatedByUserId?: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -461,6 +470,12 @@ export interface ApiStore {
     metadata?: Record<string, unknown>;
   }): Promise<ProjectActivityRecord>;
   listProjectActivity(projectId: string): Promise<ProjectActivityRecord[]>;
+  getProjectIdeState(projectId: string): Promise<ProjectIdeStateRecord | undefined>;
+  upsertProjectIdeState(input: {
+    projectId: string;
+    state: unknown;
+    updatedByUserId?: string;
+  }): Promise<ProjectIdeStateRecord>;
   createWorkspace(input: { projectId: string; name: string; runtimeMode: string }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;

@@ -24,6 +24,7 @@ import type {
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
   ProjectEnvironmentRecord,
+  ProjectIdeStateRecord,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectTemplateRecord,
@@ -72,6 +73,7 @@ export class TestApiStore implements ApiStore {
   readonly projectSecrets = new Map<string, ProjectSecretRecord>();
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
   readonly projectActivity = new Map<string, ProjectActivityRecord>();
+  readonly projectIdeStates = new Map<string, ProjectIdeStateRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
@@ -539,6 +541,24 @@ export class TestApiStore implements ApiStore {
 
   async listProjectActivity(projectId: string) {
     return [...this.projectActivity.values()].filter((activity) => activity.projectId === projectId);
+  }
+
+  async getProjectIdeState(projectId: string) {
+    return this.projectIdeStates.get(projectId);
+  }
+
+  async upsertProjectIdeState(input: { projectId: string; state: unknown; updatedByUserId?: string }) {
+    const existing = this.projectIdeStates.get(input.projectId);
+    const record: ProjectIdeStateRecord = {
+      projectId: input.projectId,
+      state: input.state,
+      version: existing ? existing.version + 1 : 1,
+      updatedByUserId: input.updatedByUserId,
+      updatedAt: now(),
+      createdAt: existing?.createdAt ?? now(),
+    };
+    this.projectIdeStates.set(input.projectId, record);
+    return record;
   }
 
   async createWorkspace(input: { projectId: string; name: string; runtimeMode: string }) {

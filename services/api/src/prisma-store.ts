@@ -24,6 +24,7 @@ import type {
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
   ProjectEnvironmentRecord,
+  ProjectIdeStateRecord,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectTemplateRecord,
@@ -492,6 +493,29 @@ export class PrismaApiStore implements ApiStore {
   async listProjectActivity(projectId: string) {
     return (await this.prisma.projectActivity.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' } })).map(
       mapProjectActivity,
+    );
+  }
+
+  async getProjectIdeState(projectId: string) {
+    const state = await this.prisma.projectIdeState.findUnique({ where: { projectId } });
+    return state ? mapProjectIdeState(state) : undefined;
+  }
+
+  async upsertProjectIdeState(input: { projectId: string; state: unknown; updatedByUserId?: string }) {
+    return mapProjectIdeState(
+      await this.prisma.projectIdeState.upsert({
+        where: { projectId: input.projectId },
+        create: {
+          projectId: input.projectId,
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+        },
+        update: {
+          state: input.state as any,
+          updatedByUserId: input.updatedByUserId,
+          version: { increment: 1 },
+        },
+      }),
     );
   }
 
@@ -1391,6 +1415,17 @@ function mapProjectActivity(activity: any): ProjectActivityRecord {
     action: activity.action,
     metadata: activity.metadata ?? undefined,
     createdAt: toIso(activity.createdAt)!,
+  };
+}
+
+function mapProjectIdeState(state: any): ProjectIdeStateRecord {
+  return {
+    projectId: state.projectId,
+    state: state.state,
+    version: state.version,
+    updatedByUserId: state.updatedByUserId ?? undefined,
+    updatedAt: toIso(state.updatedAt)!,
+    createdAt: toIso(state.createdAt)!,
   };
 }
 

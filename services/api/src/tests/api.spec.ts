@@ -1085,6 +1085,31 @@ describe('SaaS API', () => {
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
 
+    const saveIdeState = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        state: {
+          chat: {
+            id: `project:${projectId}`,
+            messages: [{ id: 'msg_1', role: 'user', content: 'Continue from yesterday' }],
+          },
+          ui: { selectedFile: '/workspace/src/App.tsx', currentView: 'preview', rightPanel: 'files' },
+        },
+      },
+    });
+    expect(saveIdeState.statusCode).toBe(200);
+    expect(saveIdeState.json().ideState.version).toBe(1);
+
+    const loadIdeState = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(loadIdeState.statusCode).toBe(200);
+    expect(loadIdeState.json().ideState.state.chat.messages[0].content).toBe('Continue from yesterday');
+
     const settings = await app.inject({
       method: 'PATCH',
       url: `/projects/${projectId}/settings`,

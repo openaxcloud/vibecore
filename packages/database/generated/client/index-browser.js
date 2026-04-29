@@ -216,6 +216,15 @@ exports.Prisma.ProjectScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectIdeStateScalarFieldEnum = {
+  projectId: 'projectId',
+  state: 'state',
+  version: 'version',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -626,12 +635,12 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -692,6 +701,7 @@ exports.Prisma.ModelName = {
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   Project: 'Project',
+  ProjectIdeState: 'ProjectIdeState',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',

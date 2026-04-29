@@ -64,6 +64,11 @@ export type RolePermission = $Result.DefaultSelection<Prisma.$RolePermissionPayl
  */
 export type Project = $Result.DefaultSelection<Prisma.$ProjectPayload>
 /**
+ * Model ProjectIdeState
+ * 
+ */
+export type ProjectIdeState = $Result.DefaultSelection<Prisma.$ProjectIdeStatePayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -558,6 +563,16 @@ export class PrismaClient<
     * ```
     */
   get project(): Prisma.ProjectDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectIdeState`: Exposes CRUD operations for the **ProjectIdeState** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectIdeStates
+    * const projectIdeStates = await prisma.projectIdeState.findMany()
+    * ```
+    */
+  get projectIdeState(): Prisma.ProjectIdeStateDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -1422,6 +1437,7 @@ export namespace Prisma {
     Permission: 'Permission',
     RolePermission: 'RolePermission',
     Project: 'Project',
+    ProjectIdeState: 'ProjectIdeState',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -1479,7 +1495,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2220,6 +2236,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectIdeState: {
+        payload: Prisma.$ProjectIdeStatePayload<ExtArgs>
+        fields: Prisma.ProjectIdeStateFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectIdeStateFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectIdeStateFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectIdeStateFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectIdeStateFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectIdeStateFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectIdeStateCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectIdeStateCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectIdeStateCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectIdeStateDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          update: {
+            args: Prisma.ProjectIdeStateUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectIdeStateDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectIdeStateUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectIdeStateUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectIdeStateUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectIdeStatePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectIdeStateAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectIdeState>
+          }
+          groupBy: {
+            args: Prisma.ProjectIdeStateGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectIdeStateGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectIdeStateCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectIdeStateCountAggregateOutputType> | number
           }
         }
       }
@@ -5449,6 +5539,7 @@ export namespace Prisma {
     permission?: PermissionOmit
     rolePermission?: RolePermissionOmit
     project?: ProjectOmit
+    projectIdeState?: ProjectIdeStateOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -5586,6 +5677,7 @@ export namespace Prisma {
     projectCollaborations: number
     projectActivity: number
     projectSnapshots: number
+    projectIdeStateUpdates: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5604,6 +5696,7 @@ export namespace Prisma {
     projectCollaborations?: boolean | UserCountOutputTypeCountProjectCollaborationsArgs
     projectActivity?: boolean | UserCountOutputTypeCountProjectActivityArgs
     projectSnapshots?: boolean | UserCountOutputTypeCountProjectSnapshotsArgs
+    projectIdeStateUpdates?: boolean | UserCountOutputTypeCountProjectIdeStateUpdatesArgs
   }
 
   // Custom InputTypes
@@ -5720,6 +5813,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountProjectSnapshotsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectSnapshotWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountProjectIdeStateUpdatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectIdeStateWhereInput
   }
 
 
@@ -6522,6 +6622,7 @@ export namespace Prisma {
     projectCollaborations?: boolean | User$projectCollaborationsArgs<ExtArgs>
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
+    projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -6581,6 +6682,7 @@ export namespace Prisma {
     projectCollaborations?: boolean | User$projectCollaborationsArgs<ExtArgs>
     projectActivity?: boolean | User$projectActivityArgs<ExtArgs>
     projectSnapshots?: boolean | User$projectSnapshotsArgs<ExtArgs>
+    projectIdeStateUpdates?: boolean | User$projectIdeStateUpdatesArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -6604,6 +6706,7 @@ export namespace Prisma {
       projectCollaborations: Prisma.$ProjectCollaboratorPayload<ExtArgs>[]
       projectActivity: Prisma.$ProjectActivityPayload<ExtArgs>[]
       projectSnapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
+      projectIdeStateUpdates: Prisma.$ProjectIdeStatePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7025,6 +7128,7 @@ export namespace Prisma {
     projectCollaborations<T extends User$projectCollaborationsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectCollaborationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCollaboratorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectActivity<T extends User$projectActivityArgs<ExtArgs> = {}>(args?: Subset<T, User$projectActivityArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectSnapshots<T extends User$projectSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    projectIdeStateUpdates<T extends User$projectIdeStateUpdatesArgs<ExtArgs> = {}>(args?: Subset<T, User$projectIdeStateUpdatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7814,6 +7918,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectSnapshotScalarFieldEnum | ProjectSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * User.projectIdeStateUpdates
+   */
+  export type User$projectIdeStateUpdatesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    where?: ProjectIdeStateWhereInput
+    orderBy?: ProjectIdeStateOrderByWithRelationInput | ProjectIdeStateOrderByWithRelationInput[]
+    cursor?: ProjectIdeStateWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectIdeStateScalarFieldEnum | ProjectIdeStateScalarFieldEnum[]
   }
 
   /**
@@ -17320,6 +17448,7 @@ export namespace Prisma {
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
+    ideState?: boolean | Project$ideStateArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -17387,6 +17516,7 @@ export namespace Prisma {
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
+    ideState?: boolean | Project$ideStateArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -17411,6 +17541,7 @@ export namespace Prisma {
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
+      ideState: Prisma.$ProjectIdeStatePayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -17832,6 +17963,7 @@ export namespace Prisma {
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    ideState<T extends Project$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Project$ideStateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -18539,6 +18671,25 @@ export namespace Prisma {
   }
 
   /**
+   * Project.ideState
+   */
+  export type Project$ideStateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    where?: ProjectIdeStateWhereInput
+  }
+
+  /**
    * Project without action
    */
   export type ProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -18554,6 +18705,1139 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectIdeState
+   */
+
+  export type AggregateProjectIdeState = {
+    _count: ProjectIdeStateCountAggregateOutputType | null
+    _avg: ProjectIdeStateAvgAggregateOutputType | null
+    _sum: ProjectIdeStateSumAggregateOutputType | null
+    _min: ProjectIdeStateMinAggregateOutputType | null
+    _max: ProjectIdeStateMaxAggregateOutputType | null
+  }
+
+  export type ProjectIdeStateAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type ProjectIdeStateSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type ProjectIdeStateMinAggregateOutputType = {
+    projectId: string | null
+    version: number | null
+    updatedByUserId: string | null
+    updatedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectIdeStateMaxAggregateOutputType = {
+    projectId: string | null
+    version: number | null
+    updatedByUserId: string | null
+    updatedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ProjectIdeStateCountAggregateOutputType = {
+    projectId: number
+    state: number
+    version: number
+    updatedByUserId: number
+    updatedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProjectIdeStateAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type ProjectIdeStateSumAggregateInputType = {
+    version?: true
+  }
+
+  export type ProjectIdeStateMinAggregateInputType = {
+    projectId?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectIdeStateMaxAggregateInputType = {
+    projectId?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+  }
+
+  export type ProjectIdeStateCountAggregateInputType = {
+    projectId?: true
+    state?: true
+    version?: true
+    updatedByUserId?: true
+    updatedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProjectIdeStateAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectIdeState to aggregate.
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectIdeStates to fetch.
+     */
+    orderBy?: ProjectIdeStateOrderByWithRelationInput | ProjectIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectIdeStates
+    **/
+    _count?: true | ProjectIdeStateCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProjectIdeStateAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProjectIdeStateSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectIdeStateMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectIdeStateMaxAggregateInputType
+  }
+
+  export type GetProjectIdeStateAggregateType<T extends ProjectIdeStateAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectIdeState]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectIdeState[P]>
+      : GetScalarType<T[P], AggregateProjectIdeState[P]>
+  }
+
+
+
+
+  export type ProjectIdeStateGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectIdeStateWhereInput
+    orderBy?: ProjectIdeStateOrderByWithAggregationInput | ProjectIdeStateOrderByWithAggregationInput[]
+    by: ProjectIdeStateScalarFieldEnum[] | ProjectIdeStateScalarFieldEnum
+    having?: ProjectIdeStateScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectIdeStateCountAggregateInputType | true
+    _avg?: ProjectIdeStateAvgAggregateInputType
+    _sum?: ProjectIdeStateSumAggregateInputType
+    _min?: ProjectIdeStateMinAggregateInputType
+    _max?: ProjectIdeStateMaxAggregateInputType
+  }
+
+  export type ProjectIdeStateGroupByOutputType = {
+    projectId: string
+    state: JsonValue
+    version: number
+    updatedByUserId: string | null
+    updatedAt: Date
+    createdAt: Date
+    _count: ProjectIdeStateCountAggregateOutputType | null
+    _avg: ProjectIdeStateAvgAggregateOutputType | null
+    _sum: ProjectIdeStateSumAggregateOutputType | null
+    _min: ProjectIdeStateMinAggregateOutputType | null
+    _max: ProjectIdeStateMaxAggregateOutputType | null
+  }
+
+  type GetProjectIdeStateGroupByPayload<T extends ProjectIdeStateGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectIdeStateGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectIdeStateGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectIdeStateGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectIdeStateGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectIdeStateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectIdeState"]>
+
+  export type ProjectIdeStateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectIdeState"]>
+
+  export type ProjectIdeStateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectIdeState"]>
+
+  export type ProjectIdeStateSelectScalar = {
+    projectId?: boolean
+    state?: boolean
+    version?: boolean
+    updatedByUserId?: boolean
+    updatedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProjectIdeStateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"projectId" | "state" | "version" | "updatedByUserId" | "updatedAt" | "createdAt", ExtArgs["result"]["projectIdeState"]>
+  export type ProjectIdeStateInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }
+  export type ProjectIdeStateIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }
+  export type ProjectIdeStateIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    updatedBy?: boolean | ProjectIdeState$updatedByArgs<ExtArgs>
+  }
+
+  export type $ProjectIdeStatePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectIdeState"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      updatedBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      projectId: string
+      state: Prisma.JsonValue
+      version: number
+      updatedByUserId: string | null
+      updatedAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["projectIdeState"]>
+    composites: {}
+  }
+
+  type ProjectIdeStateGetPayload<S extends boolean | null | undefined | ProjectIdeStateDefaultArgs> = $Result.GetResult<Prisma.$ProjectIdeStatePayload, S>
+
+  type ProjectIdeStateCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectIdeStateFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectIdeStateCountAggregateInputType | true
+    }
+
+  export interface ProjectIdeStateDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectIdeState'], meta: { name: 'ProjectIdeState' } }
+    /**
+     * Find zero or one ProjectIdeState that matches the filter.
+     * @param {ProjectIdeStateFindUniqueArgs} args - Arguments to find a ProjectIdeState
+     * @example
+     * // Get one ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectIdeStateFindUniqueArgs>(args: SelectSubset<T, ProjectIdeStateFindUniqueArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectIdeState that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectIdeStateFindUniqueOrThrowArgs} args - Arguments to find a ProjectIdeState
+     * @example
+     * // Get one ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectIdeStateFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectIdeStateFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectIdeState that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateFindFirstArgs} args - Arguments to find a ProjectIdeState
+     * @example
+     * // Get one ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectIdeStateFindFirstArgs>(args?: SelectSubset<T, ProjectIdeStateFindFirstArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectIdeState that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateFindFirstOrThrowArgs} args - Arguments to find a ProjectIdeState
+     * @example
+     * // Get one ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectIdeStateFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectIdeStateFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectIdeStates that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectIdeStates
+     * const projectIdeStates = await prisma.projectIdeState.findMany()
+     * 
+     * // Get first 10 ProjectIdeStates
+     * const projectIdeStates = await prisma.projectIdeState.findMany({ take: 10 })
+     * 
+     * // Only select the `projectId`
+     * const projectIdeStateWithProjectIdOnly = await prisma.projectIdeState.findMany({ select: { projectId: true } })
+     * 
+     */
+    findMany<T extends ProjectIdeStateFindManyArgs>(args?: SelectSubset<T, ProjectIdeStateFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectIdeState.
+     * @param {ProjectIdeStateCreateArgs} args - Arguments to create a ProjectIdeState.
+     * @example
+     * // Create one ProjectIdeState
+     * const ProjectIdeState = await prisma.projectIdeState.create({
+     *   data: {
+     *     // ... data to create a ProjectIdeState
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectIdeStateCreateArgs>(args: SelectSubset<T, ProjectIdeStateCreateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectIdeStates.
+     * @param {ProjectIdeStateCreateManyArgs} args - Arguments to create many ProjectIdeStates.
+     * @example
+     * // Create many ProjectIdeStates
+     * const projectIdeState = await prisma.projectIdeState.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectIdeStateCreateManyArgs>(args?: SelectSubset<T, ProjectIdeStateCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectIdeStates and returns the data saved in the database.
+     * @param {ProjectIdeStateCreateManyAndReturnArgs} args - Arguments to create many ProjectIdeStates.
+     * @example
+     * // Create many ProjectIdeStates
+     * const projectIdeState = await prisma.projectIdeState.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectIdeStates and only return the `projectId`
+     * const projectIdeStateWithProjectIdOnly = await prisma.projectIdeState.createManyAndReturn({
+     *   select: { projectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectIdeStateCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectIdeStateCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectIdeState.
+     * @param {ProjectIdeStateDeleteArgs} args - Arguments to delete one ProjectIdeState.
+     * @example
+     * // Delete one ProjectIdeState
+     * const ProjectIdeState = await prisma.projectIdeState.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectIdeState
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectIdeStateDeleteArgs>(args: SelectSubset<T, ProjectIdeStateDeleteArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectIdeState.
+     * @param {ProjectIdeStateUpdateArgs} args - Arguments to update one ProjectIdeState.
+     * @example
+     * // Update one ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectIdeStateUpdateArgs>(args: SelectSubset<T, ProjectIdeStateUpdateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectIdeStates.
+     * @param {ProjectIdeStateDeleteManyArgs} args - Arguments to filter ProjectIdeStates to delete.
+     * @example
+     * // Delete a few ProjectIdeStates
+     * const { count } = await prisma.projectIdeState.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectIdeStateDeleteManyArgs>(args?: SelectSubset<T, ProjectIdeStateDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectIdeStates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectIdeStates
+     * const projectIdeState = await prisma.projectIdeState.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectIdeStateUpdateManyArgs>(args: SelectSubset<T, ProjectIdeStateUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectIdeStates and returns the data updated in the database.
+     * @param {ProjectIdeStateUpdateManyAndReturnArgs} args - Arguments to update many ProjectIdeStates.
+     * @example
+     * // Update many ProjectIdeStates
+     * const projectIdeState = await prisma.projectIdeState.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectIdeStates and only return the `projectId`
+     * const projectIdeStateWithProjectIdOnly = await prisma.projectIdeState.updateManyAndReturn({
+     *   select: { projectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectIdeStateUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectIdeStateUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectIdeState.
+     * @param {ProjectIdeStateUpsertArgs} args - Arguments to update or create a ProjectIdeState.
+     * @example
+     * // Update or create a ProjectIdeState
+     * const projectIdeState = await prisma.projectIdeState.upsert({
+     *   create: {
+     *     // ... data to create a ProjectIdeState
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectIdeState we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectIdeStateUpsertArgs>(args: SelectSubset<T, ProjectIdeStateUpsertArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectIdeStates.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateCountArgs} args - Arguments to filter ProjectIdeStates to count.
+     * @example
+     * // Count the number of ProjectIdeStates
+     * const count = await prisma.projectIdeState.count({
+     *   where: {
+     *     // ... the filter for the ProjectIdeStates we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectIdeStateCountArgs>(
+      args?: Subset<T, ProjectIdeStateCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectIdeStateCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectIdeState.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectIdeStateAggregateArgs>(args: Subset<T, ProjectIdeStateAggregateArgs>): Prisma.PrismaPromise<GetProjectIdeStateAggregateType<T>>
+
+    /**
+     * Group by ProjectIdeState.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectIdeStateGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectIdeStateGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectIdeStateGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectIdeStateGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectIdeStateGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectIdeStateGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectIdeState model
+   */
+  readonly fields: ProjectIdeStateFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectIdeState.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectIdeStateClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    updatedBy<T extends ProjectIdeState$updatedByArgs<ExtArgs> = {}>(args?: Subset<T, ProjectIdeState$updatedByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectIdeState model
+   */
+  interface ProjectIdeStateFieldRefs {
+    readonly projectId: FieldRef<"ProjectIdeState", 'String'>
+    readonly state: FieldRef<"ProjectIdeState", 'Json'>
+    readonly version: FieldRef<"ProjectIdeState", 'Int'>
+    readonly updatedByUserId: FieldRef<"ProjectIdeState", 'String'>
+    readonly updatedAt: FieldRef<"ProjectIdeState", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectIdeState", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectIdeState findUnique
+   */
+  export type ProjectIdeStateFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectIdeState to fetch.
+     */
+    where: ProjectIdeStateWhereUniqueInput
+  }
+
+  /**
+   * ProjectIdeState findUniqueOrThrow
+   */
+  export type ProjectIdeStateFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectIdeState to fetch.
+     */
+    where: ProjectIdeStateWhereUniqueInput
+  }
+
+  /**
+   * ProjectIdeState findFirst
+   */
+  export type ProjectIdeStateFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectIdeState to fetch.
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectIdeStates to fetch.
+     */
+    orderBy?: ProjectIdeStateOrderByWithRelationInput | ProjectIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectIdeStates.
+     */
+    cursor?: ProjectIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectIdeStates.
+     */
+    distinct?: ProjectIdeStateScalarFieldEnum | ProjectIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectIdeState findFirstOrThrow
+   */
+  export type ProjectIdeStateFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectIdeState to fetch.
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectIdeStates to fetch.
+     */
+    orderBy?: ProjectIdeStateOrderByWithRelationInput | ProjectIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectIdeStates.
+     */
+    cursor?: ProjectIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectIdeStates.
+     */
+    distinct?: ProjectIdeStateScalarFieldEnum | ProjectIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectIdeState findMany
+   */
+  export type ProjectIdeStateFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectIdeStates to fetch.
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectIdeStates to fetch.
+     */
+    orderBy?: ProjectIdeStateOrderByWithRelationInput | ProjectIdeStateOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectIdeStates.
+     */
+    cursor?: ProjectIdeStateWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectIdeStates from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectIdeStates.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectIdeStates.
+     */
+    distinct?: ProjectIdeStateScalarFieldEnum | ProjectIdeStateScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectIdeState create
+   */
+  export type ProjectIdeStateCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectIdeState.
+     */
+    data: XOR<ProjectIdeStateCreateInput, ProjectIdeStateUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectIdeState createMany
+   */
+  export type ProjectIdeStateCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectIdeStates.
+     */
+    data: ProjectIdeStateCreateManyInput | ProjectIdeStateCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectIdeState createManyAndReturn
+   */
+  export type ProjectIdeStateCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectIdeStates.
+     */
+    data: ProjectIdeStateCreateManyInput | ProjectIdeStateCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectIdeState update
+   */
+  export type ProjectIdeStateUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectIdeState.
+     */
+    data: XOR<ProjectIdeStateUpdateInput, ProjectIdeStateUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectIdeState to update.
+     */
+    where: ProjectIdeStateWhereUniqueInput
+  }
+
+  /**
+   * ProjectIdeState updateMany
+   */
+  export type ProjectIdeStateUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectIdeStates.
+     */
+    data: XOR<ProjectIdeStateUpdateManyMutationInput, ProjectIdeStateUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectIdeStates to update
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * Limit how many ProjectIdeStates to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectIdeState updateManyAndReturn
+   */
+  export type ProjectIdeStateUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectIdeStates.
+     */
+    data: XOR<ProjectIdeStateUpdateManyMutationInput, ProjectIdeStateUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectIdeStates to update
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * Limit how many ProjectIdeStates to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectIdeState upsert
+   */
+  export type ProjectIdeStateUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectIdeState to update in case it exists.
+     */
+    where: ProjectIdeStateWhereUniqueInput
+    /**
+     * In case the ProjectIdeState found by the `where` argument doesn't exist, create a new ProjectIdeState with this data.
+     */
+    create: XOR<ProjectIdeStateCreateInput, ProjectIdeStateUncheckedCreateInput>
+    /**
+     * In case the ProjectIdeState was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectIdeStateUpdateInput, ProjectIdeStateUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectIdeState delete
+   */
+  export type ProjectIdeStateDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectIdeState to delete.
+     */
+    where: ProjectIdeStateWhereUniqueInput
+  }
+
+  /**
+   * ProjectIdeState deleteMany
+   */
+  export type ProjectIdeStateDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectIdeStates to delete
+     */
+    where?: ProjectIdeStateWhereInput
+    /**
+     * Limit how many ProjectIdeStates to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectIdeState.updatedBy
+   */
+  export type ProjectIdeState$updatedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ProjectIdeState without action
+   */
+  export type ProjectIdeStateDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectIdeState
+     */
+    select?: ProjectIdeStateSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectIdeState
+     */
+    omit?: ProjectIdeStateOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectIdeStateInclude<ExtArgs> | null
   }
 
 
@@ -65035,6 +66319,18 @@ export namespace Prisma {
   export type ProjectScalarFieldEnum = (typeof ProjectScalarFieldEnum)[keyof typeof ProjectScalarFieldEnum]
 
 
+  export const ProjectIdeStateScalarFieldEnum: {
+    projectId: 'projectId',
+    state: 'state',
+    version: 'version',
+    updatedByUserId: 'updatedByUserId',
+    updatedAt: 'updatedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ProjectIdeStateScalarFieldEnum = (typeof ProjectIdeStateScalarFieldEnum)[keyof typeof ProjectIdeStateScalarFieldEnum]
+
+
   export const ProjectEnvironmentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -65574,19 +66870,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -65669,20 +66965,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'WorkspaceStatus'
-   */
-  export type EnumWorkspaceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceStatus'>
-    
-
-
-  /**
-   * Reference to a field of type 'WorkspaceStatus[]'
-   */
-  export type ListEnumWorkspaceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceStatus[]'>
-    
-
-
-  /**
    * Reference to a field of type 'Int'
    */
   export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -65693,6 +66975,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'WorkspaceStatus'
+   */
+  export type EnumWorkspaceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'WorkspaceStatus[]'
+   */
+  export type ListEnumWorkspaceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceStatus[]'>
     
 
 
@@ -65784,6 +67080,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorListRelationFilter
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
+    projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -65812,6 +67109,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorOrderByRelationAggregateInput
     projectActivity?: ProjectActivityOrderByRelationAggregateInput
     projectSnapshots?: ProjectSnapshotOrderByRelationAggregateInput
+    projectIdeStateUpdates?: ProjectIdeStateOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -65843,6 +67141,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorListRelationFilter
     projectActivity?: ProjectActivityListRelationFilter
     projectSnapshots?: ProjectSnapshotListRelationFilter
+    projectIdeStateUpdates?: ProjectIdeStateListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -66445,6 +67744,7 @@ export namespace Prisma {
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
+    ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -66473,6 +67773,7 @@ export namespace Prisma {
     deployments?: DeploymentOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
+    ideState?: ProjectIdeStateOrderByWithRelationInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -66505,6 +67806,7 @@ export namespace Prisma {
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
+    ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -66543,6 +67845,71 @@ export namespace Prisma {
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
+  }
+
+  export type ProjectIdeStateWhereInput = {
+    AND?: ProjectIdeStateWhereInput | ProjectIdeStateWhereInput[]
+    OR?: ProjectIdeStateWhereInput[]
+    NOT?: ProjectIdeStateWhereInput | ProjectIdeStateWhereInput[]
+    projectId?: StringFilter<"ProjectIdeState"> | string
+    state?: JsonFilter<"ProjectIdeState">
+    version?: IntFilter<"ProjectIdeState"> | number
+    updatedByUserId?: StringNullableFilter<"ProjectIdeState"> | string | null
+    updatedAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    updatedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type ProjectIdeStateOrderByWithRelationInput = {
+    projectId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    updatedBy?: UserOrderByWithRelationInput
+  }
+
+  export type ProjectIdeStateWhereUniqueInput = Prisma.AtLeast<{
+    projectId?: string
+    AND?: ProjectIdeStateWhereInput | ProjectIdeStateWhereInput[]
+    OR?: ProjectIdeStateWhereInput[]
+    NOT?: ProjectIdeStateWhereInput | ProjectIdeStateWhereInput[]
+    state?: JsonFilter<"ProjectIdeState">
+    version?: IntFilter<"ProjectIdeState"> | number
+    updatedByUserId?: StringNullableFilter<"ProjectIdeState"> | string | null
+    updatedAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    updatedBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "projectId">
+
+  export type ProjectIdeStateOrderByWithAggregationInput = {
+    projectId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: ProjectIdeStateCountOrderByAggregateInput
+    _avg?: ProjectIdeStateAvgOrderByAggregateInput
+    _max?: ProjectIdeStateMaxOrderByAggregateInput
+    _min?: ProjectIdeStateMinOrderByAggregateInput
+    _sum?: ProjectIdeStateSumOrderByAggregateInput
+  }
+
+  export type ProjectIdeStateScalarWhereWithAggregatesInput = {
+    AND?: ProjectIdeStateScalarWhereWithAggregatesInput | ProjectIdeStateScalarWhereWithAggregatesInput[]
+    OR?: ProjectIdeStateScalarWhereWithAggregatesInput[]
+    NOT?: ProjectIdeStateScalarWhereWithAggregatesInput | ProjectIdeStateScalarWhereWithAggregatesInput[]
+    projectId?: StringWithAggregatesFilter<"ProjectIdeState"> | string
+    state?: JsonWithAggregatesFilter<"ProjectIdeState">
+    version?: IntWithAggregatesFilter<"ProjectIdeState"> | number
+    updatedByUserId?: StringNullableWithAggregatesFilter<"ProjectIdeState"> | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectIdeState"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectIdeState"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -69306,6 +70673,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -69334,6 +70702,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUpdateInput = {
@@ -69362,6 +70731,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -69390,6 +70760,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -70021,6 +71392,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -70048,6 +71420,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -70075,6 +71448,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -70102,6 +71476,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -70149,6 +71524,67 @@ export namespace Prisma {
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectIdeStateCreateInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedAt?: Date | string
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutIdeStateInput
+    updatedBy?: UserCreateNestedOneWithoutProjectIdeStateUpdatesInput
+  }
+
+  export type ProjectIdeStateUncheckedCreateInput = {
+    projectId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectIdeStateUpdateInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutIdeStateNestedInput
+    updatedBy?: UserUpdateOneWithoutProjectIdeStateUpdatesNestedInput
+  }
+
+  export type ProjectIdeStateUncheckedUpdateInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectIdeStateCreateManyInput = {
+    projectId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectIdeStateUpdateManyMutationInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectIdeStateUncheckedUpdateManyInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectEnvironmentCreateInput = {
@@ -73115,6 +74551,12 @@ export namespace Prisma {
     none?: ProjectSnapshotWhereInput
   }
 
+  export type ProjectIdeStateListRelationFilter = {
+    every?: ProjectIdeStateWhereInput
+    some?: ProjectIdeStateWhereInput
+    none?: ProjectIdeStateWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -73177,6 +74619,10 @@ export namespace Prisma {
   }
 
   export type ProjectSnapshotOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectIdeStateOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -73743,6 +75189,11 @@ export namespace Prisma {
     none?: FileSnapshotWhereInput
   }
 
+  export type ProjectIdeStateNullableScalarRelationFilter = {
+    is?: ProjectIdeStateWhereInput | null
+    isNot?: ProjectIdeStateWhereInput | null
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -73819,10 +75270,124 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
+  export type JsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
 
   export type ProjectScalarRelationFilter = {
     is?: ProjectWhereInput
     isNot?: ProjectWhereInput
+  }
+
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
+  export type ProjectIdeStateCountOrderByAggregateInput = {
+    projectId?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectIdeStateAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type ProjectIdeStateMaxOrderByAggregateInput = {
+    projectId?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectIdeStateMinOrderByAggregateInput = {
+    projectId?: SortOrder
+    version?: SortOrder
+    updatedByUserId?: SortOrder
+    updatedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectIdeStateSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type ProjectEnvironmentProjectIdNameCompoundUniqueInput = {
@@ -73968,11 +75533,6 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
-
-  export type UserNullableScalarRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
   }
 
   export type ProjectActivityCountOrderByAggregateInput = {
@@ -74152,17 +75712,6 @@ export namespace Prisma {
     stoppedAt?: SortOrder
   }
 
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
-
   export type WorkspacePortWorkspaceIdPortCompoundUniqueInput = {
     workspaceId: string
     port: number
@@ -74201,22 +75750,6 @@ export namespace Prisma {
 
   export type WorkspacePortSumOrderByAggregateInput = {
     port?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type WorkspaceNullableScalarRelationFilter = {
@@ -74261,29 +75794,6 @@ export namespace Prisma {
 
   export type FileSnapshotSumOrderByAggregateInput = {
     sizeBytes?: SortOrder
-  }
-  export type JsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -74337,32 +75847,6 @@ export namespace Prisma {
 
   export type ProjectSnapshotSumOrderByAggregateInput = {
     byteLength?: SortOrder
-  }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -75579,6 +77063,13 @@ export namespace Prisma {
     connect?: ProjectSnapshotWhereUniqueInput | ProjectSnapshotWhereUniqueInput[]
   }
 
+  export type ProjectIdeStateCreateNestedManyWithoutUpdatedByInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput> | ProjectIdeStateCreateWithoutUpdatedByInput[] | ProjectIdeStateUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
+    createMany?: ProjectIdeStateCreateManyUpdatedByInputEnvelope
+    connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -75682,6 +77173,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectSnapshotCreateOrConnectWithoutCreatedByInput | ProjectSnapshotCreateOrConnectWithoutCreatedByInput[]
     createMany?: ProjectSnapshotCreateManyCreatedByInputEnvelope
     connect?: ProjectSnapshotWhereUniqueInput | ProjectSnapshotWhereUniqueInput[]
+  }
+
+  export type ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput> | ProjectIdeStateCreateWithoutUpdatedByInput[] | ProjectIdeStateUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
+    createMany?: ProjectIdeStateCreateManyUpdatedByInputEnvelope
+    connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -75914,6 +77412,20 @@ export namespace Prisma {
     deleteMany?: ProjectSnapshotScalarWhereInput | ProjectSnapshotScalarWhereInput[]
   }
 
+  export type ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput> | ProjectIdeStateCreateWithoutUpdatedByInput[] | ProjectIdeStateUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
+    upsert?: ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput | ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput[]
+    createMany?: ProjectIdeStateCreateManyUpdatedByInputEnvelope
+    set?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    disconnect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    delete?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    update?: ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput | ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput[]
+    updateMany?: ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput | ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput[]
+    deleteMany?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -76122,6 +77634,20 @@ export namespace Prisma {
     update?: ProjectSnapshotUpdateWithWhereUniqueWithoutCreatedByInput | ProjectSnapshotUpdateWithWhereUniqueWithoutCreatedByInput[]
     updateMany?: ProjectSnapshotUpdateManyWithWhereWithoutCreatedByInput | ProjectSnapshotUpdateManyWithWhereWithoutCreatedByInput[]
     deleteMany?: ProjectSnapshotScalarWhereInput | ProjectSnapshotScalarWhereInput[]
+  }
+
+  export type ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput> | ProjectIdeStateCreateWithoutUpdatedByInput[] | ProjectIdeStateUncheckedCreateWithoutUpdatedByInput[]
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutUpdatedByInput | ProjectIdeStateCreateOrConnectWithoutUpdatedByInput[]
+    upsert?: ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput | ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput[]
+    createMany?: ProjectIdeStateCreateManyUpdatedByInputEnvelope
+    set?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    disconnect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    delete?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    connect?: ProjectIdeStateWhereUniqueInput | ProjectIdeStateWhereUniqueInput[]
+    update?: ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput | ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput[]
+    updateMany?: ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput | ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput[]
+    deleteMany?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -77405,6 +78931,12 @@ export namespace Prisma {
     connect?: AiConversationWhereUniqueInput | AiConversationWhereUniqueInput[]
   }
 
+  export type ProjectIdeStateCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutProjectInput
+    connect?: ProjectIdeStateWhereUniqueInput
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -77480,6 +79012,12 @@ export namespace Prisma {
     connectOrCreate?: AiConversationCreateOrConnectWithoutProjectInput | AiConversationCreateOrConnectWithoutProjectInput[]
     createMany?: AiConversationCreateManyProjectInputEnvelope
     connect?: AiConversationWhereUniqueInput | AiConversationWhereUniqueInput[]
+  }
+
+  export type ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutProjectInput
+    connect?: ProjectIdeStateWhereUniqueInput
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -77644,6 +79182,16 @@ export namespace Prisma {
     deleteMany?: AiConversationScalarWhereInput | AiConversationScalarWhereInput[]
   }
 
+  export type ProjectIdeStateUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutProjectInput
+    upsert?: ProjectIdeStateUpsertWithoutProjectInput
+    disconnect?: ProjectIdeStateWhereInput | boolean
+    delete?: ProjectIdeStateWhereInput | boolean
+    connect?: ProjectIdeStateWhereUniqueInput
+    update?: XOR<XOR<ProjectIdeStateUpdateToOneWithWhereWithoutProjectInput, ProjectIdeStateUpdateWithoutProjectInput>, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -77796,6 +79344,54 @@ export namespace Prisma {
     update?: AiConversationUpdateWithWhereUniqueWithoutProjectInput | AiConversationUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: AiConversationUpdateManyWithWhereWithoutProjectInput | AiConversationUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: AiConversationScalarWhereInput | AiConversationScalarWhereInput[]
+  }
+
+  export type ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectIdeStateCreateOrConnectWithoutProjectInput
+    upsert?: ProjectIdeStateUpsertWithoutProjectInput
+    disconnect?: ProjectIdeStateWhereInput | boolean
+    delete?: ProjectIdeStateWhereInput | boolean
+    connect?: ProjectIdeStateWhereUniqueInput
+    update?: XOR<XOR<ProjectIdeStateUpdateToOneWithWhereWithoutProjectInput, ProjectIdeStateUpdateWithoutProjectInput>, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutIdeStateInput = {
+    create?: XOR<ProjectCreateWithoutIdeStateInput, ProjectUncheckedCreateWithoutIdeStateInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutIdeStateInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutProjectIdeStateUpdatesInput = {
+    create?: XOR<UserCreateWithoutProjectIdeStateUpdatesInput, UserUncheckedCreateWithoutProjectIdeStateUpdatesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProjectIdeStateUpdatesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type ProjectUpdateOneRequiredWithoutIdeStateNestedInput = {
+    create?: XOR<ProjectCreateWithoutIdeStateInput, ProjectUncheckedCreateWithoutIdeStateInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutIdeStateInput
+    upsert?: ProjectUpsertWithoutIdeStateInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutIdeStateInput, ProjectUpdateWithoutIdeStateInput>, ProjectUncheckedUpdateWithoutIdeStateInput>
+  }
+
+  export type UserUpdateOneWithoutProjectIdeStateUpdatesNestedInput = {
+    create?: XOR<UserCreateWithoutProjectIdeStateUpdatesInput, UserUncheckedCreateWithoutProjectIdeStateUpdatesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProjectIdeStateUpdatesInput
+    upsert?: UserUpsertWithoutProjectIdeStateUpdatesInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectIdeStateUpdatesInput, UserUpdateWithoutProjectIdeStateUpdatesInput>, UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput>
   }
 
   export type ProjectCreateNestedOneWithoutEnvironmentsInput = {
@@ -78088,14 +79684,6 @@ export namespace Prisma {
     create?: XOR<WorkspaceCreateWithoutPortsInput, WorkspaceUncheckedCreateWithoutPortsInput>
     connectOrCreate?: WorkspaceCreateOrConnectWithoutPortsInput
     connect?: WorkspaceWhereUniqueInput
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type WorkspaceUpdateOneRequiredWithoutPortsNestedInput = {
@@ -79059,6 +80647,56 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -79098,56 +80736,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
     _max?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
-  }
-
-  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
-  }
-
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-  export type NestedJsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -79642,6 +81230,32 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectIdeStateCreateWithoutUpdatedByInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedAt?: Date | string
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutIdeStateInput
+  }
+
+  export type ProjectIdeStateUncheckedCreateWithoutUpdatedByInput = {
+    projectId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectIdeStateCreateOrConnectWithoutUpdatedByInput = {
+    where: ProjectIdeStateWhereUniqueInput
+    create: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput>
+  }
+
+  export type ProjectIdeStateCreateManyUpdatedByInputEnvelope = {
+    data: ProjectIdeStateCreateManyUpdatedByInput | ProjectIdeStateCreateManyUpdatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -80073,6 +81687,34 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectSnapshot"> | Date | string
   }
 
+  export type ProjectIdeStateUpsertWithWhereUniqueWithoutUpdatedByInput = {
+    where: ProjectIdeStateWhereUniqueInput
+    update: XOR<ProjectIdeStateUpdateWithoutUpdatedByInput, ProjectIdeStateUncheckedUpdateWithoutUpdatedByInput>
+    create: XOR<ProjectIdeStateCreateWithoutUpdatedByInput, ProjectIdeStateUncheckedCreateWithoutUpdatedByInput>
+  }
+
+  export type ProjectIdeStateUpdateWithWhereUniqueWithoutUpdatedByInput = {
+    where: ProjectIdeStateWhereUniqueInput
+    data: XOR<ProjectIdeStateUpdateWithoutUpdatedByInput, ProjectIdeStateUncheckedUpdateWithoutUpdatedByInput>
+  }
+
+  export type ProjectIdeStateUpdateManyWithWhereWithoutUpdatedByInput = {
+    where: ProjectIdeStateScalarWhereInput
+    data: XOR<ProjectIdeStateUpdateManyMutationInput, ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByInput>
+  }
+
+  export type ProjectIdeStateScalarWhereInput = {
+    AND?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
+    OR?: ProjectIdeStateScalarWhereInput[]
+    NOT?: ProjectIdeStateScalarWhereInput | ProjectIdeStateScalarWhereInput[]
+    projectId?: StringFilter<"ProjectIdeState"> | string
+    state?: JsonFilter<"ProjectIdeState">
+    version?: IntFilter<"ProjectIdeState"> | number
+    updatedByUserId?: StringNullableFilter<"ProjectIdeState"> | string | null
+    updatedAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+    createdAt?: DateTimeFilter<"ProjectIdeState"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -80098,6 +81740,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -80125,6 +81768,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -80168,6 +81812,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -80195,6 +81840,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -80222,6 +81868,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -80249,6 +81896,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -80292,6 +81940,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -80319,6 +81968,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -80399,6 +82049,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -80425,6 +82076,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -81655,6 +83307,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -81682,6 +83335,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -81817,6 +83471,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -81844,6 +83499,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -82680,6 +84336,27 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectIdeStateCreateWithoutProjectInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedAt?: Date | string
+    createdAt?: Date | string
+    updatedBy?: UserCreateNestedOneWithoutProjectIdeStateUpdatesInput
+  }
+
+  export type ProjectIdeStateUncheckedCreateWithoutProjectInput = {
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedByUserId?: string | null
+    updatedAt?: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ProjectIdeStateCreateOrConnectWithoutProjectInput = {
+    where: ProjectIdeStateWhereUniqueInput
+    create: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -83001,6 +84678,285 @@ export namespace Prisma {
     data: XOR<AiConversationUpdateManyMutationInput, AiConversationUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type ProjectIdeStateUpsertWithoutProjectInput = {
+    update: XOR<ProjectIdeStateUpdateWithoutProjectInput, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectIdeStateCreateWithoutProjectInput, ProjectIdeStateUncheckedCreateWithoutProjectInput>
+    where?: ProjectIdeStateWhereInput
+  }
+
+  export type ProjectIdeStateUpdateToOneWithWhereWithoutProjectInput = {
+    where?: ProjectIdeStateWhereInput
+    data: XOR<ProjectIdeStateUpdateWithoutProjectInput, ProjectIdeStateUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectIdeStateUpdateWithoutProjectInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedBy?: UserUpdateOneWithoutProjectIdeStateUpdatesNestedInput
+  }
+
+  export type ProjectIdeStateUncheckedUpdateWithoutProjectInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCreateWithoutIdeStateInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutIdeStateInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutIdeStateInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutIdeStateInput, ProjectUncheckedCreateWithoutIdeStateInput>
+  }
+
+  export type UserCreateWithoutProjectIdeStateUpdatesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutProjectIdeStateUpdatesInput, UserUncheckedCreateWithoutProjectIdeStateUpdatesInput>
+  }
+
+  export type ProjectUpsertWithoutIdeStateInput = {
+    update: XOR<ProjectUpdateWithoutIdeStateInput, ProjectUncheckedUpdateWithoutIdeStateInput>
+    create: XOR<ProjectCreateWithoutIdeStateInput, ProjectUncheckedCreateWithoutIdeStateInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutIdeStateInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutIdeStateInput, ProjectUncheckedUpdateWithoutIdeStateInput>
+  }
+
+  export type ProjectUpdateWithoutIdeStateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutIdeStateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
+    update: XOR<UserUpdateWithoutProjectIdeStateUpdatesInput, UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput>
+    create: XOR<UserCreateWithoutProjectIdeStateUpdatesInput, UserUncheckedCreateWithoutProjectIdeStateUpdatesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutProjectIdeStateUpdatesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutProjectIdeStateUpdatesInput, UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput>
+  }
+
+  export type UserUpdateWithoutProjectIdeStateUpdatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
   export type ProjectCreateWithoutEnvironmentsInput = {
     id?: string
     name: string
@@ -83025,6 +84981,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -83051,6 +85008,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -83093,6 +85051,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -83119,6 +85078,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -83145,6 +85105,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -83171,6 +85132,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -83213,6 +85175,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -83239,6 +85202,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -83265,6 +85229,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -83291,6 +85256,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -83333,6 +85299,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -83359,6 +85326,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -83385,6 +85353,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -83411,6 +85380,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -83443,6 +85413,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -83470,6 +85441,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -83512,6 +85484,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -83538,6 +85511,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -83576,6 +85550,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -83603,6 +85578,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -83629,6 +85605,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -83655,6 +85632,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -83687,6 +85665,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -83714,6 +85693,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -83756,6 +85736,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -83782,6 +85763,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -83820,6 +85802,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -83847,6 +85830,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -83873,6 +85857,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -83899,6 +85884,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -84004,6 +85990,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -84030,6 +86017,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -84125,6 +86113,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -84151,6 +86140,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -84275,6 +86265,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -84301,6 +86292,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -84527,6 +86519,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -84553,6 +86546,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -84624,6 +86618,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -84650,6 +86645,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -84711,6 +86707,7 @@ export namespace Prisma {
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -84737,6 +86734,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -84769,6 +86767,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -84796,6 +86795,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -84838,6 +86838,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -84864,6 +86865,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -84902,6 +86904,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -84929,6 +86932,7 @@ export namespace Prisma {
     recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -84955,6 +86959,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -84981,6 +86986,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -85038,6 +87044,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -85064,6 +87071,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -85221,6 +87229,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -85248,6 +87257,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -85360,6 +87370,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -85387,6 +87398,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -85414,6 +87426,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -85441,6 +87454,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -85484,6 +87498,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -85511,6 +87526,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -86437,6 +88453,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -86463,6 +88480,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -86495,6 +88513,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -86522,6 +88541,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -86592,6 +88612,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -86618,6 +88639,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -86656,6 +88678,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -86683,6 +88706,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -87326,6 +89350,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -87353,6 +89378,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -87465,6 +89491,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -87492,6 +89519,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -87651,6 +89679,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -87678,6 +89707,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -87721,6 +89751,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -87748,6 +89779,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -87775,6 +89807,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -87802,6 +89835,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -87845,6 +89879,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -87872,6 +89907,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -87899,6 +89935,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -87926,6 +89963,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -87969,6 +90007,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -87996,6 +90035,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -88878,6 +90918,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -88905,6 +90946,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -89017,6 +91059,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -89044,6 +91087,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -89071,6 +91115,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -89098,6 +91143,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
     projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
     projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -89141,6 +91187,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -89168,6 +91215,7 @@ export namespace Prisma {
     projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
     projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
     projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
   }
 
   export type AccountCreateManyUserInput = {
@@ -89298,6 +91346,14 @@ export namespace Prisma {
     manifest: JsonNullValueInput | InputJsonValue
     storageKey?: string | null
     byteLength?: number | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectIdeStateCreateManyUpdatedByInput = {
+    projectId: string
+    state: JsonNullValueInput | InputJsonValue
+    version?: number
+    updatedAt?: Date | string
     createdAt?: Date | string
   }
 
@@ -89696,6 +91752,30 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectIdeStateUpdateWithoutUpdatedByInput = {
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutIdeStateNestedInput
+  }
+
+  export type ProjectIdeStateUncheckedUpdateWithoutUpdatedByInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: JsonNullValueInput | InputJsonValue
+    version?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -89965,6 +92045,7 @@ export namespace Prisma {
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -89991,6 +92072,7 @@ export namespace Prisma {
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {

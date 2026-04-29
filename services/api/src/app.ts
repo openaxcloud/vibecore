@@ -139,6 +139,9 @@ const projectSettingsSchema = z.object({
   gitRepositoryUrl: z.string().url().optional(),
   gitDefaultBranch: z.string().min(1).optional(),
 });
+const projectIdeStateSchema = z.object({
+  state: z.record(z.unknown()),
+});
 const projectKeyValueSchema = z.object({
   key: z
     .string()
@@ -2960,6 +2963,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       git: await gitProvider.status(project.id),
       recentActivity: (await store.listProjectActivity(project.id)).slice(-20),
     };
+  });
+  app.get('/projects/:projectId/ide-state', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { ideState: (await store.getProjectIdeState(project.id)) ?? null };
+  });
+  app.put('/projects/:projectId/ide-state', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(projectIdeStateSchema, request.body ?? {});
+    const ideState = await store.upsertProjectIdeState({
+      projectId: project.id,
+      state: body.state,
+      updatedByUserId: request.currentUser!.id,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.ide_state.save',
+      metadata: {
+        version: ideState.version,
+        persistedKeys: Object.keys(body.state),
+      },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.ide_state.save',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { version: ideState.version },
+    });
+
+    return { ideState };
   });
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),

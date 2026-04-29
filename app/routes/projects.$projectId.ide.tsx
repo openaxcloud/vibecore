@@ -48,8 +48,8 @@ export default function ProjectIdeRoute() {
       <div className="bolt-project-ide-shell flex h-full w-full flex-col bg-bolt-elements-background-depth-1">
         <Header />
         <IdeProjectToolbar projectId={projectId} />
-        <ClientOnly fallback={<BaseChat chatStarted projectIdeMode />}>
-          {() => <Chat forceWorkbench projectIdeMode />}
+        <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
+          {() => <Chat forceWorkbench projectIdeMode projectId={projectId} />}
         </ClientOnly>
       </div>
     </ProjectWorkspaceProvider>

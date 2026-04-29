@@ -22,6 +22,7 @@ import type { Snapshot } from './types';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
+import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
 
 export interface ChatHistoryItem {
   id: string;
@@ -50,7 +51,7 @@ function toRuntimePath(filePath: string) {
 
 export function useChatHistory() {
   const navigate = useNavigate();
-  const { id: mixedId } = useLoaderData<{ id?: string }>();
+  const { id: mixedId, projectId } = useLoaderData<{ id?: string; projectId?: string }>();
   const [searchParams] = useSearchParams();
 
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
@@ -59,7 +60,7 @@ export function useChatHistory() {
   const [urlId, setUrlId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!db) {
+    if (!db && !projectId) {
       setReady(true);
 
       if (persistenceEnabled) {
@@ -71,10 +72,50 @@ export function useChatHistory() {
       return;
     }
 
-    if (mixedId) {
+    if (projectId) {
+      getProjectIdeMemory(projectId)
+        .then(async (memory) => {
+          const projectChatId = memory.chat?.id ?? `project:${projectId}`;
+          const storedMessages = memory.chat?.messages?.length
+            ? ({
+                id: projectChatId,
+                urlId: memory.chat.urlId,
+                description: memory.chat.description,
+                messages: memory.chat.messages,
+                timestamp: memory.updatedAt ?? new Date().toISOString(),
+                metadata: memory.chat.metadata,
+              } satisfies ChatHistoryItem)
+            : db
+              ? await getMessages(db, projectChatId).catch(() => undefined as unknown as ChatHistoryItem | undefined)
+              : undefined;
+
+          const messages = storedMessages?.messages ?? [];
+
+          setArchivedMessages(memory.chat?.archivedMessages ?? []);
+          setInitialMessages(messages);
+          setUrlId(storedMessages?.urlId);
+          description.set(storedMessages?.description ?? memory.chat?.description ?? 'Project assistant');
+          chatId.set(projectChatId);
+          chatMetadata.set(storedMessages?.metadata ?? memory.chat?.metadata);
+
+          if (!storedMessages && db) {
+            await setMessages(db, projectChatId, [], undefined, 'Project assistant', undefined, memory.chat?.metadata);
+          }
+
+          setReady(true);
+        })
+        .catch((error) => {
+          console.error(error);
+          logStore.logError('Failed to load project IDE chat memory', error);
+          toast.error('Failed to load project IDE memory: ' + error.message);
+          chatId.set(`project:${projectId}`);
+          description.set('Project assistant');
+          setReady(true);
+        });
+    } else if (mixedId) {
       Promise.all([
-        getMessages(db, mixedId),
-        getSnapshot(db, mixedId), // Fetch snapshot from DB
+        getMessages(db!, mixedId),
+        getSnapshot(db!, mixedId), // Fetch snapshot from DB
       ])
         .then(async ([storedMessages, snapshot]) => {
           if (storedMessages && storedMessages.messages.length > 0) {
@@ -204,7 +245,7 @@ ${value.content}
       // Handle case where there is no mixedId (e.g., new chat)
       setReady(true);
     }
-  }, [mixedId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
+  }, [mixedId, projectId, db, navigate, searchParams]); // Added db, navigate, searchParams dependencies
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
@@ -257,7 +298,7 @@ ${value.content}
   }, []);
 
   return {
-    ready: !mixedId || ready,
+    ready: projectId ? ready : !mixedId || ready,
     initialMessages,
     updateChatMestaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
@@ -275,7 +316,7 @@ ${value.content}
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
-      if (!db || messages.length === 0) {
+      if ((!db && !projectId) || messages.length === 0) {
         return;
       }
 
@@ -284,8 +325,8 @@ ${value.content}
 
       let _urlId = urlId;
 
-      if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(db, firstArtifact.id);
+      if (!projectId && !urlId && firstArtifact?.id) {
+        const urlId = await getUrlId(db!, firstArtifact.id);
         _urlId = urlId;
         navigateChat(urlId);
         setUrlId(urlId);
@@ -314,11 +355,11 @@ ${value.content}
 
       // Ensure chatId.get() is used here as well
       if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(db);
+        const nextId = projectId ? `project:${projectId}` : await getNextId(db!);
 
         chatId.set(nextId);
 
-        if (!urlId) {
+        if (!projectId && !urlId) {
           navigateChat(nextId);
         }
       }
@@ -333,15 +374,33 @@ ${value.content}
         return;
       }
 
-      await setMessages(
-        db,
-        finalChatId, // Use the potentially updated chatId
-        [...archivedMessages, ...messages],
-        urlId,
-        description.get(),
-        undefined,
-        chatMetadata.get(),
-      );
+      if (db) {
+        await setMessages(
+          db,
+          finalChatId, // Use the potentially updated chatId
+          [...archivedMessages, ...messages],
+          urlId,
+          description.get(),
+          undefined,
+          chatMetadata.get(),
+        );
+      }
+
+      if (projectId) {
+        await saveProjectIdeMemory(projectId, {
+          chat: {
+            id: finalChatId,
+            urlId,
+            description: description.get(),
+            metadata: chatMetadata.get(),
+            messages: [...archivedMessages, ...messages],
+            archivedMessages,
+          },
+        }).catch((error) => {
+          logStore.logError('Failed to persist project chat memory', error);
+          toast.error('Failed to persist project chat memory');
+        });
+      }
     },
     duplicateCurrentChat: async (listItemId: string) => {
       if (!db || (!mixedId && !listItemId)) {

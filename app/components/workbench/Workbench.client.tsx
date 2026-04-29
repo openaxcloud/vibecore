@@ -40,6 +40,7 @@ interface WorkspaceProps {
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
   mobilePanel?: 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
+  projectId?: string;
 }
 
 const viewTransition = { ease: cubicEasingFn };
@@ -290,6 +291,7 @@ export const Workbench = memo(
     updateChatMestaData: _updateChatMestaData,
     setSelectedElement,
     mobilePanel,
+    projectId,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
@@ -556,7 +558,7 @@ export const Workbench = memo(
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}>
-                    <Preview setSelectedElement={setSelectedElement} />
+                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
                   </View>
                 </div>
               </div>

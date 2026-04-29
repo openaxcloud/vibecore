@@ -25,6 +25,8 @@ export function ProjectWorkspaceProvider({ projectId, adapter, children }: Proje
       workbenchStore.workspaceLogs.set([]);
       workbenchStore.quotaWarning.set(undefined);
       workbenchStore.billingUpgradePrompt.set(undefined);
+      workbenchStore.setSelectedFile(undefined);
+      workbenchStore.currentView.set('code');
 
       try {
         await runtime.boot();
