@@ -55,9 +55,12 @@ export function TextField(props: {
   );
 }
 
-export function PrimaryButton({ children }: { children: React.ReactNode }) {
+export function PrimaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button className="rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text">
+    <button
+      {...props}
+      className="rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"
+    >
       {children}
     </button>
   );

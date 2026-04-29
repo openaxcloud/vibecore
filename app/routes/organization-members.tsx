@@ -2,6 +2,7 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
+  firstOrganization,
   formObject,
   json,
   type EnterpriseActionArgs,
@@ -9,18 +10,16 @@ import {
 } from '~/lib/enterprise-api.server';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const orgId = new URL(request.url).searchParams.get('orgId');
-
-  if (!orgId) {
-    return json({ orgId: '', memberships: [] });
-  }
+  const organization = new URL(request.url).searchParams.get('orgId')
+    ? { id: new URL(request.url).searchParams.get('orgId')! }
+    : await firstOrganization(request);
 
   const result = await apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(
     request,
-    `/orgs/${orgId}/memberships`,
+    `/orgs/${organization.id}/memberships`,
   );
 
-  return json({ orgId, memberships: result.memberships });
+  return json({ orgId: organization.id, memberships: result.memberships });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {

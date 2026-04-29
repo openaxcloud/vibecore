@@ -1,6 +1,18 @@
-import { Form, useActionData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
-import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import {
+  apiRequest,
+  firstOrganization,
+  formObject,
+  json,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
+
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const organization = await firstOrganization(request);
+  return json({ orgId: organization.id });
+}
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as {
@@ -30,6 +42,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function RolesAndPermissionsPage() {
+  const { orgId } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
 
   return (
@@ -40,7 +53,7 @@ export default function RolesAndPermissionsPage() {
       error={actionData?.error}
     >
       <Form method="post" className="space-y-4">
-        <TextField label="Organization ID" name="orgId" required />
+        <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
         <TextField label="Role key" name="key" required />
         <TextField label="Role name" name="name" required />
         <TextField label="Permissions" name="permissions" placeholder="security:manage,audit:export" required />

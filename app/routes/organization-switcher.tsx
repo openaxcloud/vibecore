@@ -1,10 +1,21 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
+import { useLoaderData } from '@remix-run/react';
 import { Building2, Plus } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 export const meta: MetaFunction = () => [{ title: 'Organizations - VibeCore' }];
 
+type Organization = { id: string; name?: string; slug?: string };
+
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const result = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
+  return { organizations: result.organizations };
+}
+
 export default function OrganizationSwitcherPage() {
+  const { organizations } = useLoaderData<typeof loader>();
+
   return (
     <AppShell
       title="Organization switcher"
@@ -12,18 +23,24 @@ export default function OrganizationSwitcherPage() {
       actions={<LinkButton to="/onboarding">New organization</LinkButton>}
     >
       <ActivityList
-        items={[
-          {
-            title: 'Acme Workspace',
-            detail: 'Current organization. Team plan, 6 members, shared billing enabled.',
-            icon: Building2,
-          },
-          {
-            title: 'Personal Sandbox',
-            detail: 'Free plan workspace for experiments and public templates.',
-            icon: Plus,
-          },
-        ]}
+        items={
+          organizations.length
+            ? organizations.map((organization, index) => ({
+                title: organization.name ?? organization.slug ?? organization.id,
+                detail:
+                  index === 0
+                    ? 'Current organization loaded from the backend session.'
+                    : 'Available organization loaded from backend membership.',
+                icon: Building2,
+              }))
+            : [
+                {
+                  title: 'No organizations',
+                  detail: 'Create an organization to isolate projects, billing and RBAC.',
+                  icon: Plus,
+                },
+              ]
+        }
       />
     </AppShell>
   );

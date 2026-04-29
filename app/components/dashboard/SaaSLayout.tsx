@@ -485,12 +485,12 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
 
 export function CommandPalettePreview() {
   const commands = [
-    'Create project',
-    'Open recent IDE',
-    'Import GitHub repository',
-    'View usage',
-    'Invite teammate',
-    'Rotate API key',
+    { label: 'Create project', to: '/projects/new' },
+    { label: 'Open recent projects', to: '/recent-projects' },
+    { label: 'Import GitHub repository', to: '/import-github' },
+    { label: 'View usage', to: '/usage' },
+    { label: 'Invite teammate', to: '/invitations' },
+    { label: 'Rotate API key', to: '/api-keys' },
   ];
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 shadow-sm">
@@ -507,13 +507,14 @@ export function CommandPalettePreview() {
       </label>
       <div className="mt-3 grid gap-1">
         {commands.map((command) => (
-          <button
-            key={command}
+          <Link
+            key={command.to}
+            to={command.to}
             className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-bolt-elements-background-depth-3"
           >
-            {command}
+            {command.label}
             <span className="text-xs text-bolt-elements-textTertiary">Enter</span>
-          </button>
+          </Link>
         ))}
       </div>
     </div>
@@ -563,7 +564,7 @@ function TopBar() {
       >
         <Menu className="h-4 w-4 lg:hidden" aria-hidden />
         <Building2 className="h-4 w-4" aria-hidden />
-        Acme Workspace
+        Organizations
       </Link>
       <div className="flex items-center gap-2">
         <Link
