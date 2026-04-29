@@ -313,6 +313,123 @@ test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
   });
 });
 
+test('IDE panels, agent input and feature tools keep the platform theme in light and dark modes', async ({ page }) => {
+  test.setTimeout(180_000);
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'IDE Light Dark Coverage Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
+    timeout: 15_000,
+  });
+  const coreSelectors = {
+    root: '.bolt-project-ide-panels',
+    agent: '.bolt-project-agent-shell',
+    agentHeader: '.bolt-project-agent-header',
+    agentInput: '.bolt-project-chatbox',
+    agentTextarea: '.bolt-project-chatbox textarea',
+    iconButton: '.bolt-project-ide-icon-button',
+    workspace: '.bolt-project-workspace-shell',
+    tabbar: '.bolt-project-tabbar',
+    databasePanel: '[data-testid="ide-service-panel"][data-panel="database"]',
+    rightPanel: '.bolt-project-right-panel-shell',
+    rightTabs: '.bolt-project-right-tabs',
+    statusbar: '.bolt-project-statusbar',
+  };
+
+  async function readIdeTheme(theme: 'light' | 'dark') {
+    await page.evaluate((nextTheme) => {
+      document.documentElement.setAttribute('data-theme', nextTheme);
+    }, theme);
+    await page.waitForTimeout(100);
+
+    return page.locator('.bolt-project-ide-panels').evaluate((rootElement, selectorMap) => {
+      const read = (selector: string) => {
+        const element = document.querySelector(selector);
+
+        if (!element) {
+          return { missing: selector };
+        }
+
+        const style = window.getComputedStyle(element);
+
+        return {
+          background: style.backgroundColor,
+          color: style.color,
+          borderColor: style.borderColor,
+          borderRightColor: style.borderRightColor,
+          borderBottomColor: style.borderBottomColor,
+          borderTopColor: style.borderTopColor,
+          borderLeftColor: style.borderLeftColor,
+          borderRadius: style.borderRadius,
+          fontSize: style.fontSize,
+        };
+      };
+      const rootStyle = window.getComputedStyle(rootElement);
+
+      return {
+        tokens: {
+          app: rootStyle.getPropertyValue('--vc-ide-bg-app').trim().toLowerCase(),
+          panel: rootStyle.getPropertyValue('--vc-ide-bg-panel').trim().toLowerCase(),
+          card: rootStyle.getPropertyValue('--vc-ide-bg-card').trim().toLowerCase(),
+          hover: rootStyle.getPropertyValue('--vc-ide-bg-hover').trim().toLowerCase(),
+          text: rootStyle.getPropertyValue('--vc-ide-text-primary').trim().toLowerCase(),
+          action: rootStyle.getPropertyValue('--vc-ide-accent-action').trim().toLowerCase(),
+        },
+        surfaces: Object.fromEntries(
+          Object.entries(selectorMap as Record<string, string>).map(([key, selector]) => [key, read(selector)]),
+        ) as Record<string, ReturnType<typeof read>>,
+      };
+    }, coreSelectors);
+  }
+
+  for (const theme of ['light', 'dark'] as const) {
+    const snapshot = await readIdeTheme(theme);
+    expect(
+      Object.entries(snapshot.surfaces)
+        .filter(([, value]) => 'missing' in value)
+        .map(([key, value]) => `${key}:${value.missing}`),
+    ).toEqual([]);
+    expect(snapshot.tokens).toMatchObject({
+      app: '#0a0f1c',
+      panel: '#0e1525',
+      card: '#1a2030',
+      hover: '#2b3245',
+      text: '#f5f9fc',
+      action: '#0099ff',
+    });
+    expect(snapshot.surfaces.root).toMatchObject({
+      background: 'rgb(10, 15, 28)',
+      color: 'rgb(245, 249, 252)',
+    });
+    expect(snapshot.surfaces.agent.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.agent.borderRightColor).toBe('rgb(26, 32, 48)');
+    expect(snapshot.surfaces.agentHeader.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.agentInput.background).toBe('rgb(26, 32, 48)');
+    expect(snapshot.surfaces.agentInput.borderColor).toBe('rgb(43, 50, 69)');
+    expect(snapshot.surfaces.agentTextarea.color).toBe('rgb(245, 249, 252)');
+    expect(snapshot.surfaces.iconButton.borderRadius).toBe('4px');
+    expect(snapshot.surfaces.workspace.background).toBe('rgb(10, 15, 28)');
+    expect(snapshot.surfaces.tabbar.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.tabbar.borderBottomColor).toBe('rgb(26, 32, 48)');
+    expect(snapshot.surfaces.databasePanel.background).toBe('rgb(10, 15, 28)');
+    expect(snapshot.surfaces.rightPanel.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.rightPanel.borderLeftColor).toBe('rgb(26, 32, 48)');
+    expect(snapshot.surfaces.rightTabs.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.statusbar.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.statusbar.color).toBe('rgb(194, 200, 204)');
+  }
+
+});
+
 test('platform typography tokens apply to the web IDE', async ({ page }) => {
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
