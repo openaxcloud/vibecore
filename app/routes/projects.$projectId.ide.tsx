@@ -148,20 +148,6 @@ function IdeProjectTopBar({
               >
                 Settings
               </ProjectMenuItem>
-              <ProjectMenuItem
-                to={`/projects/${projectId}/ide?panel=settings`}
-                icon={<PenLine className="h-3.5 w-3.5" />}
-              >
-                Rename
-              </ProjectMenuItem>
-              <ProjectMenuAction
-                action={`/api/projects/${projectId}/project-action`}
-                intent="rename"
-                projectName={projectName}
-                icon={<PenLine className="h-3.5 w-3.5" />}
-              >
-                Quick rename
-              </ProjectMenuAction>
               <ProjectMenuAction
                 action={`/api/projects/${projectId}/project-action`}
                 intent="fork"
@@ -169,6 +155,22 @@ function IdeProjectTopBar({
                 icon={<Copy className="h-3.5 w-3.5" />}
               >
                 Fork
+              </ProjectMenuAction>
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="rename"
+                projectName={projectName}
+                icon={<PenLine className="h-3.5 w-3.5" />}
+              >
+                Rename
+              </ProjectMenuAction>
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="delete"
+                projectName={projectName}
+                icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
+              >
+                Delete
               </ProjectMenuAction>
               <ProjectMenuAction
                 action={`/api/projects/${projectId}/project-action`}
@@ -184,14 +186,6 @@ function IdeProjectTopBar({
               >
                 Export
               </ProjectMenuItem>
-              <ProjectMenuAction
-                action={`/api/projects/${projectId}/project-action`}
-                intent="delete"
-                projectName={projectName}
-                icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
-              >
-                Delete
-              </ProjectMenuAction>
             </div>
           )}
         </details>
