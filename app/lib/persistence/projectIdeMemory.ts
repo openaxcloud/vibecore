@@ -65,6 +65,9 @@ export interface ProjectIdeMemory {
     paneTree?: ProjectIdePaneNode;
     activePaneId?: string;
     terminalBottomOpen?: boolean;
+    cursorPositions?: Record<string, { line: number; column: number; offset?: number }>;
+    scrollPositions?: Record<string, number>;
+    recentTabIds?: string[];
     mobilePanel?: ProjectMobilePanel;
     showWorkbench?: boolean;
     previewIndex?: number;

@@ -19,12 +19,25 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: 'Unsupported project action' }, { status: 404 });
   }
 
-  const exported = await apiRequest<{ filename?: string; files?: unknown[] }>(
+  const exported = await apiRequest<{ archive?: { base64?: string; storageKey?: string; byteLength?: number } }>(
     request,
     `/projects/${projectId}/export/zip`,
   );
+  const base64 = exported.archive?.base64;
 
-  return json({ ok: true, export: exported });
+  if (!base64) {
+    throw json({ error: 'Project export did not return an archive' }, { status: 502 });
+  }
+
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+
+  return new Response(bytes, {
+    headers: {
+      'content-type': 'application/zip',
+      'content-disposition': `attachment; filename="${projectId}.zip"`,
+      'content-length': String(exported.archive?.byteLength ?? bytes.byteLength),
+    },
+  });
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {

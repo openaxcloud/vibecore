@@ -733,6 +733,7 @@ body {
 }
 
 .bolt-project-pane-leaf {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -743,8 +744,70 @@ body {
   background: #0a0f1c;
 }
 
+.bolt-project-drop-zones {
+  position: absolute;
+  inset: 36px 0 0;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.bolt-project-drop-zone {
+  position: absolute;
+  border: 1px solid transparent;
+  background: transparent;
+  pointer-events: auto;
+  transition:
+    background 100ms ease-out,
+    border-color 100ms ease-out;
+}
+
+.bolt-project-drop-zone[data-active='true'] {
+  border-color: rgb(0 153 255 / 0.8);
+  background: rgb(0 153 255 / 0.2);
+}
+
+.bolt-project-drop-zone-center {
+  inset: 30% 30%;
+}
+
+.bolt-project-drop-zone-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 18%;
+}
+
+.bolt-project-drop-zone-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 18%;
+}
+
+.bolt-project-drop-zone-top {
+  top: 0;
+  right: 18%;
+  left: 18%;
+  height: 20%;
+}
+
+.bolt-project-drop-zone-bottom {
+  right: 18%;
+  bottom: 0;
+  left: 18%;
+  height: 20%;
+}
+
 .bolt-project-pane-leaf[data-active='true'] {
   box-shadow: inset 0 0 0 1px rgb(0 153 255 / 0.18);
+}
+
+.bolt-project-pane-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
 }
 
 .bolt-project-context-menu,

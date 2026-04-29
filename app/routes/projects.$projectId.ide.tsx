@@ -30,6 +30,8 @@ type ProjectLoaderData = {
     id: string;
     name: string;
   };
+  collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
+  notifications: Array<{ action: string; createdAt?: string }>;
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -43,27 +45,46 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   try {
-    const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(
-      request,
-      `/projects/${params.projectId}`,
-    );
+    const [result, collaboratorsResult, dashboardResult] = await Promise.all([
+      apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${params.projectId}`),
+      apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
+        request,
+        `/projects/${params.projectId}/collaborators`,
+      ),
+      apiRequest<{ recentActivity?: ProjectLoaderData['notifications'] }>(
+        request,
+        `/projects/${params.projectId}/dashboard`,
+      ),
+    ]);
 
-    return json<ProjectLoaderData>({ projectId: params.projectId, project: result.project });
+    return json<ProjectLoaderData>({
+      projectId: params.projectId,
+      project: result.project,
+      collaborators: collaboratorsResult.collaborators ?? [],
+      notifications: dashboardResult.recentActivity ?? [],
+    });
   } catch {
     return json<ProjectLoaderData>({
       projectId: params.projectId,
       project: { id: params.projectId, name: params.projectId },
+      collaborators: [],
+      notifications: [],
     });
   }
 };
 
 export default function ProjectIdeRoute() {
-  const { projectId, project } = useLoaderData<typeof loader>();
+  const { projectId, project, collaborators, notifications } = useLoaderData<typeof loader>();
 
   return (
     <ProjectWorkspaceProvider projectId={projectId}>
       <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden bg-[#0A0F1C] text-[#F5F9FC]">
-        <IdeProjectTopBar projectId={projectId} projectName={project.name} />
+        <IdeProjectTopBar
+          projectId={projectId}
+          projectName={project.name}
+          collaborators={collaborators}
+          notifications={notifications}
+        />
         <main className="h-dvh pt-9">
           <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
             {() => <Chat forceWorkbench projectIdeMode projectId={projectId} />}
@@ -74,7 +95,17 @@ export default function ProjectIdeRoute() {
   );
 }
 
-function IdeProjectTopBar({ projectId, projectName }: { projectId: string; projectName: string }) {
+function IdeProjectTopBar({
+  projectId,
+  projectName,
+  collaborators,
+  notifications,
+}: {
+  projectId: string;
+  projectName: string;
+  collaborators: ProjectLoaderData['collaborators'];
+  notifications: ProjectLoaderData['notifications'];
+}) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
@@ -123,6 +154,14 @@ function IdeProjectTopBar({ projectId, projectName }: { projectId: string; proje
               >
                 Rename
               </ProjectMenuItem>
+              <ProjectMenuAction
+                action={`/api/projects/${projectId}/project-action`}
+                intent="rename"
+                projectName={projectName}
+                icon={<PenLine className="h-3.5 w-3.5" />}
+              >
+                Quick rename
+              </ProjectMenuAction>
               <ProjectMenuAction
                 action={`/api/projects/${projectId}/project-action`}
                 intent="fork"
@@ -196,17 +235,25 @@ function IdeProjectTopBar({ projectId, projectName }: { projectId: string; proje
           aria-label="Notifications"
         >
           <Bell className="h-3.5 w-3.5" aria-hidden />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />
+          {notifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />}
         </Link>
         <div className="flex items-center -space-x-1" aria-label="Collaborators">
-          {['A', 'M', 'S'].map((initial) => (
-            <span
-              key={initial}
-              className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#2B3245] text-[10px] font-semibold text-[#F5F9FC]"
-            >
-              {initial}
+          {(collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }])
+            .slice(0, 3)
+            .map((collaborator) => (
+              <span
+                key={collaborator.id ?? collaborator.userId}
+                title={`${collaborator.userId ?? 'User'} (${collaborator.roleKey ?? 'member'})`}
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#2B3245] text-[10px] font-semibold text-[#F5F9FC]"
+              >
+                {(collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
+              </span>
+            ))}
+          {collaborators.length > 3 && (
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#1A2030] px-1 text-[9px] font-semibold text-[#C2C8CC]">
+              +{collaborators.length - 3}
             </span>
-          ))}
+          )}
         </div>
         <Link
           to={`/projects/${projectId}/ide?panel=collaborators`}
@@ -294,7 +341,34 @@ function ProjectMenuAction({
           const form = new FormData();
           form.set('intent', intent);
           form.set('projectName', projectName);
-          await fetch(action, { method: 'POST', body: form, credentials: 'include' });
+
+          if (intent === 'rename') {
+            const name = window.prompt('New project name', projectName);
+
+            if (!name) {
+              setBusy(false);
+              return;
+            }
+
+            form.set('name', name);
+          }
+
+          const response = await fetch(action, { method: 'POST', body: form, credentials: 'include' });
+          const result = (await response.json().catch(() => ({}))) as {
+            project?: { project?: { id?: string }; id?: string };
+          };
+
+          if (intent === 'delete' && response.ok) {
+            window.location.href = '/projects';
+          } else if ((intent === 'duplicate' || intent === 'fork') && response.ok) {
+            const nextProjectId = result.project?.project?.id ?? result.project?.id;
+
+            if (nextProjectId) {
+              window.location.href = `/projects/${nextProjectId}/ide`;
+            }
+          } else if (intent === 'rename' && response.ok) {
+            window.location.reload();
+          }
         } finally {
           setBusy(false);
         }

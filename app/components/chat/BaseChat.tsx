@@ -76,6 +76,14 @@ type IdePaneTab = {
   pinned?: boolean;
   filePath?: string;
 };
+type IdeDropZone = 'center' | 'left' | 'right' | 'top' | 'bottom';
+type ProjectIdeBackendState = {
+  workspace?: { id?: string; status?: string; runtimeMode?: string } | null;
+  git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[] };
+  files?: Array<{ path: string; sizeBytes?: number }>;
+  recentActivity?: Array<{ action: string; createdAt?: string }>;
+  collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
+};
 type IdePaneNode =
   | { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string }
   | {
@@ -163,6 +171,14 @@ function firstLeaf(node: IdePaneNode): Extract<IdePaneNode, { type: 'leaf' }> {
   return node.type === 'leaf' ? node : firstLeaf(node.first);
 }
 
+function findLeafContainingTab(node: IdePaneNode, tabId: string): Extract<IdePaneNode, { type: 'leaf' }> | undefined {
+  if (node.type === 'leaf') {
+    return node.tabs.some((tab) => tab.id === tabId) ? node : undefined;
+  }
+
+  return findLeafContainingTab(node.first, tabId) ?? findLeafContainingTab(node.second, tabId);
+}
+
 function updateLeaf(
   node: IdePaneNode,
   paneId: string,
@@ -214,6 +230,66 @@ function removeTabFromTree(
   });
 
   return { tree, removed };
+}
+
+function dropTabIntoTree(
+  node: IdePaneNode,
+  sourcePaneId: string,
+  tabId: string,
+  targetPaneId: string,
+  zone: IdeDropZone,
+): IdePaneNode {
+  if (zone === 'center') {
+    if (sourcePaneId === targetPaneId) {
+      return node;
+    }
+
+    const { tree, removed } = removeTabFromTree(node, sourcePaneId, tabId);
+
+    if (!removed) {
+      return node;
+    }
+
+    return updateLeaf(tree, targetPaneId, (leaf) => ({
+      ...leaf,
+      tabs: [...leaf.tabs, removed],
+      activeTabId: removed.id,
+    }));
+  }
+
+  const sourceLeaf = findLeaf(node, sourcePaneId);
+  const dragged = sourceLeaf?.tabs.find((tab) => tab.id === tabId);
+
+  if (!dragged) {
+    return node;
+  }
+
+  const { tree, removed } = removeTabFromTree(node, sourcePaneId, tabId);
+  const tab = removed ?? { ...dragged, id: `${dragged.id}-split-${Date.now()}`, pinned: false };
+  const direction: IdePaneDirection = zone === 'left' || zone === 'right' ? 'horizontal' : 'vertical';
+  const newLeaf: Extract<IdePaneNode, { type: 'leaf' }> = {
+    type: 'leaf',
+    id: `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    tabs: [tab],
+    activeTabId: tab.id,
+  };
+
+  return updateLeaf(tree, targetPaneId, (targetLeaf) => ({
+    type: 'split',
+    id: `split-${targetLeaf.id}-${Date.now()}`,
+    direction,
+    ratio: 50,
+    first: zone === 'left' || zone === 'top' ? newLeaf : targetLeaf,
+    second: zone === 'left' || zone === 'top' ? targetLeaf : newLeaf,
+  }));
+}
+
+function flattenTabs(node: IdePaneNode): IdePaneTab[] {
+  if (node.type === 'leaf') {
+    return node.tabs;
+  }
+
+  return [...flattenTabs(node.first), ...flattenTabs(node.second)];
 }
 
 interface BaseChatProps {
@@ -355,6 +431,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
+    const [dropTarget, setDropTarget] = useState<{ paneId: string; zone: IdeDropZone } | null>(null);
+    const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
+    const [cursorPositions, setCursorPositions] = useState<
+      Record<string, { line: number; column: number; offset?: number }>
+    >({});
+    const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
+    const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const draggedTabRef = useRef<{ paneId: string; tabId: string } | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
@@ -390,6 +473,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       workbenchStore.setDocuments(projectFiles);
     }, [projectFiles]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectId) {
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      async function loadProjectBackendState() {
+        try {
+          const [overviewResponse, collaboratorsResponse] = await Promise.all([
+            fetch(`/api/projects/${projectId}/ide-panel/overview`, { headers: { accept: 'application/json' } }),
+            fetch(`/api/projects/${projectId}/ide-panel/collaborators`, { headers: { accept: 'application/json' } }),
+          ]);
+
+          const overview = (overviewResponse.ok ? await overviewResponse.json() : {}) as {
+            data?: ProjectIdeBackendState;
+          };
+          const collaborators = (collaboratorsResponse.ok ? await collaboratorsResponse.json() : {}) as {
+            data?: { collaborators?: ProjectIdeBackendState['collaborators'] };
+          };
+
+          if (!cancelled) {
+            setProjectBackendState({
+              ...(overview.data ?? {}),
+              collaborators: collaborators.data?.collaborators ?? [],
+            });
+          }
+        } catch (error) {
+          if (!cancelled) {
+            console.error('Failed to load project IDE backend state', error);
+          }
+        }
+      }
+
+      void loadProjectBackendState();
+
+      const interval = window.setInterval(loadProjectBackendState, 15000);
+
+      return () => {
+        cancelled = true;
+        window.clearInterval(interval);
+      };
+    }, [projectIdeMode, projectId]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId || restoredProjectId.current === projectId) {
@@ -437,6 +564,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (typeof ui?.terminalBottomOpen === 'boolean') {
             setTerminalBottomOpen(ui.terminalBottomOpen);
+          }
+
+          if (ui?.cursorPositions && typeof ui.cursorPositions === 'object') {
+            setCursorPositions(ui.cursorPositions);
+          }
+
+          if (ui?.scrollPositions && typeof ui.scrollPositions === 'object') {
+            setScrollPositions(ui.scrollPositions);
+          }
+
+          if (Array.isArray(ui?.recentTabIds)) {
+            setRecentTabIds(ui.recentTabIds.filter((tabId: string) => typeof tabId === 'string'));
           }
 
           if (
@@ -517,6 +656,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             paneTree,
             activePaneId,
             terminalBottomOpen,
+            cursorPositions,
+            scrollPositions,
+            recentTabIds,
             mobilePanel,
             showWorkbench: true,
           },
@@ -539,6 +681,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       paneTree,
       activePaneId,
       terminalBottomOpen,
+      cursorPositions,
+      scrollPositions,
+      recentTabIds,
       mobilePanel,
     ]);
 
@@ -632,6 +777,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setActivePaneId(targetPaneId);
     }, []);
 
+    const dropTabOnPane = useCallback(
+      (sourcePaneId: string, tabId: string, targetPaneId: string, zone: IdeDropZone) => {
+        setPaneTree((currentTree) => dropTabIntoTree(currentTree, sourcePaneId, tabId, targetPaneId, zone));
+        setActivePaneId(targetPaneId);
+        setDropTarget(null);
+        draggedTabRef.current = null;
+      },
+      [],
+    );
+
     useEffect(() => {
       if (!projectIdeMode) {
         return;
@@ -706,6 +861,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             );
             setActivePaneId(leaf.id);
             setActiveWorkspacePanel(tab.panel);
+            setRecentTabIds((ids) => [tab.id, ...ids.filter((id) => id !== tab.id)].slice(0, 20));
+          }
+        } else if (key === 'tab') {
+          event.preventDefault();
+
+          const tabs = flattenTabs(paneTree);
+          const currentIndex = tabs.findIndex((tab) => tab.id === recentTabIds[0]);
+          const nextTab = tabs[(currentIndex + 1) % Math.max(tabs.length, 1)];
+
+          if (nextTab) {
+            const nextLeaf = findLeafContainingTab(paneTree, nextTab.id);
+
+            if (nextLeaf) {
+              setPaneTree((currentTree) =>
+                updateLeaf(currentTree, nextLeaf.id, (leaf) => ({ ...leaf, activeTabId: nextTab.id })),
+              );
+              setActivePaneId(nextLeaf.id);
+              setActiveWorkspacePanel(nextTab.panel);
+              setRecentTabIds((ids) => [nextTab.id, ...ids.filter((id) => id !== nextTab.id)].slice(0, 20));
+            }
           }
         }
       };
@@ -720,6 +895,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       openWorkspacePanel,
       paneTree,
       projectIdeMode,
+      recentTabIds,
       splitWorkspacePane,
       useMobileIde,
     ]);
@@ -1127,6 +1303,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setPaneTree((currentTree) => updateLeaf(currentTree, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })));
         setActivePaneId(paneId);
         setActiveWorkspacePanel(panel);
+        setRecentTabIds((ids) => [tabId, ...ids.filter((id) => id !== tabId)].slice(0, 20));
         setSearchParams(panel === 'editor' ? {} : { panel });
 
         if (panel === 'preview') {
@@ -1187,6 +1364,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onSave={onProjectEditorSave}
                   onChange={(update) => {
                     workbenchStore.setCurrentDocumentContent(update.value);
+
+                    const filePath = currentDocument.filePath;
+                    const lines = update.value.slice(0, update.value.length).split('\n');
+                    setCursorPositions((positions) => ({
+                      ...positions,
+                      [filePath]: {
+                        line: lines.length,
+                        column: lines[lines.length - 1]?.length ?? 1,
+                        offset: update.value.length,
+                      },
+                    }));
                   }}
                 />
               ) : (
@@ -1219,6 +1407,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             className="bolt-project-pane-leaf"
             data-active={activePaneId === leaf.id}
             onMouseDown={() => setActivePaneId(leaf.id)}
+            onDragOver={(event) => {
+              if (!draggedTabRef.current) {
+                return;
+              }
+
+              event.preventDefault();
+            }}
+            onDragLeave={(event) => {
+              if (event.currentTarget.contains(event.relatedTarget as Node)) {
+                return;
+              }
+
+              setDropTarget((target) => (target?.paneId === leaf.id ? null : target));
+            }}
           >
             <IdeTabBar
               paneId={leaf.id}
@@ -1252,6 +1454,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseOthers={(tabId) => closePaneTabs(leaf.id, 'others', tabId)}
               onCloseToRight={(tabId) => closePaneTabs(leaf.id, 'right', tabId)}
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
+              onMoveToNewPane={(tabId, direction) =>
+                dropTabOnPane(leaf.id, tabId, leaf.id, direction === 'horizontal' ? 'right' : 'bottom')
+              }
               onDragStart={(paneId, tabId) => {
                 draggedTabRef.current = { paneId, tabId };
               }}
@@ -1265,11 +1470,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 draggedTabRef.current = null;
               }}
             />
-            {activeTab ? (
-              renderPaneContent(activeTab.panel)
-            ) : (
-              <ProjectWelcomeState files={Object.keys(projectFiles).slice(0, 5)} onOpenTool={openIdeTool} />
+            {draggedTabRef.current && (
+              <div className="bolt-project-drop-zones" aria-hidden>
+                {(['center', 'left', 'right', 'top', 'bottom'] as IdeDropZone[]).map((zone) => (
+                  <div
+                    key={zone}
+                    className={`bolt-project-drop-zone bolt-project-drop-zone-${zone}`}
+                    data-active={dropTarget?.paneId === leaf.id && dropTarget.zone === zone}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setDropTarget({ paneId: leaf.id, zone });
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+
+                      const dragged = draggedTabRef.current;
+
+                      if (dragged) {
+                        dropTabOnPane(dragged.paneId, dragged.tabId, leaf.id, zone);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
             )}
+            <div
+              className="bolt-project-pane-content"
+              data-pane-id={leaf.id}
+              ref={(element) => {
+                if (element && scrollPositions[leaf.id] && element.scrollTop !== scrollPositions[leaf.id]) {
+                  element.scrollTop = scrollPositions[leaf.id];
+                }
+              }}
+              onScroll={(event) => {
+                setScrollPositions((positions) => ({ ...positions, [leaf.id]: event.currentTarget.scrollTop }));
+              }}
+            >
+              {activeTab ? (
+                renderPaneContent(activeTab.panel)
+              ) : (
+                <ProjectWelcomeState files={Object.keys(projectFiles).slice(0, 5)} onOpenTool={openIdeTool} />
+              )}
+            </div>
           </div>
         );
       },
@@ -1277,7 +1519,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         activePaneId,
         closePaneTabs,
         closeWorkspacePanel,
+        dropTabOnPane,
         currentDocument,
+        dropTarget,
         moveTabToPane,
         onProjectEditorSave,
         openIdeTool,
@@ -1285,6 +1529,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         projectFiles,
         renderPaneContent,
         selectPaneTab,
+        scrollPositions,
         splitWorkspacePane,
         unsavedFiles,
       ],
@@ -1505,9 +1750,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {showNotifications && (
           <aside className="bolt-notifications-center" aria-label="Notifications center">
             <div className="font-medium text-bolt-elements-textPrimary">Notifications</div>
-            <div className="mt-2 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
-              Workspace, billing, deploy, and quota notifications appear here without interrupting the IDE.
-            </div>
+            {(projectBackendState.recentActivity ?? []).slice(-6).length ? (
+              <div className="mt-2 grid gap-2">
+                {(projectBackendState.recentActivity ?? []).slice(-6).map((event, index) => (
+                  <button
+                    key={`${event.action}-${event.createdAt ?? index}`}
+                    type="button"
+                    className="rounded-md border border-bolt-elements-borderColor p-3 text-left text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+                    onClick={() => openWorkspacePanel('activity')}
+                  >
+                    <strong className="block text-bolt-elements-textPrimary">{event.action}</strong>
+                    <span>{event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by backend'}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textSecondary">
+                No project notifications recorded yet.
+              </div>
+            )}
             {!isOnline && (
               <div className="mt-2 rounded-md border border-orange-500/40 bg-orange-500/10 p-3 text-xs text-orange-300">
                 Poor connection detected. Terminal streams and preview refresh may pause.
@@ -1610,18 +1871,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <footer className="bolt-project-statusbar" aria-label="IDE status">
             <div>
               <span className="i-ph:git-branch" aria-hidden />
-              <span>main</span>
-              <span>↑0 ↓0</span>
+              <span>{projectBackendState.git?.branch ?? 'main'}</span>
+              <span>
+                ↑{projectBackendState.git?.ahead ?? 0} ↓{projectBackendState.git?.behind ?? 0}
+              </span>
               <span className="i-ph:x-circle text-[#F85149]" aria-hidden />
               <span>0</span>
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
-              <span>0</span>
+              <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
               <button type="button" onClick={() => openWorkspacePanel('preview')}>
-                Running on preview
+                {projectBackendState.workspace?.status === 'running'
+                  ? `Running on ${projectBackendState.workspace.runtimeMode ?? 'runtime'}`
+                  : 'Workspace idle'}
               </button>
             </div>
             <div>
-              <span>{currentDocument?.filePath ? currentDocument.filePath.replace(WORK_DIR, '') : 'No file'}</span>
+              <span>
+                {currentDocument?.filePath && cursorPositions[currentDocument.filePath]
+                  ? `Ln ${cursorPositions[currentDocument.filePath].line}, Col ${
+                      cursorPositions[currentDocument.filePath].column
+                    }`
+                  : 'Ln 1, Col 1'}
+              </span>
               <span>Spaces: 2</span>
               <span>UTF-8</span>
               <span>{currentDocument?.filePath?.split('.').pop()?.toUpperCase() ?? 'Project'}</span>
@@ -1809,6 +2080,7 @@ function IdeTabBar({
   onCloseOthers,
   onCloseToRight,
   onCloseAll,
+  onMoveToNewPane,
   onDragStart,
   onDropTab,
 }: {
@@ -1834,6 +2106,7 @@ function IdeTabBar({
   onCloseOthers?: (tabId: string) => void;
   onCloseToRight?: (tabId: string) => void;
   onCloseAll?: () => void;
+  onMoveToNewPane?: (tabId: string, direction: IdePaneDirection) => void;
   onDragStart?: (paneId: string, tabId: string) => void;
   onDropTab?: (paneId: string) => void;
 }) {
@@ -1936,7 +2209,7 @@ function IdeTabBar({
           <button
             type="button"
             onClick={() => {
-              onSplit?.('horizontal');
+              onMoveToNewPane?.(contextMenu.tabId, 'horizontal');
               setContextMenu(null);
             }}
           >
@@ -1945,7 +2218,7 @@ function IdeTabBar({
           <button
             type="button"
             onClick={() => {
-              onSplit?.('vertical');
+              onMoveToNewPane?.(contextMenu.tabId, 'vertical');
               setContextMenu(null);
             }}
           >
@@ -2165,28 +2438,51 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'database') {
+    const databaseVars = (data.envVars ?? []).filter((item: any) => /DATABASE|POSTGRES|SQL/i.test(item.key));
+
     return (
-      <PanelRows
-        rows={[
-          [
-            'Database status',
-            data.databaseUrlConfigured ? 'Connection configured' : 'No database connection configured for this project',
-          ],
-          ['Project', project.name ?? project.id],
-        ]}
+      <PanelWithForm
+        rows={
+          databaseVars.length
+            ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
+            : [['Database status', 'No database connection configured for this project']]
+        }
         empty="Database metadata is not configured for this project."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[
+          { name: 'key', placeholder: 'DATABASE_URL', defaultValue: 'DATABASE_URL', required: true },
+          { name: 'value', placeholder: 'postgres://user:pass@host:5432/db', required: true },
+        ]}
+        submitLabel="Save database config"
       />
     );
   }
 
   if (panel === 'object-storage') {
+    const storageVars = (data.envVars ?? []).filter((item: any) => /S3|STORAGE|BUCKET|R2/i.test(item.key));
+
     return (
-      <PanelRows
-        rows={[
-          ['Storage provider', data.storageProvider ?? 'No object storage bucket configured'],
-          ['Exports', `${data.exportsCount ?? 0} project exports recorded`],
-        ]}
+      <PanelWithForm
+        rows={
+          storageVars.length
+            ? storageVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
+            : [
+                ['Storage provider', 'No object storage bucket configured'],
+                [
+                  'Exports',
+                  `${(data.recentActivity ?? []).filter((event: any) => event.action === 'project.export_zip').length} project exports recorded`,
+                ],
+              ]
+        }
         empty="Object storage is not configured for this project."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[
+          { name: 'key', placeholder: 'OBJECT_STORAGE_BUCKET', defaultValue: 'OBJECT_STORAGE_BUCKET', required: true },
+          { name: 'value', placeholder: 'vibecore-project-assets', required: true },
+        ]}
+        submitLabel="Save storage config"
       />
     );
   }
@@ -2210,6 +2506,8 @@ function ProjectIdePanelContent({
         rows={[
           ['Workspace status', data.workspace?.status ?? 'No active workspace'],
           ['Runtime mode', data.workspace?.runtimeMode ?? 'No runtime session'],
+          ['Deployments', String(data.deployments?.length ?? 0)],
+          ['Tracked files', String(data.files?.length ?? 0)],
           ['Recent activity', String(data.recentActivity?.length ?? 0)],
         ]}
       />
@@ -2218,11 +2516,18 @@ function ProjectIdePanelContent({
 
   if (panel === 'extensions') {
     return (
-      <PanelRows
-        rows={[
-          ['Installed extensions', String(data.extensions?.length ?? 0)],
-          ['Marketplace', 'No organization extensions installed yet'],
-        ]}
+      <PanelWithForm
+        rows={(data.deployments ?? [])
+          .filter((deployment: any) => String(deployment.provider ?? '').startsWith('extension:'))
+          .map((deployment: any) => [
+            deployment.provider.replace('extension:', ''),
+            deployment.createdAt ?? 'Installed',
+          ])}
+        empty="No project extensions installed yet."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[{ name: 'extension', placeholder: 'supabase', required: true }]}
+        submitLabel="Install extension marker"
       />
     );
   }

@@ -42,6 +42,20 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     return json({ panel, project: project.project, data: domains });
   }
 
+  if (['database', 'object-storage', 'packages', 'monitoring', 'extensions'].includes(panel)) {
+    const [dashboard, envVars, deployments] = await Promise.all([
+      apiRequest(request, `/projects/${projectId}/dashboard`),
+      apiRequest(request, `/projects/${projectId}/env-vars`),
+      apiRequest(request, `/projects/${projectId}/deployments`),
+    ]);
+
+    return json({
+      panel,
+      project: project.project,
+      data: { ...(dashboard as any), ...(envVars as any), ...(deployments as any) },
+    });
+  }
+
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
@@ -115,6 +129,21 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         gitRepositoryUrl: body.gitRepositoryUrl || undefined,
         gitDefaultBranch: body.gitDefaultBranch || undefined,
       }),
+    });
+  } else if (panel === 'database') {
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: 'PUT',
+      body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
+    });
+  } else if (panel === 'object-storage') {
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: 'PUT',
+      body: JSON.stringify({ key: body.key || 'OBJECT_STORAGE_BUCKET', value: body.value ?? '' }),
+    });
+  } else if (panel === 'extensions') {
+    await apiRequest(request, `/projects/${projectId}/deployments`, {
+      method: 'POST',
+      body: JSON.stringify({ provider: `extension:${body.extension || 'marketplace'}` }),
     });
   } else if (panel === 'git') {
     if (intent === 'commit') {
