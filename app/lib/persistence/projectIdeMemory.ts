@@ -2,6 +2,20 @@ import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
 
 export type ProjectIdePanel = 'files' | 'search' | 'locks';
+export type ProjectIdeWorkspacePanel =
+  | 'editor'
+  | 'preview'
+  | 'overview'
+  | 'deployments'
+  | 'env'
+  | 'secrets'
+  | 'git'
+  | 'activity'
+  | 'logs'
+  | 'collaborators'
+  | 'domains'
+  | 'snapshots'
+  | 'settings';
 export type ProjectMobilePanel = 'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
 
 export interface ProjectIdeMemory {
@@ -18,6 +32,8 @@ export interface ProjectIdeMemory {
     currentView?: string;
     rightPanel?: ProjectIdePanel;
     rightPanelOpen?: boolean;
+    workspaceTabs?: ProjectIdeWorkspacePanel[];
+    activeWorkspacePanel?: ProjectIdeWorkspacePanel;
     mobilePanel?: ProjectMobilePanel;
     showWorkbench?: boolean;
     previewIndex?: number;

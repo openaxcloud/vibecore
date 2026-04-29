@@ -89,20 +89,35 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Running')).toBeVisible({ timeout: 15000 });
 
-  await page.getByLabel('Open tool').first().click();
-  await page.getByRole('link', { name: /Snapshots/ }).click();
+  async function openIdeTool(name: RegExp) {
+    await page.getByLabel('Open tool').first().click();
+    await page.locator('.bolt-project-tool-menu').getByRole('button', { name }).click();
+  }
+
+  await openIdeTool(/Snapshots/);
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=snapshots$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
     timeout: 15000,
   });
+  await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Snapshots' })).toBeVisible();
   await page.getByPlaceholder('Manual checkpoint').fill('E2E checkpoint');
   await page.getByRole('button', { name: 'Create snapshot' }).click();
   await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
 
+  await openIdeTool(/Deployments/);
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=deployments$`));
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]')).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.getByRole('tab', { name: /Snapshots/ })).toBeVisible();
+  await expect(page.getByRole('tab', { name: /Deploy/ })).toBeVisible();
+
+  await page.getByRole('tab', { name: /Snapshots/ }).click();
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible();
+
   const inIdePanels = [
     ['Overview', 'overview'],
-    ['Deploy', 'deployments'],
     ['Env vars', 'env'],
     ['Secrets', 'secrets'],
     ['Git', 'git'],
@@ -113,23 +128,20 @@ test('IDE project services open as in-place panels instead of legacy project pag
   ] as const;
 
   for (const [label, panel] of inIdePanels) {
-    await page.getByLabel('Open tool').first().click();
-    await page.getByRole('link', { name: new RegExp(label) }).click();
+    await openIdeTool(new RegExp(label));
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${panel}$`));
     await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`)).toBeVisible({
       timeout: 15000,
     });
   }
 
-  await page.getByLabel('Open tool').first().click();
-  await page.getByRole('link', { name: /Settings/ }).click();
+  await openIdeTool(/Settings/);
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=settings$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]')).toBeVisible({
     timeout: 15000,
   });
 
-  await page.getByLabel('Open tool').first().click();
-  await page.getByRole('link', { name: /Env vars/ }).click();
+  await openIdeTool(/Env vars/);
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
   await page.getByPlaceholder('VITE_API_URL').fill('E2E_FLAG');

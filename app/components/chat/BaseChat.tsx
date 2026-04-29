@@ -46,6 +46,37 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { Link, useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
+const IDE_MANAGEMENT_PANELS = [
+  'overview',
+  'deployments',
+  'env',
+  'secrets',
+  'git',
+  'activity',
+  'logs',
+  'collaborators',
+  'domains',
+  'snapshots',
+  'settings',
+] as const;
+const IDE_RIGHT_PANELS = ['files', 'search', 'locks'] as const;
+const IDE_WORKSPACE_PANELS = ['editor', 'preview', ...IDE_MANAGEMENT_PANELS] as const;
+
+type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
+type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
+type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
+
+function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
+  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
+}
+
+function isIdeRightPanel(panel: string): panel is IdeRightPanel {
+  return (IDE_RIGHT_PANELS as readonly string[]).includes(panel);
+}
+
+function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
+  return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
+}
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -151,7 +182,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
@@ -175,25 +206,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const [rightPanel, setRightPanel] = useState<'files' | 'search' | 'locks'>('files');
+    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('files');
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
+    const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
+    const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const activeProjectPanel = searchParams.get('panel') || 'editor';
-    const isManagementPanel = [
-      'overview',
-      'deployments',
-      'env',
-      'secrets',
-      'git',
-      'activity',
-      'logs',
-      'collaborators',
-      'domains',
-      'snapshots',
-      'settings',
-    ].includes(activeProjectPanel);
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -242,11 +262,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const ui = memory.ui;
 
           if (ui?.rightPanel && ['files', 'search', 'locks'].includes(ui.rightPanel)) {
-            setRightPanel(ui.rightPanel);
+            setRightPanel(ui.rightPanel as IdeRightPanel);
           }
 
           if (typeof ui?.rightPanelOpen === 'boolean') {
             setRightPanelOpen(ui.rightPanelOpen);
+          }
+
+          const restoredTabs = Array.isArray(ui?.workspaceTabs)
+            ? ui.workspaceTabs.filter((panel: string) => isIdeWorkspacePanel(panel))
+            : [];
+
+          if (restoredTabs.length) {
+            setWorkspaceTabs(restoredTabs);
+          }
+
+          if (ui?.activeWorkspacePanel && isIdeWorkspacePanel(ui.activeWorkspacePanel)) {
+            setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
           if (
@@ -322,6 +354,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             currentView,
             rightPanel,
             rightPanelOpen,
+            workspaceTabs,
+            activeWorkspacePanel,
             mobilePanel,
             showWorkbench: true,
           },
@@ -339,8 +373,62 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       currentView,
       rightPanel,
       rightPanelOpen,
+      workspaceTabs,
+      activeWorkspacePanel,
       mobilePanel,
     ]);
+
+    const openWorkspacePanel = useCallback(
+      (panel: IdeWorkspacePanel, options: { replaceUrl?: boolean } = {}) => {
+        setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
+        setActiveWorkspacePanel(panel);
+
+        if (panel === 'preview') {
+          workbenchStore.currentView.set('preview');
+          workbenchStore.setShowWorkbench(true);
+        }
+
+        if (options.replaceUrl !== false) {
+          setSearchParams(panel === 'editor' ? {} : { panel });
+        }
+      },
+      [setSearchParams],
+    );
+
+    const closeWorkspacePanel = useCallback(
+      (panel: IdeWorkspacePanel) => {
+        setWorkspaceTabs((currentTabs) => {
+          const nextTabs = currentTabs.filter((tab) => tab !== panel);
+          const safeTabs: IdeWorkspacePanel[] = nextTabs.length ? nextTabs : ['editor'];
+
+          if (activeWorkspacePanel === panel) {
+            const nextActive = safeTabs[safeTabs.length - 1] ?? 'editor';
+            setActiveWorkspacePanel(nextActive);
+            setSearchParams(nextActive === 'editor' ? {} : { panel: nextActive });
+          }
+
+          return safeTabs;
+        });
+      },
+      [activeWorkspacePanel, setSearchParams],
+    );
+
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return;
+      }
+
+      if (isIdeRightPanel(activeProjectPanel)) {
+        setRightPanel(activeProjectPanel);
+        setRightPanelOpen(true);
+
+        return;
+      }
+
+      if (isIdeWorkspacePanel(activeProjectPanel)) {
+        openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
+      }
+    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -775,41 +863,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           className="min-w-0"
         >
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-            {isManagementPanel ? (
-              <>
-                <IdeTabBar
-                  projectId={projectId}
-                  activePanel={activeProjectPanel}
-                  tabs={[
-                    {
-                      id: activeProjectPanel,
-                      label: panelTitle(activeProjectPanel),
-                      icon: panelIcon(activeProjectPanel),
-                    },
-                  ]}
-                />
-                <ProjectIdeServicePanel projectId={projectId} panel={activeProjectPanel} />
-              </>
-            ) : (
-              <PanelGroup direction="vertical" className="min-h-0 flex-1">
-                <Panel defaultSize={activeProjectPanel === 'preview' ? 35 : 54} minSize={28} className="min-h-0">
-                  <div className="flex h-full min-h-0 flex-col">
-                    <IdeTabBar
-                      projectId={projectId}
-                      activePanel="editor"
-                      tabs={[
-                        {
-                          id: 'editor',
-                          label: currentDocument?.filePath?.replace(WORK_DIR, '') || 'Welcome',
-                          icon: 'i-ph:code',
-                          dirty:
-                            !!currentDocument &&
-                            unsavedFiles instanceof Set &&
-                            unsavedFiles.has(currentDocument.filePath),
-                          onSave: onProjectEditorSave,
-                        },
-                      ]}
-                    />
+            <PanelGroup direction="vertical" className="min-h-0 flex-1">
+              <Panel defaultSize={54} minSize={28} className="min-h-0">
+                <div className="flex h-full min-h-0 flex-col">
+                  <IdeTabBar
+                    activePanel={activeWorkspacePanel}
+                    tabs={workspaceTabs.map((tab) => ({
+                      id: tab,
+                      label:
+                        tab === 'editor'
+                          ? currentDocument?.filePath?.replace(WORK_DIR, '') || 'Welcome'
+                          : panelTitle(tab),
+                      icon: tab === 'editor' ? 'i-ph:code' : panelIcon(tab),
+                      dirty:
+                        tab === 'editor' &&
+                        !!currentDocument &&
+                        unsavedFiles instanceof Set &&
+                        unsavedFiles.has(currentDocument.filePath),
+                      onSave: tab === 'editor' ? onProjectEditorSave : undefined,
+                      closable: workspaceTabs.length > 1 || tab !== 'editor',
+                    }))}
+                    onSelect={(panel) => openWorkspacePanel(panel)}
+                    onClose={(panel) => closeWorkspacePanel(panel)}
+                    onOpenTool={(panel) => {
+                      if (isIdeRightPanel(panel)) {
+                        setRightPanel(panel);
+                        setRightPanelOpen(true);
+                        setSearchParams({ panel });
+
+                        return;
+                      }
+
+                      if (isIdeWorkspacePanel(panel)) {
+                        openWorkspacePanel(panel);
+                      }
+                    }}
+                  />
+                  {activeWorkspacePanel === 'editor' && (
                     <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
                       {currentDocument && !currentDocument.isBinary ? (
                         <EditorAdapter
@@ -823,27 +913,63 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           }}
                         />
                       ) : (
-                        <ProjectWelcomeState projectId={projectId} files={Object.keys(projectFiles).slice(0, 5)} />
+                        <ProjectWelcomeState
+                          files={Object.keys(projectFiles).slice(0, 5)}
+                          onOpenTool={(panel) => {
+                            if (isIdeRightPanel(panel)) {
+                              setRightPanel(panel);
+                              setRightPanelOpen(true);
+                              setSearchParams({ panel });
+
+                              return;
+                            }
+
+                            if (isIdeWorkspacePanel(panel)) {
+                              openWorkspacePanel(panel);
+                            }
+                          }}
+                        />
                       )}
                     </div>
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
-                <Panel defaultSize={activeProjectPanel === 'preview' ? 65 : 46} minSize={24} className="min-h-0">
-                  <div className="flex h-full min-h-0 flex-col">
-                    <IdeTabBar
-                      projectId={projectId}
-                      activePanel="preview"
-                      tabs={[{ id: 'preview', label: 'Webview', icon: 'i-ph:browser' }]}
-                      trailing={<span className="bolt-project-runtime-badge">Live runtime</span>}
-                    />
+                  )}
+                  {activeWorkspacePanel === 'preview' && (
                     <div className="min-h-0 flex-1 overflow-hidden">
                       <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
                     </div>
+                  )}
+                  {isIdeManagementPanel(activeWorkspacePanel) && (
+                    <ProjectIdeServicePanel projectId={projectId} panel={activeWorkspacePanel} />
+                  )}
+                </div>
+              </Panel>
+              <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
+              <Panel defaultSize={46} minSize={24} className="min-h-0">
+                <div className="flex h-full min-h-0 flex-col">
+                  <IdeTabBar
+                    activePanel="preview"
+                    tabs={[{ id: 'preview', label: 'Webview', icon: 'i-ph:browser', closable: false }]}
+                    trailing={<span className="bolt-project-runtime-badge">Live runtime</span>}
+                    onSelect={(panel) => openWorkspacePanel(panel)}
+                    onOpenTool={(panel) => {
+                      if (isIdeRightPanel(panel)) {
+                        setRightPanel(panel);
+                        setRightPanelOpen(true);
+                        setSearchParams({ panel });
+
+                        return;
+                      }
+
+                      if (isIdeWorkspacePanel(panel)) {
+                        openWorkspacePanel(panel);
+                      }
+                    }}
+                  />
+                  <div className="min-h-0 flex-1 overflow-hidden">
+                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
                   </div>
-                </Panel>
-              </PanelGroup>
-            )}
+                </div>
+              </Panel>
+            </PanelGroup>
           </section>
         </Panel>
         {rightPanelOpen && (
@@ -1154,22 +1280,33 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
 }
 
 function IdeTabBar({
-  projectId,
   activePanel,
   tabs,
   trailing,
+  onSelect,
+  onClose,
+  onOpenTool,
 }: {
-  projectId?: string;
-  activePanel: string;
-  tabs: Array<{ id: string; label: string; icon: string; dirty?: boolean; onSave?: () => void }>;
+  activePanel: IdeWorkspacePanel;
+  tabs: Array<{
+    id: IdeWorkspacePanel;
+    label: string;
+    icon: string;
+    dirty?: boolean;
+    closable?: boolean;
+    onSave?: () => void;
+  }>;
   trailing?: React.ReactNode;
+  onSelect: (panel: IdeWorkspacePanel) => void;
+  onClose?: (panel: IdeWorkspacePanel) => void;
+  onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const tools = [
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
     ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', '#0099FF'],
-    ['terminal', 'Console', 'Terminal', 'i-ph:terminal-window', '#3FB950'],
+    ['logs', 'Console', 'Terminal and logs', 'i-ph:terminal-window', '#3FB950'],
     ['preview', 'Webview', 'App preview', 'i-ph:browser', '#0099FF'],
     ['env', 'Env vars', 'Environment variables', 'i-ph:brackets-curly', '#D29922'],
     ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', '#D29922'],
@@ -1183,22 +1320,15 @@ function IdeTabBar({
     ['settings', 'Settings', 'Project settings', 'i-ph:gear', '#C2C8CC'],
   ];
 
-  const hrefFor = (id: string) =>
-    projectId ? `/projects/${projectId}/ide${id === 'editor' ? '' : `?panel=${id}`}` : '#';
-
   return (
     <div className="bolt-project-tabbar">
       <div className="bolt-project-tabs" role="tablist">
         {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            to={hrefFor(tab.id)}
-            role="tab"
-            aria-selected={activePanel === tab.id}
-            className="bolt-project-tab"
-          >
-            <span className={tab.icon} aria-hidden />
-            <span className={tab.dirty ? 'italic' : ''}>{tab.label}</span>
+          <div key={tab.id} role="tab" aria-selected={activePanel === tab.id} className="bolt-project-tab">
+            <button type="button" className="bolt-project-tab-main" onClick={() => onSelect(tab.id)}>
+              <span className={tab.icon} aria-hidden />
+              <span className={tab.dirty ? 'italic' : ''}>{tab.label}</span>
+            </button>
             {tab.dirty ? (
               <button
                 type="button"
@@ -1211,12 +1341,24 @@ function IdeTabBar({
               >
                 ●
               </button>
+            ) : tab.closable && onClose ? (
+              <button
+                type="button"
+                className="bolt-project-tab-close"
+                aria-label={`Close ${tab.label}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onClose(tab.id);
+                }}
+              >
+                ×
+              </button>
             ) : (
               <span className="bolt-project-tab-close" aria-hidden>
                 ×
               </span>
             )}
-          </Link>
+          </div>
         ))}
       </div>
       {trailing}
@@ -1238,34 +1380,60 @@ function IdeTabBar({
             </div>
             <div className="bolt-project-tool-section">RECENT FILES</div>
             {tabs.slice(0, 3).map((tab) => (
-              <Link key={`recent-${tab.id}`} to={hrefFor(tab.id)} className="bolt-project-tool-item">
+              <button
+                key={`recent-${tab.id}`}
+                type="button"
+                className="bolt-project-tool-item"
+                onClick={() => {
+                  setOpen(false);
+                  onSelect(tab.id);
+                }}
+              >
                 <span className={tab.icon} aria-hidden />
                 <span>
                   <strong>{tab.label}</strong>
                   <small>Current workspace</small>
                 </span>
-              </Link>
+              </button>
             ))}
             <div className="bolt-project-tool-section">TOOLS</div>
             {tools.map(([id, title, description, icon, color]) => (
-              <Link key={id} to={hrefFor(id)} className="bolt-project-tool-item" onClick={() => setOpen(false)}>
+              <button
+                key={id}
+                type="button"
+                className="bolt-project-tool-item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenTool?.(id);
+                }}
+              >
                 <span className={icon} style={{ color }} aria-hidden />
                 <span>
                   <strong>{title}</strong>
                   <small>{description}</small>
                 </span>
                 {id === activePanel && <em>Open</em>}
-              </Link>
+              </button>
             ))}
           </div>
         )}
       </div>
-      <Link to={hrefFor(activePanel)} className="bolt-project-tab-action" aria-label="Split right">
+      <button
+        type="button"
+        className="bolt-project-tab-action"
+        aria-label="Split right"
+        onClick={() => onSelect(activePanel)}
+      >
         <span className="i-ph:columns" aria-hidden />
-      </Link>
-      <Link to={hrefFor(activePanel)} className="bolt-project-tab-action" aria-label="Split down">
+      </button>
+      <button
+        type="button"
+        className="bolt-project-tab-action"
+        aria-label="Split down"
+        onClick={() => onSelect(activePanel)}
+      >
         <span className="i-ph:rows" aria-hidden />
-      </Link>
+      </button>
       <button type="button" className="bolt-project-tab-action" aria-label="Tab actions">
         <span className="i-ph:dots-three" aria-hidden />
       </button>
@@ -1273,10 +1441,16 @@ function IdeTabBar({
   );
 }
 
-function ProjectWelcomeState({ projectId, files }: { projectId?: string; files: string[] }) {
-  const shortcuts = [
+function ProjectWelcomeState({
+  files,
+  onOpenTool,
+}: {
+  files: string[];
+  onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
+}) {
+  const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
     ['i-ph:files', 'Open Files', '⌘P', 'files'],
-    ['i-ph:terminal-window', 'Open Console', '⌘`', 'terminal'],
+    ['i-ph:terminal-window', 'Open Console', '⌘`', 'logs'],
     ['i-ph:browser', 'View Preview', '⌘⇧V', 'preview'],
     ['i-ph:command', 'All Commands', '⌘K', 'settings'],
   ];
@@ -1290,15 +1464,11 @@ function ProjectWelcomeState({ projectId, files }: { projectId?: string; files: 
       <p>Ouvrez un outil ou demandez à l'agent de commencer.</p>
       <div className="bolt-project-welcome-grid">
         {shortcuts.map(([icon, label, shortcut, panel]) => (
-          <Link
-            key={label}
-            to={projectId ? `/projects/${projectId}/ide?panel=${panel}` : '#'}
-            className="bolt-project-welcome-card"
-          >
+          <button key={label} type="button" className="bolt-project-welcome-card" onClick={() => onOpenTool?.(panel)}>
             <span className={icon} aria-hidden />
             <strong>{label}</strong>
             <small>{shortcut}</small>
-          </Link>
+          </button>
         ))}
       </div>
       <div className="bolt-project-welcome-recents">
@@ -1641,6 +1811,11 @@ function PanelButton({ children, variant, ...props }: any) {
 
 function panelTitle(panel: string) {
   const titles: Record<string, string> = {
+    editor: 'Editor',
+    preview: 'Webview',
+    files: 'Files',
+    search: 'Search',
+    locks: 'Locks',
     overview: 'Overview',
     deployments: 'Deploy',
     env: 'Environment variables',
@@ -1659,6 +1834,11 @@ function panelTitle(panel: string) {
 
 function panelIcon(panel: string) {
   const icons: Record<string, string> = {
+    editor: 'i-ph:code',
+    preview: 'i-ph:browser',
+    files: 'i-ph:files',
+    search: 'i-ph:magnifying-glass',
+    locks: 'i-ph:lock',
     overview: 'i-ph:gauge',
     deployments: 'i-ph:rocket-launch',
     env: 'i-ph:brackets-curly',

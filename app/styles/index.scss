@@ -449,6 +449,14 @@ body {
   transition: background 100ms ease-out;
 }
 
+.bolt-project-tab-main {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
 .bolt-project-right-tab {
   min-width: auto;
   padding: 0 10px;
@@ -476,7 +484,7 @@ body {
   background: #1a2030;
 }
 
-.bolt-project-tab > span:nth-child(2) {
+.bolt-project-tab-main > span:nth-child(2) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -575,11 +583,13 @@ body {
 
 .bolt-project-tool-item {
   display: flex;
+  width: 100%;
   min-height: 40px;
   align-items: center;
   gap: 12px;
   border-radius: 6px;
   padding: 8px 12px;
+  text-align: left;
 }
 
 .bolt-project-tool-item:hover {
