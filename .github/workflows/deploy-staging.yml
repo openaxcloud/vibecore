@@ -1,0 +1,57 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag to deploy
+        required: true
+        default: latest
+  push:
+    branches: [stable]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy staging and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_APP_DOMAIN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.STAGING_APP_CLUSTER }}
+          location: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Deploy platform chart
+        run: |
+          helm upgrade --install vibecore infra/helm/platform \
+            --namespace vibecore \
+            --create-namespace \
+            --set global.environment=staging \
+            --set global.imageTag="${{ inputs.image_tag || github.sha }}" \
+            --set global.appDomain="${{ vars.STAGING_APP_DOMAIN }}" \
+            --set global.previewDomain="${{ vars.STAGING_PREVIEW_DOMAIN }}"
+
+      - name: Smoke tests
+        env:
+          SYNTHETIC_BASE_URL: https://${{ vars.STAGING_APP_DOMAIN }}
+        run: pnpm synthetic:health

@@ -1,0 +1,71 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Immutable image tag to deploy
+        required: true
+      confirm_rollback_plan:
+        description: Type READY after reviewing docs/ROLLBACK.md
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    name: Manual approval, deploy prod, smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: inputs.confirm_rollback_plan == 'READY'
+    environment:
+      name: production
+      url: https://${{ vars.PROD_APP_DOMAIN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.PROD_APP_CLUSTER }}
+          location: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Record current release for rollback
+        run: |
+          helm history vibecore -n vibecore || true
+          echo "Rollback command: helm rollback vibecore <REVISION> -n vibecore"
+
+      - name: Deploy production platform chart
+        run: |
+          helm upgrade --install vibecore infra/helm/platform \
+            --namespace vibecore \
+            --create-namespace \
+            --atomic \
+            --timeout 10m \
+            --set global.environment=prod \
+            --set global.imageTag="${{ inputs.image_tag }}" \
+            --set global.appDomain="${{ vars.PROD_APP_DOMAIN }}" \
+            --set global.previewDomain="${{ vars.PROD_PREVIEW_DOMAIN }}"
+
+      - name: Production smoke tests
+        env:
+          SYNTHETIC_BASE_URL: https://${{ vars.PROD_APP_DOMAIN }}
+        run: pnpm synthetic:health
+
+      - name: Rollback instructions
+        if: failure()
+        run: |
+          echo "See docs/ROLLBACK.md"
+          echo "Immediate rollback: helm rollback vibecore <LAST_GOOD_REVISION> -n vibecore"

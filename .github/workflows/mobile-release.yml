@@ -1,0 +1,59 @@
+name: Mobile Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['mobile-v*', 'v*']
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android build artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Mobile sync
+        run: pnpm mobile:sync
+
+      - name: Android build placeholder
+        run: |
+          mkdir -p mobile-artifacts
+          printf "Android build requires the native mobile project credentials and keystore configured in repository secrets.\\n" > mobile-artifacts/android-build-readme.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibecore-android
+          path: mobile-artifacts
+
+  ios-docs:
+    name: iOS macOS runner requirement
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Document iOS build requirement
+        run: |
+          mkdir -p mobile-artifacts
+          printf "iOS builds require macOS runner, Apple signing certificates, provisioning profiles, and App Store Connect API credentials.\\n" > mobile-artifacts/ios-build-readme.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibecore-ios-docs
+          path: mobile-artifacts

@@ -1,0 +1,82 @@
+name: Production E2E
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: [stable, product/saas-platform-production]
+
+concurrency:
+  group: production-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright local stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    env:
+      CI: true
+      HUSKY: 0
+      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
+      REDIS_URL: redis://127.0.0.1:56379
+      API_HOST: 127.0.0.1
+      API_PORT: 3001
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start local dependencies
+        run: docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+
+      - name: Prepare database
+        run: |
+          pnpm --filter @vibecore/database db:deploy
+          pnpm --filter @vibecore/database db:seed
+
+      - name: Start API
+        run: |
+          pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
+          echo $! > /tmp/vibecore-api.pid
+          npx wait-on http://127.0.0.1:3001/health
+
+      - name: Start web app
+        run: |
+          pnpm run dev -- --host 127.0.0.1 --port 5173 > /tmp/vibecore-web.log 2>&1 &
+          echo $! > /tmp/vibecore-web.pid
+          npx wait-on http://127.0.0.1:5173
+
+      - name: Playwright auth, project, IDE, terminal, preview, billing mock flows
+        run: pnpm exec playwright test tests/e2e --project=chromium
+
+      - name: Playwright mobile viewport tests
+        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium
+
+      - name: Upload E2E traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+            /tmp/vibecore-api.log
+            /tmp/vibecore-web.log
+          if-no-files-found: ignore
