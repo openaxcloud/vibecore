@@ -95,7 +95,7 @@ export function Tooltip({
   children,
   side = 'top',
   align = 'center',
-  delayDuration = 300,
+  delayDuration = 500,
   className,
 }: TooltipProps) {
   return (

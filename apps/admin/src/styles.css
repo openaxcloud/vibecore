@@ -12,6 +12,28 @@
   --vc-type-label-size: 11px;
   --vc-type-line-height: 1.5;
   --vc-type-label-letter-spacing: 0.4px;
+  --vc-ui-radius-button: 4px;
+  --vc-ui-radius-input: 6px;
+  --vc-ui-radius-card: 6px;
+  --vc-ui-radius-modal: 8px;
+  --vc-ui-radius-popover: 12px;
+  --vc-ui-shadow-sm: 0 1px 2px rgb(0 4 20 / 0.4);
+  --vc-ui-shadow-md: 0 4px 12px rgb(0 4 20 / 0.5);
+  --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
+  --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+  --vc-ui-transition-hover: 150ms ease-out;
+  --vc-ui-transition-panel: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --vc-ui-transition-popover: 100ms ease-out;
+  --vc-ui-overlay-bg: rgb(26 32 48 / 0.85);
+  --vc-ui-overlay-blur: blur(12px);
+  --vc-ui-focus-ring: #0099ff;
+  --vc-ui-tooltip-bg: #0e1525;
+  --vc-ui-tooltip-border: #2b3245;
+  --vc-ui-tooltip-text-size: 11px;
+  --vc-ui-tooltip-delay: 500ms;
+  --vc-ui-scrollbar-size: 10px;
+  --vc-ui-scrollbar-thumb: rgb(43 50 69 / 0.72);
+  --vc-ui-scrollbar-thumb-hover: #3b4358;
   font-family:
     var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
@@ -34,7 +56,7 @@
   --danger-soft: #3b1111;
   --ok: #22c55e;
   --warn: #f59e0b;
-  --shadow: 0 18px 50px rgb(0 0 0 / 0.28);
+  --shadow: var(--vc-ui-shadow-md);
 }
 
 * {
@@ -128,6 +150,99 @@ body :where(.uppercase, [class*="uppercase"], label, legend, th) {
   line-height: var(--vc-type-line-height) !important;
 }
 
+body :where(button, [role="button"], .btn, .button, summary) {
+  border-radius: var(--vc-ui-radius-button);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    opacity var(--vc-ui-transition-hover),
+    filter var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
+}
+
+body :where(input, select, textarea) {
+  border-radius: var(--vc-ui-radius-input);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+body :where(.card, .panel, .table-wrap, [data-card]) {
+  border-radius: var(--vc-ui-radius-card);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([role="dialog"], .dialog, .modal) {
+  border-radius: var(--vc-ui-radius-modal);
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+body :where(.popover, [data-radix-popper-content-wrapper] > *) {
+  border-radius: var(--vc-ui-radius-popover);
+  box-shadow: var(--vc-ui-shadow-xl);
+  transition:
+    opacity var(--vc-ui-transition-popover),
+    transform var(--vc-ui-transition-popover),
+    background-color var(--vc-ui-transition-popover);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]) {
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+body :where(button, a, summary, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--vc-ui-focus-ring);
+  outline-offset: 2px;
+}
+
+body :where([role="tooltip"], .tooltip, .vc-tooltip, [data-radix-tooltip-content]) {
+  border: 1px solid var(--vc-ui-tooltip-border);
+  background: var(--vc-ui-tooltip-bg);
+  color: #f5f9fc;
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
+  fill: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.lucide, svg[data-lucide]) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vc-ui-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: var(--vc-ui-scrollbar-size);
+  height: var(--vc-ui-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: var(--vc-ui-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--vc-ui-scrollbar-thumb-hover);
+  background-clip: content-box;
+}
+
 button {
   cursor: pointer;
 }
@@ -136,7 +251,7 @@ button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-  outline: 2px solid var(--accent-strong);
+  outline: 2px solid var(--vc-ui-focus-ring);
   outline-offset: 2px;
 }
 
@@ -164,7 +279,7 @@ select:focus-visible {
   margin-bottom: 18px;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel-raised);
 }
 
@@ -190,13 +305,13 @@ select:focus-visible {
 .danger,
 .secondary {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-button);
   color: var(--text);
   background: var(--panel-raised);
   transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.15s ease;
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
 }
 
 .nav button {
@@ -255,10 +370,10 @@ select:focus-visible {
 .page-title {
   min-height: 64px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel);
   padding: 16px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--vc-ui-shadow-md);
 }
 
 .page-title h1 {
@@ -270,7 +385,7 @@ select:focus-visible {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel);
   padding: 12px;
 }
@@ -288,7 +403,7 @@ select:focus-visible {
 .dialog select {
   min-width: 0;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-input);
   background: #09090b;
   color: var(--text);
   padding: 10px 12px;
@@ -307,9 +422,9 @@ select:focus-visible {
 .panel,
 .dialog {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: var(--vc-ui-shadow-md);
 }
 
 .card,
@@ -361,10 +476,10 @@ select:focus-visible {
   top: 0;
   z-index: 5;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: color-mix(in srgb, var(--panel) 92%, transparent);
   padding: 12px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: var(--vc-ui-overlay-blur);
 }
 
 .toolbar input {
@@ -374,9 +489,9 @@ select:focus-visible {
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: var(--vc-ui-shadow-md);
 }
 
 table {
@@ -424,7 +539,7 @@ tbody tr:hover {
 code,
 pre {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: #09090b;
   color: #d4d4d8;
 }
@@ -460,11 +575,11 @@ pre {
   gap: 12px;
   max-width: min(460px, calc(100vw - 32px));
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--panel-raised);
   padding: 12px;
   z-index: 20;
-  box-shadow: var(--shadow);
+  box-shadow: var(--vc-ui-shadow-md);
 }
 
 .modal-backdrop {
@@ -473,12 +588,15 @@ pre {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgb(0 0 0 / 0.66);
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
   z-index: 30;
 }
 
 .dialog {
   width: min(560px, 100%);
+  border-radius: var(--vc-ui-radius-modal);
+  box-shadow: var(--vc-ui-shadow-xl);
   padding: 18px;
   display: grid;
   gap: 12px;

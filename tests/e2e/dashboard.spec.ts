@@ -338,6 +338,62 @@ test('platform typography tokens apply to the web IDE', async ({ page }) => {
   expect(typography.codeLigaturesActual).toContain('common-ligatures');
 });
 
+test('IDE applies section 12 UI detail styles', async ({ page }) => {
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'IDE UI Details Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
+  await page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool').click();
+  const toolMenu = page.locator('.bolt-project-tool-menu:visible').first();
+  await expect(toolMenu).toBeVisible();
+  const details = await toolMenu.evaluate((menu) => {
+    const root = window.getComputedStyle(document.documentElement);
+    const toolMenuStyle = window.getComputedStyle(menu);
+    const tabActionElement = document.querySelector('.bolt-project-tab-action');
+    const tabAction = tabActionElement ? window.getComputedStyle(tabActionElement) : null;
+    const terminalHandleElement = document.querySelector('.bolt-project-terminal-resize-handle');
+    const terminalHandle = terminalHandleElement ? window.getComputedStyle(terminalHandleElement) : null;
+
+    return {
+      radiusButton: root.getPropertyValue('--vc-ui-radius-button').trim(),
+      radiusModal: root.getPropertyValue('--vc-ui-radius-modal').trim(),
+      radiusPopover: root.getPropertyValue('--vc-ui-radius-popover').trim(),
+      shadowXl: root.getPropertyValue('--vc-ui-shadow-xl').trim(),
+      focusRing: root.getPropertyValue('--vc-ui-focus-ring').trim().toLowerCase(),
+      toolMenuRadius: toolMenuStyle.borderRadius,
+      toolMenuShadow: toolMenuStyle.boxShadow,
+      toolMenuBackdrop: toolMenuStyle.backdropFilter || toolMenuStyle.getPropertyValue('-webkit-backdrop-filter'),
+      tabActionRadius: tabAction?.borderRadius ?? '',
+      tabActionDuration: tabAction?.transitionDuration ?? '',
+      terminalHandleDuration: terminalHandle?.transitionDuration ?? '',
+      terminalHandleTiming: terminalHandle?.transitionTimingFunction ?? '',
+    };
+  });
+
+  expect(details.radiusButton).toBe('4px');
+  expect(details.radiusModal).toBe('8px');
+  expect(details.radiusPopover).toBe('12px');
+  expect(details.shadowXl).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
+  expect(details.focusRing).toBe('#0099ff');
+  expect(details.toolMenuRadius).toBe('12px');
+  expect(details.toolMenuShadow).toBe('rgba(0, 4, 20, 0.7) 0px 24px 64px 0px');
+  expect(details.toolMenuBackdrop).toContain('blur(12px)');
+  expect(details.tabActionRadius).toBe('4px');
+  expect(details.tabActionDuration).toContain('0.15s');
+  if (details.terminalHandleDuration) {
+    expect(details.terminalHandleDuration).toContain('0.15s');
+    expect(details.terminalHandleTiming).toContain('ease-out');
+  }
+});
+
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
   test.setTimeout(120_000);
   const auth = await authenticate(page);

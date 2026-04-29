@@ -32,6 +32,28 @@ body {
   --vc-type-label-size: 11px;
   --vc-type-line-height: 1.5;
   --vc-type-label-letter-spacing: 0.4px;
+  --vc-ui-radius-button: 4px;
+  --vc-ui-radius-input: 6px;
+  --vc-ui-radius-card: 6px;
+  --vc-ui-radius-modal: 8px;
+  --vc-ui-radius-popover: 12px;
+  --vc-ui-shadow-sm: 0 1px 2px rgb(0 4 20 / 0.4);
+  --vc-ui-shadow-md: 0 4px 12px rgb(0 4 20 / 0.5);
+  --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
+  --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+  --vc-ui-transition-hover: 150ms ease-out;
+  --vc-ui-transition-panel: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --vc-ui-transition-popover: 100ms ease-out;
+  --vc-ui-overlay-bg: rgb(26 32 48 / 0.85);
+  --vc-ui-overlay-blur: blur(12px);
+  --vc-ui-focus-ring: #0099ff;
+  --vc-ui-tooltip-bg: #0e1525;
+  --vc-ui-tooltip-border: #2b3245;
+  --vc-ui-tooltip-text-size: 11px;
+  --vc-ui-tooltip-delay: 500ms;
+  --vc-ui-scrollbar-size: 10px;
+  --vc-ui-scrollbar-thumb: rgb(43 50 69 / 0.72);
+  --vc-ui-scrollbar-thumb-hover: #3b4358;
   --gradient-opacity: 0.8;
   --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
   --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
@@ -122,13 +144,114 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   line-height: var(--vc-type-line-height) !important;
 }
 
+body :where(button, [role='button'], .btn, .button, summary) {
+  border-radius: var(--vc-ui-radius-button);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    opacity var(--vc-ui-transition-hover),
+    filter var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
+}
+
+body :where(input, select, textarea) {
+  border-radius: var(--vc-ui-radius-input);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+body :where(.card, .panel, .bolt-project-action-card, .bolt-project-service-panel, [data-card]) {
+  border-radius: var(--vc-ui-radius-card);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
+  border-radius: var(--vc-ui-radius-modal);
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+body :where(.popover, [data-radix-popper-content-wrapper] > *, .bolt-project-tool-menu, .bolt-project-tab-menu, .bolt-project-user-menu) {
+  border-radius: var(--vc-ui-radius-popover);
+  box-shadow: var(--vc-ui-shadow-xl);
+  transition:
+    opacity var(--vc-ui-transition-popover),
+    transform var(--vc-ui-transition-popover),
+    background-color var(--vc-ui-transition-popover);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay], .bolt-project-drop-overlay) {
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+body :where(button, a, summary, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--vc-ui-focus-ring);
+  outline-offset: 2px;
+}
+
+body :where([role='tooltip'], .tooltip, .vc-tooltip, .cm-tooltip, [data-radix-tooltip-content]) {
+  border: 1px solid var(--vc-ui-tooltip-border);
+  background: var(--vc-ui-tooltip-bg);
+  color: #f5f9fc;
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
+  fill: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.cm-tooltip-arrow::before) {
+  border-top-color: var(--vc-ui-tooltip-border);
+}
+
+body :where(.cm-tooltip-arrow::after) {
+  border-top-color: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.lucide, svg[data-lucide]) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vc-ui-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: var(--vc-ui-scrollbar-size);
+  height: var(--vc-ui-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: var(--vc-ui-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--vc-ui-scrollbar-thumb-hover);
+  background-clip: content-box;
+}
+
 .modern-scrollbar {
   overflow: auto;
 
   // WebKit scrollbar styling
   &::-webkit-scrollbar {
-    width: 2px;
-    height: 4px;
+    width: var(--vc-ui-scrollbar-size);
+    height: var(--vc-ui-scrollbar-size);
   }
 
   &::-webkit-scrollbar-track {
@@ -137,22 +260,22 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
 
   &::-webkit-scrollbar-thumb {
     // Use CSS variables for colors
-    background-color: var(--modern-scrollbar-thumb-background);
+    background-color: var(--vc-ui-scrollbar-thumb);
     border-radius: 9999px; // pill shape
     border: 2px solid transparent; // for padding-like effect
     background-clip: content-box;
-    transition: background-color 0.2s ease-in-out; // Add transition
+    transition: background-color var(--vc-ui-transition-hover); // Add transition
   }
 
   &::-webkit-scrollbar-thumb:hover {
     // Use CSS variable for hover color
-    background-color: var(--modern-scrollbar-thumb-backgroundHover);
+    background-color: var(--vc-ui-scrollbar-thumb-hover);
   }
 
   // Firefox support
   scrollbar-width: thin;
   // Use CSS variables for Firefox colors
-  scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent; // Use hover color for thumb for consistency
+  scrollbar-color: var(--vc-ui-scrollbar-thumb-hover) transparent; // Use hover color for thumb for consistency
 }
 
 .modern-scrollbar-invert {
@@ -196,7 +319,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
     max(6px, env(safe-area-inset-left, 0px));
   border-top: 1px solid var(--bolt-elements-borderColor);
   background: color-mix(in srgb, var(--bolt-elements-bg-depth-2), transparent 4%);
-  backdrop-filter: blur(18px);
+  backdrop-filter: var(--vc-ui-overlay-blur);
 }
 
 .bolt-mobile-tabbar button {
@@ -207,7 +330,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   align-items: center;
   justify-content: center;
   gap: 2px;
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-button);
   color: var(--bolt-elements-textTertiary);
   font-size: var(--vc-type-label-size);
   line-height: var(--vc-type-line-height);
@@ -239,7 +362,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   opacity: 0;
   padding: 8px 12px;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--vc-ui-transition-hover);
 }
 
 .bolt-connection-status[data-online='false'] {
@@ -280,7 +403,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   border-radius: 999px;
   background: var(--bolt-elements-bg-depth-2);
   color: var(--bolt-elements-textPrimary);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--vc-ui-shadow-md);
 }
 
 .bolt-files-panel-toggle:hover,
@@ -296,9 +419,9 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   z-index: 1001;
   width: min(360px, calc(100vw - 24px));
   border: 1px solid var(--bolt-elements-borderColor);
-  border-radius: 10px;
+  border-radius: var(--vc-ui-radius-popover);
   background: var(--bolt-elements-bg-depth-2);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--vc-ui-shadow-xl);
   padding: 12px;
 }
 
@@ -420,7 +543,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   max-width: min(100%, var(--chat-max-width));
   gap: 10px;
   border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: var(--vc-ide-bg-card);
   padding: 10px;
 }
@@ -852,11 +975,11 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   max-height: 480px;
   overflow: auto;
   border: 1px solid #2b3245;
-  border-radius: 12px;
+  border-radius: var(--vc-ui-radius-popover);
   background: #1a2030;
-  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  box-shadow: var(--vc-ui-shadow-xl);
   padding: 8px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: var(--vc-ui-overlay-blur);
 }
 
 .bolt-project-tool-search {
@@ -994,7 +1117,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   min-height: 92px;
   justify-items: start;
   border: 1px solid #2b3245;
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: #1a2030;
   padding: 12px;
   text-align: left;
@@ -1064,7 +1187,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   display: grid;
   gap: 8px;
   border: 1px solid #2b3245;
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-card);
   background: #0e1525;
   padding: 12px;
 }
@@ -1553,9 +1676,10 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   min-width: 180px;
   gap: 2px;
   border: 1px solid #2b3245;
-  border-radius: 8px;
+  border-radius: var(--vc-ui-radius-popover);
   background: rgb(26 32 48 / 0.98);
-  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  box-shadow: var(--vc-ui-shadow-xl);
+  backdrop-filter: var(--vc-ui-overlay-blur);
   padding: 6px;
 }
 
@@ -1662,9 +1786,9 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
   transform: translateX(-50%);
   overflow: hidden;
   border: 1px solid #2b3245;
-  border-radius: 12px;
+  border-radius: var(--vc-ui-radius-modal);
   background: #1a2030;
-  box-shadow: 0 24px 64px rgb(0 4 20 / 0.7);
+  box-shadow: var(--vc-ui-shadow-xl);
 }
 
 .bolt-project-command-palette input {
@@ -1811,7 +1935,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th, .bolt-project-t
     max-width: 720px;
     margin: 0 auto;
     border: 1px solid var(--bolt-elements-borderColor);
-    border-radius: 14px;
+    border-radius: var(--vc-ui-radius-popover);
   }
 }
 

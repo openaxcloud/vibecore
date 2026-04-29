@@ -28,7 +28,7 @@ export const TabTile: React.FC<TabTileProps> = ({
   children,
 }: TabTileProps) => {
   return (
-    <Tooltip.Provider delayDuration={0}>
+    <Tooltip.Provider delayDuration={500}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div className={classNames('min-h-[160px] list-none', className || '')}>

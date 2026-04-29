@@ -21,7 +21,7 @@ export function NetlifyDeploymentLink() {
   }
 
   return (
-    <Tooltip.Provider>
+    <Tooltip.Provider delayDuration={500}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <a

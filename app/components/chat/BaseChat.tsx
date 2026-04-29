@@ -2564,7 +2564,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       </div>
     );
 
-    return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
+    return <Tooltip.Provider delayDuration={500}>{baseChat}</Tooltip.Provider>;
   },
 );
 
