@@ -249,13 +249,29 @@ body {
 }
 
 .bolt-project-ide-panels {
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
   --project-agent-width: 420px;
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: #0a0f1c;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-agent-panel {
@@ -289,26 +305,26 @@ body {
 .bolt-project-agent-suggestions button {
   flex: 0 0 auto;
   min-height: 28px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 999px;
-  background: #1a2030;
-  color: #c2c8cc;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   padding: 6px 12px;
 }
 
 .bolt-project-agent-suggestions button:hover {
-  background: #2b3245;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-agent-action-card {
   display: grid;
   max-width: min(100%, var(--chat-max-width));
   gap: 10px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 8px;
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
   padding: 10px;
 }
 
@@ -320,7 +336,7 @@ body {
 
 .bolt-project-agent-action-card > div > span:first-child {
   width: 18px;
-  color: #d29922;
+  color: var(--vc-ide-accent-warning);
 }
 
 .bolt-project-agent-action-card strong,
@@ -481,8 +497,8 @@ body {
   z-index: 35;
   width: var(--project-agent-width);
   height: calc(100vh - 36px);
-  border-right: 1px solid #1a2030;
-  background: #0e1525;
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
 }
 
 .bolt-project-workspace-shell {
@@ -497,7 +513,7 @@ body {
   display: flex;
   min-width: 0;
   min-height: 0;
-  background: #0a0f1c;
+  background: var(--vc-ide-bg-app);
 }
 
 .bolt-project-right-panel-shell {
@@ -511,8 +527,8 @@ body {
   max-width: 700px;
   height: calc(100vh - 36px);
   flex-direction: column;
-  border-left: 1px solid #1a2030;
-  background: #0e1525;
+  border-left: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
   box-shadow: -12px 0 32px rgb(0 4 20 / 0.35);
 }
 
@@ -530,7 +546,7 @@ body {
 
 .bolt-project-right-resize-handle:hover,
 .bolt-project-right-resize-handle:active {
-  background: #0099ff;
+  background: var(--vc-ide-accent-action);
 }
 
 .bolt-project-right-panel-content {
@@ -554,7 +570,7 @@ body {
 
 .bolt-project-agent-resize-handle:hover,
 .bolt-project-agent-resize-handle:active {
-  background: #0099ff;
+  background: var(--vc-ide-accent-action);
 }
 
 .bolt-project-agent-header {
@@ -563,8 +579,8 @@ body {
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #1a2030;
-  background: #0e1525;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
   padding: 10px 12px;
 }
 
@@ -575,12 +591,12 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
   color: white;
 }
 
 .bolt-project-agent-title {
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 13px;
   font-weight: 600;
 }
@@ -591,7 +607,7 @@ body {
   align-items: center;
   gap: 2px;
   border-radius: 999px;
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
   padding: 2px;
 }
 
@@ -599,14 +615,14 @@ body {
   height: 20px;
   border-radius: 999px;
   padding: 0 8px;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
   font-weight: 500;
 }
 
 .bolt-project-agent-mode button[aria-pressed='true'] {
-  background: #2b3245;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-tabbar,

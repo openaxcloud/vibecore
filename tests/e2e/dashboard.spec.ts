@@ -203,6 +203,68 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible();
 });
 
+test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'IDE Theme Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
+
+  const themeTokens = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const token = (name: string) => style.getPropertyValue(name).trim().toLowerCase();
+
+    return {
+      app: token('--vc-ide-bg-app'),
+      panel: token('--vc-ide-bg-panel'),
+      card: token('--vc-ide-bg-card'),
+      hover: token('--vc-ide-bg-hover'),
+      borderSubtle: token('--vc-ide-border-subtle'),
+      borderVisible: token('--vc-ide-border-visible'),
+      textPrimary: token('--vc-ide-text-primary'),
+      textSecondary: token('--vc-ide-text-secondary'),
+      textMuted: token('--vc-ide-text-muted'),
+      aiStart: token('--vc-ide-accent-ai-start'),
+      aiEnd: token('--vc-ide-accent-ai-end'),
+      success: token('--vc-ide-accent-success'),
+      action: token('--vc-ide-accent-action'),
+      orange: token('--vc-ide-accent-orange'),
+      error: token('--vc-ide-accent-error'),
+      warning: token('--vc-ide-accent-warning'),
+      actualBackground: style.backgroundColor,
+      actualText: style.color,
+    };
+  });
+
+  expect(themeTokens).toMatchObject({
+    app: '#0a0f1c',
+    panel: '#0e1525',
+    card: '#1a2030',
+    hover: '#2b3245',
+    borderSubtle: '#1a2030',
+    borderVisible: '#2b3245',
+    textPrimary: '#f5f9fc',
+    textSecondary: '#c2c8cc',
+    textMuted: '#6e7681',
+    aiStart: '#7b61ff',
+    aiEnd: '#ff6b9d',
+    success: '#3fb950',
+    action: '#0099ff',
+    orange: '#f26207',
+    error: '#f85149',
+    warning: '#d29922',
+    actualBackground: 'rgb(10, 15, 28)',
+    actualText: 'rgb(245, 249, 252)',
+  });
+});
+
 test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
   test.setTimeout(120_000);
   const auth = await authenticate(page);
