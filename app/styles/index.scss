@@ -12,6 +12,7 @@ body {
   height: 100%;
   width: 100%;
   background-color: var(--bolt-elements-bg-depth-1);
+  color: var(--bolt-elements-textPrimary);
   font-family: var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
   line-height: var(--vc-type-line-height);
@@ -20,6 +21,85 @@ body {
 }
 
 :root {
+  color-scheme: dark;
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
+  --bolt-elements-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-bg-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
+  --bolt-elements-textTertiary: var(--vc-ide-text-muted);
+  --bolt-elements-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-code-text: var(--vc-ide-text-primary);
+  --bolt-elements-button-primary-background: var(--vc-ide-bg-card);
+  --bolt-elements-button-primary-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-button-primary-text: var(--vc-ide-accent-action);
+  --bolt-elements-button-secondary-background: transparent;
+  --bolt-elements-button-secondary-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-button-secondary-text: var(--vc-ide-text-secondary);
+  --bolt-elements-button-danger-background: rgb(248 81 73 / 0.12);
+  --bolt-elements-button-danger-backgroundHover: rgb(248 81 73 / 0.2);
+  --bolt-elements-button-danger-text: var(--vc-ide-accent-error);
+  --bolt-elements-item-contentDefault: var(--vc-ide-text-secondary);
+  --bolt-elements-item-contentActive: var(--vc-ide-text-primary);
+  --bolt-elements-item-contentAccent: var(--vc-ide-accent-action);
+  --bolt-elements-item-contentDanger: var(--vc-ide-accent-error);
+  --bolt-elements-item-backgroundDefault: transparent;
+  --bolt-elements-item-backgroundActive: var(--vc-ide-bg-hover);
+  --bolt-elements-item-backgroundAccent: rgb(0 153 255 / 0.14);
+  --bolt-elements-item-backgroundDanger: rgb(248 81 73 / 0.12);
+  --bolt-elements-loader-background: var(--vc-ide-bg-card);
+  --bolt-elements-loader-progress: var(--vc-ide-accent-action);
+  --bolt-elements-artifacts-background: var(--vc-ide-bg-panel);
+  --bolt-elements-artifacts-backgroundHover: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-artifacts-inlineCode-background: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-actions-background: var(--vc-ide-bg-panel);
+  --bolt-elements-actions-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-linkColor: var(--vc-ide-accent-action);
+  --bolt-elements-messages-code-background: var(--vc-ide-bg-app);
+  --bolt-elements-messages-inlineCode-background: var(--vc-ide-bg-hover);
+  --bolt-elements-messages-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-icon-success: var(--vc-ide-accent-success);
+  --bolt-elements-icon-error: var(--vc-ide-accent-error);
+  --bolt-elements-icon-primary: var(--vc-ide-text-primary);
+  --bolt-elements-icon-secondary: var(--vc-ide-text-secondary);
+  --bolt-elements-icon-tertiary: var(--vc-ide-text-muted);
+  --bolt-elements-dividerColor: var(--vc-ide-border-subtle);
+  --bolt-elements-prompt-background: rgb(26 32 48 / 0.86);
+  --bolt-elements-sidebar-dropdownShadow: rgb(0 4 20 / 0.5);
+  --bolt-elements-sidebar-buttonBackgroundDefault: var(--vc-ide-bg-card);
+  --bolt-elements-sidebar-buttonBackgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-sidebar-buttonText: var(--vc-ide-text-primary);
+  --bolt-elements-preview-addressBar-background: var(--vc-ide-bg-card);
+  --bolt-elements-preview-addressBar-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-preview-addressBar-backgroundActive: var(--vc-ide-bg-panel);
+  --bolt-elements-preview-addressBar-text: var(--vc-ide-text-secondary);
+  --bolt-elements-preview-addressBar-textActive: var(--vc-ide-text-primary);
+  --bolt-elements-terminals-background: var(--vc-ide-bg-app);
+  --bolt-elements-terminals-buttonBackground: var(--vc-ide-bg-card);
+  --bolt-elements-cta-background: var(--vc-ide-bg-card);
+  --bolt-elements-cta-text: var(--vc-ide-text-primary);
   --vc-font-interface: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
   --vc-font-code: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
@@ -79,6 +159,20 @@ body {
   // --primary-color: rgba(147, 112, 219, var(--gradient-opacity));
   // --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
   // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
+}
+
+:root[data-theme='light'],
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bolt-elements-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-bg-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
+  --bolt-elements-textTertiary: var(--vc-ide-text-muted);
 }
 
 body,
@@ -317,7 +411,10 @@ body :where(input, select, textarea) {
 }
 
 body :where(.card, .panel, .bolt-project-action-card, .bolt-project-service-panel, [data-card]) {
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
   box-shadow: var(--vc-ui-shadow-md);
 }
 

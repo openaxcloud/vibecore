@@ -1,5 +1,25 @@
 :root {
   color-scheme: dark;
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
   --vc-font-interface: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   --vc-font-code: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
@@ -57,23 +77,23 @@
   font-size: var(--vc-type-interface-size);
   line-height: var(--vc-type-line-height);
   letter-spacing: 0;
-  background: #0a0a0b;
-  color: #f4f4f5;
-  --bg: #0a0a0b;
-  --panel: #121214;
-  --panel-raised: #1a2030;
-  --panel-soft: #2b3245;
-  --border: #2f2f35;
-  --border-strong: #46464f;
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --subtle: #71717a;
-  --accent: #2f6fed;
-  --accent-strong: #4f8cff;
-  --danger: #b42318;
-  --danger-soft: #3b1111;
-  --ok: #22c55e;
-  --warn: #f59e0b;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  --bg: var(--vc-ide-bg-app);
+  --panel: var(--vc-ide-bg-panel);
+  --panel-raised: var(--vc-ide-bg-card);
+  --panel-soft: var(--vc-ide-bg-hover);
+  --border: var(--vc-ide-border-subtle);
+  --border-strong: var(--vc-ide-border-visible);
+  --text: var(--vc-ide-text-primary);
+  --muted: var(--vc-ide-text-secondary);
+  --subtle: var(--vc-ide-text-muted);
+  --accent: var(--vc-ide-accent-action);
+  --accent-strong: var(--vc-ide-accent-action);
+  --danger: var(--vc-ide-accent-error);
+  --danger-soft: rgb(248 81 73 / 0.12);
+  --ok: var(--vc-ide-accent-success);
+  --warn: var(--vc-ide-accent-warning);
   --shadow: var(--vc-ui-shadow-md);
 }
 
@@ -86,6 +106,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: var(--bg);
+  color: var(--text);
   font-family: var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
   line-height: var(--vc-type-line-height);
@@ -315,6 +336,9 @@ body :where(button[aria-busy="true"], button[data-loading="true"], [role="button
 
 body :where(input, select, textarea) {
   border-radius: var(--vc-ui-radius-input);
+  border-color: var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
   transition:
     background-color var(--vc-ui-transition-hover),
     border-color var(--vc-ui-transition-hover),
@@ -324,11 +348,17 @@ body :where(input, select, textarea) {
 
 body :where(.card, .panel, .table-wrap, [data-card]) {
   border-radius: var(--vc-ui-radius-card);
+  border-color: var(--border-strong);
+  background: var(--panel-raised);
+  color: var(--text);
   box-shadow: var(--vc-ui-shadow-md);
 }
 
 body :where([role="dialog"], .dialog, .modal) {
   border-radius: var(--vc-ui-radius-modal);
+  border-color: var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
   box-shadow: var(--vc-ui-shadow-xl);
   animation: vc-modal-in var(--vc-animation-modal) ease-out both;
   transform-origin: center top;
@@ -336,6 +366,9 @@ body :where([role="dialog"], .dialog, .modal) {
 
 body :where(.popover, [data-radix-popper-content-wrapper] > *) {
   border-radius: var(--vc-ui-radius-popover);
+  border-color: var(--border-strong);
+  background: var(--panel-raised);
+  color: var(--text);
   box-shadow: var(--vc-ui-shadow-xl);
   animation: vc-popover-in var(--vc-animation-popover) ease-out both;
   transform-origin: top center;
@@ -384,7 +417,7 @@ body :where(.vc-typing-indicator, .typing-indicator) > span {
   height: 5px;
   border-radius: 9999px;
   animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
-  background: #7b61ff;
+  background: var(--vc-ide-accent-ai-start);
 }
 
 body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(2) {
@@ -674,9 +707,9 @@ select:focus-visible {
 .card,
 .panel,
 .dialog {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--vc-ui-radius-card);
-  background: var(--panel);
+  background: var(--panel-raised);
   box-shadow: var(--vc-ui-shadow-md);
 }
 
@@ -902,19 +935,19 @@ pre {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color-scheme: light;
-    background: #f6f7f9;
-    color: #18181b;
-    --bg: #f6f7f9;
-    --panel: #ffffff;
-    --panel-raised: #f4f4f5;
-    --panel-soft: #e7e9ed;
-    --border: #d6d9df;
-    --border-strong: #b9bec8;
-    --text: #18181b;
-    --muted: #5f6470;
-    --subtle: #71717a;
-    --shadow: 0 18px 40px rgb(15 23 42 / 0.08);
+    color-scheme: dark;
+    background: var(--vc-ide-bg-app);
+    color: var(--vc-ide-text-primary);
+    --bg: var(--vc-ide-bg-app);
+    --panel: var(--vc-ide-bg-panel);
+    --panel-raised: var(--vc-ide-bg-card);
+    --panel-soft: var(--vc-ide-bg-hover);
+    --border: var(--vc-ide-border-subtle);
+    --border-strong: var(--vc-ide-border-visible);
+    --text: var(--vc-ide-text-primary);
+    --muted: var(--vc-ide-text-secondary);
+    --subtle: var(--vc-ide-text-muted);
+    --shadow: var(--vc-ui-shadow-md);
   }
 
   .token-form input,
@@ -925,11 +958,11 @@ pre {
   .dialog select,
   code,
   pre {
-    background: #ffffff;
-    color: #18181b;
+    background: var(--panel);
+    color: var(--text);
   }
 
   td {
-    color: #27272a;
+    color: var(--text);
   }
 }

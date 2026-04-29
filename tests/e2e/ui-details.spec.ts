@@ -49,6 +49,7 @@ async function readUiDetails(page: Page) {
   return page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
     const get = (selector: string, pseudo?: string) => window.getComputedStyle(document.querySelector(selector)!, pseudo);
     const root = window.getComputedStyle(document.documentElement);
+    const body = window.getComputedStyle(document.body);
     const button = get('[data-testid="ui-details-button"]');
     const input = get('[data-testid="ui-details-input"]');
     const card = get('[data-testid="ui-details-card"]');
@@ -62,6 +63,28 @@ async function readUiDetails(page: Page) {
     const scrollbarThumb = get('[data-testid="ui-details-scroll"]', '::-webkit-scrollbar-thumb');
 
     return {
+      themeApp: root.getPropertyValue('--vc-ide-bg-app').trim().toLowerCase(),
+      themePanel: root.getPropertyValue('--vc-ide-bg-panel').trim().toLowerCase(),
+      themeCard: root.getPropertyValue('--vc-ide-bg-card').trim().toLowerCase(),
+      themeHover: root.getPropertyValue('--vc-ide-bg-hover').trim().toLowerCase(),
+      themeBorderSubtle: root.getPropertyValue('--vc-ide-border-subtle').trim().toLowerCase(),
+      themeBorderVisible: root.getPropertyValue('--vc-ide-border-visible').trim().toLowerCase(),
+      themeTextPrimary: root.getPropertyValue('--vc-ide-text-primary').trim().toLowerCase(),
+      themeTextSecondary: root.getPropertyValue('--vc-ide-text-secondary').trim().toLowerCase(),
+      themeTextMuted: root.getPropertyValue('--vc-ide-text-muted').trim().toLowerCase(),
+      themeAiStart: root.getPropertyValue('--vc-ide-accent-ai-start').trim().toLowerCase(),
+      themeAiEnd: root.getPropertyValue('--vc-ide-accent-ai-end').trim().toLowerCase(),
+      themeSuccess: root.getPropertyValue('--vc-ide-accent-success').trim().toLowerCase(),
+      themeAction: root.getPropertyValue('--vc-ide-accent-action').trim().toLowerCase(),
+      themeOrange: root.getPropertyValue('--vc-ide-accent-orange').trim().toLowerCase(),
+      themeError: root.getPropertyValue('--vc-ide-accent-error').trim().toLowerCase(),
+      themeWarning: root.getPropertyValue('--vc-ide-accent-warning').trim().toLowerCase(),
+      boltDepth1: root.getPropertyValue('--bolt-elements-bg-depth-1').trim(),
+      boltDepth2: root.getPropertyValue('--bolt-elements-bg-depth-2').trim(),
+      boltDepth3: root.getPropertyValue('--bolt-elements-bg-depth-3').trim(),
+      boltTextPrimary: root.getPropertyValue('--bolt-elements-textPrimary').trim(),
+      bodyBackground: body.backgroundColor,
+      bodyColor: body.color,
       radiusButton: root.getPropertyValue('--vc-ui-radius-button').trim(),
       radiusInput: root.getPropertyValue('--vc-ui-radius-input').trim(),
       radiusCard: root.getPropertyValue('--vc-ui-radius-card').trim(),
@@ -90,6 +113,9 @@ async function readUiDetails(page: Page) {
       buttonTransitionTiming: button.transitionTimingFunction,
       inputRadius: input.borderRadius,
       cardRadius: card.borderRadius,
+      cardBackground: card.backgroundColor,
+      cardColor: card.color,
+      cardBorderColor: card.borderColor,
       cardShadow: card.boxShadow,
       modalRadius: modal.borderRadius,
       modalShadow: modal.boxShadow,
@@ -354,6 +380,36 @@ async function expectButtonStates(page: Page) {
   await page.mouse.up();
 }
 
+function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
+  expect(details).toMatchObject({
+    themeApp: '#0a0f1c',
+    themePanel: '#0e1525',
+    themeCard: '#1a2030',
+    themeHover: '#2b3245',
+    themeBorderSubtle: '#1a2030',
+    themeBorderVisible: '#2b3245',
+    themeTextPrimary: '#f5f9fc',
+    themeTextSecondary: '#c2c8cc',
+    themeTextMuted: '#6e7681',
+    themeAiStart: '#7b61ff',
+    themeAiEnd: '#ff6b9d',
+    themeSuccess: '#3fb950',
+    themeAction: '#0099ff',
+    themeOrange: '#f26207',
+    themeError: '#f85149',
+    themeWarning: '#d29922',
+    bodyBackground: 'rgb(10, 15, 28)',
+    bodyColor: 'rgb(245, 249, 252)',
+    cardBackground: 'rgb(26, 32, 48)',
+    cardColor: 'rgb(245, 249, 252)',
+    cardBorderColor: 'rgb(43, 50, 69)',
+  });
+  expect(['#0a0f1c', 'var(--vc-ide-bg-app)']).toContain(details.boltDepth1);
+  expect(['#0e1525', 'var(--vc-ide-bg-panel)']).toContain(details.boltDepth2);
+  expect(['#1a2030', 'var(--vc-ide-bg-card)']).toContain(details.boltDepth3);
+  expect(['#f5f9fc', 'var(--vc-ide-text-primary)']).toContain(details.boltTextPrimary);
+}
+
 function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(details.radiusButton).toBe('4px');
   expect(details.radiusInput).toBe('6px');
@@ -401,6 +457,19 @@ function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(details.scrollbarWidth).toBe('10px');
   expect(details.scrollbarHeight).toBe('10px');
 }
+
+test('public platform applies section 10 color theme globally', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await injectUiDetailsFixture(page);
+  expectThemeDetails(await readUiDetails(page));
+});
+
+test('admin console applies section 10 color theme globally', async ({ page }) => {
+  await page.goto('http://127.0.0.1:5174', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
+  await injectUiDetailsFixture(page);
+  expectThemeDetails(await readUiDetails(page));
+});
 
 test('public platform applies section 12 UI detail tokens', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });

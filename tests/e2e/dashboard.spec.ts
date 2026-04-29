@@ -58,6 +58,54 @@ test('private templates create a project instead of opening the public gallery',
   await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
 });
 
+test('authenticated user area applies the global platform design system', async ({ page }) => {
+  await authenticate(page);
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ })).toBeVisible({ timeout: 30_000 });
+
+  const theme = await page.evaluate(() => {
+    const root = window.getComputedStyle(document.documentElement);
+    const body = window.getComputedStyle(document.body);
+    const interactive = document.createElement('button');
+    interactive.textContent = 'Design probe';
+    interactive.className = 'vc-button-solid';
+    interactive.style.position = 'absolute';
+    interactive.style.left = '-9999px';
+    document.body.appendChild(interactive);
+    const button = window.getComputedStyle(interactive);
+
+    return {
+      app: root.getPropertyValue('--vc-ide-bg-app').trim().toLowerCase(),
+      panel: root.getPropertyValue('--vc-ide-bg-panel').trim().toLowerCase(),
+      card: root.getPropertyValue('--vc-ide-bg-card').trim().toLowerCase(),
+      hover: root.getPropertyValue('--vc-ide-bg-hover').trim().toLowerCase(),
+      text: root.getPropertyValue('--vc-ide-text-primary').trim().toLowerCase(),
+      action: root.getPropertyValue('--vc-ide-accent-action').trim().toLowerCase(),
+      radiusButton: root.getPropertyValue('--vc-ui-radius-button').trim(),
+      transitionHover: root.getPropertyValue('--vc-ui-transition-hover').trim(),
+      bodyBackground: body.backgroundColor,
+      bodyColor: body.color,
+      buttonBackground: button.backgroundColor,
+      buttonRadius: button.borderRadius,
+    };
+  });
+
+  expect(theme).toMatchObject({
+    app: '#0a0f1c',
+    panel: '#0e1525',
+    card: '#1a2030',
+    hover: '#2b3245',
+    text: '#f5f9fc',
+    action: '#0099ff',
+    radiusButton: '4px',
+    transitionHover: '150ms ease-out',
+    bodyBackground: 'rgb(10, 15, 28)',
+    bodyColor: 'rgb(245, 249, 252)',
+    buttonBackground: 'rgb(26, 32, 48)',
+    buttonRadius: '4px',
+  });
+});
+
 test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
   await page.goto('/templates');
   await expect(page.getByRole('heading', { name: 'Templates gallery' })).toBeVisible();
