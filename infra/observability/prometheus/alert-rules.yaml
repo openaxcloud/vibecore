@@ -1,0 +1,125 @@
+groups:
+  - name: vibecore-api
+    rules:
+      - alert: APIHighErrorRate
+        expr: sum(rate(api_errors_total[5m])) / clamp_min(sum(rate(api_requests_total[5m])), 1) > 0.02
+        for: 10m
+        labels:
+          severity: page
+          slo: api-availability
+        annotations:
+          summary: API error rate above 2%
+          runbook_url: https://docs.vibecore.local/RUNBOOK#api-errors
+
+      - alert: APIHighP95Latency
+        expr: histogram_quantile(0.95, sum(rate(api_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 15m
+        labels:
+          severity: ticket
+          slo: api-latency
+        annotations:
+          summary: API p95 latency is above 1s
+
+      - alert: AuthFailureSpike
+        expr: sum(rate(auth_failures_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Authentication failure spike
+
+      - alert: StripeWebhookFailures
+        expr: sum(rate(stripe_webhook_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: page
+          slo: billing-webhook-processing
+        annotations:
+          summary: Stripe webhook failures detected
+
+  - name: vibecore-workspaces
+    rules:
+      - alert: WorkspaceStartFailures
+        expr: sum(rate(workspace_failures_total[10m])) / clamp_min(sum(rate(workspace_starts_total[10m])), 1) > 0.05
+        for: 10m
+        labels:
+          severity: page
+          slo: workspace-start-success
+        annotations:
+          summary: Workspace start failure rate above 5%
+
+      - alert: WorkspaceStartP95Latency
+        expr: histogram_quantile(0.95, sum(rate(workspace_start_latency_seconds_bucket[10m])) by (le)) > 60
+        for: 15m
+        labels:
+          severity: ticket
+          slo: workspace-start-latency
+        annotations:
+          summary: Workspace start p95 latency above 60s
+
+      - alert: ActiveWorkspaceCapacityHigh
+        expr: sum(active_workspaces) / clamp_min(sum(node_pool_capacity{resource="pods"}), 1) > 0.8
+        for: 20m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Sandbox node pool workspace capacity above 80%
+
+      - alert: PVCUsageHigh
+        expr: max(pvc_usage_bytes / clamp_min(storage_usage_bytes, 1)) > 0.85
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Persistent workspace storage usage high
+
+      - alert: KubernetesPodFailures
+        expr: sum(rate(kubernetes_pod_failures_total[10m])) > 0
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: Kubernetes pod failures detected
+
+  - name: vibecore-ai-and-abuse
+    rules:
+      - alert: AIProviderErrors
+        expr: sum(rate(ai_provider_errors_total[5m])) by (provider) > 0
+        for: 10m
+        labels:
+          severity: ticket
+          slo: ai-response-availability
+        annotations:
+          summary: AI provider errors detected
+
+      - alert: AIProviderP95Latency
+        expr: histogram_quantile(0.95, sum(rate(ai_provider_latency_seconds_bucket[5m])) by (le, provider)) > 30
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: AI provider p95 latency above 30s
+
+      - alert: AbuseEventsCritical
+        expr: sum(rate(abuse_events_total{severity="critical"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: Critical abuse event detected
+
+      - alert: BackupRestoreDryRunFailed
+        expr: min(backup_restore_dry_run_success) == 0
+        for: 30m
+        labels:
+          severity: page
+        annotations:
+          summary: Backup restore dry-run failed
+
+      - alert: SyntheticHealthCheckFailed
+        expr: min(synthetic_check_success) == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: Synthetic health check failed

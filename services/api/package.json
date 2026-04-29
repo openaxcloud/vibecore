@@ -7,6 +7,7 @@
     "@vibecore/auth": "workspace:*",
     "@vibecore/billing": "workspace:*",
     "@vibecore/database": "workspace:*",
+    "@vibecore/observability": "workspace:*",
     "@vibecore/quota": "workspace:*",
     "@vibecore/rbac": "workspace:*",
     "@vibecore/security": "workspace:*",

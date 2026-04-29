@@ -1,4 +1,5 @@
 import websocket from '@fastify/websocket';
+import { createPrometheusRegistry } from '@vibecore/observability';
 import { detectCommandAbuse } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -46,6 +47,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const commandTimeoutMs = options.commandTimeoutMs ?? Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000);
   const maxProcesses = options.maxProcesses ?? Number(process.env.WORKSPACE_MAX_PROCESSES ?? 8);
   const processes = new Map<string, ProcessRecord>();
+  const metrics = createPrometheusRegistry();
+  let terminalSessions = 0;
 
   const app = Fastify({ logger: false });
 
@@ -174,21 +177,24 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { restoredFiles: body.files.length };
   });
 
-  app.get('/metrics', async () => ({
-    workspaceProcesses: processes.size,
-    maxProcesses,
-    maxFileBytes,
-    maxOutputBytes,
-  }));
+  app.get('/metrics', async (_request, reply) => {
+    metrics.setGauge('active_workspaces', { workspaceId: workspaceId ?? 'local' }, 1);
+    metrics.setGauge('terminal_sessions', { workspaceId: workspaceId ?? 'local' }, terminalSessions);
+    return reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render());
+  });
 
   app.register(async (terminalApp) => {
     await terminalApp.register(websocket);
     terminalApp.get('/terminal', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
 
+      terminalSessions += 1;
       socket.send(JSON.stringify({ type: 'ready', cwd: '/workspace' }));
       socket.onMessage((message) => {
         socket.send(JSON.stringify({ type: 'input', data: message.toString() }));
+      });
+      socket.onClose(() => {
+        terminalSessions = Math.max(0, terminalSessions - 1);
       });
     });
   });
@@ -215,6 +221,13 @@ function normalizeWebSocket(rawSocket: unknown) {
         candidate.on('message', listener);
       } else {
         candidate.addEventListener?.('message', (event) => listener(Buffer.from(String(event.data ?? ''))));
+      }
+    },
+    onClose: (listener: () => void) => {
+      if (typeof candidate.on === 'function') {
+        candidate.on('close', listener);
+      } else {
+        candidate.addEventListener?.('close', listener);
       }
     },
   };

@@ -694,6 +694,9 @@ importers:
       '@vibecore/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@vibecore/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@vibecore/quota':
         specifier: workspace:*
         version: link:../../packages/quota
@@ -740,6 +743,9 @@ importers:
       '@fastify/websocket':
         specifier: ^11.2.0
         version: 11.2.0
+      '@vibecore/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@vibecore/security':
         specifier: workspace:*
         version: link:../../packages/security

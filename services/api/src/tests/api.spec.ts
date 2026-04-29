@@ -273,6 +273,35 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('exposes request ids, correlation ids, synthetic health, and Prometheus metrics', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'observability@example.com', organizationName: 'Observability Org' });
+    const me = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'x-correlation-id': 'corr-test-1',
+      },
+    });
+
+    expect(me.statusCode).toBe(200);
+    expect(me.headers['x-request-id']).toBeDefined();
+    expect(me.headers['x-correlation-id']).toBe('corr-test-1');
+
+    const synthetic = await app.inject({ method: 'GET', url: '/synthetic/health' });
+    expect(synthetic.statusCode).toBe(200);
+    expect(synthetic.json()).toMatchObject({ status: 'ok', checks: { api: 'ok', telemetry: 'ok', metrics: 'ok' } });
+
+    const metrics = await app.inject({ method: 'GET', url: '/metrics' });
+    expect(metrics.statusCode).toBe(200);
+    expect(metrics.headers['content-type']).toContain('text/plain');
+    expect(metrics.body).toContain('api_request_duration_seconds');
+    expect(metrics.body).toContain('api_requests_total');
+    expect(metrics.body).toContain('stripe_webhook_failures_total');
+    await app.close();
+  });
+
   it('persists account profile updates through the API', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'profile@example.com' });

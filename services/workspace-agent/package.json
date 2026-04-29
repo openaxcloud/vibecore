@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fastify/websocket": "^11.2.0",
+    "@vibecore/observability": "workspace:*",
     "@vibecore/security": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
     "fastify": "^5.8.5",

@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import websocket from '@fastify/websocket';
-import { createVerify } from 'node:crypto';
+import { createVerify, randomUUID } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { Redis } from 'ioredis';
 import JSZip from 'jszip';
@@ -24,6 +24,7 @@ import {
   type AuthenticatedUser,
 } from '@vibecore/auth';
 import { requirePermission, type PermissionKey } from '@vibecore/rbac';
+import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import {
   redactSecrets,
   assertStrictCorsOrigin,
@@ -74,6 +75,8 @@ declare module 'fastify' {
     currentUser?: AuthenticatedUser;
     currentSession?: SessionRecord;
     rawBody?: string;
+    observability?: { startedAt: number; correlationId: string };
+    observabilityMetrics?: { increment: (name: string, labels?: Record<string, string | number | boolean | undefined>, value?: number) => void };
   }
 }
 
@@ -1253,6 +1256,7 @@ async function recordAbuseSignal(
     action: string;
   },
 ) {
+  request.observabilityMetrics?.increment?.('abuse_events_total', { type: input.type, severity: input.severity });
   const abuseEvent = await store.createAbuseEvent({
     organizationId: input.organizationId,
     userId: input.userId,
@@ -1392,8 +1396,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         })
       : undefined;
   const collaborationBroker = createCollaborationBroker();
+  const metrics = createPrometheusRegistry();
+  const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
 
   const app = Fastify({
+    genReqId(request) {
+      const header = request.headers['x-request-id'];
+      return typeof header === 'string' && header.length > 0 ? header : randomUUID();
+    },
     logger: {
       level: process.env.LOG_LEVEL ?? 'info',
       redact: ['req.headers.authorization', 'req.headers.cookie', 'password', '*.password', '*.token', '*.secret'],
@@ -1456,6 +1466,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   await app.register(websocket);
   app.addContentTypeParser('application/zip', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
+  app.addHook('onRequest', async (request, reply) => {
+    const correlationHeader = request.headers['x-correlation-id'];
+    const correlationId = typeof correlationHeader === 'string' && correlationHeader.length > 0 ? correlationHeader : request.id;
+    request.observability = { startedAt: nowSeconds(), correlationId };
+    request.observabilityMetrics = metrics;
+    reply.header('x-request-id', request.id);
+    reply.header('x-correlation-id', correlationId);
+  });
+  app.addHook('onResponse', async (request, reply) => {
+    const route = request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown';
+    const labels = { method: request.method, route, status: reply.statusCode };
+    const startedAt = request.observability?.startedAt ?? nowSeconds();
+    metrics.increment('api_requests_total', labels);
+    metrics.observe('api_request_duration_seconds', labels, durationSeconds(startedAt));
+    if (reply.statusCode >= 500) {
+      metrics.increment('api_errors_total', labels);
+    }
+    request.log.info(
+      redactSecrets({
+        event: 'request.completed',
+        requestId: request.id,
+        correlationId: request.observability?.correlationId,
+        userId: request.currentUser?.id,
+        organizationId: orgIdFromRequest(request),
+        projectId: (request.params as { projectId?: string } | undefined)?.projectId,
+        statusCode: reply.statusCode,
+        durationSeconds: durationSeconds(startedAt),
+      }),
+    );
+  });
   app.addHook('preParsing', async (request, _reply, payload) => {
     if (request.url.startsWith('/billing/stripe/webhook')) {
       const chunks: Buffer[] = [];
@@ -1472,12 +1512,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return payload;
   });
 
-  app.setErrorHandler((error: any, _request, reply) => {
+  app.setErrorHandler((error: any, request, reply) => {
     if (error instanceof z.ZodError) {
       return reply.code(400).send({ error: 'Validation failed', code: 'VALIDATION_ERROR', issues: error.issues });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
+    if (statusCode >= 500) {
+      metrics.increment('api_errors_total', {
+        method: request.method,
+        route: request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown',
+        code: error.code ?? 'API_ERROR',
+      });
+      void sentry.captureException(error, {
+        requestId: request.id,
+        correlationId: request.observability?.correlationId,
+        userId: request.currentUser?.id,
+        organizationId: orgIdFromRequest(request),
+        route: request.routeOptions.url,
+      });
+    }
+    if (request.url.startsWith('/billing/stripe/webhook')) {
+      metrics.increment('stripe_webhook_failures_total', { code: error.code ?? 'STRIPE_WEBHOOK_ERROR' });
+    }
 
     return reply.code(statusCode).send({
       error: statusCode >= 500 ? 'Internal server error' : error.message,
@@ -1487,6 +1544,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/health', async () => ({ status: 'ok' }));
   app.get('/ready', async () => ({ status: 'ready' }));
+  app.get('/metrics', async (_request, reply) =>
+    reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render()),
+  );
+  app.get('/synthetic/health', async () => ({
+    status: 'ok',
+    checks: {
+      api: 'ok',
+      telemetry: 'ok',
+      metrics: 'ok',
+    },
+    checkedAt: new Date().toISOString(),
+  }));
 
   app.post('/contact-sales', async (request, reply) => {
     const body = parse(contactSalesSchema, request.body);
@@ -1558,6 +1627,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const user = await store.findUserByEmail(body.email);
 
     if (!user || !verifyPassword(body.password, user.passwordHash)) {
+      metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
       return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
     }
 
@@ -1770,6 +1840,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.method === 'OPTIONS' ||
       request.url === '/health' ||
       request.url === '/ready' ||
+      request.url === '/metrics' ||
+      request.url === '/synthetic/health' ||
       request.url.startsWith('/auth/register') ||
       request.url.startsWith('/auth/login') ||
       request.url.startsWith('/auth/verify-email') ||
@@ -2162,6 +2234,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (authorized.organizationId) {
       await ensureQuota(request, authorized.organizationId, 'workspaces.active');
     }
+    const workspaceStartAt = nowSeconds();
     const managerWorkspace = await managerRequest<any>('/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
@@ -2182,6 +2255,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         allowedSecretKeys: [],
       }),
     });
+    metrics.increment('workspace_starts_total', { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' });
+    metrics.observe('workspace_start_latency_seconds', { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' }, durationSeconds(workspaceStartAt));
+    if (managerWorkspace?.status === 'FAILED') {
+      metrics.increment('workspace_failures_total', { reason: 'manager_failed' });
+    }
 
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -2460,6 +2538,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         port,
       });
     }
+    metrics.increment('preview_requests_total', { port });
     const urlTemplate = process.env.PREVIEW_URL_TEMPLATE;
     const url = urlTemplate
       ? urlTemplate
@@ -4306,6 +4385,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordUsage(request, project.organizationId, 'ai.messages');
     await recordUsage(request, project.organizationId, 'ai.inputTokens', completion.usage.inputTokens);
     await recordUsage(request, project.organizationId, 'ai.outputTokens', completion.usage.outputTokens);
+    metrics.increment('ai_tokens_total', { provider: completion.provider, model: completion.model, direction: 'input' }, completion.usage.inputTokens);
+    metrics.increment('ai_tokens_total', { provider: completion.provider, model: completion.model, direction: 'output' }, completion.usage.outputTokens);
+    metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, completion.usage.estimatedCostCents);
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'ai.message.create',

@@ -65,4 +65,18 @@ describe('workspace-agent', () => {
     });
     expect(response.statusCode).toBe(409);
   });
+
+  it('exposes Prometheus-compatible workspace metrics', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const response = await app.inject({
+      method: 'GET',
+      url: '/metrics',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.body).toContain('active_workspaces');
+    expect(response.body).toContain('terminal_sessions');
+  });
 });

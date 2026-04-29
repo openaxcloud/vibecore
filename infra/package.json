@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate": "test -d ../apps && test -d ../services && test -d ../packages && test -f helm/workspaces-runtime/Chart.yaml && test -f kubernetes/workspaces-runtime/networkpolicies.yaml && grep -q \"runtimeClassName: gvisor\" kubernetes/workspaces-runtime/example-workspace-pod.yaml && grep -q \"169.254.169.254/32\" kubernetes/workspaces-runtime/networkpolicies.yaml && echo \"infra scaffold valid\""
+    "validate": "test -d ../apps && test -d ../services && test -d ../packages && test -f helm/workspaces-runtime/Chart.yaml && test -f kubernetes/workspaces-runtime/networkpolicies.yaml && test -f observability/prometheus/alert-rules.yaml && test -f observability/grafana/vibecore-platform-dashboard.json && test -f observability/synthetics/health-check.json && grep -q \"runtimeClassName: gvisor\" kubernetes/workspaces-runtime/example-workspace-pod.yaml && grep -q \"169.254.169.254/32\" kubernetes/workspaces-runtime/networkpolicies.yaml && echo \"infra scaffold valid\""
   }
 }
