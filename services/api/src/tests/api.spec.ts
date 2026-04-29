@@ -1235,6 +1235,121 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('deploys projects through static, Vercel and Cloud Run providers with redacted logs', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'deployments@example.com', organizationName: 'Deployments Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Deployable App', templateName: 'react-basic-starter' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const staticDeploy = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'static',
+        environment: 'preview',
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+        envVars: { SECRET_TOKEN: 'super-secret-token', PUBLIC_URL: 'https://example.test' },
+      },
+    });
+    expect(staticDeploy.statusCode).toBe(201);
+    expect(staticDeploy.json().deployment.status).toBe('READY');
+    expect(staticDeploy.json().deployment.url).toContain('static.vibecore.local');
+
+    const vercel = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'vercel',
+        environment: 'production',
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+      },
+    });
+    expect(vercel.statusCode).toBe(201);
+    expect(vercel.json().deployment.productionUrl).toContain('vercel.vibecore.local');
+
+    const cloudRun = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'google-cloud-run',
+        environment: 'staging',
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+        injectSecrets: ['DATABASE_URL'],
+      },
+    });
+    expect(cloudRun.statusCode).toBe(201);
+    expect(JSON.stringify(cloudRun.json().deployment.logs)).toContain('pushed image');
+
+    const logs = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${staticDeploy.json().deployment.id}/logs`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(logs.statusCode).toBe(200);
+    expect(JSON.stringify(logs.json())).not.toContain('super-secret-token');
+    expect(JSON.stringify(logs.json())).toContain('[REDACTED]');
+    await app.close();
+  });
+
+  it('rolls back, redeploys and cancels deployment records', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'deploy-ops@example.com', organizationName: 'Deploy Ops Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Deploy Ops App', templateName: 'react-basic-starter' },
+    });
+    const projectId = project.json().project.id as string;
+    const deploy = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { provider: 'static', environment: 'preview', buildCommand: 'npm run build', outputDirectory: 'dist' },
+    });
+    const deploymentId = deploy.json().deployment.id as string;
+
+    const redeploy = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${deploymentId}/redeploy`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(redeploy.statusCode).toBe(201);
+    expect(redeploy.json().deployment.metadata.redeployedFromId).toBe(deploymentId);
+
+    const rollback = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${deploymentId}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(rollback.statusCode).toBe(201);
+    expect(rollback.json().deployment.rolledBackFromId).toBe(deploymentId);
+
+    const cancel = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${redeploy.json().deployment.id}/cancel`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(cancel.statusCode).toBe(200);
+    expect(cancel.json().deployment.status).toBe('CANCELED');
+    await app.close();
+  });
+
   it('tests GitHub import and git operations', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'git@example.com', organizationName: 'Git Org' });

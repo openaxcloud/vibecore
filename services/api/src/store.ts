@@ -126,9 +126,25 @@ export interface DeploymentRecord {
   id: string;
   projectId: string;
   provider: string;
+  environment: 'preview' | 'staging' | 'production';
   status: 'QUEUED' | 'BUILDING' | 'READY' | 'FAILED' | 'CANCELED';
   url?: string;
+  previewUrl?: string;
+  productionUrl?: string;
+  framework?: string;
+  buildCommand?: string;
+  outputDirectory?: string;
+  branch?: string;
+  commitSha?: string;
+  customDomain?: string;
+  logs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }>;
+  metadata?: Record<string, unknown>;
+  rolledBackFromId?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  canceledAt?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface SupportTicketRecord {
@@ -490,7 +506,33 @@ export interface ApiStore {
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
-  createDeployment(input: { projectId: string; provider: string; url?: string }): Promise<DeploymentRecord>;
+  createDeployment(input: {
+    projectId: string;
+    provider: string;
+    environment?: DeploymentRecord['environment'];
+    status?: DeploymentRecord['status'];
+    url?: string;
+    previewUrl?: string;
+    productionUrl?: string;
+    framework?: string;
+    buildCommand?: string;
+    outputDirectory?: string;
+    branch?: string;
+    commitSha?: string;
+    customDomain?: string;
+    logs?: DeploymentRecord['logs'];
+    metadata?: Record<string, unknown>;
+    rolledBackFromId?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    canceledAt?: string;
+  }): Promise<DeploymentRecord>;
+  getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
+  updateDeployment(
+    projectId: string,
+    deploymentId: string,
+    input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+  ): Promise<DeploymentRecord>;
   listDeployments(projectId: string): Promise<DeploymentRecord[]>;
   createSupportTicket(input: { organizationId: string; userId: string; subject: string }): Promise<SupportTicketRecord>;
   listSupportTickets(organizationId: string): Promise<SupportTicketRecord[]>;

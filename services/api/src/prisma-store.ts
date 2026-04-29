@@ -569,8 +569,90 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async createDeployment(input: { projectId: string; provider: string; url?: string }) {
-    return mapDeployment(await this.prisma.deployment.create({ data: { ...input, status: 'QUEUED' } }));
+  async createDeployment(input: {
+    projectId: string;
+    provider: string;
+    environment?: DeploymentRecord['environment'];
+    status?: DeploymentRecord['status'];
+    url?: string;
+    previewUrl?: string;
+    productionUrl?: string;
+    framework?: string;
+    buildCommand?: string;
+    outputDirectory?: string;
+    branch?: string;
+    commitSha?: string;
+    customDomain?: string;
+    logs?: DeploymentRecord['logs'];
+    metadata?: Record<string, unknown>;
+    rolledBackFromId?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    canceledAt?: string;
+  }) {
+    return mapDeployment(
+      await this.prisma.deployment.create({
+        data: {
+          projectId: input.projectId,
+          provider: input.provider,
+          environmentName: input.environment ?? 'preview',
+          status: input.status ?? 'QUEUED',
+          url: input.url,
+          previewUrl: input.previewUrl,
+          productionUrl: input.productionUrl,
+          framework: input.framework,
+          buildCommand: input.buildCommand,
+          outputDirectory: input.outputDirectory,
+          branch: input.branch,
+          commitSha: input.commitSha,
+          customDomain: input.customDomain,
+          logs: (input.logs ?? []) as any,
+          metadata: (input.metadata ?? {}) as any,
+          rolledBackFromId: input.rolledBackFromId,
+          startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
+          finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
+          canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
+        } as any,
+      }),
+    );
+  }
+
+  async getDeployment(projectId: string, deploymentId: string) {
+    const deployment = await this.prisma.deployment.findFirst({ where: { id: deploymentId, projectId } });
+    return deployment ? mapDeployment(deployment) : undefined;
+  }
+
+  async updateDeployment(
+    projectId: string,
+    deploymentId: string,
+    input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+  ) {
+    await this.prisma.deployment.updateMany({
+      where: { id: deploymentId, projectId },
+      data: {
+        ...('environment' in input ? { environmentName: input.environment } : {}),
+        status: input.status,
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        framework: input.framework,
+        buildCommand: input.buildCommand,
+        outputDirectory: input.outputDirectory,
+        branch: input.branch,
+        commitSha: input.commitSha,
+        customDomain: input.customDomain,
+        logs: input.logs as any,
+        metadata: input.metadata as any,
+        rolledBackFromId: input.rolledBackFromId,
+        startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
+        finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
+        canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
+      } as any,
+    });
+
+    const deployment = await this.prisma.deployment.findFirstOrThrow({ where: { id: deploymentId, projectId } });
+
+    return mapDeployment(deployment);
   }
 
   async listDeployments(projectId: string) {
@@ -1434,9 +1516,25 @@ function mapDeployment(deployment: any): DeploymentRecord {
     id: deployment.id,
     projectId: deployment.projectId,
     provider: deployment.provider,
+    environment: deployment.environmentName ?? 'preview',
     status: deployment.status,
     url: deployment.url ?? undefined,
+    previewUrl: deployment.previewUrl ?? undefined,
+    productionUrl: deployment.productionUrl ?? undefined,
+    framework: deployment.framework ?? undefined,
+    buildCommand: deployment.buildCommand ?? undefined,
+    outputDirectory: deployment.outputDirectory ?? undefined,
+    branch: deployment.branch ?? undefined,
+    commitSha: deployment.commitSha ?? undefined,
+    customDomain: deployment.customDomain ?? undefined,
+    logs: Array.isArray(deployment.logs) ? deployment.logs : [],
+    metadata: deployment.metadata ?? undefined,
+    rolledBackFromId: deployment.rolledBackFromId ?? undefined,
+    startedAt: toIso(deployment.startedAt),
+    finishedAt: toIso(deployment.finishedAt),
+    canceledAt: toIso(deployment.canceledAt),
     createdAt: toIso(deployment.createdAt)!,
+    updatedAt: toIso(deployment.updatedAt),
   };
 }
 

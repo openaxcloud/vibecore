@@ -1,7 +1,7 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
 
-export type ProjectIdePanel = 'webview' | 'console' | 'network';
+export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =
   | 'editor'
   | 'preview'

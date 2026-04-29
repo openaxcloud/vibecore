@@ -32016,9 +32016,22 @@ export namespace Prisma {
     id: string | null
     projectId: string | null
     environmentId: string | null
+    environmentName: string | null
     status: $Enums.DeploymentStatus | null
     provider: string | null
     url: string | null
+    previewUrl: string | null
+    productionUrl: string | null
+    framework: string | null
+    buildCommand: string | null
+    outputDirectory: string | null
+    branch: string | null
+    commitSha: string | null
+    customDomain: string | null
+    rolledBackFromId: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    canceledAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -32027,9 +32040,22 @@ export namespace Prisma {
     id: string | null
     projectId: string | null
     environmentId: string | null
+    environmentName: string | null
     status: $Enums.DeploymentStatus | null
     provider: string | null
     url: string | null
+    previewUrl: string | null
+    productionUrl: string | null
+    framework: string | null
+    buildCommand: string | null
+    outputDirectory: string | null
+    branch: string | null
+    commitSha: string | null
+    customDomain: string | null
+    rolledBackFromId: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    canceledAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -32038,9 +32064,24 @@ export namespace Prisma {
     id: number
     projectId: number
     environmentId: number
+    environmentName: number
     status: number
     provider: number
     url: number
+    previewUrl: number
+    productionUrl: number
+    framework: number
+    buildCommand: number
+    outputDirectory: number
+    branch: number
+    commitSha: number
+    customDomain: number
+    logs: number
+    metadata: number
+    rolledBackFromId: number
+    startedAt: number
+    finishedAt: number
+    canceledAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -32051,9 +32092,22 @@ export namespace Prisma {
     id?: true
     projectId?: true
     environmentId?: true
+    environmentName?: true
     status?: true
     provider?: true
     url?: true
+    previewUrl?: true
+    productionUrl?: true
+    framework?: true
+    buildCommand?: true
+    outputDirectory?: true
+    branch?: true
+    commitSha?: true
+    customDomain?: true
+    rolledBackFromId?: true
+    startedAt?: true
+    finishedAt?: true
+    canceledAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -32062,9 +32116,22 @@ export namespace Prisma {
     id?: true
     projectId?: true
     environmentId?: true
+    environmentName?: true
     status?: true
     provider?: true
     url?: true
+    previewUrl?: true
+    productionUrl?: true
+    framework?: true
+    buildCommand?: true
+    outputDirectory?: true
+    branch?: true
+    commitSha?: true
+    customDomain?: true
+    rolledBackFromId?: true
+    startedAt?: true
+    finishedAt?: true
+    canceledAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -32073,9 +32140,24 @@ export namespace Prisma {
     id?: true
     projectId?: true
     environmentId?: true
+    environmentName?: true
     status?: true
     provider?: true
     url?: true
+    previewUrl?: true
+    productionUrl?: true
+    framework?: true
+    buildCommand?: true
+    outputDirectory?: true
+    branch?: true
+    commitSha?: true
+    customDomain?: true
+    logs?: true
+    metadata?: true
+    rolledBackFromId?: true
+    startedAt?: true
+    finishedAt?: true
+    canceledAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -32157,9 +32239,24 @@ export namespace Prisma {
     id: string
     projectId: string
     environmentId: string | null
+    environmentName: string
     status: $Enums.DeploymentStatus
     provider: string
     url: string | null
+    previewUrl: string | null
+    productionUrl: string | null
+    framework: string | null
+    buildCommand: string | null
+    outputDirectory: string | null
+    branch: string | null
+    commitSha: string | null
+    customDomain: string | null
+    logs: JsonValue
+    metadata: JsonValue
+    rolledBackFromId: string | null
+    startedAt: Date | null
+    finishedAt: Date | null
+    canceledAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: DeploymentCountAggregateOutputType | null
@@ -32185,9 +32282,24 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     environmentId?: boolean
+    environmentName?: boolean
     status?: boolean
     provider?: boolean
     url?: boolean
+    previewUrl?: boolean
+    productionUrl?: boolean
+    framework?: boolean
+    buildCommand?: boolean
+    outputDirectory?: boolean
+    branch?: boolean
+    commitSha?: boolean
+    customDomain?: boolean
+    logs?: boolean
+    metadata?: boolean
+    rolledBackFromId?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    canceledAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -32198,9 +32310,24 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     environmentId?: boolean
+    environmentName?: boolean
     status?: boolean
     provider?: boolean
     url?: boolean
+    previewUrl?: boolean
+    productionUrl?: boolean
+    framework?: boolean
+    buildCommand?: boolean
+    outputDirectory?: boolean
+    branch?: boolean
+    commitSha?: boolean
+    customDomain?: boolean
+    logs?: boolean
+    metadata?: boolean
+    rolledBackFromId?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    canceledAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -32211,9 +32338,24 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     environmentId?: boolean
+    environmentName?: boolean
     status?: boolean
     provider?: boolean
     url?: boolean
+    previewUrl?: boolean
+    productionUrl?: boolean
+    framework?: boolean
+    buildCommand?: boolean
+    outputDirectory?: boolean
+    branch?: boolean
+    commitSha?: boolean
+    customDomain?: boolean
+    logs?: boolean
+    metadata?: boolean
+    rolledBackFromId?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    canceledAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -32224,14 +32366,29 @@ export namespace Prisma {
     id?: boolean
     projectId?: boolean
     environmentId?: boolean
+    environmentName?: boolean
     status?: boolean
     provider?: boolean
     url?: boolean
+    previewUrl?: boolean
+    productionUrl?: boolean
+    framework?: boolean
+    buildCommand?: boolean
+    outputDirectory?: boolean
+    branch?: boolean
+    commitSha?: boolean
+    customDomain?: boolean
+    logs?: boolean
+    metadata?: boolean
+    rolledBackFromId?: boolean
+    startedAt?: boolean
+    finishedAt?: boolean
+    canceledAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "environmentId" | "status" | "provider" | "url" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
+  export type DeploymentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "environmentId" | "environmentName" | "status" | "provider" | "url" | "previewUrl" | "productionUrl" | "framework" | "buildCommand" | "outputDirectory" | "branch" | "commitSha" | "customDomain" | "logs" | "metadata" | "rolledBackFromId" | "startedAt" | "finishedAt" | "canceledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["deployment"]>
   export type DeploymentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     environment?: boolean | Deployment$environmentArgs<ExtArgs>
@@ -32255,9 +32412,24 @@ export namespace Prisma {
       id: string
       projectId: string
       environmentId: string | null
+      environmentName: string
       status: $Enums.DeploymentStatus
       provider: string
       url: string | null
+      previewUrl: string | null
+      productionUrl: string | null
+      framework: string | null
+      buildCommand: string | null
+      outputDirectory: string | null
+      branch: string | null
+      commitSha: string | null
+      customDomain: string | null
+      logs: Prisma.JsonValue
+      metadata: Prisma.JsonValue
+      rolledBackFromId: string | null
+      startedAt: Date | null
+      finishedAt: Date | null
+      canceledAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["deployment"]>
@@ -32688,9 +32860,24 @@ export namespace Prisma {
     readonly id: FieldRef<"Deployment", 'String'>
     readonly projectId: FieldRef<"Deployment", 'String'>
     readonly environmentId: FieldRef<"Deployment", 'String'>
+    readonly environmentName: FieldRef<"Deployment", 'String'>
     readonly status: FieldRef<"Deployment", 'DeploymentStatus'>
     readonly provider: FieldRef<"Deployment", 'String'>
     readonly url: FieldRef<"Deployment", 'String'>
+    readonly previewUrl: FieldRef<"Deployment", 'String'>
+    readonly productionUrl: FieldRef<"Deployment", 'String'>
+    readonly framework: FieldRef<"Deployment", 'String'>
+    readonly buildCommand: FieldRef<"Deployment", 'String'>
+    readonly outputDirectory: FieldRef<"Deployment", 'String'>
+    readonly branch: FieldRef<"Deployment", 'String'>
+    readonly commitSha: FieldRef<"Deployment", 'String'>
+    readonly customDomain: FieldRef<"Deployment", 'String'>
+    readonly logs: FieldRef<"Deployment", 'Json'>
+    readonly metadata: FieldRef<"Deployment", 'Json'>
+    readonly rolledBackFromId: FieldRef<"Deployment", 'String'>
+    readonly startedAt: FieldRef<"Deployment", 'DateTime'>
+    readonly finishedAt: FieldRef<"Deployment", 'DateTime'>
+    readonly canceledAt: FieldRef<"Deployment", 'DateTime'>
     readonly createdAt: FieldRef<"Deployment", 'DateTime'>
     readonly updatedAt: FieldRef<"Deployment", 'DateTime'>
   }
@@ -66471,9 +66658,24 @@ export namespace Prisma {
     id: 'id',
     projectId: 'projectId',
     environmentId: 'environmentId',
+    environmentName: 'environmentName',
     status: 'status',
     provider: 'provider',
     url: 'url',
+    previewUrl: 'previewUrl',
+    productionUrl: 'productionUrl',
+    framework: 'framework',
+    buildCommand: 'buildCommand',
+    outputDirectory: 'outputDirectory',
+    branch: 'branch',
+    commitSha: 'commitSha',
+    customDomain: 'customDomain',
+    logs: 'logs',
+    metadata: 'metadata',
+    rolledBackFromId: 'rolledBackFromId',
+    startedAt: 'startedAt',
+    finishedAt: 'finishedAt',
+    canceledAt: 'canceledAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -68634,9 +68836,24 @@ export namespace Prisma {
     id?: StringFilter<"Deployment"> | string
     projectId?: StringFilter<"Deployment"> | string
     environmentId?: StringNullableFilter<"Deployment"> | string | null
+    environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
     provider?: StringFilter<"Deployment"> | string
     url?: StringNullableFilter<"Deployment"> | string | null
+    previewUrl?: StringNullableFilter<"Deployment"> | string | null
+    productionUrl?: StringNullableFilter<"Deployment"> | string | null
+    framework?: StringNullableFilter<"Deployment"> | string | null
+    buildCommand?: StringNullableFilter<"Deployment"> | string | null
+    outputDirectory?: StringNullableFilter<"Deployment"> | string | null
+    branch?: StringNullableFilter<"Deployment"> | string | null
+    commitSha?: StringNullableFilter<"Deployment"> | string | null
+    customDomain?: StringNullableFilter<"Deployment"> | string | null
+    logs?: JsonFilter<"Deployment">
+    metadata?: JsonFilter<"Deployment">
+    rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -68647,9 +68864,24 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     environmentId?: SortOrderInput | SortOrder
+    environmentName?: SortOrder
     status?: SortOrder
     provider?: SortOrder
     url?: SortOrderInput | SortOrder
+    previewUrl?: SortOrderInput | SortOrder
+    productionUrl?: SortOrderInput | SortOrder
+    framework?: SortOrderInput | SortOrder
+    buildCommand?: SortOrderInput | SortOrder
+    outputDirectory?: SortOrderInput | SortOrder
+    branch?: SortOrderInput | SortOrder
+    commitSha?: SortOrderInput | SortOrder
+    customDomain?: SortOrderInput | SortOrder
+    logs?: SortOrder
+    metadata?: SortOrder
+    rolledBackFromId?: SortOrderInput | SortOrder
+    startedAt?: SortOrderInput | SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    canceledAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
@@ -68663,9 +68895,24 @@ export namespace Prisma {
     NOT?: DeploymentWhereInput | DeploymentWhereInput[]
     projectId?: StringFilter<"Deployment"> | string
     environmentId?: StringNullableFilter<"Deployment"> | string | null
+    environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
     provider?: StringFilter<"Deployment"> | string
     url?: StringNullableFilter<"Deployment"> | string | null
+    previewUrl?: StringNullableFilter<"Deployment"> | string | null
+    productionUrl?: StringNullableFilter<"Deployment"> | string | null
+    framework?: StringNullableFilter<"Deployment"> | string | null
+    buildCommand?: StringNullableFilter<"Deployment"> | string | null
+    outputDirectory?: StringNullableFilter<"Deployment"> | string | null
+    branch?: StringNullableFilter<"Deployment"> | string | null
+    commitSha?: StringNullableFilter<"Deployment"> | string | null
+    customDomain?: StringNullableFilter<"Deployment"> | string | null
+    logs?: JsonFilter<"Deployment">
+    metadata?: JsonFilter<"Deployment">
+    rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -68676,9 +68923,24 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     environmentId?: SortOrderInput | SortOrder
+    environmentName?: SortOrder
     status?: SortOrder
     provider?: SortOrder
     url?: SortOrderInput | SortOrder
+    previewUrl?: SortOrderInput | SortOrder
+    productionUrl?: SortOrderInput | SortOrder
+    framework?: SortOrderInput | SortOrder
+    buildCommand?: SortOrderInput | SortOrder
+    outputDirectory?: SortOrderInput | SortOrder
+    branch?: SortOrderInput | SortOrder
+    commitSha?: SortOrderInput | SortOrder
+    customDomain?: SortOrderInput | SortOrder
+    logs?: SortOrder
+    metadata?: SortOrder
+    rolledBackFromId?: SortOrderInput | SortOrder
+    startedAt?: SortOrderInput | SortOrder
+    finishedAt?: SortOrderInput | SortOrder
+    canceledAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: DeploymentCountOrderByAggregateInput
@@ -68693,9 +68955,24 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Deployment"> | string
     projectId?: StringWithAggregatesFilter<"Deployment"> | string
     environmentId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    environmentName?: StringWithAggregatesFilter<"Deployment"> | string
     status?: EnumDeploymentStatusWithAggregatesFilter<"Deployment"> | $Enums.DeploymentStatus
     provider?: StringWithAggregatesFilter<"Deployment"> | string
     url?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    previewUrl?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    productionUrl?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    framework?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    buildCommand?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    outputDirectory?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    branch?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    commitSha?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    customDomain?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    logs?: JsonWithAggregatesFilter<"Deployment">
+    metadata?: JsonWithAggregatesFilter<"Deployment">
+    rolledBackFromId?: StringNullableWithAggregatesFilter<"Deployment"> | string | null
+    startedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    finishedAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
+    canceledAt?: DateTimeNullableWithAggregatesFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Deployment"> | Date | string
   }
@@ -72306,9 +72583,24 @@ export namespace Prisma {
 
   export type DeploymentCreateInput = {
     id?: string
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDeploymentsInput
@@ -72319,18 +72611,48 @@ export namespace Prisma {
     id?: string
     projectId: string
     environmentId?: string | null
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type DeploymentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDeploymentsNestedInput
@@ -72341,9 +72663,24 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -72352,18 +72689,48 @@ export namespace Prisma {
     id?: string
     projectId: string
     environmentId?: string | null
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type DeploymentUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -72372,9 +72739,24 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -75881,9 +76263,24 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     environmentId?: SortOrder
+    environmentName?: SortOrder
     status?: SortOrder
     provider?: SortOrder
     url?: SortOrder
+    previewUrl?: SortOrder
+    productionUrl?: SortOrder
+    framework?: SortOrder
+    buildCommand?: SortOrder
+    outputDirectory?: SortOrder
+    branch?: SortOrder
+    commitSha?: SortOrder
+    customDomain?: SortOrder
+    logs?: SortOrder
+    metadata?: SortOrder
+    rolledBackFromId?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    canceledAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -75892,9 +76289,22 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     environmentId?: SortOrder
+    environmentName?: SortOrder
     status?: SortOrder
     provider?: SortOrder
     url?: SortOrder
+    previewUrl?: SortOrder
+    productionUrl?: SortOrder
+    framework?: SortOrder
+    buildCommand?: SortOrder
+    outputDirectory?: SortOrder
+    branch?: SortOrder
+    commitSha?: SortOrder
+    customDomain?: SortOrder
+    rolledBackFromId?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    canceledAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -75903,9 +76313,22 @@ export namespace Prisma {
     id?: SortOrder
     projectId?: SortOrder
     environmentId?: SortOrder
+    environmentName?: SortOrder
     status?: SortOrder
     provider?: SortOrder
     url?: SortOrder
+    previewUrl?: SortOrder
+    productionUrl?: SortOrder
+    framework?: SortOrder
+    buildCommand?: SortOrder
+    outputDirectory?: SortOrder
+    branch?: SortOrder
+    commitSha?: SortOrder
+    customDomain?: SortOrder
+    rolledBackFromId?: SortOrder
+    startedAt?: SortOrder
+    finishedAt?: SortOrder
+    canceledAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -84252,9 +84675,24 @@ export namespace Prisma {
 
   export type DeploymentCreateWithoutProjectInput = {
     id?: string
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     environment?: DeploymentEnvironmentCreateNestedOneWithoutDeploymentsInput
@@ -84263,9 +84701,24 @@ export namespace Prisma {
   export type DeploymentUncheckedCreateWithoutProjectInput = {
     id?: string
     environmentId?: string | null
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -84625,9 +85078,24 @@ export namespace Prisma {
     id?: StringFilter<"Deployment"> | string
     projectId?: StringFilter<"Deployment"> | string
     environmentId?: StringNullableFilter<"Deployment"> | string | null
+    environmentName?: StringFilter<"Deployment"> | string
     status?: EnumDeploymentStatusFilter<"Deployment"> | $Enums.DeploymentStatus
     provider?: StringFilter<"Deployment"> | string
     url?: StringNullableFilter<"Deployment"> | string | null
+    previewUrl?: StringNullableFilter<"Deployment"> | string | null
+    productionUrl?: StringNullableFilter<"Deployment"> | string | null
+    framework?: StringNullableFilter<"Deployment"> | string | null
+    buildCommand?: StringNullableFilter<"Deployment"> | string | null
+    outputDirectory?: StringNullableFilter<"Deployment"> | string | null
+    branch?: StringNullableFilter<"Deployment"> | string | null
+    commitSha?: StringNullableFilter<"Deployment"> | string | null
+    customDomain?: StringNullableFilter<"Deployment"> | string | null
+    logs?: JsonFilter<"Deployment">
+    metadata?: JsonFilter<"Deployment">
+    rolledBackFromId?: StringNullableFilter<"Deployment"> | string | null
+    startedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    finishedAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
+    canceledAt?: DateTimeNullableFilter<"Deployment"> | Date | string | null
     createdAt?: DateTimeFilter<"Deployment"> | Date | string
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
   }
@@ -87097,9 +87565,24 @@ export namespace Prisma {
 
   export type DeploymentCreateWithoutEnvironmentInput = {
     id?: string
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDeploymentsInput
@@ -87108,9 +87591,24 @@ export namespace Prisma {
   export type DeploymentUncheckedCreateWithoutEnvironmentInput = {
     id?: string
     projectId: string
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -92745,9 +93243,24 @@ export namespace Prisma {
   export type DeploymentCreateManyProjectInput = {
     id?: string
     environmentId?: string | null
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -92975,9 +93488,24 @@ export namespace Prisma {
 
   export type DeploymentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environment?: DeploymentEnvironmentUpdateOneWithoutDeploymentsNestedInput
@@ -92986,9 +93514,24 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -92996,9 +93539,24 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateManyWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     environmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -93163,18 +93721,48 @@ export namespace Prisma {
   export type DeploymentCreateManyEnvironmentInput = {
     id?: string
     projectId: string
+    environmentName?: string
     status?: $Enums.DeploymentStatus
     provider: string
     url?: string | null
+    previewUrl?: string | null
+    productionUrl?: string | null
+    framework?: string | null
+    buildCommand?: string | null
+    outputDirectory?: string | null
+    branch?: string | null
+    commitSha?: string | null
+    customDomain?: string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: string | null
+    startedAt?: Date | string | null
+    finishedAt?: Date | string | null
+    canceledAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type DeploymentUpdateWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDeploymentsNestedInput
@@ -93183,9 +93771,24 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -93193,9 +93796,24 @@ export namespace Prisma {
   export type DeploymentUncheckedUpdateManyWithoutEnvironmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     projectId?: StringFieldUpdateOperationsInput | string
+    environmentName?: StringFieldUpdateOperationsInput | string
     status?: EnumDeploymentStatusFieldUpdateOperationsInput | $Enums.DeploymentStatus
     provider?: StringFieldUpdateOperationsInput | string
     url?: NullableStringFieldUpdateOperationsInput | string | null
+    previewUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    productionUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    framework?: NullableStringFieldUpdateOperationsInput | string | null
+    buildCommand?: NullableStringFieldUpdateOperationsInput | string | null
+    outputDirectory?: NullableStringFieldUpdateOperationsInput | string | null
+    branch?: NullableStringFieldUpdateOperationsInput | string | null
+    commitSha?: NullableStringFieldUpdateOperationsInput | string | null
+    customDomain?: NullableStringFieldUpdateOperationsInput | string | null
+    logs?: JsonNullValueInput | InputJsonValue
+    metadata?: JsonNullValueInput | InputJsonValue
+    rolledBackFromId?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

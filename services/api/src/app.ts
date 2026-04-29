@@ -49,6 +49,14 @@ import {
   type ProjectStorage,
 } from './project-storage.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import {
+  assertDeploymentRequestAllowed,
+  buildDeploymentUrl,
+  createDeploymentLogs,
+  createDeploymentSchema,
+  detectFramework,
+  redactDeploymentLog,
+} from './deployments.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -174,7 +182,7 @@ const pullRequestSchema = z.object({
   sourceBranch: z.string().min(1),
   targetBranch: z.string().min(1).default('main'),
 });
-const createDeploymentSchema = z.object({ provider: z.string().min(1), url: z.string().url().optional() });
+const deploymentActionParams = projectParams.extend({ deploymentId: z.string().min(1) });
 const createTicketSchema = z.object({ subject: z.string().min(1) });
 const featureFlagSchema = z.object({ key: z.string().min(1), enabled: z.boolean() });
 const addMemberSchema = z.object({
@@ -4591,18 +4599,190 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
-    const body = parse(createDeploymentSchema, request.body);
+    const body = {
+      provider: 'static' as const,
+      environment: 'preview' as const,
+      buildCommand: 'npm run build',
+      outputDirectory: 'dist',
+      previewDeployment: true,
+      timeoutSeconds: 600,
+      artifactSizeLimitMb: 250,
+      envVars: {},
+      injectSecrets: [],
+      ...parse(createDeploymentSchema, request.body),
+    };
+    const { subscription } = await billingState(project.organizationId);
+    assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
     await ensureQuota(request, project.organizationId, 'deployments.count');
-    const deployment = await store.createDeployment({ projectId: project.id, provider: body.provider, url: body.url });
+    const queued = await store.createDeployment({
+      projectId: project.id,
+      provider: body.provider,
+      environment: body.environment,
+      status: 'QUEUED',
+      framework: detectFramework(body),
+      buildCommand: body.buildCommand,
+      outputDirectory: body.outputDirectory,
+      branch: body.githubIntegration?.branch ?? body.branch,
+      commitSha: body.commitSha,
+      customDomain: body.customDomain,
+      metadata: {
+        previewDeployment: body.previewDeployment,
+        timeoutSeconds: body.timeoutSeconds,
+        artifactSizeLimitMb: body.artifactSizeLimitMb,
+        githubIntegration: body.githubIntegration,
+        envVars: Object.fromEntries(
+          Object.entries(body.envVars).map(([key, value]) => [key, redactDeploymentLog(value, { [key]: value })]),
+        ),
+        injectedSecrets: body.injectSecrets,
+      },
+      startedAt: new Date().toISOString(),
+    });
+    const url = buildDeploymentUrl(project, queued);
+    const ready = await store.updateDeployment(project.id, queued.id, {
+      status: 'READY',
+      url,
+      previewUrl: body.environment === 'production' ? undefined : url,
+      productionUrl: body.environment === 'production' ? url : undefined,
+      logs: createDeploymentLogs(body, { ...queued, url }, project),
+      finishedAt: new Date().toISOString(),
+    });
     await recordUsage(request, project.organizationId, 'deployments.count');
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.create',
       resourceType: 'deployment',
+      resourceId: ready.id,
+      metadata: { provider: ready.provider, environment: ready.environment, framework: ready.framework },
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'deployment.create',
+      metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
+    });
+
+    return reply.code(201).send({ deployment: ready });
+  });
+  app.get('/projects/:projectId/deployments/:deploymentId/logs', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    return { logs: deployment.logs.map((log) => ({ ...log, message: redactDeploymentLog(log.message) })) };
+  });
+  app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const canceled = await store.updateDeployment(project.id, deployment.id, {
+      status: 'CANCELED',
+      canceledAt: new Date().toISOString(),
+      logs: [
+        ...deployment.logs,
+        { timestamp: new Date().toISOString(), level: 'warn', message: 'Deployment canceled by user' },
+      ],
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.cancel',
+      resourceType: 'deployment',
       resourceId: deployment.id,
     });
 
-    return reply.code(201).send({ deployment });
+    return { deployment: canceled };
+  });
+  app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const source = await store.getDeployment(project.id, deploymentId);
+
+    if (!source) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    await ensureQuota(request, project.organizationId, 'deployments.count');
+    const redeploy = await store.createDeployment({
+      projectId: project.id,
+      provider: source.provider,
+      environment: source.environment,
+      status: 'READY',
+      framework: source.framework,
+      buildCommand: source.buildCommand,
+      outputDirectory: source.outputDirectory,
+      branch: source.branch,
+      commitSha: source.commitSha,
+      customDomain: source.customDomain,
+      metadata: { ...source.metadata, redeployedFromId: source.id },
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      logs: [
+        { timestamp: new Date().toISOString(), level: 'info', message: `Redeployed from ${source.id}` },
+        ...source.logs,
+      ],
+    });
+    const ready = await store.updateDeployment(project.id, redeploy.id, {
+      url: buildDeploymentUrl(project, redeploy),
+      previewUrl: redeploy.environment === 'production' ? undefined : buildDeploymentUrl(project, redeploy),
+      productionUrl: redeploy.environment === 'production' ? buildDeploymentUrl(project, redeploy) : undefined,
+    });
+    await recordUsage(request, project.organizationId, 'deployments.count');
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.redeploy',
+      resourceType: 'deployment',
+      resourceId: ready.id,
+      metadata: { sourceDeploymentId: source.id },
+    });
+
+    return reply.code(201).send({ deployment: ready });
+  });
+  app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const target = await store.getDeployment(project.id, deploymentId);
+
+    if (!target) {
+      return reply.code(404).send({ error: 'Deployment not found', code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const rollback = await store.createDeployment({
+      projectId: project.id,
+      provider: target.provider,
+      environment: target.environment,
+      status: 'READY',
+      url: target.url,
+      previewUrl: target.previewUrl,
+      productionUrl: target.productionUrl,
+      framework: target.framework,
+      buildCommand: target.buildCommand,
+      outputDirectory: target.outputDirectory,
+      branch: target.branch,
+      commitSha: target.commitSha,
+      customDomain: target.customDomain,
+      metadata: { ...target.metadata, rollbackTargetId: target.id },
+      rolledBackFromId: target.id,
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Rolled back to deployment ${target.id}` }],
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.rollback',
+      resourceType: 'deployment',
+      resourceId: rollback.id,
+      metadata: { targetDeploymentId: target.id },
+    });
+
+    return reply.code(201).send({ deployment: rollback });
   });
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(

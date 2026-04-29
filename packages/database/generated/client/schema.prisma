@@ -373,18 +373,35 @@ model ProjectSnapshot {
 }
 
 model Deployment {
-  id            String                 @id @default(cuid())
-  projectId     String
-  environmentId String?
-  status        DeploymentStatus       @default(QUEUED)
-  provider      String
-  url           String?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  project       Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment   DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
+  id               String                 @id @default(cuid())
+  projectId        String
+  environmentId    String?
+  environmentName  String                 @default("preview")
+  status           DeploymentStatus       @default(QUEUED)
+  provider         String
+  url              String?
+  previewUrl       String?
+  productionUrl    String?
+  framework        String?
+  buildCommand     String?
+  outputDirectory  String?
+  branch           String?
+  commitSha        String?
+  customDomain     String?
+  logs             Json                   @default("[]")
+  metadata         Json                   @default("{}")
+  rolledBackFromId String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment      DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
+  @@index([projectId, environmentName])
+  @@index([projectId, status])
 }
 
 model DeploymentEnvironment {

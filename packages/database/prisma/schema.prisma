@@ -39,32 +39,32 @@ enum SupportTicketStatus {
 }
 
 model User {
-  id              String               @id @default(cuid())
-  email           String               @unique
-  name            String?
-  passwordHash    String?
-  emailVerifiedAt DateTime?
-  mfaEnabled      Boolean              @default(false)
-  mfaSecretCiphertext String?
-  platformAdmin   Boolean              @default(false)
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
-  accounts        Account[]
-  sessions        Session[]
-  memberships     OrganizationMember[]
-  apiKeys         ApiKey[]
-  auditLogs       AuditLog[]
-  adminAuditLogs  AdminAuditLog[]
-  conversations   AiConversation[]
-  supportTickets  SupportTicket[]
-  oauthConnections OAuthConnection[]
+  id                      String                   @id @default(cuid())
+  email                   String                   @unique
+  name                    String?
+  passwordHash            String?
+  emailVerifiedAt         DateTime?
+  mfaEnabled              Boolean                  @default(false)
+  mfaSecretCiphertext     String?
+  platformAdmin           Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  accounts                Account[]
+  sessions                Session[]
+  memberships             OrganizationMember[]
+  apiKeys                 ApiKey[]
+  auditLogs               AuditLog[]
+  adminAuditLogs          AdminAuditLog[]
+  conversations           AiConversation[]
+  supportTickets          SupportTicket[]
+  oauthConnections        OAuthConnection[]
   emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens PasswordResetToken[]
-  recoveryCodes  MfaRecoveryCode[]
-  projectCollaborations ProjectCollaborator[]
-  projectActivity ProjectActivity[]
-  projectSnapshots ProjectSnapshot[]
-  projectIdeStateUpdates ProjectIdeState[]
+  passwordResetTokens     PasswordResetToken[]
+  recoveryCodes           MfaRecoveryCode[]
+  projectCollaborations   ProjectCollaborator[]
+  projectActivity         ProjectActivity[]
+  projectSnapshots        ProjectSnapshot[]
+  projectIdeStateUpdates  ProjectIdeState[]
 }
 
 model Account {
@@ -80,50 +80,50 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  tokenHash    String   @unique
-  refreshHash  String?  @unique
+  tokenHash    String    @unique
+  refreshHash  String?   @unique
   expiresAt    DateTime
   rotatedAt    DateTime?
   revokedAt    DateTime?
   lastReauthAt DateTime?
   ipAddress    String?
   userAgent    String?
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Organization {
-  id                String               @id @default(cuid())
-  slug              String               @unique
-  name              String
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
-  members           OrganizationMember[]
-  invites           OrganizationInvite[]
-  projects          Project[]
-  billingCustomer   BillingCustomer?
-  subscriptions     Subscription[]
-  usageEvents       UsageEvent[]
-  quotaLedger       QuotaLedger[]
-  quotaOverrides    QuotaOverride[]
-  stripeEvents      StripeEvent[]
-  aiCostLedger      AiCostLedger[]
-  auditLogs         AuditLog[]
-  abuseEvents       AbuseEvent[]
-  supportTickets    SupportTicket[]
-  featureFlags      FeatureFlag[]
-  apiKeys           ApiKey[]
+  id                 String                          @id @default(cuid())
+  slug               String                          @unique
+  name               String
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
+  members            OrganizationMember[]
+  invites            OrganizationInvite[]
+  projects           Project[]
+  billingCustomer    BillingCustomer?
+  subscriptions      Subscription[]
+  usageEvents        UsageEvent[]
+  quotaLedger        QuotaLedger[]
+  quotaOverrides     QuotaOverride[]
+  stripeEvents       StripeEvent[]
+  aiCostLedger       AiCostLedger[]
+  auditLogs          AuditLog[]
+  abuseEvents        AbuseEvent[]
+  supportTickets     SupportTicket[]
+  featureFlags       FeatureFlag[]
+  apiKeys            ApiKey[]
   enterpriseSettings EnterpriseOrganizationSettings?
-  domains           VerifiedDomain[]
-  ssoConfigurations SsoConfiguration[]
-  scimTokens        ScimToken[]
-  customRoles       CustomRole[]
-  siemWebhooks      SiemWebhook[]
-  projectTemplates  ProjectTemplate[]
+  domains            VerifiedDomain[]
+  ssoConfigurations  SsoConfiguration[]
+  scimTokens         ScimToken[]
+  customRoles        CustomRole[]
+  siemWebhooks       SiemWebhook[]
+  projectTemplates   ProjectTemplate[]
 }
 
 model OrganizationMember {
@@ -183,46 +183,46 @@ model RolePermission {
 }
 
 model Project {
-  id             String               @id @default(cuid())
-  organizationId String
-  name           String
-  slug           String
-  description    String?
-  sourceType     String               @default("blank")
-  templateName   String?
-  gitRepositoryUrl String?
-  gitDefaultBranch String?
+  id                    String                @id @default(cuid())
+  organizationId        String
+  name                  String
+  slug                  String
+  description           String?
+  sourceType            String                @default("blank")
+  templateName          String?
+  gitRepositoryUrl      String?
+  gitDefaultBranch      String?
   persistentVolumeClaim String?
-  deletedAt      DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  environments   ProjectEnvironment[]
-  envVars        ProjectEnvVar[]
-  secrets        ProjectSecret[]
-  collaborators  ProjectCollaborator[]
-  activity       ProjectActivity[]
-  templates      ProjectTemplate[]     @relation("ProjectTemplates")
-  workspaces     Workspace[]
-  snapshots      ProjectSnapshot[]
-  deployments    Deployment[]
-  fileSnapshots  FileSnapshot[]
-  conversations  AiConversation[]
-  ideState       ProjectIdeState?
+  deletedAt             DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  organization          Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  environments          ProjectEnvironment[]
+  envVars               ProjectEnvVar[]
+  secrets               ProjectSecret[]
+  collaborators         ProjectCollaborator[]
+  activity              ProjectActivity[]
+  templates             ProjectTemplate[]     @relation("ProjectTemplates")
+  workspaces            Workspace[]
+  snapshots             ProjectSnapshot[]
+  deployments           Deployment[]
+  fileSnapshots         FileSnapshot[]
+  conversations         AiConversation[]
+  ideState              ProjectIdeState?
 
   @@unique([organizationId, slug])
   @@index([organizationId])
 }
 
 model ProjectIdeState {
-  projectId String   @id
-  state     Json
-  version   Int      @default(1)
+  projectId       String   @id
+  state           Json
+  version         Int      @default(1)
   updatedByUserId String?
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  updatedBy User?    @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  updatedBy       User?    @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 model ProjectEnvironment {
@@ -236,14 +236,14 @@ model ProjectEnvironment {
 }
 
 model ProjectSecret {
-  id        String   @id @default(cuid())
-  projectId String
-  key       String
-  valueHash String
+  id             String   @id @default(cuid())
+  projectId      String
+  key            String
+  valueHash      String
   valueEncrypted String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, key])
 }
@@ -288,30 +288,30 @@ model ProjectActivity {
 }
 
 model ProjectTemplate {
-  id              String   @id @default(cuid())
+  id              String       @id @default(cuid())
   sourceProjectId String
   organizationId  String
   name            String
   description     String?
-  createdAt       DateTime @default(now())
-  sourceProject   Project  @relation("ProjectTemplates", fields: [sourceProjectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  sourceProject   Project      @relation("ProjectTemplates", fields: [sourceProjectId], references: [id], onDelete: Cascade)
   organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
 }
 
 model Workspace {
-  id             String             @id @default(cuid())
-  projectId      String
-  name           String
-  status         WorkspaceStatus    @default(PENDING)
-  runtimeMode    String
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sessions       WorkspaceSession[]
-  ports          WorkspacePort[]
-  snapshots      FileSnapshot[]
+  id          String             @id @default(cuid())
+  projectId   String
+  name        String
+  status      WorkspaceStatus    @default(PENDING)
+  runtimeMode String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sessions    WorkspaceSession[]
+  ports       WorkspacePort[]
+  snapshots   FileSnapshot[]
 
   @@index([projectId])
 }
@@ -356,35 +356,52 @@ model FileSnapshot {
 }
 
 model ProjectSnapshot {
-  id        String   @id @default(cuid())
-  projectId String
-  label     String?
-  kind      String   @default("manual")
-  manifest  Json
-  storageKey String?
-  byteLength Int?
+  id              String   @id @default(cuid())
+  projectId       String
+  label           String?
+  kind            String   @default("manual")
+  manifest        Json
+  storageKey      String?
+  byteLength      Int?
   createdByUserId String?
-  createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy       User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([createdByUserId])
 }
 
 model Deployment {
-  id            String                  @id @default(cuid())
-  projectId     String
-  environmentId String?
-  status        DeploymentStatus        @default(QUEUED)
-  provider      String
-  url           String?
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  project       Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  environment   DeploymentEnvironment?  @relation(fields: [environmentId], references: [id])
+  id               String                 @id @default(cuid())
+  projectId        String
+  environmentId    String?
+  environmentName  String                 @default("preview")
+  status           DeploymentStatus       @default(QUEUED)
+  provider         String
+  url              String?
+  previewUrl       String?
+  productionUrl    String?
+  framework        String?
+  buildCommand     String?
+  outputDirectory  String?
+  branch           String?
+  commitSha        String?
+  customDomain     String?
+  logs             Json                   @default("[]")
+  metadata         Json                   @default("{}")
+  rolledBackFromId String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+  project          Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  environment      DeploymentEnvironment? @relation(fields: [environmentId], references: [id])
 
   @@index([projectId])
+  @@index([projectId, environmentName])
+  @@index([projectId, status])
 }
 
 model DeploymentEnvironment {
@@ -432,32 +449,32 @@ model BillingCustomer {
 }
 
 model Subscription {
-  id             String             @id @default(cuid())
-  organizationId String
-  planId         String
-  externalId     String?            @unique
-  status         SubscriptionStatus
-  cancelAtPeriodEnd Boolean         @default(false)
-  trialEndsAt     DateTime?
+  id                 String             @id @default(cuid())
+  organizationId     String
+  planId             String
+  externalId         String?            @unique
+  status             SubscriptionStatus
+  cancelAtPeriodEnd  Boolean            @default(false)
+  trialEndsAt        DateTime?
   currentPeriodStart DateTime?
-  currentPeriodEnd DateTime?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  plan           Plan               @relation(fields: [planId], references: [id])
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan               Plan               @relation(fields: [planId], references: [id])
 
   @@index([organizationId])
 }
 
 model Plan {
-  id            String         @id @default(cuid())
-  key           String         @unique
-  name          String
-  monthlyCents  Int
-  limits        Json
+  id              String         @id @default(cuid())
+  key             String         @unique
+  name            String
+  monthlyCents    Int
+  limits          Json
   stripeProductId String?
-  stripePriceId String?
-  subscriptions Subscription[]
+  stripePriceId   String?
+  subscriptions   Subscription[]
 }
 
 model UsageEvent {
@@ -487,24 +504,24 @@ model QuotaLedger {
 }
 
 model QuotaOverride {
-  id             String       @id @default(cuid())
-  organizationId String
-  key            String
-  limit          Int
-  reason         String
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String
+  limit           Int
+  reason          String
   createdByUserId String?
-  expiresAt      DateTime?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, key])
 }
 
 model StripeEvent {
-  id             String       @id
+  id             String        @id
   organizationId String?
   type           String
-  processedAt    DateTime     @default(now())
+  processedAt    DateTime      @default(now())
   payload        Json
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
@@ -524,12 +541,12 @@ model AiConversation {
 }
 
 model AiMessage {
-  id             String           @id @default(cuid())
+  id             String         @id @default(cuid())
   conversationId String
   role           String
   content        String
-  createdAt      DateTime         @default(now())
-  conversation   AiConversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   toolCalls      AiToolCall[]
   tokenUsage     AiTokenUsage?
 }
@@ -545,15 +562,15 @@ model AiToolCall {
 }
 
 model AiTokenUsage {
-  id               String    @id @default(cuid())
-  messageId         String    @unique
-  provider          String
-  model             String
-  inputTokens       Int
-  outputTokens      Int
-  estimatedCostCents Int      @default(0)
-  createdAt         DateTime  @default(now())
-  message           AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  id                 String    @id @default(cuid())
+  messageId          String    @unique
+  provider           String
+  model              String
+  inputTokens        Int
+  outputTokens       Int
+  estimatedCostCents Int       @default(0)
+  createdAt          DateTime  @default(now())
+  message            AiMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model AiCostLedger {
@@ -577,13 +594,13 @@ model AiCostLedger {
 }
 
 model AbuseEvent {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String?
   userId         String?
   type           String
   severity       String
   metadata       Json?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 }
 
@@ -652,19 +669,19 @@ model MfaRecoveryCode {
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@unique([userId, codeHash])
+  @@index([userId])
 }
 
 model EnterpriseOrganizationSettings {
-  organizationId          String       @id
-  ipAllowlist             String[]
-  sessionDurationMinutes  Int          @default(43200)
-  requireMfaForAdmins     Boolean      @default(true)
-  dataRetentionDays       Int          @default(365)
-  legalHoldEnabled        Boolean      @default(false)
-  updatedAt               DateTime     @updatedAt
-  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId         String       @id
+  ipAllowlist            String[]
+  sessionDurationMinutes Int          @default(43200)
+  requireMfaForAdmins    Boolean      @default(true)
+  dataRetentionDays      Int          @default(365)
+  legalHoldEnabled       Boolean      @default(false)
+  updatedAt              DateTime     @updatedAt
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model VerifiedDomain {
@@ -681,14 +698,14 @@ model VerifiedDomain {
 }
 
 model SsoConfiguration {
-  id                 String       @id @default(cuid())
-  organizationId     String
-  type               String
-  enabled            Boolean      @default(true)
-  encryptedConfig    String
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  organizationId  String
+  type            String
+  enabled         Boolean      @default(true)
+  encryptedConfig String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, type])
 }
@@ -718,15 +735,15 @@ model CustomRole {
 }
 
 model SiemWebhook {
-  id             String       @id @default(cuid())
-  organizationId String
-  url            String
-  secretHash     String
+  id               String       @id @default(cuid())
+  organizationId   String
+  url              String
+  secretHash       String
   secretCiphertext String
-  enabled        Boolean      @default(true)
-  lastDeliveredAt DateTime?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  enabled          Boolean      @default(true)
+  lastDeliveredAt  DateTime?
+  createdAt        DateTime     @default(now())
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
   @@index([organizationId, lastDeliveredAt])
@@ -746,14 +763,14 @@ model ApiKey {
 }
 
 model OAuthConnection {
-  id           String   @id @default(cuid())
-  userId       String
-  provider     String
-  externalId   String
-  accessHash   String
-  refreshHash  String?
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String
+  provider    String
+  externalId  String
+  accessHash  String
+  refreshHash String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, externalId])
 }

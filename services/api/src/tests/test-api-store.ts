@@ -599,11 +599,76 @@ export class TestApiStore implements ApiStore {
     return [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId);
   }
 
-  async createDeployment(input: { projectId: string; provider: string; url?: string }) {
-    const deployment: DeploymentRecord = { id: id('deployment'), ...input, status: 'QUEUED', createdAt: now() };
+  async createDeployment(input: {
+    projectId: string;
+    provider: string;
+    environment?: DeploymentRecord['environment'];
+    status?: DeploymentRecord['status'];
+    url?: string;
+    previewUrl?: string;
+    productionUrl?: string;
+    framework?: string;
+    buildCommand?: string;
+    outputDirectory?: string;
+    branch?: string;
+    commitSha?: string;
+    customDomain?: string;
+    logs?: DeploymentRecord['logs'];
+    metadata?: Record<string, unknown>;
+    rolledBackFromId?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    canceledAt?: string;
+  }) {
+    const deployment: DeploymentRecord = {
+      id: id('deployment'),
+      projectId: input.projectId,
+      provider: input.provider,
+      environment: input.environment ?? 'preview',
+      status: input.status ?? 'QUEUED',
+      url: input.url,
+      previewUrl: input.previewUrl,
+      productionUrl: input.productionUrl,
+      framework: input.framework,
+      buildCommand: input.buildCommand,
+      outputDirectory: input.outputDirectory,
+      branch: input.branch,
+      commitSha: input.commitSha,
+      customDomain: input.customDomain,
+      logs: input.logs ?? [],
+      metadata: input.metadata,
+      rolledBackFromId: input.rolledBackFromId,
+      startedAt: input.startedAt,
+      finishedAt: input.finishedAt,
+      canceledAt: input.canceledAt,
+      createdAt: now(),
+      updatedAt: now(),
+    };
     this.deployments.set(deployment.id, deployment);
 
     return deployment;
+  }
+
+  async getDeployment(projectId: string, deploymentId: string) {
+    const deployment = this.deployments.get(deploymentId);
+    return deployment?.projectId === projectId ? deployment : undefined;
+  }
+
+  async updateDeployment(
+    projectId: string,
+    deploymentId: string,
+    input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+  ) {
+    const deployment = await this.getDeployment(projectId, deploymentId);
+
+    if (!deployment) {
+      throw new Error(`Deployment not found: ${deploymentId}`);
+    }
+
+    const updated: DeploymentRecord = { ...deployment, ...input, updatedAt: now() };
+    this.deployments.set(updated.id, updated);
+
+    return updated;
   }
 
   async listDeployments(projectId: string) {
