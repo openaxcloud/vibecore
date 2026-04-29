@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
-import { SignOutButton } from '~/components/dashboard/SaaSLayout';
 import { Header } from '~/components/header/Header';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -172,19 +171,13 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
           )}
         </details>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
-        <Link
-          to="/command-palette"
-          className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-        >
-          <Command className="h-3.5 w-3.5" aria-hidden />
-          Shortcuts
-        </Link>
-        <SignOutButton
-          compact
-          className="h-7 border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
-        />
-      </div>
+      <Link
+        to="/command-palette"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+      >
+        <Command className="h-3.5 w-3.5" aria-hidden />
+        Shortcuts
+      </Link>
     </div>
   );
 }
