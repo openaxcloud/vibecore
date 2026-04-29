@@ -1,7 +1,7 @@
 import { json, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { Link } from '@remix-run/react';
+import { Link, useSearchParams } from '@remix-run/react';
 import { useState } from 'react';
 import { useStore } from '@nanostores/react';
 import {
@@ -57,12 +57,14 @@ export default function ProjectIdeRoute() {
 }
 
 function IdeProjectToolbar({ projectId }: { projectId: string }) {
+  const [searchParams] = useSearchParams();
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
   const [panelMenuOpen, setPanelMenuOpen] = useState(false);
   const layout = useResponsiveLayout();
   const showProjectMenu = !layout.isMobile;
+  const activePanel = searchParams.get('panel') ?? 'editor';
   const statusLabel = loading
     ? 'Workspace starting'
     : error
@@ -72,26 +74,26 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
         : 'Workspace not started';
 
   const projectMenu = [
-    { label: 'Editor', to: `/projects/${projectId}/ide`, icon: FileCode2 },
-    { label: 'Preview', to: `/projects/${projectId}/ide?panel=preview`, icon: Zap },
-    { label: 'Overview', to: `/projects/${projectId}`, icon: Gauge },
-    { label: 'Deploy', to: `/projects/${projectId}/deployments`, icon: Rocket },
-    { label: 'Env vars', to: `/projects/${projectId}/env`, icon: Braces },
-    { label: 'Secrets', to: `/projects/${projectId}/secrets`, icon: Lock },
-    { label: 'Git', to: `/projects/${projectId}/git`, icon: GitBranch },
-    { label: 'Activity', to: `/projects/${projectId}/activity`, icon: Activity },
-    { label: 'Logs', to: `/projects/${projectId}/logs`, icon: Terminal },
-    { label: 'Collaborators', to: `/projects/${projectId}/collaborators`, icon: Users },
-    { label: 'Domains', to: `/projects/${projectId}/domains`, icon: Globe2 },
-    { label: 'Snapshots', to: `/projects/${projectId}/snapshots`, icon: Layers },
-    { label: 'Settings', to: `/projects/${projectId}/settings`, icon: Settings },
+    { id: 'editor', label: 'Editor', to: `/projects/${projectId}/ide`, icon: FileCode2 },
+    { id: 'preview', label: 'Preview', to: `/projects/${projectId}/ide?panel=preview`, icon: Zap },
+    { id: 'overview', label: 'Overview', to: `/projects/${projectId}/ide?panel=overview`, icon: Gauge },
+    { id: 'deployments', label: 'Deploy', to: `/projects/${projectId}/ide?panel=deployments`, icon: Rocket },
+    { id: 'env', label: 'Env vars', to: `/projects/${projectId}/ide?panel=env`, icon: Braces },
+    { id: 'secrets', label: 'Secrets', to: `/projects/${projectId}/ide?panel=secrets`, icon: Lock },
+    { id: 'git', label: 'Git', to: `/projects/${projectId}/ide?panel=git`, icon: GitBranch },
+    { id: 'activity', label: 'Activity', to: `/projects/${projectId}/ide?panel=activity`, icon: Activity },
+    { id: 'logs', label: 'Logs', to: `/projects/${projectId}/ide?panel=logs`, icon: Terminal },
+    { id: 'collaborators', label: 'Collaborators', to: `/projects/${projectId}/ide?panel=collaborators`, icon: Users },
+    { id: 'domains', label: 'Domains', to: `/projects/${projectId}/ide?panel=domains`, icon: Globe2 },
+    { id: 'snapshots', label: 'Snapshots', to: `/projects/${projectId}/ide?panel=snapshots`, icon: Layers },
+    { id: 'settings', label: 'Settings', to: `/projects/${projectId}/ide?panel=settings`, icon: Settings },
   ];
 
   return (
     <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
       <div className="flex min-w-0 items-center gap-2">
         <Link
-          to={`/projects/${projectId}/logs`}
+          to={`/projects/${projectId}/ide?panel=logs`}
           className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
         >
           <Zap className="h-3.5 w-3.5" aria-hidden />
@@ -102,7 +104,7 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
         </span>
         {layout.isMobile && (
           <Link
-            to={`/projects/${projectId}/deployments`}
+            to={`/projects/${projectId}/ide?panel=deployments`}
             className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
           >
             <Rocket className="h-3.5 w-3.5" aria-hidden />
@@ -110,7 +112,7 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
           </Link>
         )}
         <Link
-          to={`/projects/${projectId}/snapshots`}
+          to={`/projects/${projectId}/ide?panel=snapshots`}
           className="inline-flex shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 hover:bg-bolt-elements-background-depth-3"
         >
           <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -124,7 +126,10 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 hover:bg-bolt-elements-background-depth-3"
+                  className={[
+                    'inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 hover:bg-bolt-elements-background-depth-3',
+                    activePanel === item.id ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary' : '',
+                  ].join(' ')}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
                   {item.label}
@@ -150,7 +155,12 @@ function IdeProjectToolbar({ projectId }: { projectId: string }) {
                   <Link
                     key={item.to}
                     to={item.to}
-                    className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-bolt-elements-background-depth-3"
+                    className={[
+                      'flex items-center gap-2 rounded-md px-2 py-2 hover:bg-bolt-elements-background-depth-3',
+                      activePanel === item.id
+                        ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                        : '',
+                    ].join(' ')}
                   >
                     <Icon className="h-4 w-4" aria-hidden />
                     {item.label}

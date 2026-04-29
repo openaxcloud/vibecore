@@ -43,6 +43,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -150,6 +151,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+    const [searchParams] = useSearchParams();
     const layout = useResponsiveLayout();
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
@@ -177,6 +179,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
+    const activeProjectPanel = searchParams.get('panel') || 'editor';
+    const isManagementPanel = [
+      'overview',
+      'deployments',
+      'env',
+      'secrets',
+      'git',
+      'activity',
+      'logs',
+      'collaborators',
+      'domains',
+      'snapshots',
+      'settings',
+    ].includes(activeProjectPanel);
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -721,58 +737,62 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           className="min-w-0"
         >
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-            <PanelGroup direction="vertical" className="min-h-0 flex-1">
-              <Panel defaultSize={54} minSize={28} className="min-h-0">
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="bolt-project-ide-panel-header">
-                    <span className="i-ph:code" aria-hidden />
-                    <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'Editor'}</span>
-                    {currentDocument && unsavedFiles instanceof Set && unsavedFiles.has(currentDocument.filePath) && (
-                      <button
-                        type="button"
-                        className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
-                        onClick={onProjectEditorSave}
-                      >
-                        Save
-                      </button>
-                    )}
+            {isManagementPanel ? (
+              <ProjectIdeServicePanel projectId={projectId} panel={activeProjectPanel} />
+            ) : (
+              <PanelGroup direction="vertical" className="min-h-0 flex-1">
+                <Panel defaultSize={activeProjectPanel === 'preview' ? 35 : 54} minSize={28} className="min-h-0">
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="bolt-project-ide-panel-header">
+                      <span className="i-ph:code" aria-hidden />
+                      <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'Editor'}</span>
+                      {currentDocument && unsavedFiles instanceof Set && unsavedFiles.has(currentDocument.filePath) && (
+                        <button
+                          type="button"
+                          className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+                          onClick={onProjectEditorSave}
+                        >
+                          Save
+                        </button>
+                      )}
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
+                      {currentDocument && !currentDocument.isBinary ? (
+                        <EditorAdapter
+                          className="h-full w-full"
+                          value={currentDocument.value}
+                          filePath={currentDocument.filePath}
+                          theme={theme === 'dark' ? 'dark' : 'light'}
+                          onSave={onProjectEditorSave}
+                          onChange={(update) => {
+                            workbenchStore.setCurrentDocumentContent(update.value);
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center p-6 text-sm text-bolt-elements-textSecondary">
+                          Select a source file from the project files panel.
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-h-0 flex-1 overflow-hidden" data-testid="responsive-code-editor">
-                    {currentDocument && !currentDocument.isBinary ? (
-                      <EditorAdapter
-                        className="h-full w-full"
-                        value={currentDocument.value}
-                        filePath={currentDocument.filePath}
-                        theme={theme === 'dark' ? 'dark' : 'light'}
-                        onSave={onProjectEditorSave}
-                        onChange={(update) => {
-                          workbenchStore.setCurrentDocumentContent(update.value);
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center p-6 text-sm text-bolt-elements-textSecondary">
-                        Select a source file from the project files panel.
-                      </div>
-                    )}
+                </Panel>
+                <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
+                <Panel defaultSize={activeProjectPanel === 'preview' ? 65 : 46} minSize={24} className="min-h-0">
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="bolt-project-ide-panel-header">
+                      <span className="i-ph:browser" aria-hidden />
+                      <span>Preview</span>
+                      <span className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
+                        Live runtime
+                      </span>
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-hidden">
+                      <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+                    </div>
                   </div>
-                </div>
-              </Panel>
-              <PanelResizeHandle className="bolt-project-ide-resize-handle bolt-project-ide-resize-handle-vertical" />
-              <Panel defaultSize={46} minSize={24} className="min-h-0">
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="bolt-project-ide-panel-header">
-                    <span className="i-ph:browser" aria-hidden />
-                    <span>Preview</span>
-                    <span className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary">
-                      Live runtime
-                    </span>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-hidden">
-                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
-                  </div>
-                </div>
-              </Panel>
-            </PanelGroup>
+                </Panel>
+              </PanelGroup>
+            )}
           </section>
         </Panel>
         <PanelResizeHandle className="bolt-project-ide-resize-handle" />
@@ -919,6 +939,467 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     return <Tooltip.Provider delayDuration={200}>{baseChat}</Tooltip.Provider>;
   },
 );
+
+function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; panel: string }) {
+  const [payload, setPayload] = useState<any>();
+  const [error, setError] = useState<string>();
+  const [busy, setBusy] = useState(false);
+  const title = panelTitle(panel);
+
+  const loadPanel = useCallback(async () => {
+    if (!projectId) {
+      return;
+    }
+
+    setBusy(true);
+    setError(undefined);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
+        headers: { accept: 'application/json' },
+      });
+      const result = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? 'Unable to load IDE panel');
+      }
+
+      setPayload(result);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
+      setPayload(undefined);
+    } finally {
+      setBusy(false);
+    }
+  }, [panel, projectId]);
+
+  useEffect(() => {
+    void loadPanel();
+  }, [loadPanel]);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+
+    if (!projectId) {
+      return;
+    }
+
+    setBusy(true);
+    setError(undefined);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
+        method: 'POST',
+        body: new FormData(form),
+      });
+      const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? 'Panel action failed');
+      }
+
+      form.reset();
+      await loadPanel();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Panel action failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const data = payload?.data ?? {};
+  const project = payload?.project ?? {};
+
+  return (
+    <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
+      <div className="bolt-project-ide-panel-header">
+        <span className={panelIcon(panel)} aria-hidden />
+        <h2 className="m-0 text-sm font-semibold">{title}</h2>
+        <button
+          type="button"
+          className="ml-auto rounded border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary"
+          onClick={() => void loadPanel()}
+          disabled={busy}
+        >
+          {busy ? 'Loading' : 'Refresh'}
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        {error ? (
+          <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+            {error}
+          </div>
+        ) : null}
+        {busy && !payload ? (
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary">
+            Loading {title.toLowerCase()} from backend...
+          </div>
+        ) : (
+          <ProjectIdePanelContent panel={panel} data={data} project={project} onSubmit={submit} busy={busy} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProjectIdePanelContent({
+  panel,
+  data,
+  project,
+  onSubmit,
+  busy,
+}: {
+  panel: string;
+  data: any;
+  project: any;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  busy: boolean;
+}) {
+  if (panel === 'overview') {
+    const rows = [
+      ['Project', project.name ?? project.id],
+      [
+        'Workspace',
+        data.workspace ? `${data.workspace.status} / ${data.workspace.runtimeMode}` : 'No workspace record',
+      ],
+      ['Files', String(data.files?.length ?? 0)],
+      ['Branch', data.git?.branch ?? project.gitDefaultBranch ?? 'main'],
+    ];
+
+    return <PanelRows rows={rows} events={data.recentActivity} empty="No project activity yet." />;
+  }
+
+  if (panel === 'logs') {
+    const lines = [
+      data.workspace
+        ? `workspace:${data.workspace.id} status=${data.workspace.status} runtime=${data.workspace.runtimeMode}`
+        : 'workspace:none recorded for this project',
+      ...(data.recentActivity ?? []).map((event: any) => `${event.createdAt ?? 'recorded'} ${event.action}`),
+    ];
+
+    return (
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-black p-4 font-mono text-xs text-green-200">
+        {lines.map((line: string) => (
+          <div key={line}>{line}</div>
+        ))}
+      </div>
+    );
+  }
+
+  if (panel === 'snapshots') {
+    const snapshots = data.snapshots ?? [];
+
+    return (
+      <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
+        <PanelRows
+          rows={snapshots.map((snapshot: any) => [
+            snapshot.label ?? snapshot.kind,
+            `${snapshot.kind} - ${snapshot.byteLength ?? 0} bytes`,
+          ])}
+          empty="No snapshots yet."
+        />
+        <div className="grid gap-3">
+          <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+            <input name="intent" value="create" type="hidden" />
+            <PanelInput name="label" placeholder="Manual checkpoint" />
+            <PanelButton disabled={busy}>Create snapshot</PanelButton>
+          </form>
+          {snapshots.map((snapshot: any) => (
+            <form key={snapshot.id} onSubmit={onSubmit}>
+              <input name="intent" value="restore" type="hidden" />
+              <input name="snapshotId" value={snapshot.id} type="hidden" />
+              <PanelButton disabled={busy} variant="outline">
+                Restore {snapshot.label ?? snapshot.id}
+              </PanelButton>
+            </form>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (panel === 'deployments') {
+    return (
+      <PanelWithForm
+        rows={(data.deployments ?? []).map((deployment: any) => [
+          `${deployment.provider} ${deployment.status}`,
+          deployment.url ?? deployment.createdAt ?? 'No URL recorded',
+        ])}
+        empty="No deployments yet."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[
+          { name: 'provider', placeholder: 'preview' },
+          { name: 'url', placeholder: 'https://preview.example.com' },
+        ]}
+        submitLabel="New deployment"
+      />
+    );
+  }
+
+  if (panel === 'env') {
+    return (
+      <PanelWithForm
+        rows={(data.envVars ?? []).map((item: any) => [item.key, item.updatedAt ?? 'Stored in project metadata'])}
+        empty="No environment variables."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[
+          { name: 'key', placeholder: 'VITE_API_URL', required: true },
+          { name: 'value', placeholder: 'https://api.example.com' },
+        ]}
+        submitLabel="Save variable"
+      />
+    );
+  }
+
+  if (panel === 'secrets') {
+    return (
+      <PanelWithForm
+        rows={(data.secrets ?? []).map((secret: any) => [secret.key, secret.updatedAt ?? 'Encrypted project secret'])}
+        empty="No project secrets."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[
+          { name: 'key', placeholder: 'STRIPE_SECRET_KEY', required: true },
+          { name: 'value', placeholder: 'Secret value', type: 'password', required: true },
+        ]}
+        submitLabel="Save secret"
+      />
+    );
+  }
+
+  if (panel === 'collaborators') {
+    return (
+      <PanelWithForm
+        rows={(data.collaborators ?? []).map((collaborator: any) => [
+          collaborator.userId,
+          `Role: ${collaborator.roleKey}`,
+        ])}
+        empty="No project collaborators."
+        onSubmit={onSubmit}
+        busy={busy}
+        fields={[{ name: 'userId', placeholder: 'User ID', required: true }]}
+        select={{ name: 'roleKey', options: ['viewer', 'member', 'admin', 'owner'] }}
+        submitLabel="Add collaborator"
+      />
+    );
+  }
+
+  if (panel === 'domains') {
+    const domains = data.domains ?? [];
+
+    return (
+      <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
+        <PanelRows
+          rows={domains.map((domain: any) => [
+            domain.domain,
+            domain.verifiedAt ? `Verified ${domain.verifiedAt}` : 'Pending DNS verification',
+          ])}
+          empty="No custom domains."
+        />
+        <div className="grid gap-3">
+          <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+            <PanelInput name="domain" placeholder="app.example.com" required />
+            <PanelButton disabled={busy}>Add domain</PanelButton>
+          </form>
+          {domains.map((domain: any) => (
+            <form key={domain.id} onSubmit={onSubmit}>
+              <input name="intent" value="verify" type="hidden" />
+              <input name="domain" value={domain.domain} type="hidden" />
+              <PanelButton disabled={busy} variant="outline">
+                Verify {domain.domain}
+              </PanelButton>
+            </form>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (panel === 'git') {
+    const status = data.status ?? data;
+    const branch = status.branch ?? project.gitDefaultBranch ?? 'main';
+
+    return (
+      <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
+        <PanelRows
+          rows={[
+            ['Branch', branch],
+            ['Changed files', String(status.changedFiles?.length ?? 0)],
+            ['Ahead / behind', `${status.ahead ?? 0} / ${status.behind ?? 0}`],
+            ['Remote', project.gitRepositoryUrl ?? 'No remote repository'],
+          ]}
+        />
+        <div className="grid gap-3">
+          <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+            <input name="intent" value="commit" type="hidden" />
+            <PanelInput name="message" placeholder="Commit message" />
+            <PanelButton disabled={busy}>Commit changes</PanelButton>
+          </form>
+          {['pull', 'push'].map((intent) => (
+            <form key={intent} onSubmit={onSubmit} className="flex gap-2">
+              <input name="intent" value={intent} type="hidden" />
+              <PanelInput name="branch" defaultValue={branch} />
+              <PanelButton disabled={busy} variant="outline">
+                {intent === 'pull' ? 'Pull' : 'Push'}
+              </PanelButton>
+            </form>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (panel === 'settings') {
+    const settings = data.project ?? project;
+
+    return (
+      <form onSubmit={onSubmit} className="grid max-w-2xl gap-3">
+        <PanelInput name="name" defaultValue={settings.name ?? ''} required />
+        <PanelInput name="description" defaultValue={settings.description ?? ''} />
+        <PanelInput name="gitRepositoryUrl" defaultValue={settings.gitRepositoryUrl ?? ''} />
+        <PanelInput name="gitDefaultBranch" defaultValue={settings.gitDefaultBranch ?? 'main'} />
+        <div>
+          <PanelButton disabled={busy}>Save settings</PanelButton>
+        </div>
+      </form>
+    );
+  }
+
+  if (panel === 'activity') {
+    return (
+      <PanelRows
+        rows={(data.activity ?? []).map((event: any) => [
+          event.action,
+          event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
+        ])}
+        empty="No activity yet."
+      />
+    );
+  }
+
+  return <PanelRows rows={[]} empty="Panel not available." />;
+}
+
+function PanelWithForm({ rows, empty, onSubmit, busy, fields, select, submitLabel }: any) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
+      <PanelRows rows={rows} empty={empty} />
+      <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+        {fields.map((field: any) => (
+          <PanelInput key={field.name} {...field} />
+        ))}
+        {select ? (
+          <select
+            name={select.name}
+            className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm"
+            defaultValue={select.options[1] ?? select.options[0]}
+          >
+            {select.options.map((option: string) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <PanelButton disabled={busy}>{submitLabel}</PanelButton>
+      </form>
+    </div>
+  );
+}
+
+function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty?: string }) {
+  const normalized = rows.length
+    ? rows
+    : (events ?? []).map((event) => [
+        event.action,
+        event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
+      ]);
+
+  if (!normalized.length) {
+    return (
+      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary">
+        {empty ?? 'No records.'}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+      {normalized.map(([title, detail], index) => (
+        <div key={`${title}-${index}`} className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0">
+          <div className="text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
+          <div className="mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PanelInput(props: any) {
+  return (
+    <input
+      {...props}
+      className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm outline-none focus:border-bolt-elements-focus"
+    />
+  );
+}
+
+function PanelButton({ children, variant, ...props }: any) {
+  return (
+    <button
+      {...props}
+      type="submit"
+      className={classNames(
+        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
+        variant === 'outline'
+          ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
+          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function panelTitle(panel: string) {
+  const titles: Record<string, string> = {
+    overview: 'Overview',
+    deployments: 'Deploy',
+    env: 'Environment variables',
+    secrets: 'Secrets',
+    git: 'Git',
+    activity: 'Activity',
+    logs: 'Logs',
+    collaborators: 'Collaborators',
+    domains: 'Domains',
+    snapshots: 'Snapshots',
+    settings: 'Settings',
+  };
+
+  return titles[panel] ?? panel;
+}
+
+function panelIcon(panel: string) {
+  const icons: Record<string, string> = {
+    overview: 'i-ph:gauge',
+    deployments: 'i-ph:rocket-launch',
+    env: 'i-ph:brackets-curly',
+    secrets: 'i-ph:lock',
+    git: 'i-ph:git-branch',
+    activity: 'i-ph:activity',
+    logs: 'i-ph:terminal-window',
+    collaborators: 'i-ph:users',
+    domains: 'i-ph:globe',
+    snapshots: 'i-ph:stack',
+    settings: 'i-ph:gear',
+  };
+
+  return icons[panel] ?? 'i-ph:squares-four';
+}
 
 function ScrollToBottom() {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();

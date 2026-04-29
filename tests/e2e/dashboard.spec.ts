@@ -73,6 +73,72 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByText('Snapshots')).toBeVisible();
 });
 
+test('IDE project services open as in-place panels instead of legacy project pages', async ({ page }) => {
+  test.setTimeout(60_000);
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name: 'IDE Panel Project' },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+  const projectId = (await createProject.json()).project.id as string;
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+
+  await page.getByRole('link', { name: 'Snapshots' }).first().click();
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=snapshots$`));
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.getByRole('heading', { name: 'Snapshots' })).toBeVisible();
+  await page.getByPlaceholder('Manual checkpoint').fill('E2E checkpoint');
+  await page.getByRole('button', { name: 'Create snapshot' }).click();
+  await expect(page.getByText('E2E checkpoint', { exact: true }).first()).toBeVisible({ timeout: 15000 });
+
+  const projectMenu = page.getByLabel('Project IDE menu');
+  const inIdePanels = [
+    ['Overview', 'overview'],
+    ['Deploy', 'deployments'],
+    ['Env vars', 'env'],
+    ['Secrets', 'secrets'],
+    ['Git', 'git'],
+    ['Activity', 'activity'],
+    ['Logs', 'logs'],
+    ['Collaborators', 'collaborators'],
+    ['Domains', 'domains'],
+  ] as const;
+
+  for (const [label, panel] of inIdePanels) {
+    await projectMenu.getByRole('link', { name: label }).click();
+    await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=${panel}$`));
+    await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`)).toBeVisible({
+      timeout: 15000,
+    });
+  }
+
+  await page.getByText('Panels').click();
+  await page.getByRole('group').getByRole('link', { name: 'Settings' }).click();
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=settings$`));
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="settings"]')).toBeVisible({
+    timeout: 15000,
+  });
+
+  await projectMenu.getByRole('link', { name: 'Env vars' }).click();
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/ide\\?panel=env$`));
+  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="env"]')).toBeVisible();
+  await page.getByPlaceholder('VITE_API_URL').fill('E2E_FLAG');
+  await page.getByPlaceholder('https://api.example.com').fill('enabled');
+  await page.getByRole('button', { name: 'Save variable' }).click();
+  await expect(page.getByText('E2E_FLAG')).toBeVisible({ timeout: 15000 });
+
+  expect(page.url()).not.toContain('/snapshots');
+  expect(page.url()).not.toContain('/deployments');
+  expect(page.url()).not.toContain('/env-vars');
+});
+
 test('edit file workflow surfaces editor, files, terminal and preview affordances', async ({ page }) => {
   await authenticate(page);
   await page.goto('/projects/project_e2e/ide', { waitUntil: 'domcontentloaded' });
