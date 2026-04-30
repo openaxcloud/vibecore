@@ -1779,7 +1779,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }
               }}
               onScroll={(event) => {
-                setScrollPositions((positions) => ({ ...positions, [leaf.id]: event.currentTarget.scrollTop }));
+                const scrollTop = event.currentTarget.scrollTop;
+
+                setScrollPositions((positions) => ({ ...positions, [leaf.id]: scrollTop }));
               }}
             >
               {activeTab ? (
