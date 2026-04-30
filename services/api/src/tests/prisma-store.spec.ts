@@ -134,4 +134,32 @@ runPrismaTests('PrismaApiStore integration', () => {
       await prismaB.$disconnect();
     }
   }, 20_000);
+
+  it('creates unique slugs for repeated project names in one organization', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    try {
+      const user = await store.createUser({
+        email: `project-slug-${suffix}@example.com`,
+        passwordHash: await hashPassword('password123'),
+      });
+      const organization = await store.createOrganization({
+        name: `Project Slug Org ${suffix}`,
+        slug: `project-slug-org-${suffix}`,
+        ownerUserId: user.id,
+      });
+
+      const first = await store.createProject({ organizationId: organization.id, name: 'Customer Portal', slug: 'customer-portal' });
+      const second = await store.createProject({ organizationId: organization.id, name: 'Customer Portal', slug: 'customer-portal' });
+      const third = await store.createProject({ organizationId: organization.id, name: '!!!', slug: '!!!' });
+
+      expect(first.slug).toBe('customer-portal');
+      expect(second.slug).toBe('customer-portal-2');
+      expect(third.slug).toBe('project');
+    } finally {
+      await prisma.$disconnect();
+    }
+  }, 20_000);
 });

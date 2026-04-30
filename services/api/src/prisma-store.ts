@@ -65,6 +65,10 @@ function slugify(value: string) {
     .replace(/^-|-$/g, '');
 }
 
+function projectSlugBase(input: { slug?: string; name: string }) {
+  return slugify(input.slug || input.name) || 'project';
+}
+
 function assertFound<T>(value: T | null | undefined, message: string, code: string): T {
   if (!value) {
     throw Object.assign(new Error(message), { statusCode: 404, code });
@@ -327,21 +331,40 @@ export class PrismaApiStore implements ApiStore {
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }) {
+    const slug = await this.nextProjectSlug(input.organizationId, projectSlugBase(input));
+
     return mapProject(
       await this.prisma.project.create({
         data: {
           organizationId: input.organizationId,
           name: input.name,
-          slug: input.slug || slugify(input.name),
+          slug,
           description: input.description,
           sourceType: input.sourceType ?? 'blank',
           templateName: input.templateName,
           gitRepositoryUrl: input.gitRepositoryUrl,
           gitDefaultBranch: input.gitDefaultBranch,
-          persistentVolumeClaim: `pvc-${input.organizationId}-${slugify(input.name)}`,
+          persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
         },
       }),
     );
+  }
+
+  private async nextProjectSlug(organizationId: string, baseSlug: string) {
+    let candidate = baseSlug;
+    let suffix = 2;
+
+    while (
+      await this.prisma.project.findUnique({
+        where: { organizationId_slug: { organizationId, slug: candidate } },
+        select: { id: true },
+      })
+    ) {
+      candidate = `${baseSlug}-${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
   }
 
   async getProject(id: string) {
