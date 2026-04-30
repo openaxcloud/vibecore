@@ -1144,6 +1144,11 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-app);
 }
 
+.bolt-project-workspace-shell > .bolt-project-ide-panel {
+  width: 100%;
+  flex: 1 1 auto;
+}
+
 .bolt-project-right-panel-shell {
   position: fixed;
   top: 36px;
@@ -1154,6 +1159,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 300px;
   max-width: 700px;
   height: calc(100vh - 36px);
+  box-sizing: border-box;
   flex-direction: column;
   border-left: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
