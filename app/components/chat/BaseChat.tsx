@@ -100,7 +100,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
 
 type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
 type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
-type IdePaneDirection = 'horizontal' | 'vertical';
 type IdePaneTab = {
   id: string;
   panel: IdeWorkspacePanel;
@@ -122,16 +121,7 @@ type ProjectIdeBackendState = {
   recentActivity?: Array<{ action: string; createdAt?: string }>;
   collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
 };
-type IdePaneNode =
-  | { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string }
-  | {
-      type: 'split';
-      id: string;
-      direction: IdePaneDirection;
-      ratio: number;
-      first: IdePaneNode;
-      second: IdePaneNode;
-    };
+type IdePaneNode = { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string };
 
 function projectStatusLabel(state: ProjectIdeBackendState) {
   const status = state.workspace?.status?.toLowerCase();
@@ -188,19 +178,18 @@ function cloneDefaultPaneTree(): IdePaneNode {
   return JSON.parse(JSON.stringify(DEFAULT_PANE_TREE));
 }
 
-function collectPaneTabs(node: IdePaneNode): IdePaneTab[] {
-  if (node.type === 'leaf') {
+function collectPaneTabs(node: any): IdePaneTab[] {
+  if (node?.type === 'leaf' && Array.isArray(node.tabs)) {
     return node.tabs;
   }
 
-  return [...collectPaneTabs(node.first), ...collectPaneTabs(node.second)];
+  return [...collectPaneTabs(node?.first), ...collectPaneTabs(node?.second)];
 }
 
-function normalizeSinglePaneTree(node: IdePaneNode): Extract<IdePaneNode, { type: 'leaf' }> {
+function normalizeSinglePaneTree(node: any): IdePaneNode {
   const tabs = collectPaneTabs(node);
-  const activeTabId = tabs.some((tab) => tab.id === firstLeaf(node).activeTabId)
-    ? firstLeaf(node).activeTabId
-    : tabs[tabs.length - 1]?.id;
+  const legacyActiveTabId = typeof node?.activeTabId === 'string' ? node.activeTabId : undefined;
+  const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
 
   return {
     type: 'leaf',
@@ -267,63 +256,20 @@ function inferAgentToolAction(message: string | undefined): AgentToolAction | nu
   };
 }
 
-function isPaneNode(value: any): value is IdePaneNode {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  if (value.type === 'leaf') {
-    return typeof value.id === 'string' && Array.isArray(value.tabs);
-  }
-
-  return (
-    value.type === 'split' &&
-    typeof value.id === 'string' &&
-    (value.direction === 'horizontal' || value.direction === 'vertical') &&
-    typeof value.ratio === 'number' &&
-    isPaneNode(value.first) &&
-    isPaneNode(value.second)
-  );
+function findLeaf(node: IdePaneNode, paneId: string): IdePaneNode | undefined {
+  return node.id === paneId ? node : undefined;
 }
 
-function findLeaf(node: IdePaneNode, paneId: string): Extract<IdePaneNode, { type: 'leaf' }> | undefined {
-  if (node.type === 'leaf') {
-    return node.id === paneId ? node : undefined;
-  }
-
-  return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
+function findLeafContainingTab(node: IdePaneNode, tabId: string): IdePaneNode | undefined {
+  return node.tabs.some((tab) => tab.id === tabId) ? node : undefined;
 }
 
-function firstLeaf(node: IdePaneNode): Extract<IdePaneNode, { type: 'leaf' }> {
-  return node.type === 'leaf' ? node : firstLeaf(node.first);
-}
-
-function findLeafContainingTab(node: IdePaneNode, tabId: string): Extract<IdePaneNode, { type: 'leaf' }> | undefined {
-  if (node.type === 'leaf') {
-    return node.tabs.some((tab) => tab.id === tabId) ? node : undefined;
-  }
-
-  return findLeafContainingTab(node.first, tabId) ?? findLeafContainingTab(node.second, tabId);
-}
-
-function updateLeaf(
-  node: IdePaneNode,
-  paneId: string,
-  updater: (leaf: Extract<IdePaneNode, { type: 'leaf' }>) => IdePaneNode,
-): IdePaneNode {
-  if (node.type === 'leaf') {
-    return node.id === paneId ? updater(node) : node;
-  }
-
-  return { ...node, first: updateLeaf(node.first, paneId, updater), second: updateLeaf(node.second, paneId, updater) };
+function updateLeaf(node: IdePaneNode, paneId: string, updater: (leaf: IdePaneNode) => IdePaneNode): IdePaneNode {
+  return node.id === paneId ? updater(node) : node;
 }
 
 function flattenTabs(node: IdePaneNode): IdePaneTab[] {
-  if (node.type === 'leaf') {
-    return node.tabs;
-  }
-
-  return [...flattenTabs(node.first), ...flattenTabs(node.second)];
+  return node.tabs;
 }
 
 interface BaseChatProps {
@@ -581,7 +527,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
-          if (isPaneNode(ui?.paneTree)) {
+          if (ui?.paneTree && typeof ui.paneTree === 'object') {
             setPaneTree(normalizeSinglePaneTree(ui.paneTree));
           }
 
@@ -998,7 +944,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (key === 'w') {
           event.preventDefault();
 
-          const leaf = findLeaf(paneTree, activePaneId) ?? firstLeaf(paneTree);
+          const leaf = findLeaf(paneTree, activePaneId) ?? paneTree;
           const tab = leaf.tabs.find((item) => item.id === leaf.activeTabId);
 
           if (tab) {
@@ -1024,7 +970,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (/^[1-9]$/.test(key)) {
           event.preventDefault();
 
-          const leaf = findLeaf(paneTree, activePaneId) ?? firstLeaf(paneTree);
+          const leaf = findLeaf(paneTree, activePaneId) ?? paneTree;
           const tab = leaf.tabs[Number(key) - 1];
 
           if (tab) {
@@ -1690,7 +1636,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const renderPaneLeaf = useCallback(
-      (leaf: Extract<IdePaneNode, { type: 'leaf' }>) => {
+      (leaf: IdePaneNode) => {
         const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
 
         return (

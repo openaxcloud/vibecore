@@ -34,21 +34,12 @@ export interface ProjectIdePaneTab {
   preview?: boolean;
 }
 
-export type ProjectIdePaneNode =
-  | {
-      type: 'leaf';
-      id: string;
-      tabs: ProjectIdePaneTab[];
-      activeTabId?: string;
-    }
-  | {
-      type: 'split';
-      id: string;
-      direction: 'horizontal' | 'vertical';
-      ratio: number;
-      first: ProjectIdePaneNode;
-      second: ProjectIdePaneNode;
-    };
+export type ProjectIdePaneNode = {
+  type: 'leaf';
+  id: string;
+  tabs: ProjectIdePaneTab[];
+  activeTabId?: string;
+};
 
 export interface ProjectIdeMemory {
   chat?: {

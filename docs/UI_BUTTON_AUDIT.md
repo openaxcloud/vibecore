@@ -62,4 +62,4 @@ pnpm exec playwright test tests/e2e/dashboard.spec.ts --project=chromium
 pnpm platform:verify
 ```
 
-The E2E suite asserts in-place IDE panel routing, recursive split creation, tab action menu, pinned terminal shortcut, command palette shortcut, backend env write, zip export, route rendering and sign out.
+The E2E suite asserts in-place IDE panel routing, tab action menu, pinned terminal shortcut, command palette shortcut, backend env write, zip export, route rendering and sign out.
