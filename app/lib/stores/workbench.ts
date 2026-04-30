@@ -158,11 +158,19 @@ export class WorkbenchStore {
         const scripts = pkg.scripts ?? {};
 
         if (scripts.dev) {
-          return { command: 'npm', args: ['run', 'dev', '--', '--host', '0.0.0.0'], label: 'npm run dev' };
+          return {
+            command: 'sh',
+            args: ['-lc', 'test -d node_modules || npm install; npm run dev -- --host 0.0.0.0'],
+            label: 'npm run dev',
+          };
         }
 
         if (scripts.start) {
-          return { command: 'npm', args: ['run', 'start'], label: 'npm run start' };
+          return {
+            command: 'sh',
+            args: ['-lc', 'test -d node_modules || npm install; npm run start'],
+            label: 'npm run start',
+          };
         }
       } catch (error) {
         console.warn('Failed to parse package.json for preview command:', error);

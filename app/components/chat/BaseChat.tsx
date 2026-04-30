@@ -393,6 +393,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
+    const runtimePreviews = useStore(workbenchStore.previews);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -428,6 +429,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
     }, [projectFiles]);
+    const projectRuntimeState = useMemo<ProjectIdeBackendState>(() => {
+      if (!runtimePreviews.length) {
+        return projectBackendState;
+      }
+
+      return {
+        ...projectBackendState,
+        workspace: {
+          ...(projectBackendState.workspace ?? {}),
+          status: projectBackendState.workspace?.status ?? 'running',
+        },
+        ports: runtimePreviews.map((preview) => ({
+          port: preview.port,
+          ready: preview.ready,
+          type: 'open',
+          url: preview.baseUrl,
+        })),
+      };
+    }, [projectBackendState, runtimePreviews]);
+    const previewDevUrl = projectRuntimeState.ports?.find((port) => port.ready !== false && port.url)?.url ?? '';
 
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
@@ -1588,15 +1609,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button type="button" aria-label="Forward">
                   <span className="i-ph:arrow-right" aria-hidden />
                 </button>
-                <button type="button" aria-label="Refresh preview">
+                <button
+                  type="button"
+                  aria-label="Refresh preview"
+                  onClick={() => void workbenchStore.refreshRuntimePorts()}
+                >
                   <span className="i-ph:arrow-clockwise" aria-hidden />
                 </button>
                 <input
                   aria-label="Preview URL"
                   readOnly
-                  value={projectBackendState.ports?.[0]?.url ?? 'Runtime preview'}
+                  title={previewDevUrl || 'Runtime preview'}
+                  value={previewDevUrl || 'Runtime preview'}
                 />
-                <button type="button" aria-label="Open preview in new tab">
+                <button
+                  type="button"
+                  aria-label="Open preview in new tab"
+                  disabled={!previewDevUrl}
+                  onClick={() => {
+                    if (previewDevUrl) {
+                      window.open(previewDevUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                >
                   <span className="i-ph:arrow-square-out" aria-hidden />
                 </button>
                 <select aria-label="Preview device">
@@ -1623,7 +1658,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         onProjectEditorSave,
         openIdeTool,
         openProjectFile,
-        projectBackendState.ports,
+        previewDevUrl,
         projectFiles,
         projectId,
         selectedFile,
@@ -2153,7 +2188,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
               <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
               <button type="button" onClick={() => openWorkspacePanel('preview')}>
-                {projectStatusLabel(projectBackendState)}
+                {projectStatusLabel(projectRuntimeState)}
               </button>
             </div>
             <div>

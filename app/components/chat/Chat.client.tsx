@@ -199,20 +199,7 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
-    useEffect(() => {
-      const prompt = searchParams.get('prompt');
-
-      // console.log(prompt, searchParams, model, provider);
-
-      if (prompt) {
-        setSearchParams({});
-        runAnimation();
-        append({
-          role: 'user',
-          content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
-        });
-      }
-    }, [model, provider, searchParams]);
+    const submittedProjectPromptRef = useRef<string | undefined>(undefined);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
@@ -355,6 +342,31 @@ export const ChatImpl = memo(
 
       setChatStarted(true);
     };
+
+    useEffect(() => {
+      const prompt = searchParams.get('prompt')?.trim();
+
+      if (!projectIdeMode || !projectId || !prompt) {
+        return;
+      }
+
+      const promptKey = `${projectId}:${prompt}`;
+
+      if (submittedProjectPromptRef.current === promptKey) {
+        return;
+      }
+
+      submittedProjectPromptRef.current = promptKey;
+      runAnimation();
+      append({
+        role: 'user',
+        content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
+      });
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('prompt');
+      setSearchParams(nextParams, { replace: true });
+    }, [append, model, projectId, projectIdeMode, provider.name, runAnimation, searchParams, setSearchParams]);
 
     // Helper function to create message parts array from text and images
     const createMessageParts = (text: string, images: string[] = []): Array<TextUIPart | FileUIPart> => {

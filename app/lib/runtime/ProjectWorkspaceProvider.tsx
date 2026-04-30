@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { useEffect, useMemo, useState, type PropsWithChildren } from 'react';
-import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
+import type { CommandEvent, FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { RuntimeError } from '@vibecore/runtime-contract';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -38,6 +38,11 @@ export function ProjectWorkspaceProvider({ projectId, adapter, children }: Proje
         }
 
         workbenchStore.workspaceStatus.set(session);
+        await seedRuntimeFromProjectStorage(projectId, runtime).catch((error) => {
+          workbenchStore.appendWorkspaceLog(
+            error instanceof Error ? `Project file sync skipped: ${error.message}` : 'Project file sync skipped',
+          );
+        });
         await workbenchStore.loadRuntimeFiles('.');
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
 
@@ -82,6 +87,40 @@ export function ProjectWorkspaceProvider({ projectId, adapter, children }: Proje
       {children}
     </RuntimeAdapterProvider>
   );
+}
+
+async function seedRuntimeFromProjectStorage(projectId: string, runtime: RuntimeAdapter) {
+  const existingFiles = await runtime.listFiles('.').catch(() => []);
+
+  if (!isRuntimeTreeEmpty(existingFiles)) {
+    return;
+  }
+
+  const response = await fetch(`/api/projects/${projectId}/project-action?intent=export`, {
+    credentials: 'include',
+    headers: { accept: 'application/zip' },
+  });
+
+  if (!response.ok) {
+    throw new Error(`export returned ${response.status}`);
+  }
+
+  const archive = new Uint8Array(await response.arrayBuffer());
+
+  if (archive.byteLength === 0) {
+    return;
+  }
+
+  await runtime.importZip(archive, '.');
+  workbenchStore.appendWorkspaceLog('Project files synced into workspace runtime');
+}
+
+function isRuntimeTreeEmpty(nodes: FileNode[]): boolean {
+  if (nodes.length === 0) {
+    return true;
+  }
+
+  return nodes.every((node) => node.type === 'directory' && (!node.children || isRuntimeTreeEmpty(node.children)));
 }
 
 function ProjectWorkspaceBanner({ logsExpanded, onToggleLogs }: { logsExpanded: boolean; onToggleLogs: () => void }) {

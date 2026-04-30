@@ -1412,6 +1412,15 @@ describe('SaaS API', () => {
       payload: { prompt: 'Build a dashboard', name: 'AI Dashboard' },
     });
     const projectId = project.json().project.id as string;
+    const createdFiles = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(createdFiles.statusCode).toBe(200);
+    expect(createdFiles.json().files.map((file: { path: string }) => file.path)).toEqual(
+      expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'src/styles.css']),
+    );
 
     const secret = await app.inject({
       method: 'PUT',

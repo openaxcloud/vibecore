@@ -1011,22 +1011,166 @@ function starterFiles(input: {
   if (input.sourceType === 'template') {
     return [
       { path: 'README.md', content: `# ${input.name}\n\nCreated from Bolt template \`${input.templateName}\`.\n` },
-      { path: 'package.json', content: '{\n  "scripts": {\n    "dev": "vite",\n    "build": "vite build"\n  }\n}\n' },
+      { path: 'package.json', content: vitePackageJson(input.name) },
+      { path: 'index.html', content: viteIndexHtml(input.name) },
+      { path: 'src/main.tsx', content: viteMainTsx() },
+      { path: 'src/App.tsx', content: viteAppTsx(input.name, `Created from Bolt template ${input.templateName}.`) },
+      { path: 'src/styles.css', content: viteStylesCss() },
     ];
   }
 
   if (input.sourceType === 'ai') {
     return [
       { path: 'README.md', content: `# ${input.name}\n\nGenerated from prompt:\n\n${input.prompt}\n` },
-      {
-        path: 'src/App.tsx',
-        content: 'export default function App() {\n  return <main>Generated project</main>;\n}\n',
-      },
+      { path: 'package.json', content: vitePackageJson(input.name) },
+      { path: 'index.html', content: viteIndexHtml(input.name) },
+      { path: 'src/main.tsx', content: viteMainTsx() },
+      { path: 'src/App.tsx', content: viteAppTsx(input.name, input.prompt ?? 'Generated app') },
+      { path: 'src/styles.css', content: viteStylesCss() },
     ];
   }
 
-  return [{ path: 'README.md', content: `# ${input.name}\n` }];
+  return [
+    { path: 'README.md', content: `# ${input.name}\n` },
+    { path: 'package.json', content: vitePackageJson(input.name) },
+    { path: 'index.html', content: viteIndexHtml(input.name) },
+    { path: 'src/main.tsx', content: viteMainTsx() },
+    { path: 'src/App.tsx', content: viteAppTsx(input.name, 'Start building your app with the VibeCore agent.') },
+    { path: 'src/styles.css', content: viteStylesCss() },
+  ];
 }
+
+function vitePackageJson(name: string) {
+  return `${JSON.stringify(
+    {
+      name: name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'vibecore-app',
+      private: true,
+      version: '0.0.0',
+      type: 'module',
+      scripts: {
+        dev: 'vite',
+        build: 'vite build',
+        preview: 'vite preview',
+      },
+      dependencies: {
+        '@vitejs/plugin-react': 'latest',
+        vite: 'latest',
+        typescript: 'latest',
+        react: 'latest',
+        'react-dom': 'latest',
+      },
+      devDependencies: {},
+    },
+    null,
+    2,
+  )}\n`;
+}
+
+function viteIndexHtml(name: string) {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapeHtml(name)}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+`;
+}
+
+function viteMainTsx() {
+  return `import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import './styles.css';
+
+createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+`;
+}
+
+function viteAppTsx(name: string, prompt: string) {
+  return `export default function App() {
+  return (
+    <main className="app-shell">
+      <section className="hero">
+        <p className="eyebrow">VibeCore project</p>
+        <h1>{${JSON.stringify(name)}}</h1>
+        <p>{${JSON.stringify(prompt)}}</p>
+      </section>
+    </main>
+  );
+}
+`;
+}
+
+function viteStylesCss() {
+  return `:root {
+  color: #f5f9fc;
+  background: #0a0f1c;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 48px;
+  background:
+    radial-gradient(circle at top left, rgba(123, 97, 255, 0.22), transparent 34rem),
+    linear-gradient(135deg, #0a0f1c 0%, #0e1525 100%);
+}
+
+.hero {
+  width: min(760px, 100%);
+  border: 1px solid #2b3245;
+  border-radius: 12px;
+  padding: 32px;
+  background: rgba(26, 32, 48, 0.82);
+  box-shadow: 0 24px 64px rgba(0, 4, 20, 0.7);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #0099ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(32px, 6vw, 68px);
+  line-height: 1;
+}
+
+.hero p:last-child {
+  margin: 20px 0 0;
+  color: #c2c8cc;
+  font-size: 16px;
+  line-height: 1.6;
+}
+`;
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+}
+
 
 function publicFiles(files: ProjectFile[]) {
   return files.map(({ path, updatedAt, content }) => ({ path, updatedAt, sizeBytes: Buffer.byteLength(content) }));
