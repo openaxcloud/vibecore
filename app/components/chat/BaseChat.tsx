@@ -607,6 +607,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectFiles, projectIdeMode]);
 
     useEffect(() => {
+      if (!projectIdeMode || !rightPanelOpen) {
+        return;
+      }
+
+      void workbenchStore.loadRuntimeFiles('.').catch((error) => {
+        console.error('Failed to refresh right files panel:', error);
+      });
+    }, [projectIdeMode, rightPanelOpen]);
+
+    useEffect(() => {
       if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {
         return;
       }
@@ -2017,7 +2027,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             data-testid="ide-files-panel-toggle"
             onClick={() => setRightPanelOpen((value) => !value)}
           >
-            <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:browser'} aria-hidden />
+            <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:files'} aria-hidden />
           </button>
         )}
         {commandPaletteOpen && (
@@ -2384,7 +2394,7 @@ function ProjectFilesTool({
         <button type="button" aria-label="New folder" onClick={() => void createEntry('folder')}>
           <span className="i-ph:folder-plus" aria-hidden />
         </button>
-        <button type="button" aria-label="Refresh files" onClick={() => void workbenchStore.loadRuntimeFiles(WORK_DIR)}>
+        <button type="button" aria-label="Refresh files" onClick={() => void workbenchStore.loadRuntimeFiles('.')}>
           <span className="i-ph:arrow-clockwise" aria-hidden />
         </button>
         <button type="button" aria-label="Collapse all files" onClick={() => setCollapsed((value) => !value)}>
