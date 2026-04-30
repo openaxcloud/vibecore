@@ -1634,7 +1634,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   });
   await app.register(rateLimit, {
-    max: 300,
+    max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
     keyGenerator(request) {
       const org = (request.headers['x-org-id'] as string | undefined) ?? 'no-org';

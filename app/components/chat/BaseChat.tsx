@@ -168,7 +168,11 @@ function fileTypeLabel(filePath?: string) {
 const DEFAULT_PANE_TREE: IdePaneNode = {
   type: 'leaf',
   id: 'pane-main',
-  tabs: [],
+  tabs: [
+    { id: 'tab-editor-default', panel: 'editor' },
+    { id: 'tab-preview-default', panel: 'preview', pinned: true },
+  ],
+  activeTabId: 'tab-editor-default',
 };
 
 function cloneDefaultPaneTree(): IdePaneNode {
@@ -1894,7 +1898,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 type="button"
                 className="bolt-project-ide-icon-button ml-auto"
                 aria-label="Close right panel"
-                onClick={() => setRightPanelOpen(false)}
+                onClick={() => {
+                  setRightPanelOpen(false);
+                  setSearchParams({});
+                }}
               >
                 <span className="i-ph:x" aria-hidden />
               </button>
@@ -2067,7 +2074,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             aria-label={rightPanelOpen ? 'Close right panel' : 'Open right panel'}
             aria-pressed={rightPanelOpen}
             data-testid="ide-files-panel-toggle"
-            onClick={() => setRightPanelOpen((value) => !value)}
+            onClick={() => {
+              setRightPanelOpen((value) => {
+                const next = !value;
+
+                if (!next) {
+                  setSearchParams({});
+                }
+
+                return next;
+              });
+            }}
           >
             <span className={rightPanelOpen ? 'i-ph:sidebar-simple' : 'i-ph:files'} aria-hidden />
           </button>
@@ -2609,7 +2626,7 @@ function IdeTabBar({
             style={{
               left: menuPosition.left,
               top: menuPosition.top,
-              maxHeight: `calc(100vh - ${menuPosition.top + 8}px)`,
+              maxHeight: '480px',
             }}
           >
             <div className="bolt-project-tool-search">
@@ -2917,6 +2934,7 @@ function ProjectIdePanelContent({
             <option>zsh</option>
           </select>
           <button type="button">Clear</button>
+          <button type="button">Split</button>
         </div>
         <div className="bolt-project-console-body">
           {lines.map((line: string) => (

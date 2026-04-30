@@ -59,7 +59,7 @@ jobs:
 
       - name: Start web app
         run: |
-          pnpm run dev -- --host 127.0.0.1 --port 5173 > /tmp/vibecore-web.log 2>&1 &
+          VITE_DEV_HOST=127.0.0.1 VITE_DEV_PORT=5173 VITE_STRICT_PORT=true pnpm run dev > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
           npx wait-on http://127.0.0.1:5173
 

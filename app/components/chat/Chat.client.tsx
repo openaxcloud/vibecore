@@ -28,6 +28,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
 import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 const logger = createScopedLogger('Chat');
 
@@ -44,11 +45,51 @@ export function Chat({
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
+  const [projectInitialMessages, setProjectInitialMessages] = useState<Message[] | undefined>(undefined);
+  const [projectMemoryReady, setProjectMemoryReady] = useState(!projectIdeMode || !projectId);
+
+  useEffect(() => {
+    if (!projectIdeMode || !projectId) {
+      setProjectMemoryReady(true);
+      setProjectInitialMessages(undefined);
+
+      return undefined;
+    }
+
+    let cancelled = false;
+    setProjectMemoryReady(false);
+
+    getProjectIdeMemory(projectId)
+      .then((memory) => {
+        if (cancelled) {
+          return;
+        }
+
+        setProjectInitialMessages(Array.isArray(memory.chat?.messages) ? memory.chat.messages : []);
+      })
+      .catch((error) => {
+        console.error('Failed to load project chat memory', error);
+
+        if (!cancelled) {
+          setProjectInitialMessages([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setProjectMemoryReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectIdeMode, projectId]);
+
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
-  if (!ready) {
+  if (!ready || !projectMemoryReady) {
     return <BaseChat chatStarted={forceWorkbench} projectIdeMode={projectIdeMode} projectId={projectId} />;
   }
 
@@ -58,7 +99,7 @@ export function Chat({
       projectIdeMode={projectIdeMode}
       projectId={projectId}
       description={title}
-      initialMessages={initialMessages}
+      initialMessages={projectIdeMode ? (projectInitialMessages ?? []) : initialMessages}
       exportChat={exportChat}
       storeMessageHistory={storeMessageHistory}
       importChat={importChat}
@@ -218,7 +259,26 @@ export const ChatImpl = memo(
         parseMessages,
         storeMessageHistory,
       });
-    }, [messages, isLoading, parseMessages]);
+
+      if (projectIdeMode && projectId) {
+        saveProjectIdeMemory(projectId, {
+          chat: {
+            id: `project:${projectId}`,
+            description: description ?? 'Project agent',
+            messages,
+          },
+        }).catch((error) => console.error('Failed to persist project chat memory', error));
+      }
+    }, [
+      description,
+      initialMessages,
+      isLoading,
+      messages,
+      parseMessages,
+      projectId,
+      projectIdeMode,
+      storeMessageHistory,
+    ]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;

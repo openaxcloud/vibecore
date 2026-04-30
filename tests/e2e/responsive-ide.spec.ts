@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const email = `responsive-${suffix}@local.test`;
   const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
@@ -20,8 +21,7 @@ async function authenticate(page: import('@playwright/test').Page) {
     {
       name: 'vc_session',
       value: payload.token,
-      domain: 'localhost',
-      path: '/',
+      url: appBaseUrl,
       httpOnly: true,
       sameSite: 'Lax',
     },
@@ -51,19 +51,19 @@ test.describe('responsive IDE shell', () => {
     await authenticate(page);
     await page.goto('/projects/project_files_toggle/ide', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
 
     const filesToggle = page.getByTestId('ide-files-panel-toggle');
     await expect(filesToggle).toBeVisible();
     await expect(filesToggle).toHaveAttribute('aria-label', 'Close right panel');
     await filesToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
     await expect(filesToggle).toHaveAttribute('aria-label', 'Open right panel');
     await filesToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
   });
 
   test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {

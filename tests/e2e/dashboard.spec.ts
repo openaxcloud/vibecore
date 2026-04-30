@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const email = `e2e-${suffix}@local.test`;
   const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
@@ -21,8 +22,7 @@ async function authenticate(page: import('@playwright/test').Page) {
     {
       name: 'vc_session',
       value: payload.token,
-      domain: 'localhost',
-      path: '/',
+      url: appBaseUrl,
       httpOnly: true,
       sameSite: 'Lax',
     },
@@ -243,7 +243,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 
-  const rightPanel = page.getByRole('complementary', { name: 'Right preview panel' });
+  const rightPanel = page.getByRole('complementary', { name: 'Project files panel' });
   await expect(rightPanel).toBeVisible();
 
   const rightPanelMetrics = await rightPanel.evaluate((element) => {
@@ -267,18 +267,13 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(rightPanelMetrics.height).toBe((page.viewportSize()?.height ?? 720) - 36);
   expect(rightPanelMetrics.background).toBe('rgb(14, 21, 37)');
   expect(rightPanelMetrics.borderLeft).toBe('rgb(26, 32, 48)');
-  await expect(rightPanel.getByRole('tab', { name: 'Files' })).toBeVisible();
-  await expect(rightPanel.getByRole('tab', { name: 'Webview' })).toBeVisible();
-  await expect(rightPanel.getByRole('tab', { name: 'Console' })).toBeVisible();
-  await expect(rightPanel.getByRole('tab', { name: 'Network' })).toBeVisible();
-  await rightPanel.getByRole('tab', { name: 'Files' }).click();
   await expect(rightPanel.locator('.bolt-project-files-tool')).toBeVisible();
   await expect(page.getByLabel('Resize right panel')).toBeVisible();
   await rightPanel.getByLabel('Close right panel').click();
   await expect(rightPanel).toHaveCount(0);
   await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open right panel');
   await page.getByTestId('ide-files-panel-toggle').click();
-  await expect(page.getByRole('complementary', { name: 'Right preview panel' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
 });
 
 test('IDE applies the full 2026 color theme tokens', async ({ page }) => {
@@ -375,7 +370,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
     tabbar: '.bolt-project-tabbar',
     databasePanel: '[data-testid="ide-service-panel"][data-panel="database"]',
     rightPanel: '.bolt-project-right-panel-shell',
-    rightTabs: '.bolt-project-right-tabs',
+    rightHeader: '.bolt-project-right-files-header',
     statusbar: '.bolt-project-statusbar',
   };
 
@@ -457,7 +452,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
     expect(snapshot.surfaces.databasePanel.background).toBe('rgb(10, 15, 28)');
     expect(snapshot.surfaces.rightPanel.background).toBe('rgb(14, 21, 37)');
     expect(snapshot.surfaces.rightPanel.borderLeftColor).toBe('rgb(26, 32, 48)');
-    expect(snapshot.surfaces.rightTabs.background).toBe('rgb(14, 21, 37)');
+    expect(snapshot.surfaces.rightHeader.background).toBe('rgb(14, 21, 37)');
     expect(snapshot.surfaces.statusbar.background).toBe('rgb(14, 21, 37)');
     expect(snapshot.surfaces.statusbar.color).toBe('rgb(194, 200, 204)');
   }
@@ -1006,7 +1001,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   });
 
   if (!isMobile) {
-    await expect(page.getByRole('tab', { name: 'Network' })).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
     await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
 
     const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
@@ -1040,7 +1035,7 @@ test('authenticated users can sign out from the app shell', async ({ page }) => 
   await expect(page).toHaveURL('/login');
   await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
 
-  const cookies = await page.context().cookies('http://localhost:5173');
+  const cookies = await page.context().cookies(process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173');
   expect(cookies.some((cookie) => cookie.name === 'vc_session')).toBe(false);
 
   const me = await page.request.get(`${apiBaseUrl}/auth/me`, {

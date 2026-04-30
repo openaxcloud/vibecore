@@ -140,6 +140,7 @@ function ProjectWorkspaceBanner({ logsExpanded, onToggleLogs }: { logsExpanded: 
       <div className="flex flex-wrap items-center gap-3">
         <span className="font-medium">Workspace</span>
         <span>{loading ? 'Starting workspace...' : (status?.status ?? 'not started')}</span>
+        {status?.status && <span className="sr-only">{`Workspace ${status.status}`}</span>}
         {quotaWarning && <span className="text-bolt-elements-textSecondary">{quotaWarning}</span>}
         {billingUpgradePrompt && <span className="text-bolt-elements-item-contentAccent">{billingUpgradePrompt}</span>}
         {error && <span className="text-red-500">{error}</span>}

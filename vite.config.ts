@@ -12,9 +12,18 @@ dotenv.config({ path: '.env' });
 dotenv.config();
 
 export default defineConfig((config) => {
+  const devHost = process.env.VITE_DEV_HOST;
+  const devPort = Number(process.env.VITE_DEV_PORT ?? 5173);
+  const strictDevPort = process.env.VITE_STRICT_PORT === 'true';
+
   return {
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    },
+    server: {
+      host: devHost,
+      port: devPort,
+      strictPort: strictDevPort,
     },
     build: {
       target: 'esnext',

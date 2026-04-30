@@ -13,8 +13,8 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: 'pnpm run dev',
-      url: 'http://localhost:5173',
+      command: 'VITE_DEV_HOST=127.0.0.1 VITE_DEV_PORT=5173 VITE_STRICT_PORT=true pnpm run dev',
+      url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173',
       reuseExistingServer: true,
       timeout: 120_000,
     },

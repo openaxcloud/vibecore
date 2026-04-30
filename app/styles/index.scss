@@ -411,6 +411,16 @@ body
   }
 }
 
+@keyframes vc-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes vc-modal-in {
   from {
     opacity: 0;
@@ -543,6 +553,10 @@ body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
   box-shadow: var(--vc-ui-shadow-xl);
   animation: vc-modal-in var(--vc-animation-modal) ease-out both;
   transform-origin: center top;
+}
+
+body .bolt-project-command-palette {
+  animation: vc-fade-in 100ms ease-out both;
 }
 
 body
@@ -2548,11 +2562,11 @@ body :where(.lucide, svg[data-lucide]) {
   left: 50%;
   z-index: 90;
   display: grid;
-  width: min(600px, calc(100vw - 32px));
+  width: 600px;
   transform: translateX(-50%);
   overflow: hidden;
   border: 1px solid #2b3245;
-  border-radius: var(--vc-ui-radius-modal);
+  border-radius: 12px;
   background: #1a2030;
   box-shadow: var(--vc-ui-shadow-xl);
 }
