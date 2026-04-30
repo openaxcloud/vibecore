@@ -1066,6 +1066,20 @@ function agentBaseUrl(workspaceId: string) {
   return `http://workspace-${workspaceId}.${runtimeNamespace()}.svc.cluster.local:8080`;
 }
 
+function previewUrlForWorkspacePort(workspaceId: string, port: number) {
+  const template = process.env.PREVIEW_URL_TEMPLATE ?? process.env.PREVIEW_PROXY_URL;
+
+  if (template) {
+    return template
+      .replaceAll('{workspaceId}', workspaceId)
+      .replaceAll('{port}', String(port))
+      .replaceAll('{namespace}', runtimeNamespace())
+      .replace(/\/+$/, '');
+  }
+
+  return `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/preview/${encodeURIComponent(String(port))}/proxy/`;
+}
+
 function runtimeSession(
   workspaceId: string,
   status: 'running' | 'starting' | 'stopped' | 'failed' = 'running',
@@ -1161,6 +1175,26 @@ async function runtimeWebSocketData(data: unknown) {
   }
 
   return String(data);
+}
+
+function previewProxyHeaders(headers: Record<string, string | string[] | undefined>) {
+  const forwarded: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(headers)) {
+    const lower = key.toLowerCase();
+
+    if (['host', 'authorization', 'cookie', 'connection', 'content-length'].includes(lower)) {
+      continue;
+    }
+
+    if (typeof value === 'string') {
+      forwarded[key] = value;
+    } else if (Array.isArray(value)) {
+      forwarded[key] = value.join(',');
+    }
+  }
+
+  return forwarded;
 }
 
 type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
@@ -2180,15 +2214,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       output = await managerRequest(`/workspaces/${workspaceId}`);
     } else if (toolName === 'get_preview_url') {
       const port = input.port ?? 5173;
-      const urlTemplate = process.env.PREVIEW_URL_TEMPLATE;
       output = {
         port,
-        url: urlTemplate
-          ? urlTemplate
-              .replaceAll('{workspaceId}', workspaceId)
-              .replaceAll('{port}', String(port))
-              .replaceAll('{namespace}', runtimeNamespace())
-          : agentBaseUrl(workspaceId),
+        url: previewUrlForWorkspacePort(workspaceId, port),
       };
     } else if (toolName === 'list_ports') {
       output = await agentRequest(workspaceId, '/ports');
@@ -2524,7 +2552,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ...port,
       type: 'open',
       ready: true,
-      url: `${process.env.PREVIEW_PROXY_URL ?? agentBaseUrl(authorized.workspaceId)}`,
+      url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
     }));
   });
   app.get('/api/runtime/workspaces/:workspaceId/preview/:port', async (request) => {
@@ -2539,14 +2567,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
     metrics.increment('preview_requests_total', { port });
-    const urlTemplate = process.env.PREVIEW_URL_TEMPLATE;
-    const url = urlTemplate
-      ? urlTemplate
-          .replaceAll('{workspaceId}', authorized.workspaceId)
-          .replaceAll('{port}', String(port))
-          .replaceAll('{namespace}', runtimeNamespace())
-      : `${agentBaseUrl(authorized.workspaceId)}`;
+    const url = previewUrlForWorkspacePort(authorized.workspaceId, port);
     return { port, url, ready: true };
+  });
+  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', async (request, reply) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const params = request.params as { port: string; '*': string };
+    const port = Number(params.port);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      return reply.code(400).send({ error: 'invalid_port' });
+    }
+
+    if (authorized.organizationId) {
+      await ensureQuota(request, authorized.organizationId, 'previews.public');
+      await recordUsage(request, authorized.organizationId, 'previews.public', 1, {
+        workspaceId: authorized.workspaceId,
+        port,
+      });
+    }
+
+    const token = await agentToken(authorized.workspaceId);
+    const proxyPath = params['*'] ?? '';
+    const agentUrl = new URL(`${agentBaseUrl(authorized.workspaceId)}/preview/${port}/${proxyPath}`);
+    const queryIndex = request.url.indexOf('?');
+
+    if (queryIndex >= 0) {
+      agentUrl.search = request.url.slice(queryIndex);
+    }
+
+    const response = await fetch(agentUrl, {
+      method: request.method,
+      headers: {
+        ...previewProxyHeaders(request.headers),
+        authorization: `Bearer ${token}`,
+      },
+      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
+      redirect: 'manual',
+    });
+
+    for (const [key, value] of response.headers.entries()) {
+      if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+        reply.header(key, value);
+      }
+    }
+
+    return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
   });
   app.post('/api/runtime/workspaces/:workspaceId/snapshots', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -2604,7 +2671,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(204).send();
   });
 
-  const proxyRuntimeSocket = async (rawSocket: unknown, workspaceId: string, agentPath: string) => {
+  const proxyRuntimeSocket = async (rawSocket: unknown, workspaceId: string, agentPath: string, wrapMessages = true) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
     const upstream = new WebSocket(
@@ -2612,15 +2679,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .replace(/^http:/, 'ws:')
         .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}`,
     );
-    upstream.addEventListener('message', async (event) =>
+    const pendingMessages: string[] = [];
+
+    upstream.addEventListener('open', () => {
+      for (const message of pendingMessages.splice(0)) {
+        upstream.send(message);
+      }
+    });
+    upstream.addEventListener('message', async (event) => {
+      const data = await runtimeWebSocketData(event.data);
       client.send(
-        JSON.stringify({
-          type: 'stdout',
-          data: await runtimeWebSocketData(event.data),
-          timestamp: new Date().toISOString(),
-        }),
-      ),
-    );
+        wrapMessages
+          ? JSON.stringify({
+              type: 'stdout',
+              data,
+              timestamp: new Date().toISOString(),
+            })
+          : data,
+      );
+    });
     upstream.addEventListener('close', () => client.close());
     upstream.addEventListener('error', () =>
       client.send(
@@ -2631,9 +2708,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       ),
     );
-    client.onMessage((message) => upstream.readyState === WebSocket.OPEN && upstream.send(message.toString()));
+    client.onMessage((message) => {
+      const text = message.toString();
+
+      if (upstream.readyState === WebSocket.OPEN) {
+        upstream.send(text);
+      } else {
+        pendingMessages.push(text);
+      }
+    });
     client.onClose(() => upstream.close());
   };
+
+  app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    await proxyRuntimeSocket(socket, authorized.workspaceId, '/commands/stream', false);
+  });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -2703,7 +2794,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       '/ports',
     );
     for (const port of result.ports) {
-      client.send(JSON.stringify({ ...port, type: 'open', ready: true, url: agentBaseUrl(authorized.workspaceId) }));
+      client.send(
+        JSON.stringify({
+          ...port,
+          type: 'open',
+          ready: true,
+          url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
+        }),
+      );
     }
   });
 

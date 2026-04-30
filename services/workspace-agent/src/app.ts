@@ -25,6 +25,7 @@ interface ProcessRecord {
   command: string;
   startedAt: string;
   process: ChildProcessWithoutNullStreams;
+  output?: string;
 }
 
 const filePathSchema = z.object({ path: z.string().min(1) });
@@ -160,6 +161,37 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.get('/ports', async () => ({ ports: detectPorts(processes) }));
 
+  app.all('/preview/:port/*', async (request, reply) => {
+    const port = Number((request.params as { port: string; '*': string }).port);
+    const targetPath = (request.params as { '*': string })['*'] ?? '';
+
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      return reply.code(400).send({ error: 'invalid_port' });
+    }
+
+    const target = new URL(`http://127.0.0.1:${port}/${targetPath}`);
+    const queryIndex = request.url.indexOf('?');
+
+    if (queryIndex >= 0) {
+      target.search = request.url.slice(queryIndex);
+    }
+
+    const response = await fetch(target, {
+      method: request.method,
+      headers: previewProxyHeaders(request.headers),
+      body: request.method === 'GET' || request.method === 'HEAD' ? undefined : (request.body as any),
+      redirect: 'manual',
+    });
+
+    for (const [key, value] of response.headers.entries()) {
+      if (!['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+        reply.header(key, value);
+      }
+    }
+
+    return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
+  });
+
   app.post('/snapshots/create', async () => ({
     id: createHash('sha256').update(`${Date.now()}:${root}`).digest('hex').slice(0, 16),
     createdAt: new Date().toISOString(),
@@ -185,15 +217,103 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.register(async (terminalApp) => {
     await terminalApp.register(websocket);
-    terminalApp.get('/terminal', { websocket: true }, (rawSocket) => {
+    terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
+      let activeProcess: ChildProcessWithoutNullStreams | undefined;
 
       terminalSessions += 1;
-      socket.send(JSON.stringify({ type: 'ready', cwd: '/workspace' }));
       socket.onMessage((message) => {
-        socket.send(JSON.stringify({ type: 'input', data: message.toString() }));
+        const payload = parseCommandStreamMessage(message);
+
+        if (!payload) {
+          return;
+        }
+
+        runCommandStream(root, payload.command, payload.args ?? [], {
+          maxOutputBytes,
+          maxProcesses,
+          processes,
+          socket,
+          onActiveProcess: (process) => {
+            activeProcess = process;
+          },
+          onComplete: () => {
+            activeProcess = undefined;
+          },
+        }).catch((error) => {
+          socket.send(
+            JSON.stringify({
+              type: 'error',
+              error: { message: error instanceof Error ? error.message : String(error) },
+              timestamp: new Date().toISOString(),
+            }),
+          );
+        });
       });
       socket.onClose(() => {
+        activeProcess?.kill('SIGTERM');
+        terminalSessions = Math.max(0, terminalSessions - 1);
+      });
+    });
+
+    terminalApp.get('/terminal', { websocket: true }, (rawSocket) => {
+      const socket = normalizeWebSocket(rawSocket);
+      let inputBuffer = '';
+      let activeProcess: ChildProcessWithoutNullStreams | undefined;
+
+      terminalSessions += 1;
+      sendTerminalPrompt(socket, true);
+      socket.onMessage((message) => {
+        const payload = parseTerminalMessage(message);
+
+        if (payload.type === 'resize') {
+          return;
+        }
+
+        if (payload.type === 'kill') {
+          activeProcess?.kill('SIGTERM');
+          return;
+        }
+
+        const data = payload.data ?? '';
+
+        if (!data) {
+          return;
+        }
+
+        inputBuffer += data;
+
+        if (!inputBuffer.includes('\n') && !inputBuffer.includes('\r')) {
+          return;
+        }
+
+        const command = inputBuffer.replace(/\r/g, '\n').split('\n')[0]?.trim() ?? '';
+        inputBuffer = '';
+
+        if (!command) {
+          sendTerminalPrompt(socket);
+          return;
+        }
+
+        runTerminalCommand(root, command, {
+          maxOutputBytes,
+          maxProcesses,
+          processes,
+          socket,
+          onActiveProcess: (process) => {
+            activeProcess = process;
+          },
+          onComplete: () => {
+            activeProcess = undefined;
+          },
+        }).catch((error) => {
+          socket.send(`${error instanceof Error ? error.message : String(error)}\n`);
+          sendTerminalExit(socket, 1);
+          sendTerminalPrompt(socket);
+        });
+      });
+      socket.onClose(() => {
+        activeProcess?.kill('SIGTERM');
         terminalSessions = Math.max(0, terminalSessions - 1);
       });
     });
@@ -260,6 +380,62 @@ function assertContentSize(content: string, maxFileBytes: number) {
   if (Buffer.byteLength(content) > maxFileBytes) {
     throw new Error('File is too large');
   }
+}
+
+function parseTerminalMessage(message: Buffer) {
+  const text = message.toString();
+
+  try {
+    const parsed = JSON.parse(text) as { type?: string; data?: string };
+    return {
+      type: parsed.type ?? 'stdin',
+      data: typeof parsed.data === 'string' ? parsed.data : '',
+    };
+  } catch {
+    return { type: 'stdin', data: text };
+  }
+}
+
+function parseCommandStreamMessage(message: Buffer): { command: string; args?: string[] } | undefined {
+  try {
+    const parsed = JSON.parse(message.toString()) as { type?: string; payload?: { command?: string; args?: string[] } };
+
+    if (parsed.type === 'hello' && typeof parsed.payload?.command === 'string') {
+      return { command: parsed.payload.command, args: parsed.payload.args ?? [] };
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function sendTerminalPrompt(socket: ReturnType<typeof normalizeWebSocket>, interactive = false) {
+  socket.send(`${interactive ? '\x1b]654;interactive\x07' : ''}\x1b]654;prompt\x07`);
+}
+
+function sendTerminalExit(socket: ReturnType<typeof normalizeWebSocket>, exitCode: number) {
+  socket.send(`\x1b]654;exit=${exitCode}:${exitCode}\x07`);
+}
+
+function previewProxyHeaders(headers: FastifyRequest['headers']) {
+  const forwarded = new Headers();
+
+  for (const [key, value] of Object.entries(headers)) {
+    const lower = key.toLowerCase();
+
+    if (['host', 'authorization', 'cookie', 'connection', 'content-length'].includes(lower)) {
+      continue;
+    }
+
+    if (typeof value === 'string') {
+      forwarded.set(key, value);
+    } else if (Array.isArray(value)) {
+      forwarded.set(key, value.join(','));
+    }
+  }
+
+  return forwarded;
 }
 
 async function listTree(root: string, current: string): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
@@ -334,7 +510,7 @@ async function runCommand(
 
   const id = createHash('sha256').update(`${command}:${args.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
   const child = spawn(command, args, { cwd, shell: false, env: process.env });
-  const record = { id, command: [command, ...args].join(' '), startedAt: new Date().toISOString(), process: child };
+  const record = { id, command: [command, ...args].join(' '), startedAt: new Date().toISOString(), process: child, output: '' };
   options.processes.set(id, record);
 
   let stdout = '';
@@ -360,6 +536,7 @@ async function runCommand(
     } else {
       stderr = next;
     }
+    record.output = `${stdout}\n${stderr}`.slice(-options.maxOutputBytes);
   };
 
   child.stdout.on('data', (chunk) => append('stdout', chunk));
@@ -374,9 +551,132 @@ async function runCommand(
   });
 }
 
+async function runTerminalCommand(
+  cwd: string,
+  command: string,
+  options: {
+    maxOutputBytes: number;
+    maxProcesses: number;
+    processes: Map<string, ProcessRecord>;
+    socket: ReturnType<typeof normalizeWebSocket>;
+    onActiveProcess: (process: ChildProcessWithoutNullStreams) => void;
+    onComplete: () => void;
+  },
+) {
+  if (options.processes.size >= options.maxProcesses) {
+    throw new Error('Process limit reached');
+  }
+
+  const signal = detectCommandAbuse('/bin/sh', ['-lc', command]);
+
+  if (signal) {
+    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
+      statusCode: 409,
+      code: `ABUSE_${signal.type.toUpperCase()}`,
+    });
+  }
+
+  const id = createHash('sha256').update(`terminal:${command}:${Date.now()}`).digest('hex').slice(0, 12);
+  const child = spawn('/bin/sh', ['-lc', command], { cwd, shell: false, env: process.env });
+  const record: ProcessRecord = {
+    id,
+    command,
+    startedAt: new Date().toISOString(),
+    process: child,
+    output: '',
+  };
+  options.processes.set(id, record);
+  options.onActiveProcess(child);
+
+  const append = (chunk: Buffer) => {
+    const text = chunk.toString('utf8');
+    record.output = `${record.output ?? ''}${text}`.slice(-options.maxOutputBytes);
+    options.socket.send(text);
+  };
+
+  child.stdout.on('data', append);
+  child.stderr.on('data', append);
+
+  await new Promise<void>((resolvePromise) => {
+    child.on('close', (code) => {
+      sendTerminalExit(options.socket, code ?? 0);
+      sendTerminalPrompt(options.socket);
+      options.processes.delete(id);
+      options.onComplete();
+      resolvePromise();
+    });
+  });
+}
+
+async function runCommandStream(
+  cwd: string,
+  command: string,
+  args: string[],
+  options: {
+    maxOutputBytes: number;
+    maxProcesses: number;
+    processes: Map<string, ProcessRecord>;
+    socket: ReturnType<typeof normalizeWebSocket>;
+    onActiveProcess: (process: ChildProcessWithoutNullStreams) => void;
+    onComplete: () => void;
+  },
+) {
+  if (options.processes.size >= options.maxProcesses) {
+    throw new Error('Process limit reached');
+  }
+
+  const signal = detectCommandAbuse(command, args);
+
+  if (signal) {
+    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
+      statusCode: 409,
+      code: `ABUSE_${signal.type.toUpperCase()}`,
+    });
+  }
+
+  const id = createHash('sha256').update(`stream:${command}:${args.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
+  const child = spawn(command, args, { cwd, shell: false, env: process.env });
+  const record: ProcessRecord = {
+    id,
+    command: [command, ...args].join(' '),
+    startedAt: new Date().toISOString(),
+    process: child,
+    output: '',
+  };
+  options.processes.set(id, record);
+  options.onActiveProcess(child);
+
+  const send = (type: 'stdout' | 'stderr', chunk: Buffer) => {
+    const data = chunk.toString('utf8');
+    record.output = `${record.output ?? ''}${data}`.slice(-options.maxOutputBytes);
+    options.socket.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+  };
+
+  child.stdout.on('data', (chunk) => send('stdout', chunk));
+  child.stderr.on('data', (chunk) => send('stderr', chunk));
+
+  await new Promise<void>((resolvePromise) => {
+    child.on('close', (code) => {
+      options.socket.send(JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }));
+      options.processes.delete(id);
+      options.onComplete();
+      resolvePromise();
+    });
+  });
+}
+
 function detectPorts(processes: Map<string, ProcessRecord>) {
   return [...processes.values()].flatMap((record) => {
-    const matches = record.command.matchAll(/(?:localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+)(\d{2,5})/g);
-    return [...matches].map((match) => ({ port: Number(match[1]), processId: record.id }));
+    const source = `${record.command}\n${record.output ?? ''}`;
+    const matches = source.matchAll(
+      /(?:https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[[^\]]+\])[:/]|localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+|LISTEN\s+)(\d{2,5})/gi,
+    );
+    const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
+
+    if (!ports.size && /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)) {
+      ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
+    }
+
+    return [...ports].map((port) => ({ port, processId: record.id }));
   });
 }

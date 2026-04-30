@@ -91,6 +91,9 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
   const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
   const expoUrl = useStore(expoUrlAtom);
   const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
+  const [isRefreshingPorts, setIsRefreshingPorts] = useState(false);
+  const [isStartingPreview, setIsStartingPreview] = useState(false);
+  const [previewStatus, setPreviewStatus] = useState<string | undefined>();
 
   useEffect(() => {
     if (!projectId || previews.length === 0) {
@@ -167,9 +170,38 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
     }
   }, [previews, findMinPortIndex]);
 
+  const refreshPorts = useCallback(async () => {
+    setIsRefreshingPorts(true);
+    setPreviewStatus(undefined);
+
+    try {
+      await workbenchStore.refreshRuntimePorts();
+    } catch (error) {
+      setPreviewStatus(error instanceof Error ? error.message : 'Failed to refresh preview ports');
+    } finally {
+      setIsRefreshingPorts(false);
+    }
+  }, []);
+
+  const startPreviewServer = useCallback(async () => {
+    setIsStartingPreview(true);
+    setPreviewStatus(undefined);
+
+    try {
+      const label = await workbenchStore.startPreviewServer();
+      setPreviewStatus(`Starting ${label}...`);
+      window.setTimeout(() => setIsStartingPreview(false), 2500);
+    } catch (error) {
+      setPreviewStatus(error instanceof Error ? error.message : 'Failed to start preview server');
+      setIsStartingPreview(false);
+    }
+  }, []);
+
   const reloadPreview = () => {
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
+    } else {
+      void refreshPorts();
     }
   };
 
@@ -1055,8 +1087,33 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
               />
             </>
           ) : (
-            <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-              No preview available
+            <div className="bolt-preview-empty-state">
+              <div className="bolt-preview-empty-card">
+                <div className="bolt-preview-empty-icon">
+                  <span className="i-ph:browser" aria-hidden />
+                </div>
+                <h3>Preview not running</h3>
+                <p>Start the project dev server or refresh ports after the app finishes booting.</p>
+                {previewStatus && <small>{previewStatus}</small>}
+                <div className="bolt-preview-empty-actions">
+                  <button type="button" onClick={startPreviewServer} disabled={isStartingPreview}>
+                    {isStartingPreview ? (
+                      <span className="i-ph:circle-notch animate-spin" aria-hidden />
+                    ) : (
+                      <span className="i-ph:play" aria-hidden />
+                    )}
+                    Start dev server
+                  </button>
+                  <button type="button" onClick={refreshPorts} disabled={isRefreshingPorts}>
+                    {isRefreshingPorts ? (
+                      <span className="i-ph:circle-notch animate-spin" aria-hidden />
+                    ) : (
+                      <span className="i-ph:arrow-clockwise" aria-hidden />
+                    )}
+                    Refresh ports
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

@@ -1723,6 +1723,43 @@ describe('SaaS API', () => {
     }
   });
 
+  it('returns per-port preview URLs for remote runtime ports', async () => {
+    const runtime = await startRuntimeServices();
+    const previousPreviewTemplate = process.env.PREVIEW_URL_TEMPLATE;
+    process.env.PREVIEW_URL_TEMPLATE = 'https://{workspaceId}-{port}.preview.example.com';
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'runtime-preview@example.com', organizationName: 'Runtime Preview Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/ports`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual([
+        expect.objectContaining({
+          port: 5173,
+          type: 'open',
+          ready: true,
+          url: `https://${projectId}-5173.preview.example.com`,
+        }),
+      ]);
+    } finally {
+      process.env.PREVIEW_URL_TEMPLATE = previousPreviewTemplate;
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('creates a before-AI snapshot before destructive tools', async () => {
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();

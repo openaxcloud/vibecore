@@ -55,6 +55,27 @@ describe('workspace-agent', () => {
     expect(response.json()).toMatchObject({ code: 0, stdout: 'ok\n' });
   });
 
+  it('detects preview ports from running command output', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
+    const headers = { authorization: `Bearer ${token}` };
+    const runningCommand = app.inject({
+      method: 'POST',
+      url: '/commands/run',
+      headers,
+      payload: {
+        command: process.execPath,
+        args: ['-e', 'console.log("Local: http://localhost:4173"); setTimeout(() => {}, 1500)'],
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const response = await app.inject({ method: 'GET', url: '/ports', headers });
+    expect(response.json()).toEqual({ ports: [expect.objectContaining({ port: 4173 })] });
+
+    await runningCommand;
+  });
+
   it('blocks abuse command patterns before execution', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const response = await app.inject({

@@ -14,6 +14,7 @@ import JSZip from 'jszip';
 import fileSaver from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { path } from '~/utils/path';
+import { WORK_DIR } from '~/utils/constants';
 import { extractRelativePath } from '~/utils/diff';
 import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
@@ -119,6 +120,56 @@ export class WorkbenchStore {
 
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
+  }
+
+  async startPreviewServer() {
+    const command = this.#detectPreviewCommand();
+    this.toggleTerminal(true);
+
+    void (async () => {
+      try {
+        for await (const event of this.#runtime.streamCommand({ command: command.command, args: command.args })) {
+          this.appendWorkspaceLog(event);
+
+          if (event.type === 'stdout' || event.type === 'stderr') {
+            await this.refreshRuntimePorts().catch(() => undefined);
+          }
+        }
+      } catch (error) {
+        this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+      }
+    })();
+
+    window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), 750);
+    window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), 2000);
+
+    return command.label;
+  }
+
+  #detectPreviewCommand() {
+    const files = this.files.get();
+    const packageJsonEntry = Object.entries(files).find(([filePath, dirent]) => {
+      return dirent?.type === 'file' && (filePath === `${WORK_DIR}/package.json` || filePath.endsWith('/package.json'));
+    });
+
+    if (packageJsonEntry?.[1]?.type === 'file' && packageJsonEntry[1].content) {
+      try {
+        const pkg = JSON.parse(packageJsonEntry[1].content) as { scripts?: Record<string, string> };
+        const scripts = pkg.scripts ?? {};
+
+        if (scripts.dev) {
+          return { command: 'npm', args: ['run', 'dev', '--', '--host', '0.0.0.0'], label: 'npm run dev' };
+        }
+
+        if (scripts.start) {
+          return { command: 'npm', args: ['run', 'start'], label: 'npm run start' };
+        }
+      } catch (error) {
+        console.warn('Failed to parse package.json for preview command:', error);
+      }
+    }
+
+    return { command: 'npx', args: ['vite', '--host', '0.0.0.0'], label: 'npx vite' };
   }
 
   appendWorkspaceLog(event: CommandEvent | string) {
