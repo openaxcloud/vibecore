@@ -1184,6 +1184,25 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: hidden;
 }
 
+.bolt-project-right-files-header {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 10px 0 12px;
+}
+
+.bolt-project-right-files-header > span:first-child {
+  color: var(--vc-ide-warning);
+  font-size: 14px;
+}
+
 .bolt-project-agent-resize-handle {
   position: absolute;
   top: 0;
@@ -1382,10 +1401,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tool-menu {
-  position: absolute;
-  left: 0;
-  top: 32px;
-  z-index: 60;
+  position: fixed;
+  z-index: 120;
   width: 320px;
   max-height: 480px;
   overflow: auto;

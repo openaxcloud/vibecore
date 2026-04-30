@@ -40,7 +40,11 @@ export async function action({ request }: EnterpriseActionArgs) {
         body: JSON.stringify({ name }),
       });
 
-  return redirect(`/projects/${result.project.id}`);
+  const ideUrl = prompt
+    ? `/projects/${result.project.id}/ide?prompt=${encodeURIComponent(prompt)}`
+    : `/projects/${result.project.id}/ide`;
+
+  return redirect(ideUrl);
 }
 
 export default function NewProjectPage() {

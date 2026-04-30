@@ -69,7 +69,7 @@ const IDE_MANAGEMENT_PANELS = [
   'snapshots',
   'settings',
 ] as const;
-const IDE_RIGHT_PANELS = ['files', 'webview', 'console', 'network'] as const;
+const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
@@ -90,9 +90,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   settings: 'Project settings',
   editor: 'Code editor',
   preview: 'App preview',
-  webview: 'App preview',
-  console: 'Terminal',
-  network: 'Workspace network',
   files: 'Browse project files',
   search: 'Find in files',
   locks: 'Locked files',
@@ -401,7 +398,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const [rightPanel, setRightPanel] = useState<IdeRightPanel>('files');
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [rightPanelWidth, setRightPanelWidth] = useState(400);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
@@ -502,10 +498,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           const ui = memory.ui;
-
-          if (ui?.rightPanel && isIdeRightPanel(ui.rightPanel)) {
-            setRightPanel(ui.rightPanel as IdeRightPanel);
-          }
 
           if (typeof ui?.rightPanelOpen === 'boolean') {
             setRightPanelOpen(ui.rightPanelOpen);
@@ -634,7 +626,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ui: {
             selectedFile,
             currentView,
-            rightPanel,
             rightPanelOpen,
             rightPanelWidth,
             workspaceTabs,
@@ -663,7 +654,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectStateReady,
       selectedFile,
       currentView,
-      rightPanel,
       rightPanelOpen,
       rightPanelWidth,
       workspaceTabs,
@@ -748,7 +738,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const openIdeTool = useCallback(
       (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
         if (isIdeRightPanel(panel)) {
-          setRightPanel(panel);
           setRightPanelOpen(true);
           setSearchParams({ panel });
 
@@ -803,7 +792,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (isIdeRightPanel(activeProjectPanel)) {
-        setRightPanel(activeProjectPanel);
         setRightPanelOpen(true);
 
         return;
@@ -1839,7 +1827,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {rightPanelOpen && (
           <aside
             className="bolt-project-right-panel-shell"
-            aria-label="Right preview panel"
+            aria-label="Project files panel"
             style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
           >
             <div
@@ -1849,26 +1837,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-label="Resize right panel"
               onMouseDown={startRightPanelResize}
             />
-            <div className="bolt-project-right-tabs" role="tablist" aria-label="Right panel tools">
-              {[
-                ['files', 'Files', 'i-ph:files'],
-                ['webview', 'Webview', 'i-ph:browser'],
-                ['console', 'Console', 'i-ph:terminal-window'],
-                ['network', 'Network', 'i-ph:activity'],
-              ].map(([id, label, icon]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className="bolt-project-right-tab"
-                  role="tab"
-                  aria-selected={rightPanel === id}
-                  aria-current={rightPanel === id ? 'page' : undefined}
-                  onClick={() => setRightPanel(id as typeof rightPanel)}
-                >
-                  <span className={icon} aria-hidden />
-                  {label}
-                </button>
-              ))}
+            <div className="bolt-project-right-files-header">
+              <span className="i-ph:files" aria-hidden />
+              <span>Files</span>
               <button
                 type="button"
                 className="bolt-project-ide-icon-button ml-auto"
@@ -1879,43 +1850,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
             </div>
             <div className="bolt-project-right-panel-content">
-              {rightPanel === 'files' && (
-                <ProjectFilesTool
-                  files={projectFiles}
-                  selectedFile={selectedFile}
-                  unsavedFiles={unsavedFiles}
-                  onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                  onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                />
-              )}
-              {rightPanel === 'webview' && (
-                <div className="bolt-project-webview-tool">
-                  <div className="bolt-project-webview-toolbar">
-                    <button type="button" aria-label="Back">
-                      <span className="i-ph:arrow-left" aria-hidden />
-                    </button>
-                    <button type="button" aria-label="Forward">
-                      <span className="i-ph:arrow-right" aria-hidden />
-                    </button>
-                    <button type="button" aria-label="Refresh preview">
-                      <span className="i-ph:arrow-clockwise" aria-hidden />
-                    </button>
-                    <input
-                      aria-label="Preview URL"
-                      readOnly
-                      value={projectBackendState.ports?.[0]?.url ?? 'Runtime preview'}
-                    />
-                    <button type="button" aria-label="Open preview in new tab">
-                      <span className="i-ph:arrow-square-out" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="bolt-project-webview-frame">
-                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
-                  </div>
-                </div>
-              )}
-              {rightPanel === 'console' && <ProjectIdeServicePanel projectId={projectId} panel="logs" />}
-              {rightPanel === 'network' && <ProjectNetworkPanel state={projectBackendState} />}
+              <ProjectFilesTool
+                files={projectFiles}
+                selectedFile={selectedFile}
+                unsavedFiles={unsavedFiles}
+                onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+              />
             </div>
           </aside>
         )}
@@ -2353,57 +2294,6 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 }
 
-function ProjectNetworkPanel({ state }: { state: ProjectIdeBackendState }) {
-  const ports = state.ports ?? [];
-  const activity = state.recentActivity ?? [];
-
-  return (
-    <section className="bolt-project-network-panel" aria-label="Network">
-      <div className="bolt-project-ide-panel-header">
-        <span className="i-ph:activity" aria-hidden />
-        <h2 className="m-0 text-sm font-semibold">Network</h2>
-      </div>
-      <div className="bolt-project-network-grid">
-        <div>
-          <strong>Detected ports</strong>
-          {ports.length ? (
-            ports.map((port) => (
-              <button
-                key={`${port.port}-${port.url ?? 'local'}`}
-                type="button"
-                onClick={() => {
-                  if (port.url) {
-                    window.open(port.url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-              >
-                <span className={port.ready === false ? 'i-ph:circle' : 'i-ph:check-circle'} aria-hidden />
-                <span>:{port.port ?? 'unknown'}</span>
-                <small>{port.url ?? port.type ?? 'workspace port'}</small>
-              </button>
-            ))
-          ) : (
-            <p>No runtime ports reported by the backend yet.</p>
-          )}
-        </div>
-        <div>
-          <strong>Recent network activity</strong>
-          {activity.length ? (
-            activity.slice(-6).map((event, index) => (
-              <p key={`${event.action}-${event.createdAt ?? index}`}>
-                <span>{event.action}</span>
-                <small>{event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded'}</small>
-              </p>
-            ))
-          ) : (
-            <p>No network events recorded yet.</p>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
   const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
 
@@ -2561,6 +2451,7 @@ function IdeTabBar({
 }) {
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 44 });
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF'],
     ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922'],
@@ -2640,6 +2531,20 @@ function IdeTabBar({
           onMouseDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
+
+            const rect = event.currentTarget.getBoundingClientRect();
+            const menuWidth = 320;
+            const menuMaxHeight = 480;
+            const viewportPadding = 8;
+
+            const left = Math.min(
+              Math.max(viewportPadding, rect.left),
+              Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding),
+            );
+
+            const top = Math.min(rect.bottom + 4, Math.max(44, window.innerHeight - menuMaxHeight - viewportPadding));
+
+            setMenuPosition({ left, top });
             setOpen((value) => !value);
           }}
           onClick={(event) => event.preventDefault()}
@@ -2647,7 +2552,14 @@ function IdeTabBar({
           +
         </button>
         {open && (
-          <div className="bolt-project-tool-menu">
+          <div
+            className="bolt-project-tool-menu"
+            style={{
+              left: menuPosition.left,
+              top: menuPosition.top,
+              maxHeight: `calc(100vh - ${menuPosition.top + 8}px)`,
+            }}
+          >
             <div className="bolt-project-tool-search">
               <span className="i-ph:magnifying-glass" aria-hidden />
               <input placeholder="Search tools and files..." aria-label="Search tools and files" />
