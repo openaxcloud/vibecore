@@ -22,10 +22,8 @@ Scope: user dashboard, project IDE, project panels, project top bar, project act
 | Agent      | History          | Opens persisted project conversation list                                        |
 | Agent      | New chat         | Clears current chat state through `useChat.setMessages`                          |
 | Agent      | Settings         | Opens provider settings                                                          |
-| Tabs       | `+`              | Opens tools/files popover in the current pane                                    |
-| Tabs       | Split right/down | Creates a recursive `PaneNode` split                                             |
-| Tabs       | Context menu     | Pin/unpin, move to pane, close others, close to right                            |
-| Tabs       | Drag/drop        | Moves or splits tabs using visible drop zones                                    |
+| Tabs       | `+`              | Opens tools/files popover in the single IDE workspace pane                       |
+| Tabs       | Overflow menu    | Close others, close to right, close all and close saved                          |
 | Status bar | Runtime          | Opens preview tab                                                                |
 | Status bar | Terminal         | Toggles pinned bottom terminal                                                   |
 | Status bar | Notifications    | Opens project notification center                                                |
