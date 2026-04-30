@@ -60,7 +60,10 @@ const inlineThemeCode = stripIndents`
       theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
 
-    document.querySelector('html')?.setAttribute('data-theme', theme);
+    const root = document.querySelector('html');
+
+    root?.setAttribute('data-theme', theme);
+    root?.classList.toggle('dark', theme === 'dark');
   }
 `;
 
@@ -83,7 +86,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
 
   useEffect(() => {
-    document.querySelector('html')?.setAttribute('data-theme', theme);
+    const root = document.querySelector('html');
+
+    root?.setAttribute('data-theme', theme);
+    root?.classList.toggle('dark', theme === 'dark');
   }, [theme]);
 
   useEffect(() => {

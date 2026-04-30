@@ -34,8 +34,11 @@ export function toggleTheme() {
   // Update localStorage
   localStorage.setItem(kTheme, newTheme);
 
-  // Update the HTML attribute
-  document.querySelector('html')?.setAttribute('data-theme', newTheme);
+  // Update the HTML theme hooks used by both CSS variables and Tailwind dark variants.
+  const root = document.querySelector('html');
+
+  root?.setAttribute('data-theme', newTheme);
+  root?.classList.toggle('dark', newTheme === 'dark');
 
   // Update user profile if it exists
   try {
