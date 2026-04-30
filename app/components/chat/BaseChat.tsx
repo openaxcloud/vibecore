@@ -48,7 +48,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
-import { Link, useSearchParams } from '@remix-run/react';
+import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 const IDE_MANAGEMENT_PANELS = [
@@ -366,7 +366,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       selectedElement,
       setSelectedElement,
       addToolResult = () => {
-        throw new Error('addToolResult not implemented');
+        console.warn('Tool result ignored because addToolResult is not available in this render path.');
       },
       onWebSearchResult,
       projectIdeMode = false,
@@ -1810,9 +1810,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button type="button" className="bolt-project-ide-icon-button" aria-label="New chat" onClick={resetChat}>
                 <span className="i-ph:plus" aria-hidden />
               </button>
-              <Link to="/settings/providers" className="bolt-project-ide-icon-button" aria-label="Agent settings">
+              <button
+                type="button"
+                className="bolt-project-ide-icon-button"
+                aria-label="Agent settings"
+                onClick={() => openWorkspacePanel('settings')}
+              >
                 <span className="i-ph:sliders-horizontal" aria-hidden />
-              </Link>
+              </button>
             </div>
           </div>
           {conversationHistoryOpen && (
@@ -2018,7 +2023,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           openWorkspacePanel('deployments');
         } else if (entry.command === 'run') {
           openWorkspacePanel('preview');
+          void workbenchStore.startPreviewServer();
         } else if (entry.command === 'stop') {
+          void workbenchStore.stopPreviewServer();
           openWorkspacePanel('logs');
         }
       }

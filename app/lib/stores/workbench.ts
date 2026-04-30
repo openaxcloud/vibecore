@@ -146,6 +146,31 @@ export class WorkbenchStore {
     return command.label;
   }
 
+  async stopPreviewServer() {
+    const processes = await this.#runtime.listProcesses().catch(() => []);
+    const previewProcesses = processes.filter((process) => {
+      const command = [process.command, ...(process.args ?? [])].join(' ').toLowerCase();
+
+      return (
+        process.status === 'running' &&
+        (command.includes('vite') ||
+          command.includes('npm run dev') ||
+          command.includes('npm run start') ||
+          command.includes('next dev'))
+      );
+    });
+
+    for (const process of previewProcesses) {
+      await this.#runtime.killProcess(process.id).catch((error) => {
+        this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+      });
+    }
+
+    await this.refreshRuntimePorts().catch(() => undefined);
+
+    return previewProcesses.length;
+  }
+
   #detectPreviewCommand() {
     const files = this.files.get();
     const packageJsonEntry = Object.entries(files).find(([filePath, dirent]) => {
