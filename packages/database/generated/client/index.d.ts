@@ -298,6 +298,31 @@ export type ApiKey = $Result.DefaultSelection<Prisma.$ApiKeyPayload>
  *
  */
 export type OAuthConnection = $Result.DefaultSelection<Prisma.$OAuthConnectionPayload>
+/**
+ * Model McpCatalogEntry
+ *
+ */
+export type McpCatalogEntry = $Result.DefaultSelection<Prisma.$McpCatalogEntryPayload>
+/**
+ * Model McpInstall
+ *
+ */
+export type McpInstall = $Result.DefaultSelection<Prisma.$McpInstallPayload>
+/**
+ * Model AgentRun
+ *
+ */
+export type AgentRun = $Result.DefaultSelection<Prisma.$AgentRunPayload>
+/**
+ * Model AgentRunResult
+ *
+ */
+export type AgentRunResult = $Result.DefaultSelection<Prisma.$AgentRunResultPayload>
+/**
+ * Model ConsensusRecord
+ *
+ */
+export type ConsensusRecord = $Result.DefaultSelection<Prisma.$ConsensusRecordPayload>
 
 /**
  * Enums
@@ -345,6 +370,76 @@ export const SupportTicketStatus: {
 
 export type SupportTicketStatus = (typeof SupportTicketStatus)[keyof typeof SupportTicketStatus]
 
+
+export const McpDomain: {
+  AI_AGENTS: 'AI_AGENTS',
+  CODE_EXECUTION: 'CODE_EXECUTION',
+  DATABASES: 'DATABASES',
+  DEVOPS: 'DEVOPS',
+  DEVELOPER_TOOLS: 'DEVELOPER_TOOLS',
+  COMMUNICATION: 'COMMUNICATION',
+  PRODUCTIVITY: 'PRODUCTIVITY',
+  KNOWLEDGE: 'KNOWLEDGE',
+  WEB_BROWSING: 'WEB_BROWSING',
+  SEARCH: 'SEARCH',
+  CLOUD: 'CLOUD',
+  SECURITY: 'SECURITY',
+  FILESYSTEM: 'FILESYSTEM',
+  VERSION_CONTROL: 'VERSION_CONTROL',
+  MONITORING: 'MONITORING',
+  OTHER: 'OTHER'
+};
+
+export type McpDomain = (typeof McpDomain)[keyof typeof McpDomain]
+
+
+export const McpTransport: {
+  STDIO: 'STDIO',
+  SSE: 'SSE',
+  STREAMABLE_HTTP: 'STREAMABLE_HTTP'
+};
+
+export type McpTransport = (typeof McpTransport)[keyof typeof McpTransport]
+
+
+export const AgentRunStatus: {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETE: 'COMPLETE',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED'
+};
+
+export type AgentRunStatus = (typeof AgentRunStatus)[keyof typeof AgentRunStatus]
+
+
+export const AgentRunResultStatus: {
+  COMPLETE: 'COMPLETE',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED'
+};
+
+export type AgentRunResultStatus = (typeof AgentRunResultStatus)[keyof typeof AgentRunResultStatus]
+
+
+export const ConsensusAlgorithm: {
+  QUORUM: 'QUORUM',
+  BYZANTINE_PBFT: 'BYZANTINE_PBFT',
+  WEIGHTED_PLURALITY: 'WEIGHTED_PLURALITY'
+};
+
+export type ConsensusAlgorithm = (typeof ConsensusAlgorithm)[keyof typeof ConsensusAlgorithm]
+
+
+export const ConsensusOutcome: {
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  PARTIAL: 'PARTIAL',
+  ABSTAINED: 'ABSTAINED'
+};
+
+export type ConsensusOutcome = (typeof ConsensusOutcome)[keyof typeof ConsensusOutcome]
+
 }
 
 export type WorkspaceStatus = $Enums.WorkspaceStatus
@@ -362,6 +457,30 @@ export const DeploymentStatus: typeof $Enums.DeploymentStatus
 export type SupportTicketStatus = $Enums.SupportTicketStatus
 
 export const SupportTicketStatus: typeof $Enums.SupportTicketStatus
+
+export type McpDomain = $Enums.McpDomain
+
+export const McpDomain: typeof $Enums.McpDomain
+
+export type McpTransport = $Enums.McpTransport
+
+export const McpTransport: typeof $Enums.McpTransport
+
+export type AgentRunStatus = $Enums.AgentRunStatus
+
+export const AgentRunStatus: typeof $Enums.AgentRunStatus
+
+export type AgentRunResultStatus = $Enums.AgentRunResultStatus
+
+export const AgentRunResultStatus: typeof $Enums.AgentRunResultStatus
+
+export type ConsensusAlgorithm = $Enums.ConsensusAlgorithm
+
+export const ConsensusAlgorithm: typeof $Enums.ConsensusAlgorithm
+
+export type ConsensusOutcome = $Enums.ConsensusOutcome
+
+export const ConsensusOutcome: typeof $Enums.ConsensusOutcome
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1053,6 +1172,56 @@ export class PrismaClient<
     * ```
     */
   get oAuthConnection(): Prisma.OAuthConnectionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.mcpCatalogEntry`: Exposes CRUD operations for the **McpCatalogEntry** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more McpCatalogEntries
+    * const mcpCatalogEntries = await prisma.mcpCatalogEntry.findMany()
+    * ```
+    */
+  get mcpCatalogEntry(): Prisma.McpCatalogEntryDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.mcpInstall`: Exposes CRUD operations for the **McpInstall** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more McpInstalls
+    * const mcpInstalls = await prisma.mcpInstall.findMany()
+    * ```
+    */
+  get mcpInstall(): Prisma.McpInstallDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentRun`: Exposes CRUD operations for the **AgentRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentRuns
+    * const agentRuns = await prisma.agentRun.findMany()
+    * ```
+    */
+  get agentRun(): Prisma.AgentRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentRunResult`: Exposes CRUD operations for the **AgentRunResult** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentRunResults
+    * const agentRunResults = await prisma.agentRunResult.findMany()
+    * ```
+    */
+  get agentRunResult(): Prisma.AgentRunResultDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.consensusRecord`: Exposes CRUD operations for the **ConsensusRecord** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ConsensusRecords
+    * const consensusRecords = await prisma.consensusRecord.findMany()
+    * ```
+    */
+  get consensusRecord(): Prisma.ConsensusRecordDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1543,7 +1712,12 @@ export namespace Prisma {
     CustomRole: 'CustomRole',
     SiemWebhook: 'SiemWebhook',
     ApiKey: 'ApiKey',
-    OAuthConnection: 'OAuthConnection'
+    OAuthConnection: 'OAuthConnection',
+    McpCatalogEntry: 'McpCatalogEntry',
+    McpInstall: 'McpInstall',
+    AgentRun: 'AgentRun',
+    AgentRunResult: 'AgentRunResult',
+    ConsensusRecord: 'ConsensusRecord'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1559,7 +1733,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5765,6 +5939,376 @@ export namespace Prisma {
           }
         }
       }
+      McpCatalogEntry: {
+        payload: Prisma.$McpCatalogEntryPayload<ExtArgs>
+        fields: Prisma.McpCatalogEntryFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.McpCatalogEntryFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.McpCatalogEntryFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          findFirst: {
+            args: Prisma.McpCatalogEntryFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.McpCatalogEntryFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          findMany: {
+            args: Prisma.McpCatalogEntryFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>[]
+          }
+          create: {
+            args: Prisma.McpCatalogEntryCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          createMany: {
+            args: Prisma.McpCatalogEntryCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.McpCatalogEntryCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>[]
+          }
+          delete: {
+            args: Prisma.McpCatalogEntryDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          update: {
+            args: Prisma.McpCatalogEntryUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          deleteMany: {
+            args: Prisma.McpCatalogEntryDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.McpCatalogEntryUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.McpCatalogEntryUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>[]
+          }
+          upsert: {
+            args: Prisma.McpCatalogEntryUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpCatalogEntryPayload>
+          }
+          aggregate: {
+            args: Prisma.McpCatalogEntryAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMcpCatalogEntry>
+          }
+          groupBy: {
+            args: Prisma.McpCatalogEntryGroupByArgs<ExtArgs>
+            result: $Utils.Optional<McpCatalogEntryGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.McpCatalogEntryCountArgs<ExtArgs>
+            result: $Utils.Optional<McpCatalogEntryCountAggregateOutputType> | number
+          }
+        }
+      }
+      McpInstall: {
+        payload: Prisma.$McpInstallPayload<ExtArgs>
+        fields: Prisma.McpInstallFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.McpInstallFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.McpInstallFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          findFirst: {
+            args: Prisma.McpInstallFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.McpInstallFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          findMany: {
+            args: Prisma.McpInstallFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>[]
+          }
+          create: {
+            args: Prisma.McpInstallCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          createMany: {
+            args: Prisma.McpInstallCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.McpInstallCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>[]
+          }
+          delete: {
+            args: Prisma.McpInstallDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          update: {
+            args: Prisma.McpInstallUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          deleteMany: {
+            args: Prisma.McpInstallDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.McpInstallUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.McpInstallUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>[]
+          }
+          upsert: {
+            args: Prisma.McpInstallUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$McpInstallPayload>
+          }
+          aggregate: {
+            args: Prisma.McpInstallAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateMcpInstall>
+          }
+          groupBy: {
+            args: Prisma.McpInstallGroupByArgs<ExtArgs>
+            result: $Utils.Optional<McpInstallGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.McpInstallCountArgs<ExtArgs>
+            result: $Utils.Optional<McpInstallCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentRun: {
+        payload: Prisma.$AgentRunPayload<ExtArgs>
+        fields: Prisma.AgentRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          findMany: {
+            args: Prisma.AgentRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          create: {
+            args: Prisma.AgentRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          createMany: {
+            args: Prisma.AgentRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          update: {
+            args: Prisma.AgentRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentRun>
+          }
+          groupBy: {
+            args: Prisma.AgentRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentRunCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentRunResult: {
+        payload: Prisma.$AgentRunResultPayload<ExtArgs>
+        fields: Prisma.AgentRunResultFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentRunResultFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentRunResultFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentRunResultFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentRunResultFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          findMany: {
+            args: Prisma.AgentRunResultFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>[]
+          }
+          create: {
+            args: Prisma.AgentRunResultCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          createMany: {
+            args: Prisma.AgentRunResultCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentRunResultCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentRunResultDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          update: {
+            args: Prisma.AgentRunResultUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentRunResultDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentRunResultUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentRunResultUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentRunResultUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunResultPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentRunResultAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentRunResult>
+          }
+          groupBy: {
+            args: Prisma.AgentRunResultGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunResultGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentRunResultCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunResultCountAggregateOutputType> | number
+          }
+        }
+      }
+      ConsensusRecord: {
+        payload: Prisma.$ConsensusRecordPayload<ExtArgs>
+        fields: Prisma.ConsensusRecordFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ConsensusRecordFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ConsensusRecordFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          findFirst: {
+            args: Prisma.ConsensusRecordFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ConsensusRecordFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          findMany: {
+            args: Prisma.ConsensusRecordFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>[]
+          }
+          create: {
+            args: Prisma.ConsensusRecordCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          createMany: {
+            args: Prisma.ConsensusRecordCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ConsensusRecordCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>[]
+          }
+          delete: {
+            args: Prisma.ConsensusRecordDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          update: {
+            args: Prisma.ConsensusRecordUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          deleteMany: {
+            args: Prisma.ConsensusRecordDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ConsensusRecordUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ConsensusRecordUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>[]
+          }
+          upsert: {
+            args: Prisma.ConsensusRecordUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConsensusRecordPayload>
+          }
+          aggregate: {
+            args: Prisma.ConsensusRecordAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateConsensusRecord>
+          }
+          groupBy: {
+            args: Prisma.ConsensusRecordGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ConsensusRecordGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ConsensusRecordCountArgs<ExtArgs>
+            result: $Utils.Optional<ConsensusRecordCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -5930,6 +6474,11 @@ export namespace Prisma {
     siemWebhook?: SiemWebhookOmit
     apiKey?: ApiKeyOmit
     oAuthConnection?: OAuthConnectionOmit
+    mcpCatalogEntry?: McpCatalogEntryOmit
+    mcpInstall?: McpInstallOmit
+    agentRun?: AgentRunOmit
+    agentRunResult?: AgentRunResultOmit
+    consensusRecord?: ConsensusRecordOmit
   }
 
   /* Types for Logging */
@@ -6030,6 +6579,8 @@ export namespace Prisma {
     collaborationComments: number
     collaborationShareLinks: number
     agentMemories: number
+    mcpInstalls: number
+    agentRuns: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6053,6 +6604,8 @@ export namespace Prisma {
     collaborationComments?: boolean | UserCountOutputTypeCountCollaborationCommentsArgs
     collaborationShareLinks?: boolean | UserCountOutputTypeCountCollaborationShareLinksArgs
     agentMemories?: boolean | UserCountOutputTypeCountAgentMemoriesArgs
+    mcpInstalls?: boolean | UserCountOutputTypeCountMcpInstallsArgs
+    agentRuns?: boolean | UserCountOutputTypeCountAgentRunsArgs
   }
 
   // Custom InputTypes
@@ -6206,6 +6759,20 @@ export namespace Prisma {
     where?: AgentMemoryWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountMcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpInstallWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAgentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunWhereInput
+  }
+
 
   /**
    * Count Type OrganizationCountOutputType
@@ -6233,6 +6800,8 @@ export namespace Prisma {
     siemWebhooks: number
     projectTemplates: number
     agentMemories: number
+    mcpInstalls: number
+    agentRuns: number
   }
 
   export type OrganizationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6257,6 +6826,8 @@ export namespace Prisma {
     siemWebhooks?: boolean | OrganizationCountOutputTypeCountSiemWebhooksArgs
     projectTemplates?: boolean | OrganizationCountOutputTypeCountProjectTemplatesArgs
     agentMemories?: boolean | OrganizationCountOutputTypeCountAgentMemoriesArgs
+    mcpInstalls?: boolean | OrganizationCountOutputTypeCountMcpInstallsArgs
+    agentRuns?: boolean | OrganizationCountOutputTypeCountAgentRunsArgs
   }
 
   // Custom InputTypes
@@ -6415,6 +6986,20 @@ export namespace Prisma {
    */
   export type OrganizationCountOutputTypeCountAgentMemoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentMemoryWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountMcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpInstallWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountAgentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunWhereInput
   }
 
 
@@ -6829,6 +7414,68 @@ export namespace Prisma {
 
 
   /**
+   * Count Type McpCatalogEntryCountOutputType
+   */
+
+  export type McpCatalogEntryCountOutputType = {
+    installs: number
+  }
+
+  export type McpCatalogEntryCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    installs?: boolean | McpCatalogEntryCountOutputTypeCountInstallsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * McpCatalogEntryCountOutputType without action
+   */
+  export type McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntryCountOutputType
+     */
+    select?: McpCatalogEntryCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * McpCatalogEntryCountOutputType without action
+   */
+  export type McpCatalogEntryCountOutputTypeCountInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpInstallWhereInput
+  }
+
+
+  /**
+   * Count Type AgentRunCountOutputType
+   */
+
+  export type AgentRunCountOutputType = {
+    results: number
+  }
+
+  export type AgentRunCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    results?: boolean | AgentRunCountOutputTypeCountResultsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunCountOutputType
+     */
+    select?: AgentRunCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeCountResultsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunResultWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -7056,6 +7703,8 @@ export namespace Prisma {
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
+    mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
+    agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -7120,6 +7769,8 @@ export namespace Prisma {
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
+    mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
+    agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -7148,6 +7799,8 @@ export namespace Prisma {
       collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
       collaborationShareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
+      mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
+      agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7574,6 +8227,8 @@ export namespace Prisma {
     collaborationComments<T extends User$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationShareLinks<T extends User$collaborationShareLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationShareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends User$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    mcpInstalls<T extends User$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentRuns<T extends User$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8483,6 +9138,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryScalarFieldEnum | AgentMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * User.mcpInstalls
+   */
+  export type User$mcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    where?: McpInstallWhereInput
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    cursor?: McpInstallWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * User.agentRuns
+   */
+  export type User$agentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    where?: AgentRunWhereInput
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    cursor?: AgentRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
   }
 
   /**
@@ -10895,6 +11598,8 @@ export namespace Prisma {
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
+    mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
+    agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
 
@@ -10947,6 +11652,8 @@ export namespace Prisma {
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
+    mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
+    agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -10978,6 +11685,8 @@ export namespace Prisma {
       siemWebhooks: Prisma.$SiemWebhookPayload<ExtArgs>[]
       projectTemplates: Prisma.$ProjectTemplatePayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
+      mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
+      agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -11402,6 +12111,8 @@ export namespace Prisma {
     siemWebhooks<T extends Organization$siemWebhooksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$siemWebhooksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SiemWebhookPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectTemplates<T extends Organization$projectTemplatesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$projectTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends Organization$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    mcpInstalls<T extends Organization$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentRuns<T extends Organization$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12368,6 +13079,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryScalarFieldEnum | AgentMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.mcpInstalls
+   */
+  export type Organization$mcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    where?: McpInstallWhereInput
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    cursor?: McpInstallWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.agentRuns
+   */
+  export type Organization$agentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    where?: AgentRunWhereInput
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    cursor?: AgentRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
   }
 
   /**
@@ -71619,6 +72378,5993 @@ export namespace Prisma {
 
 
   /**
+   * Model McpCatalogEntry
+   */
+
+  export type AggregateMcpCatalogEntry = {
+    _count: McpCatalogEntryCountAggregateOutputType | null
+    _avg: McpCatalogEntryAvgAggregateOutputType | null
+    _sum: McpCatalogEntrySumAggregateOutputType | null
+    _min: McpCatalogEntryMinAggregateOutputType | null
+    _max: McpCatalogEntryMaxAggregateOutputType | null
+  }
+
+  export type McpCatalogEntryAvgAggregateOutputType = {
+    installCount: number | null
+  }
+
+  export type McpCatalogEntrySumAggregateOutputType = {
+    installCount: number | null
+  }
+
+  export type McpCatalogEntryMinAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    name: string | null
+    description: string | null
+    domain: $Enums.McpDomain | null
+    author: string | null
+    homepageUrl: string | null
+    iconUrl: string | null
+    version: string | null
+    transport: $Enums.McpTransport | null
+    installCount: number | null
+    featured: boolean | null
+    verified: boolean | null
+    publishedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpCatalogEntryMaxAggregateOutputType = {
+    id: string | null
+    slug: string | null
+    name: string | null
+    description: string | null
+    domain: $Enums.McpDomain | null
+    author: string | null
+    homepageUrl: string | null
+    iconUrl: string | null
+    version: string | null
+    transport: $Enums.McpTransport | null
+    installCount: number | null
+    featured: boolean | null
+    verified: boolean | null
+    publishedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpCatalogEntryCountAggregateOutputType = {
+    id: number
+    slug: number
+    name: number
+    description: number
+    domain: number
+    tags: number
+    author: number
+    homepageUrl: number
+    iconUrl: number
+    version: number
+    transport: number
+    configTemplate: number
+    configSchema: number
+    installCount: number
+    featured: number
+    verified: number
+    publishedAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type McpCatalogEntryAvgAggregateInputType = {
+    installCount?: true
+  }
+
+  export type McpCatalogEntrySumAggregateInputType = {
+    installCount?: true
+  }
+
+  export type McpCatalogEntryMinAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    description?: true
+    domain?: true
+    author?: true
+    homepageUrl?: true
+    iconUrl?: true
+    version?: true
+    transport?: true
+    installCount?: true
+    featured?: true
+    verified?: true
+    publishedAt?: true
+    updatedAt?: true
+  }
+
+  export type McpCatalogEntryMaxAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    description?: true
+    domain?: true
+    author?: true
+    homepageUrl?: true
+    iconUrl?: true
+    version?: true
+    transport?: true
+    installCount?: true
+    featured?: true
+    verified?: true
+    publishedAt?: true
+    updatedAt?: true
+  }
+
+  export type McpCatalogEntryCountAggregateInputType = {
+    id?: true
+    slug?: true
+    name?: true
+    description?: true
+    domain?: true
+    tags?: true
+    author?: true
+    homepageUrl?: true
+    iconUrl?: true
+    version?: true
+    transport?: true
+    configTemplate?: true
+    configSchema?: true
+    installCount?: true
+    featured?: true
+    verified?: true
+    publishedAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type McpCatalogEntryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpCatalogEntry to aggregate.
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpCatalogEntries to fetch.
+     */
+    orderBy?: McpCatalogEntryOrderByWithRelationInput | McpCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: McpCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned McpCatalogEntries
+    **/
+    _count?: true | McpCatalogEntryCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: McpCatalogEntryAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: McpCatalogEntrySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: McpCatalogEntryMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: McpCatalogEntryMaxAggregateInputType
+  }
+
+  export type GetMcpCatalogEntryAggregateType<T extends McpCatalogEntryAggregateArgs> = {
+        [P in keyof T & keyof AggregateMcpCatalogEntry]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMcpCatalogEntry[P]>
+      : GetScalarType<T[P], AggregateMcpCatalogEntry[P]>
+  }
+
+
+
+
+  export type McpCatalogEntryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpCatalogEntryWhereInput
+    orderBy?: McpCatalogEntryOrderByWithAggregationInput | McpCatalogEntryOrderByWithAggregationInput[]
+    by: McpCatalogEntryScalarFieldEnum[] | McpCatalogEntryScalarFieldEnum
+    having?: McpCatalogEntryScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: McpCatalogEntryCountAggregateInputType | true
+    _avg?: McpCatalogEntryAvgAggregateInputType
+    _sum?: McpCatalogEntrySumAggregateInputType
+    _min?: McpCatalogEntryMinAggregateInputType
+    _max?: McpCatalogEntryMaxAggregateInputType
+  }
+
+  export type McpCatalogEntryGroupByOutputType = {
+    id: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags: string[]
+    author: string
+    homepageUrl: string | null
+    iconUrl: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonValue
+    configSchema: JsonValue
+    installCount: number
+    featured: boolean
+    verified: boolean
+    publishedAt: Date
+    updatedAt: Date
+    _count: McpCatalogEntryCountAggregateOutputType | null
+    _avg: McpCatalogEntryAvgAggregateOutputType | null
+    _sum: McpCatalogEntrySumAggregateOutputType | null
+    _min: McpCatalogEntryMinAggregateOutputType | null
+    _max: McpCatalogEntryMaxAggregateOutputType | null
+  }
+
+  type GetMcpCatalogEntryGroupByPayload<T extends McpCatalogEntryGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<McpCatalogEntryGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof McpCatalogEntryGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], McpCatalogEntryGroupByOutputType[P]>
+            : GetScalarType<T[P], McpCatalogEntryGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type McpCatalogEntrySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    description?: boolean
+    domain?: boolean
+    tags?: boolean
+    author?: boolean
+    homepageUrl?: boolean
+    iconUrl?: boolean
+    version?: boolean
+    transport?: boolean
+    configTemplate?: boolean
+    configSchema?: boolean
+    installCount?: boolean
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: boolean
+    updatedAt?: boolean
+    installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
+    _count?: boolean | McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpCatalogEntry"]>
+
+  export type McpCatalogEntrySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    description?: boolean
+    domain?: boolean
+    tags?: boolean
+    author?: boolean
+    homepageUrl?: boolean
+    iconUrl?: boolean
+    version?: boolean
+    transport?: boolean
+    configTemplate?: boolean
+    configSchema?: boolean
+    installCount?: boolean
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mcpCatalogEntry"]>
+
+  export type McpCatalogEntrySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    description?: boolean
+    domain?: boolean
+    tags?: boolean
+    author?: boolean
+    homepageUrl?: boolean
+    iconUrl?: boolean
+    version?: boolean
+    transport?: boolean
+    configTemplate?: boolean
+    configSchema?: boolean
+    installCount?: boolean
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["mcpCatalogEntry"]>
+
+  export type McpCatalogEntrySelectScalar = {
+    id?: boolean
+    slug?: boolean
+    name?: boolean
+    description?: boolean
+    domain?: boolean
+    tags?: boolean
+    author?: boolean
+    homepageUrl?: boolean
+    iconUrl?: boolean
+    version?: boolean
+    transport?: boolean
+    configTemplate?: boolean
+    configSchema?: boolean
+    installCount?: boolean
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
+  export type McpCatalogEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
+    _count?: boolean | McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type McpCatalogEntryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type McpCatalogEntryIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $McpCatalogEntryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "McpCatalogEntry"
+    objects: {
+      installs: Prisma.$McpInstallPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      slug: string
+      name: string
+      description: string
+      domain: $Enums.McpDomain
+      tags: string[]
+      author: string
+      homepageUrl: string | null
+      iconUrl: string | null
+      version: string
+      transport: $Enums.McpTransport
+      configTemplate: Prisma.JsonValue
+      configSchema: Prisma.JsonValue
+      installCount: number
+      featured: boolean
+      verified: boolean
+      publishedAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["mcpCatalogEntry"]>
+    composites: {}
+  }
+
+  type McpCatalogEntryGetPayload<S extends boolean | null | undefined | McpCatalogEntryDefaultArgs> = $Result.GetResult<Prisma.$McpCatalogEntryPayload, S>
+
+  type McpCatalogEntryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<McpCatalogEntryFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: McpCatalogEntryCountAggregateInputType | true
+    }
+
+  export interface McpCatalogEntryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['McpCatalogEntry'], meta: { name: 'McpCatalogEntry' } }
+    /**
+     * Find zero or one McpCatalogEntry that matches the filter.
+     * @param {McpCatalogEntryFindUniqueArgs} args - Arguments to find a McpCatalogEntry
+     * @example
+     * // Get one McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends McpCatalogEntryFindUniqueArgs>(args: SelectSubset<T, McpCatalogEntryFindUniqueArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one McpCatalogEntry that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {McpCatalogEntryFindUniqueOrThrowArgs} args - Arguments to find a McpCatalogEntry
+     * @example
+     * // Get one McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends McpCatalogEntryFindUniqueOrThrowArgs>(args: SelectSubset<T, McpCatalogEntryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpCatalogEntry that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryFindFirstArgs} args - Arguments to find a McpCatalogEntry
+     * @example
+     * // Get one McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends McpCatalogEntryFindFirstArgs>(args?: SelectSubset<T, McpCatalogEntryFindFirstArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpCatalogEntry that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryFindFirstOrThrowArgs} args - Arguments to find a McpCatalogEntry
+     * @example
+     * // Get one McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends McpCatalogEntryFindFirstOrThrowArgs>(args?: SelectSubset<T, McpCatalogEntryFindFirstOrThrowArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more McpCatalogEntries that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all McpCatalogEntries
+     * const mcpCatalogEntries = await prisma.mcpCatalogEntry.findMany()
+     *
+     * // Get first 10 McpCatalogEntries
+     * const mcpCatalogEntries = await prisma.mcpCatalogEntry.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const mcpCatalogEntryWithIdOnly = await prisma.mcpCatalogEntry.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends McpCatalogEntryFindManyArgs>(args?: SelectSubset<T, McpCatalogEntryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a McpCatalogEntry.
+     * @param {McpCatalogEntryCreateArgs} args - Arguments to create a McpCatalogEntry.
+     * @example
+     * // Create one McpCatalogEntry
+     * const McpCatalogEntry = await prisma.mcpCatalogEntry.create({
+     *   data: {
+     *     // ... data to create a McpCatalogEntry
+     *   }
+     * })
+     *
+     */
+    create<T extends McpCatalogEntryCreateArgs>(args: SelectSubset<T, McpCatalogEntryCreateArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many McpCatalogEntries.
+     * @param {McpCatalogEntryCreateManyArgs} args - Arguments to create many McpCatalogEntries.
+     * @example
+     * // Create many McpCatalogEntries
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends McpCatalogEntryCreateManyArgs>(args?: SelectSubset<T, McpCatalogEntryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many McpCatalogEntries and returns the data saved in the database.
+     * @param {McpCatalogEntryCreateManyAndReturnArgs} args - Arguments to create many McpCatalogEntries.
+     * @example
+     * // Create many McpCatalogEntries
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many McpCatalogEntries and only return the `id`
+     * const mcpCatalogEntryWithIdOnly = await prisma.mcpCatalogEntry.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends McpCatalogEntryCreateManyAndReturnArgs>(args?: SelectSubset<T, McpCatalogEntryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a McpCatalogEntry.
+     * @param {McpCatalogEntryDeleteArgs} args - Arguments to delete one McpCatalogEntry.
+     * @example
+     * // Delete one McpCatalogEntry
+     * const McpCatalogEntry = await prisma.mcpCatalogEntry.delete({
+     *   where: {
+     *     // ... filter to delete one McpCatalogEntry
+     *   }
+     * })
+     *
+     */
+    delete<T extends McpCatalogEntryDeleteArgs>(args: SelectSubset<T, McpCatalogEntryDeleteArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one McpCatalogEntry.
+     * @param {McpCatalogEntryUpdateArgs} args - Arguments to update one McpCatalogEntry.
+     * @example
+     * // Update one McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends McpCatalogEntryUpdateArgs>(args: SelectSubset<T, McpCatalogEntryUpdateArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more McpCatalogEntries.
+     * @param {McpCatalogEntryDeleteManyArgs} args - Arguments to filter McpCatalogEntries to delete.
+     * @example
+     * // Delete a few McpCatalogEntries
+     * const { count } = await prisma.mcpCatalogEntry.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends McpCatalogEntryDeleteManyArgs>(args?: SelectSubset<T, McpCatalogEntryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpCatalogEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many McpCatalogEntries
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends McpCatalogEntryUpdateManyArgs>(args: SelectSubset<T, McpCatalogEntryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpCatalogEntries and returns the data updated in the database.
+     * @param {McpCatalogEntryUpdateManyAndReturnArgs} args - Arguments to update many McpCatalogEntries.
+     * @example
+     * // Update many McpCatalogEntries
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more McpCatalogEntries and only return the `id`
+     * const mcpCatalogEntryWithIdOnly = await prisma.mcpCatalogEntry.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends McpCatalogEntryUpdateManyAndReturnArgs>(args: SelectSubset<T, McpCatalogEntryUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one McpCatalogEntry.
+     * @param {McpCatalogEntryUpsertArgs} args - Arguments to update or create a McpCatalogEntry.
+     * @example
+     * // Update or create a McpCatalogEntry
+     * const mcpCatalogEntry = await prisma.mcpCatalogEntry.upsert({
+     *   create: {
+     *     // ... data to create a McpCatalogEntry
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the McpCatalogEntry we want to update
+     *   }
+     * })
+     */
+    upsert<T extends McpCatalogEntryUpsertArgs>(args: SelectSubset<T, McpCatalogEntryUpsertArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of McpCatalogEntries.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryCountArgs} args - Arguments to filter McpCatalogEntries to count.
+     * @example
+     * // Count the number of McpCatalogEntries
+     * const count = await prisma.mcpCatalogEntry.count({
+     *   where: {
+     *     // ... the filter for the McpCatalogEntries we want to count
+     *   }
+     * })
+    **/
+    count<T extends McpCatalogEntryCountArgs>(
+      args?: Subset<T, McpCatalogEntryCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], McpCatalogEntryCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a McpCatalogEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends McpCatalogEntryAggregateArgs>(args: Subset<T, McpCatalogEntryAggregateArgs>): Prisma.PrismaPromise<GetMcpCatalogEntryAggregateType<T>>
+
+    /**
+     * Group by McpCatalogEntry.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpCatalogEntryGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends McpCatalogEntryGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: McpCatalogEntryGroupByArgs['orderBy'] }
+        : { orderBy?: McpCatalogEntryGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, McpCatalogEntryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMcpCatalogEntryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the McpCatalogEntry model
+   */
+  readonly fields: McpCatalogEntryFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for McpCatalogEntry.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__McpCatalogEntryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    installs<T extends McpCatalogEntry$installsArgs<ExtArgs> = {}>(args?: Subset<T, McpCatalogEntry$installsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the McpCatalogEntry model
+   */
+  interface McpCatalogEntryFieldRefs {
+    readonly id: FieldRef<"McpCatalogEntry", 'String'>
+    readonly slug: FieldRef<"McpCatalogEntry", 'String'>
+    readonly name: FieldRef<"McpCatalogEntry", 'String'>
+    readonly description: FieldRef<"McpCatalogEntry", 'String'>
+    readonly domain: FieldRef<"McpCatalogEntry", 'McpDomain'>
+    readonly tags: FieldRef<"McpCatalogEntry", 'String[]'>
+    readonly author: FieldRef<"McpCatalogEntry", 'String'>
+    readonly homepageUrl: FieldRef<"McpCatalogEntry", 'String'>
+    readonly iconUrl: FieldRef<"McpCatalogEntry", 'String'>
+    readonly version: FieldRef<"McpCatalogEntry", 'String'>
+    readonly transport: FieldRef<"McpCatalogEntry", 'McpTransport'>
+    readonly configTemplate: FieldRef<"McpCatalogEntry", 'Json'>
+    readonly configSchema: FieldRef<"McpCatalogEntry", 'Json'>
+    readonly installCount: FieldRef<"McpCatalogEntry", 'Int'>
+    readonly featured: FieldRef<"McpCatalogEntry", 'Boolean'>
+    readonly verified: FieldRef<"McpCatalogEntry", 'Boolean'>
+    readonly publishedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
+    readonly updatedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * McpCatalogEntry findUnique
+   */
+  export type McpCatalogEntryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which McpCatalogEntry to fetch.
+     */
+    where: McpCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * McpCatalogEntry findUniqueOrThrow
+   */
+  export type McpCatalogEntryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which McpCatalogEntry to fetch.
+     */
+    where: McpCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * McpCatalogEntry findFirst
+   */
+  export type McpCatalogEntryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which McpCatalogEntry to fetch.
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpCatalogEntries to fetch.
+     */
+    orderBy?: McpCatalogEntryOrderByWithRelationInput | McpCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for McpCatalogEntries.
+     */
+    cursor?: McpCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpCatalogEntries.
+     */
+    distinct?: McpCatalogEntryScalarFieldEnum | McpCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * McpCatalogEntry findFirstOrThrow
+   */
+  export type McpCatalogEntryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which McpCatalogEntry to fetch.
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpCatalogEntries to fetch.
+     */
+    orderBy?: McpCatalogEntryOrderByWithRelationInput | McpCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for McpCatalogEntries.
+     */
+    cursor?: McpCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpCatalogEntries.
+     */
+    distinct?: McpCatalogEntryScalarFieldEnum | McpCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * McpCatalogEntry findMany
+   */
+  export type McpCatalogEntryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter, which McpCatalogEntries to fetch.
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpCatalogEntries to fetch.
+     */
+    orderBy?: McpCatalogEntryOrderByWithRelationInput | McpCatalogEntryOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing McpCatalogEntries.
+     */
+    cursor?: McpCatalogEntryWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpCatalogEntries from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpCatalogEntries.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpCatalogEntries.
+     */
+    distinct?: McpCatalogEntryScalarFieldEnum | McpCatalogEntryScalarFieldEnum[]
+  }
+
+  /**
+   * McpCatalogEntry create
+   */
+  export type McpCatalogEntryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to create a McpCatalogEntry.
+     */
+    data: XOR<McpCatalogEntryCreateInput, McpCatalogEntryUncheckedCreateInput>
+  }
+
+  /**
+   * McpCatalogEntry createMany
+   */
+  export type McpCatalogEntryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many McpCatalogEntries.
+     */
+    data: McpCatalogEntryCreateManyInput | McpCatalogEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpCatalogEntry createManyAndReturn
+   */
+  export type McpCatalogEntryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * The data used to create many McpCatalogEntries.
+     */
+    data: McpCatalogEntryCreateManyInput | McpCatalogEntryCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpCatalogEntry update
+   */
+  export type McpCatalogEntryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The data needed to update a McpCatalogEntry.
+     */
+    data: XOR<McpCatalogEntryUpdateInput, McpCatalogEntryUncheckedUpdateInput>
+    /**
+     * Choose, which McpCatalogEntry to update.
+     */
+    where: McpCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * McpCatalogEntry updateMany
+   */
+  export type McpCatalogEntryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update McpCatalogEntries.
+     */
+    data: XOR<McpCatalogEntryUpdateManyMutationInput, McpCatalogEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which McpCatalogEntries to update
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * Limit how many McpCatalogEntries to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpCatalogEntry updateManyAndReturn
+   */
+  export type McpCatalogEntryUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * The data used to update McpCatalogEntries.
+     */
+    data: XOR<McpCatalogEntryUpdateManyMutationInput, McpCatalogEntryUncheckedUpdateManyInput>
+    /**
+     * Filter which McpCatalogEntries to update
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * Limit how many McpCatalogEntries to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpCatalogEntry upsert
+   */
+  export type McpCatalogEntryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * The filter to search for the McpCatalogEntry to update in case it exists.
+     */
+    where: McpCatalogEntryWhereUniqueInput
+    /**
+     * In case the McpCatalogEntry found by the `where` argument doesn't exist, create a new McpCatalogEntry with this data.
+     */
+    create: XOR<McpCatalogEntryCreateInput, McpCatalogEntryUncheckedCreateInput>
+    /**
+     * In case the McpCatalogEntry was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<McpCatalogEntryUpdateInput, McpCatalogEntryUncheckedUpdateInput>
+  }
+
+  /**
+   * McpCatalogEntry delete
+   */
+  export type McpCatalogEntryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+    /**
+     * Filter which McpCatalogEntry to delete.
+     */
+    where: McpCatalogEntryWhereUniqueInput
+  }
+
+  /**
+   * McpCatalogEntry deleteMany
+   */
+  export type McpCatalogEntryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpCatalogEntries to delete
+     */
+    where?: McpCatalogEntryWhereInput
+    /**
+     * Limit how many McpCatalogEntries to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpCatalogEntry.installs
+   */
+  export type McpCatalogEntry$installsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    where?: McpInstallWhereInput
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    cursor?: McpInstallWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * McpCatalogEntry without action
+   */
+  export type McpCatalogEntryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpCatalogEntry
+     */
+    select?: McpCatalogEntrySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpCatalogEntry
+     */
+    omit?: McpCatalogEntryOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpCatalogEntryInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model McpInstall
+   */
+
+  export type AggregateMcpInstall = {
+    _count: McpInstallCountAggregateOutputType | null
+    _min: McpInstallMinAggregateOutputType | null
+    _max: McpInstallMaxAggregateOutputType | null
+  }
+
+  export type McpInstallMinAggregateOutputType = {
+    id: string | null
+    catalogEntryId: string | null
+    userId: string | null
+    organizationId: string | null
+    alias: string | null
+    enabled: boolean | null
+    installedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpInstallMaxAggregateOutputType = {
+    id: string | null
+    catalogEntryId: string | null
+    userId: string | null
+    organizationId: string | null
+    alias: string | null
+    enabled: boolean | null
+    installedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type McpInstallCountAggregateOutputType = {
+    id: number
+    catalogEntryId: number
+    userId: number
+    organizationId: number
+    alias: number
+    configJson: number
+    enabled: number
+    installedAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type McpInstallMinAggregateInputType = {
+    id?: true
+    catalogEntryId?: true
+    userId?: true
+    organizationId?: true
+    alias?: true
+    enabled?: true
+    installedAt?: true
+    updatedAt?: true
+  }
+
+  export type McpInstallMaxAggregateInputType = {
+    id?: true
+    catalogEntryId?: true
+    userId?: true
+    organizationId?: true
+    alias?: true
+    enabled?: true
+    installedAt?: true
+    updatedAt?: true
+  }
+
+  export type McpInstallCountAggregateInputType = {
+    id?: true
+    catalogEntryId?: true
+    userId?: true
+    organizationId?: true
+    alias?: true
+    configJson?: true
+    enabled?: true
+    installedAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type McpInstallAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpInstall to aggregate.
+     */
+    where?: McpInstallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpInstalls to fetch.
+     */
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: McpInstallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpInstalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpInstalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned McpInstalls
+    **/
+    _count?: true | McpInstallCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: McpInstallMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: McpInstallMaxAggregateInputType
+  }
+
+  export type GetMcpInstallAggregateType<T extends McpInstallAggregateArgs> = {
+        [P in keyof T & keyof AggregateMcpInstall]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateMcpInstall[P]>
+      : GetScalarType<T[P], AggregateMcpInstall[P]>
+  }
+
+
+
+
+  export type McpInstallGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: McpInstallWhereInput
+    orderBy?: McpInstallOrderByWithAggregationInput | McpInstallOrderByWithAggregationInput[]
+    by: McpInstallScalarFieldEnum[] | McpInstallScalarFieldEnum
+    having?: McpInstallScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: McpInstallCountAggregateInputType | true
+    _min?: McpInstallMinAggregateInputType
+    _max?: McpInstallMaxAggregateInputType
+  }
+
+  export type McpInstallGroupByOutputType = {
+    id: string
+    catalogEntryId: string
+    userId: string
+    organizationId: string | null
+    alias: string
+    configJson: JsonValue
+    enabled: boolean
+    installedAt: Date
+    updatedAt: Date
+    _count: McpInstallCountAggregateOutputType | null
+    _min: McpInstallMinAggregateOutputType | null
+    _max: McpInstallMaxAggregateOutputType | null
+  }
+
+  type GetMcpInstallGroupByPayload<T extends McpInstallGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<McpInstallGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof McpInstallGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], McpInstallGroupByOutputType[P]>
+            : GetScalarType<T[P], McpInstallGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type McpInstallSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    catalogEntryId?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    alias?: boolean
+    configJson?: boolean
+    enabled?: boolean
+    installedAt?: boolean
+    updatedAt?: boolean
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpInstall"]>
+
+  export type McpInstallSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    catalogEntryId?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    alias?: boolean
+    configJson?: boolean
+    enabled?: boolean
+    installedAt?: boolean
+    updatedAt?: boolean
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpInstall"]>
+
+  export type McpInstallSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    catalogEntryId?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    alias?: boolean
+    configJson?: boolean
+    enabled?: boolean
+    installedAt?: boolean
+    updatedAt?: boolean
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["mcpInstall"]>
+
+  export type McpInstallSelectScalar = {
+    id?: boolean
+    catalogEntryId?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    alias?: boolean
+    configJson?: boolean
+    enabled?: boolean
+    installedAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type McpInstallOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "catalogEntryId" | "userId" | "organizationId" | "alias" | "configJson" | "enabled" | "installedAt" | "updatedAt", ExtArgs["result"]["mcpInstall"]>
+  export type McpInstallInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }
+  export type McpInstallIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }
+  export type McpInstallIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    catalogEntry?: boolean | McpCatalogEntryDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | McpInstall$organizationArgs<ExtArgs>
+  }
+
+  export type $McpInstallPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "McpInstall"
+    objects: {
+      catalogEntry: Prisma.$McpCatalogEntryPayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+      organization: Prisma.$OrganizationPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      catalogEntryId: string
+      userId: string
+      organizationId: string | null
+      alias: string
+      configJson: Prisma.JsonValue
+      enabled: boolean
+      installedAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["mcpInstall"]>
+    composites: {}
+  }
+
+  type McpInstallGetPayload<S extends boolean | null | undefined | McpInstallDefaultArgs> = $Result.GetResult<Prisma.$McpInstallPayload, S>
+
+  type McpInstallCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<McpInstallFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: McpInstallCountAggregateInputType | true
+    }
+
+  export interface McpInstallDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['McpInstall'], meta: { name: 'McpInstall' } }
+    /**
+     * Find zero or one McpInstall that matches the filter.
+     * @param {McpInstallFindUniqueArgs} args - Arguments to find a McpInstall
+     * @example
+     * // Get one McpInstall
+     * const mcpInstall = await prisma.mcpInstall.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends McpInstallFindUniqueArgs>(args: SelectSubset<T, McpInstallFindUniqueArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one McpInstall that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {McpInstallFindUniqueOrThrowArgs} args - Arguments to find a McpInstall
+     * @example
+     * // Get one McpInstall
+     * const mcpInstall = await prisma.mcpInstall.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends McpInstallFindUniqueOrThrowArgs>(args: SelectSubset<T, McpInstallFindUniqueOrThrowArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpInstall that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallFindFirstArgs} args - Arguments to find a McpInstall
+     * @example
+     * // Get one McpInstall
+     * const mcpInstall = await prisma.mcpInstall.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends McpInstallFindFirstArgs>(args?: SelectSubset<T, McpInstallFindFirstArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first McpInstall that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallFindFirstOrThrowArgs} args - Arguments to find a McpInstall
+     * @example
+     * // Get one McpInstall
+     * const mcpInstall = await prisma.mcpInstall.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends McpInstallFindFirstOrThrowArgs>(args?: SelectSubset<T, McpInstallFindFirstOrThrowArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more McpInstalls that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all McpInstalls
+     * const mcpInstalls = await prisma.mcpInstall.findMany()
+     *
+     * // Get first 10 McpInstalls
+     * const mcpInstalls = await prisma.mcpInstall.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const mcpInstallWithIdOnly = await prisma.mcpInstall.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends McpInstallFindManyArgs>(args?: SelectSubset<T, McpInstallFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a McpInstall.
+     * @param {McpInstallCreateArgs} args - Arguments to create a McpInstall.
+     * @example
+     * // Create one McpInstall
+     * const McpInstall = await prisma.mcpInstall.create({
+     *   data: {
+     *     // ... data to create a McpInstall
+     *   }
+     * })
+     *
+     */
+    create<T extends McpInstallCreateArgs>(args: SelectSubset<T, McpInstallCreateArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many McpInstalls.
+     * @param {McpInstallCreateManyArgs} args - Arguments to create many McpInstalls.
+     * @example
+     * // Create many McpInstalls
+     * const mcpInstall = await prisma.mcpInstall.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends McpInstallCreateManyArgs>(args?: SelectSubset<T, McpInstallCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many McpInstalls and returns the data saved in the database.
+     * @param {McpInstallCreateManyAndReturnArgs} args - Arguments to create many McpInstalls.
+     * @example
+     * // Create many McpInstalls
+     * const mcpInstall = await prisma.mcpInstall.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many McpInstalls and only return the `id`
+     * const mcpInstallWithIdOnly = await prisma.mcpInstall.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends McpInstallCreateManyAndReturnArgs>(args?: SelectSubset<T, McpInstallCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a McpInstall.
+     * @param {McpInstallDeleteArgs} args - Arguments to delete one McpInstall.
+     * @example
+     * // Delete one McpInstall
+     * const McpInstall = await prisma.mcpInstall.delete({
+     *   where: {
+     *     // ... filter to delete one McpInstall
+     *   }
+     * })
+     *
+     */
+    delete<T extends McpInstallDeleteArgs>(args: SelectSubset<T, McpInstallDeleteArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one McpInstall.
+     * @param {McpInstallUpdateArgs} args - Arguments to update one McpInstall.
+     * @example
+     * // Update one McpInstall
+     * const mcpInstall = await prisma.mcpInstall.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends McpInstallUpdateArgs>(args: SelectSubset<T, McpInstallUpdateArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more McpInstalls.
+     * @param {McpInstallDeleteManyArgs} args - Arguments to filter McpInstalls to delete.
+     * @example
+     * // Delete a few McpInstalls
+     * const { count } = await prisma.mcpInstall.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends McpInstallDeleteManyArgs>(args?: SelectSubset<T, McpInstallDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpInstalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many McpInstalls
+     * const mcpInstall = await prisma.mcpInstall.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends McpInstallUpdateManyArgs>(args: SelectSubset<T, McpInstallUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more McpInstalls and returns the data updated in the database.
+     * @param {McpInstallUpdateManyAndReturnArgs} args - Arguments to update many McpInstalls.
+     * @example
+     * // Update many McpInstalls
+     * const mcpInstall = await prisma.mcpInstall.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more McpInstalls and only return the `id`
+     * const mcpInstallWithIdOnly = await prisma.mcpInstall.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends McpInstallUpdateManyAndReturnArgs>(args: SelectSubset<T, McpInstallUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one McpInstall.
+     * @param {McpInstallUpsertArgs} args - Arguments to update or create a McpInstall.
+     * @example
+     * // Update or create a McpInstall
+     * const mcpInstall = await prisma.mcpInstall.upsert({
+     *   create: {
+     *     // ... data to create a McpInstall
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the McpInstall we want to update
+     *   }
+     * })
+     */
+    upsert<T extends McpInstallUpsertArgs>(args: SelectSubset<T, McpInstallUpsertArgs<ExtArgs>>): Prisma__McpInstallClient<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of McpInstalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallCountArgs} args - Arguments to filter McpInstalls to count.
+     * @example
+     * // Count the number of McpInstalls
+     * const count = await prisma.mcpInstall.count({
+     *   where: {
+     *     // ... the filter for the McpInstalls we want to count
+     *   }
+     * })
+    **/
+    count<T extends McpInstallCountArgs>(
+      args?: Subset<T, McpInstallCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], McpInstallCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a McpInstall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends McpInstallAggregateArgs>(args: Subset<T, McpInstallAggregateArgs>): Prisma.PrismaPromise<GetMcpInstallAggregateType<T>>
+
+    /**
+     * Group by McpInstall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {McpInstallGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends McpInstallGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: McpInstallGroupByArgs['orderBy'] }
+        : { orderBy?: McpInstallGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, McpInstallGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetMcpInstallGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the McpInstall model
+   */
+  readonly fields: McpInstallFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for McpInstall.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__McpInstallClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    catalogEntry<T extends McpCatalogEntryDefaultArgs<ExtArgs> = {}>(args?: Subset<T, McpCatalogEntryDefaultArgs<ExtArgs>>): Prisma__McpCatalogEntryClient<$Result.GetResult<Prisma.$McpCatalogEntryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    organization<T extends McpInstall$organizationArgs<ExtArgs> = {}>(args?: Subset<T, McpInstall$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the McpInstall model
+   */
+  interface McpInstallFieldRefs {
+    readonly id: FieldRef<"McpInstall", 'String'>
+    readonly catalogEntryId: FieldRef<"McpInstall", 'String'>
+    readonly userId: FieldRef<"McpInstall", 'String'>
+    readonly organizationId: FieldRef<"McpInstall", 'String'>
+    readonly alias: FieldRef<"McpInstall", 'String'>
+    readonly configJson: FieldRef<"McpInstall", 'Json'>
+    readonly enabled: FieldRef<"McpInstall", 'Boolean'>
+    readonly installedAt: FieldRef<"McpInstall", 'DateTime'>
+    readonly updatedAt: FieldRef<"McpInstall", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * McpInstall findUnique
+   */
+  export type McpInstallFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter, which McpInstall to fetch.
+     */
+    where: McpInstallWhereUniqueInput
+  }
+
+  /**
+   * McpInstall findUniqueOrThrow
+   */
+  export type McpInstallFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter, which McpInstall to fetch.
+     */
+    where: McpInstallWhereUniqueInput
+  }
+
+  /**
+   * McpInstall findFirst
+   */
+  export type McpInstallFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter, which McpInstall to fetch.
+     */
+    where?: McpInstallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpInstalls to fetch.
+     */
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for McpInstalls.
+     */
+    cursor?: McpInstallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpInstalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpInstalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpInstalls.
+     */
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * McpInstall findFirstOrThrow
+   */
+  export type McpInstallFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter, which McpInstall to fetch.
+     */
+    where?: McpInstallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpInstalls to fetch.
+     */
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for McpInstalls.
+     */
+    cursor?: McpInstallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpInstalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpInstalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpInstalls.
+     */
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * McpInstall findMany
+   */
+  export type McpInstallFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter, which McpInstalls to fetch.
+     */
+    where?: McpInstallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of McpInstalls to fetch.
+     */
+    orderBy?: McpInstallOrderByWithRelationInput | McpInstallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing McpInstalls.
+     */
+    cursor?: McpInstallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` McpInstalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` McpInstalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of McpInstalls.
+     */
+    distinct?: McpInstallScalarFieldEnum | McpInstallScalarFieldEnum[]
+  }
+
+  /**
+   * McpInstall create
+   */
+  export type McpInstallCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * The data needed to create a McpInstall.
+     */
+    data: XOR<McpInstallCreateInput, McpInstallUncheckedCreateInput>
+  }
+
+  /**
+   * McpInstall createMany
+   */
+  export type McpInstallCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many McpInstalls.
+     */
+    data: McpInstallCreateManyInput | McpInstallCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * McpInstall createManyAndReturn
+   */
+  export type McpInstallCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * The data used to create many McpInstalls.
+     */
+    data: McpInstallCreateManyInput | McpInstallCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * McpInstall update
+   */
+  export type McpInstallUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * The data needed to update a McpInstall.
+     */
+    data: XOR<McpInstallUpdateInput, McpInstallUncheckedUpdateInput>
+    /**
+     * Choose, which McpInstall to update.
+     */
+    where: McpInstallWhereUniqueInput
+  }
+
+  /**
+   * McpInstall updateMany
+   */
+  export type McpInstallUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update McpInstalls.
+     */
+    data: XOR<McpInstallUpdateManyMutationInput, McpInstallUncheckedUpdateManyInput>
+    /**
+     * Filter which McpInstalls to update
+     */
+    where?: McpInstallWhereInput
+    /**
+     * Limit how many McpInstalls to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpInstall updateManyAndReturn
+   */
+  export type McpInstallUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * The data used to update McpInstalls.
+     */
+    data: XOR<McpInstallUpdateManyMutationInput, McpInstallUncheckedUpdateManyInput>
+    /**
+     * Filter which McpInstalls to update
+     */
+    where?: McpInstallWhereInput
+    /**
+     * Limit how many McpInstalls to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * McpInstall upsert
+   */
+  export type McpInstallUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * The filter to search for the McpInstall to update in case it exists.
+     */
+    where: McpInstallWhereUniqueInput
+    /**
+     * In case the McpInstall found by the `where` argument doesn't exist, create a new McpInstall with this data.
+     */
+    create: XOR<McpInstallCreateInput, McpInstallUncheckedCreateInput>
+    /**
+     * In case the McpInstall was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<McpInstallUpdateInput, McpInstallUncheckedUpdateInput>
+  }
+
+  /**
+   * McpInstall delete
+   */
+  export type McpInstallDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+    /**
+     * Filter which McpInstall to delete.
+     */
+    where: McpInstallWhereUniqueInput
+  }
+
+  /**
+   * McpInstall deleteMany
+   */
+  export type McpInstallDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which McpInstalls to delete
+     */
+    where?: McpInstallWhereInput
+    /**
+     * Limit how many McpInstalls to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * McpInstall.organization
+   */
+  export type McpInstall$organizationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Organization
+     */
+    select?: OrganizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Organization
+     */
+    omit?: OrganizationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationInclude<ExtArgs> | null
+    where?: OrganizationWhereInput
+  }
+
+  /**
+   * McpInstall without action
+   */
+  export type McpInstallDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the McpInstall
+     */
+    select?: McpInstallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the McpInstall
+     */
+    omit?: McpInstallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: McpInstallInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentRun
+   */
+
+  export type AggregateAgentRun = {
+    _count: AgentRunCountAggregateOutputType | null
+    _min: AgentRunMinAggregateOutputType | null
+    _max: AgentRunMaxAggregateOutputType | null
+  }
+
+  export type AgentRunMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    conversationId: string | null
+    projectId: string | null
+    mode: string | null
+    status: $Enums.AgentRunStatus | null
+    reason: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    userId: string | null
+    conversationId: string | null
+    projectId: string | null
+    mode: string | null
+    status: $Enums.AgentRunStatus | null
+    reason: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    userId: number
+    conversationId: number
+    projectId: number
+    mode: number
+    status: number
+    reason: number
+    rolesPlanned: number
+    startedAt: number
+    completedAt: number
+    metadata: number
+    _all: number
+  }
+
+
+  export type AgentRunMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    conversationId?: true
+    projectId?: true
+    mode?: true
+    status?: true
+    reason?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    conversationId?: true
+    projectId?: true
+    mode?: true
+    status?: true
+    reason?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    userId?: true
+    conversationId?: true
+    projectId?: true
+    mode?: true
+    status?: true
+    reason?: true
+    rolesPlanned?: true
+    startedAt?: true
+    completedAt?: true
+    metadata?: true
+    _all?: true
+  }
+
+  export type AgentRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRun to aggregate.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned AgentRuns
+    **/
+    _count?: true | AgentRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentRunMaxAggregateInputType
+  }
+
+  export type GetAgentRunAggregateType<T extends AgentRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentRun[P]>
+      : GetScalarType<T[P], AggregateAgentRun[P]>
+  }
+
+
+
+
+  export type AgentRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunWhereInput
+    orderBy?: AgentRunOrderByWithAggregationInput | AgentRunOrderByWithAggregationInput[]
+    by: AgentRunScalarFieldEnum[] | AgentRunScalarFieldEnum
+    having?: AgentRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentRunCountAggregateInputType | true
+    _min?: AgentRunMinAggregateInputType
+    _max?: AgentRunMaxAggregateInputType
+  }
+
+  export type AgentRunGroupByOutputType = {
+    id: string
+    organizationId: string | null
+    userId: string | null
+    conversationId: string | null
+    projectId: string | null
+    mode: string
+    status: $Enums.AgentRunStatus
+    reason: string | null
+    rolesPlanned: JsonValue
+    startedAt: Date
+    completedAt: Date | null
+    metadata: JsonValue
+    _count: AgentRunCountAggregateOutputType | null
+    _min: AgentRunMinAggregateOutputType | null
+    _max: AgentRunMaxAggregateOutputType | null
+  }
+
+  type GetAgentRunGroupByPayload<T extends AgentRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentRunGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    conversationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    status?: boolean
+    reason?: boolean
+    rolesPlanned?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    metadata?: boolean
+    results?: boolean | AgentRun$resultsArgs<ExtArgs>
+    consensus?: boolean | AgentRun$consensusArgs<ExtArgs>
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+    _count?: boolean | AgentRunCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    conversationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    status?: boolean
+    reason?: boolean
+    rolesPlanned?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    metadata?: boolean
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    conversationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    status?: boolean
+    reason?: boolean
+    rolesPlanned?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    metadata?: boolean
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    userId?: boolean
+    conversationId?: boolean
+    projectId?: boolean
+    mode?: boolean
+    status?: boolean
+    reason?: boolean
+    rolesPlanned?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    metadata?: boolean
+  }
+
+  export type AgentRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "userId" | "conversationId" | "projectId" | "mode" | "status" | "reason" | "rolesPlanned" | "startedAt" | "completedAt" | "metadata", ExtArgs["result"]["agentRun"]>
+  export type AgentRunInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    results?: boolean | AgentRun$resultsArgs<ExtArgs>
+    consensus?: boolean | AgentRun$consensusArgs<ExtArgs>
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+    _count?: boolean | AgentRunCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AgentRunIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+  }
+  export type AgentRunIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | AgentRun$userArgs<ExtArgs>
+    organization?: boolean | AgentRun$organizationArgs<ExtArgs>
+  }
+
+  export type $AgentRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentRun"
+    objects: {
+      results: Prisma.$AgentRunResultPayload<ExtArgs>[]
+      consensus: Prisma.$ConsensusRecordPayload<ExtArgs> | null
+      user: Prisma.$UserPayload<ExtArgs> | null
+      organization: Prisma.$OrganizationPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string | null
+      userId: string | null
+      conversationId: string | null
+      projectId: string | null
+      mode: string
+      status: $Enums.AgentRunStatus
+      reason: string | null
+      rolesPlanned: Prisma.JsonValue
+      startedAt: Date
+      completedAt: Date | null
+      metadata: Prisma.JsonValue
+    }, ExtArgs["result"]["agentRun"]>
+    composites: {}
+  }
+
+  type AgentRunGetPayload<S extends boolean | null | undefined | AgentRunDefaultArgs> = $Result.GetResult<Prisma.$AgentRunPayload, S>
+
+  type AgentRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentRunCountAggregateInputType | true
+    }
+
+  export interface AgentRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentRun'], meta: { name: 'AgentRun' } }
+    /**
+     * Find zero or one AgentRun that matches the filter.
+     * @param {AgentRunFindUniqueArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentRunFindUniqueArgs>(args: SelectSubset<T, AgentRunFindUniqueArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentRunFindUniqueOrThrowArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentRunFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindFirstArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentRunFindFirstArgs>(args?: SelectSubset<T, AgentRunFindFirstArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindFirstOrThrowArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentRunFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentRuns
+     * const agentRuns = await prisma.agentRun.findMany()
+     *
+     * // Get first 10 AgentRuns
+     * const agentRuns = await prisma.agentRun.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends AgentRunFindManyArgs>(args?: SelectSubset<T, AgentRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentRun.
+     * @param {AgentRunCreateArgs} args - Arguments to create a AgentRun.
+     * @example
+     * // Create one AgentRun
+     * const AgentRun = await prisma.agentRun.create({
+     *   data: {
+     *     // ... data to create a AgentRun
+     *   }
+     * })
+     *
+     */
+    create<T extends AgentRunCreateArgs>(args: SelectSubset<T, AgentRunCreateArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentRuns.
+     * @param {AgentRunCreateManyArgs} args - Arguments to create many AgentRuns.
+     * @example
+     * // Create many AgentRuns
+     * const agentRun = await prisma.agentRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends AgentRunCreateManyArgs>(args?: SelectSubset<T, AgentRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentRuns and returns the data saved in the database.
+     * @param {AgentRunCreateManyAndReturnArgs} args - Arguments to create many AgentRuns.
+     * @example
+     * // Create many AgentRuns
+     * const agentRun = await prisma.agentRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many AgentRuns and only return the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends AgentRunCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentRun.
+     * @param {AgentRunDeleteArgs} args - Arguments to delete one AgentRun.
+     * @example
+     * // Delete one AgentRun
+     * const AgentRun = await prisma.agentRun.delete({
+     *   where: {
+     *     // ... filter to delete one AgentRun
+     *   }
+     * })
+     *
+     */
+    delete<T extends AgentRunDeleteArgs>(args: SelectSubset<T, AgentRunDeleteArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentRun.
+     * @param {AgentRunUpdateArgs} args - Arguments to update one AgentRun.
+     * @example
+     * // Update one AgentRun
+     * const agentRun = await prisma.agentRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends AgentRunUpdateArgs>(args: SelectSubset<T, AgentRunUpdateArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentRuns.
+     * @param {AgentRunDeleteManyArgs} args - Arguments to filter AgentRuns to delete.
+     * @example
+     * // Delete a few AgentRuns
+     * const { count } = await prisma.agentRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends AgentRunDeleteManyArgs>(args?: SelectSubset<T, AgentRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentRuns
+     * const agentRun = await prisma.agentRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends AgentRunUpdateManyArgs>(args: SelectSubset<T, AgentRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRuns and returns the data updated in the database.
+     * @param {AgentRunUpdateManyAndReturnArgs} args - Arguments to update many AgentRuns.
+     * @example
+     * // Update many AgentRuns
+     * const agentRun = await prisma.agentRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more AgentRuns and only return the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends AgentRunUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentRun.
+     * @param {AgentRunUpsertArgs} args - Arguments to update or create a AgentRun.
+     * @example
+     * // Update or create a AgentRun
+     * const agentRun = await prisma.agentRun.upsert({
+     *   create: {
+     *     // ... data to create a AgentRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentRunUpsertArgs>(args: SelectSubset<T, AgentRunUpsertArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunCountArgs} args - Arguments to filter AgentRuns to count.
+     * @example
+     * // Count the number of AgentRuns
+     * const count = await prisma.agentRun.count({
+     *   where: {
+     *     // ... the filter for the AgentRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentRunCountArgs>(
+      args?: Subset<T, AgentRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentRunAggregateArgs>(args: Subset<T, AgentRunAggregateArgs>): Prisma.PrismaPromise<GetAgentRunAggregateType<T>>
+
+    /**
+     * Group by AgentRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends AgentRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentRunGroupByArgs['orderBy'] }
+        : { orderBy?: AgentRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentRun model
+   */
+  readonly fields: AgentRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    results<T extends AgentRun$resultsArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$resultsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    consensus<T extends AgentRun$consensusArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$consensusArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    user<T extends AgentRun$userArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$userArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    organization<T extends AgentRun$organizationArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentRun model
+   */
+  interface AgentRunFieldRefs {
+    readonly id: FieldRef<"AgentRun", 'String'>
+    readonly organizationId: FieldRef<"AgentRun", 'String'>
+    readonly userId: FieldRef<"AgentRun", 'String'>
+    readonly conversationId: FieldRef<"AgentRun", 'String'>
+    readonly projectId: FieldRef<"AgentRun", 'String'>
+    readonly mode: FieldRef<"AgentRun", 'String'>
+    readonly status: FieldRef<"AgentRun", 'AgentRunStatus'>
+    readonly reason: FieldRef<"AgentRun", 'String'>
+    readonly rolesPlanned: FieldRef<"AgentRun", 'Json'>
+    readonly startedAt: FieldRef<"AgentRun", 'DateTime'>
+    readonly completedAt: FieldRef<"AgentRun", 'DateTime'>
+    readonly metadata: FieldRef<"AgentRun", 'Json'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * AgentRun findUnique
+   */
+  export type AgentRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun findUniqueOrThrow
+   */
+  export type AgentRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun findFirst
+   */
+  export type AgentRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRuns.
+     */
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun findFirstOrThrow
+   */
+  export type AgentRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRuns.
+     */
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun findMany
+   */
+  export type AgentRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRuns to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRuns.
+     */
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun create
+   */
+  export type AgentRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentRun.
+     */
+    data: XOR<AgentRunCreateInput, AgentRunUncheckedCreateInput>
+  }
+
+  /**
+   * AgentRun createMany
+   */
+  export type AgentRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentRuns.
+     */
+    data: AgentRunCreateManyInput | AgentRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentRun createManyAndReturn
+   */
+  export type AgentRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentRuns.
+     */
+    data: AgentRunCreateManyInput | AgentRunCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRun update
+   */
+  export type AgentRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentRun.
+     */
+    data: XOR<AgentRunUpdateInput, AgentRunUncheckedUpdateInput>
+    /**
+     * Choose, which AgentRun to update.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun updateMany
+   */
+  export type AgentRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentRuns.
+     */
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRuns to update
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRun updateManyAndReturn
+   */
+  export type AgentRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentRuns.
+     */
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRuns to update
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRun upsert
+   */
+  export type AgentRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentRun to update in case it exists.
+     */
+    where: AgentRunWhereUniqueInput
+    /**
+     * In case the AgentRun found by the `where` argument doesn't exist, create a new AgentRun with this data.
+     */
+    create: XOR<AgentRunCreateInput, AgentRunUncheckedCreateInput>
+    /**
+     * In case the AgentRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentRunUpdateInput, AgentRunUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentRun delete
+   */
+  export type AgentRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter which AgentRun to delete.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun deleteMany
+   */
+  export type AgentRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRuns to delete
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRun.results
+   */
+  export type AgentRun$resultsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    where?: AgentRunResultWhereInput
+    orderBy?: AgentRunResultOrderByWithRelationInput | AgentRunResultOrderByWithRelationInput[]
+    cursor?: AgentRunResultWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRunResultScalarFieldEnum | AgentRunResultScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun.consensus
+   */
+  export type AgentRun$consensusArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    where?: ConsensusRecordWhereInput
+  }
+
+  /**
+   * AgentRun.user
+   */
+  export type AgentRun$userArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * AgentRun.organization
+   */
+  export type AgentRun$organizationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Organization
+     */
+    select?: OrganizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Organization
+     */
+    omit?: OrganizationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationInclude<ExtArgs> | null
+    where?: OrganizationWhereInput
+  }
+
+  /**
+   * AgentRun without action
+   */
+  export type AgentRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentRunResult
+   */
+
+  export type AggregateAgentRunResult = {
+    _count: AgentRunResultCountAggregateOutputType | null
+    _min: AgentRunResultMinAggregateOutputType | null
+    _max: AgentRunResultMaxAggregateOutputType | null
+  }
+
+  export type AgentRunResultMinAggregateOutputType = {
+    id: string | null
+    runId: string | null
+    roleId: string | null
+    status: $Enums.AgentRunResultStatus | null
+    summary: string | null
+    rawOutput: string | null
+    errorMessage: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunResultMaxAggregateOutputType = {
+    id: string | null
+    runId: string | null
+    roleId: string | null
+    status: $Enums.AgentRunResultStatus | null
+    summary: string | null
+    rawOutput: string | null
+    errorMessage: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunResultCountAggregateOutputType = {
+    id: number
+    runId: number
+    roleId: number
+    status: number
+    summary: number
+    files: number
+    risks: number
+    verification: number
+    rawOutput: number
+    errorMessage: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type AgentRunResultMinAggregateInputType = {
+    id?: true
+    runId?: true
+    roleId?: true
+    status?: true
+    summary?: true
+    rawOutput?: true
+    errorMessage?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunResultMaxAggregateInputType = {
+    id?: true
+    runId?: true
+    roleId?: true
+    status?: true
+    summary?: true
+    rawOutput?: true
+    errorMessage?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunResultCountAggregateInputType = {
+    id?: true
+    runId?: true
+    roleId?: true
+    status?: true
+    summary?: true
+    files?: true
+    risks?: true
+    verification?: true
+    rawOutput?: true
+    errorMessage?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type AgentRunResultAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRunResult to aggregate.
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRunResults to fetch.
+     */
+    orderBy?: AgentRunResultOrderByWithRelationInput | AgentRunResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: AgentRunResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRunResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRunResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned AgentRunResults
+    **/
+    _count?: true | AgentRunResultCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentRunResultMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentRunResultMaxAggregateInputType
+  }
+
+  export type GetAgentRunResultAggregateType<T extends AgentRunResultAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentRunResult]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentRunResult[P]>
+      : GetScalarType<T[P], AggregateAgentRunResult[P]>
+  }
+
+
+
+
+  export type AgentRunResultGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunResultWhereInput
+    orderBy?: AgentRunResultOrderByWithAggregationInput | AgentRunResultOrderByWithAggregationInput[]
+    by: AgentRunResultScalarFieldEnum[] | AgentRunResultScalarFieldEnum
+    having?: AgentRunResultScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentRunResultCountAggregateInputType | true
+    _min?: AgentRunResultMinAggregateInputType
+    _max?: AgentRunResultMaxAggregateInputType
+  }
+
+  export type AgentRunResultGroupByOutputType = {
+    id: string
+    runId: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files: JsonValue
+    risks: JsonValue
+    verification: JsonValue
+    rawOutput: string | null
+    errorMessage: string | null
+    startedAt: Date
+    completedAt: Date | null
+    _count: AgentRunResultCountAggregateOutputType | null
+    _min: AgentRunResultMinAggregateOutputType | null
+    _max: AgentRunResultMaxAggregateOutputType | null
+  }
+
+  type GetAgentRunResultGroupByPayload<T extends AgentRunResultGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentRunResultGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentRunResultGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentRunResultGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentRunResultGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentRunResultSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    roleId?: boolean
+    status?: boolean
+    summary?: boolean
+    files?: boolean
+    risks?: boolean
+    verification?: boolean
+    rawOutput?: boolean
+    errorMessage?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRunResult"]>
+
+  export type AgentRunResultSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    roleId?: boolean
+    status?: boolean
+    summary?: boolean
+    files?: boolean
+    risks?: boolean
+    verification?: boolean
+    rawOutput?: boolean
+    errorMessage?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRunResult"]>
+
+  export type AgentRunResultSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    roleId?: boolean
+    status?: boolean
+    summary?: boolean
+    files?: boolean
+    risks?: boolean
+    verification?: boolean
+    rawOutput?: boolean
+    errorMessage?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRunResult"]>
+
+  export type AgentRunResultSelectScalar = {
+    id?: boolean
+    runId?: boolean
+    roleId?: boolean
+    status?: boolean
+    summary?: boolean
+    files?: boolean
+    risks?: boolean
+    verification?: boolean
+    rawOutput?: boolean
+    errorMessage?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type AgentRunResultOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "runId" | "roleId" | "status" | "summary" | "files" | "risks" | "verification" | "rawOutput" | "errorMessage" | "startedAt" | "completedAt", ExtArgs["result"]["agentRunResult"]>
+  export type AgentRunResultInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type AgentRunResultIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type AgentRunResultIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+
+  export type $AgentRunResultPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentRunResult"
+    objects: {
+      run: Prisma.$AgentRunPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      runId: string
+      roleId: string
+      status: $Enums.AgentRunResultStatus
+      summary: string
+      files: Prisma.JsonValue
+      risks: Prisma.JsonValue
+      verification: Prisma.JsonValue
+      rawOutput: string | null
+      errorMessage: string | null
+      startedAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["agentRunResult"]>
+    composites: {}
+  }
+
+  type AgentRunResultGetPayload<S extends boolean | null | undefined | AgentRunResultDefaultArgs> = $Result.GetResult<Prisma.$AgentRunResultPayload, S>
+
+  type AgentRunResultCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentRunResultFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentRunResultCountAggregateInputType | true
+    }
+
+  export interface AgentRunResultDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentRunResult'], meta: { name: 'AgentRunResult' } }
+    /**
+     * Find zero or one AgentRunResult that matches the filter.
+     * @param {AgentRunResultFindUniqueArgs} args - Arguments to find a AgentRunResult
+     * @example
+     * // Get one AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentRunResultFindUniqueArgs>(args: SelectSubset<T, AgentRunResultFindUniqueArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentRunResult that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentRunResultFindUniqueOrThrowArgs} args - Arguments to find a AgentRunResult
+     * @example
+     * // Get one AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentRunResultFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentRunResultFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRunResult that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultFindFirstArgs} args - Arguments to find a AgentRunResult
+     * @example
+     * // Get one AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentRunResultFindFirstArgs>(args?: SelectSubset<T, AgentRunResultFindFirstArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRunResult that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultFindFirstOrThrowArgs} args - Arguments to find a AgentRunResult
+     * @example
+     * // Get one AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentRunResultFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentRunResultFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentRunResults that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentRunResults
+     * const agentRunResults = await prisma.agentRunResult.findMany()
+     *
+     * // Get first 10 AgentRunResults
+     * const agentRunResults = await prisma.agentRunResult.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const agentRunResultWithIdOnly = await prisma.agentRunResult.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends AgentRunResultFindManyArgs>(args?: SelectSubset<T, AgentRunResultFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentRunResult.
+     * @param {AgentRunResultCreateArgs} args - Arguments to create a AgentRunResult.
+     * @example
+     * // Create one AgentRunResult
+     * const AgentRunResult = await prisma.agentRunResult.create({
+     *   data: {
+     *     // ... data to create a AgentRunResult
+     *   }
+     * })
+     *
+     */
+    create<T extends AgentRunResultCreateArgs>(args: SelectSubset<T, AgentRunResultCreateArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentRunResults.
+     * @param {AgentRunResultCreateManyArgs} args - Arguments to create many AgentRunResults.
+     * @example
+     * // Create many AgentRunResults
+     * const agentRunResult = await prisma.agentRunResult.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends AgentRunResultCreateManyArgs>(args?: SelectSubset<T, AgentRunResultCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentRunResults and returns the data saved in the database.
+     * @param {AgentRunResultCreateManyAndReturnArgs} args - Arguments to create many AgentRunResults.
+     * @example
+     * // Create many AgentRunResults
+     * const agentRunResult = await prisma.agentRunResult.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many AgentRunResults and only return the `id`
+     * const agentRunResultWithIdOnly = await prisma.agentRunResult.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends AgentRunResultCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentRunResultCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentRunResult.
+     * @param {AgentRunResultDeleteArgs} args - Arguments to delete one AgentRunResult.
+     * @example
+     * // Delete one AgentRunResult
+     * const AgentRunResult = await prisma.agentRunResult.delete({
+     *   where: {
+     *     // ... filter to delete one AgentRunResult
+     *   }
+     * })
+     *
+     */
+    delete<T extends AgentRunResultDeleteArgs>(args: SelectSubset<T, AgentRunResultDeleteArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentRunResult.
+     * @param {AgentRunResultUpdateArgs} args - Arguments to update one AgentRunResult.
+     * @example
+     * // Update one AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends AgentRunResultUpdateArgs>(args: SelectSubset<T, AgentRunResultUpdateArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentRunResults.
+     * @param {AgentRunResultDeleteManyArgs} args - Arguments to filter AgentRunResults to delete.
+     * @example
+     * // Delete a few AgentRunResults
+     * const { count } = await prisma.agentRunResult.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends AgentRunResultDeleteManyArgs>(args?: SelectSubset<T, AgentRunResultDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRunResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentRunResults
+     * const agentRunResult = await prisma.agentRunResult.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends AgentRunResultUpdateManyArgs>(args: SelectSubset<T, AgentRunResultUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRunResults and returns the data updated in the database.
+     * @param {AgentRunResultUpdateManyAndReturnArgs} args - Arguments to update many AgentRunResults.
+     * @example
+     * // Update many AgentRunResults
+     * const agentRunResult = await prisma.agentRunResult.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more AgentRunResults and only return the `id`
+     * const agentRunResultWithIdOnly = await prisma.agentRunResult.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends AgentRunResultUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentRunResultUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentRunResult.
+     * @param {AgentRunResultUpsertArgs} args - Arguments to update or create a AgentRunResult.
+     * @example
+     * // Update or create a AgentRunResult
+     * const agentRunResult = await prisma.agentRunResult.upsert({
+     *   create: {
+     *     // ... data to create a AgentRunResult
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentRunResult we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentRunResultUpsertArgs>(args: SelectSubset<T, AgentRunResultUpsertArgs<ExtArgs>>): Prisma__AgentRunResultClient<$Result.GetResult<Prisma.$AgentRunResultPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentRunResults.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultCountArgs} args - Arguments to filter AgentRunResults to count.
+     * @example
+     * // Count the number of AgentRunResults
+     * const count = await prisma.agentRunResult.count({
+     *   where: {
+     *     // ... the filter for the AgentRunResults we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentRunResultCountArgs>(
+      args?: Subset<T, AgentRunResultCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentRunResultCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentRunResult.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentRunResultAggregateArgs>(args: Subset<T, AgentRunResultAggregateArgs>): Prisma.PrismaPromise<GetAgentRunResultAggregateType<T>>
+
+    /**
+     * Group by AgentRunResult.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunResultGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends AgentRunResultGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentRunResultGroupByArgs['orderBy'] }
+        : { orderBy?: AgentRunResultGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentRunResultGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentRunResultGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentRunResult model
+   */
+  readonly fields: AgentRunResultFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentRunResult.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentRunResultClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    run<T extends AgentRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AgentRunDefaultArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentRunResult model
+   */
+  interface AgentRunResultFieldRefs {
+    readonly id: FieldRef<"AgentRunResult", 'String'>
+    readonly runId: FieldRef<"AgentRunResult", 'String'>
+    readonly roleId: FieldRef<"AgentRunResult", 'String'>
+    readonly status: FieldRef<"AgentRunResult", 'AgentRunResultStatus'>
+    readonly summary: FieldRef<"AgentRunResult", 'String'>
+    readonly files: FieldRef<"AgentRunResult", 'Json'>
+    readonly risks: FieldRef<"AgentRunResult", 'Json'>
+    readonly verification: FieldRef<"AgentRunResult", 'Json'>
+    readonly rawOutput: FieldRef<"AgentRunResult", 'String'>
+    readonly errorMessage: FieldRef<"AgentRunResult", 'String'>
+    readonly startedAt: FieldRef<"AgentRunResult", 'DateTime'>
+    readonly completedAt: FieldRef<"AgentRunResult", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * AgentRunResult findUnique
+   */
+  export type AgentRunResultFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRunResult to fetch.
+     */
+    where: AgentRunResultWhereUniqueInput
+  }
+
+  /**
+   * AgentRunResult findUniqueOrThrow
+   */
+  export type AgentRunResultFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRunResult to fetch.
+     */
+    where: AgentRunResultWhereUniqueInput
+  }
+
+  /**
+   * AgentRunResult findFirst
+   */
+  export type AgentRunResultFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRunResult to fetch.
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRunResults to fetch.
+     */
+    orderBy?: AgentRunResultOrderByWithRelationInput | AgentRunResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentRunResults.
+     */
+    cursor?: AgentRunResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRunResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRunResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRunResults.
+     */
+    distinct?: AgentRunResultScalarFieldEnum | AgentRunResultScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRunResult findFirstOrThrow
+   */
+  export type AgentRunResultFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRunResult to fetch.
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRunResults to fetch.
+     */
+    orderBy?: AgentRunResultOrderByWithRelationInput | AgentRunResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentRunResults.
+     */
+    cursor?: AgentRunResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRunResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRunResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRunResults.
+     */
+    distinct?: AgentRunResultScalarFieldEnum | AgentRunResultScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRunResult findMany
+   */
+  export type AgentRunResultFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRunResults to fetch.
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentRunResults to fetch.
+     */
+    orderBy?: AgentRunResultOrderByWithRelationInput | AgentRunResultOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing AgentRunResults.
+     */
+    cursor?: AgentRunResultWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentRunResults from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentRunResults.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentRunResults.
+     */
+    distinct?: AgentRunResultScalarFieldEnum | AgentRunResultScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRunResult create
+   */
+  export type AgentRunResultCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentRunResult.
+     */
+    data: XOR<AgentRunResultCreateInput, AgentRunResultUncheckedCreateInput>
+  }
+
+  /**
+   * AgentRunResult createMany
+   */
+  export type AgentRunResultCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentRunResults.
+     */
+    data: AgentRunResultCreateManyInput | AgentRunResultCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentRunResult createManyAndReturn
+   */
+  export type AgentRunResultCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentRunResults.
+     */
+    data: AgentRunResultCreateManyInput | AgentRunResultCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRunResult update
+   */
+  export type AgentRunResultUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentRunResult.
+     */
+    data: XOR<AgentRunResultUpdateInput, AgentRunResultUncheckedUpdateInput>
+    /**
+     * Choose, which AgentRunResult to update.
+     */
+    where: AgentRunResultWhereUniqueInput
+  }
+
+  /**
+   * AgentRunResult updateMany
+   */
+  export type AgentRunResultUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentRunResults.
+     */
+    data: XOR<AgentRunResultUpdateManyMutationInput, AgentRunResultUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRunResults to update
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * Limit how many AgentRunResults to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRunResult updateManyAndReturn
+   */
+  export type AgentRunResultUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentRunResults.
+     */
+    data: XOR<AgentRunResultUpdateManyMutationInput, AgentRunResultUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRunResults to update
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * Limit how many AgentRunResults to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRunResult upsert
+   */
+  export type AgentRunResultUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentRunResult to update in case it exists.
+     */
+    where: AgentRunResultWhereUniqueInput
+    /**
+     * In case the AgentRunResult found by the `where` argument doesn't exist, create a new AgentRunResult with this data.
+     */
+    create: XOR<AgentRunResultCreateInput, AgentRunResultUncheckedCreateInput>
+    /**
+     * In case the AgentRunResult was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentRunResultUpdateInput, AgentRunResultUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentRunResult delete
+   */
+  export type AgentRunResultDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+    /**
+     * Filter which AgentRunResult to delete.
+     */
+    where: AgentRunResultWhereUniqueInput
+  }
+
+  /**
+   * AgentRunResult deleteMany
+   */
+  export type AgentRunResultDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRunResults to delete
+     */
+    where?: AgentRunResultWhereInput
+    /**
+     * Limit how many AgentRunResults to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRunResult without action
+   */
+  export type AgentRunResultDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunResult
+     */
+    select?: AgentRunResultSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRunResult
+     */
+    omit?: AgentRunResultOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunResultInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ConsensusRecord
+   */
+
+  export type AggregateConsensusRecord = {
+    _count: ConsensusRecordCountAggregateOutputType | null
+    _avg: ConsensusRecordAvgAggregateOutputType | null
+    _sum: ConsensusRecordSumAggregateOutputType | null
+    _min: ConsensusRecordMinAggregateOutputType | null
+    _max: ConsensusRecordMaxAggregateOutputType | null
+  }
+
+  export type ConsensusRecordAvgAggregateOutputType = {
+    threshold: number | null
+    agreementScore: number | null
+    rounds: number | null
+    durationMs: number | null
+  }
+
+  export type ConsensusRecordSumAggregateOutputType = {
+    threshold: number | null
+    agreementScore: number | null
+    rounds: number | null
+    durationMs: number | null
+  }
+
+  export type ConsensusRecordMinAggregateOutputType = {
+    id: string | null
+    runId: string | null
+    algorithm: $Enums.ConsensusAlgorithm | null
+    threshold: number | null
+    outcome: $Enums.ConsensusOutcome | null
+    agreementScore: number | null
+    rounds: number | null
+    durationMs: number | null
+    createdAt: Date | null
+  }
+
+  export type ConsensusRecordMaxAggregateOutputType = {
+    id: string | null
+    runId: string | null
+    algorithm: $Enums.ConsensusAlgorithm | null
+    threshold: number | null
+    outcome: $Enums.ConsensusOutcome | null
+    agreementScore: number | null
+    rounds: number | null
+    durationMs: number | null
+    createdAt: Date | null
+  }
+
+  export type ConsensusRecordCountAggregateOutputType = {
+    id: number
+    runId: number
+    algorithm: number
+    threshold: number
+    outcome: number
+    agreementScore: number
+    claimVotes: number
+    conflicts: number
+    consolidated: number
+    rounds: number
+    durationMs: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ConsensusRecordAvgAggregateInputType = {
+    threshold?: true
+    agreementScore?: true
+    rounds?: true
+    durationMs?: true
+  }
+
+  export type ConsensusRecordSumAggregateInputType = {
+    threshold?: true
+    agreementScore?: true
+    rounds?: true
+    durationMs?: true
+  }
+
+  export type ConsensusRecordMinAggregateInputType = {
+    id?: true
+    runId?: true
+    algorithm?: true
+    threshold?: true
+    outcome?: true
+    agreementScore?: true
+    rounds?: true
+    durationMs?: true
+    createdAt?: true
+  }
+
+  export type ConsensusRecordMaxAggregateInputType = {
+    id?: true
+    runId?: true
+    algorithm?: true
+    threshold?: true
+    outcome?: true
+    agreementScore?: true
+    rounds?: true
+    durationMs?: true
+    createdAt?: true
+  }
+
+  export type ConsensusRecordCountAggregateInputType = {
+    id?: true
+    runId?: true
+    algorithm?: true
+    threshold?: true
+    outcome?: true
+    agreementScore?: true
+    claimVotes?: true
+    conflicts?: true
+    consolidated?: true
+    rounds?: true
+    durationMs?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ConsensusRecordAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConsensusRecord to aggregate.
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ConsensusRecords to fetch.
+     */
+    orderBy?: ConsensusRecordOrderByWithRelationInput | ConsensusRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ConsensusRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ConsensusRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ConsensusRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ConsensusRecords
+    **/
+    _count?: true | ConsensusRecordCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ConsensusRecordAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ConsensusRecordSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ConsensusRecordMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ConsensusRecordMaxAggregateInputType
+  }
+
+  export type GetConsensusRecordAggregateType<T extends ConsensusRecordAggregateArgs> = {
+        [P in keyof T & keyof AggregateConsensusRecord]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConsensusRecord[P]>
+      : GetScalarType<T[P], AggregateConsensusRecord[P]>
+  }
+
+
+
+
+  export type ConsensusRecordGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConsensusRecordWhereInput
+    orderBy?: ConsensusRecordOrderByWithAggregationInput | ConsensusRecordOrderByWithAggregationInput[]
+    by: ConsensusRecordScalarFieldEnum[] | ConsensusRecordScalarFieldEnum
+    having?: ConsensusRecordScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ConsensusRecordCountAggregateInputType | true
+    _avg?: ConsensusRecordAvgAggregateInputType
+    _sum?: ConsensusRecordSumAggregateInputType
+    _min?: ConsensusRecordMinAggregateInputType
+    _max?: ConsensusRecordMaxAggregateInputType
+  }
+
+  export type ConsensusRecordGroupByOutputType = {
+    id: string
+    runId: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonValue
+    conflicts: JsonValue
+    consolidated: JsonValue
+    rounds: number
+    durationMs: number
+    createdAt: Date
+    _count: ConsensusRecordCountAggregateOutputType | null
+    _avg: ConsensusRecordAvgAggregateOutputType | null
+    _sum: ConsensusRecordSumAggregateOutputType | null
+    _min: ConsensusRecordMinAggregateOutputType | null
+    _max: ConsensusRecordMaxAggregateOutputType | null
+  }
+
+  type GetConsensusRecordGroupByPayload<T extends ConsensusRecordGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ConsensusRecordGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ConsensusRecordGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConsensusRecordGroupByOutputType[P]>
+            : GetScalarType<T[P], ConsensusRecordGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ConsensusRecordSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    algorithm?: boolean
+    threshold?: boolean
+    outcome?: boolean
+    agreementScore?: boolean
+    claimVotes?: boolean
+    conflicts?: boolean
+    consolidated?: boolean
+    rounds?: boolean
+    durationMs?: boolean
+    createdAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consensusRecord"]>
+
+  export type ConsensusRecordSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    algorithm?: boolean
+    threshold?: boolean
+    outcome?: boolean
+    agreementScore?: boolean
+    claimVotes?: boolean
+    conflicts?: boolean
+    consolidated?: boolean
+    rounds?: boolean
+    durationMs?: boolean
+    createdAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consensusRecord"]>
+
+  export type ConsensusRecordSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    runId?: boolean
+    algorithm?: boolean
+    threshold?: boolean
+    outcome?: boolean
+    agreementScore?: boolean
+    claimVotes?: boolean
+    conflicts?: boolean
+    consolidated?: boolean
+    rounds?: boolean
+    durationMs?: boolean
+    createdAt?: boolean
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["consensusRecord"]>
+
+  export type ConsensusRecordSelectScalar = {
+    id?: boolean
+    runId?: boolean
+    algorithm?: boolean
+    threshold?: boolean
+    outcome?: boolean
+    agreementScore?: boolean
+    claimVotes?: boolean
+    conflicts?: boolean
+    consolidated?: boolean
+    rounds?: boolean
+    durationMs?: boolean
+    createdAt?: boolean
+  }
+
+  export type ConsensusRecordOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "runId" | "algorithm" | "threshold" | "outcome" | "agreementScore" | "claimVotes" | "conflicts" | "consolidated" | "rounds" | "durationMs" | "createdAt", ExtArgs["result"]["consensusRecord"]>
+  export type ConsensusRecordInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type ConsensusRecordIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type ConsensusRecordIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    run?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+
+  export type $ConsensusRecordPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ConsensusRecord"
+    objects: {
+      run: Prisma.$AgentRunPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      runId: string
+      algorithm: $Enums.ConsensusAlgorithm
+      threshold: number
+      outcome: $Enums.ConsensusOutcome
+      agreementScore: number
+      claimVotes: Prisma.JsonValue
+      conflicts: Prisma.JsonValue
+      consolidated: Prisma.JsonValue
+      rounds: number
+      durationMs: number
+      createdAt: Date
+    }, ExtArgs["result"]["consensusRecord"]>
+    composites: {}
+  }
+
+  type ConsensusRecordGetPayload<S extends boolean | null | undefined | ConsensusRecordDefaultArgs> = $Result.GetResult<Prisma.$ConsensusRecordPayload, S>
+
+  type ConsensusRecordCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ConsensusRecordFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ConsensusRecordCountAggregateInputType | true
+    }
+
+  export interface ConsensusRecordDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ConsensusRecord'], meta: { name: 'ConsensusRecord' } }
+    /**
+     * Find zero or one ConsensusRecord that matches the filter.
+     * @param {ConsensusRecordFindUniqueArgs} args - Arguments to find a ConsensusRecord
+     * @example
+     * // Get one ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ConsensusRecordFindUniqueArgs>(args: SelectSubset<T, ConsensusRecordFindUniqueArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ConsensusRecord that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ConsensusRecordFindUniqueOrThrowArgs} args - Arguments to find a ConsensusRecord
+     * @example
+     * // Get one ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ConsensusRecordFindUniqueOrThrowArgs>(args: SelectSubset<T, ConsensusRecordFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConsensusRecord that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordFindFirstArgs} args - Arguments to find a ConsensusRecord
+     * @example
+     * // Get one ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ConsensusRecordFindFirstArgs>(args?: SelectSubset<T, ConsensusRecordFindFirstArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConsensusRecord that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordFindFirstOrThrowArgs} args - Arguments to find a ConsensusRecord
+     * @example
+     * // Get one ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ConsensusRecordFindFirstOrThrowArgs>(args?: SelectSubset<T, ConsensusRecordFindFirstOrThrowArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ConsensusRecords that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ConsensusRecords
+     * const consensusRecords = await prisma.consensusRecord.findMany()
+     *
+     * // Get first 10 ConsensusRecords
+     * const consensusRecords = await prisma.consensusRecord.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const consensusRecordWithIdOnly = await prisma.consensusRecord.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends ConsensusRecordFindManyArgs>(args?: SelectSubset<T, ConsensusRecordFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ConsensusRecord.
+     * @param {ConsensusRecordCreateArgs} args - Arguments to create a ConsensusRecord.
+     * @example
+     * // Create one ConsensusRecord
+     * const ConsensusRecord = await prisma.consensusRecord.create({
+     *   data: {
+     *     // ... data to create a ConsensusRecord
+     *   }
+     * })
+     *
+     */
+    create<T extends ConsensusRecordCreateArgs>(args: SelectSubset<T, ConsensusRecordCreateArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ConsensusRecords.
+     * @param {ConsensusRecordCreateManyArgs} args - Arguments to create many ConsensusRecords.
+     * @example
+     * // Create many ConsensusRecords
+     * const consensusRecord = await prisma.consensusRecord.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ConsensusRecordCreateManyArgs>(args?: SelectSubset<T, ConsensusRecordCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ConsensusRecords and returns the data saved in the database.
+     * @param {ConsensusRecordCreateManyAndReturnArgs} args - Arguments to create many ConsensusRecords.
+     * @example
+     * // Create many ConsensusRecords
+     * const consensusRecord = await prisma.consensusRecord.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ConsensusRecords and only return the `id`
+     * const consensusRecordWithIdOnly = await prisma.consensusRecord.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ConsensusRecordCreateManyAndReturnArgs>(args?: SelectSubset<T, ConsensusRecordCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ConsensusRecord.
+     * @param {ConsensusRecordDeleteArgs} args - Arguments to delete one ConsensusRecord.
+     * @example
+     * // Delete one ConsensusRecord
+     * const ConsensusRecord = await prisma.consensusRecord.delete({
+     *   where: {
+     *     // ... filter to delete one ConsensusRecord
+     *   }
+     * })
+     *
+     */
+    delete<T extends ConsensusRecordDeleteArgs>(args: SelectSubset<T, ConsensusRecordDeleteArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ConsensusRecord.
+     * @param {ConsensusRecordUpdateArgs} args - Arguments to update one ConsensusRecord.
+     * @example
+     * // Update one ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ConsensusRecordUpdateArgs>(args: SelectSubset<T, ConsensusRecordUpdateArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ConsensusRecords.
+     * @param {ConsensusRecordDeleteManyArgs} args - Arguments to filter ConsensusRecords to delete.
+     * @example
+     * // Delete a few ConsensusRecords
+     * const { count } = await prisma.consensusRecord.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ConsensusRecordDeleteManyArgs>(args?: SelectSubset<T, ConsensusRecordDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConsensusRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ConsensusRecords
+     * const consensusRecord = await prisma.consensusRecord.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ConsensusRecordUpdateManyArgs>(args: SelectSubset<T, ConsensusRecordUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConsensusRecords and returns the data updated in the database.
+     * @param {ConsensusRecordUpdateManyAndReturnArgs} args - Arguments to update many ConsensusRecords.
+     * @example
+     * // Update many ConsensusRecords
+     * const consensusRecord = await prisma.consensusRecord.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ConsensusRecords and only return the `id`
+     * const consensusRecordWithIdOnly = await prisma.consensusRecord.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ConsensusRecordUpdateManyAndReturnArgs>(args: SelectSubset<T, ConsensusRecordUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ConsensusRecord.
+     * @param {ConsensusRecordUpsertArgs} args - Arguments to update or create a ConsensusRecord.
+     * @example
+     * // Update or create a ConsensusRecord
+     * const consensusRecord = await prisma.consensusRecord.upsert({
+     *   create: {
+     *     // ... data to create a ConsensusRecord
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ConsensusRecord we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ConsensusRecordUpsertArgs>(args: SelectSubset<T, ConsensusRecordUpsertArgs<ExtArgs>>): Prisma__ConsensusRecordClient<$Result.GetResult<Prisma.$ConsensusRecordPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ConsensusRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordCountArgs} args - Arguments to filter ConsensusRecords to count.
+     * @example
+     * // Count the number of ConsensusRecords
+     * const count = await prisma.consensusRecord.count({
+     *   where: {
+     *     // ... the filter for the ConsensusRecords we want to count
+     *   }
+     * })
+    **/
+    count<T extends ConsensusRecordCountArgs>(
+      args?: Subset<T, ConsensusRecordCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConsensusRecordCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ConsensusRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ConsensusRecordAggregateArgs>(args: Subset<T, ConsensusRecordAggregateArgs>): Prisma.PrismaPromise<GetConsensusRecordAggregateType<T>>
+
+    /**
+     * Group by ConsensusRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConsensusRecordGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ConsensusRecordGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ConsensusRecordGroupByArgs['orderBy'] }
+        : { orderBy?: ConsensusRecordGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ConsensusRecordGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConsensusRecordGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ConsensusRecord model
+   */
+  readonly fields: ConsensusRecordFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ConsensusRecord.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ConsensusRecordClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    run<T extends AgentRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AgentRunDefaultArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ConsensusRecord model
+   */
+  interface ConsensusRecordFieldRefs {
+    readonly id: FieldRef<"ConsensusRecord", 'String'>
+    readonly runId: FieldRef<"ConsensusRecord", 'String'>
+    readonly algorithm: FieldRef<"ConsensusRecord", 'ConsensusAlgorithm'>
+    readonly threshold: FieldRef<"ConsensusRecord", 'Float'>
+    readonly outcome: FieldRef<"ConsensusRecord", 'ConsensusOutcome'>
+    readonly agreementScore: FieldRef<"ConsensusRecord", 'Float'>
+    readonly claimVotes: FieldRef<"ConsensusRecord", 'Json'>
+    readonly conflicts: FieldRef<"ConsensusRecord", 'Json'>
+    readonly consolidated: FieldRef<"ConsensusRecord", 'Json'>
+    readonly rounds: FieldRef<"ConsensusRecord", 'Int'>
+    readonly durationMs: FieldRef<"ConsensusRecord", 'Int'>
+    readonly createdAt: FieldRef<"ConsensusRecord", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ConsensusRecord findUnique
+   */
+  export type ConsensusRecordFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsensusRecord to fetch.
+     */
+    where: ConsensusRecordWhereUniqueInput
+  }
+
+  /**
+   * ConsensusRecord findUniqueOrThrow
+   */
+  export type ConsensusRecordFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsensusRecord to fetch.
+     */
+    where: ConsensusRecordWhereUniqueInput
+  }
+
+  /**
+   * ConsensusRecord findFirst
+   */
+  export type ConsensusRecordFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsensusRecord to fetch.
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ConsensusRecords to fetch.
+     */
+    orderBy?: ConsensusRecordOrderByWithRelationInput | ConsensusRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ConsensusRecords.
+     */
+    cursor?: ConsensusRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ConsensusRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ConsensusRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ConsensusRecords.
+     */
+    distinct?: ConsensusRecordScalarFieldEnum | ConsensusRecordScalarFieldEnum[]
+  }
+
+  /**
+   * ConsensusRecord findFirstOrThrow
+   */
+  export type ConsensusRecordFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsensusRecord to fetch.
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ConsensusRecords to fetch.
+     */
+    orderBy?: ConsensusRecordOrderByWithRelationInput | ConsensusRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ConsensusRecords.
+     */
+    cursor?: ConsensusRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ConsensusRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ConsensusRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ConsensusRecords.
+     */
+    distinct?: ConsensusRecordScalarFieldEnum | ConsensusRecordScalarFieldEnum[]
+  }
+
+  /**
+   * ConsensusRecord findMany
+   */
+  export type ConsensusRecordFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which ConsensusRecords to fetch.
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ConsensusRecords to fetch.
+     */
+    orderBy?: ConsensusRecordOrderByWithRelationInput | ConsensusRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ConsensusRecords.
+     */
+    cursor?: ConsensusRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ConsensusRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ConsensusRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ConsensusRecords.
+     */
+    distinct?: ConsensusRecordScalarFieldEnum | ConsensusRecordScalarFieldEnum[]
+  }
+
+  /**
+   * ConsensusRecord create
+   */
+  export type ConsensusRecordCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ConsensusRecord.
+     */
+    data: XOR<ConsensusRecordCreateInput, ConsensusRecordUncheckedCreateInput>
+  }
+
+  /**
+   * ConsensusRecord createMany
+   */
+  export type ConsensusRecordCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ConsensusRecords.
+     */
+    data: ConsensusRecordCreateManyInput | ConsensusRecordCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConsensusRecord createManyAndReturn
+   */
+  export type ConsensusRecordCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * The data used to create many ConsensusRecords.
+     */
+    data: ConsensusRecordCreateManyInput | ConsensusRecordCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ConsensusRecord update
+   */
+  export type ConsensusRecordUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ConsensusRecord.
+     */
+    data: XOR<ConsensusRecordUpdateInput, ConsensusRecordUncheckedUpdateInput>
+    /**
+     * Choose, which ConsensusRecord to update.
+     */
+    where: ConsensusRecordWhereUniqueInput
+  }
+
+  /**
+   * ConsensusRecord updateMany
+   */
+  export type ConsensusRecordUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ConsensusRecords.
+     */
+    data: XOR<ConsensusRecordUpdateManyMutationInput, ConsensusRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which ConsensusRecords to update
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * Limit how many ConsensusRecords to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConsensusRecord updateManyAndReturn
+   */
+  export type ConsensusRecordUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * The data used to update ConsensusRecords.
+     */
+    data: XOR<ConsensusRecordUpdateManyMutationInput, ConsensusRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which ConsensusRecords to update
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * Limit how many ConsensusRecords to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ConsensusRecord upsert
+   */
+  export type ConsensusRecordUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ConsensusRecord to update in case it exists.
+     */
+    where: ConsensusRecordWhereUniqueInput
+    /**
+     * In case the ConsensusRecord found by the `where` argument doesn't exist, create a new ConsensusRecord with this data.
+     */
+    create: XOR<ConsensusRecordCreateInput, ConsensusRecordUncheckedCreateInput>
+    /**
+     * In case the ConsensusRecord was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ConsensusRecordUpdateInput, ConsensusRecordUncheckedUpdateInput>
+  }
+
+  /**
+   * ConsensusRecord delete
+   */
+  export type ConsensusRecordDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+    /**
+     * Filter which ConsensusRecord to delete.
+     */
+    where: ConsensusRecordWhereUniqueInput
+  }
+
+  /**
+   * ConsensusRecord deleteMany
+   */
+  export type ConsensusRecordDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConsensusRecords to delete
+     */
+    where?: ConsensusRecordWhereInput
+    /**
+     * Limit how many ConsensusRecords to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConsensusRecord without action
+   */
+  export type ConsensusRecordDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsensusRecord
+     */
+    select?: ConsensusRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConsensusRecord
+     */
+    omit?: ConsensusRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ConsensusRecordInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -72387,6 +79133,99 @@ export namespace Prisma {
   export type OAuthConnectionScalarFieldEnum = (typeof OAuthConnectionScalarFieldEnum)[keyof typeof OAuthConnectionScalarFieldEnum]
 
 
+  export const McpCatalogEntryScalarFieldEnum: {
+    id: 'id',
+    slug: 'slug',
+    name: 'name',
+    description: 'description',
+    domain: 'domain',
+    tags: 'tags',
+    author: 'author',
+    homepageUrl: 'homepageUrl',
+    iconUrl: 'iconUrl',
+    version: 'version',
+    transport: 'transport',
+    configTemplate: 'configTemplate',
+    configSchema: 'configSchema',
+    installCount: 'installCount',
+    featured: 'featured',
+    verified: 'verified',
+    publishedAt: 'publishedAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type McpCatalogEntryScalarFieldEnum = (typeof McpCatalogEntryScalarFieldEnum)[keyof typeof McpCatalogEntryScalarFieldEnum]
+
+
+  export const McpInstallScalarFieldEnum: {
+    id: 'id',
+    catalogEntryId: 'catalogEntryId',
+    userId: 'userId',
+    organizationId: 'organizationId',
+    alias: 'alias',
+    configJson: 'configJson',
+    enabled: 'enabled',
+    installedAt: 'installedAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type McpInstallScalarFieldEnum = (typeof McpInstallScalarFieldEnum)[keyof typeof McpInstallScalarFieldEnum]
+
+
+  export const AgentRunScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    userId: 'userId',
+    conversationId: 'conversationId',
+    projectId: 'projectId',
+    mode: 'mode',
+    status: 'status',
+    reason: 'reason',
+    rolesPlanned: 'rolesPlanned',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt',
+    metadata: 'metadata'
+  };
+
+  export type AgentRunScalarFieldEnum = (typeof AgentRunScalarFieldEnum)[keyof typeof AgentRunScalarFieldEnum]
+
+
+  export const AgentRunResultScalarFieldEnum: {
+    id: 'id',
+    runId: 'runId',
+    roleId: 'roleId',
+    status: 'status',
+    summary: 'summary',
+    files: 'files',
+    risks: 'risks',
+    verification: 'verification',
+    rawOutput: 'rawOutput',
+    errorMessage: 'errorMessage',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type AgentRunResultScalarFieldEnum = (typeof AgentRunResultScalarFieldEnum)[keyof typeof AgentRunResultScalarFieldEnum]
+
+
+  export const ConsensusRecordScalarFieldEnum: {
+    id: 'id',
+    runId: 'runId',
+    algorithm: 'algorithm',
+    threshold: 'threshold',
+    outcome: 'outcome',
+    agreementScore: 'agreementScore',
+    claimVotes: 'claimVotes',
+    conflicts: 'conflicts',
+    consolidated: 'consolidated',
+    rounds: 'rounds',
+    durationMs: 'durationMs',
+    createdAt: 'createdAt'
+  };
+
+  export type ConsensusRecordScalarFieldEnum = (typeof ConsensusRecordScalarFieldEnum)[keyof typeof ConsensusRecordScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -72571,6 +79410,90 @@ export namespace Prisma {
    */
   export type ListEnumSupportTicketStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SupportTicketStatus[]'>
 
+
+
+  /**
+   * Reference to a field of type 'McpDomain'
+   */
+  export type EnumMcpDomainFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpDomain'>
+
+
+
+  /**
+   * Reference to a field of type 'McpDomain[]'
+   */
+  export type ListEnumMcpDomainFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpDomain[]'>
+
+
+
+  /**
+   * Reference to a field of type 'McpTransport'
+   */
+  export type EnumMcpTransportFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTransport'>
+
+
+
+  /**
+   * Reference to a field of type 'McpTransport[]'
+   */
+  export type ListEnumMcpTransportFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTransport[]'>
+
+
+
+  /**
+   * Reference to a field of type 'AgentRunStatus'
+   */
+  export type EnumAgentRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStatus'>
+
+
+
+  /**
+   * Reference to a field of type 'AgentRunStatus[]'
+   */
+  export type ListEnumAgentRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunStatus[]'>
+
+
+
+  /**
+   * Reference to a field of type 'AgentRunResultStatus'
+   */
+  export type EnumAgentRunResultStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunResultStatus'>
+
+
+
+  /**
+   * Reference to a field of type 'AgentRunResultStatus[]'
+   */
+  export type ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentRunResultStatus[]'>
+
+
+
+  /**
+   * Reference to a field of type 'ConsensusAlgorithm'
+   */
+  export type EnumConsensusAlgorithmFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConsensusAlgorithm'>
+
+
+
+  /**
+   * Reference to a field of type 'ConsensusAlgorithm[]'
+   */
+  export type ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConsensusAlgorithm[]'>
+
+
+
+  /**
+   * Reference to a field of type 'ConsensusOutcome'
+   */
+  export type EnumConsensusOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConsensusOutcome'>
+
+
+
+  /**
+   * Reference to a field of type 'ConsensusOutcome[]'
+   */
+  export type ListEnumConsensusOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ConsensusOutcome[]'>
+
   /**
    * Deep Input Types
    */
@@ -72610,6 +79533,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    mcpInstalls?: McpInstallListRelationFilter
+    agentRuns?: AgentRunListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -72643,6 +79568,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
     collaborationShareLinks?: ProjectShareLinkOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
+    mcpInstalls?: McpInstallOrderByRelationAggregateInput
+    agentRuns?: AgentRunOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -72679,6 +79606,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    mcpInstalls?: McpInstallListRelationFilter
+    agentRuns?: AgentRunListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -72886,6 +79815,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    mcpInstalls?: McpInstallListRelationFilter
+    agentRuns?: AgentRunListRelationFilter
   }
 
   export type OrganizationOrderByWithRelationInput = {
@@ -72917,6 +79848,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookOrderByRelationAggregateInput
     projectTemplates?: ProjectTemplateOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
+    mcpInstalls?: McpInstallOrderByRelationAggregateInput
+    agentRuns?: AgentRunOrderByRelationAggregateInput
   }
 
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -72951,6 +79884,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    mcpInstalls?: McpInstallListRelationFilter
+    agentRuns?: AgentRunListRelationFilter
   }, "id" | "slug">
 
   export type OrganizationOrderByWithAggregationInput = {
@@ -76649,6 +83584,492 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"OAuthConnection"> | Date | string
   }
 
+  export type McpCatalogEntryWhereInput = {
+    AND?: McpCatalogEntryWhereInput | McpCatalogEntryWhereInput[]
+    OR?: McpCatalogEntryWhereInput[]
+    NOT?: McpCatalogEntryWhereInput | McpCatalogEntryWhereInput[]
+    id?: StringFilter<"McpCatalogEntry"> | string
+    slug?: StringFilter<"McpCatalogEntry"> | string
+    name?: StringFilter<"McpCatalogEntry"> | string
+    description?: StringFilter<"McpCatalogEntry"> | string
+    domain?: EnumMcpDomainFilter<"McpCatalogEntry"> | $Enums.McpDomain
+    tags?: StringNullableListFilter<"McpCatalogEntry">
+    author?: StringFilter<"McpCatalogEntry"> | string
+    homepageUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
+    iconUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
+    version?: StringFilter<"McpCatalogEntry"> | string
+    transport?: EnumMcpTransportFilter<"McpCatalogEntry"> | $Enums.McpTransport
+    configTemplate?: JsonFilter<"McpCatalogEntry">
+    configSchema?: JsonFilter<"McpCatalogEntry">
+    installCount?: IntFilter<"McpCatalogEntry"> | number
+    featured?: BoolFilter<"McpCatalogEntry"> | boolean
+    verified?: BoolFilter<"McpCatalogEntry"> | boolean
+    publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
+    updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
+    installs?: McpInstallListRelationFilter
+  }
+
+  export type McpCatalogEntryOrderByWithRelationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    domain?: SortOrder
+    tags?: SortOrder
+    author?: SortOrder
+    homepageUrl?: SortOrderInput | SortOrder
+    iconUrl?: SortOrderInput | SortOrder
+    version?: SortOrder
+    transport?: SortOrder
+    configTemplate?: SortOrder
+    configSchema?: SortOrder
+    installCount?: SortOrder
+    featured?: SortOrder
+    verified?: SortOrder
+    publishedAt?: SortOrder
+    updatedAt?: SortOrder
+    installs?: McpInstallOrderByRelationAggregateInput
+  }
+
+  export type McpCatalogEntryWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    slug?: string
+    AND?: McpCatalogEntryWhereInput | McpCatalogEntryWhereInput[]
+    OR?: McpCatalogEntryWhereInput[]
+    NOT?: McpCatalogEntryWhereInput | McpCatalogEntryWhereInput[]
+    name?: StringFilter<"McpCatalogEntry"> | string
+    description?: StringFilter<"McpCatalogEntry"> | string
+    domain?: EnumMcpDomainFilter<"McpCatalogEntry"> | $Enums.McpDomain
+    tags?: StringNullableListFilter<"McpCatalogEntry">
+    author?: StringFilter<"McpCatalogEntry"> | string
+    homepageUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
+    iconUrl?: StringNullableFilter<"McpCatalogEntry"> | string | null
+    version?: StringFilter<"McpCatalogEntry"> | string
+    transport?: EnumMcpTransportFilter<"McpCatalogEntry"> | $Enums.McpTransport
+    configTemplate?: JsonFilter<"McpCatalogEntry">
+    configSchema?: JsonFilter<"McpCatalogEntry">
+    installCount?: IntFilter<"McpCatalogEntry"> | number
+    featured?: BoolFilter<"McpCatalogEntry"> | boolean
+    verified?: BoolFilter<"McpCatalogEntry"> | boolean
+    publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
+    updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
+    installs?: McpInstallListRelationFilter
+  }, "id" | "slug">
+
+  export type McpCatalogEntryOrderByWithAggregationInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    domain?: SortOrder
+    tags?: SortOrder
+    author?: SortOrder
+    homepageUrl?: SortOrderInput | SortOrder
+    iconUrl?: SortOrderInput | SortOrder
+    version?: SortOrder
+    transport?: SortOrder
+    configTemplate?: SortOrder
+    configSchema?: SortOrder
+    installCount?: SortOrder
+    featured?: SortOrder
+    verified?: SortOrder
+    publishedAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: McpCatalogEntryCountOrderByAggregateInput
+    _avg?: McpCatalogEntryAvgOrderByAggregateInput
+    _max?: McpCatalogEntryMaxOrderByAggregateInput
+    _min?: McpCatalogEntryMinOrderByAggregateInput
+    _sum?: McpCatalogEntrySumOrderByAggregateInput
+  }
+
+  export type McpCatalogEntryScalarWhereWithAggregatesInput = {
+    AND?: McpCatalogEntryScalarWhereWithAggregatesInput | McpCatalogEntryScalarWhereWithAggregatesInput[]
+    OR?: McpCatalogEntryScalarWhereWithAggregatesInput[]
+    NOT?: McpCatalogEntryScalarWhereWithAggregatesInput | McpCatalogEntryScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    slug?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    name?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    description?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    domain?: EnumMcpDomainWithAggregatesFilter<"McpCatalogEntry"> | $Enums.McpDomain
+    tags?: StringNullableListFilter<"McpCatalogEntry">
+    author?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    homepageUrl?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
+    iconUrl?: StringNullableWithAggregatesFilter<"McpCatalogEntry"> | string | null
+    version?: StringWithAggregatesFilter<"McpCatalogEntry"> | string
+    transport?: EnumMcpTransportWithAggregatesFilter<"McpCatalogEntry"> | $Enums.McpTransport
+    configTemplate?: JsonWithAggregatesFilter<"McpCatalogEntry">
+    configSchema?: JsonWithAggregatesFilter<"McpCatalogEntry">
+    installCount?: IntWithAggregatesFilter<"McpCatalogEntry"> | number
+    featured?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
+    verified?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
+    publishedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
+  }
+
+  export type McpInstallWhereInput = {
+    AND?: McpInstallWhereInput | McpInstallWhereInput[]
+    OR?: McpInstallWhereInput[]
+    NOT?: McpInstallWhereInput | McpInstallWhereInput[]
+    id?: StringFilter<"McpInstall"> | string
+    catalogEntryId?: StringFilter<"McpInstall"> | string
+    userId?: StringFilter<"McpInstall"> | string
+    organizationId?: StringNullableFilter<"McpInstall"> | string | null
+    alias?: StringFilter<"McpInstall"> | string
+    configJson?: JsonFilter<"McpInstall">
+    enabled?: BoolFilter<"McpInstall"> | boolean
+    installedAt?: DateTimeFilter<"McpInstall"> | Date | string
+    updatedAt?: DateTimeFilter<"McpInstall"> | Date | string
+    catalogEntry?: XOR<McpCatalogEntryScalarRelationFilter, McpCatalogEntryWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }
+
+  export type McpInstallOrderByWithRelationInput = {
+    id?: SortOrder
+    catalogEntryId?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    alias?: SortOrder
+    configJson?: SortOrder
+    enabled?: SortOrder
+    installedAt?: SortOrder
+    updatedAt?: SortOrder
+    catalogEntry?: McpCatalogEntryOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+    organization?: OrganizationOrderByWithRelationInput
+  }
+
+  export type McpInstallWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_alias?: McpInstallUserIdAliasCompoundUniqueInput
+    AND?: McpInstallWhereInput | McpInstallWhereInput[]
+    OR?: McpInstallWhereInput[]
+    NOT?: McpInstallWhereInput | McpInstallWhereInput[]
+    catalogEntryId?: StringFilter<"McpInstall"> | string
+    userId?: StringFilter<"McpInstall"> | string
+    organizationId?: StringNullableFilter<"McpInstall"> | string | null
+    alias?: StringFilter<"McpInstall"> | string
+    configJson?: JsonFilter<"McpInstall">
+    enabled?: BoolFilter<"McpInstall"> | boolean
+    installedAt?: DateTimeFilter<"McpInstall"> | Date | string
+    updatedAt?: DateTimeFilter<"McpInstall"> | Date | string
+    catalogEntry?: XOR<McpCatalogEntryScalarRelationFilter, McpCatalogEntryWhereInput>
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }, "id" | "userId_alias">
+
+  export type McpInstallOrderByWithAggregationInput = {
+    id?: SortOrder
+    catalogEntryId?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    alias?: SortOrder
+    configJson?: SortOrder
+    enabled?: SortOrder
+    installedAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: McpInstallCountOrderByAggregateInput
+    _max?: McpInstallMaxOrderByAggregateInput
+    _min?: McpInstallMinOrderByAggregateInput
+  }
+
+  export type McpInstallScalarWhereWithAggregatesInput = {
+    AND?: McpInstallScalarWhereWithAggregatesInput | McpInstallScalarWhereWithAggregatesInput[]
+    OR?: McpInstallScalarWhereWithAggregatesInput[]
+    NOT?: McpInstallScalarWhereWithAggregatesInput | McpInstallScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"McpInstall"> | string
+    catalogEntryId?: StringWithAggregatesFilter<"McpInstall"> | string
+    userId?: StringWithAggregatesFilter<"McpInstall"> | string
+    organizationId?: StringNullableWithAggregatesFilter<"McpInstall"> | string | null
+    alias?: StringWithAggregatesFilter<"McpInstall"> | string
+    configJson?: JsonWithAggregatesFilter<"McpInstall">
+    enabled?: BoolWithAggregatesFilter<"McpInstall"> | boolean
+    installedAt?: DateTimeWithAggregatesFilter<"McpInstall"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"McpInstall"> | Date | string
+  }
+
+  export type AgentRunWhereInput = {
+    AND?: AgentRunWhereInput | AgentRunWhereInput[]
+    OR?: AgentRunWhereInput[]
+    NOT?: AgentRunWhereInput | AgentRunWhereInput[]
+    id?: StringFilter<"AgentRun"> | string
+    organizationId?: StringNullableFilter<"AgentRun"> | string | null
+    userId?: StringNullableFilter<"AgentRun"> | string | null
+    conversationId?: StringNullableFilter<"AgentRun"> | string | null
+    projectId?: StringNullableFilter<"AgentRun"> | string | null
+    mode?: StringFilter<"AgentRun"> | string
+    status?: EnumAgentRunStatusFilter<"AgentRun"> | $Enums.AgentRunStatus
+    reason?: StringNullableFilter<"AgentRun"> | string | null
+    rolesPlanned?: JsonFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+    metadata?: JsonFilter<"AgentRun">
+    results?: AgentRunResultListRelationFilter
+    consensus?: XOR<ConsensusRecordNullableScalarRelationFilter, ConsensusRecordWhereInput> | null
+    user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }
+
+  export type AgentRunOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    userId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    status?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    rolesPlanned?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    metadata?: SortOrder
+    results?: AgentRunResultOrderByRelationAggregateInput
+    consensus?: ConsensusRecordOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+    organization?: OrganizationOrderByWithRelationInput
+  }
+
+  export type AgentRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentRunWhereInput | AgentRunWhereInput[]
+    OR?: AgentRunWhereInput[]
+    NOT?: AgentRunWhereInput | AgentRunWhereInput[]
+    organizationId?: StringNullableFilter<"AgentRun"> | string | null
+    userId?: StringNullableFilter<"AgentRun"> | string | null
+    conversationId?: StringNullableFilter<"AgentRun"> | string | null
+    projectId?: StringNullableFilter<"AgentRun"> | string | null
+    mode?: StringFilter<"AgentRun"> | string
+    status?: EnumAgentRunStatusFilter<"AgentRun"> | $Enums.AgentRunStatus
+    reason?: StringNullableFilter<"AgentRun"> | string | null
+    rolesPlanned?: JsonFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+    metadata?: JsonFilter<"AgentRun">
+    results?: AgentRunResultListRelationFilter
+    consensus?: XOR<ConsensusRecordNullableScalarRelationFilter, ConsensusRecordWhereInput> | null
+    user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }, "id">
+
+  export type AgentRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    userId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    mode?: SortOrder
+    status?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    rolesPlanned?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    metadata?: SortOrder
+    _count?: AgentRunCountOrderByAggregateInput
+    _max?: AgentRunMaxOrderByAggregateInput
+    _min?: AgentRunMinOrderByAggregateInput
+  }
+
+  export type AgentRunScalarWhereWithAggregatesInput = {
+    AND?: AgentRunScalarWhereWithAggregatesInput | AgentRunScalarWhereWithAggregatesInput[]
+    OR?: AgentRunScalarWhereWithAggregatesInput[]
+    NOT?: AgentRunScalarWhereWithAggregatesInput | AgentRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentRun"> | string
+    organizationId?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    userId?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    conversationId?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    projectId?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    mode?: StringWithAggregatesFilter<"AgentRun"> | string
+    status?: EnumAgentRunStatusWithAggregatesFilter<"AgentRun"> | $Enums.AgentRunStatus
+    reason?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    rolesPlanned?: JsonWithAggregatesFilter<"AgentRun">
+    startedAt?: DateTimeWithAggregatesFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"AgentRun"> | Date | string | null
+    metadata?: JsonWithAggregatesFilter<"AgentRun">
+  }
+
+  export type AgentRunResultWhereInput = {
+    AND?: AgentRunResultWhereInput | AgentRunResultWhereInput[]
+    OR?: AgentRunResultWhereInput[]
+    NOT?: AgentRunResultWhereInput | AgentRunResultWhereInput[]
+    id?: StringFilter<"AgentRunResult"> | string
+    runId?: StringFilter<"AgentRunResult"> | string
+    roleId?: StringFilter<"AgentRunResult"> | string
+    status?: EnumAgentRunResultStatusFilter<"AgentRunResult"> | $Enums.AgentRunResultStatus
+    summary?: StringFilter<"AgentRunResult"> | string
+    files?: JsonFilter<"AgentRunResult">
+    risks?: JsonFilter<"AgentRunResult">
+    verification?: JsonFilter<"AgentRunResult">
+    rawOutput?: StringNullableFilter<"AgentRunResult"> | string | null
+    errorMessage?: StringNullableFilter<"AgentRunResult"> | string | null
+    startedAt?: DateTimeFilter<"AgentRunResult"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRunResult"> | Date | string | null
+    run?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }
+
+  export type AgentRunResultOrderByWithRelationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    roleId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    files?: SortOrder
+    risks?: SortOrder
+    verification?: SortOrder
+    rawOutput?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    run?: AgentRunOrderByWithRelationInput
+  }
+
+  export type AgentRunResultWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    runId_roleId?: AgentRunResultRunIdRoleIdCompoundUniqueInput
+    AND?: AgentRunResultWhereInput | AgentRunResultWhereInput[]
+    OR?: AgentRunResultWhereInput[]
+    NOT?: AgentRunResultWhereInput | AgentRunResultWhereInput[]
+    runId?: StringFilter<"AgentRunResult"> | string
+    roleId?: StringFilter<"AgentRunResult"> | string
+    status?: EnumAgentRunResultStatusFilter<"AgentRunResult"> | $Enums.AgentRunResultStatus
+    summary?: StringFilter<"AgentRunResult"> | string
+    files?: JsonFilter<"AgentRunResult">
+    risks?: JsonFilter<"AgentRunResult">
+    verification?: JsonFilter<"AgentRunResult">
+    rawOutput?: StringNullableFilter<"AgentRunResult"> | string | null
+    errorMessage?: StringNullableFilter<"AgentRunResult"> | string | null
+    startedAt?: DateTimeFilter<"AgentRunResult"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRunResult"> | Date | string | null
+    run?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }, "id" | "runId_roleId">
+
+  export type AgentRunResultOrderByWithAggregationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    roleId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    files?: SortOrder
+    risks?: SortOrder
+    verification?: SortOrder
+    rawOutput?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: AgentRunResultCountOrderByAggregateInput
+    _max?: AgentRunResultMaxOrderByAggregateInput
+    _min?: AgentRunResultMinOrderByAggregateInput
+  }
+
+  export type AgentRunResultScalarWhereWithAggregatesInput = {
+    AND?: AgentRunResultScalarWhereWithAggregatesInput | AgentRunResultScalarWhereWithAggregatesInput[]
+    OR?: AgentRunResultScalarWhereWithAggregatesInput[]
+    NOT?: AgentRunResultScalarWhereWithAggregatesInput | AgentRunResultScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentRunResult"> | string
+    runId?: StringWithAggregatesFilter<"AgentRunResult"> | string
+    roleId?: StringWithAggregatesFilter<"AgentRunResult"> | string
+    status?: EnumAgentRunResultStatusWithAggregatesFilter<"AgentRunResult"> | $Enums.AgentRunResultStatus
+    summary?: StringWithAggregatesFilter<"AgentRunResult"> | string
+    files?: JsonWithAggregatesFilter<"AgentRunResult">
+    risks?: JsonWithAggregatesFilter<"AgentRunResult">
+    verification?: JsonWithAggregatesFilter<"AgentRunResult">
+    rawOutput?: StringNullableWithAggregatesFilter<"AgentRunResult"> | string | null
+    errorMessage?: StringNullableWithAggregatesFilter<"AgentRunResult"> | string | null
+    startedAt?: DateTimeWithAggregatesFilter<"AgentRunResult"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"AgentRunResult"> | Date | string | null
+  }
+
+  export type ConsensusRecordWhereInput = {
+    AND?: ConsensusRecordWhereInput | ConsensusRecordWhereInput[]
+    OR?: ConsensusRecordWhereInput[]
+    NOT?: ConsensusRecordWhereInput | ConsensusRecordWhereInput[]
+    id?: StringFilter<"ConsensusRecord"> | string
+    runId?: StringFilter<"ConsensusRecord"> | string
+    algorithm?: EnumConsensusAlgorithmFilter<"ConsensusRecord"> | $Enums.ConsensusAlgorithm
+    threshold?: FloatFilter<"ConsensusRecord"> | number
+    outcome?: EnumConsensusOutcomeFilter<"ConsensusRecord"> | $Enums.ConsensusOutcome
+    agreementScore?: FloatFilter<"ConsensusRecord"> | number
+    claimVotes?: JsonFilter<"ConsensusRecord">
+    conflicts?: JsonFilter<"ConsensusRecord">
+    consolidated?: JsonFilter<"ConsensusRecord">
+    rounds?: IntFilter<"ConsensusRecord"> | number
+    durationMs?: IntFilter<"ConsensusRecord"> | number
+    createdAt?: DateTimeFilter<"ConsensusRecord"> | Date | string
+    run?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }
+
+  export type ConsensusRecordOrderByWithRelationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    algorithm?: SortOrder
+    threshold?: SortOrder
+    outcome?: SortOrder
+    agreementScore?: SortOrder
+    claimVotes?: SortOrder
+    conflicts?: SortOrder
+    consolidated?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+    createdAt?: SortOrder
+    run?: AgentRunOrderByWithRelationInput
+  }
+
+  export type ConsensusRecordWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    runId?: string
+    AND?: ConsensusRecordWhereInput | ConsensusRecordWhereInput[]
+    OR?: ConsensusRecordWhereInput[]
+    NOT?: ConsensusRecordWhereInput | ConsensusRecordWhereInput[]
+    algorithm?: EnumConsensusAlgorithmFilter<"ConsensusRecord"> | $Enums.ConsensusAlgorithm
+    threshold?: FloatFilter<"ConsensusRecord"> | number
+    outcome?: EnumConsensusOutcomeFilter<"ConsensusRecord"> | $Enums.ConsensusOutcome
+    agreementScore?: FloatFilter<"ConsensusRecord"> | number
+    claimVotes?: JsonFilter<"ConsensusRecord">
+    conflicts?: JsonFilter<"ConsensusRecord">
+    consolidated?: JsonFilter<"ConsensusRecord">
+    rounds?: IntFilter<"ConsensusRecord"> | number
+    durationMs?: IntFilter<"ConsensusRecord"> | number
+    createdAt?: DateTimeFilter<"ConsensusRecord"> | Date | string
+    run?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }, "id" | "runId">
+
+  export type ConsensusRecordOrderByWithAggregationInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    algorithm?: SortOrder
+    threshold?: SortOrder
+    outcome?: SortOrder
+    agreementScore?: SortOrder
+    claimVotes?: SortOrder
+    conflicts?: SortOrder
+    consolidated?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+    createdAt?: SortOrder
+    _count?: ConsensusRecordCountOrderByAggregateInput
+    _avg?: ConsensusRecordAvgOrderByAggregateInput
+    _max?: ConsensusRecordMaxOrderByAggregateInput
+    _min?: ConsensusRecordMinOrderByAggregateInput
+    _sum?: ConsensusRecordSumOrderByAggregateInput
+  }
+
+  export type ConsensusRecordScalarWhereWithAggregatesInput = {
+    AND?: ConsensusRecordScalarWhereWithAggregatesInput | ConsensusRecordScalarWhereWithAggregatesInput[]
+    OR?: ConsensusRecordScalarWhereWithAggregatesInput[]
+    NOT?: ConsensusRecordScalarWhereWithAggregatesInput | ConsensusRecordScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ConsensusRecord"> | string
+    runId?: StringWithAggregatesFilter<"ConsensusRecord"> | string
+    algorithm?: EnumConsensusAlgorithmWithAggregatesFilter<"ConsensusRecord"> | $Enums.ConsensusAlgorithm
+    threshold?: FloatWithAggregatesFilter<"ConsensusRecord"> | number
+    outcome?: EnumConsensusOutcomeWithAggregatesFilter<"ConsensusRecord"> | $Enums.ConsensusOutcome
+    agreementScore?: FloatWithAggregatesFilter<"ConsensusRecord"> | number
+    claimVotes?: JsonWithAggregatesFilter<"ConsensusRecord">
+    conflicts?: JsonWithAggregatesFilter<"ConsensusRecord">
+    consolidated?: JsonWithAggregatesFilter<"ConsensusRecord">
+    rounds?: IntWithAggregatesFilter<"ConsensusRecord"> | number
+    durationMs?: IntWithAggregatesFilter<"ConsensusRecord"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"ConsensusRecord"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -76680,6 +84101,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -76713,6 +84136,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -76746,6 +84171,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -76779,6 +84206,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -77001,6 +84430,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateInput = {
@@ -77032,6 +84463,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUpdateInput = {
@@ -77063,6 +84496,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateInput = {
@@ -77094,6 +84529,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateManyInput = {
@@ -80888,6 +88325,557 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type McpCatalogEntryCreateInput = {
+    id?: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags?: McpCatalogEntryCreatetagsInput | string[]
+    author: string
+    homepageUrl?: string | null
+    iconUrl?: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: number
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: Date | string
+    updatedAt?: Date | string
+    installs?: McpInstallCreateNestedManyWithoutCatalogEntryInput
+  }
+
+  export type McpCatalogEntryUncheckedCreateInput = {
+    id?: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags?: McpCatalogEntryCreatetagsInput | string[]
+    author: string
+    homepageUrl?: string | null
+    iconUrl?: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: number
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: Date | string
+    updatedAt?: Date | string
+    installs?: McpInstallUncheckedCreateNestedManyWithoutCatalogEntryInput
+  }
+
+  export type McpCatalogEntryUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    installs?: McpInstallUpdateManyWithoutCatalogEntryNestedInput
+  }
+
+  export type McpCatalogEntryUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    installs?: McpInstallUncheckedUpdateManyWithoutCatalogEntryNestedInput
+  }
+
+  export type McpCatalogEntryCreateManyInput = {
+    id?: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags?: McpCatalogEntryCreatetagsInput | string[]
+    author: string
+    homepageUrl?: string | null
+    iconUrl?: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: number
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpCatalogEntryUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpCatalogEntryUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallCreateInput = {
+    id?: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+    catalogEntry: McpCatalogEntryCreateNestedOneWithoutInstallsInput
+    user: UserCreateNestedOneWithoutMcpInstallsInput
+    organization?: OrganizationCreateNestedOneWithoutMcpInstallsInput
+  }
+
+  export type McpInstallUncheckedCreateInput = {
+    id?: string
+    catalogEntryId: string
+    userId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    catalogEntry?: McpCatalogEntryUpdateOneRequiredWithoutInstallsNestedInput
+    user?: UserUpdateOneRequiredWithoutMcpInstallsNestedInput
+    organization?: OrganizationUpdateOneWithoutMcpInstallsNestedInput
+  }
+
+  export type McpInstallUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallCreateManyInput = {
+    id?: string
+    catalogEntryId: string
+    userId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRunCreateInput = {
+    id?: string
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordCreateNestedOneWithoutRunInput
+    user?: UserCreateNestedOneWithoutAgentRunsInput
+    organization?: OrganizationCreateNestedOneWithoutAgentRunsInput
+  }
+
+  export type AgentRunUncheckedCreateInput = {
+    id?: string
+    organizationId?: string | null
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordUncheckedCreateNestedOneWithoutRunInput
+  }
+
+  export type AgentRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUpdateOneWithoutRunNestedInput
+    user?: UserUpdateOneWithoutAgentRunsNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentRunsNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUncheckedUpdateOneWithoutRunNestedInput
+  }
+
+  export type AgentRunCreateManyInput = {
+    id?: string
+    organizationId?: string | null
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type AgentRunResultCreateInput = {
+    id?: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    run: AgentRunCreateNestedOneWithoutResultsInput
+  }
+
+  export type AgentRunResultUncheckedCreateInput = {
+    id?: string
+    runId: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunResultUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    run?: AgentRunUpdateOneRequiredWithoutResultsNestedInput
+  }
+
+  export type AgentRunResultUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runId?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunResultCreateManyInput = {
+    id?: string
+    runId: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunResultUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunResultUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runId?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ConsensusRecordCreateInput = {
+    id?: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated: JsonNullValueInput | InputJsonValue
+    rounds?: number
+    durationMs: number
+    createdAt?: Date | string
+    run: AgentRunCreateNestedOneWithoutConsensusInput
+  }
+
+  export type ConsensusRecordUncheckedCreateInput = {
+    id?: string
+    runId: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated: JsonNullValueInput | InputJsonValue
+    rounds?: number
+    durationMs: number
+    createdAt?: Date | string
+  }
+
+  export type ConsensusRecordUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    run?: AgentRunUpdateOneRequiredWithoutConsensusNestedInput
+  }
+
+  export type ConsensusRecordUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runId?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsensusRecordCreateManyInput = {
+    id?: string
+    runId: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated: JsonNullValueInput | InputJsonValue
+    rounds?: number
+    durationMs: number
+    createdAt?: Date | string
+  }
+
+  export type ConsensusRecordUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsensusRecordUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    runId?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -81065,6 +89053,18 @@ export namespace Prisma {
     none?: AgentMemoryWhereInput
   }
 
+  export type McpInstallListRelationFilter = {
+    every?: McpInstallWhereInput
+    some?: McpInstallWhereInput
+    none?: McpInstallWhereInput
+  }
+
+  export type AgentRunListRelationFilter = {
+    every?: AgentRunWhereInput
+    some?: AgentRunWhereInput
+    none?: AgentRunWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -81147,6 +89147,14 @@ export namespace Prisma {
   }
 
   export type AgentMemoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type McpInstallOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentRunOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -83742,6 +91750,375 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type EnumMcpDomainFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpDomain | EnumMcpDomainFieldRefInput<$PrismaModel>
+    in?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpDomainFilter<$PrismaModel> | $Enums.McpDomain
+  }
+
+  export type EnumMcpTransportFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpTransport | EnumMcpTransportFieldRefInput<$PrismaModel>
+    in?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpTransportFilter<$PrismaModel> | $Enums.McpTransport
+  }
+
+  export type McpCatalogEntryCountOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    domain?: SortOrder
+    tags?: SortOrder
+    author?: SortOrder
+    homepageUrl?: SortOrder
+    iconUrl?: SortOrder
+    version?: SortOrder
+    transport?: SortOrder
+    configTemplate?: SortOrder
+    configSchema?: SortOrder
+    installCount?: SortOrder
+    featured?: SortOrder
+    verified?: SortOrder
+    publishedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpCatalogEntryAvgOrderByAggregateInput = {
+    installCount?: SortOrder
+  }
+
+  export type McpCatalogEntryMaxOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    domain?: SortOrder
+    author?: SortOrder
+    homepageUrl?: SortOrder
+    iconUrl?: SortOrder
+    version?: SortOrder
+    transport?: SortOrder
+    installCount?: SortOrder
+    featured?: SortOrder
+    verified?: SortOrder
+    publishedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpCatalogEntryMinOrderByAggregateInput = {
+    id?: SortOrder
+    slug?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    domain?: SortOrder
+    author?: SortOrder
+    homepageUrl?: SortOrder
+    iconUrl?: SortOrder
+    version?: SortOrder
+    transport?: SortOrder
+    installCount?: SortOrder
+    featured?: SortOrder
+    verified?: SortOrder
+    publishedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpCatalogEntrySumOrderByAggregateInput = {
+    installCount?: SortOrder
+  }
+
+  export type EnumMcpDomainWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpDomain | EnumMcpDomainFieldRefInput<$PrismaModel>
+    in?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpDomainWithAggregatesFilter<$PrismaModel> | $Enums.McpDomain
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMcpDomainFilter<$PrismaModel>
+    _max?: NestedEnumMcpDomainFilter<$PrismaModel>
+  }
+
+  export type EnumMcpTransportWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpTransport | EnumMcpTransportFieldRefInput<$PrismaModel>
+    in?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel> | $Enums.McpTransport
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMcpTransportFilter<$PrismaModel>
+    _max?: NestedEnumMcpTransportFilter<$PrismaModel>
+  }
+
+  export type McpCatalogEntryScalarRelationFilter = {
+    is?: McpCatalogEntryWhereInput
+    isNot?: McpCatalogEntryWhereInput
+  }
+
+  export type McpInstallUserIdAliasCompoundUniqueInput = {
+    userId: string
+    alias: string
+  }
+
+  export type McpInstallCountOrderByAggregateInput = {
+    id?: SortOrder
+    catalogEntryId?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    alias?: SortOrder
+    configJson?: SortOrder
+    enabled?: SortOrder
+    installedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpInstallMaxOrderByAggregateInput = {
+    id?: SortOrder
+    catalogEntryId?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    alias?: SortOrder
+    enabled?: SortOrder
+    installedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type McpInstallMinOrderByAggregateInput = {
+    id?: SortOrder
+    catalogEntryId?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    alias?: SortOrder
+    enabled?: SortOrder
+    installedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumAgentRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunStatus | EnumAgentRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunStatusFilter<$PrismaModel> | $Enums.AgentRunStatus
+  }
+
+  export type AgentRunResultListRelationFilter = {
+    every?: AgentRunResultWhereInput
+    some?: AgentRunResultWhereInput
+    none?: AgentRunResultWhereInput
+  }
+
+  export type ConsensusRecordNullableScalarRelationFilter = {
+    is?: ConsensusRecordWhereInput | null
+    isNot?: ConsensusRecordWhereInput | null
+  }
+
+  export type AgentRunResultOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    conversationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
+    rolesPlanned?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    metadata?: SortOrder
+  }
+
+  export type AgentRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    conversationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    userId?: SortOrder
+    conversationId?: SortOrder
+    projectId?: SortOrder
+    mode?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type EnumAgentRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunStatus | EnumAgentRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgentRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgentRunStatusFilter<$PrismaModel>
+  }
+
+  export type EnumAgentRunResultStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunResultStatus | EnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunResultStatusFilter<$PrismaModel> | $Enums.AgentRunResultStatus
+  }
+
+  export type AgentRunScalarRelationFilter = {
+    is?: AgentRunWhereInput
+    isNot?: AgentRunWhereInput
+  }
+
+  export type AgentRunResultRunIdRoleIdCompoundUniqueInput = {
+    runId: string
+    roleId: string
+  }
+
+  export type AgentRunResultCountOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    roleId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    files?: SortOrder
+    risks?: SortOrder
+    verification?: SortOrder
+    rawOutput?: SortOrder
+    errorMessage?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunResultMaxOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    roleId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    rawOutput?: SortOrder
+    errorMessage?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunResultMinOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    roleId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    rawOutput?: SortOrder
+    errorMessage?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type EnumAgentRunResultStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunResultStatus | EnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunResultStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunResultStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgentRunResultStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgentRunResultStatusFilter<$PrismaModel>
+  }
+
+  export type EnumConsensusAlgorithmFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusAlgorithm | EnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusAlgorithmFilter<$PrismaModel> | $Enums.ConsensusAlgorithm
+  }
+
+  export type EnumConsensusOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusOutcome | EnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusOutcomeFilter<$PrismaModel> | $Enums.ConsensusOutcome
+  }
+
+  export type ConsensusRecordCountOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    algorithm?: SortOrder
+    threshold?: SortOrder
+    outcome?: SortOrder
+    agreementScore?: SortOrder
+    claimVotes?: SortOrder
+    conflicts?: SortOrder
+    consolidated?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ConsensusRecordAvgOrderByAggregateInput = {
+    threshold?: SortOrder
+    agreementScore?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+  }
+
+  export type ConsensusRecordMaxOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    algorithm?: SortOrder
+    threshold?: SortOrder
+    outcome?: SortOrder
+    agreementScore?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ConsensusRecordMinOrderByAggregateInput = {
+    id?: SortOrder
+    runId?: SortOrder
+    algorithm?: SortOrder
+    threshold?: SortOrder
+    outcome?: SortOrder
+    agreementScore?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ConsensusRecordSumOrderByAggregateInput = {
+    threshold?: SortOrder
+    agreementScore?: SortOrder
+    rounds?: SortOrder
+    durationMs?: SortOrder
+  }
+
+  export type EnumConsensusAlgorithmWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusAlgorithm | EnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusAlgorithmWithAggregatesFilter<$PrismaModel> | $Enums.ConsensusAlgorithm
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumConsensusAlgorithmFilter<$PrismaModel>
+    _max?: NestedEnumConsensusAlgorithmFilter<$PrismaModel>
+  }
+
+  export type EnumConsensusOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusOutcome | EnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.ConsensusOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -83879,6 +92256,20 @@ export namespace Prisma {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
   }
 
+  export type McpInstallCreateNestedManyWithoutUserInput = {
+    create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
+    createMany?: McpInstallCreateManyUserInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type AgentRunCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput> | AgentRunCreateWithoutUserInput[] | AgentRunUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
+    createMany?: AgentRunCreateManyUserInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -84014,6 +92405,20 @@ export namespace Prisma {
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutUserInput = {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
+  }
+
+  export type McpInstallUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
+    createMany?: McpInstallCreateManyUserInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type AgentRunUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput> | AgentRunCreateWithoutUserInput[] | AgentRunUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
+    createMany?: AgentRunCreateManyUserInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -84312,6 +92717,34 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type McpInstallUpdateManyWithoutUserNestedInput = {
+    create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutUserInput | McpInstallUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: McpInstallCreateManyUserInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutUserInput | McpInstallUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutUserInput | McpInstallUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type AgentRunUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput> | AgentRunCreateWithoutUserInput[] | AgentRunUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutUserInput | AgentRunUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentRunCreateManyUserInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutUserInput | AgentRunUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutUserInput | AgentRunUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -84588,6 +93021,34 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type McpInstallUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutUserInput | McpInstallUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: McpInstallCreateManyUserInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutUserInput | McpInstallUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutUserInput | McpInstallUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput> | AgentRunCreateWithoutUserInput[] | AgentRunUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutUserInput | AgentRunUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentRunCreateManyUserInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutUserInput | AgentRunUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutUserInput | AgentRunUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -84772,6 +93233,20 @@ export namespace Prisma {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
   }
 
+  export type McpInstallCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput> | McpInstallCreateWithoutOrganizationInput[] | McpInstallUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutOrganizationInput | McpInstallCreateOrConnectWithoutOrganizationInput[]
+    createMany?: McpInstallCreateManyOrganizationInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type AgentRunCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput> | AgentRunCreateWithoutOrganizationInput[] | AgentRunUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutOrganizationInput | AgentRunCreateOrConnectWithoutOrganizationInput[]
+    createMany?: AgentRunCreateManyOrganizationInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
   export type OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -84926,6 +93401,20 @@ export namespace Prisma {
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput = {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
+  }
+
+  export type McpInstallUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput> | McpInstallCreateWithoutOrganizationInput[] | McpInstallUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutOrganizationInput | McpInstallCreateOrConnectWithoutOrganizationInput[]
+    createMany?: McpInstallCreateManyOrganizationInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type AgentRunUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput> | AgentRunCreateWithoutOrganizationInput[] | AgentRunUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutOrganizationInput | AgentRunCreateOrConnectWithoutOrganizationInput[]
+    createMany?: AgentRunCreateManyOrganizationInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
   }
 
   export type OrganizationMemberUpdateManyWithoutOrganizationNestedInput = {
@@ -85238,6 +93727,34 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type McpInstallUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput> | McpInstallCreateWithoutOrganizationInput[] | McpInstallUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutOrganizationInput | McpInstallCreateOrConnectWithoutOrganizationInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutOrganizationInput | McpInstallUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: McpInstallCreateManyOrganizationInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutOrganizationInput | McpInstallUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutOrganizationInput | McpInstallUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type AgentRunUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput> | AgentRunCreateWithoutOrganizationInput[] | AgentRunUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutOrganizationInput | AgentRunCreateOrConnectWithoutOrganizationInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutOrganizationInput | AgentRunUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: AgentRunCreateManyOrganizationInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutOrganizationInput | AgentRunUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutOrganizationInput | AgentRunUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
   export type OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -85546,6 +94063,34 @@ export namespace Prisma {
     update?: AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput | AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: AgentMemoryUpdateManyWithWhereWithoutOrganizationInput | AgentMemoryUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
+  }
+
+  export type McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput> | McpInstallCreateWithoutOrganizationInput[] | McpInstallUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutOrganizationInput | McpInstallCreateOrConnectWithoutOrganizationInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutOrganizationInput | McpInstallUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: McpInstallCreateManyOrganizationInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutOrganizationInput | McpInstallUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutOrganizationInput | McpInstallUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput> | AgentRunCreateWithoutOrganizationInput[] | AgentRunUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutOrganizationInput | AgentRunCreateOrConnectWithoutOrganizationInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutOrganizationInput | AgentRunUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: AgentRunCreateManyOrganizationInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutOrganizationInput | AgentRunUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutOrganizationInput | AgentRunUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutMembersInput = {
@@ -87743,6 +96288,259 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOauthConnectionsInput, UserUpdateWithoutOauthConnectionsInput>, UserUncheckedUpdateWithoutOauthConnectionsInput>
   }
 
+  export type McpCatalogEntryCreatetagsInput = {
+    set: string[]
+  }
+
+  export type McpInstallCreateNestedManyWithoutCatalogEntryInput = {
+    create?: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput> | McpInstallCreateWithoutCatalogEntryInput[] | McpInstallUncheckedCreateWithoutCatalogEntryInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutCatalogEntryInput | McpInstallCreateOrConnectWithoutCatalogEntryInput[]
+    createMany?: McpInstallCreateManyCatalogEntryInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type McpInstallUncheckedCreateNestedManyWithoutCatalogEntryInput = {
+    create?: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput> | McpInstallCreateWithoutCatalogEntryInput[] | McpInstallUncheckedCreateWithoutCatalogEntryInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutCatalogEntryInput | McpInstallCreateOrConnectWithoutCatalogEntryInput[]
+    createMany?: McpInstallCreateManyCatalogEntryInputEnvelope
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+  }
+
+  export type EnumMcpDomainFieldUpdateOperationsInput = {
+    set?: $Enums.McpDomain
+  }
+
+  export type McpCatalogEntryUpdatetagsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type EnumMcpTransportFieldUpdateOperationsInput = {
+    set?: $Enums.McpTransport
+  }
+
+  export type McpInstallUpdateManyWithoutCatalogEntryNestedInput = {
+    create?: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput> | McpInstallCreateWithoutCatalogEntryInput[] | McpInstallUncheckedCreateWithoutCatalogEntryInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutCatalogEntryInput | McpInstallCreateOrConnectWithoutCatalogEntryInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutCatalogEntryInput | McpInstallUpsertWithWhereUniqueWithoutCatalogEntryInput[]
+    createMany?: McpInstallCreateManyCatalogEntryInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutCatalogEntryInput | McpInstallUpdateWithWhereUniqueWithoutCatalogEntryInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutCatalogEntryInput | McpInstallUpdateManyWithWhereWithoutCatalogEntryInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type McpInstallUncheckedUpdateManyWithoutCatalogEntryNestedInput = {
+    create?: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput> | McpInstallCreateWithoutCatalogEntryInput[] | McpInstallUncheckedCreateWithoutCatalogEntryInput[]
+    connectOrCreate?: McpInstallCreateOrConnectWithoutCatalogEntryInput | McpInstallCreateOrConnectWithoutCatalogEntryInput[]
+    upsert?: McpInstallUpsertWithWhereUniqueWithoutCatalogEntryInput | McpInstallUpsertWithWhereUniqueWithoutCatalogEntryInput[]
+    createMany?: McpInstallCreateManyCatalogEntryInputEnvelope
+    set?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    disconnect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    delete?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    connect?: McpInstallWhereUniqueInput | McpInstallWhereUniqueInput[]
+    update?: McpInstallUpdateWithWhereUniqueWithoutCatalogEntryInput | McpInstallUpdateWithWhereUniqueWithoutCatalogEntryInput[]
+    updateMany?: McpInstallUpdateManyWithWhereWithoutCatalogEntryInput | McpInstallUpdateManyWithWhereWithoutCatalogEntryInput[]
+    deleteMany?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+  }
+
+  export type McpCatalogEntryCreateNestedOneWithoutInstallsInput = {
+    create?: XOR<McpCatalogEntryCreateWithoutInstallsInput, McpCatalogEntryUncheckedCreateWithoutInstallsInput>
+    connectOrCreate?: McpCatalogEntryCreateOrConnectWithoutInstallsInput
+    connect?: McpCatalogEntryWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutMcpInstallsInput = {
+    create?: XOR<UserCreateWithoutMcpInstallsInput, UserUncheckedCreateWithoutMcpInstallsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutMcpInstallsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutMcpInstallsInput = {
+    create?: XOR<OrganizationCreateWithoutMcpInstallsInput, OrganizationUncheckedCreateWithoutMcpInstallsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutMcpInstallsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type McpCatalogEntryUpdateOneRequiredWithoutInstallsNestedInput = {
+    create?: XOR<McpCatalogEntryCreateWithoutInstallsInput, McpCatalogEntryUncheckedCreateWithoutInstallsInput>
+    connectOrCreate?: McpCatalogEntryCreateOrConnectWithoutInstallsInput
+    upsert?: McpCatalogEntryUpsertWithoutInstallsInput
+    connect?: McpCatalogEntryWhereUniqueInput
+    update?: XOR<XOR<McpCatalogEntryUpdateToOneWithWhereWithoutInstallsInput, McpCatalogEntryUpdateWithoutInstallsInput>, McpCatalogEntryUncheckedUpdateWithoutInstallsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutMcpInstallsNestedInput = {
+    create?: XOR<UserCreateWithoutMcpInstallsInput, UserUncheckedCreateWithoutMcpInstallsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutMcpInstallsInput
+    upsert?: UserUpsertWithoutMcpInstallsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutMcpInstallsInput, UserUpdateWithoutMcpInstallsInput>, UserUncheckedUpdateWithoutMcpInstallsInput>
+  }
+
+  export type OrganizationUpdateOneWithoutMcpInstallsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutMcpInstallsInput, OrganizationUncheckedCreateWithoutMcpInstallsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutMcpInstallsInput
+    upsert?: OrganizationUpsertWithoutMcpInstallsInput
+    disconnect?: OrganizationWhereInput | boolean
+    delete?: OrganizationWhereInput | boolean
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutMcpInstallsInput, OrganizationUpdateWithoutMcpInstallsInput>, OrganizationUncheckedUpdateWithoutMcpInstallsInput>
+  }
+
+  export type AgentRunResultCreateNestedManyWithoutRunInput = {
+    create?: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput> | AgentRunResultCreateWithoutRunInput[] | AgentRunResultUncheckedCreateWithoutRunInput[]
+    connectOrCreate?: AgentRunResultCreateOrConnectWithoutRunInput | AgentRunResultCreateOrConnectWithoutRunInput[]
+    createMany?: AgentRunResultCreateManyRunInputEnvelope
+    connect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+  }
+
+  export type ConsensusRecordCreateNestedOneWithoutRunInput = {
+    create?: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+    connectOrCreate?: ConsensusRecordCreateOrConnectWithoutRunInput
+    connect?: ConsensusRecordWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutAgentRunsInput = {
+    create?: XOR<UserCreateWithoutAgentRunsInput, UserUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentRunsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutAgentRunsInput = {
+    create?: XOR<OrganizationCreateWithoutAgentRunsInput, OrganizationUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutAgentRunsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type AgentRunResultUncheckedCreateNestedManyWithoutRunInput = {
+    create?: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput> | AgentRunResultCreateWithoutRunInput[] | AgentRunResultUncheckedCreateWithoutRunInput[]
+    connectOrCreate?: AgentRunResultCreateOrConnectWithoutRunInput | AgentRunResultCreateOrConnectWithoutRunInput[]
+    createMany?: AgentRunResultCreateManyRunInputEnvelope
+    connect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+  }
+
+  export type ConsensusRecordUncheckedCreateNestedOneWithoutRunInput = {
+    create?: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+    connectOrCreate?: ConsensusRecordCreateOrConnectWithoutRunInput
+    connect?: ConsensusRecordWhereUniqueInput
+  }
+
+  export type EnumAgentRunStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AgentRunStatus
+  }
+
+  export type AgentRunResultUpdateManyWithoutRunNestedInput = {
+    create?: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput> | AgentRunResultCreateWithoutRunInput[] | AgentRunResultUncheckedCreateWithoutRunInput[]
+    connectOrCreate?: AgentRunResultCreateOrConnectWithoutRunInput | AgentRunResultCreateOrConnectWithoutRunInput[]
+    upsert?: AgentRunResultUpsertWithWhereUniqueWithoutRunInput | AgentRunResultUpsertWithWhereUniqueWithoutRunInput[]
+    createMany?: AgentRunResultCreateManyRunInputEnvelope
+    set?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    disconnect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    delete?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    connect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    update?: AgentRunResultUpdateWithWhereUniqueWithoutRunInput | AgentRunResultUpdateWithWhereUniqueWithoutRunInput[]
+    updateMany?: AgentRunResultUpdateManyWithWhereWithoutRunInput | AgentRunResultUpdateManyWithWhereWithoutRunInput[]
+    deleteMany?: AgentRunResultScalarWhereInput | AgentRunResultScalarWhereInput[]
+  }
+
+  export type ConsensusRecordUpdateOneWithoutRunNestedInput = {
+    create?: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+    connectOrCreate?: ConsensusRecordCreateOrConnectWithoutRunInput
+    upsert?: ConsensusRecordUpsertWithoutRunInput
+    disconnect?: ConsensusRecordWhereInput | boolean
+    delete?: ConsensusRecordWhereInput | boolean
+    connect?: ConsensusRecordWhereUniqueInput
+    update?: XOR<XOR<ConsensusRecordUpdateToOneWithWhereWithoutRunInput, ConsensusRecordUpdateWithoutRunInput>, ConsensusRecordUncheckedUpdateWithoutRunInput>
+  }
+
+  export type UserUpdateOneWithoutAgentRunsNestedInput = {
+    create?: XOR<UserCreateWithoutAgentRunsInput, UserUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentRunsInput
+    upsert?: UserUpsertWithoutAgentRunsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentRunsInput, UserUpdateWithoutAgentRunsInput>, UserUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type OrganizationUpdateOneWithoutAgentRunsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutAgentRunsInput, OrganizationUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutAgentRunsInput
+    upsert?: OrganizationUpsertWithoutAgentRunsInput
+    disconnect?: OrganizationWhereInput | boolean
+    delete?: OrganizationWhereInput | boolean
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutAgentRunsInput, OrganizationUpdateWithoutAgentRunsInput>, OrganizationUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type AgentRunResultUncheckedUpdateManyWithoutRunNestedInput = {
+    create?: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput> | AgentRunResultCreateWithoutRunInput[] | AgentRunResultUncheckedCreateWithoutRunInput[]
+    connectOrCreate?: AgentRunResultCreateOrConnectWithoutRunInput | AgentRunResultCreateOrConnectWithoutRunInput[]
+    upsert?: AgentRunResultUpsertWithWhereUniqueWithoutRunInput | AgentRunResultUpsertWithWhereUniqueWithoutRunInput[]
+    createMany?: AgentRunResultCreateManyRunInputEnvelope
+    set?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    disconnect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    delete?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    connect?: AgentRunResultWhereUniqueInput | AgentRunResultWhereUniqueInput[]
+    update?: AgentRunResultUpdateWithWhereUniqueWithoutRunInput | AgentRunResultUpdateWithWhereUniqueWithoutRunInput[]
+    updateMany?: AgentRunResultUpdateManyWithWhereWithoutRunInput | AgentRunResultUpdateManyWithWhereWithoutRunInput[]
+    deleteMany?: AgentRunResultScalarWhereInput | AgentRunResultScalarWhereInput[]
+  }
+
+  export type ConsensusRecordUncheckedUpdateOneWithoutRunNestedInput = {
+    create?: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+    connectOrCreate?: ConsensusRecordCreateOrConnectWithoutRunInput
+    upsert?: ConsensusRecordUpsertWithoutRunInput
+    disconnect?: ConsensusRecordWhereInput | boolean
+    delete?: ConsensusRecordWhereInput | boolean
+    connect?: ConsensusRecordWhereUniqueInput
+    update?: XOR<XOR<ConsensusRecordUpdateToOneWithWhereWithoutRunInput, ConsensusRecordUpdateWithoutRunInput>, ConsensusRecordUncheckedUpdateWithoutRunInput>
+  }
+
+  export type AgentRunCreateNestedOneWithoutResultsInput = {
+    create?: XOR<AgentRunCreateWithoutResultsInput, AgentRunUncheckedCreateWithoutResultsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutResultsInput
+    connect?: AgentRunWhereUniqueInput
+  }
+
+  export type EnumAgentRunResultStatusFieldUpdateOperationsInput = {
+    set?: $Enums.AgentRunResultStatus
+  }
+
+  export type AgentRunUpdateOneRequiredWithoutResultsNestedInput = {
+    create?: XOR<AgentRunCreateWithoutResultsInput, AgentRunUncheckedCreateWithoutResultsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutResultsInput
+    upsert?: AgentRunUpsertWithoutResultsInput
+    connect?: AgentRunWhereUniqueInput
+    update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutResultsInput, AgentRunUpdateWithoutResultsInput>, AgentRunUncheckedUpdateWithoutResultsInput>
+  }
+
+  export type AgentRunCreateNestedOneWithoutConsensusInput = {
+    create?: XOR<AgentRunCreateWithoutConsensusInput, AgentRunUncheckedCreateWithoutConsensusInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutConsensusInput
+    connect?: AgentRunWhereUniqueInput
+  }
+
+  export type EnumConsensusAlgorithmFieldUpdateOperationsInput = {
+    set?: $Enums.ConsensusAlgorithm
+  }
+
+  export type EnumConsensusOutcomeFieldUpdateOperationsInput = {
+    set?: $Enums.ConsensusOutcome
+  }
+
+  export type AgentRunUpdateOneRequiredWithoutConsensusNestedInput = {
+    create?: XOR<AgentRunCreateWithoutConsensusInput, AgentRunUncheckedCreateWithoutConsensusInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutConsensusInput
+    upsert?: AgentRunUpsertWithoutConsensusInput
+    connect?: AgentRunWhereUniqueInput
+    update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutConsensusInput, AgentRunUpdateWithoutConsensusInput>, AgentRunUncheckedUpdateWithoutConsensusInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -88072,6 +96870,108 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumSupportTicketStatusFilter<$PrismaModel>
     _max?: NestedEnumSupportTicketStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumMcpDomainFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpDomain | EnumMcpDomainFieldRefInput<$PrismaModel>
+    in?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpDomainFilter<$PrismaModel> | $Enums.McpDomain
+  }
+
+  export type NestedEnumMcpTransportFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpTransport | EnumMcpTransportFieldRefInput<$PrismaModel>
+    in?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpTransportFilter<$PrismaModel> | $Enums.McpTransport
+  }
+
+  export type NestedEnumMcpDomainWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpDomain | EnumMcpDomainFieldRefInput<$PrismaModel>
+    in?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpDomain[] | ListEnumMcpDomainFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpDomainWithAggregatesFilter<$PrismaModel> | $Enums.McpDomain
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMcpDomainFilter<$PrismaModel>
+    _max?: NestedEnumMcpDomainFilter<$PrismaModel>
+  }
+
+  export type NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.McpTransport | EnumMcpTransportFieldRefInput<$PrismaModel>
+    in?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    notIn?: $Enums.McpTransport[] | ListEnumMcpTransportFieldRefInput<$PrismaModel>
+    not?: NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel> | $Enums.McpTransport
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumMcpTransportFilter<$PrismaModel>
+    _max?: NestedEnumMcpTransportFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAgentRunStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunStatus | EnumAgentRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunStatusFilter<$PrismaModel> | $Enums.AgentRunStatus
+  }
+
+  export type NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunStatus | EnumAgentRunStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunStatus[] | ListEnumAgentRunStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgentRunStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgentRunStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAgentRunResultStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunResultStatus | EnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunResultStatusFilter<$PrismaModel> | $Enums.AgentRunResultStatus
+  }
+
+  export type NestedEnumAgentRunResultStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AgentRunResultStatus | EnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AgentRunResultStatus[] | ListEnumAgentRunResultStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumAgentRunResultStatusWithAggregatesFilter<$PrismaModel> | $Enums.AgentRunResultStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAgentRunResultStatusFilter<$PrismaModel>
+    _max?: NestedEnumAgentRunResultStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumConsensusAlgorithmFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusAlgorithm | EnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusAlgorithmFilter<$PrismaModel> | $Enums.ConsensusAlgorithm
+  }
+
+  export type NestedEnumConsensusOutcomeFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusOutcome | EnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusOutcomeFilter<$PrismaModel> | $Enums.ConsensusOutcome
+  }
+
+  export type NestedEnumConsensusAlgorithmWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusAlgorithm | EnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusAlgorithm[] | ListEnumConsensusAlgorithmFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusAlgorithmWithAggregatesFilter<$PrismaModel> | $Enums.ConsensusAlgorithm
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumConsensusAlgorithmFilter<$PrismaModel>
+    _max?: NestedEnumConsensusAlgorithmFilter<$PrismaModel>
+  }
+
+  export type NestedEnumConsensusOutcomeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ConsensusOutcome | EnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    in?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ConsensusOutcome[] | ListEnumConsensusOutcomeFieldRefInput<$PrismaModel>
+    not?: NestedEnumConsensusOutcomeWithAggregatesFilter<$PrismaModel> | $Enums.ConsensusOutcome
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
+    _max?: NestedEnumConsensusOutcomeFilter<$PrismaModel>
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -88611,6 +97511,80 @@ export namespace Prisma {
 
   export type ProjectShareLinkCreateManyCreatedByInputEnvelope = {
     data: ProjectShareLinkCreateManyCreatedByInput | ProjectShareLinkCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type McpInstallCreateWithoutUserInput = {
+    id?: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+    catalogEntry: McpCatalogEntryCreateNestedOneWithoutInstallsInput
+    organization?: OrganizationCreateNestedOneWithoutMcpInstallsInput
+  }
+
+  export type McpInstallUncheckedCreateWithoutUserInput = {
+    id?: string
+    catalogEntryId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallCreateOrConnectWithoutUserInput = {
+    where: McpInstallWhereUniqueInput
+    create: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput>
+  }
+
+  export type McpInstallCreateManyUserInputEnvelope = {
+    data: McpInstallCreateManyUserInput | McpInstallCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgentRunCreateWithoutUserInput = {
+    id?: string
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordCreateNestedOneWithoutRunInput
+    organization?: OrganizationCreateNestedOneWithoutAgentRunsInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutUserInput = {
+    id?: string
+    organizationId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordUncheckedCreateNestedOneWithoutRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutUserInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentRunCreateManyUserInputEnvelope = {
+    data: AgentRunCreateManyUserInput | AgentRunCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -89202,6 +98176,71 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
   }
 
+  export type McpInstallUpsertWithWhereUniqueWithoutUserInput = {
+    where: McpInstallWhereUniqueInput
+    update: XOR<McpInstallUpdateWithoutUserInput, McpInstallUncheckedUpdateWithoutUserInput>
+    create: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput>
+  }
+
+  export type McpInstallUpdateWithWhereUniqueWithoutUserInput = {
+    where: McpInstallWhereUniqueInput
+    data: XOR<McpInstallUpdateWithoutUserInput, McpInstallUncheckedUpdateWithoutUserInput>
+  }
+
+  export type McpInstallUpdateManyWithWhereWithoutUserInput = {
+    where: McpInstallScalarWhereInput
+    data: XOR<McpInstallUpdateManyMutationInput, McpInstallUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type McpInstallScalarWhereInput = {
+    AND?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+    OR?: McpInstallScalarWhereInput[]
+    NOT?: McpInstallScalarWhereInput | McpInstallScalarWhereInput[]
+    id?: StringFilter<"McpInstall"> | string
+    catalogEntryId?: StringFilter<"McpInstall"> | string
+    userId?: StringFilter<"McpInstall"> | string
+    organizationId?: StringNullableFilter<"McpInstall"> | string | null
+    alias?: StringFilter<"McpInstall"> | string
+    configJson?: JsonFilter<"McpInstall">
+    enabled?: BoolFilter<"McpInstall"> | boolean
+    installedAt?: DateTimeFilter<"McpInstall"> | Date | string
+    updatedAt?: DateTimeFilter<"McpInstall"> | Date | string
+  }
+
+  export type AgentRunUpsertWithWhereUniqueWithoutUserInput = {
+    where: AgentRunWhereUniqueInput
+    update: XOR<AgentRunUpdateWithoutUserInput, AgentRunUncheckedUpdateWithoutUserInput>
+    create: XOR<AgentRunCreateWithoutUserInput, AgentRunUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentRunUpdateWithWhereUniqueWithoutUserInput = {
+    where: AgentRunWhereUniqueInput
+    data: XOR<AgentRunUpdateWithoutUserInput, AgentRunUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AgentRunUpdateManyWithWhereWithoutUserInput = {
+    where: AgentRunScalarWhereInput
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type AgentRunScalarWhereInput = {
+    AND?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+    OR?: AgentRunScalarWhereInput[]
+    NOT?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+    id?: StringFilter<"AgentRun"> | string
+    organizationId?: StringNullableFilter<"AgentRun"> | string | null
+    userId?: StringNullableFilter<"AgentRun"> | string | null
+    conversationId?: StringNullableFilter<"AgentRun"> | string | null
+    projectId?: StringNullableFilter<"AgentRun"> | string | null
+    mode?: StringFilter<"AgentRun"> | string
+    status?: EnumAgentRunStatusFilter<"AgentRun"> | $Enums.AgentRunStatus
+    reason?: StringNullableFilter<"AgentRun"> | string | null
+    rolesPlanned?: JsonFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+    metadata?: JsonFilter<"AgentRun">
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -89232,6 +98271,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -89264,6 +98305,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -89312,6 +98355,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -89344,6 +98389,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -89376,6 +98423,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -89408,6 +98457,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -89456,6 +98507,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -89488,6 +98541,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -90152,6 +99207,80 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type McpInstallCreateWithoutOrganizationInput = {
+    id?: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+    catalogEntry: McpCatalogEntryCreateNestedOneWithoutInstallsInput
+    user: UserCreateNestedOneWithoutMcpInstallsInput
+  }
+
+  export type McpInstallUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    catalogEntryId: string
+    userId: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallCreateOrConnectWithoutOrganizationInput = {
+    where: McpInstallWhereUniqueInput
+    create: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type McpInstallCreateManyOrganizationInputEnvelope = {
+    data: McpInstallCreateManyOrganizationInput | McpInstallCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgentRunCreateWithoutOrganizationInput = {
+    id?: string
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordCreateNestedOneWithoutRunInput
+    user?: UserCreateNestedOneWithoutAgentRunsInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedCreateNestedManyWithoutRunInput
+    consensus?: ConsensusRecordUncheckedCreateNestedOneWithoutRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutOrganizationInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type AgentRunCreateManyOrganizationInputEnvelope = {
+    data: AgentRunCreateManyOrganizationInput | AgentRunCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationMemberUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: OrganizationMemberWhereUniqueInput
     update: XOR<OrganizationMemberUpdateWithoutOrganizationInput, OrganizationMemberUncheckedUpdateWithoutOrganizationInput>
@@ -90756,6 +99885,38 @@ export namespace Prisma {
     data: XOR<AgentMemoryUpdateManyMutationInput, AgentMemoryUncheckedUpdateManyWithoutOrganizationInput>
   }
 
+  export type McpInstallUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: McpInstallWhereUniqueInput
+    update: XOR<McpInstallUpdateWithoutOrganizationInput, McpInstallUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type McpInstallUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: McpInstallWhereUniqueInput
+    data: XOR<McpInstallUpdateWithoutOrganizationInput, McpInstallUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type McpInstallUpdateManyWithWhereWithoutOrganizationInput = {
+    where: McpInstallScalarWhereInput
+    data: XOR<McpInstallUpdateManyMutationInput, McpInstallUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type AgentRunUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: AgentRunWhereUniqueInput
+    update: XOR<AgentRunUpdateWithoutOrganizationInput, AgentRunUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<AgentRunCreateWithoutOrganizationInput, AgentRunUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type AgentRunUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: AgentRunWhereUniqueInput
+    data: XOR<AgentRunUpdateWithoutOrganizationInput, AgentRunUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type AgentRunUpdateManyWithWhereWithoutOrganizationInput = {
+    where: AgentRunScalarWhereInput
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type OrganizationCreateWithoutMembersInput = {
     id?: string
     slug: string
@@ -90784,6 +99945,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -90814,6 +99977,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -90851,6 +100016,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -90883,6 +100050,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -90952,6 +100121,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -90982,6 +100153,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutMembershipsInput = {
@@ -91025,6 +100198,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -91057,6 +100232,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -91116,6 +100293,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutInvitesInput = {
@@ -91146,6 +100325,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutInvitesInput = {
@@ -91215,6 +100396,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutInvitesInput = {
@@ -91245,6 +100428,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type RoleUpsertWithoutInvitesInput = {
@@ -91558,6 +100743,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectsInput = {
@@ -91588,6 +100775,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectsInput = {
@@ -92089,6 +101278,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectsInput = {
@@ -92119,6 +101310,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectEnvironmentUpsertWithWhereUniqueWithoutProjectInput = {
@@ -92503,6 +101696,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -92535,6 +101730,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -92583,6 +101780,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -92615,6 +101814,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -92645,6 +101846,8 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoriesInput = {
@@ -92675,6 +101878,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoriesInput = {
@@ -92721,6 +101926,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -92751,6 +101958,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutAgentMemoriesInput = {
@@ -92990,6 +102199,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -93022,6 +102233,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -93143,6 +102356,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -93175,6 +102390,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -93694,6 +102911,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -93726,6 +102945,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -93847,6 +103068,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -93879,6 +103102,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -93978,6 +103203,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -94010,6 +103237,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -94131,6 +103360,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -94163,6 +103394,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -94262,6 +103495,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -94294,6 +103529,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -94415,6 +103652,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -94447,6 +103686,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -94546,6 +103787,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -94578,6 +103821,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -94699,6 +103944,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -94731,6 +103978,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -94830,6 +104079,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -94862,6 +104113,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -94983,6 +104236,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -95015,6 +104270,8 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -95112,6 +104369,8 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectTemplatesInput = {
@@ -95142,6 +104401,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectTemplatesInput = {
@@ -95261,6 +104522,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectTemplatesInput = {
@@ -95291,6 +104554,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutWorkspacesInput = {
@@ -96016,6 +105281,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -96048,6 +105315,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -96169,6 +105438,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -96201,6 +105472,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -96483,6 +105756,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
@@ -96513,6 +105788,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAuditLogsInput = {
@@ -96550,6 +105827,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -96582,6 +105861,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -96628,6 +105909,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
@@ -96658,6 +105941,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutAuditLogsInput = {
@@ -96701,6 +105986,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -96733,6 +106020,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -96765,6 +106054,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -96797,6 +106088,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -96845,6 +106138,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -96877,6 +106172,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -96907,6 +106204,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutBillingCustomerInput = {
@@ -96937,6 +106236,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutBillingCustomerInput = {
@@ -96983,6 +106284,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutBillingCustomerInput = {
@@ -97013,6 +106316,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSubscriptionsInput = {
@@ -97043,6 +106348,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -97073,6 +106380,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -97144,6 +106453,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -97174,6 +106485,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type PlanUpsertWithoutSubscriptionsInput = {
@@ -97287,6 +106600,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUsageEventsInput = {
@@ -97317,6 +106632,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUsageEventsInput = {
@@ -97363,6 +106680,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUsageEventsInput = {
@@ -97393,6 +106712,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaLedgerInput = {
@@ -97423,6 +106744,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaLedgerInput = {
@@ -97453,6 +106776,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaLedgerInput = {
@@ -97499,6 +106824,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaLedgerInput = {
@@ -97529,6 +106856,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaOverridesInput = {
@@ -97559,6 +106888,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaOverridesInput = {
@@ -97589,6 +106920,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaOverridesInput = {
@@ -97635,6 +106968,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaOverridesInput = {
@@ -97665,6 +107000,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutStripeEventsInput = {
@@ -97695,6 +107032,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutStripeEventsInput = {
@@ -97725,6 +107064,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutStripeEventsInput = {
@@ -97771,6 +107112,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutStripeEventsInput = {
@@ -97801,6 +107144,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutConversationsInput = {
@@ -97900,6 +107245,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -97932,6 +107279,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -98081,6 +107430,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -98113,6 +107464,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -98432,6 +107785,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAiCostLedgerInput = {
@@ -98462,6 +107817,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAiCostLedgerInput = {
@@ -98508,6 +107865,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAiCostLedgerInput = {
@@ -98538,6 +107897,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAbuseEventsInput = {
@@ -98568,6 +107929,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAbuseEventsInput = {
@@ -98598,6 +107961,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAbuseEventsInput = {
@@ -98644,6 +108009,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAbuseEventsInput = {
@@ -98674,6 +108041,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSupportTicketsInput = {
@@ -98704,6 +108073,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSupportTicketsInput = {
@@ -98734,6 +108105,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSupportTicketsInput = {
@@ -98771,6 +108144,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -98803,6 +108178,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -98849,6 +108226,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSupportTicketsInput = {
@@ -98879,6 +108258,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutSupportTicketsInput = {
@@ -98922,6 +108303,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -98954,6 +108337,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -98984,6 +108369,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutFeatureFlagsInput = {
@@ -99014,6 +108401,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutFeatureFlagsInput = {
@@ -99060,6 +108449,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutFeatureFlagsInput = {
@@ -99090,6 +108481,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutEmailVerificationTokensInput = {
@@ -99122,6 +108515,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -99154,6 +108549,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -99202,6 +108599,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -99234,6 +108633,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -99266,6 +108667,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -99298,6 +108701,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -99346,6 +108751,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -99378,6 +108785,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -99410,6 +108819,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -99442,6 +108853,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -99490,6 +108903,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -99522,6 +108937,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -99552,6 +108969,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutEnterpriseSettingsInput = {
@@ -99582,6 +109001,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutEnterpriseSettingsInput = {
@@ -99628,6 +109049,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutEnterpriseSettingsInput = {
@@ -99658,6 +109081,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutDomainsInput = {
@@ -99688,6 +109113,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutDomainsInput = {
@@ -99718,6 +109145,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutDomainsInput = {
@@ -99764,6 +109193,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutDomainsInput = {
@@ -99794,6 +109225,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSsoConfigurationsInput = {
@@ -99824,6 +109257,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSsoConfigurationsInput = {
@@ -99854,6 +109289,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSsoConfigurationsInput = {
@@ -99900,6 +109337,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSsoConfigurationsInput = {
@@ -99930,6 +109369,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutScimTokensInput = {
@@ -99960,6 +109401,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutScimTokensInput = {
@@ -99990,6 +109433,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutScimTokensInput = {
@@ -100036,6 +109481,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutScimTokensInput = {
@@ -100066,6 +109513,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCustomRolesInput = {
@@ -100096,6 +109545,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCustomRolesInput = {
@@ -100126,6 +109577,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCustomRolesInput = {
@@ -100172,6 +109625,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCustomRolesInput = {
@@ -100202,6 +109657,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSiemWebhooksInput = {
@@ -100232,6 +109689,8 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSiemWebhooksInput = {
@@ -100262,6 +109721,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSiemWebhooksInput = {
@@ -100308,6 +109769,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSiemWebhooksInput = {
@@ -100338,6 +109801,8 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutApiKeysInput = {
@@ -100368,6 +109833,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutApiKeysInput = {
@@ -100398,6 +109865,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutApiKeysInput = {
@@ -100435,6 +109904,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -100467,6 +109938,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -100513,6 +109986,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutApiKeysInput = {
@@ -100543,6 +110018,8 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutApiKeysInput = {
@@ -100586,6 +110063,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -100618,6 +110097,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -100650,6 +110131,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -100682,6 +110165,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -100730,6 +110215,8 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -100762,6 +110249,1052 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type McpInstallCreateWithoutCatalogEntryInput = {
+    id?: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutMcpInstallsInput
+    organization?: OrganizationCreateNestedOneWithoutMcpInstallsInput
+  }
+
+  export type McpInstallUncheckedCreateWithoutCatalogEntryInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallCreateOrConnectWithoutCatalogEntryInput = {
+    where: McpInstallWhereUniqueInput
+    create: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput>
+  }
+
+  export type McpInstallCreateManyCatalogEntryInputEnvelope = {
+    data: McpInstallCreateManyCatalogEntryInput | McpInstallCreateManyCatalogEntryInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type McpInstallUpsertWithWhereUniqueWithoutCatalogEntryInput = {
+    where: McpInstallWhereUniqueInput
+    update: XOR<McpInstallUpdateWithoutCatalogEntryInput, McpInstallUncheckedUpdateWithoutCatalogEntryInput>
+    create: XOR<McpInstallCreateWithoutCatalogEntryInput, McpInstallUncheckedCreateWithoutCatalogEntryInput>
+  }
+
+  export type McpInstallUpdateWithWhereUniqueWithoutCatalogEntryInput = {
+    where: McpInstallWhereUniqueInput
+    data: XOR<McpInstallUpdateWithoutCatalogEntryInput, McpInstallUncheckedUpdateWithoutCatalogEntryInput>
+  }
+
+  export type McpInstallUpdateManyWithWhereWithoutCatalogEntryInput = {
+    where: McpInstallScalarWhereInput
+    data: XOR<McpInstallUpdateManyMutationInput, McpInstallUncheckedUpdateManyWithoutCatalogEntryInput>
+  }
+
+  export type McpCatalogEntryCreateWithoutInstallsInput = {
+    id?: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags?: McpCatalogEntryCreatetagsInput | string[]
+    author: string
+    homepageUrl?: string | null
+    iconUrl?: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: number
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpCatalogEntryUncheckedCreateWithoutInstallsInput = {
+    id?: string
+    slug: string
+    name: string
+    description: string
+    domain: $Enums.McpDomain
+    tags?: McpCatalogEntryCreatetagsInput | string[]
+    author: string
+    homepageUrl?: string | null
+    iconUrl?: string | null
+    version: string
+    transport: $Enums.McpTransport
+    configTemplate: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: number
+    featured?: boolean
+    verified?: boolean
+    publishedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpCatalogEntryCreateOrConnectWithoutInstallsInput = {
+    where: McpCatalogEntryWhereUniqueInput
+    create: XOR<McpCatalogEntryCreateWithoutInstallsInput, McpCatalogEntryUncheckedCreateWithoutInstallsInput>
+  }
+
+  export type UserCreateWithoutMcpInstallsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutMcpInstallsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutMcpInstallsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutMcpInstallsInput, UserUncheckedCreateWithoutMcpInstallsInput>
+  }
+
+  export type OrganizationCreateWithoutMcpInstallsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutMcpInstallsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutMcpInstallsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutMcpInstallsInput, OrganizationUncheckedCreateWithoutMcpInstallsInput>
+  }
+
+  export type McpCatalogEntryUpsertWithoutInstallsInput = {
+    update: XOR<McpCatalogEntryUpdateWithoutInstallsInput, McpCatalogEntryUncheckedUpdateWithoutInstallsInput>
+    create: XOR<McpCatalogEntryCreateWithoutInstallsInput, McpCatalogEntryUncheckedCreateWithoutInstallsInput>
+    where?: McpCatalogEntryWhereInput
+  }
+
+  export type McpCatalogEntryUpdateToOneWithWhereWithoutInstallsInput = {
+    where?: McpCatalogEntryWhereInput
+    data: XOR<McpCatalogEntryUpdateWithoutInstallsInput, McpCatalogEntryUncheckedUpdateWithoutInstallsInput>
+  }
+
+  export type McpCatalogEntryUpdateWithoutInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpCatalogEntryUncheckedUpdateWithoutInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    domain?: EnumMcpDomainFieldUpdateOperationsInput | $Enums.McpDomain
+    tags?: McpCatalogEntryUpdatetagsInput | string[]
+    author?: StringFieldUpdateOperationsInput | string
+    homepageUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    iconUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    version?: StringFieldUpdateOperationsInput | string
+    transport?: EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
+    configTemplate?: JsonNullValueInput | InputJsonValue
+    configSchema?: JsonNullValueInput | InputJsonValue
+    installCount?: IntFieldUpdateOperationsInput | number
+    featured?: BoolFieldUpdateOperationsInput | boolean
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserUpsertWithoutMcpInstallsInput = {
+    update: XOR<UserUpdateWithoutMcpInstallsInput, UserUncheckedUpdateWithoutMcpInstallsInput>
+    create: XOR<UserCreateWithoutMcpInstallsInput, UserUncheckedCreateWithoutMcpInstallsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutMcpInstallsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutMcpInstallsInput, UserUncheckedUpdateWithoutMcpInstallsInput>
+  }
+
+  export type UserUpdateWithoutMcpInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutMcpInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type OrganizationUpsertWithoutMcpInstallsInput = {
+    update: XOR<OrganizationUpdateWithoutMcpInstallsInput, OrganizationUncheckedUpdateWithoutMcpInstallsInput>
+    create: XOR<OrganizationCreateWithoutMcpInstallsInput, OrganizationUncheckedCreateWithoutMcpInstallsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutMcpInstallsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutMcpInstallsInput, OrganizationUncheckedUpdateWithoutMcpInstallsInput>
+  }
+
+  export type OrganizationUpdateWithoutMcpInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutMcpInstallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type AgentRunResultCreateWithoutRunInput = {
+    id?: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunResultUncheckedCreateWithoutRunInput = {
+    id?: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunResultCreateOrConnectWithoutRunInput = {
+    where: AgentRunResultWhereUniqueInput
+    create: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput>
+  }
+
+  export type AgentRunResultCreateManyRunInputEnvelope = {
+    data: AgentRunResultCreateManyRunInput | AgentRunResultCreateManyRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ConsensusRecordCreateWithoutRunInput = {
+    id?: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated: JsonNullValueInput | InputJsonValue
+    rounds?: number
+    durationMs: number
+    createdAt?: Date | string
+  }
+
+  export type ConsensusRecordUncheckedCreateWithoutRunInput = {
+    id?: string
+    algorithm: $Enums.ConsensusAlgorithm
+    threshold: number
+    outcome: $Enums.ConsensusOutcome
+    agreementScore: number
+    claimVotes: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated: JsonNullValueInput | InputJsonValue
+    rounds?: number
+    durationMs: number
+    createdAt?: Date | string
+  }
+
+  export type ConsensusRecordCreateOrConnectWithoutRunInput = {
+    where: ConsensusRecordWhereUniqueInput
+    create: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+  }
+
+  export type UserCreateWithoutAgentRunsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutAgentRunsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutAgentRunsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAgentRunsInput, UserUncheckedCreateWithoutAgentRunsInput>
+  }
+
+  export type OrganizationCreateWithoutAgentRunsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutAgentRunsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutAgentRunsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutAgentRunsInput, OrganizationUncheckedCreateWithoutAgentRunsInput>
+  }
+
+  export type AgentRunResultUpsertWithWhereUniqueWithoutRunInput = {
+    where: AgentRunResultWhereUniqueInput
+    update: XOR<AgentRunResultUpdateWithoutRunInput, AgentRunResultUncheckedUpdateWithoutRunInput>
+    create: XOR<AgentRunResultCreateWithoutRunInput, AgentRunResultUncheckedCreateWithoutRunInput>
+  }
+
+  export type AgentRunResultUpdateWithWhereUniqueWithoutRunInput = {
+    where: AgentRunResultWhereUniqueInput
+    data: XOR<AgentRunResultUpdateWithoutRunInput, AgentRunResultUncheckedUpdateWithoutRunInput>
+  }
+
+  export type AgentRunResultUpdateManyWithWhereWithoutRunInput = {
+    where: AgentRunResultScalarWhereInput
+    data: XOR<AgentRunResultUpdateManyMutationInput, AgentRunResultUncheckedUpdateManyWithoutRunInput>
+  }
+
+  export type AgentRunResultScalarWhereInput = {
+    AND?: AgentRunResultScalarWhereInput | AgentRunResultScalarWhereInput[]
+    OR?: AgentRunResultScalarWhereInput[]
+    NOT?: AgentRunResultScalarWhereInput | AgentRunResultScalarWhereInput[]
+    id?: StringFilter<"AgentRunResult"> | string
+    runId?: StringFilter<"AgentRunResult"> | string
+    roleId?: StringFilter<"AgentRunResult"> | string
+    status?: EnumAgentRunResultStatusFilter<"AgentRunResult"> | $Enums.AgentRunResultStatus
+    summary?: StringFilter<"AgentRunResult"> | string
+    files?: JsonFilter<"AgentRunResult">
+    risks?: JsonFilter<"AgentRunResult">
+    verification?: JsonFilter<"AgentRunResult">
+    rawOutput?: StringNullableFilter<"AgentRunResult"> | string | null
+    errorMessage?: StringNullableFilter<"AgentRunResult"> | string | null
+    startedAt?: DateTimeFilter<"AgentRunResult"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRunResult"> | Date | string | null
+  }
+
+  export type ConsensusRecordUpsertWithoutRunInput = {
+    update: XOR<ConsensusRecordUpdateWithoutRunInput, ConsensusRecordUncheckedUpdateWithoutRunInput>
+    create: XOR<ConsensusRecordCreateWithoutRunInput, ConsensusRecordUncheckedCreateWithoutRunInput>
+    where?: ConsensusRecordWhereInput
+  }
+
+  export type ConsensusRecordUpdateToOneWithWhereWithoutRunInput = {
+    where?: ConsensusRecordWhereInput
+    data: XOR<ConsensusRecordUpdateWithoutRunInput, ConsensusRecordUncheckedUpdateWithoutRunInput>
+  }
+
+  export type ConsensusRecordUpdateWithoutRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsensusRecordUncheckedUpdateWithoutRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    algorithm?: EnumConsensusAlgorithmFieldUpdateOperationsInput | $Enums.ConsensusAlgorithm
+    threshold?: FloatFieldUpdateOperationsInput | number
+    outcome?: EnumConsensusOutcomeFieldUpdateOperationsInput | $Enums.ConsensusOutcome
+    agreementScore?: FloatFieldUpdateOperationsInput | number
+    claimVotes?: JsonNullValueInput | InputJsonValue
+    conflicts?: JsonNullValueInput | InputJsonValue
+    consolidated?: JsonNullValueInput | InputJsonValue
+    rounds?: IntFieldUpdateOperationsInput | number
+    durationMs?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserUpsertWithoutAgentRunsInput = {
+    update: XOR<UserUpdateWithoutAgentRunsInput, UserUncheckedUpdateWithoutAgentRunsInput>
+    create: XOR<UserCreateWithoutAgentRunsInput, UserUncheckedCreateWithoutAgentRunsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAgentRunsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAgentRunsInput, UserUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type UserUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type OrganizationUpsertWithoutAgentRunsInput = {
+    update: XOR<OrganizationUpdateWithoutAgentRunsInput, OrganizationUncheckedUpdateWithoutAgentRunsInput>
+    create: XOR<OrganizationCreateWithoutAgentRunsInput, OrganizationUncheckedCreateWithoutAgentRunsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutAgentRunsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutAgentRunsInput, OrganizationUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type OrganizationUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type AgentRunCreateWithoutResultsInput = {
+    id?: string
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    consensus?: ConsensusRecordCreateNestedOneWithoutRunInput
+    user?: UserCreateNestedOneWithoutAgentRunsInput
+    organization?: OrganizationCreateNestedOneWithoutAgentRunsInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutResultsInput = {
+    id?: string
+    organizationId?: string | null
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    consensus?: ConsensusRecordUncheckedCreateNestedOneWithoutRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutResultsInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutResultsInput, AgentRunUncheckedCreateWithoutResultsInput>
+  }
+
+  export type AgentRunUpsertWithoutResultsInput = {
+    update: XOR<AgentRunUpdateWithoutResultsInput, AgentRunUncheckedUpdateWithoutResultsInput>
+    create: XOR<AgentRunCreateWithoutResultsInput, AgentRunUncheckedCreateWithoutResultsInput>
+    where?: AgentRunWhereInput
+  }
+
+  export type AgentRunUpdateToOneWithWhereWithoutResultsInput = {
+    where?: AgentRunWhereInput
+    data: XOR<AgentRunUpdateWithoutResultsInput, AgentRunUncheckedUpdateWithoutResultsInput>
+  }
+
+  export type AgentRunUpdateWithoutResultsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    consensus?: ConsensusRecordUpdateOneWithoutRunNestedInput
+    user?: UserUpdateOneWithoutAgentRunsNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentRunsNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutResultsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    consensus?: ConsensusRecordUncheckedUpdateOneWithoutRunNestedInput
+  }
+
+  export type AgentRunCreateWithoutConsensusInput = {
+    id?: string
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultCreateNestedManyWithoutRunInput
+    user?: UserCreateNestedOneWithoutAgentRunsInput
+    organization?: OrganizationCreateNestedOneWithoutAgentRunsInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutConsensusInput = {
+    id?: string
+    organizationId?: string | null
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedCreateNestedManyWithoutRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutConsensusInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutConsensusInput, AgentRunUncheckedCreateWithoutConsensusInput>
+  }
+
+  export type AgentRunUpsertWithoutConsensusInput = {
+    update: XOR<AgentRunUpdateWithoutConsensusInput, AgentRunUncheckedUpdateWithoutConsensusInput>
+    create: XOR<AgentRunCreateWithoutConsensusInput, AgentRunUncheckedCreateWithoutConsensusInput>
+    where?: AgentRunWhereInput
+  }
+
+  export type AgentRunUpdateToOneWithWhereWithoutConsensusInput = {
+    where?: AgentRunWhereInput
+    data: XOR<AgentRunUpdateWithoutConsensusInput, AgentRunUncheckedUpdateWithoutConsensusInput>
+  }
+
+  export type AgentRunUpdateWithoutConsensusInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUpdateManyWithoutRunNestedInput
+    user?: UserUpdateOneWithoutAgentRunsNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentRunsNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutConsensusInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedUpdateManyWithoutRunNestedInput
   }
 
   export type AccountCreateManyUserInput = {
@@ -100936,6 +111469,31 @@ export namespace Prisma {
     expiresAt: Date | string
     revokedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type McpInstallCreateManyUserInput = {
+    id?: string
+    catalogEntryId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentRunCreateManyUserInput = {
+    id?: string
+    organizationId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
   }
 
   export type AccountUpdateWithoutUserInput = {
@@ -101522,6 +112080,85 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type McpInstallUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    catalogEntry?: McpCatalogEntryUpdateOneRequiredWithoutInstallsNestedInput
+    organization?: OrganizationUpdateOneWithoutMcpInstallsNestedInput
+  }
+
+  export type McpInstallUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRunUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUpdateOneWithoutRunNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentRunsNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUncheckedUpdateOneWithoutRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -101714,6 +112351,31 @@ export namespace Prisma {
     name: string
     description?: string | null
     createdAt?: Date | string
+  }
+
+  export type McpInstallCreateManyOrganizationInput = {
+    id?: string
+    catalogEntryId: string
+    userId: string
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentRunCreateManyOrganizationInput = {
+    id?: string
+    userId?: string | null
+    conversationId?: string | null
+    projectId?: string | null
+    mode: string
+    status?: $Enums.AgentRunStatus
+    reason?: string | null
+    rolesPlanned: JsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
   }
 
   export type OrganizationMemberUpdateWithoutOrganizationInput = {
@@ -102388,6 +113050,85 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type McpInstallUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    catalogEntry?: McpCatalogEntryUpdateOneRequiredWithoutInstallsNestedInput
+    user?: UserUpdateOneRequiredWithoutMcpInstallsNestedInput
+  }
+
+  export type McpInstallUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    catalogEntryId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRunUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUpdateOneWithoutRunNestedInput
+    user?: UserUpdateOneWithoutAgentRunsNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    results?: AgentRunResultUncheckedUpdateManyWithoutRunNestedInput
+    consensus?: ConsensusRecordUncheckedUpdateOneWithoutRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    mode?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunStatusFieldUpdateOperationsInput | $Enums.AgentRunStatus
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    rolesPlanned?: JsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    metadata?: JsonNullValueInput | InputJsonValue
   }
 
   export type RolePermissionCreateManyRoleInput = {
@@ -103448,6 +114189,106 @@ export namespace Prisma {
     input?: NullableJsonNullValueInput | InputJsonValue
     output?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallCreateManyCatalogEntryInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    alias: string
+    configJson: JsonNullValueInput | InputJsonValue
+    enabled?: boolean
+    installedAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type McpInstallUpdateWithoutCatalogEntryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutMcpInstallsNestedInput
+    organization?: OrganizationUpdateOneWithoutMcpInstallsNestedInput
+  }
+
+  export type McpInstallUncheckedUpdateWithoutCatalogEntryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type McpInstallUncheckedUpdateManyWithoutCatalogEntryInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    alias?: StringFieldUpdateOperationsInput | string
+    configJson?: JsonNullValueInput | InputJsonValue
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    installedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRunResultCreateManyRunInput = {
+    id?: string
+    roleId: string
+    status: $Enums.AgentRunResultStatus
+    summary: string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: string | null
+    errorMessage?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunResultUpdateWithoutRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunResultUncheckedUpdateWithoutRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunResultUncheckedUpdateManyWithoutRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    roleId?: StringFieldUpdateOperationsInput | string
+    status?: EnumAgentRunResultStatusFieldUpdateOperationsInput | $Enums.AgentRunResultStatus
+    summary?: StringFieldUpdateOperationsInput | string
+    files?: JsonNullValueInput | InputJsonValue
+    risks?: JsonNullValueInput | InputJsonValue
+    verification?: JsonNullValueInput | InputJsonValue
+    rawOutput?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
 

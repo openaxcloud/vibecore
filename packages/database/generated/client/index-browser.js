@@ -704,6 +704,84 @@ exports.Prisma.OAuthConnectionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.McpCatalogEntryScalarFieldEnum = {
+  id: 'id',
+  slug: 'slug',
+  name: 'name',
+  description: 'description',
+  domain: 'domain',
+  tags: 'tags',
+  author: 'author',
+  homepageUrl: 'homepageUrl',
+  iconUrl: 'iconUrl',
+  version: 'version',
+  transport: 'transport',
+  configTemplate: 'configTemplate',
+  configSchema: 'configSchema',
+  installCount: 'installCount',
+  featured: 'featured',
+  verified: 'verified',
+  publishedAt: 'publishedAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.McpInstallScalarFieldEnum = {
+  id: 'id',
+  catalogEntryId: 'catalogEntryId',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  alias: 'alias',
+  configJson: 'configJson',
+  enabled: 'enabled',
+  installedAt: 'installedAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AgentRunScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  conversationId: 'conversationId',
+  projectId: 'projectId',
+  mode: 'mode',
+  status: 'status',
+  reason: 'reason',
+  rolesPlanned: 'rolesPlanned',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  metadata: 'metadata'
+};
+
+exports.Prisma.AgentRunResultScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  roleId: 'roleId',
+  status: 'status',
+  summary: 'summary',
+  files: 'files',
+  risks: 'risks',
+  verification: 'verification',
+  rawOutput: 'rawOutput',
+  errorMessage: 'errorMessage',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.ConsensusRecordScalarFieldEnum = {
+  id: 'id',
+  runId: 'runId',
+  algorithm: 'algorithm',
+  threshold: 'threshold',
+  outcome: 'outcome',
+  agreementScore: 'agreementScore',
+  claimVotes: 'claimVotes',
+  conflicts: 'conflicts',
+  consolidated: 'consolidated',
+  rounds: 'rounds',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -764,6 +842,58 @@ exports.SupportTicketStatus = exports.$Enums.SupportTicketStatus = {
   CLOSED: 'CLOSED'
 };
 
+exports.McpDomain = exports.$Enums.McpDomain = {
+  AI_AGENTS: 'AI_AGENTS',
+  CODE_EXECUTION: 'CODE_EXECUTION',
+  DATABASES: 'DATABASES',
+  DEVOPS: 'DEVOPS',
+  DEVELOPER_TOOLS: 'DEVELOPER_TOOLS',
+  COMMUNICATION: 'COMMUNICATION',
+  PRODUCTIVITY: 'PRODUCTIVITY',
+  KNOWLEDGE: 'KNOWLEDGE',
+  WEB_BROWSING: 'WEB_BROWSING',
+  SEARCH: 'SEARCH',
+  CLOUD: 'CLOUD',
+  SECURITY: 'SECURITY',
+  FILESYSTEM: 'FILESYSTEM',
+  VERSION_CONTROL: 'VERSION_CONTROL',
+  MONITORING: 'MONITORING',
+  OTHER: 'OTHER'
+};
+
+exports.McpTransport = exports.$Enums.McpTransport = {
+  STDIO: 'STDIO',
+  SSE: 'SSE',
+  STREAMABLE_HTTP: 'STREAMABLE_HTTP'
+};
+
+exports.AgentRunStatus = exports.$Enums.AgentRunStatus = {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETE: 'COMPLETE',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED'
+};
+
+exports.AgentRunResultStatus = exports.$Enums.AgentRunResultStatus = {
+  COMPLETE: 'COMPLETE',
+  PARTIAL: 'PARTIAL',
+  FAILED: 'FAILED'
+};
+
+exports.ConsensusAlgorithm = exports.$Enums.ConsensusAlgorithm = {
+  QUORUM: 'QUORUM',
+  BYZANTINE_PBFT: 'BYZANTINE_PBFT',
+  WEIGHTED_PLURALITY: 'WEIGHTED_PLURALITY'
+};
+
+exports.ConsensusOutcome = exports.$Enums.ConsensusOutcome = {
+  ACCEPTED: 'ACCEPTED',
+  REJECTED: 'REJECTED',
+  PARTIAL: 'PARTIAL',
+  ABSTAINED: 'ABSTAINED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -821,7 +951,12 @@ exports.Prisma.ModelName = {
   CustomRole: 'CustomRole',
   SiemWebhook: 'SiemWebhook',
   ApiKey: 'ApiKey',
-  OAuthConnection: 'OAuthConnection'
+  OAuthConnection: 'OAuthConnection',
+  McpCatalogEntry: 'McpCatalogEntry',
+  McpInstall: 'McpInstall',
+  AgentRun: 'AgentRun',
+  AgentRunResult: 'AgentRunResult',
+  ConsensusRecord: 'ConsensusRecord'
 };
 
 /**

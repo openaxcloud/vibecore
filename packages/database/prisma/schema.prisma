@@ -69,6 +69,8 @@ model User {
   collaborationComments   CollaborationComment[]
   collaborationShareLinks ProjectShareLink[]
   agentMemories           AgentMemory[]
+  mcpInstalls             McpInstall[]
+  agentRuns               AgentRun[]
 }
 
 model Account {
@@ -129,6 +131,8 @@ model Organization {
   siemWebhooks       SiemWebhook[]
   projectTemplates   ProjectTemplate[]
   agentMemories      AgentMemory[]
+  mcpInstalls        McpInstall[]
+  agentRuns          AgentRun[]
 }
 
 model OrganizationMember {
@@ -865,4 +869,158 @@ model OAuthConnection {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, externalId])
+}
+
+enum McpDomain {
+  AI_AGENTS
+  CODE_EXECUTION
+  DATABASES
+  DEVOPS
+  DEVELOPER_TOOLS
+  COMMUNICATION
+  PRODUCTIVITY
+  KNOWLEDGE
+  WEB_BROWSING
+  SEARCH
+  CLOUD
+  SECURITY
+  FILESYSTEM
+  VERSION_CONTROL
+  MONITORING
+  OTHER
+}
+
+enum McpTransport {
+  STDIO
+  SSE
+  STREAMABLE_HTTP
+}
+
+model McpCatalogEntry {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  name           String
+  description    String
+  domain         McpDomain
+  tags           String[]
+  author         String
+  homepageUrl    String?
+  iconUrl        String?
+  version        String
+  transport      McpTransport
+  configTemplate Json
+  configSchema   Json         @default("{}")
+  installCount   Int          @default(0)
+  featured       Boolean      @default(false)
+  verified       Boolean      @default(false)
+  publishedAt    DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  installs       McpInstall[]
+
+  @@index([domain])
+  @@index([featured, verified])
+}
+
+model McpInstall {
+  id             String          @id @default(cuid())
+  catalogEntryId String
+  userId         String
+  organizationId String?
+  alias          String
+  configJson     Json
+  enabled        Boolean         @default(true)
+  installedAt    DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  catalogEntry   McpCatalogEntry @relation(fields: [catalogEntryId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, alias])
+  @@index([organizationId])
+  @@index([catalogEntryId])
+}
+
+enum AgentRunStatus {
+  PENDING
+  RUNNING
+  COMPLETE
+  PARTIAL
+  FAILED
+}
+
+enum AgentRunResultStatus {
+  COMPLETE
+  PARTIAL
+  FAILED
+}
+
+model AgentRun {
+  id             String           @id @default(cuid())
+  organizationId String?
+  userId         String?
+  conversationId String?
+  projectId      String?
+  mode           String
+  status         AgentRunStatus   @default(PENDING)
+  reason         String?
+  rolesPlanned   Json
+  startedAt      DateTime         @default(now())
+  completedAt    DateTime?
+  metadata       Json             @default("{}")
+  results        AgentRunResult[]
+  consensus      ConsensusRecord?
+  user           User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization   Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, startedAt])
+  @@index([userId, startedAt])
+  @@index([conversationId])
+}
+
+model AgentRunResult {
+  id           String               @id @default(cuid())
+  runId        String
+  roleId       String
+  status       AgentRunResultStatus
+  summary      String
+  files        Json                 @default("[]")
+  risks        Json                 @default("[]")
+  verification Json                 @default("[]")
+  rawOutput    String?
+  errorMessage String?
+  startedAt    DateTime             @default(now())
+  completedAt  DateTime?
+  run          AgentRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, roleId])
+  @@index([runId])
+}
+
+enum ConsensusAlgorithm {
+  QUORUM
+  BYZANTINE_PBFT
+  WEIGHTED_PLURALITY
+}
+
+enum ConsensusOutcome {
+  ACCEPTED
+  REJECTED
+  PARTIAL
+  ABSTAINED
+}
+
+model ConsensusRecord {
+  id             String             @id @default(cuid())
+  runId          String             @unique
+  algorithm      ConsensusAlgorithm
+  threshold      Float
+  outcome        ConsensusOutcome
+  agreementScore Float
+  claimVotes     Json
+  conflicts      Json               @default("[]")
+  consolidated   Json
+  rounds         Int                @default(1)
+  durationMs     Int
+  createdAt      DateTime           @default(now())
+  run            AgentRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
 }
