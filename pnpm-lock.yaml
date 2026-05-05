@@ -731,6 +731,9 @@ importers:
 
   services/ai-gateway:
     dependencies:
+      '@vibecore/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       fastify:
         specifier: ^5.8.5
         version: 5.8.5

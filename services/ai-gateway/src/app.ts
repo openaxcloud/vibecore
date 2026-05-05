@@ -10,6 +10,10 @@ import {
   type AgentRunRateLimiter,
   type RedisRateLimitClient,
 } from './agent-executor.js';
+import {
+  createDefaultAgentRunPersistence,
+  type AgentRunPersistence,
+} from './agent-run-persistence.js';
 import { AiGateway, type AiChatRequest } from './gateway.js';
 
 export interface AiGatewayAppOptions {
@@ -17,6 +21,7 @@ export interface AiGatewayAppOptions {
   env?: Record<string, string | undefined>;
   logger?: boolean;
   agentRunRateLimiter?: AgentRunRateLimiter;
+  agentRunPersistence?: AgentRunPersistence | null;
 }
 
 export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
@@ -46,6 +51,11 @@ export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
           limit: agentRunRateLimit,
           windowMs: 60_000,
         }));
+
+  const agentRunPersistence =
+    options.agentRunPersistence === null
+      ? undefined
+      : (options.agentRunPersistence ?? createDefaultAgentRunPersistence());
 
   app.addHook('onClose', async () => {
     await agentRunRateLimiter.close?.();
@@ -113,7 +123,7 @@ export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         });
       }
 
-      return executeAgentRun({ gateway, request: body });
+      return executeAgentRun({ gateway, request: body, persistence: agentRunPersistence });
     } catch (error) {
       const statusCode = typeof (error as { statusCode?: unknown }).statusCode === 'number' ? 400 : 500;
       return reply.code(statusCode).send({

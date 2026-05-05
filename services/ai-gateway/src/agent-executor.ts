@@ -2,6 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { createHash } from 'node:crypto';
 import { timingSafeEqual } from 'node:crypto';
 import { AiGateway, type AiChatRequest, type AiMessage } from './gateway.js';
+import {
+  runConsensus,
+  selectAlgorithmForRequest,
+  type ConsensusAlgorithm,
+  type ConsensusOutput,
+} from './consensus/index.js';
+import type { AgentRunPersistence } from './agent-run-persistence.js';
 
 export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
 
@@ -21,6 +28,9 @@ export interface AgentRunRequest {
   provider?: AiChatRequest['provider'];
   model?: string;
   maxTokens?: number;
+  consensusAlgorithm?: ConsensusAlgorithm;
+  consensusThreshold?: number;
+  highStakes?: boolean;
 }
 
 export interface AgentRunResult {
@@ -36,6 +46,7 @@ export interface AgentRunResponse {
   runId: string;
   status: 'complete' | 'partial' | 'failed';
   results: AgentRunResult[];
+  consensus: ConsensusOutput;
 }
 
 const roleIds = new Set<AgentRoleId>(['architect', 'frontend', 'backend', 'devops', 'qa']);
@@ -299,6 +310,21 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
       ? Math.min(maxAgentMaxTokens, positiveIntegerOrDefault(value.maxTokens, defaultAgentMaxTokens))
       : undefined;
 
+  const allowedAlgorithms: readonly ConsensusAlgorithm[] = ['QUORUM', 'BYZANTINE_PBFT', 'WEIGHTED_PLURALITY'];
+  const consensusAlgorithm =
+    typeof value.consensusAlgorithm === 'string' &&
+    (allowedAlgorithms as readonly string[]).includes(value.consensusAlgorithm)
+      ? (value.consensusAlgorithm as ConsensusAlgorithm)
+      : undefined;
+
+  const consensusThreshold =
+    typeof value.consensusThreshold === 'number' &&
+    Number.isFinite(value.consensusThreshold) &&
+    value.consensusThreshold >= 0 &&
+    value.consensusThreshold <= 1
+      ? value.consensusThreshold
+      : undefined;
+
   return {
     mode: 'parallel-subagents',
     roles,
@@ -308,6 +334,9 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
     provider: typeof value.provider === 'string' ? (value.provider as AgentRunRequest['provider']) : undefined,
     model: typeof value.model === 'string' ? value.model : undefined,
     maxTokens,
+    consensusAlgorithm,
+    consensusThreshold,
+    highStakes: typeof value.highStakes === 'boolean' ? value.highStakes : undefined,
   };
 }
 
@@ -389,8 +418,10 @@ function aggregateStatus(results: AgentRunResult[]): AgentRunResponse['status'] 
 export async function executeAgentRun(input: {
   gateway: AiGateway;
   request: AgentRunRequest;
+  persistence?: AgentRunPersistence;
 }): Promise<AgentRunResponse> {
   const runId = randomUUID();
+  const startedAt = new Date();
   const results = await Promise.all(
     input.request.roles.map(async (role): Promise<AgentRunResult> => {
       try {
@@ -414,9 +445,43 @@ export async function executeAgentRun(input: {
     }),
   );
 
-  return {
-    runId,
-    status: aggregateStatus(results),
+  const status = aggregateStatus(results);
+  const hasFailedRoles = results.some((r) => r.status === 'failed');
+  const algorithm =
+    input.request.consensusAlgorithm ??
+    selectAlgorithmForRequest({
+      highStakes: input.request.highStakes,
+      hasFailedRoles,
+      preferWeighted: false,
+    });
+
+  const consensus = runConsensus({
     results,
-  };
+    algorithm,
+    threshold: input.request.consensusThreshold,
+  });
+
+  const response: AgentRunResponse = { runId, status, results, consensus };
+
+  if (input.persistence) {
+    try {
+      await input.persistence.recordRun({
+        runId,
+        request: input.request,
+        response,
+        consensus,
+        startedAt,
+        completedAt: new Date(),
+        metadata: {
+          plan: input.request.plan,
+          provider: input.request.provider,
+          model: input.request.model,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to persist agent run', { runId, error });
+    }
+  }
+
+  return response;
 }

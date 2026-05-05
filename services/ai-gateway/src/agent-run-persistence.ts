@@ -1,0 +1,106 @@
+import type { DatabaseClient } from '@vibecore/database';
+import type { AgentRunRequest, AgentRunResponse, AgentRunResult } from './agent-executor.js';
+import type { ConsensusOutput } from './consensus/index.js';
+
+export interface AgentRunPersistence {
+  recordRun(input: {
+    runId: string;
+    request: AgentRunRequest;
+    response: AgentRunResponse;
+    consensus: ConsensusOutput;
+    startedAt: Date;
+    completedAt: Date;
+    metadata?: Record<string, unknown>;
+  }): Promise<void>;
+}
+
+function mapRunStatus(status: AgentRunResponse['status']): 'COMPLETE' | 'PARTIAL' | 'FAILED' {
+  if (status === 'complete') return 'COMPLETE';
+  if (status === 'failed') return 'FAILED';
+  return 'PARTIAL';
+}
+
+function mapResultStatus(status: AgentRunResult['status']): 'COMPLETE' | 'PARTIAL' | 'FAILED' {
+  if (status === 'complete') return 'COMPLETE';
+  if (status === 'failed') return 'FAILED';
+  return 'PARTIAL';
+}
+
+export class PrismaAgentRunPersistence implements AgentRunPersistence {
+  constructor(private readonly prisma: DatabaseClient) {}
+
+  async recordRun(input: {
+    runId: string;
+    request: AgentRunRequest;
+    response: AgentRunResponse;
+    consensus: ConsensusOutput;
+    startedAt: Date;
+    completedAt: Date;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const { runId, request, response, consensus, startedAt, completedAt, metadata } = input;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.agentRun.create({
+        data: {
+          id: runId,
+          organizationId: request.organizationId,
+          mode: request.mode,
+          status: mapRunStatus(response.status),
+          rolesPlanned: request.roles.map((role) => ({
+            id: role.id,
+            title: role.title,
+            responsibility: role.responsibility,
+            output: role.output,
+          })) as never,
+          startedAt,
+          completedAt,
+          metadata: (metadata ?? {}) as never,
+        },
+      });
+
+      for (const result of response.results) {
+        await tx.agentRunResult.create({
+          data: {
+            runId,
+            roleId: result.roleId,
+            status: mapResultStatus(result.status),
+            summary: result.summary,
+            files: (result.files ?? []) as never,
+            risks: (result.risks ?? []) as never,
+            verification: (result.verification ?? []) as never,
+            startedAt,
+            completedAt,
+          },
+        });
+      }
+
+      await tx.consensusRecord.create({
+        data: {
+          runId,
+          algorithm: consensus.algorithm,
+          threshold: consensus.threshold,
+          outcome: consensus.outcome,
+          agreementScore: consensus.agreementScore,
+          claimVotes: consensus.claimVotes as never,
+          conflicts: consensus.conflicts as never,
+          consolidated: consensus.consolidated as never,
+          rounds: consensus.rounds,
+          durationMs: consensus.durationMs,
+        },
+      });
+    });
+  }
+}
+
+export function createDefaultAgentRunPersistence(): AgentRunPersistence | undefined {
+  if (!process.env.DATABASE_URL) {
+    return undefined;
+  }
+
+  // Lazy-load to keep ai-gateway runnable without @vibecore/database resolved
+  // when DATABASE_URL is unset (e.g., in light-weight unit tests).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { createDatabaseClient } = require('@vibecore/database') as typeof import('@vibecore/database');
+  return new PrismaAgentRunPersistence(createDatabaseClient());
+}

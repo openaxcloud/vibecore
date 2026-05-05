@@ -1,0 +1,111 @@
+import type { AgentRoleId, AgentRunResult } from '../agent-executor.js';
+import { aggregateClaims, buildClaimVote, determineParticipation } from './voting.js';
+import { detectAllConflicts } from './conflict-detection.js';
+import {
+  type ClaimVote,
+  type ConsensusEngine,
+  type ConsensusOutcome,
+  type ConsensusOutput,
+  type ConsensusRunInput,
+  DEFAULT_CONSENSUS_THRESHOLD,
+} from './types.js';
+
+interface PbftPhaseResult {
+  prepared: AgentRoleId[];
+  committed: AgentRoleId[];
+}
+
+function runPbftRound(claim: ClaimVote, allParticipating: AgentRoleId[], faultThreshold: number): PbftPhaseResult {
+  // Pre-prepare: a leader (first supporter) broadcasts the claim.
+  // Prepare: every supporter that has seen 2f+1 matching pre-prepares signs prepare.
+  // Commit: every node that has seen 2f+1 prepares signs commit.
+  const prepared = claim.supporters.length >= 2 * faultThreshold + 1 ? [...claim.supporters] : [];
+  const committed = prepared.length >= 2 * faultThreshold + 1 ? [...prepared] : [];
+
+  if (prepared.length === 0 && claim.supporters.length === allParticipating.length && allParticipating.length > 0) {
+    return { prepared: [...claim.supporters], committed: [...claim.supporters] };
+  }
+
+  return { prepared, committed };
+}
+
+export class ByzantineConsensus implements ConsensusEngine {
+  readonly algorithm = 'BYZANTINE_PBFT' as const;
+
+  run(input: ConsensusRunInput): ConsensusOutput {
+    const start = performance.now();
+    const threshold = input.threshold ?? DEFAULT_CONSENSUS_THRESHOLD;
+    const { participating, failed } = determineParticipation(input.results);
+
+    // Byzantine fault tolerance assumes up to f faulty nodes among 3f+1 total.
+    const faultThreshold = Math.floor(Math.max(participating.length - 1, 0) / 3);
+
+    const aggregations = aggregateClaims(input.results);
+    const baseVotes = aggregations.map((agg) => buildClaimVote(agg, threshold, input.roleWeights));
+
+    const finalVotes = baseVotes.map((vote) => {
+      // File votes are exempt from PBFT — they're individual artifacts each
+      // role legitimately owns. Trust them if any role declared them.
+      if (vote.type === 'file' && vote.supporters.length > 0) {
+        return { ...vote, decision: 'accepted' as const };
+      }
+
+      const phase = runPbftRound(vote, participating, faultThreshold);
+      const supportersAfterCommit = phase.committed.length > 0 ? phase.committed : vote.supporters;
+      const decision: ClaimVote['decision'] =
+        phase.committed.length >= 2 * faultThreshold + 1
+          ? 'accepted'
+          : phase.prepared.length === 0 && vote.supporters.length === 0
+            ? 'rejected'
+            : 'inconclusive';
+
+      return {
+        ...vote,
+        supporters: supportersAfterCommit,
+        decision,
+      };
+    });
+
+    const conflicts = detectAllConflicts(input.results);
+    const accepted = finalVotes.filter((v) => v.decision === 'accepted');
+    const agreementScore =
+      finalVotes.length === 0
+        ? 0
+        : finalVotes.reduce((sum, vote) => sum + vote.agreementRatio, 0) / finalVotes.length;
+
+    const outcome: ConsensusOutcome =
+      participating.length === 0
+        ? 'REJECTED'
+        : finalVotes.length === 0
+          ? 'ABSTAINED'
+          : accepted.length === finalVotes.length && participating.length === input.results.length
+            ? 'ACCEPTED'
+            : accepted.length > 0
+              ? 'PARTIAL'
+              : 'REJECTED';
+
+    const consolidated = {
+      summary: input.results
+        .filter((r) => r.status !== 'failed' && r.summary)
+        .map((r) => `[${r.roleId}] ${r.summary}`)
+        .join('\n\n') || 'No sub-agent produced a usable summary.',
+      acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
+      acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
+      acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),
+      rejectedClaims: finalVotes.filter((v) => v.decision === 'rejected').map((v) => ({ claim: v.claim, type: v.type })),
+      perRoleSummaries: input.results.map((r) => ({ roleId: r.roleId, summary: r.summary, status: r.status })),
+    };
+
+    return {
+      algorithm: this.algorithm,
+      outcome,
+      threshold,
+      agreementScore,
+      rounds: 3, // pre-prepare, prepare, commit
+      durationMs: Math.max(0, Math.round(performance.now() - start)),
+      claimVotes: finalVotes,
+      conflicts: failed.length > 0 ? conflicts : conflicts.filter((c) => c.type !== 'role-failure'),
+      consolidated,
+    };
+  }
+}
