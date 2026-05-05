@@ -4051,6 +4051,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  app.get('/agent-memory/export', async (request, reply) => {
+    const query = parse(agentMemoryListQuerySchema.omit({ limit: true }), request.query);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, query, 'projects:read');
+    const memories = await service.export({
+      userId: request.currentUser!.id,
+      organizationId: authorized.organizationId,
+      projectId: authorized.projectId,
+    });
+    const exportedAt = new Date().toISOString();
+
+    await audit(request, store, {
+      organizationId: authorized.organizationId,
+      action: 'agent_memory.export',
+      resourceType: 'agentMemory',
+      resourceId: authorized.projectId ?? authorized.organizationId ?? request.currentUser!.id,
+      metadata: { count: memories.length, projectId: authorized.projectId },
+    });
+
+    return reply.header('content-disposition', `attachment; filename="agent-memory-${exportedAt}.json"`).send({
+      export: {
+        version: 1,
+        exportedAt,
+        userId: request.currentUser!.id,
+        organizationId: authorized.organizationId,
+        projectId: authorized.projectId,
+        count: memories.length,
+        memories,
+      },
+    });
+  });
+
   app.get('/agent-memory/preferences', async (request) => {
     const query = parse(agentMemoryPreferenceQuerySchema, request.query);
     const service = requireAgentMemoryService(agentMemory);

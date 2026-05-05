@@ -5118,6 +5118,22 @@ body :where(.lucide, svg[data-lucide]) {
     font-size: 12px;
   }
 
+  .bolt-project-memory-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    h4 {
+      margin: 0;
+    }
+
+    a {
+      flex: 0 0 auto;
+      font-size: 12px;
+    }
+  }
+
   .bolt-project-memory-skeleton {
     display: grid;
     gap: 10px;

@@ -70,6 +70,13 @@ class TestMemoryRepository implements AgentMemoryRepository {
       .slice(0, input.limit ?? 50);
   }
 
+  async export(input: any) {
+    return this.rows
+      .filter((row) => row.userId === input.userId)
+      .filter((row) => !input.organizationId || row.organizationId === input.organizationId)
+      .filter((row) => !input.projectId || row.projectId === input.projectId);
+  }
+
   async archive(input: { id: string; userId: string }) {
     const index = this.rows.findIndex((row) => row.id === input.id && row.userId === input.userId);
 
@@ -175,6 +182,56 @@ describe('agent memory API', () => {
       headers: { authorization: `Bearer ${token}` },
     });
     expect(deletion.statusCode).toBe(200);
+  });
+
+  it('exports only authenticated visible project memories and audits the export', async () => {
+    const { app, token, project, repository } = await setup();
+    const create = await app.inject({
+      method: 'POST',
+      url: '/agent-memory',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        projectId: project.id,
+        scope: 'project',
+        content: 'Remember that exported memory includes project coding conventions.',
+        memoryType: 'semantic',
+        source: 'manual',
+        force: true,
+      },
+    });
+    expect(create.statusCode).toBe(201);
+
+    repository.rows.push({
+      id: 'other-user-memory',
+      userId: 'other-user',
+      projectId: project.id,
+      scope: 'project',
+      content: 'Other user memory must not be exported.',
+      summary: 'Other user memory must not be exported.',
+      metadata: {},
+      memoryType: 'semantic',
+      tags: [],
+      references: [],
+      importance: 0.5,
+      source: 'manual',
+      embeddingModel: 'test',
+      embeddingDimensions: 1536,
+      accessCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/agent-memory/export?projectId=${project.id}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-disposition']).toContain('agent-memory-');
+    expect(response.json().export.count).toBe(1);
+    expect(response.json().export.memories[0].content).toContain('project coding conventions');
+    expect(response.json().export.memories.some((memory: any) => memory.userId === 'other-user')).toBe(false);
   });
 
   it('rejects secret-like content through the API', async () => {

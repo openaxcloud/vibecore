@@ -107,6 +107,7 @@ export interface AgentMemoryRepository {
     projectId?: string;
     limit?: number;
   }): Promise<AgentMemoryRecord[]>;
+  export(input: { userId: string; organizationId?: string; projectId?: string }): Promise<AgentMemoryRecord[]>;
   archive(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
   getPreference(input: {
     userId: string;
@@ -452,6 +453,24 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     return rows.map(rowToMemory);
   }
 
+  async export(input: { userId: string; organizationId?: string; projectId?: string }) {
+    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"
+       FROM "AgentMemory"
+       WHERE "userId" = $1
+         AND "archivedAt" IS NULL
+         AND ("expiresAt" IS NULL OR "expiresAt" > CURRENT_TIMESTAMP)
+         AND ($2::text IS NULL OR "organizationId" = $2)
+         AND ($3::text IS NULL OR "projectId" = $3)
+       ORDER BY "updatedAt" DESC`,
+      input.userId,
+      input.organizationId ?? null,
+      input.projectId ?? null,
+    );
+
+    return rows.map(rowToMemory);
+  }
+
   async archive(input: { id: string; userId: string }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `UPDATE "AgentMemory" SET "archivedAt" = CURRENT_TIMESTAMP WHERE "id" = $1 AND "userId" = $2 AND "archivedAt" IS NULL
@@ -740,6 +759,10 @@ export class AgentMemoryService {
 
   list(input: { userId: string; organizationId?: string; projectId?: string; limit?: number }) {
     return this.repository.list(input);
+  }
+
+  export(input: { userId: string; organizationId?: string; projectId?: string }) {
+    return this.repository.export(input);
   }
 
   archive(input: { id: string; userId: string }) {

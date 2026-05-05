@@ -5771,7 +5771,16 @@ function ProjectSettingsPanel({
           </form>
 
           <section className="bolt-project-settings-card">
-            <h4>Stored Memories</h4>
+            <div className="bolt-project-memory-card-header">
+              <h4>Stored Memories</h4>
+              <a
+                href={`/api/agent-memory/export?projectId=${encodeURIComponent(settings.id)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Export JSON
+              </a>
+            </div>
             {memoryLoading && !memories.length ? (
               <div className="bolt-project-memory-skeleton" role="status">
                 <span />

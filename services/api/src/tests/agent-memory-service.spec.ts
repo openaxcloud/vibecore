@@ -137,6 +137,13 @@ class MemoryRepository implements AgentMemoryRepository {
       .slice(0, input.limit ?? 50);
   }
 
+  async export(input: { userId: string; organizationId?: string; projectId?: string }) {
+    return [...this.records.values()]
+      .filter((memory) => memory.userId === input.userId)
+      .filter((memory) => !input.organizationId || memory.organizationId === input.organizationId)
+      .filter((memory) => !input.projectId || memory.projectId === input.projectId);
+  }
+
   async archive(input: { id: string; userId: string }) {
     const memory = this.records.get(input.id);
 
