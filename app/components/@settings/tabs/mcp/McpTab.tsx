@@ -4,6 +4,9 @@ import type { MCPConfig } from '~/lib/services/mcpService';
 import { toast } from 'react-toastify';
 import { useMCPStore } from '~/lib/stores/mcp';
 import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
+import McpMarketplace from '~/components/@settings/tabs/mcp/McpMarketplace';
+
+type McpTabView = 'marketplace' | 'configuration';
 
 const EXAMPLE_MCP_CONFIG: MCPConfig = {
   mcpServers: {
@@ -40,6 +43,7 @@ export default function McpTab() {
   const [error, setError] = useState<string | null>(null);
   const [isCheckingServers, setIsCheckingServers] = useState(false);
   const [expandedServer, setExpandedServer] = useState<string | null>(null);
+  const [view, setView] = useState<McpTabView>('marketplace');
 
   useEffect(() => {
     if (!isInitialized) {
@@ -123,117 +127,158 @@ export default function McpTab() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <section aria-labelledby="server-status-heading">
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-base font-medium text-bolt-elements-textPrimary">MCP Servers Configured</h2>{' '}
-          <button
-            onClick={checkServerAvailability}
-            disabled={isCheckingServers || !parsedConfig || serverEntries.length === 0}
-            className={classNames(
-              'px-3 py-1.5 rounded-lg text-sm',
-              'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
-              'text-bolt-elements-textPrimary',
-              'transition-all duration-200',
-              'flex items-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-            )}
-          >
-            {isCheckingServers ? (
-              <div className="i-svg-spinners:90-ring-with-bg w-3 h-3 text-bolt-elements-loader-progress animate-spin" />
-            ) : (
-              <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
-            )}
-            Check availability
-          </button>
-        </div>
-        <McpServerList
-          checkingServers={isCheckingServers}
-          expandedServer={expandedServer}
-          serverEntries={serverEntries}
-          toggleServerExpanded={toggleServerExpanded}
-        />
-      </section>
-
-      <section aria-labelledby="config-section-heading">
-        <h2 className="text-base font-medium text-bolt-elements-textPrimary mb-3">Configuration</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="mcp-config" className="block text-sm text-bolt-elements-textSecondary mb-2">
-              Configuration JSON
-            </label>
-            <textarea
-              id="mcp-config"
-              value={mcpConfigText}
-              onChange={(e) => setMCPConfigText(e.target.value)}
-              className={classNames(
-                'w-full px-3 py-2 rounded-lg text-sm font-mono h-72',
-                'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                'border',
-                error ? 'border-bolt-elements-icon-error' : 'border-[#E5E5E5] dark:border-[#333333]',
-                'text-bolt-elements-textPrimary',
-                'focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus',
-              )}
-            />
-          </div>
-          <div>{error && <p className="mt-2 mb-2 text-sm text-bolt-elements-icon-error">{error}</p>}</div>
-          <div>
-            <label htmlFor="max-llm-steps" className="block text-sm text-bolt-elements-textSecondary mb-2">
-              Maximum number of sequential LLM calls (steps)
-            </label>
-            <input
-              id="max-llm-steps"
-              type="number"
-              placeholder="Maximum number of sequential LLM calls"
-              min="1"
-              max="20"
-              value={maxLLMSteps}
-              onChange={(e) => handleMaxLLMCallChange(e.target.value)}
-              className="w-full px-3 py-2 text-bolt-elements-textPrimary text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="mt-2 text-sm text-bolt-elements-textSecondary">
-            The MCP configuration format is identical to the one used in Claude Desktop.
-            <a
-              href="https://modelcontextprotocol.io/examples"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-bolt-elements-link hover:underline inline-flex items-center gap-1"
-            >
-              View example servers
-              <div className="i-ph:arrow-square-out w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <div className="flex flex-wrap justify-between gap-3 mt-6">
+      <div
+        className="inline-flex p-0.5 rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor"
+        role="tablist"
+        aria-label="MCP view"
+      >
         <button
-          onClick={handleLoadExample}
-          className="px-4 py-2 rounded-lg text-sm border border-bolt-elements-borderColor
+          role="tab"
+          type="button"
+          aria-selected={view === 'marketplace'}
+          onClick={() => setView('marketplace')}
+          className={classNames(
+            'px-3 py-1.5 rounded-md text-xs transition-colors',
+            view === 'marketplace'
+              ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+              : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+          )}
+        >
+          Marketplace
+        </button>
+        <button
+          role="tab"
+          type="button"
+          aria-selected={view === 'configuration'}
+          onClick={() => setView('configuration')}
+          className={classNames(
+            'px-3 py-1.5 rounded-md text-xs transition-colors',
+            view === 'configuration'
+              ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent'
+              : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+          )}
+        >
+          Configuration
+        </button>
+      </div>
+
+      {view === 'marketplace' && <McpMarketplace />}
+
+      {view === 'configuration' && (
+        <>
+          <section aria-labelledby="server-status-heading">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-base font-medium text-bolt-elements-textPrimary">MCP Servers Configured</h2>{' '}
+              <button
+                onClick={checkServerAvailability}
+                disabled={isCheckingServers || !parsedConfig || serverEntries.length === 0}
+                className={classNames(
+                  'px-3 py-1.5 rounded-lg text-sm',
+                  'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
+                  'text-bolt-elements-textPrimary',
+                  'transition-all duration-200',
+                  'flex items-center gap-2',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              >
+                {isCheckingServers ? (
+                  <div className="i-svg-spinners:90-ring-with-bg w-3 h-3 text-bolt-elements-loader-progress animate-spin" />
+                ) : (
+                  <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
+                )}
+                Check availability
+              </button>
+            </div>
+            <McpServerList
+              checkingServers={isCheckingServers}
+              expandedServer={expandedServer}
+              serverEntries={serverEntries}
+              toggleServerExpanded={toggleServerExpanded}
+            />
+          </section>
+
+          <section aria-labelledby="config-section-heading">
+            <h2 className="text-base font-medium text-bolt-elements-textPrimary mb-3">Configuration</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="mcp-config" className="block text-sm text-bolt-elements-textSecondary mb-2">
+                  Configuration JSON
+                </label>
+                <textarea
+                  id="mcp-config"
+                  value={mcpConfigText}
+                  onChange={(e) => setMCPConfigText(e.target.value)}
+                  className={classNames(
+                    'w-full px-3 py-2 rounded-lg text-sm font-mono h-72',
+                    'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
+                    'border',
+                    error ? 'border-bolt-elements-icon-error' : 'border-[#E5E5E5] dark:border-[#333333]',
+                    'text-bolt-elements-textPrimary',
+                    'focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus',
+                  )}
+                />
+              </div>
+              <div>{error && <p className="mt-2 mb-2 text-sm text-bolt-elements-icon-error">{error}</p>}</div>
+              <div>
+                <label htmlFor="max-llm-steps" className="block text-sm text-bolt-elements-textSecondary mb-2">
+                  Maximum number of sequential LLM calls (steps)
+                </label>
+                <input
+                  id="max-llm-steps"
+                  type="number"
+                  placeholder="Maximum number of sequential LLM calls"
+                  min="1"
+                  max="20"
+                  value={maxLLMSteps}
+                  onChange={(e) => handleMaxLLMCallChange(e.target.value)}
+                  className="w-full px-3 py-2 text-bolt-elements-textPrimary text-sm rounded-lg bg-white dark:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="mt-2 text-sm text-bolt-elements-textSecondary">
+                The MCP configuration format is identical to the one used in Claude Desktop.
+                <a
+                  href="https://modelcontextprotocol.io/examples"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-bolt-elements-link hover:underline inline-flex items-center gap-1"
+                >
+                  View example servers
+                  <div className="i-ph:arrow-square-out w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <div className="flex flex-wrap justify-between gap-3 mt-6">
+            <button
+              onClick={handleLoadExample}
+              className="px-4 py-2 rounded-lg text-sm border border-bolt-elements-borderColor
                     bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary
                     hover:bg-bolt-elements-background-depth-3"
-        >
-          Load Example
-        </button>
+            >
+              Load Example
+            </button>
 
-        <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={isSaving || !parsedConfig}
-            aria-disabled={isSaving || !parsedConfig}
-            className={classNames(
-              'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-              'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent',
-              'hover:bg-bolt-elements-item-backgroundActive',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-            )}
-          >
-            <div className="i-ph:floppy-disk w-4 h-4" />
-            {isSaving ? 'Saving...' : 'Save Configuration'}
-          </button>
-        </div>
-      </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !parsedConfig}
+                aria-disabled={isSaving || !parsedConfig}
+                className={classNames(
+                  'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
+                  'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent',
+                  'hover:bg-bolt-elements-item-backgroundActive',
+                  'disabled:opacity-50 disabled:cursor-not-allowed',
+                )}
+              >
+                <div className="i-ph:floppy-disk w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save Configuration'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
