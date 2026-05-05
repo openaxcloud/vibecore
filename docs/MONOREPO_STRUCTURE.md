@@ -6,7 +6,7 @@ Cette migration est volontairement progressive. Le code Bolt existant reste a la
 
 - `apps/web` : proxy compatible vers l'IDE Bolt existant. Le code source actuel reste dans `app/`, `public/`, `vite.config.ts`, `wrangler.toml`, etc.
 - `apps/admin` : scaffold de l'app admin SaaS.
-- `apps/mobile` : scaffold de l'app mobile.
+- `apps/mobile` : app mobile Capacitor iOS/Android, shell natif, adapters plugins et docs de release.
 - `apps/desktop` : proxy vers les scripts Electron existants. Le dossier historique `electron/` est conserve.
 - `services/api` : scaffold API SaaS.
 - `services/worker` : scaffold workers asynchrones.
@@ -55,4 +55,3 @@ Les scripts Bolt existants restent a la racine :
 - `pnpm electron:build:dist`
 
 Les nouveaux scripts plateforme appellent ces scripts racine tant que l'IDE Bolt vit a la racine.
-

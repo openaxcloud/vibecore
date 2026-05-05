@@ -27,6 +27,11 @@ export class PreviewsStore {
   #refreshTimeouts = new Map<string, NodeJS.Timeout>();
   #REFRESH_DELAY = 300;
   #storageChannel?: BroadcastChannel;
+  #stopWatchingPorts?: () => void;
+  #storageSyncInstalled = false;
+  #originalSetItem?: typeof localStorage.setItem;
+  #reconnectTimer?: number;
+  #disposed = false;
 
   previews = atom<PreviewInfo[]>([]);
 
@@ -64,13 +69,15 @@ export class PreviewsStore {
     }
 
     // Override localStorage setItem to catch all changes
-    if (typeof window !== 'undefined') {
-      const originalSetItem = localStorage.setItem;
+    if (typeof window !== 'undefined' && !this.#storageSyncInstalled) {
+      const originalSetItem = localStorage.setItem.bind(localStorage);
+      this.#originalSetItem = originalSetItem;
 
       localStorage.setItem = (...args) => {
-        originalSetItem.apply(localStorage, args);
+        originalSetItem(...args);
         this._broadcastStorageSync();
       };
+      this.#storageSyncInstalled = true;
     }
 
     this.#init();
@@ -169,17 +176,32 @@ export class PreviewsStore {
 
   async #init() {
     try {
-      await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
+      this.#stopWatchingPorts?.();
+      this.#stopWatchingPorts = await this.#runtime.watchPorts((port) => this.#applyPortEvent(port));
     } catch (error) {
       console.warn('[Preview] Runtime port watch is not ready yet:', error);
+      this.#scheduleReconnect();
     }
   }
 
   setRuntime(runtime: RuntimeAdapter) {
     this.#runtime = runtime;
+    this.#stopWatchingPorts?.();
+    this.#stopWatchingPorts = undefined;
     this.#availablePreviews.clear();
     this.previews.set([]);
     void this.#init();
+  }
+
+  #scheduleReconnect() {
+    if (this.#disposed || this.#reconnectTimer || typeof window === 'undefined') {
+      return;
+    }
+
+    this.#reconnectTimer = window.setTimeout(() => {
+      this.#reconnectTimer = undefined;
+      void this.#init();
+    }, 2000);
   }
 
   async refreshPorts() {
@@ -304,6 +326,29 @@ export class PreviewsStore {
       if (previewId) {
         this.broadcastFileChange(previewId);
       }
+    }
+  }
+
+  dispose() {
+    this.#disposed = true;
+    this.#stopWatchingPorts?.();
+    this.#stopWatchingPorts = undefined;
+    this.#broadcastChannel?.close();
+    this.#storageChannel?.close();
+
+    for (const timeout of this.#refreshTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+
+    this.#refreshTimeouts.clear();
+
+    if (this.#reconnectTimer) {
+      window.clearTimeout(this.#reconnectTimer);
+      this.#reconnectTimer = undefined;
+    }
+
+    if (this.#storageSyncInstalled && this.#originalSetItem && typeof window !== 'undefined') {
+      localStorage.setItem = this.#originalSetItem;
     }
   }
 }

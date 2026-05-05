@@ -21,6 +21,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
         stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
         sourceType: project.sourceType,
+        previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
       })),
   };
 }

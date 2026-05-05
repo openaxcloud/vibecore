@@ -1,125 +1,174 @@
 # Go-Live Checklist
 
-Date: 2026-04-29
+Date: 2026-05-04
 
-This checklist is intentionally conservative. Do not use it to approve production launch until every required live gate is checked with evidence links.
+This checklist is conservative. A box is checked only when the current repo or this review has direct evidence. Production launch stays blocked until every required live gate has a linked run, dashboard, log query, or signed-off artifact.
 
 ## Repo Gates
 
-- [x] Typecheck passes.
-- [x] Lint passes.
-- [x] Unit tests pass.
-- [x] API tests pass with Prisma/PostgreSQL enabled.
-- [x] Workspace manager tests pass.
-- [x] Workspace agent tests pass.
-- [x] AI gateway tests pass.
-- [x] CI/CD workflow YAML validates locally.
-- [x] Helm templates render locally.
-- [x] Terraform validates locally.
-- [x] Security, observability, backup, CI/CD, GCP, and runtime docs exist.
+- [x] `pnpm run production:validate:self-test`
+- [x] `pnpm run typecheck`
+- [x] `pnpm run test`
+- [x] `pnpm run lint`
+- [x] `pnpm run build`
+- [x] `pnpm run platform:no-mocks`
+- [x] `pnpm run readiness:validate`
+- [x] `pnpm run sre:validate`
+- [x] `pnpm run infra:validate`
+- [x] `pnpm run cicd:validate`
+- [x] `pnpm run mobile:validate`
+- [x] `pnpm run mobile:build:web`
+- [x] `pnpm run desktop:test`
+- [x] `pnpm run ide:panel-audit`
+- [x] `pnpm run ide:panel-audit:validate`
+- [x] `pnpm exec playwright test tests/e2e --project=chromium --reporter=line` passed: 42 passed, 2 mobile-only skipped.
+- [x] `pnpm exec playwright test tests/e2e --project=tablet --reporter=line` passed: 42 passed, 2 mobile-only skipped.
+- [x] `pnpm exec playwright test tests/e2e --project=mobile --reporter=line` passed: 31 passed, 13 desktop/tablet-only skipped.
+- [x] `pnpm run platform:verify`
 
-## Staging Environment Gates
+## Blocking Production Gates
 
-- [ ] Terraform applied to a dedicated staging GCP project.
-- [ ] Private app GKE cluster provisioned.
-- [ ] Private workspace GKE cluster provisioned.
-- [ ] Workload Identity configured and verified.
-- [ ] Cloud SQL private IP only.
-- [ ] Redis private only.
-- [ ] Secret Manager used for all runtime secrets.
-- [ ] Helm platform chart deployed.
-- [ ] Helm workspaces-runtime chart deployed.
-- [ ] cert-manager DNS01 and wildcard preview TLS verified.
-- [ ] RuntimeClass `gvisor` exists in the workspace cluster.
-- [ ] Workspace admission policies reject pods without `runtimeClassName: gvisor`.
-- [ ] NetworkPolicies deny unauthorized ingress/egress.
-- [ ] Metadata server egress is blocked from workspace pods.
-- [ ] Platform DB/Redis/internal ranges are blocked from workspace pods.
+- [ ] `pnpm run production:validate` passes with real production/staging secrets.
+  - Latest local result: fails because production OAuth/OIDC/SAML, transactional email, SIEM, database/Redis, Stripe secrets/catalog, runtime HTTPS URLs, monitoring/incident response, and SOC2/rotation owner values are missing or placeholder.
+- [ ] `VITE_RUNTIME_MODE=remote-kubernetes`.
+- [ ] `VITE_RUNTIME_API_BASE_URL` and `WORKSPACE_MANAGER_URL` use HTTPS and point to the deployed runtime.
+- [ ] `pnpm run runtime:validate:api-kubernetes` passes. Current result: fails during preflight because `http://127.0.0.1:3010/health` is not reachable; workspace-manager is not running or not exposed.
+- [ ] `pnpm run runtime:validate:remote-kubernetes` passes against staging GKE.
+  - Latest local result: fails with actionable context while pulling the required local validation node image: `Unable to pull required Docker image "kindest/node:v1.34.0"` after 600000ms. The validator now has explicit `kubectl`/`kind`/Docker preflight checks, separate `kind` node image pull diagnostics, and bounded command timeouts.
+- [ ] `pnpm run networkpolicies:validate:live` passes. Current result: fails during `kubectl cluster-info` preflight because no Kubernetes API server is reachable from this workstation.
+- [ ] GitHub Actions `Staging Runtime Validation` passes and its run id is supplied to production deploy.
+- [ ] `deploy-prod.yml` production validation step passes before GCP authentication or Helm deploy.
+
+## Staging Infrastructure Gates
+
+- [ ] Terraform applied to dedicated staging GCP project.
+- [ ] App GKE cluster reachable through private service configuration.
+- [ ] Workspace GKE cluster reachable and has gVisor node pool.
+- [ ] `RuntimeClass/gvisor` exists.
+- [ ] Kyverno installed.
+- [ ] `ClusterPolicy/vibecore-workspace-security-baseline` is `Enforce`.
+- [ ] Admission rejects pods without `runtimeClassName: gvisor`.
+- [ ] Admission rejects privileged, hostNetwork, hostPID, hostIPC, hostPath, latest-tag, missing-resource-limit workspace pods.
+- [ ] Platform and workspace NetworkPolicies installed.
+- [ ] Metadata server egress blocked from workspace pods.
+- [ ] Cloud SQL, Redis, and internal CIDRs blocked from workspace pods.
+- [ ] Ingress namespace selector in Helm matches the real ingress controller namespace labels.
+- [ ] Cloud SQL private IP and PITR verified.
+- [ ] Redis private `STANDARD_HA` verified.
+- [ ] Secret Manager integration verified.
+- [ ] cert-manager and wildcard preview TLS verified.
 
 ## Runtime Gates
 
-- [ ] Start a remote workspace from the IDE.
-- [ ] Read the file tree through RuntimeAdapter.
-- [ ] Edit and save a file through RuntimeAdapter.
-- [ ] Run a command through RuntimeAdapter.
-- [ ] Open terminal WebSocket through ingress.
-- [ ] Stream workspace logs.
-- [ ] Detect ports.
-- [ ] Open preview URL with TLS.
-- [ ] Stop, restart, and delete workspace.
-- [ ] Verify PVC persistence across restart.
-- [ ] Verify idle auto-sleep and garbage collection.
+- [ ] Start remote workspace from API.
+- [ ] Start remote workspace from IDE.
+- [ ] File tree list/read/write/create/delete/rename/search/watch works through RuntimeAdapter.
+- [ ] Terminal WebSocket opens through ingress.
+- [ ] Terminal reconnect and resize work.
+- [ ] Command streaming works.
+- [ ] Logs stream from workspace manager and IDE.
+- [ ] Preview port discovery works.
+- [ ] Preview URL works with TLS.
+- [ ] Stop/restart/delete workspace works.
+- [ ] PVC survives restart.
+- [ ] Idle sleep and garbage collection observed.
 
 ## Product Gates
 
-- [ ] Auth signup/login/verification/reset tested end-to-end.
-- [ ] MFA enrollment/recovery tested end-to-end.
-- [ ] Admin MFA and re-auth tested.
-- [ ] OAuth Google/GitHub tested against real provider apps.
-- [ ] Entra/OIDC tested against a real tenant.
-- [ ] SAML ACS, assertion validation, signatures, and user mapping tested against a real IdP.
-- [ ] SCIM provisioning tested with a real SCIM client.
-- [ ] Project create/import/export/snapshot/restore tested.
-- [ ] GitHub import, branch, commit, push, pull, and PR tested.
-- [ ] Deployments tested for selected launch providers.
-- [ ] Custom domain flow tested.
-- [ ] Collaboration two-user edit/presence/cursor/comment flow tested.
-- [ ] Tablet and mobile editor fallback tested on real devices.
-- [ ] Desktop build smoke tested on macOS, Windows, and Linux if desktop is in launch scope.
+- [ ] Signup/login/logout E2E.
+- [ ] Email verification and password reset E2E through real SMTP or email provider.
+- [ ] MFA enrollment, login challenge, recovery codes E2E.
+- [ ] OAuth Google and GitHub through real provider apps.
+- [ ] OIDC through real tenant with JWKS verification.
+- [ ] SAML ACS through real IdP.
+- [ ] SCIM provisioning/deactivation through real client.
+- [ ] Project create/import/export/snapshot/restore E2E.
+- [ ] GitHub import/branch/commit/push/PR E2E.
+- [ ] IDE file/editor/terminal/preview/workflows/settings/integrations panels E2E.
+- [ ] Collaboration two-user presence/edit/comment/share-link E2E.
+- [ ] Deployment provider E2E for every enabled beta provider.
+- [ ] Provider rollback E2E for every enabled rollback-capable provider.
+- [ ] Custom domain E2E.
 
 ## Billing And Quota Gates
 
-- [ ] Stripe checkout tested in test mode.
-- [ ] Stripe customer portal tested.
-- [ ] Webhook signature rejection tested live.
-- [ ] Duplicate webhook idempotency tested live.
-- [ ] Trial, upgrade, downgrade, cancel, payment failed, invoice paid, and invoice failed tested.
-- [ ] Plan quota changes reflected in backend.
-- [ ] Quota exceeded blocks backend actions.
-- [ ] Usage events recorded after successful actions.
-- [ ] Admin quota override audited.
-- [ ] Billing state displayed correctly in dashboard.
+- [ ] Stripe checkout in test mode.
+- [ ] Stripe portal in test mode.
+- [ ] Stripe webhook signature rejection drill.
+- [ ] Duplicate webhook idempotency drill.
+- [ ] Invoice paid/failed, payment failed, trial, upgrade, downgrade, cancel events verified.
+- [ ] Plan quota changes visible on next backend request.
+- [ ] Quota exceeded returns backend 429 and records audit/usage.
+- [ ] Runtime workspace quota blocks concurrent over-limit starts.
+- [ ] Admin quota override audited and expires server-side.
+- [ ] Billing dashboard matches backend/Stripe state.
 
 ## Security Gates
 
-- [ ] CORS verified for production domains only.
-- [ ] CSRF verified if cookies are used.
-- [ ] Secure headers and CSP verified.
-- [ ] Secrets redacted in API logs, deployment logs, AI tool output, runtime command output, and admin UI.
-- [ ] Encrypted secrets verified in database.
-- [ ] Signed webhook verification tested.
-- [ ] RBAC bypass tests run.
-- [ ] Org isolation tests run.
-- [ ] Path traversal tests run.
-- [ ] Command injection/blocklist tests run.
-- [ ] Abuse detection drills run.
-- [ ] AdminAuditLog verified for every dangerous action.
-- [ ] External security review planned before paid launch.
+- [x] Auth and sensitive admin rate-limit code exists and is tested.
+- [x] CSP script inline/eval hardening exists.
+- [x] Secret redaction tests exist.
+- [x] gVisor and restricted workspace pod manifests are asserted by tests.
+- [ ] Production CORS allowlist verified.
+- [ ] CSRF mutation coverage verified browser/API-wide.
+- [ ] CSP style nonce/hash strategy completed or risk-accepted for private beta.
+- [ ] Canary secret verified across API logs, runtime output, AI tool output, admin views, audit export and deployment logs.
+- [ ] External penetration test scheduled before paid launch.
+- [ ] Admin dangerous action browser audit passes.
+- [ ] SIEM abuse delivery observed against real target.
 
 ## Operations Gates
 
-- [ ] Prometheus metrics scraped.
-- [ ] Grafana dashboard imported.
-- [ ] Alert rules loaded.
-- [ ] Sentry-compatible reporting tested.
-- [ ] Synthetic health checks running.
-- [ ] Cloud SQL backup enabled.
-- [ ] Cloud SQL point-in-time recovery configured.
-- [ ] Project snapshot lifecycle configured.
-- [ ] Backup restore drill completed.
+- [ ] Prometheus metrics scraped from staging.
+- [ ] Grafana dashboard imported and populated.
+- [ ] Alert rules loaded and routed to on-call.
+- [ ] Synthetic checks running.
+- [ ] Sentry/OTLP errors visible.
+- [ ] Cloud SQL restore drill executed.
+- [ ] Project storage restore drill executed.
+- [ ] RTO/RPO measured and documented.
 - [ ] Disaster recovery runbook exercised.
-- [ ] Rollback exercised in staging.
-- [ ] Status page process documented and tested.
+- [ ] Helm rollback exercised.
+- [ ] Terraform rollback/backout exercised.
+- [ ] Status page process tested.
 
 ## Scale Gates
 
-- [ ] k6 API load test executed.
-- [ ] k6 workspace lifecycle load test executed.
-- [ ] k6 preview load test executed.
-- [ ] k6 AI simulated load test executed.
-- [ ] k6 billing webhook load test executed.
-- [ ] Private beta load target met.
-- [ ] 1,000-user load target met.
-- [ ] 10,000-user capacity plan validated.
-- [ ] Cost model updated from observed metrics.
+- [ ] `tests/load/api-load.js` executed against staging.
+- [ ] `tests/load/workspace-lifecycle-load.js` executed against staging.
+- [ ] `tests/load/preview-load.js` executed against staging.
+- [ ] `tests/load/ai-simulated-load.js` executed against staging.
+- [ ] `tests/load/billing-webhook-load.js` executed against staging.
+- [ ] Private beta target met.
+- [ ] 1,000-user target met.
+- [ ] 10,000-user capacity model validated.
+- [ ] Cost model updated from measured metrics.
 
+## Mobile And Desktop Gates
+
+- [x] Mobile web build passes.
+- [x] Mobile asset validation passes.
+- [x] Desktop smoke test passes.
+- [ ] iOS signed IPA/TestFlight pipeline verified.
+- [ ] Android signed AAB/Play internal track verified.
+- [ ] `pnpm run mobile:validate:release` passes with a production app link host.
+  - Latest local result: fails because `app_link_host` is still `app.example.com`.
+- [ ] `pnpm run mobile:release-assets:check` passes with production mobile release metadata.
+  - Latest local result: fails because `MOBILE_APP_LINK_HOST` is not configured.
+  - Tooling dry-run with production-shaped synthetic metadata passes, so the remaining blocker is real release metadata, not the generator.
+- [ ] APNs and FCM verified.
+- [ ] Real phone/tablet editor fallback QA completed.
+- [ ] macOS signed build verified.
+- [ ] Windows signed build verified.
+- [ ] Linux package verified.
+- [ ] Desktop auto-updater drill completed.
+
+## Legal And Compliance Gates
+
+- [ ] Counsel-reviewed Terms of Service.
+- [ ] Counsel-reviewed Privacy Policy.
+- [ ] DPA.
+- [ ] Subprocessor list.
+- [ ] AUP linked from signup.
+- [ ] Data retention policy aligned with implementation.
+- [ ] SOC2 control owners assigned.

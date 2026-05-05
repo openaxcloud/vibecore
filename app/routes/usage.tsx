@@ -5,7 +5,12 @@ import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, firstOrganization, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 type UsageEvent = { id: string; type: string; quantity: number; createdAt?: string };
-type UsageData = { usage: UsageEvent[]; quotas: Record<string, number>; plan: { name: string } };
+type UsageData = {
+  usage: UsageEvent[];
+  quotas: Record<string, number>;
+  quotaUsage?: Record<string, number>;
+  plan: { name: string };
+};
 
 export const meta: MetaFunction = () => [{ title: 'Usage - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
@@ -16,6 +21,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 export default function UsagePage() {
   const data = useLoaderData<typeof loader>();
   const used = (key: string) =>
+    data.quotaUsage?.[key] ??
     data.usage.filter((event) => event.type === key).reduce((sum, event) => sum + event.quantity, 0);
 
   return (

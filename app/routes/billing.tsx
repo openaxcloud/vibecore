@@ -1,11 +1,13 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { CreditCard, FileText, TrendingUp } from 'lucide-react';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
+  apiErrorMessage,
   firstOrganization,
+  isForbiddenApiResponse,
   json,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -21,9 +23,27 @@ type BillingData = {
 export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganization(request);
-  const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);
 
-  return json({ organization, billing });
+  try {
+    const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);
+
+    return json({ organization, billing, billingAccessLimited: false });
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return json({
+        organization,
+        billingAccessLimited: true,
+        billing: {
+          plan: { key: 'unavailable', name: 'Unavailable', monthlyCents: 0 },
+          subscription: null,
+          usage: [],
+          upgradePrompts: [],
+        } satisfies BillingData,
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -32,27 +52,50 @@ export async function action({ request }: EnterpriseActionArgs) {
   const intent = String(form.get('intent') ?? 'checkout');
 
   if (intent === 'portal') {
-    const result = await apiRequest<{ url: string }>(request, `/orgs/${organization.id}/billing/portal`, {
-      method: 'POST',
-      body: JSON.stringify({ returnUrl: new URL('/billing', request.url).toString() }),
-    });
-    return Response.redirect(result.url);
+    try {
+      const result = await apiRequest<{ portalUrl: string }>(request, `/orgs/${organization.id}/billing/portal`, {
+        method: 'POST',
+        body: JSON.stringify({ returnUrl: new URL('/billing', request.url).toString() }),
+      });
+      return Response.redirect(result.portalUrl);
+    } catch (error) {
+      if (isForbiddenApiResponse(error)) {
+        return json(
+          { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
+          { status: 403 },
+        );
+      }
+
+      throw error;
+    }
   }
 
-  const result = await apiRequest<{ url: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
-    method: 'POST',
-    body: JSON.stringify({
-      planKey: String(form.get('planKey') ?? 'pro'),
-      successUrl: new URL('/billing', request.url).toString(),
-      cancelUrl: new URL('/billing', request.url).toString(),
-    }),
-  });
+  try {
+    const result = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({
+        planKey: String(form.get('planKey') ?? 'pro'),
+        successUrl: new URL('/billing', request.url).toString(),
+        cancelUrl: new URL('/billing', request.url).toString(),
+      }),
+    });
 
-  return Response.redirect(result.url);
+    return Response.redirect(result.checkoutUrl);
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
+        { status: 403 },
+      );
+    }
+
+    throw error;
+  }
 }
 
 export default function BillingPage() {
-  const { billing } = useLoaderData<typeof loader>();
+  const { billing, billingAccessLimited } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <AppShell
@@ -68,6 +111,11 @@ export default function BillingPage() {
       }
     >
       <div className="grid gap-6">
+        {billingAccessLimited || actionData?.error ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+            {actionData?.error ?? 'Billing is available only to organization owners or billing administrators.'}
+          </div>
+        ) : null}
         <StatGrid
           stats={[
             {
@@ -96,20 +144,22 @@ export default function BillingPage() {
             },
           ]}
         />
-        <div className="flex flex-wrap gap-3">
-          {billing.upgradePrompts.map((plan) => (
-            <Form key={plan.planKey} method="post">
-              <input type="hidden" name="planKey" value={plan.planKey} />
-              <Button type="submit">Upgrade to {plan.name}</Button>
+        {!billingAccessLimited ? (
+          <div className="flex flex-wrap gap-3">
+            {billing.upgradePrompts.map((plan) => (
+              <Form key={plan.planKey} method="post">
+                <input type="hidden" name="planKey" value={plan.planKey} />
+                <Button type="submit">Upgrade to {plan.name}</Button>
+              </Form>
+            ))}
+            <Form method="post">
+              <input type="hidden" name="intent" value="portal" />
+              <Button type="submit" variant="outline">
+                Open customer portal
+              </Button>
             </Form>
-          ))}
-          <Form method="post">
-            <input type="hidden" name="intent" value="portal" />
-            <Button type="submit" variant="outline">
-              Open customer portal
-            </Button>
-          </Form>
-        </div>
+          </div>
+        ) : null}
         <ActivityList
           items={
             billing.usage.length

@@ -71,7 +71,45 @@ function cleanoutMarkdownSyntax(content: string) {
 }
 
 function cleanEscapedTags(content: string) {
-  return content.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  return decodeHtmlEntities(content);
+}
+
+function decodeHtmlEntities(content: string) {
+  return content
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#160;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#123;/g, '{')
+    .replace(/&#125;/g, '}')
+    .replace(/&#91;/g, '[')
+    .replace(/&#93;/g, ']')
+    .replace(/&amp;/g, '&');
+}
+
+function cleanHighlightedCodeMarkup(content: string) {
+  const looksLikeHighlightedSource =
+    /&nbsp;|<br\s*\/?>/i.test(content) && /<span\s+className=["'][^"']*text-[^"']*["']/i.test(content);
+
+  if (!looksLikeHighlightedSource) {
+    return content;
+  }
+
+  return decodeHtmlEntities(
+    content
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/?span\b[^>]*>/gi, '')
+      .replace(/<\/?code\b[^>]*>/gi, '')
+      .replace(/<\/?pre\b[^>]*>/gi, ''),
+  );
+}
+
+function cleanFileActionContent(content: string) {
+  return cleanHighlightedCodeMarkup(cleanEscapedTags(cleanoutMarkdownSyntax(content)));
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
@@ -151,8 +189,7 @@ export class StreamingMessageParser {
             if ('type' in currentAction && currentAction.type === 'file') {
               // Remove markdown code block syntax if present and file is not markdown
               if (!currentAction.filePath.endsWith('.md')) {
-                content = cleanoutMarkdownSyntax(content);
-                content = cleanEscapedTags(content);
+                content = cleanFileActionContent(content);
               }
 
               content += '\n';
@@ -183,8 +220,7 @@ export class StreamingMessageParser {
               let content = input.slice(i);
 
               if (!currentAction.filePath.endsWith('.md')) {
-                content = cleanoutMarkdownSyntax(content);
-                content = cleanEscapedTags(content);
+                content = cleanFileActionContent(content);
               }
 
               this._options.callbacks?.onActionStream?.({

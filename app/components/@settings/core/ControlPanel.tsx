@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, type ReactNode } from 'react';
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { classNames } from '~/utils/classNames';
@@ -13,26 +13,29 @@ import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 
-// Import all tab components
-import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
-import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
-import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
-import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
-import { DataTab } from '~/components/@settings/tabs/data/DataTab';
-import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
-import GitHubTab from '~/components/@settings/tabs/github/GitHubTab';
-import GitLabTab from '~/components/@settings/tabs/gitlab/GitLabTab';
-import SupabaseTab from '~/components/@settings/tabs/supabase/SupabaseTab';
-import VercelTab from '~/components/@settings/tabs/vercel/VercelTab';
-import NetlifyTab from '~/components/@settings/tabs/netlify/NetlifyTab';
-import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
-import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
-import McpTab from '~/components/@settings/tabs/mcp/McpTab';
-import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
-import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
-import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
-import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
-import ServiceStatusTab from '~/components/@settings/tabs/service-status/ServiceStatusTab';
+const ProfileTab = lazy(() => import('~/components/@settings/tabs/profile/ProfileTab'));
+const SettingsTab = lazy(() => import('~/components/@settings/tabs/settings/SettingsTab'));
+const NotificationsTab = lazy(() => import('~/components/@settings/tabs/notifications/NotificationsTab'));
+const FeaturesTab = lazy(() => import('~/components/@settings/tabs/features/FeaturesTab'));
+const DataTab = lazy(() =>
+  import('~/components/@settings/tabs/data/DataTab').then((module) => ({ default: module.DataTab })),
+);
+const EventLogsTab = lazy(() =>
+  import('~/components/@settings/tabs/event-logs/EventLogsTab').then((module) => ({ default: module.EventLogsTab })),
+);
+const GitHubTab = lazy(() => import('~/components/@settings/tabs/github/GitHubTab'));
+const GitLabTab = lazy(() => import('~/components/@settings/tabs/gitlab/GitLabTab'));
+const SupabaseTab = lazy(() => import('~/components/@settings/tabs/supabase/SupabaseTab'));
+const VercelTab = lazy(() => import('~/components/@settings/tabs/vercel/VercelTab'));
+const NetlifyTab = lazy(() => import('~/components/@settings/tabs/netlify/NetlifyTab'));
+const CloudProvidersTab = lazy(() => import('~/components/@settings/tabs/providers/cloud/CloudProvidersTab'));
+const LocalProvidersTab = lazy(() => import('~/components/@settings/tabs/providers/local/LocalProvidersTab'));
+const McpTab = lazy(() => import('~/components/@settings/tabs/mcp/McpTab'));
+const ConnectionsTab = lazy(() => import('~/components/@settings/tabs/connections/ConnectionsTab'));
+const UpdateTab = lazy(() => import('~/components/@settings/tabs/update/UpdateTab'));
+const DebugTab = lazy(() => import('~/components/@settings/tabs/debug/DebugTab'));
+const TaskManagerTab = lazy(() => import('~/components/@settings/tabs/task-manager/TaskManagerTab'));
+const ServiceStatusTab = lazy(() => import('~/components/@settings/tabs/service-status/ServiceStatusTab'));
 
 interface ControlPanelProps {
   open: boolean;
@@ -119,49 +122,76 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
   };
 
   const getTabComponent = (tabId: TabType) => {
+    let tab: ReactNode = null;
+
     switch (tabId) {
       case 'profile':
-        return <ProfileTab />;
+        tab = <ProfileTab />;
+        break;
       case 'settings':
-        return <SettingsTab />;
+        tab = <SettingsTab />;
+        break;
       case 'notifications':
-        return <NotificationsTab />;
+        tab = <NotificationsTab />;
+        break;
       case 'features':
-        return <FeaturesTab />;
+        tab = <FeaturesTab />;
+        break;
       case 'data':
-        return <DataTab />;
+        tab = <DataTab />;
+        break;
       case 'cloud-providers':
-        return <CloudProvidersTab />;
+        tab = <CloudProvidersTab />;
+        break;
       case 'local-providers':
-        return <LocalProvidersTab />;
+        tab = <LocalProvidersTab />;
+        break;
       case 'github':
-        return <GitHubTab />;
+        tab = <GitHubTab />;
+        break;
       case 'gitlab':
-        return <GitLabTab />;
+        tab = <GitLabTab />;
+        break;
       case 'supabase':
-        return <SupabaseTab />;
+        tab = <SupabaseTab />;
+        break;
       case 'vercel':
-        return <VercelTab />;
+        tab = <VercelTab />;
+        break;
       case 'netlify':
-        return <NetlifyTab />;
+        tab = <NetlifyTab />;
+        break;
       case 'event-logs':
-        return <EventLogsTab />;
+        tab = <EventLogsTab />;
+        break;
       case 'mcp':
-        return <McpTab />;
+        tab = <McpTab />;
+        break;
       case 'connections':
-        return <ConnectionsTab />;
+        tab = <ConnectionsTab />;
+        break;
       case 'update':
-        return <UpdateTab />;
+        tab = <UpdateTab />;
+        break;
       case 'debug':
-        return <DebugTab />;
+        tab = <DebugTab />;
+        break;
       case 'task-manager':
-        return <TaskManagerTab />;
+        tab = <TaskManagerTab />;
+        break;
       case 'service-status':
-        return <ServiceStatusTab />;
+        tab = <ServiceStatusTab />;
+        break;
 
       default:
         return null;
     }
+
+    return (
+      <Suspense fallback={<div className="p-6 text-sm text-bolt-elements-textSecondary">Loading settings...</div>}>
+        {tab}
+      </Suspense>
+    );
   };
 
   const getTabUpdateStatus = (tabId: TabType): boolean => {

@@ -32,6 +32,46 @@ describe('StreamingMessageParser', () => {
     ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
       runTest(input, expected);
     });
+
+    it('should clean syntax-highlighted HTML snippets before writing TSX files', () => {
+      const callbacks = {
+        onArtifactOpen: vi.fn(),
+        onArtifactClose: vi.fn(),
+        onActionOpen: vi.fn(),
+        onActionClose: vi.fn(),
+      };
+      const parser = new StreamingMessageParser({ callbacks });
+      const input = `<boltArtifact title="Workspace.tsx" id="artifact_1" type="bundled"><boltAction type="file" filePath="src/components/Editor/Workspace.tsx">
+<span className="text-purple-400">export default function</span> <span className="text-yellow-400">App</span>() &#123;<br/>
+&nbsp;&nbsp;<span className="text-purple-400">return</span> (<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<<span className="text-blue-400">div</span> <span className="text-orange-400">className</span>=<span className="text-green-400">"min-h-screen bg-background"</span>><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<<span className="text-blue-400">Layout</span>><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<<span className="text-blue-400">h1</span>>Welcome to Bolt</<span className="text-blue-400">h1</span>><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</<span className="text-blue-400">Layout</span>><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;</<span className="text-blue-400">div</span>><br/>
+&nbsp;&nbsp;);<br/>
+&#125;
+</boltAction></boltArtifact>`;
+
+      parser.parse('highlighted_tsx', input);
+
+      expect(callbacks.onActionClose).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({
+            type: 'file',
+            filePath: 'src/components/Editor/Workspace.tsx',
+            content: expect.stringContaining('<div className="min-h-screen bg-background">'),
+          }),
+        }),
+      );
+
+      const content = callbacks.onActionClose.mock.calls[0][0].action.content;
+
+      expect(content).toContain('</Layout>');
+      expect(content).not.toContain('<span');
+      expect(content).not.toContain('&nbsp;');
+      expect(content).not.toContain('<br/>');
+    });
   });
 
   describe('invalid or incomplete artifacts', () => {

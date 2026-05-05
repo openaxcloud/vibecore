@@ -19,7 +19,14 @@ export interface WorkspaceRuntimeInput {
   env: Record<string, string>;
   secretEnv: Record<string, string>;
   plan: WorkspacePlan;
+  resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
+}
+
+export interface WorkspaceResourceLimits {
+  cpuMillicores?: number;
+  ramMb?: number;
+  storageGb?: number;
 }
 
 export interface K8sObject {
@@ -39,6 +46,27 @@ export interface WorkspaceK8sClient {
   streamPodLogs(namespace: string, name: string): AsyncIterable<string>;
 }
 
+export const defaultWorkspaceEgressBlockedCidrs = Object.freeze([
+  '169.254.169.254/32',
+  '10.0.0.0/8',
+  '172.16.0.0/12',
+  '192.168.0.0/16',
+]);
+
+export function workspaceEgressBlockedCidrs(additionalBlockedCidrs: readonly string[] = []) {
+  const cidrs = new Set<string>();
+
+  for (const cidr of [...defaultWorkspaceEgressBlockedCidrs, ...additionalBlockedCidrs]) {
+    const normalized = cidr.trim();
+
+    if (normalized) {
+      cidrs.add(normalized);
+    }
+  }
+
+  return Array.from(cidrs);
+}
+
 export function assertWorkspaceImageAllowed(image: string, production = process.env.NODE_ENV === 'production') {
   if (production && /(^|:)latest$/i.test(image)) {
     throw Object.assign(new Error('Workspace images must be pinned in production'), {
@@ -47,10 +75,13 @@ export function assertWorkspaceImageAllowed(image: string, production = process.
   }
 }
 
-const planResources: Record<WorkspacePlan, { cpuRequest: string; memoryRequest: string; cpuLimit: string; memoryLimit: string }> = {
-  free: { cpuRequest: '250m', memoryRequest: '512Mi', cpuLimit: '1', memoryLimit: '1Gi' },
-  pro: { cpuRequest: '500m', memoryRequest: '1Gi', cpuLimit: '2', memoryLimit: '4Gi' },
-  enterprise: { cpuRequest: '1', memoryRequest: '2Gi', cpuLimit: '4', memoryLimit: '8Gi' },
+const planResources: Record<
+  WorkspacePlan,
+  { cpuRequest: string; memoryRequest: string; cpuLimit: string; memoryLimit: string; storageRequest: string }
+> = {
+  free: { cpuRequest: '250m', memoryRequest: '512Mi', cpuLimit: '1', memoryLimit: '1Gi', storageRequest: '10Gi' },
+  pro: { cpuRequest: '500m', memoryRequest: '1Gi', cpuLimit: '2', memoryLimit: '4Gi', storageRequest: '20Gi' },
+  enterprise: { cpuRequest: '1', memoryRequest: '2Gi', cpuLimit: '4', memoryLimit: '8Gi', storageRequest: '100Gi' },
 };
 
 function labels(input: Pick<WorkspaceRuntimeInput, 'orgId' | 'projectId' | 'workspaceId'>) {
@@ -63,13 +94,14 @@ function labels(input: Pick<WorkspaceRuntimeInput, 'orgId' | 'projectId' | 'work
 }
 
 export function workspacePvc(input: WorkspaceRuntimeInput): K8sObject {
+  const resources = resolveWorkspaceResources(input);
   return {
     apiVersion: 'v1',
     kind: 'PersistentVolumeClaim',
     metadata: { name: input.pvcName, namespace: input.namespace, labels: labels(input) },
     spec: {
       accessModes: ['ReadWriteOnce'],
-      resources: { requests: { storage: '20Gi' } },
+      resources: { requests: { storage: resources.storageRequest } },
     },
   };
 }
@@ -100,7 +132,7 @@ export function workspaceAgentSecret(input: WorkspaceRuntimeInput): K8sObject {
 
 export function workspacePod(input: WorkspaceRuntimeInput): K8sObject {
   assertWorkspaceImageAllowed(input.image);
-  const resources = planResources[input.plan];
+  const resources = resolveWorkspaceResources(input);
   const sandboxSchedulingEnabled = process.env.WORKSPACE_DISABLE_SANDBOX_SCHEDULING !== '1';
   return {
     apiVersion: 'v1',
@@ -179,10 +211,42 @@ export function workspaceResourceQuota(namespace: string): K8sObject {
         'requests.memory': '500Gi',
         'limits.cpu': '1000',
         'limits.memory': '2Ti',
+        'requests.storage': '10Ti',
         persistentvolumeclaims: '500',
       },
     },
   };
+}
+
+function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
+  const plan = planResources[input.plan];
+  const cpuMillicores = positiveInteger(input.resourceLimits?.cpuMillicores);
+  const ramMb = positiveInteger(input.resourceLimits?.ramMb);
+  const storageGb = positiveInteger(input.resourceLimits?.storageGb);
+
+  return {
+    cpuRequest: cpuMillicores ? formatCpuMillicores(Math.max(50, Math.floor(cpuMillicores / 4))) : plan.cpuRequest,
+    memoryRequest: ramMb ? formatMemoryMb(Math.max(128, Math.floor(ramMb / 4))) : plan.memoryRequest,
+    cpuLimit: cpuMillicores ? formatCpuMillicores(cpuMillicores) : plan.cpuLimit,
+    memoryLimit: ramMb ? formatMemoryMb(ramMb) : plan.memoryLimit,
+    storageRequest: storageGb ? `${storageGb}Gi` : plan.storageRequest,
+  };
+}
+
+function positiveInteger(value: number | undefined): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return undefined;
+  }
+  const rounded = Math.floor(value);
+  return rounded > 0 ? rounded : undefined;
+}
+
+function formatCpuMillicores(value: number) {
+  return value % 1000 === 0 ? String(value / 1000) : `${value}m`;
+}
+
+function formatMemoryMb(value: number) {
+  return `${value}Mi`;
 }
 
 export function workspaceLimitRange(namespace: string): K8sObject {
@@ -212,7 +276,7 @@ export function defaultDenyNetworkPolicy(namespace: string): K8sObject {
   };
 }
 
-export function controlledEgressNetworkPolicy(namespace: string): K8sObject {
+export function controlledEgressNetworkPolicy(namespace: string, additionalBlockedCidrs: readonly string[] = []): K8sObject {
   return {
     apiVersion: 'networking.k8s.io/v1',
     kind: 'NetworkPolicy',
@@ -222,7 +286,7 @@ export function controlledEgressNetworkPolicy(namespace: string): K8sObject {
       policyTypes: ['Egress'],
       egress: [
         { to: [{ namespaceSelector: { matchLabels: { 'kubernetes.io/metadata.name': 'kube-system' } } }], ports: [{ protocol: 'UDP', port: 53 }, { protocol: 'TCP', port: 53 }] },
-        { to: [{ ipBlock: { cidr: '0.0.0.0/0', except: ['169.254.169.254/32', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'] } }], ports: [{ protocol: 'TCP', port: 443 }] },
+        { to: [{ ipBlock: { cidr: '0.0.0.0/0', except: workspaceEgressBlockedCidrs(additionalBlockedCidrs) } }], ports: [{ protocol: 'TCP', port: 443 }] },
       ],
     },
   };

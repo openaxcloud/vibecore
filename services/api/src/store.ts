@@ -450,6 +450,7 @@ export interface ApiStore {
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
   }): Promise<UserRecord>;
+  deleteUser(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   createSession(input: {
@@ -476,6 +477,7 @@ export interface ApiStore {
   addMember(input: { organizationId: string; userId: string; roleKey: string }): Promise<MembershipRecord>;
   getMembership(userId: string, organizationId: string): Promise<MembershipRecord | undefined>;
   listMembers(organizationId: string): Promise<MembershipRecord[]>;
+  removeMember(organizationId: string, userId: string): Promise<MembershipRecord | undefined>;
   createProject(input: {
     organizationId: string;
     name: string;
@@ -508,9 +510,11 @@ export interface ApiStore {
   listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
   upsertProjectEnvVar(input: { projectId: string; key: string; value: string }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
+  deleteProjectEnvVar(projectId: string, key: string): Promise<ProjectEnvironmentRecord | undefined>;
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;
     userId: string;
@@ -560,7 +564,12 @@ export interface ApiStore {
     createdByUserId?: string;
   }): Promise<ProjectShareLinkRecord>;
   listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
-  createWorkspace(input: { projectId: string; name: string; runtimeMode: string }): Promise<WorkspaceRecord>;
+  createWorkspace(input: {
+    id?: string;
+    projectId: string;
+    name: string;
+    runtimeMode: string;
+  }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
   createSnapshot(input: {
@@ -635,6 +644,8 @@ export interface ApiStore {
   getSsoConfig(organizationId: string, type: 'oidc' | 'saml'): Promise<SsoConfigRecord | undefined>;
   createScimToken(input: { organizationId: string; name: string; token: string }): Promise<ScimTokenRecord>;
   findScimToken(token: string): Promise<ScimTokenRecord | undefined>;
+  listScimTokens(organizationId: string): Promise<ScimTokenRecord[]>;
+  revokeScimToken(tokenId: string): Promise<ScimTokenRecord | undefined>;
   createCustomRole(input: {
     organizationId: string;
     key: string;
@@ -657,6 +668,7 @@ export interface ApiStore {
     token: string;
     expiresAt: Date;
   }): Promise<OrganizationInviteRecord>;
+  findOrganizationInviteByToken(token: string): Promise<OrganizationInviteRecord | undefined>;
   consumeOrganizationInvite(token: string, userId: string): Promise<OrganizationInviteRecord | undefined>;
   listOrganizationInvites(organizationId: string): Promise<OrganizationInviteRecord[]>;
   resendOrganizationInvite(
@@ -734,6 +746,7 @@ export interface ApiStore {
     currentPeriodEnd?: Date;
   }): Promise<SubscriptionRecord>;
   getSubscription(organizationId: string): Promise<SubscriptionRecord | undefined>;
+  listAdminSubscriptions(): Promise<SubscriptionRecord[]>;
   recordUsageEvent(input: {
     organizationId: string;
     userId?: string;

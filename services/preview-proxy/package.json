@@ -6,14 +6,15 @@
     "fastify": "^5.8.5"
   },
   "devDependencies": {
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vitest": "^2.1.9"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts",
-    "test": "pnpm run typecheck",
-    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts",
     "lint": "pnpm run typecheck"
   }
 }

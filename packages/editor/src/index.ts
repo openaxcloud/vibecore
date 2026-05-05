@@ -1,8 +1,4 @@
-import {
-  acceptCompletion,
-  autocompletion,
-  closeBrackets,
-} from '@codemirror/autocomplete';
+import { acceptCompletion, autocompletion, closeBrackets } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@codemirror/commands';
 import { bracketMatching, indentOnInput, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import { javascript } from '@codemirror/lang-javascript';
@@ -32,6 +28,7 @@ export interface EditorChange {
 export interface EditorAdapterProps extends EditorAdapterValue {
   theme?: 'dark' | 'light';
   autoFocus?: boolean;
+  largeFile?: boolean;
   className?: string;
   onChange?: (change: EditorChange) => void;
   onSave?: () => void;
@@ -69,7 +66,10 @@ const breakpointFromWidth = (width: number): EditorBreakpoint => {
   return 'mobile';
 };
 
-export function getResponsiveLayoutState(width: number, options?: { coarsePointer?: boolean; reducedMotion?: boolean }): ResponsiveLayoutState {
+export function getResponsiveLayoutState(
+  width: number,
+  options?: { coarsePointer?: boolean; reducedMotion?: boolean },
+): ResponsiveLayoutState {
   const breakpoint = breakpointFromWidth(width);
 
   return {
@@ -120,7 +120,12 @@ export function useResponsiveLayout(): ResponsiveLayoutState {
 
 export function useEditorAdapter(): EditorKind {
   const layout = useResponsiveLayout();
+  return editorKindForLayout(layout);
+}
 
+export function editorKindForLayout(
+  layout: Pick<ResponsiveLayoutState, 'isDesktop' | 'isTabletLandscape'>,
+): EditorKind {
   if (layout.isDesktop || layout.isTabletLandscape) {
     return 'monaco';
   }
@@ -165,6 +170,7 @@ export function DesktopCodeEditor({
   filePath,
   language,
   readOnly,
+  largeFile,
   theme = 'dark',
   autoFocus,
   className,
@@ -230,13 +236,19 @@ export function DesktopCodeEditor({
         language: languageForPath(filePath, language),
         readOnly,
         automaticLayout: true,
-        minimap: { enabled: true },
+        minimap: { enabled: !largeFile },
         fontSize: 13,
         fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace',
-        fontLigatures: true,
+        fontLigatures: !largeFile,
         tabSize: 2,
-        wordWrap: 'on',
+        wordWrap: largeFile ? 'off' : 'on',
         scrollBeyondLastLine: false,
+        largeFileOptimizations: true,
+        renderWhitespace: largeFile ? 'none' : 'selection',
+        occurrencesHighlight: largeFile ? 'off' : 'singleFile',
+        selectionHighlight: !largeFile,
+        folding: !largeFile,
+        renderLineHighlight: largeFile ? 'none' : 'line',
         guides: { indentation: true, highlightActiveIndentation: true },
         roundedSelection: false,
         overviewRulerBorder: false,
@@ -280,7 +292,16 @@ export function DesktopCodeEditor({
       editor.setValue(value);
     }
 
-    editor.updateOptions({ readOnly });
+    editor.updateOptions({
+      readOnly,
+      minimap: { enabled: !largeFile },
+      wordWrap: largeFile ? 'off' : 'on',
+      fontLigatures: !largeFile,
+      occurrencesHighlight: largeFile ? 'off' : 'singleFile',
+      selectionHighlight: !largeFile,
+      folding: !largeFile,
+      renderLineHighlight: largeFile ? 'none' : 'line',
+    });
 
     const model = editor.getModel();
     const monaco = monacoRef.current;
@@ -288,7 +309,7 @@ export function DesktopCodeEditor({
     if (model && monaco) {
       monaco.editor.setModelLanguage(model, languageForPath(filePath, language));
     }
-  }, [filePath, language, readOnly, value]);
+  }, [filePath, language, largeFile, readOnly, value]);
 
   useEffect(() => {
     monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vs');
@@ -298,9 +319,11 @@ export function DesktopCodeEditor({
 }
 
 function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
+  const largeFile = Boolean(props.largeFile);
   const language = languageForPath(props.filePath, props.language);
-  const languageExtension =
-    language === 'typescript'
+  const languageExtension = largeFile
+    ? []
+    : language === 'typescript'
       ? javascript({ typescript: true, jsx: props.filePath?.endsWith('.tsx') })
       : language === 'javascript'
         ? javascript({ jsx: props.filePath?.endsWith('.jsx') })
@@ -315,12 +338,16 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
     history(),
     drawSelection(),
     dropCursor(),
-    highlightActiveLine(),
+    ...(largeFile ? [] : [highlightActiveLine()]),
     bracketMatching(),
-    closeBrackets(),
-    autocompletion(),
-    indentOnInput(),
-    syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+    ...(largeFile
+      ? []
+      : [
+          closeBrackets(),
+          autocompletion(),
+          indentOnInput(),
+          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        ]),
     keymap.of([
       { key: 'Mod-s', run: () => (props.onSave?.(), true) },
       { key: 'Enter', run: insertNewlineAndIndent },
@@ -329,7 +356,7 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
       ...historyKeymap,
       ...searchKeymap,
     ]),
-    EditorView.lineWrapping,
+    ...(largeFile ? [] : [EditorView.lineWrapping]),
     EditorView.editable.of(!props.readOnly),
     EditorState.readOnly.of(Boolean(props.readOnly)),
     languageExtension,
@@ -344,7 +371,8 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
         fontSize: '13px',
       },
       '.cm-scroller': {
-        fontFamily: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontFamily:
+          '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         fontVariantLigatures: 'contextual common-ligatures',
         fontFeatureSettings: '"liga" 1, "calt" 1',
         overscrollBehavior: 'contain',
@@ -405,6 +433,24 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: props.value } });
     }
   }, [props.value, props.filePath]);
+
+  useEffect(() => {
+    const insertText = (event: Event) => {
+      const view = viewRef.current;
+      const text = (event as CustomEvent<{ text?: string }>).detail?.text;
+
+      if (!view || !text || view.state.readOnly) {
+        return;
+      }
+
+      view.dispatch(view.state.replaceSelection(text));
+      view.focus();
+    };
+
+    window.addEventListener('bolt:insert-editor-text', insertText);
+
+    return () => window.removeEventListener('bolt:insert-editor-text', insertText);
+  }, []);
 
   return createElement('div', { ref: containerRef, className: props.className, 'data-editor-kind': 'codemirror' });
 }

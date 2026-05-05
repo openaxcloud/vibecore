@@ -7,6 +7,7 @@ import {
   temperatureOptionsForModel,
   type FileMap,
 } from './constants';
+import { removeUnsupportedModelSettings } from './model-compat';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
 import type { IProviderSetting } from '~/types/model';
@@ -17,6 +18,12 @@ import { createScopedLogger } from '~/utils/logger';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import type { DesignScheme } from '~/types/design-scheme';
+import {
+  areParallelSubagentsAvailable,
+  type AgentOrchestrationPlan,
+  buildAgentOrchestrationPlan,
+  createAgentOrchestrationPrompt,
+} from './agent-orchestration';
 
 export type Messages = Message[];
 
@@ -58,6 +65,14 @@ function sanitizeText(text: string): string {
   return sanitized.trim();
 }
 
+export function applyContextOptimizedHistoryWindow<T>(messages: T[], messageSliceId?: number) {
+  if (typeof messageSliceId === 'number' && messageSliceId > 0) {
+    return messages.slice(messageSliceId);
+  }
+
+  return messages;
+}
+
 export async function streamText(props: {
   messages: Omit<Message, 'id'>[];
   env?: Env;
@@ -72,6 +87,9 @@ export async function streamText(props: {
   messageSliceId?: number;
   chatMode?: 'discuss' | 'build';
   designScheme?: DesignScheme;
+  abortSignal?: AbortSignal;
+  agentOrchestrationPlan?: AgentOrchestrationPlan;
+  agentOrchestrationContext?: string;
 }) {
   const {
     messages,
@@ -86,6 +104,9 @@ export async function streamText(props: {
     summary,
     chatMode,
     designScheme,
+    abortSignal,
+    agentOrchestrationPlan,
+    agentOrchestrationContext,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -169,6 +190,27 @@ export async function streamText(props: {
       },
     }) ?? getSystemPrompt();
 
+  const orchestrationPlan =
+    agentOrchestrationPlan ??
+    buildAgentOrchestrationPlan({
+      messages: processedMessages,
+      chatMode,
+      subagentsAvailable: areParallelSubagentsAvailable(serverEnv as Record<string, string | undefined> | undefined),
+    });
+  const orchestrationPrompt = createAgentOrchestrationPrompt(orchestrationPlan);
+
+  if (orchestrationPrompt) {
+    systemPrompt = `${systemPrompt}
+
+${orchestrationPrompt}`;
+  }
+
+  if (agentOrchestrationContext) {
+    systemPrompt = `${systemPrompt}
+
+${agentOrchestrationContext}`;
+  }
+
   if (chatMode === 'build' && contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
 
@@ -183,22 +225,13 @@ export async function streamText(props: {
 
     if (summary) {
       systemPrompt = `${systemPrompt}
-      below is the chat history till now
+      below is the summarized chat history before the recent exact messages
       CHAT SUMMARY:
       ---
       ${props.summary}
       ---
       `;
-
-      if (props.messageSliceId) {
-        processedMessages = processedMessages.slice(props.messageSliceId);
-      } else {
-        const lastMessage = processedMessages.pop();
-
-        if (lastMessage) {
-          processedMessages = [lastMessage];
-        }
-      }
+      processedMessages = applyContextOptimizedHistoryWindow(processedMessages, props.messageSliceId);
     }
   }
 
@@ -274,19 +307,22 @@ export async function streamText(props: {
     ),
   );
 
+  const modelInstance = provider.getModelInstance({
+    model: modelDetails.name,
+    serverEnv,
+    apiKeys,
+    providerSettings,
+  });
+
   const streamParams = {
-    model: provider.getModelInstance({
-      model: modelDetails.name,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
+    model: removeUnsupportedModelSettings(modelInstance, modelDetails.name, modelDetails.provider),
     system: chatMode === 'build' ? systemPrompt : discussPrompt(),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
+    ...(abortSignal ? { abortSignal } : {}),
   };
 
   // DEBUG: Log final streaming parameters

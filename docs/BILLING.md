@@ -26,6 +26,8 @@ Plans are seeded into the `Plan` table when the API starts. Stripe product and p
 - `GET /billing/:orgId`
 - `POST /billing/stripe/webhook`
 - `GET /admin/billing`
+- `POST /admin/plan-overrides`
+- `POST /admin/quota-overrides`
 
 Checkout and portal routes call Stripe through `StripeBillingClient`. Webhooks verify the Stripe signature before any subscription or invoice state is persisted.
 
@@ -41,3 +43,22 @@ Supported lifecycle events:
 - Upgrade and downgrade through changed Stripe price IDs
 
 Webhook events are idempotent through the `StripeEvent` table.
+
+## Entitlements
+
+Backend entitlements come from the latest subscription state, not from the frontend.
+
+- `ACTIVE`, `TRIALING` and `PAST_DUE` subscriptions keep their paid plan limits.
+- `CANCELED` and `UNPAID` subscriptions fall back to Free plan limits.
+- Quota overrides can raise or lower a single quota key and can expire.
+- Admin plan overrides require platform admin access and recent re-authentication.
+
+## Admin Billing
+
+`GET /admin/billing` returns configured plans and recent persisted subscriptions. The admin billing UI can:
+
+- inspect real subscription records
+- create audited quota overrides
+- create audited plan overrides for support or contract corrections
+
+Dangerous admin billing changes are recorded in `AdminAuditLog`.

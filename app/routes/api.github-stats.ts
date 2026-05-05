@@ -3,6 +3,61 @@ import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
 
+const githubHeaders = (token: string) => ({
+  Accept: 'application/vnd.github.v3+json',
+  Authorization: `Bearer ${token}`,
+  'User-Agent': 'bolt.diy-app',
+});
+
+async function githubJson<T>(token: string, path: string): Promise<T> {
+  const response = await fetch(`https://api.github.com${path}`, { headers: githubHeaders(token) });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
+  const items: T[] = [];
+  let page = 1;
+
+  while (true) {
+    const separator = path.includes('?') ? '&' : '?';
+    const pageItems = await githubJson<T[]>(token, `${path}${separator}per_page=100&page=${page}`);
+    items.push(...pageItems);
+
+    if (pageItems.length < 100) {
+      return items;
+    }
+
+    page += 1;
+  }
+}
+
+async function githubCount(token: string, path: string): Promise<number> {
+  const separator = path.includes('?') ? '&' : '?';
+  const response = await fetch(`https://api.github.com${path}${separator}per_page=1`, {
+    headers: githubHeaders(token),
+  });
+
+  if (!response.ok) {
+    return 0;
+  }
+
+  const linkHeader = response.headers.get('Link');
+  const lastPage = linkHeader?.match(/page=(\d+)>; rel="last"/)?.[1];
+
+  if (lastPage) {
+    return parseInt(lastPage, 10);
+  }
+
+  const data = await response.json();
+
+  return Array.isArray(data) ? data.length : 0;
+}
+
 async function githubStatsLoader({ request, context }: { request: Request; context: any }) {
   try {
     // Get API keys from cookies (server-side only)
@@ -22,14 +77,7 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
-    // Get user info first
-    const userResponse = await fetch('https://api.github.com/user', {
-      headers: {
-        Accept: 'application/vnd.github.v3+json',
-        Authorization: `Bearer ${githubToken}`,
-        'User-Agent': 'bolt.diy-app',
-      },
-    });
+    const userResponse = await fetch('https://api.github.com/user', { headers: githubHeaders(githubToken) });
 
     if (!userResponse.ok) {
       if (userResponse.status === 401) {
@@ -41,83 +89,32 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
 
     const user = (await userResponse.json()) as GitHubUserResponse;
 
-    // Fetch repositories with pagination
-    let allRepos: any[] = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const repoResponse = await fetch(
-        `https://api.github.com/user/repos?sort=updated&per_page=100&page=${page}&affiliation=owner,organization_member`,
-        {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `Bearer ${githubToken}`,
-            'User-Agent': 'bolt.diy-app',
-          },
-        },
-      );
-
-      if (!repoResponse.ok) {
-        throw new Error(`GitHub API error: ${repoResponse.status}`);
-      }
-
-      const repos: any[] = await repoResponse.json();
-      allRepos = allRepos.concat(repos);
-
-      if (repos.length < 100) {
-        hasMore = false;
-      } else {
-        page += 1;
-      }
-    }
-
-    // Fetch branch counts for repositories (limit to first 50 repos to avoid rate limits)
-    const reposWithBranches = await Promise.allSettled(
-      allRepos.slice(0, 50).map(async (repo) => {
-        try {
-          const branchesResponse = await fetch(`https://api.github.com/repos/${repo.full_name}/branches?per_page=1`, {
-            headers: {
-              Accept: 'application/vnd.github.v3+json',
-              Authorization: `Bearer ${githubToken}`,
-              'User-Agent': 'bolt.diy-app',
-            },
-          });
-
-          if (branchesResponse.ok) {
-            const linkHeader = branchesResponse.headers.get('Link');
-            let branchesCount = 1; // At least 1 branch (default)
-
-            if (linkHeader) {
-              const match = linkHeader.match(/page=(\d+)>; rel="last"/);
-
-              if (match) {
-                branchesCount = parseInt(match[1], 10);
-              }
-            }
-
-            return {
-              ...repo,
-              branches_count: branchesCount,
-            };
-          }
-
-          return repo;
-        } catch (error) {
-          console.warn(`Failed to fetch branches for ${repo.full_name}:`, error);
-          return repo;
-        }
-      }),
+    const allRepos = await githubPaginated<any>(
+      githubToken,
+      '/user/repos?sort=updated&affiliation=owner,organization_member',
     );
 
-    // Update repositories with branch information where available
-    allRepos = allRepos.map((repo, index) => {
-      if (index < reposWithBranches.length && reposWithBranches[index].status === 'fulfilled') {
-        return reposWithBranches[index].value;
-      }
+    const [organizationsResult, recentActivityResult, gistsResult] = await Promise.allSettled([
+      githubPaginated<any>(githubToken, '/user/orgs'),
+      githubJson<any[]>(githubToken, `/users/${encodeURIComponent(user.login)}/events?per_page=10`),
+      githubPaginated<any>(githubToken, '/gists'),
+    ]);
 
-      return repo;
-    });
+    const repoMetrics = await Promise.allSettled(
+      allRepos.map(async (repo) => ({
+        fullName: repo.full_name,
+        branches: await githubCount(githubToken, `/repos/${repo.full_name}/branches`),
+        contributors: await githubCount(githubToken, `/repos/${repo.full_name}/contributors`),
+        issues: await githubCount(githubToken, `/repos/${repo.full_name}/issues?state=all`),
+        pullRequests: await githubCount(githubToken, `/repos/${repo.full_name}/pulls?state=all`),
+      })),
+    );
+
+    const metricsByRepo = new Map(
+      repoMetrics
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map((result) => [result.value.fullName, result.value]),
+    );
 
     // Calculate comprehensive stats
     const now = new Date();
@@ -126,9 +123,11 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
 
     // Language statistics
     const languageStats = new Map<string, number>();
+    const languageBytes = new Map<string, number>();
     allRepos.forEach((repo) => {
       if (repo.language) {
         languageStats.set(repo.language, (languageStats.get(repo.language) || 0) + 1);
+        languageBytes.set(repo.language, (languageBytes.get(repo.language) || 0) + (repo.size || 0));
       }
     });
 
@@ -136,11 +135,17 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
     const totalStars = allRepos.reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0);
     const totalForks = allRepos.reduce((sum, repo) => sum + (repo.forks_count || 0), 0);
 
-    // Recent activity (repos updated in last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // Popular repositories (top 10 by stars)
+    const gists = gistsResult.status === 'fulfilled' ? gistsResult.value : [];
+    const totalBranches = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.branches ?? 0), 0);
+    const totalContributors = allRepos.reduce(
+      (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.contributors ?? 0),
+      0,
+    );
+    const totalIssues = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.issues ?? 0), 0);
+    const totalPullRequests = allRepos.reduce(
+      (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.pullRequests ?? 0),
+      0,
+    );
 
     const stats: GitHubStats = {
       repos: allRepos.map((repo) => ({
@@ -163,10 +168,19 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
         default_branch: repo.default_branch || 'main',
         languages_url: repo.languages_url || '',
       })),
-      organizations: [],
-      recentActivity: [],
-      languages: {},
-      totalGists: user.public_gists || 0,
+      organizations: organizationsResult.status === 'fulfilled' ? organizationsResult.value : [],
+      recentActivity:
+        recentActivityResult.status === 'fulfilled'
+          ? recentActivityResult.value.slice(0, 10).map((event) => ({
+              id: event.id,
+              type: event.type,
+              repo: { name: event.repo.name, url: event.repo.url },
+              created_at: event.created_at,
+              payload: event.payload || {},
+            }))
+          : [],
+      languages: Object.fromEntries(languageStats.entries()),
+      totalGists: gists.length || user.public_gists || 0,
       publicRepos,
       privateRepos,
       stars: totalStars,
@@ -175,8 +189,20 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
       totalForks,
       followers: user.followers || 0,
       publicGists: user.public_gists || 0,
-      privateGists: 0, // GitHub API doesn't provide private gists count directly
+      privateGists: Math.max(0, gists.filter((gist) => gist.public === false).length),
       lastUpdated: now.toISOString(),
+      totalBranches,
+      totalContributors,
+      totalIssues,
+      totalPullRequests,
+      mostUsedLanguages: [...languageBytes.entries()]
+        .map(([language, bytes]) => ({
+          language,
+          bytes,
+          repos: languageStats.get(language) ?? 0,
+        }))
+        .sort((a, b) => b.bytes - a.bytes)
+        .slice(0, 20),
     };
 
     return json(stats);

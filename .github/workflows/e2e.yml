@@ -66,6 +66,11 @@ jobs:
       - name: Playwright auth, project, IDE, terminal, preview, billing mock flows
         run: pnpm exec playwright test tests/e2e --project=chromium
 
+      - name: IDE panel live audit
+        run: |
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
+          pnpm run ide:panel-audit:validate
+
       - name: Playwright mobile viewport tests
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium
 
@@ -77,6 +82,7 @@ jobs:
           path: |
             playwright-report
             test-results
+            tmp/ide-panel-audit.json
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log
           if-no-files-found: ignore

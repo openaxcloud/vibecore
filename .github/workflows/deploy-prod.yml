@@ -6,12 +6,16 @@ on:
       image_tag:
         description: Immutable image tag to deploy
         required: true
+      staging_runtime_run_id:
+        description: Successful Staging Runtime Validation workflow run id for this release
+        required: true
       confirm_rollback_plan:
         description: Type READY after reviewing docs/ROLLBACK.md
         required: true
 
 permissions:
   contents: read
+  actions: read
   id-token: write
 
 concurrency:
@@ -30,6 +34,141 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify staging runtime validation gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_RUNTIME_RUN_ID: ${{ inputs.staging_runtime_run_id }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${STAGING_RUNTIME_RUN_ID}" > /tmp/staging-runtime-run.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const run = JSON.parse(fs.readFileSync('/tmp/staging-runtime-run.json', 'utf8'));
+          const maxAgeHours = 72;
+          const createdAt = new Date(run.created_at);
+          const ageHours = (Date.now() - createdAt.getTime()) / 36e5;
+          const expectedName = 'Staging Runtime Validation';
+
+          if (run.name !== expectedName) {
+            throw new Error(`Expected workflow ${expectedName}, got ${run.name}`);
+          }
+
+          if (run.event !== 'workflow_dispatch') {
+            throw new Error(`Expected manual workflow_dispatch run, got ${run.event}`);
+          }
+
+          if (run.status !== 'completed' || run.conclusion !== 'success') {
+            throw new Error(`Staging runtime validation is not successful: status=${run.status} conclusion=${run.conclusion}`);
+          }
+
+          if (!Number.isFinite(ageHours) || ageHours > maxAgeHours) {
+            throw new Error(`Staging runtime validation is too old: ${ageHours.toFixed(1)}h > ${maxAgeHours}h`);
+          }
+
+          console.log(`Staging runtime validation gate accepted: run_id=${run.id} age=${ageHours.toFixed(1)}h`);
+          NODE
+
+      - name: Validate production configuration
+        env:
+          VALIDATE_PRODUCTION: "1"
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
+          CONFIG_ENCRYPTION_KEY: ${{ secrets.CONFIG_ENCRYPTION_KEY }}
+          WORKSPACE_AGENT_TOKEN_SECRET: ${{ secrets.WORKSPACE_AGENT_TOKEN_SECRET }}
+          VITE_RUNTIME_MODE: remote-kubernetes
+          VITE_RUNTIME_API_BASE_URL: ${{ vars.VITE_RUNTIME_API_BASE_URL }}
+          WORKSPACE_MANAGER_URL: ${{ vars.WORKSPACE_MANAGER_URL }}
+          WORKSPACE_RUNTIME_NAMESPACE: ${{ vars.WORKSPACE_RUNTIME_NAMESPACE }}
+          WORKSPACE_DISABLE_SANDBOX_SCHEDULING: "0"
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_GEMINI_API_KEY: ${{ secrets.GOOGLE_GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OLLAMA_BASE_URL: ${{ vars.OLLAMA_BASE_URL }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URI: ${{ vars.GOOGLE_REDIRECT_URI }}
+          GOOGLE_TOKEN_URL: ${{ vars.GOOGLE_TOKEN_URL }}
+          GOOGLE_USERINFO_URL: ${{ vars.GOOGLE_USERINFO_URL }}
+          GITHUB_CLIENT_ID: ${{ vars.GITHUB_CLIENT_ID }}
+          GITHUB_CLIENT_SECRET: ${{ secrets.GITHUB_CLIENT_SECRET }}
+          GITHUB_REDIRECT_URI: ${{ vars.GITHUB_REDIRECT_URI }}
+          GITHUB_TOKEN_URL: ${{ vars.GITHUB_TOKEN_URL }}
+          GITHUB_USERINFO_URL: ${{ vars.GITHUB_USERINFO_URL }}
+          OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
+          OIDC_REDIRECT_URI: ${{ vars.OIDC_REDIRECT_URI }}
+          OIDC_ISSUER_URL: ${{ vars.OIDC_ISSUER_URL }}
+          OIDC_AUTHORIZATION_URL: ${{ vars.OIDC_AUTHORIZATION_URL }}
+          OIDC_TOKEN_URL: ${{ vars.OIDC_TOKEN_URL }}
+          OIDC_USERINFO_URL: ${{ vars.OIDC_USERINFO_URL }}
+          OIDC_JWKS_URL: ${{ vars.OIDC_JWKS_URL }}
+          SAML_ENTITY_ID: ${{ vars.SAML_ENTITY_ID }}
+          SAML_ACS_URL: ${{ vars.SAML_ACS_URL }}
+          SAML_SSO_URL: ${{ vars.SAML_SSO_URL }}
+          SAML_X509_CERTIFICATE: ${{ secrets.SAML_X509_CERTIFICATE }}
+          SAML_METADATA_URL: ${{ vars.SAML_METADATA_URL }}
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ vars.SMTP_FROM }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
+          EMAIL_HTTP_ENDPOINT: ${{ vars.EMAIL_HTTP_ENDPOINT }}
+          EMAIL_HTTP_TOKEN: ${{ secrets.EMAIL_HTTP_TOKEN }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_FREE_PRODUCT_ID: ${{ vars.STRIPE_FREE_PRODUCT_ID }}
+          STRIPE_FREE_PRICE_ID: ${{ vars.STRIPE_FREE_PRICE_ID }}
+          STRIPE_PRO_PRODUCT_ID: ${{ vars.STRIPE_PRO_PRODUCT_ID }}
+          STRIPE_PRO_PRICE_ID: ${{ vars.STRIPE_PRO_PRICE_ID }}
+          STRIPE_TEAM_PRODUCT_ID: ${{ vars.STRIPE_TEAM_PRODUCT_ID }}
+          STRIPE_TEAM_PRICE_ID: ${{ vars.STRIPE_TEAM_PRICE_ID }}
+          STRIPE_ENTERPRISE_PRODUCT_ID: ${{ vars.STRIPE_ENTERPRISE_PRODUCT_ID }}
+          STRIPE_ENTERPRISE_PRICE_ID: ${{ vars.STRIPE_ENTERPRISE_PRICE_ID }}
+          DEPLOYMENT_PROVIDERS_ENABLED: ${{ vars.DEPLOYMENT_PROVIDERS_ENABLED }}
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+          NETLIFY_BUILD_HOOK_URL: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+          CLOUDFLARE_DEPLOY_HOOK_URL: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK_URL }}
+          GITHUB_DEPLOY_TOKEN: ${{ secrets.DEPLOYMENT_GITHUB_TOKEN }}
+          GITHUB_PAGES_REPO: ${{ vars.GITHUB_PAGES_REPO }}
+          GITHUB_PAGES_WORKFLOW: ${{ vars.GITHUB_PAGES_WORKFLOW }}
+          CLOUD_RUN_BUILD_TRIGGER_URL: ${{ secrets.CLOUD_RUN_BUILD_TRIGGER_URL }}
+          DOCKER_BUILD_TRIGGER_URL: ${{ secrets.DOCKER_BUILD_TRIGGER_URL }}
+          DOCKER_REGISTRY_URL: ${{ vars.DOCKER_REGISTRY_URL }}
+          GCP_OAUTH_TOKEN: ${{ secrets.GCP_OAUTH_TOKEN }}
+          SIEM_WEBHOOK_URL: ${{ secrets.SIEM_WEBHOOK_URL }}
+          SIEM_SIGNING_SECRET: ${{ secrets.SIEM_SIGNING_SECRET }}
+          OTEL_SERVICE_NAME: ${{ vars.OTEL_SERVICE_NAME }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          LOG_REDACTION_ENABLED: "true"
+          SECURITY_CONTACT_EMAIL: ${{ vars.SECURITY_CONTACT_EMAIL }}
+          INCIDENT_WEBHOOK_URL: ${{ secrets.INCIDENT_WEBHOOK_URL }}
+          SECRET_ROTATION_OWNER: ${{ vars.SECRET_ROTATION_OWNER }}
+          SECRET_ROTATION_CADENCE_DAYS: ${{ vars.SECRET_ROTATION_CADENCE_DAYS }}
+          AUDIT_RETENTION_DAYS: ${{ vars.AUDIT_RETENTION_DAYS }}
+          SOC2_EVIDENCE_BUCKET: ${{ vars.SOC2_EVIDENCE_BUCKET }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PRODUCTION_RUNBOOK_OWNER: ${{ vars.PRODUCTION_RUNBOOK_OWNER }}
+        run: pnpm run production:validate
 
       - uses: google-github-actions/auth@v2
         with:

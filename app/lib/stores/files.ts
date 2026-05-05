@@ -66,6 +66,10 @@ export class FilesStore {
    * Map of files that matches the state of the active runtime.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
+  #urlObserver?: MutationObserver;
+  #lockRefreshInterval?: ReturnType<typeof setInterval>;
+  #lockRefreshTimeout?: ReturnType<typeof setTimeout>;
+  #stopWatchingFiles?: () => void;
 
   get filesCount() {
     return this.#size;
@@ -106,7 +110,7 @@ export class FilesStore {
       let lastChatId = getCurrentChatId();
 
       // Use MutationObserver to detect URL changes (for SPA navigation)
-      const observer = new MutationObserver(() => {
+      this.#urlObserver = new MutationObserver(() => {
         const currentChatId = getCurrentChatId();
 
         if (currentChatId !== lastChatId) {
@@ -116,7 +120,7 @@ export class FilesStore {
         }
       });
 
-      observer.observe(document, { subtree: true, childList: true });
+      this.#urlObserver.observe(document, { subtree: true, childList: true });
     }
 
     this.#init();
@@ -124,6 +128,8 @@ export class FilesStore {
 
   setRuntime(runtime: RuntimeAdapter) {
     this.#runtime = runtime;
+    this.#stopWatchingFiles?.();
+    this.#stopWatchingFiles = undefined;
     void this.#init();
   }
 
@@ -156,6 +162,16 @@ export class FilesStore {
     this.#loadLockedFiles();
   }
 
+  getDeletedPaths() {
+    return [...this.#deletedPaths];
+  }
+
+  setDeletedPaths(paths: string[]) {
+    this.#deletedPaths = new Set(paths.filter((path) => typeof path === 'string' && path.trim()));
+    this.#cleanupDeletedFiles();
+    this.#persistDeletedPaths();
+  }
+
   /**
    * Load locked files and folders from localStorage and update the file objects
    * @param chatId Optional chat ID to load locks for (defaults to current chat)
@@ -176,7 +192,7 @@ export class FilesStore {
       const lockedFolders = lockedItems.filter((item) => item.isFolder);
 
       if (lockedItems.length === 0) {
-        logger.info(`No locked items found for chat ID: ${currentChatId}`);
+        logger.debug(`No locked items found for chat ID: ${currentChatId}`);
         return;
       }
 
@@ -632,7 +648,8 @@ export class FilesStore {
 
     // Set up file watcher
     try {
-      await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
+      this.#stopWatchingFiles?.();
+      this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
     } catch (error) {
       logger.warn('Runtime file watch is not ready yet', error);
     }
@@ -650,7 +667,11 @@ export class FilesStore {
      * Also set up a timer to load locked files again after a delay.
      * This ensures that locks are applied even if files are loaded asynchronously.
      */
-    setTimeout(() => {
+    if (this.#lockRefreshTimeout) {
+      clearTimeout(this.#lockRefreshTimeout);
+    }
+
+    this.#lockRefreshTimeout = setTimeout(() => {
       this.#loadLockedFiles(currentChatId);
     }, 2000);
 
@@ -658,13 +679,30 @@ export class FilesStore {
      * Set up a less frequent periodic check to ensure locks remain applied.
      * This is now less critical since we have the storage event listener.
      */
-    setInterval(() => {
+    if (this.#lockRefreshInterval) {
+      clearInterval(this.#lockRefreshInterval);
+    }
+
+    this.#lockRefreshInterval = setInterval(() => {
       // Clear the cache to force a fresh read from localStorage
       clearCache();
 
       const latestChatId = getCurrentChatId();
       this.#loadLockedFiles(latestChatId);
     }, 30000); // Reduced from 10s to 30s
+  }
+
+  dispose() {
+    this.#urlObserver?.disconnect();
+    this.#stopWatchingFiles?.();
+
+    if (this.#lockRefreshTimeout) {
+      clearTimeout(this.#lockRefreshTimeout);
+    }
+
+    if (this.#lockRefreshInterval) {
+      clearInterval(this.#lockRefreshInterval);
+    }
   }
 
   /**
@@ -803,6 +841,9 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, content as string);
       }
 
+      this.#deletedPaths.delete(filePath);
+      this.#persistDeletedPaths();
+
       logger.info(`File created: ${filePath}`);
 
       return true;
@@ -823,6 +864,8 @@ export class FilesStore {
       await this.#runtime.createDirectory(relativePath);
 
       this.files.setKey(folderPath, { type: 'folder' });
+      this.#deletedPaths.delete(folderPath);
+      this.#persistDeletedPaths();
 
       logger.info(`Folder created: ${folderPath}`);
 

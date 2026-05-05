@@ -76,7 +76,12 @@ export function createTotpCode(secret: string, timeStep = Math.floor(Date.now() 
 }
 
 export function verifyTotpCode(secret: string, code: string, window = 1) {
-  const normalized = code.replace(/\s+/g, '');
+  const normalized = code.replace(/\D+/g, '');
+
+  if (normalized.length !== 6) {
+    return false;
+  }
+
   const currentStep = Math.floor(Date.now() / 30_000);
 
   for (let offset = -window; offset <= window; offset += 1) {

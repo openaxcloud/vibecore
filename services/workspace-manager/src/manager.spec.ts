@@ -82,6 +82,7 @@ const input = {
   plan: 'pro' as const,
   env: { NODE_ENV: 'production' },
   allowedSecretKeys: ['NPM_TOKEN'],
+  resourceLimits: { cpuMillicores: 1500, ramMb: 3072, storageGb: 30 },
 };
 
 describe('WorkspaceManager', () => {
@@ -94,16 +95,19 @@ describe('WorkspaceManager', () => {
     expect(workspace.status).toBe('RUNNING');
     expect(k8s.events).toEqual(
       expect.arrayContaining([
-        'apply:PersistentVolumeClaim:pvc-project_1',
+        'apply:PersistentVolumeClaim:pvc-workspace_1',
         'apply:Secret:agent-token-workspace_1',
         'apply:Pod:workspace-workspace_1',
         'apply:Service:workspace-workspace_1',
       ]),
     );
+    expect((k8s.objects.get('workspaces:PersistentVolumeClaim:pvc-workspace_1')?.spec?.resources as any).requests.storage).toBe(
+      '30Gi',
+    );
     expect(events.events.map((event) => event.type)).toContain('workspace.running');
   });
 
-  it('stops, restarts and deletes workspaces', async () => {
+  it('stops, restarts and fully deletes workspace runtime resources', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
@@ -111,5 +115,15 @@ describe('WorkspaceManager', () => {
     expect((await manager.stopWorkspace('workspaces', input.workspaceId)).status).toBe('STOPPED');
     expect((await manager.restartWorkspace(input)).status).toBe('RUNNING');
     expect((await manager.deleteWorkspace('workspaces', input.workspaceId)).status).toBe('DELETED');
+    expect(k8s.events).toEqual(
+      expect.arrayContaining([
+        'delete:Service:workspace-workspace_1',
+        'delete:Pod:workspace-workspace_1',
+        'delete:Secret:agent-token-workspace_1',
+        'delete:PersistentVolumeClaim:pvc-workspace_1',
+      ]),
+    );
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(false);
   });
 });

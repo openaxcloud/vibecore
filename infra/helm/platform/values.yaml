@@ -98,3 +98,8 @@ services:
 podSecurity:
   enabled: true
   enforce: restricted
+
+networkPolicy:
+  ingressControllerNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx

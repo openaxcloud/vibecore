@@ -26,6 +26,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
     stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
     sourceType: project.sourceType,
+    previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
   }));
 
   return { projects };
@@ -109,14 +110,26 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
           key={project.id}
           className="flex flex-col gap-3 border-b border-bolt-elements-borderColor p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
         >
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold">{project.name}</h2>
-              <StatusPill label={project.status ?? 'Ready'} />
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C]">
+              {project.previewImageUrl ? (
+                <img
+                  src={project.previewImageUrl}
+                  alt={`Latest homepage preview for ${project.name}`}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              ) : null}
             </div>
-            <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-              {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold">{project.name}</h2>
+                <StatusPill label={project.status ?? 'Ready'} />
+              </div>
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                {project.stack ?? project.sourceType ?? 'Persistent Bolt project'}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-bolt-elements-textTertiary">Updated {project.updated ?? 'recently'}</span>

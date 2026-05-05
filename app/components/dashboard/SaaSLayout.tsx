@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type React from 'react';
 import { Form, Link, NavLink } from '@remix-run/react';
 import {
@@ -7,6 +8,8 @@ import {
   Boxes,
   Braces,
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Command,
   CreditCard,
   FileArchive,
@@ -33,11 +36,41 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import {
+  SiAnthropic,
+  SiExpo,
+  SiFastify,
+  SiFramer,
+  SiGithub,
+  SiNextdotjs,
+  SiNodedotjs,
+  SiOpenai,
+  SiPostgresql,
+  SiPrisma,
+  SiReact,
+  SiRemix,
+  SiTailwindcss,
+  SiTypescript,
+  SiVite,
+} from 'react-icons/si';
+import type { IconType } from 'react-icons';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { classNames } from '~/utils/classNames';
 
 type Icon = LucideIcon;
+type TemplateProvider = {
+  name: string;
+  Logo: IconType;
+  color: string;
+};
+type TemplateCard = {
+  id: string;
+  name: string;
+  stack: string;
+  tag: string;
+  providers: TemplateProvider[];
+};
 
 export const publicNav = [
   { label: 'Pricing', to: '/pricing' },
@@ -81,13 +114,73 @@ export const projectNav = [
   { label: 'Git', suffix: '/git', icon: GitBranch },
 ];
 
-export const templates = [
-  { id: 'react-saas', name: 'React SaaS', stack: 'React, Vite, TypeScript', tag: 'Web app' },
-  { id: 'next-dashboard', name: 'Next dashboard', stack: 'Next.js, Prisma, Tailwind', tag: 'Full stack' },
-  { id: 'fastify-api', name: 'Fastify API', stack: 'Node.js, Fastify, PostgreSQL', tag: 'Backend' },
-  { id: 'ai-agent', name: 'AI agent', stack: 'RuntimeAdapter, tools, streaming', tag: 'AI' },
-  { id: 'landing-page', name: 'Landing page', stack: 'Remix, responsive content', tag: 'Marketing' },
-  { id: 'mobile-starter', name: 'Mobile starter', stack: 'Expo, shared packages', tag: 'Mobile' },
+export const templates: TemplateCard[] = [
+  {
+    id: 'react-saas',
+    name: 'React SaaS',
+    stack: 'React, Vite, TypeScript',
+    tag: 'Web app',
+    providers: [
+      { name: 'React', Logo: SiReact, color: '#61DAFB' },
+      { name: 'Vite', Logo: SiVite, color: '#646CFF' },
+      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
+    ],
+  },
+  {
+    id: 'next-dashboard',
+    name: 'Next dashboard',
+    stack: 'Next.js, Prisma, Tailwind',
+    tag: 'Full stack',
+    providers: [
+      { name: 'Next.js', Logo: SiNextdotjs, color: '#FFFFFF' },
+      { name: 'Prisma', Logo: SiPrisma, color: '#B8C4D9' },
+      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
+    ],
+  },
+  {
+    id: 'fastify-api',
+    name: 'Fastify API',
+    stack: 'Node.js, Fastify, PostgreSQL',
+    tag: 'Backend',
+    providers: [
+      { name: 'Node.js', Logo: SiNodedotjs, color: '#5FA04E' },
+      { name: 'Fastify', Logo: SiFastify, color: '#FFFFFF' },
+      { name: 'PostgreSQL', Logo: SiPostgresql, color: '#4169E1' },
+    ],
+  },
+  {
+    id: 'ai-agent',
+    name: 'AI agent',
+    stack: 'RuntimeAdapter, tools, streaming',
+    tag: 'AI',
+    providers: [
+      { name: 'OpenAI', Logo: SiOpenai, color: '#FFFFFF' },
+      { name: 'Anthropic', Logo: SiAnthropic, color: '#D97757' },
+      { name: 'GitHub', Logo: SiGithub, color: '#FFFFFF' },
+    ],
+  },
+  {
+    id: 'landing-page',
+    name: 'Landing page',
+    stack: 'Remix, responsive content',
+    tag: 'Marketing',
+    providers: [
+      { name: 'Remix', Logo: SiRemix, color: '#FFFFFF' },
+      { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
+      { name: 'Framer', Logo: SiFramer, color: '#0055FF' },
+    ],
+  },
+  {
+    id: 'mobile-starter',
+    name: 'Mobile starter',
+    stack: 'Expo, shared packages',
+    tag: 'Mobile',
+    providers: [
+      { name: 'Expo', Logo: SiExpo, color: '#FFFFFF' },
+      { name: 'React', Logo: SiReact, color: '#61DAFB' },
+      { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
+    ],
+  },
 ];
 
 export interface ProjectCard {
@@ -97,6 +190,7 @@ export interface ProjectCard {
   updated?: string;
   stack?: string;
   sourceType?: string;
+  previewImageUrl?: string;
 }
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
@@ -147,52 +241,111 @@ export function AppShell({
   description,
   children,
   actions,
+  hideHeader = false,
 }: {
   title: string;
   description: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  hideHeader?: boolean;
 }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    setSidebarCollapsed(localStorage.getItem('vibecore:app-sidebar-collapsed') === 'true');
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem('vibecore:app-sidebar-collapsed', String(next));
+
+      return next;
+    });
+  };
+
   return (
     <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <div className="grid min-h-screen lg:grid-cols-[256px_1fr]">
+      <div
+        className={classNames(
+          'grid min-h-screen transition-[grid-template-columns] duration-200',
+          sidebarCollapsed ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[256px_1fr]',
+        )}
+      >
         <aside className="hidden border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block">
-          <div className="flex h-14 items-center gap-2 border-b border-bolt-elements-borderColor px-4">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+          <div
+            className={classNames(
+              'flex h-14 items-center border-b border-bolt-elements-borderColor',
+              sidebarCollapsed ? 'justify-center px-2' : 'gap-2 px-4',
+            )}
+          >
+            <Link
+              to="/dashboard"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
+              aria-label="Dashboard"
+              title="Dashboard"
+            >
               <Sparkles className="h-4 w-4" aria-hidden />
-            </span>
-            <div>
+            </Link>
+            <div className={classNames('min-w-0', sidebarCollapsed && 'hidden')}>
               <span className="block text-sm font-semibold">VibeCore</span>
               <span className="block text-xs text-bolt-elements-textTertiary">SaaS workspace</span>
             </div>
           </div>
-          <nav className="space-y-6 p-3" aria-label="Application navigation">
-            <NavGroup items={appNav} />
+          <nav className={classNames('space-y-6 p-3', sidebarCollapsed && 'px-2')} aria-label="Application navigation">
+            <NavGroup items={appNav} collapsed={sidebarCollapsed} />
             <div>
-              <p className="px-3 pb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">Account</p>
-              <NavGroup items={accountNav} />
-              <div className="mt-2 px-1">
-                <SignOutButton className="w-full justify-start" />
+              {!sidebarCollapsed ? (
+                <p className="px-3 pb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">Account</p>
+              ) : (
+                <div className="mx-auto mb-2 h-px w-8 bg-bolt-elements-borderColor" aria-hidden />
+              )}
+              <NavGroup items={accountNav} collapsed={sidebarCollapsed} />
+              <div className={classNames('mt-2 px-1', sidebarCollapsed && 'px-0')}>
+                <SignOutButton
+                  className={classNames('w-full', sidebarCollapsed ? 'justify-center px-0' : 'justify-start')}
+                  compact={sidebarCollapsed}
+                  iconOnly={sidebarCollapsed}
+                />
               </div>
             </div>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className={classNames(
+                'flex h-9 w-full items-center rounded-md border border-bolt-elements-borderColor text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3',
+              )}
+              aria-label={sidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
+              title={sidebarCollapsed ? 'Expand menu' : 'Collapse menu'}
+            >
+              {!sidebarCollapsed ? <span>Collapse</span> : null}
+              {sidebarCollapsed ? (
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              ) : (
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+              )}
+            </button>
           </nav>
         </aside>
         <section className="min-w-0">
           <TopBar />
           <MobileAppNav />
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
-            <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="mb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">
-                    Workspace console
-                  </p>
-                  <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">{title}</h1>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">{description}</p>
+            {!hideHeader ? (
+              <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">
+                      Workspace console
+                    </p>
+                    <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">{title}</h1>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-bolt-elements-textSecondary">{description}</p>
+                  </div>
+                  {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
                 </div>
-                {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
               </div>
-            </div>
+            ) : null}
             {children}
           </div>
         </section>
@@ -340,10 +493,20 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="h-24 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
-              <div className="mb-2 h-2 w-2/3 rounded bg-bolt-elements-background-depth-3" />
-              <div className="mb-2 h-2 w-1/2 rounded bg-bolt-elements-background-depth-3" />
-              <div className="h-2 w-5/6 rounded bg-bolt-elements-background-depth-3" />
+            <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C] shadow-[0_4px_12px_rgba(0,4,20,0.35)]">
+              <ProjectPreviewFallback project={project} />
+              {project.previewImageUrl ? (
+                <img
+                  src={project.previewImageUrl}
+                  alt={`Latest homepage preview for ${project.name}`}
+                  className="relative z-[1] h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.015]"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-[#0A0F1C]/20 via-transparent to-white/[0.03]" />
             </div>
             <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
               <span>Updated {project.updated ?? 'recently'}</span>
@@ -361,6 +524,28 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
   );
 }
 
+function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
+  return (
+    <div className="absolute inset-0 p-3">
+      <div className="flex h-full flex-col rounded-[6px] border border-[#1A2030] bg-[#0E1525]">
+        <div className="flex h-7 items-center gap-1.5 border-b border-[#1A2030] px-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#F85149]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#D29922]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[#3FB950]" />
+          <span className="ml-2 h-2 flex-1 rounded bg-[#1A2030]" />
+        </div>
+        <div className="flex flex-1 flex-col justify-center gap-2 px-4">
+          <span className="h-2 w-16 rounded-full bg-gradient-to-r from-[#7B61FF] to-[#0099FF]" />
+          <span className="h-3 w-2/3 rounded bg-[#1A2030]" />
+          <span className="h-2 w-4/5 rounded bg-[#1A2030]" />
+          <span className="h-2 w-1/2 rounded bg-[#1A2030]" />
+          <span className="sr-only">Fallback homepage preview for {project.name}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TemplateGallery({
   compact = false,
   mode = 'public',
@@ -373,8 +558,38 @@ export function TemplateGallery({
       {templates.map((template) => (
         <Card
           key={template.name}
-          className="border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
+          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
         >
+          <div className="relative m-3 mb-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C] p-3">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(0,153,255,0.18),transparent_34%),radial-gradient(circle_at_85%_10%,rgba(123,97,255,0.16),transparent_32%)]" />
+            <div className="relative flex h-20 items-center justify-center gap-3">
+              {template.providers.map((provider, index) => {
+                const Logo = provider.Logo;
+
+                return (
+                  <div
+                    key={provider.name}
+                    className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#2B3245] bg-[#0E1525] shadow-[0_4px_12px_rgba(0,4,20,0.5)] transition-transform duration-150 group-hover:-translate-y-0.5"
+                    style={{ transitionDelay: `${index * 35}ms` }}
+                    title={provider.name}
+                    aria-label={`${provider.name} logo`}
+                  >
+                    <Logo className="h-6 w-6" style={{ color: provider.color }} aria-hidden />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="relative mt-2 flex items-center justify-center gap-1.5">
+              {template.providers.map((provider) => (
+                <span
+                  key={provider.name}
+                  className="rounded-full border border-[#2B3245] bg-[#1A2030] px-2 py-0.5 text-[10px] font-medium text-[#C2C8CC]"
+                >
+                  {provider.name}
+                </span>
+              ))}
+            </div>
+          </div>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-lg">{template.name}</CardTitle>
@@ -592,7 +807,15 @@ function TopBar() {
   );
 }
 
-export function SignOutButton({ className, compact = false }: { className?: string; compact?: boolean }) {
+export function SignOutButton({
+  className,
+  compact = false,
+  iconOnly = false,
+}: {
+  className?: string;
+  compact?: boolean;
+  iconOnly?: boolean;
+}) {
   return (
     <Form method="post" action="/logout">
       <button
@@ -602,15 +825,22 @@ export function SignOutButton({ className, compact = false }: { className?: stri
           className,
         )}
         aria-label="Sign out"
+        title={iconOnly ? 'Sign out' : undefined}
       >
         <LogOut className="h-4 w-4" aria-hidden />
-        {!compact ? <span>Sign out</span> : <span className="hidden sm:inline">Sign out</span>}
+        {iconOnly ? null : !compact ? <span>Sign out</span> : <span className="hidden sm:inline">Sign out</span>}
       </button>
     </Form>
   );
 }
 
-function NavGroup({ items }: { items: Array<{ label: string; to: string; icon: Icon }> }) {
+function NavGroup({
+  items,
+  collapsed = false,
+}: {
+  items: Array<{ label: string; to: string; icon: Icon }>;
+  collapsed?: boolean;
+}) {
   return (
     <div className="grid gap-1">
       {items.map((item) => {
@@ -621,15 +851,18 @@ function NavGroup({ items }: { items: Array<{ label: string; to: string; icon: I
             to={item.to}
             className={({ isActive }) =>
               classNames(
-                'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                'flex h-9 items-center rounded-md text-sm transition-colors',
+                collapsed ? 'justify-center px-0' : 'gap-2 px-3',
                 isActive
                   ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
                   : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
               )
             }
+            aria-label={collapsed ? item.label : undefined}
+            title={collapsed ? item.label : undefined}
           >
-            <Icon className="h-4 w-4" aria-hidden />
-            {item.label}
+            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+            {!collapsed ? <span className="truncate">{item.label}</span> : null}
           </NavLink>
         );
       })}

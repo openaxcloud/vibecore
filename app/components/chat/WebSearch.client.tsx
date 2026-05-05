@@ -116,8 +116,9 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
       {isOpen && (
         <div
           className={classNames(
-            'absolute bottom-full left-0 mb-2 flex items-center gap-2',
+            'absolute bottom-full left-0 mb-2 flex w-[min(420px,calc(100vw-40px))] max-w-[calc(100vw-40px)] items-center gap-2',
             'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-lg',
+            'bolt-web-url-panel',
           )}
         >
           <input
@@ -137,7 +138,7 @@ export function WebSearch({ onSearchResult, disabled = false }: WebSearchProps) 
             placeholder="https://example.com"
             disabled={isSearching}
             className={classNames(
-              'w-[300px] px-3 py-1.5 text-sm rounded-md',
+              'min-w-0 flex-1 px-3 py-1.5 text-sm rounded-md',
               'border border-bolt-elements-borderColor',
               'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
               'placeholder-bolt-elements-textTertiary',

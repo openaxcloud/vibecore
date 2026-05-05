@@ -49,7 +49,7 @@ export function McpTools() {
     <div className="relative">
       <div className="flex">
         <IconButton
-          onClick={() => setIsDialogOpen(!isDialogOpen)}
+          onClick={() => setIsDialogOpen(true)}
           title="MCP Tools Available"
           disabled={!isInitialized}
           className="transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -64,62 +64,64 @@ export function McpTools() {
 
       <DialogRoot open={isDialogOpen} onOpenChange={handleDialogOpen}>
         {isDialogOpen && (
-          <Dialog className="max-w-4xl w-full p-6">
-            <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
-              <DialogTitle>
-                <div className="i-bolt:mcp text-xl"></div>
-                MCP tools
-              </DialogTitle>
+          <Dialog className="w-[860px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-hidden">
+            <div className="w-full max-h-[calc(100vh-24px)] min-h-0 flex flex-col overflow-hidden">
+              <header className="flex items-start justify-between gap-4 border-b border-bolt-elements-borderColor px-5 py-4 pr-12">
+                <div className="min-w-0">
+                  <DialogTitle>
+                    <div className="i-bolt:mcp text-xl"></div>
+                    MCP tools
+                  </DialogTitle>
+                  <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                    View and refresh the MCP tools available to the agent.
+                  </p>
+                </div>
 
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-end items-center mb-2">
-                    <button
-                      onClick={checkServerAvailability}
-                      disabled={isCheckingServers || serverEntries.length === 0}
-                      className={classNames(
-                        'px-3 py-1.5 rounded-lg text-sm',
-                        'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
-                        'text-bolt-elements-textPrimary',
-                        'transition-all duration-200',
-                        'flex items-center gap-2',
-                        'disabled:opacity-50 disabled:cursor-not-allowed',
-                      )}
-                    >
-                      {isCheckingServers ? (
-                        <div className="i-svg-spinners:90-ring-with-bg w-3 h-3 text-bolt-elements-loader-progress animate-spin" />
-                      ) : (
-                        <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
-                      )}
-                      Check availability
-                    </button>
-                  </div>
-                  {serverEntries.length > 0 ? (
-                    <McpServerList
-                      checkingServers={isCheckingServers}
-                      expandedServer={expandedServer}
-                      serverEntries={serverEntries}
-                      onlyShowAvailableServers={true}
-                      toggleServerExpanded={toggleServerExpanded}
-                    />
-                  ) : (
-                    <div className="py-4 text-center text-bolt-elements-textSecondary">
-                      <p>No MCP servers configured</p>
-                      <p className="text-xs mt-1">Configure servers in Settings → MCP Servers</p>
-                    </div>
+                <button
+                  onClick={checkServerAvailability}
+                  disabled={isCheckingServers || serverEntries.length === 0}
+                  className={classNames(
+                    'shrink-0 px-3 py-1.5 rounded-lg text-sm',
+                    'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
+                    'text-bolt-elements-textPrimary',
+                    'transition-all duration-200',
+                    'flex items-center gap-2',
+                    'disabled:opacity-50 disabled:cursor-not-allowed',
                   )}
-                </div>
+                >
+                  {isCheckingServers ? (
+                    <div className="i-svg-spinners:90-ring-with-bg w-3 h-3 text-bolt-elements-loader-progress animate-spin" />
+                  ) : (
+                    <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
+                  )}
+                  Check availability
+                </button>
+              </header>
 
-                <div>{error && <p className="mt-2 text-sm text-bolt-elements-icon-error">{error}</p>}</div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 custom-scrollbar">
+                {serverEntries.length > 0 ? (
+                  <McpServerList
+                    checkingServers={isCheckingServers}
+                    expandedServer={expandedServer}
+                    serverEntries={serverEntries}
+                    onlyShowAvailableServers={true}
+                    toggleServerExpanded={toggleServerExpanded}
+                  />
+                ) : (
+                  <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 py-8 text-center text-bolt-elements-textSecondary">
+                    <p>No MCP servers configured</p>
+                    <p className="text-xs mt-1">Configure servers in Settings → MCP Servers</p>
+                  </div>
+                )}
+
+                {error && <p className="mt-4 text-sm text-bolt-elements-icon-error">{error}</p>}
               </div>
 
-              <div className="flex justify-end gap-2 mt-6">
-                <div className="flex gap-2">
-                  <DialogClose asChild>
-                    <DialogButton type="secondary">Close</DialogButton>
-                  </DialogClose>
-                </div>
-              </div>
+              <footer className="flex justify-end gap-2 border-t border-bolt-elements-borderColor px-5 py-3">
+                <DialogClose asChild>
+                  <DialogButton type="secondary">Close</DialogButton>
+                </DialogClose>
+              </footer>
             </div>
           </Dialog>
         )}

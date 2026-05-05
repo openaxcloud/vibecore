@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AiGateway, modelDisallowsTemperature } from './gateway.js';
+import { AiGateway, countTokens, ensureGptTokenizer, modelDisallowsTemperature } from './gateway.js';
 
 async function startProvider(responder: (body: string, response: import('node:http').ServerResponse) => void) {
   const server = createServer((request, response) => {
@@ -33,6 +33,14 @@ afterEach(async () => {
 });
 
 describe('AiGateway', () => {
+  it('counts tokens with the BPE tokenizer before falling back to character estimates', async () => {
+    await ensureGptTokenizer();
+
+    expect(countTokens('hello world')).toBe(2);
+    expect(countTokens('antidisestablishmentarianism')).toBe(6);
+    expect(countTokens([{ role: 'user', content: 'hello world' }])).toBe(2);
+  });
+
   it('routes by plan and falls back to the next configured provider', async () => {
     const failing = await startProvider((_body, response) => {
       response.writeHead(503).end('down');
@@ -100,6 +108,31 @@ describe('AiGateway', () => {
     expect(chunks.at(-1)?.type).toBe('done');
   });
 
+  it('does not inject temperature into OpenAI-compatible requests', async () => {
+    const provider = await startProvider((body, response) => {
+      const payload = JSON.parse(body);
+      expect(payload.model).toBe('gpt-4.1');
+      expect(payload).not.toHaveProperty('temperature');
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ choices: [{ message: { content: 'temperature omitted' } }] }));
+    });
+    servers.push(provider.server);
+    process.env.OPENAI_API_KEY = 'openai-key';
+    process.env.OPENAI_BASE_URL = provider.url;
+
+    const gateway = new AiGateway();
+    const result = await gateway.complete({
+      plan: 'pro',
+      provider: 'openai',
+      model: 'gpt-4.1',
+      temperature: 0,
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+
+    expect(result.content).toBe('temperature omitted');
+  });
+
   it('does not send deprecated temperature to Claude Opus 4.7', async () => {
     const provider = await startProvider((body, response) => {
       const payload = JSON.parse(body);
@@ -126,5 +159,15 @@ describe('AiGateway', () => {
 
     expect(modelDisallowsTemperature('claude-opus-4-7')).toBe(true);
     expect(result.content).toBe('temperature omitted');
+  });
+
+  it('omits temperature for all gateway models by default', () => {
+    expect(modelDisallowsTemperature('claude-3-5-sonnet-latest')).toBe(true);
+    expect(modelDisallowsTemperature('claude-3-7-sonnet-latest')).toBe(true);
+    expect(modelDisallowsTemperature('claude-sonnet-4-6')).toBe(true);
+    expect(modelDisallowsTemperature('claude-sonnet-4-5-20250929')).toBe(true);
+    expect(modelDisallowsTemperature('claude-haiku-4-5-20251001')).toBe(true);
+    expect(modelDisallowsTemperature('gpt-4.1')).toBe(true);
+    expect(modelDisallowsTemperature('gemini-2.0-flash')).toBe(true);
   });
 });

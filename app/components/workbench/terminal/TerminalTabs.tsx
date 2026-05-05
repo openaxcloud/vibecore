@@ -15,7 +15,11 @@ const logger = createScopedLogger('Terminal');
 const MAX_TERMINALS = 3;
 export const DEFAULT_TERMINAL_SIZE = 25;
 
-export const TerminalTabs = memo(() => {
+interface TerminalTabsProps {
+  panelDefaultSize?: number;
+}
+
+export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: TerminalTabsProps) => {
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
 
@@ -90,11 +94,11 @@ export const TerminalTabs = memo(() => {
     if (!showTerminal && !isCollapsed) {
       terminal.collapse();
     } else if (showTerminal && isCollapsed) {
-      terminal.resize(DEFAULT_TERMINAL_SIZE);
+      terminal.resize(panelDefaultSize);
     }
 
     terminalToggledByShortcut.current = false;
-  }, [showTerminal]);
+  }, [panelDefaultSize, showTerminal]);
 
   useEffect(() => {
     const unsubscribeFromEventEmitter = shortcutEventEmitter.on('toggleTerminal', () => {
@@ -116,7 +120,7 @@ export const TerminalTabs = memo(() => {
   return (
     <Panel
       ref={terminalPanelRef}
-      defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
+      defaultSize={showTerminal ? panelDefaultSize : 0}
       minSize={10}
       collapsible
       onExpand={() => {
@@ -232,6 +236,8 @@ export const TerminalTabs = memo(() => {
                     ref={(ref) => {
                       if (ref) {
                         terminalRefs.current.set(index, ref);
+                      } else {
+                        terminalRefs.current.delete(index);
                       }
                     }}
                     onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
@@ -256,6 +262,8 @@ export const TerminalTabs = memo(() => {
                     ref={(ref) => {
                       if (ref) {
                         terminalRefs.current.set(index, ref);
+                      } else {
+                        terminalRefs.current.delete(index);
                       }
                     }}
                     onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}

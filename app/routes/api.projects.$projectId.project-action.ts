@@ -1,4 +1,5 @@
 import {
+  apiErrorMessage,
   apiRequest,
   formObject,
   json,
@@ -19,10 +20,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: 'Unsupported project action' }, { status: 404 });
   }
 
-  const exported = await apiRequest<{ archive?: { base64?: string; storageKey?: string; byteLength?: number } }>(
-    request,
-    `/projects/${projectId}/export/zip`,
-  );
+  let exported: { archive?: { base64?: string; storageKey?: string; byteLength?: number } };
+
+  try {
+    exported = await apiRequest<{ archive?: { base64?: string; storageKey?: string; byteLength?: number } }>(
+      request,
+      `/projects/${projectId}/export/zip`,
+    );
+  } catch (error) {
+    const message = await apiErrorMessage(error, 'Project export failed');
+    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+
+    throw json(
+      {
+        ok: false,
+        error: message,
+        code: status === 401 || status === 403 ? 'PROJECT_EXPORT_AUTH_REQUIRED' : 'PROJECT_EXPORT_UNAVAILABLE',
+      },
+      { status },
+    );
+  }
+
   const base64 = exported.archive?.base64;
 
   if (!base64) {

@@ -16,7 +16,7 @@ import type {
   StepStartUIPart,
 } from '@ai-sdk/ui-utils';
 import { ToolInvocations } from './ToolInvocations';
-import type { ToolCallAnnotation } from '~/types/context';
+import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
 
 interface AssistantMessageProps {
   content: string;
@@ -91,6 +91,13 @@ export const AssistantMessage = memo(
       codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
     }
 
+    const agentOrchestration = filteredAnnotations.find((annotation) => annotation.type === 'agentOrchestration') as
+      | Extract<ContextAnnotation, { type: 'agentOrchestration' }>
+      | undefined;
+    const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
+      | Extract<ContextAnnotation, { type: 'agentExecution' }>
+      | undefined;
+
     const usage: {
       completionTokens: number;
       promptTokens: number;
@@ -103,45 +110,91 @@ export const AssistantMessage = memo(
     ) as ToolCallAnnotation[];
 
     return (
-      <div className="overflow-hidden w-full">
+      <div className="bolt-assistant-message overflow-hidden w-full">
         <>
-          <div className=" flex gap-2 items-center text-sm text-bolt-elements-textSecondary mb-2">
-            {(codeContext || chatSummary) && (
+          <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
+            {(codeContext || chatSummary || agentOrchestration || agentExecution) && (
               <Popover side="right" align="start" trigger={<div className="i-ph:info" />}>
-                {chatSummary && (
-                  <div className="max-w-chat">
+                <div className="max-w-chat">
+                  {agentExecution && (
+                    <div className="agent-execution flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                      <div>
+                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Sub-agent execution</h2>
+                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                          Run {agentExecution.runId} finished with status {agentExecution.status}
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        {agentExecution.results.map((result) => (
+                          <div
+                            key={result.roleId}
+                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                          >
+                            <div className="text-xs font-medium text-bolt-elements-textPrimary">
+                              {result.roleId} · {result.status}
+                            </div>
+                            <div className="text-xs text-bolt-elements-textSecondary mt-1">{result.summary}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {agentOrchestration && (
+                    <div className="agent-orchestration flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                      <div>
+                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Agent orchestration</h2>
+                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                          {agentOrchestration.mode === 'parallel-subagents'
+                            ? 'Parallel specialist agents planned'
+                            : 'Specialist lanes planned inside the active model'}
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        {agentOrchestration.roles.map((role) => (
+                          <div
+                            key={role.id}
+                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                          >
+                            <div className="text-xs font-medium text-bolt-elements-textPrimary">{role.title}</div>
+                            <div className="text-xs text-bolt-elements-textSecondary mt-1">{role.responsibility}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {chatSummary && (
                     <div className="summary max-h-96 flex flex-col">
                       <h2 className="border border-bolt-elements-borderColor rounded-md p4">Summary</h2>
                       <div style={{ zoom: 0.7 }} className="overflow-y-auto m4">
                         <Markdown>{chatSummary}</Markdown>
                       </div>
                     </div>
-                    {codeContext && (
-                      <div className="code-context flex flex-col p4 border border-bolt-elements-borderColor rounded-md">
-                        <h2>Context</h2>
-                        <div className="flex gap-4 mt-4 bolt" style={{ zoom: 0.6 }}>
-                          {codeContext.map((x) => {
-                            const normalized = normalizedFilePath(x);
-                            return (
-                              <Fragment key={normalized}>
-                                <code
-                                  className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    openArtifactInWorkbench(normalized);
-                                  }}
-                                >
-                                  {normalized}
-                                </code>
-                              </Fragment>
-                            );
-                          })}
-                        </div>
+                  )}
+                  {codeContext && (
+                    <div className="code-context flex flex-col p4 border border-bolt-elements-borderColor rounded-md">
+                      <h2>Context</h2>
+                      <div className="flex gap-4 mt-4 bolt" style={{ zoom: 0.6 }}>
+                        {codeContext.map((x) => {
+                          const normalized = normalizedFilePath(x);
+                          return (
+                            <Fragment key={normalized}>
+                              <code
+                                className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  openArtifactInWorkbench(normalized);
+                                }}
+                              >
+                                {normalized}
+                              </code>
+                            </Fragment>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
                 <div className="context"></div>
               </Popover>
             )}
@@ -152,13 +205,13 @@ export const AssistantMessage = memo(
                 </div>
               )}
               {(onRewind || onFork) && messageId && (
-                <div className="flex gap-2 flex-col lg:flex-row ml-auto">
+                <div className="flex gap-1.5 flex-col lg:flex-row ml-auto">
                   {onRewind && (
                     <WithTooltip tooltip="Revert to this message">
                       <button
                         onClick={() => onRewind(messageId)}
                         key="i-ph:arrow-u-up-left"
-                        className="i-ph:arrow-u-up-left text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+                        className="i-ph:arrow-u-up-left text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
                       />
                     </WithTooltip>
                   )}
@@ -167,7 +220,7 @@ export const AssistantMessage = memo(
                       <button
                         onClick={() => onFork(messageId)}
                         key="i-ph:git-fork"
-                        className="i-ph:git-fork text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+                        className="i-ph:git-fork text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
                       />
                     </WithTooltip>
                   )}

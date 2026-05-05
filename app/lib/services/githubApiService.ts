@@ -29,6 +29,9 @@ export interface GitHubApiError {
 export class GitHubApiServiceClass {
   private _config: GitHubApiServiceConfig;
   private _baseURL: string;
+  private _statsCache = new Map<string, { expiresAt: number; value: GitHubStats }>();
+  private _userCache = new Map<string, { expiresAt: number; value: { user: GitHubUserResponse; rateLimit: any } }>();
+  private _cacheTtlMs = 5 * 60 * 1000;
 
   constructor(config: GitHubApiServiceConfig = {}) {
     this._config = config;
@@ -41,6 +44,17 @@ export class GitHubApiServiceClass {
   configure(config: GitHubApiServiceConfig): void {
     this._config = { ...this._config, ...config };
     this._baseURL = config.baseURL || this._baseURL;
+  }
+
+  private _cacheKey(token: string, tokenType: 'classic' | 'fine-grained') {
+    let hash = 2166136261;
+
+    for (let i = 0; i < token.length; i++) {
+      hash ^= token.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return `${this._baseURL}:${tokenType}:${token.length}:${(hash >>> 0).toString(36)}`;
   }
 
   private async _makeRequestInternal<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -410,6 +424,13 @@ export class GitHubApiServiceClass {
     token: string,
     tokenType: 'classic' | 'fine-grained' = 'classic',
   ): Promise<{ user: GitHubUserResponse; rateLimit: any }> {
+    const cacheKey = this._cacheKey(token, tokenType);
+    const cached = this._userCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
     this.configure({ token, tokenType });
 
     const [user, rateLimit] = await Promise.all([
@@ -417,32 +438,50 @@ export class GitHubApiServiceClass {
       this._makeRequestInternal('/rate_limit'),
     ]);
 
-    return { user, rateLimit };
+    const value = { user, rateLimit };
+    this._userCache.set(cacheKey, { expiresAt: Date.now() + this._cacheTtlMs, value });
+
+    return value;
   }
 
   /**
    * Fetch comprehensive GitHub stats for authenticated user
    */
   async fetchStats(token: string, tokenType: 'classic' | 'fine-grained' = 'classic'): Promise<GitHubStats> {
+    const cacheKey = this._cacheKey(token, tokenType);
+    const cached = this._statsCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value;
+    }
+
     this.configure({ token, tokenType });
 
     const user = await this.getAuthenticatedUser();
 
-    return this.generateComprehensiveStats(user);
+    const stats = await this.generateComprehensiveStats(user);
+    this._statsCache.set(cacheKey, { expiresAt: Date.now() + this._cacheTtlMs, value: stats });
+
+    return stats;
   }
 
   /**
    * Clear all cached data
    */
   clearCache(): void {
-    // This is a placeholder - implement caching if needed
+    this._statsCache.clear();
+    this._userCache.clear();
   }
 
   /**
    * Clear user-specific cache
    */
-  clearUserCache(_token: string): void {
-    // This is a placeholder - implement user-specific caching if needed
+  clearUserCache(token: string): void {
+    for (const tokenType of ['classic', 'fine-grained'] as const) {
+      const cacheKey = this._cacheKey(token, tokenType);
+      this._statsCache.delete(cacheKey);
+      this._userCache.delete(cacheKey);
+    }
   }
 }
 

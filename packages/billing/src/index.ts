@@ -140,7 +140,15 @@ export const billingPlans: BillingPlan[] = [
       'terminals.concurrent': 10_000,
       'api.rateLimitPerMinute': 100_000,
     },
-    features: ['SSO/SAML/OIDC', 'SCIM', 'custom quotas', 'audit export', 'IP allowlist', 'premium support', 'private deployment option'],
+    features: [
+      'SSO/SAML/OIDC',
+      'SCIM',
+      'custom quotas',
+      'audit export',
+      'IP allowlist',
+      'premium support',
+      'private deployment option',
+    ],
   },
 ];
 
@@ -163,7 +171,13 @@ export function assertQuota(input: { key: QuotaKey; used: number; limit: number;
   }
 }
 
-export function verifyStripeSignature(input: { payload: string; signatureHeader?: string; secret: string; toleranceSeconds?: number; nowSeconds?: number }) {
+export function verifyStripeSignature(input: {
+  payload: string;
+  signatureHeader?: string;
+  secret: string;
+  toleranceSeconds?: number;
+  nowSeconds?: number;
+}) {
   if (!input.signatureHeader) {
     throw Object.assign(new Error('Missing Stripe signature'), { statusCode: 400, code: 'STRIPE_SIGNATURE_MISSING' });
   }
@@ -178,7 +192,10 @@ export function verifyStripeSignature(input: { payload: string; signatureHeader?
   const signature = values.v1;
 
   if (!timestamp || !signature) {
-    throw Object.assign(new Error('Invalid Stripe signature header'), { statusCode: 400, code: 'STRIPE_SIGNATURE_INVALID' });
+    throw Object.assign(new Error('Invalid Stripe signature header'), {
+      statusCode: 400,
+      code: 'STRIPE_SIGNATURE_INVALID',
+    });
   }
 
   const now = input.nowSeconds ?? Math.floor(Date.now() / 1000);
@@ -205,7 +222,15 @@ export class StripeBillingClient {
     },
   ) {}
 
-  async createCheckoutSession(input: { customerId: string; priceId: string; successUrl: string; cancelUrl: string; organizationId: string; trialDays?: number }) {
+  async createCheckoutSession(input: {
+    customerId: string;
+    priceId: string;
+    planKey: PlanKey;
+    successUrl: string;
+    cancelUrl: string;
+    organizationId: string;
+    trialDays?: number;
+  }) {
     return this.postForm('/v1/checkout/sessions', {
       mode: 'subscription',
       customer: input.customerId,
@@ -214,6 +239,11 @@ export class StripeBillingClient {
       'line_items[0][price]': input.priceId,
       'line_items[0][quantity]': '1',
       'metadata[organizationId]': input.organizationId,
+      'metadata[planKey]': input.planKey,
+      'metadata[priceId]': input.priceId,
+      'subscription_data[metadata][organizationId]': input.organizationId,
+      'subscription_data[metadata][planKey]': input.planKey,
+      'subscription_data[metadata][priceId]': input.priceId,
       ...(input.trialDays ? { 'subscription_data[trial_period_days]': String(input.trialDays) } : {}),
     });
   }
@@ -233,6 +263,34 @@ export class StripeBillingClient {
     });
   }
 
+  async createProduct(input: { name: string; planKey: PlanKey; description?: string }) {
+    return this.postForm('/v1/products', {
+      name: input.name,
+      ...(input.description ? { description: input.description } : {}),
+      'metadata[planKey]': input.planKey,
+    });
+  }
+
+  async createRecurringPrice(input: { productId: string; planKey: PlanKey; unitAmountCents: number; currency?: string; interval?: 'month' | 'year' }) {
+    return this.postForm('/v1/prices', {
+      product: input.productId,
+      currency: input.currency ?? 'usd',
+      unit_amount: String(input.unitAmountCents),
+      'recurring[interval]': input.interval ?? 'month',
+      'metadata[planKey]': input.planKey,
+    });
+  }
+
+  async findProductByPlanKey(planKey: PlanKey) {
+    const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];
+  }
+
+  async findActivePriceForProduct(productId: string, planKey: PlanKey) {
+    const response = await this.getJson(`/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
+  }
+
   private async postForm(path: string, fields: Record<string, string>) {
     const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
       method: 'POST',
@@ -245,9 +303,32 @@ export class StripeBillingClient {
     const body = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw Object.assign(new Error(`Stripe request failed: ${response.status}`), { statusCode: 502, code: 'STRIPE_REQUEST_FAILED', stripeError: body });
+      throw Object.assign(new Error(`Stripe request failed: ${response.status}`), {
+        statusCode: 502,
+        code: 'STRIPE_REQUEST_FAILED',
+        stripeError: body,
+      });
     }
 
     return body as { id: string; url?: string };
+  }
+
+  private async getJson(path: string) {
+    const response = await fetch(`${this.input.baseUrl ?? 'https://api.stripe.com'}${path}`, {
+      headers: {
+        authorization: `Bearer ${this.input.apiKey}`,
+      },
+    });
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw Object.assign(new Error(`Stripe request failed: ${response.status}`), {
+        statusCode: 502,
+        code: 'STRIPE_REQUEST_FAILED',
+        stripeError: body,
+      });
+    }
+
+    return body;
   }
 }

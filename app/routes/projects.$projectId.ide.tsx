@@ -2,7 +2,7 @@ import { type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflar
 import { useLoaderData } from '@remix-run/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { Link } from '@remix-run/react';
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { useStore } from '@nanostores/react';
 import {
   Bell,
@@ -10,19 +10,24 @@ import {
   CircleHelp,
   Copy,
   Download,
+  Files,
+  Home,
   PenLine,
+  Play,
   Rocket,
   Settings,
   Share2,
-  Sparkles,
+  Square,
   Trash2,
   User,
 } from 'lucide-react';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { Chat } from '~/components/chat/Chat.client';
-import { apiRequest, json } from '~/lib/enterprise-api.server';
+import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
+import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
+
+const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
 
 type ProjectLoaderData = {
   projectId: string;
@@ -32,6 +37,7 @@ type ProjectLoaderData = {
   };
   collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
   notifications: Array<{ action: string; createdAt?: string }>;
+  projectApiError?: string;
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -44,50 +50,61 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response('Project not found', { status: 404 });
   }
 
+  const projectId = params.projectId;
+
   try {
-    const [result, collaboratorsResult, dashboardResult] = await Promise.all([
-      apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${params.projectId}`),
+    const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
+    const [collaboratorsResult, dashboardResult] = await Promise.all([
       apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
         request,
-        `/projects/${params.projectId}/collaborators`,
-      ),
+        `/projects/${projectId}/collaborators`,
+      ).catch(() => ({ collaborators: [] })),
       apiRequest<{ recentActivity?: ProjectLoaderData['notifications'] }>(
         request,
-        `/projects/${params.projectId}/dashboard`,
-      ),
+        `/projects/${projectId}/dashboard`,
+      ).catch(() => ({ recentActivity: [] })),
     ]);
 
     return json<ProjectLoaderData>({
-      projectId: params.projectId,
+      projectId,
       project: result.project,
       collaborators: collaboratorsResult.collaborators ?? [],
       notifications: dashboardResult.recentActivity ?? [],
     });
-  } catch {
+  } catch (error) {
+    const message = await apiErrorMessage(error, 'Project API unavailable');
+
     return json<ProjectLoaderData>({
-      projectId: params.projectId,
-      project: { id: params.projectId, name: params.projectId },
+      projectId,
+      project: { id: projectId, name: projectId },
       collaborators: [],
       notifications: [],
+      projectApiError: message,
     });
   }
 };
 
 export default function ProjectIdeRoute() {
-  const { projectId, project, collaborators, notifications } = useLoaderData<typeof loader>();
+  const { projectId, project, collaborators, notifications, projectApiError } = useLoaderData<typeof loader>();
 
   return (
-    <ProjectWorkspaceProvider projectId={projectId}>
-      <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden bg-[#0A0F1C] text-[#F5F9FC]">
+    <ProjectWorkspaceProvider projectId={projectId} initialError={projectApiError}>
+      <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden">
         <IdeProjectTopBar
           projectId={projectId}
           projectName={project.name}
           collaborators={collaborators}
           notifications={notifications}
         />
-        <main className="h-dvh pt-9">
+        <main className="h-dvh pt-11">
           <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
-            {() => <Chat forceWorkbench projectIdeMode projectId={projectId} />}
+            {() => (
+              <PanelBoundary title="Bolt IDE">
+                <Suspense fallback={<PanelLoading title="Loading Bolt IDE..." />}>
+                  <ProjectIdeChat forceWorkbench projectIdeMode projectId={projectId} />
+                </Suspense>
+              </PanelBoundary>
+            )}
           </ClientOnly>
         </main>
       </div>
@@ -109,9 +126,12 @@ function IdeProjectTopBar({
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
+  const previews = useStore(workbenchStore.previews);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [filesPanelOpen, setFilesPanelOpen] = useState(true);
+  const previewRunning = previews.length > 0;
   const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
   const statusLabel =
     state === 'building'
@@ -122,30 +142,50 @@ function IdeProjectTopBar({
           ? 'Running'
           : 'Stopped';
 
+  useEffect(() => {
+    const handleFilesPanelState = (event: Event) => {
+      const nextOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
+
+      if (typeof nextOpen === 'boolean') {
+        setFilesPanelOpen(nextOpen);
+      }
+    };
+
+    window.addEventListener('vibecore:project-files-panel-state', handleFilesPanelState);
+
+    return () => window.removeEventListener('vibecore:project-files-panel-state', handleFilesPanelState);
+  }, []);
+
   return (
-    <header className="fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b border-[#1A2030] bg-[#0E1525] px-2.5 text-[12px]">
-      <div className="flex min-w-0 items-center gap-1.5">
-        <Link
-          to="/dashboard"
-          className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
-          aria-label="VibeCore dashboard"
-        >
-          <Sparkles className="h-5 w-5 text-[#7B61FF]" aria-hidden />
+    <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-11 w-screen items-center justify-between border-b px-2 text-[12px]">
+      <div className="bolt-project-topbar-left">
+        <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="VibeCore dashboard">
+          <Home className="h-4 w-4" aria-hidden />
         </Link>
+        <div className="bolt-project-topbar-brand" aria-label="Project">
+          <span>E-Code</span>
+          <span aria-hidden>/</span>
+        </div>
         <details
           className="relative"
           open={projectMenuOpen}
           onToggle={(event) => setProjectMenuOpen(event.currentTarget.open)}
         >
-          <summary className="inline-flex h-6 max-w-[220px] cursor-pointer list-none items-center gap-1 rounded px-1.5 text-[13px] font-medium text-[#F5F9FC] hover:bg-[#1A2030]">
+          <summary className="bolt-project-name-trigger">
             <span className="truncate">{projectName}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-[#6E7681]" aria-hidden />
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden />
           </summary>
           {projectMenuOpen && (
             <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[#2B3245] bg-[#1A2030] p-1.5 shadow-[0_24px_64px_rgba(0,4,20,0.7)]">
               <ProjectMenuItem
                 to={`/projects/${projectId}/ide?panel=settings`}
                 icon={<Settings className="h-3.5 w-3.5" />}
+                onClick={() => {
+                  setProjectMenuOpen(false);
+                  window.dispatchEvent(
+                    new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'settings' } }),
+                  );
+                }}
               >
                 Settings
               </ProjectMenuItem>
@@ -190,10 +230,7 @@ function IdeProjectTopBar({
             </div>
           )}
         </details>
-        <Link
-          to={`/projects/${projectId}/ide?panel=logs`}
-          className="inline-flex h-6 items-center gap-1.5 rounded px-1.5 text-[11px] text-[#C2C8CC] hover:bg-[#1A2030]"
-        >
+        <Link to={`/projects/${projectId}/ide?panel=logs`} className="bolt-project-runtime-status">
           <span className="relative flex h-2 w-2">
             {state === 'building' && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D29922] opacity-75" />
@@ -216,18 +253,14 @@ function IdeProjectTopBar({
         </Link>
       </div>
       <div aria-hidden className="flex-1" />
-      <div className="flex items-center gap-1.5">
-        <Link
-          to="/support"
-          className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
-          aria-label="Help"
-        >
+      <div className="bolt-project-topbar-actions">
+        <Link to="/support" className="bolt-project-topbar-icon-button" aria-label="Help">
           <CircleHelp className="h-3.5 w-3.5" aria-hidden />
         </Link>
         <div className="relative">
           <button
             type="button"
-            className="relative inline-flex h-6 w-6 items-center justify-center rounded hover:bg-[#1A2030]"
+            className="bolt-project-topbar-icon-button relative"
             aria-label="Notifications"
             aria-expanded={notificationsOpen}
             onClick={() => setNotificationsOpen((value) => !value)}
@@ -289,17 +322,37 @@ function IdeProjectTopBar({
             </span>
           )}
         </div>
-        <Link
-          to={`/projects/${projectId}/ide?panel=collaborators`}
-          className="inline-flex h-6 items-center gap-1 rounded border border-[#2B3245] px-2.5 text-[12px] font-medium text-[#F5F9FC] hover:bg-[#1A2030]"
-        >
+        <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-topbar-outline-button">
           <Share2 className="h-3 w-3" aria-hidden />
           Share
         </Link>
-        <Link
-          to={`/projects/${projectId}/ide?panel=deployments`}
-          className="inline-flex h-6 items-center gap-1 rounded bg-gradient-to-r from-[#7B61FF] to-[#0099FF] px-3 text-[12px] font-medium text-white hover:brightness-110"
+        <button
+          type="button"
+          data-testid="button-run-stop"
+          className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
+          onClick={() => {
+            if (previewRunning) {
+              void workbenchStore.stopPreviewServer().catch(() => undefined);
+
+              return;
+            }
+
+            window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }));
+          }}
         >
+          {previewRunning ? (
+            <>
+              <Square className="h-3 w-3 fill-current" aria-hidden />
+              <span>Stop</span>
+            </>
+          ) : (
+            <>
+              <Play className="h-3 w-3 fill-current" aria-hidden />
+              <span>Run</span>
+            </>
+          )}
+        </button>
+        <Link to={`/projects/${projectId}/ide?panel=deployments`} className="bolt-project-publish-button">
           <Rocket className="h-3 w-3" aria-hidden />
           Publish
         </Link>
@@ -330,14 +383,41 @@ function IdeProjectTopBar({
             </div>
           )}
         </details>
+        <button
+          type="button"
+          data-testid="ide-files-panel-toggle"
+          className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
+          aria-label={filesPanelOpen ? 'Close right panel' : 'Open right panel'}
+          aria-pressed={filesPanelOpen}
+          title={filesPanelOpen ? 'Close files' : 'Open files'}
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel'));
+          }}
+        >
+          <Files className="h-3.5 w-3.5" aria-hidden />
+        </button>
       </div>
     </header>
   );
 }
 
-function ProjectMenuItem({ to, icon, children }: { to: string; icon?: ReactNode; children: ReactNode }) {
+function ProjectMenuItem({
+  to,
+  icon,
+  children,
+  onClick,
+}: {
+  to: string;
+  icon?: ReactNode;
+  children: ReactNode;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+}) {
   return (
-    <Link to={to} className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]">
+    <Link
+      to={to}
+      className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]"
+      onClick={onClick}
+    >
       {icon}
       <span>{children}</span>
     </Link>

@@ -32,7 +32,7 @@ export interface ProjectStorage {
   writeFiles(projectId: string, files: Array<{ path: string; content: string }>): Promise<ProjectFile[]>;
   listFiles(projectId: string): Promise<ProjectFile[]>;
   exportZip(projectId: string): Promise<StoredArchive & { base64: string }>;
-  importZip(projectId: string, base64: string): Promise<ProjectFile[]>;
+  importZip(projectId: string, base64: string, options?: { replaceExisting?: boolean }): Promise<ProjectFile[]>;
   createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }): Promise<StoredArchive>;
   getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
   restoreSnapshot(input: { projectId: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
@@ -121,7 +121,7 @@ export class LocalProjectStorage implements ProjectStorage {
     return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
   }
 
-  async importZip(projectId: string, base64: string) {
+  async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
     const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
     const files: Array<{ path: string; content: string }> = [];
 
@@ -129,6 +129,10 @@ export class LocalProjectStorage implements ProjectStorage {
       if (!entry.dir) {
         files.push({ path, content: await entry.async('string') });
       }
+    }
+
+    if (options.replaceExisting) {
+      await rm(safeProjectPath(projectId), { recursive: true, force: true });
     }
 
     return this.writeFiles(projectId, files);

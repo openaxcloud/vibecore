@@ -5,25 +5,31 @@ import { IconButton } from './IconButton';
 
 interface ThemeSwitchProps {
   className?: string;
+  iconClassName?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+  title?: string;
 }
 
-export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
-  const theme = useStore(themeStore);
-  const [domLoaded, setDomLoaded] = useState(false);
+export const ThemeSwitch = memo(
+  ({ className, iconClassName, size = 'xl', title = 'Toggle Theme' }: ThemeSwitchProps) => {
+    const theme = useStore(themeStore);
+    const [domLoaded, setDomLoaded] = useState(false);
 
-  useEffect(() => {
-    setDomLoaded(true);
-  }, []);
+    useEffect(() => {
+      setDomLoaded(true);
+    }, []);
 
-  return (
-    domLoaded && (
-      <IconButton
-        className={className}
-        icon={theme === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
-        size="xl"
-        title="Toggle Theme"
-        onClick={toggleTheme}
-      />
-    )
-  );
-});
+    return (
+      domLoaded && (
+        <IconButton
+          className={className}
+          icon={theme === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
+          iconClassName={iconClassName}
+          size={size}
+          title={title}
+          onClick={toggleTheme}
+        />
+      )
+    );
+  },
+);

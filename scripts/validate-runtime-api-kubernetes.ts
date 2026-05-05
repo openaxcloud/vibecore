@@ -7,12 +7,18 @@ const execFile = promisify(execFileCallback);
 
 const apiBaseUrl = (process.env.RUNTIME_API_E2E_API_URL ?? process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001').replace(/\/+$/, '');
 const runtimeBaseUrl = (process.env.RUNTIME_API_E2E_RUNTIME_URL ?? `${apiBaseUrl}/api/runtime`).replace(/\/+$/, '');
+const workspaceManagerBaseUrl = (process.env.RUNTIME_API_E2E_WORKSPACE_MANAGER_URL ?? process.env.WORKSPACE_MANAGER_URL ?? 'http://127.0.0.1:3010').replace(
+  /\/+$/,
+  '',
+);
 const namespace = process.env.RUNTIME_API_E2E_NAMESPACE ?? process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 const agentLocalPort = Number(process.env.RUNTIME_API_E2E_AGENT_PORT ?? '18081');
 const password = process.env.RUNTIME_API_E2E_PASSWORD ?? 'RuntimeApiE2E!12345';
 let portForward: ChildProcess | undefined;
 
 async function main() {
+  await preflight();
+
   const runId = Date.now();
   const auth = await registerUser({
     email: `runtime-api-e2e-${runId}@vibecore.local`,
@@ -39,7 +45,7 @@ async function main() {
   const session = await adapter.startWorkspace({ id: project.project.id, metadata: { projectId: project.project.id, validation: 'runtime-api-kubernetes' } });
   assert(session.status === 'running', `workspace did not start: ${JSON.stringify(session)}`);
 
-  portForward = await startPortForward(project.project.id);
+  portForward = await startPortForward(session.id);
 
   await adapter.writeFile('src/index.js', 'console.log("runtime-api-kubernetes")\n');
   const content = await adapter.readFile('src/index.js');
@@ -89,6 +95,7 @@ async function main() {
         ok: true,
         apiBaseUrl,
         runtimeBaseUrl,
+        workspaceManagerBaseUrl,
         namespace,
         projectId: project.project.id,
         workspaceId: session.id,
@@ -111,6 +118,42 @@ async function main() {
       2,
     ),
   );
+}
+
+async function preflight() {
+  await assertJsonHealth(`${apiBaseUrl}/health`, 'API');
+  await assertJsonHealth(`${workspaceManagerBaseUrl}/health`, 'workspace-manager');
+
+  try {
+    await execFile('kubectl', ['version', '--client=true'], { maxBuffer: 2 * 1024 * 1024 });
+  } catch (error) {
+    throw new Error(`kubectl client is required for runtime API Kubernetes validation: ${errorMessage(error)}`);
+  }
+
+  try {
+    await execFile('kubectl', ['-n', namespace, 'get', 'namespace', namespace], { maxBuffer: 2 * 1024 * 1024 });
+  } catch (error) {
+    throw new Error(
+      `Kubernetes namespace "${namespace}" is not reachable. Configure the staging kube context and namespace before running runtime:validate:api-kubernetes: ${errorMessage(
+        error,
+      )}`,
+    );
+  }
+}
+
+async function assertJsonHealth(url: string, service: string) {
+  let response: Response;
+
+  try {
+    response = await fetch(url, { headers: { accept: 'application/json' } });
+  } catch (error) {
+    throw new Error(`${service} health check failed at ${url}: ${errorMessage(error)}`);
+  }
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(`${service} health check failed at ${url}: HTTP ${response.status}${body ? ` ${body}` : ''}`);
+  }
 }
 
 async function registerUser(input: { email: string; password: string; name: string; organizationName: string }) {
@@ -203,6 +246,14 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
 }
 
 process.on('exit', () => {

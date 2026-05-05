@@ -15,6 +15,12 @@ export default async function handleRequest(
 ) {
   // await initializeModelList({});
 
+  const head = renderHeadToString({
+    request,
+    remixContext: { ...remixContext, serverHandoffStream: undefined },
+    Head,
+  });
+
   const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
     signal: request.signal,
     onError(error: unknown) {
@@ -25,8 +31,6 @@ export default async function handleRequest(
 
   const body = new ReadableStream({
     start(controller) {
-      const head = renderHeadToString({ request, remixContext, Head });
-
       controller.enqueue(
         new Uint8Array(
           new TextEncoder().encode(

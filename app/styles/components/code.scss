@@ -7,3 +7,8 @@
     background-color: var(--bolt-elements-messages-code-background) !important;
   }
 }
+
+.mcp-tool-invocation-code .shiki,
+.mcp-tool-invocation-code pre {
+  background-color: var(--bolt-elements-messages-code-background) !important;
+}

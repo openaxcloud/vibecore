@@ -57,16 +57,21 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
               const isHidden = annotations?.includes('hidden');
+              const rowKey = messageId ?? `${role}-${index}`;
 
               if (isHidden) {
-                return <Fragment key={index} />;
+                return <Fragment key={rowKey} />;
               }
 
               return (
                 <div
-                  key={index}
-                  className={classNames('flex gap-4 py-3 w-full rounded-lg', {
-                    'mt-4': !isFirst,
+                  key={rowKey}
+                  id={messageId ? `chat-message-${messageId}` : undefined}
+                  data-message-id={messageId}
+                  className={classNames('bolt-chat-message-row flex gap-4 py-2 w-full rounded-lg', {
+                    'bolt-chat-message-row-user': isUserMessage,
+                    'bolt-chat-message-row-assistant': !isUserMessage,
+                    'mt-3': !isFirst,
                   })}
                 >
                   <div className="grid grid-col-1 w-full">

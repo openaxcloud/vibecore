@@ -6,6 +6,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constant
 import { createFilesContext, extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { createScopedLogger } from '~/utils/logger';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { removeUnsupportedModelSettings } from './model-compat';
 
 // Common patterns to ignore, similar to .gitignore
 
@@ -168,12 +169,16 @@ export async function selectContext(props: {
         * if the buffer is full, you need to exclude files that is not needed and include files that is relevent.
 
         `,
-    model: provider.getModelInstance({
-      model: currentModel,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
+    model: removeUnsupportedModelSettings(
+      provider.getModelInstance({
+        model: modelDetails.name,
+        serverEnv,
+        apiKeys,
+        providerSettings,
+      }),
+      modelDetails.name,
+      modelDetails.provider,
+    ),
   });
 
   const response = resp.text;

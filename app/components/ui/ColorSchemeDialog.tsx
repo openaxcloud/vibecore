@@ -277,9 +277,9 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
       </IconButton>
 
       <DialogRoot open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <Dialog>
-          <div className="py-4 px-4 min-w-[480px] max-w-[90vw] max-h-[85vh] flex flex-col gap-6 overflow-hidden">
-            <div className="">
+        <Dialog className="w-[720px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-hidden">
+          <div className="w-full max-h-[calc(100vh-24px)] min-h-0 py-4 px-4 flex flex-col gap-5 overflow-hidden">
+            <div className="pr-10">
               <DialogTitle className="text-2xl font-bold text-bolt-elements-textPrimary">
                 Design Palette & Features
               </DialogTitle>
@@ -312,14 +312,14 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
             </div>
 
             {/* Content Area */}
-            <div className=" min-h-92 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
               {activeSection === 'colors' && renderColorSection()}
               {activeSection === 'typography' && renderTypographySection()}
               {activeSection === 'features' && renderFeaturesSection()}
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-bolt-elements-borderColor">
               <div className="text-sm text-bolt-elements-textSecondary">
                 {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
               </div>

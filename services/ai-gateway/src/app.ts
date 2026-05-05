@@ -1,0 +1,127 @@
+import Fastify from 'fastify';
+import { Redis } from 'ioredis';
+import {
+  authorizeAgentRun,
+  createAgentRunRateLimiter,
+  createRedisAgentRunRateLimiter,
+  executeAgentRun,
+  parseAgentRunRequest,
+  positiveIntegerOrDefault,
+  type AgentRunRateLimiter,
+  type RedisRateLimitClient,
+} from './agent-executor.js';
+import { AiGateway, type AiChatRequest } from './gateway.js';
+
+export interface AiGatewayAppOptions {
+  gateway?: AiGateway;
+  env?: Record<string, string | undefined>;
+  logger?: boolean;
+  agentRunRateLimiter?: AgentRunRateLimiter;
+}
+
+export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
+  const env = options.env ?? process.env;
+  const app = Fastify({ logger: options.logger ?? true });
+  const gateway = options.gateway ?? new AiGateway();
+  const agentRunRateLimitPerMinute = Number(env.ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE ?? 30);
+  const agentRunRateLimit = positiveIntegerOrDefault(agentRunRateLimitPerMinute, 30);
+  const redis =
+    !options.agentRunRateLimiter && env.REDIS_URL
+      ? new Redis(env.REDIS_URL, {
+          lazyConnect: true,
+          maxRetriesPerRequest: 1,
+          enableOfflineQueue: false,
+        })
+      : undefined;
+  const agentRunRateLimiter =
+    options.agentRunRateLimiter ??
+    (redis
+      ? createRedisAgentRunRateLimiter({
+          redis: redis as unknown as RedisRateLimitClient,
+          limit: agentRunRateLimit,
+          windowMs: 60_000,
+          prefix: env.ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_REDIS_PREFIX ?? 'vibecore',
+        })
+      : createAgentRunRateLimiter({
+          limit: agentRunRateLimit,
+          windowMs: 60_000,
+        }));
+
+  app.addHook('onClose', async () => {
+    await agentRunRateLimiter.close?.();
+  });
+
+  app.get('/health', async () => ({ status: 'ok', service: 'ai-gateway' }));
+  app.get('/providers/health', async () => ({ providers: await gateway.health() }));
+  app.get('/models', async (request) => {
+    const plan =
+      typeof (request.query as { plan?: unknown }).plan === 'string' ? (request.query as { plan: any }).plan : 'free';
+
+    return { models: gateway.models(plan) };
+  });
+
+  app.post('/chat/completions', async (request, reply) => {
+    const body = request.body as AiChatRequest;
+
+    if (!Array.isArray(body?.messages)) {
+      return reply.code(400).send({ error: 'messages is required', code: 'AI_MESSAGES_REQUIRED' });
+    }
+
+    if (body.stream) {
+      reply.raw.writeHead(200, {
+        'content-type': 'text/event-stream; charset=utf-8',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      });
+
+      for await (const chunk of gateway.stream(body)) {
+        reply.raw.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      }
+
+      reply.raw.end();
+      return reply;
+    }
+
+    return gateway.complete(body);
+  });
+
+  app.post('/v1/agent-runs', async (request, reply) => {
+    if (
+      !authorizeAgentRun({
+        authorizationHeader: request.headers.authorization,
+        expectedToken: env.ECODE_SUBAGENT_EXECUTOR_TOKEN,
+      })
+    ) {
+      return reply.code(401).send({ error: 'Unauthorized agent executor request.', code: 'AGENT_RUN_UNAUTHORIZED' });
+    }
+
+    try {
+      const body = parseAgentRunRequest(request.body);
+      const rateLimitKey = body.organizationId ?? request.ip;
+      const rateLimit = await agentRunRateLimiter.check(rateLimitKey);
+
+      reply.header('x-ratelimit-limit', String(agentRunRateLimit));
+      reply.header('x-ratelimit-remaining', String(rateLimit.remaining));
+      reply.header('x-ratelimit-reset', String(Math.ceil(rateLimit.resetAt / 1000)));
+      reply.header('x-ratelimit-backend', agentRunRateLimiter.backend);
+
+      if (!rateLimit.allowed) {
+        return reply.code(429).send({
+          error: 'Agent executor rate limit exceeded.',
+          code: 'AGENT_RUN_RATE_LIMITED',
+          retryAfterSeconds: Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+        });
+      }
+
+      return executeAgentRun({ gateway, request: body });
+    } catch (error) {
+      const statusCode = typeof (error as { statusCode?: unknown }).statusCode === 'number' ? 400 : 500;
+      return reply.code(statusCode).send({
+        error: error instanceof Error ? error.message : 'Agent run failed.',
+        code: statusCode === 400 ? 'AGENT_RUN_BAD_REQUEST' : 'AGENT_RUN_FAILED',
+      });
+    }
+  });
+
+  return app;
+}

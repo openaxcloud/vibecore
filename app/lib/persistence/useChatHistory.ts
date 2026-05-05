@@ -316,12 +316,36 @@ ${value.content}
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
-      if ((!db && !projectId) || messages.length === 0) {
+      if (!db && !projectId) {
         return;
       }
 
       const { firstArtifact } = workbenchStore;
       messages = messages.filter((m) => !m.annotations?.includes('no-store'));
+
+      if (messages.length === 0) {
+        if (projectId) {
+          const finalChatId = chatId.get() ?? `project:${projectId}`;
+          chatId.set(finalChatId);
+
+          await saveProjectIdeMemory(projectId, {
+            chat: {
+              id: finalChatId,
+              urlId,
+              description: description.get() ?? 'Project assistant',
+              metadata: chatMetadata.get(),
+              messages: [],
+              clearMessages: true,
+              archivedMessages,
+            },
+          }).catch((error) => {
+            logStore.logError('Failed to persist empty project chat memory', error);
+            toast.error('Failed to persist project chat memory');
+          });
+        }
+
+        return;
+      }
 
       let _urlId = urlId;
 

@@ -1,0 +1,8 @@
+{
+  "apiBaseUrl": "https://api.example.com",
+  "webAppOrigin": "https://app.example.com",
+  "allowBiometricUnlock": true,
+  "allowPushNotifications": true,
+  "allowedDomains": ["example.com"],
+  "supportEmail": "support@example.com"
+}

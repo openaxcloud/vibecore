@@ -52,7 +52,24 @@ const httpsRequired = new Set([
   'SIEM_WEBHOOK_URL',
   'INCIDENT_WEBHOOK_URL',
   'OTEL_EXPORTER_OTLP_ENDPOINT',
+  'VERCEL_DEPLOY_HOOK_URL',
+  'NETLIFY_BUILD_HOOK_URL',
+  'CLOUDFLARE_DEPLOY_HOOK_URL',
+  'CLOUD_RUN_BUILD_TRIGGER_URL',
+  'DOCKER_BUILD_TRIGGER_URL',
+  'VITE_RUNTIME_API_BASE_URL',
+  'WORKSPACE_MANAGER_URL',
 ]);
+
+const deploymentProviderRequirements = {
+  static: [],
+  vercel: ['VERCEL_DEPLOY_HOOK_URL'],
+  netlify: ['NETLIFY_BUILD_HOOK_URL'],
+  'cloudflare-pages': ['CLOUDFLARE_DEPLOY_HOOK_URL'],
+  'github-pages': ['GITHUB_DEPLOY_TOKEN', 'GITHUB_PAGES_REPO', 'GITHUB_PAGES_WORKFLOW'],
+  'google-cloud-run': ['CLOUD_RUN_BUILD_TRIGGER_URL', 'GCP_OAUTH_TOKEN'],
+  docker: ['DOCKER_BUILD_TRIGGER_URL', 'GCP_OAUTH_TOKEN', 'DOCKER_REGISTRY_URL'],
+};
 
 const groups = [
   {
@@ -113,6 +130,17 @@ const groups = [
     ],
   },
   {
+    id: 'workspace-sandbox',
+    label: 'Workspace sandbox controls',
+    custom: validateWorkspaceSandboxControls,
+  },
+  {
+    id: 'runtime-mode',
+    label: 'Runtime mode',
+    required: ['VITE_RUNTIME_MODE', 'VITE_RUNTIME_API_BASE_URL', 'WORKSPACE_MANAGER_URL', 'WORKSPACE_RUNTIME_NAMESPACE'],
+    custom: validateRuntimeMode,
+  },
+  {
     id: 'stripe-catalog',
     label: 'Stripe catalog',
     required: [
@@ -125,6 +153,11 @@ const groups = [
       'STRIPE_ENTERPRISE_PRODUCT_ID',
       'STRIPE_ENTERPRISE_PRICE_ID',
     ],
+  },
+  {
+    id: 'deploy-providers',
+    label: 'Deployment providers',
+    custom: validateDeploymentProviders,
   },
   {
     id: 'ai-providers',
@@ -258,8 +291,59 @@ function validateRequiredAny(options, problems) {
   problems.push(...results.flatMap((result) => result.localProblems.map((problem) => `${result.vars.join('/')}: ${problem}`)));
 }
 
+function configuredDeploymentProviders() {
+  const raw = valueOf('DEPLOYMENT_PROVIDERS_ENABLED');
+
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((provider) => provider.trim())
+    .filter(Boolean);
+}
+
+function validateDeploymentProviders(problems) {
+  const providers = configuredDeploymentProviders();
+
+  if (providers.length === 0) {
+    problems.push('DEPLOYMENT_PROVIDERS_ENABLED is required and must list beta/production providers, e.g. static,vercel');
+    return;
+  }
+
+  for (const provider of providers) {
+    const required = deploymentProviderRequirements[provider];
+
+    if (!required) {
+      problems.push(`DEPLOYMENT_PROVIDERS_ENABLED contains unsupported provider "${provider}"`);
+      continue;
+    }
+
+    for (const variable of required) {
+      validateScalar(variable, problems);
+    }
+  }
+}
+
+function validateWorkspaceSandboxControls(problems) {
+  if (valueOf('WORKSPACE_DISABLE_SANDBOX_SCHEDULING') === '1') {
+    problems.push('WORKSPACE_DISABLE_SANDBOX_SCHEDULING must not be 1 in production');
+  }
+}
+
+function validateRuntimeMode(problems) {
+  if (valueOf('VITE_RUNTIME_MODE') !== 'remote-kubernetes') {
+    problems.push('VITE_RUNTIME_MODE must be remote-kubernetes in production');
+  }
+}
+
 function validateGroup(group) {
   const problems = [];
+
+  if (group.custom) {
+    group.custom(problems);
+  }
 
   for (const variable of group.required ?? []) {
     validateScalar(variable, problems);
@@ -492,6 +576,10 @@ function selfTest() {
     COOKIE_SECRET: 'cookie-secret-prod-123456',
     CONFIG_ENCRYPTION_KEY: 'config-encryption-prod-123456',
     WORKSPACE_AGENT_TOKEN_SECRET: 'agent-token-prod-123456',
+    WORKSPACE_MANAGER_URL: 'https://workspace-manager.vibecore.com',
+    WORKSPACE_RUNTIME_NAMESPACE: 'workspaces',
+    VITE_RUNTIME_API_BASE_URL: 'https://api.vibecore.com/api/runtime',
+    VITE_RUNTIME_MODE: 'remote-kubernetes',
     STRIPE_SECRET_KEY: 'sk_live_prod123456',
     STRIPE_WEBHOOK_SECRET: 'whsec_prod123456',
     STRIPE_FREE_PRODUCT_ID: 'prod_free',
@@ -502,6 +590,13 @@ function selfTest() {
     STRIPE_TEAM_PRICE_ID: 'price_team',
     STRIPE_ENTERPRISE_PRODUCT_ID: 'prod_enterprise',
     STRIPE_ENTERPRISE_PRICE_ID: 'price_enterprise',
+    DEPLOYMENT_PROVIDERS_ENABLED: 'static,vercel,github-pages,google-cloud-run',
+    VERCEL_DEPLOY_HOOK_URL: 'https://api.vercel.com/v1/integrations/deploy/hook/prod',
+    GITHUB_DEPLOY_TOKEN: 'ghp_productiondeploytoken123456',
+    GITHUB_PAGES_REPO: 'vibecore/www',
+    GITHUB_PAGES_WORKFLOW: 'pages.yml',
+    CLOUD_RUN_BUILD_TRIGGER_URL: 'https://cloudbuild.googleapis.com/v1/projects/vibecore-prod/triggers/app:webhook?key=prod',
+    GCP_OAUTH_TOKEN: 'ya29.production-token-123456',
     OPENAI_API_KEY: 'sk-live-openai-prod-123456',
     OTEL_SERVICE_NAME: 'vibecore-api',
     OTEL_EXPORTER_OTLP_ENDPOINT: 'https://otel.company.com/v1/traces',
@@ -526,6 +621,27 @@ function selfTest() {
 
   if (failing.ok) {
     throw new Error('expected placeholder and local OIDC config to fail');
+  }
+
+  const failingDeploy = withEnv(
+    { ...minimum, DEPLOYMENT_PROVIDERS_ENABLED: 'vercel,google-cloud-run', VERCEL_DEPLOY_HOOK_URL: '' },
+    () => buildReport(),
+  );
+
+  if (failingDeploy.ok) {
+    throw new Error('expected enabled deploy provider with missing dispatch env to fail');
+  }
+
+  const failingSandboxBypass = withEnv({ ...minimum, WORKSPACE_DISABLE_SANDBOX_SCHEDULING: '1' }, () => buildReport());
+
+  if (failingSandboxBypass.ok) {
+    throw new Error('expected disabled workspace sandbox scheduling to fail');
+  }
+
+  const failingRuntimeMode = withEnv({ ...minimum, VITE_RUNTIME_MODE: 'webcontainer' }, () => buildReport());
+
+  if (failingRuntimeMode.ok) {
+    throw new Error('expected production WebContainer runtime mode to fail');
   }
 
   console.log('Production enterprise validator self-test passed');

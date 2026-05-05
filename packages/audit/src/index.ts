@@ -19,6 +19,7 @@ export const criticalAuditActions = new Set([
   'org.update',
   'member.add',
   'member.updateRole',
+  'member.remove',
   'project.create',
   'project.update',
   'workspace.create',

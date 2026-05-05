@@ -21,7 +21,7 @@ export const action = (args: EnterpriseActionArgs) =>
     default: async ({ request, projectId, body }) => {
       await apiRequest(request, `/projects/${projectId}/collaborators`, {
         method: 'POST',
-        body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'member' }),
+        body: JSON.stringify({ userId: body.userId, roleKey: body.roleKey ?? 'editor' }),
       });
       return redirect(`/projects/${projectId}/collaborators`);
     },
@@ -64,12 +64,11 @@ export default function ProjectCollaboratorsPage() {
             <select
               className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
               name="roleKey"
-              defaultValue="member"
+              defaultValue="editor"
             >
-              <option value="viewer">Viewer</option>
-              <option value="member">Member</option>
-              <option value="admin">Admin</option>
               <option value="owner">Owner</option>
+              <option value="editor">Editor</option>
+              <option value="viewer">Viewer</option>
             </select>
           </label>
           <Button type="submit">Add collaborator</Button>

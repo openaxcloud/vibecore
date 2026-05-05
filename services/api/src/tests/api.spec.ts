@@ -76,7 +76,7 @@ class TestGitProvider implements GitProvider {
   }
 }
 
-async function startRuntimeServices() {
+async function startRuntimeServices(options: { logs?: string[]; commandStdout?: string; commandStderr?: string } = {}) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
   const agent = createServer((request, response) => {
@@ -105,7 +105,7 @@ async function startRuntimeServices() {
         files.delete(payload.from);
         response.end(JSON.stringify({ ok: true }));
       } else if (request.method === 'POST' && url.pathname === '/commands/run') {
-        response.end(JSON.stringify({ code: 0, stdout: `ran ${payload.command}`, stderr: '' }));
+        response.end(JSON.stringify({ code: 0, stdout: options.commandStdout ?? `ran ${payload.command}`, stderr: options.commandStderr ?? '' }));
       } else if (request.method === 'GET' && url.pathname === '/ports') {
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
@@ -141,7 +141,7 @@ async function startRuntimeServices() {
     if (url.pathname.endsWith('/agent-token')) {
       response.end(JSON.stringify({ token: 'runtime-token' }));
     } else if (url.pathname.endsWith('/logs')) {
-      response.end(JSON.stringify({ logs: ['workspace ready'] }));
+      response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
     } else {
       response.end(JSON.stringify({ status: 'RUNNING' }));
     }
@@ -226,6 +226,29 @@ describe('SaaS API', () => {
 
     expect(me.statusCode).toBe(200);
     expect(me.json().user.email).toBe('auth@example.com');
+
+    const refresh = await app.inject({
+      method: 'POST',
+      url: '/auth/refresh',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(refresh.statusCode).toBe(200);
+    expect(refresh.json().token).toMatch(/^session_/);
+    expect(refresh.json().token).not.toBe(auth.token);
+
+    const oldSession = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(oldSession.statusCode).toBe(401);
+
+    const refreshedSession = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${refresh.json().token}` },
+    });
+    expect(refreshedSession.statusCode).toBe(200);
     await app.close();
   });
 
@@ -371,6 +394,35 @@ describe('SaaS API', () => {
     const member = await register(app, { email: 'member@example.com', organizationName: 'Member Org' });
     await store.addMember({ organizationId: owner.organization.id, userId: member.user.id, roleKey: 'viewer' });
 
+    const canListMembersForTeamPage = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/memberships`,
+      headers: { authorization: `Bearer ${member.token}` },
+    });
+    expect(canListMembersForTeamPage.statusCode).toBe(200);
+
+    const canListRolesForTeamPage = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${member.token}` },
+    });
+    expect(canListRolesForTeamPage.statusCode).toBe(200);
+
+    const canCreateSupportTicket = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/support/tickets`,
+      headers: { authorization: `Bearer ${member.token}` },
+      payload: { subject: 'Viewer support request' },
+    });
+    expect(canCreateSupportTicket.statusCode).toBe(201);
+
+    const canListSupportTickets = await app.inject({
+      method: 'GET',
+      url: `/support/${owner.organization.id}/tickets`,
+      headers: { authorization: `Bearer ${member.token}` },
+    });
+    expect(canListSupportTickets.statusCode).toBe(200);
+
     const denied = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/memberships`,
@@ -476,6 +528,7 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store, emailProvider });
     const owner = await register(app, { email: 'invite-owner@example.com', organizationName: 'Invite Org' });
     const invitee = await register(app, { email: 'invitee@example.com', organizationName: 'Invitee Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
 
     const created = await app.inject({
       method: 'POST',
@@ -518,6 +571,130 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('enforces team member quota across invitation acceptance', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, {
+      email: 'quota-invite-owner@example.com',
+      organizationName: 'Quota Invite Org',
+    });
+    const invitee = await register(app, { email: 'quota-invitee@example.com', organizationName: 'Quota Invitee Org' });
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/invitations`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { email: invitee.user.email, roleKey: 'member' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/invitations/accept',
+      headers: { authorization: `Bearer ${invitee.token}` },
+      payload: { token: created.json().token },
+    });
+    expect(accepted.statusCode).toBe(429);
+    expect(await store.getMembership(invitee.user.id, owner.organization.id)).toBeUndefined();
+    await app.close();
+  });
+
+  it('applies custom organization roles to backend RBAC and member lifecycle actions', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'team-owner@example.com', organizationName: 'Team Org' });
+    const teammate = await register(app, { email: 'team-member@example.com', organizationName: 'Team Member Org' });
+    const memberManager = await register(app, {
+      email: 'team-manager@example.com',
+      organizationName: 'Team Manager Org',
+    });
+    const secondOwner = await register(app, {
+      email: 'team-owner-2@example.com',
+      organizationName: 'Team Owner 2 Org',
+    });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const role = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { key: 'project-auditor', name: 'Project Auditor', permissions: ['org:read', 'projects:read'] },
+    });
+    expect(role.statusCode).toBe(201);
+
+    const managerRole = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { key: 'member-manager', name: 'Member Manager', permissions: ['members:manage'] },
+    });
+    expect(managerRole.statusCode).toBe(201);
+
+    const member = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { userId: teammate.user.id, roleKey: 'project-auditor' },
+    });
+    expect(member.statusCode).toBe(201);
+
+    const manager = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/memberships`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { userId: memberManager.user.id, roleKey: 'member-manager' },
+    });
+    expect(manager.statusCode).toBe(201);
+
+    const managerCanListAssignableRoles = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/roles`,
+      headers: { authorization: `Bearer ${memberManager.token}` },
+    });
+    expect(managerCanListAssignableRoles.statusCode).toBe(200);
+
+    const canReadOrg = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}`,
+      headers: { authorization: `Bearer ${teammate.token}` },
+    });
+    expect(canReadOrg.statusCode).toBe(200);
+
+    const cannotCreateProject = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${teammate.token}` },
+      payload: { name: 'Blocked Project' },
+    });
+    expect(cannotCreateProject.statusCode).toBe(403);
+
+    await store.addMember({ organizationId: owner.organization.id, userId: secondOwner.user.id, roleKey: 'owner' });
+    const demote = await app.inject({
+      method: 'PATCH',
+      url: `/orgs/${owner.organization.id}/memberships/${secondOwner.user.id}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'admin' },
+    });
+    expect(demote.statusCode).toBe(200);
+    expect((await store.getMembership(secondOwner.user.id, owner.organization.id))?.roleKey).toBe('admin');
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/orgs/${owner.organization.id}/memberships/${teammate.user.id}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(await store.getMembership(teammate.user.id, owner.organization.id)).toBeUndefined();
+
+    const lastOwner = await app.inject({
+      method: 'DELETE',
+      url: `/orgs/${owner.organization.id}/memberships/${owner.user.id}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(lastOwner.statusCode).toBe(409);
+    await app.close();
+  });
+
   it('completes OAuth, OIDC and SAML login callbacks with account linking', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -538,6 +715,7 @@ describe('SaaS API', () => {
     expect(oidc.statusCode).toBe(200);
 
     const owner = await register(app, { email: 'saml-owner@example.com', organizationName: 'SAML Org' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
     await reauth(app, owner.token);
@@ -601,6 +779,9 @@ describe('SaaS API', () => {
     });
     expect(promoted.statusCode).toBe(200);
     expect((await store.findUserByEmail('target-admin@example.com'))?.platformAdmin).toBe(true);
+    expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.platform_admin.grant')).toBe(
+      true,
+    );
     delete process.env.PLATFORM_ADMIN_EMAILS;
     await app.close();
   });
@@ -639,6 +820,103 @@ describe('SaaS API', () => {
     });
     expect(response.statusCode).toBe(200);
     expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.user.force_logout')).toBe(true);
+    delete process.env.PLATFORM_ADMIN_EMAILS;
+    await app.close();
+  });
+
+  it('lists real billing subscriptions and supports audited admin plan overrides', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'billing-admin@example.com';
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const admin = await register(app, { email: 'billing-admin@example.com', organizationName: 'Billing Admin Org' });
+    const customer = await register(app, {
+      email: 'billing-customer@example.com',
+      organizationName: 'Billing Customer Org',
+    });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
+    await reauth(app, admin.token);
+    await store.upsertSubscription({
+      organizationId: customer.organization.id,
+      planKey: 'pro',
+      externalId: 'sub_admin_list',
+      status: 'ACTIVE',
+    });
+
+    const listing = await app.inject({
+      method: 'GET',
+      url: '/admin/billing',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    expect(listing.statusCode).toBe(200);
+    expect(listing.json().subscriptions.some((subscription: any) => subscription.externalId === 'sub_admin_list')).toBe(
+      true,
+    );
+
+    const override = await app.inject({
+      method: 'POST',
+      url: '/admin/plan-overrides',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { organizationId: customer.organization.id, planKey: 'team', reason: 'contract upgrade' },
+    });
+    expect(override.statusCode).toBe(200);
+    expect((await store.getSubscription(customer.organization.id))?.planKey).toBe('team');
+    expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.plan.override')).toBe(true);
+    delete process.env.PLATFORM_ADMIN_EMAILS;
+    await app.close();
+  });
+
+  it('requires re-authentication and records admin audit logs for manual abuse events', async () => {
+    process.env.PLATFORM_ADMIN_EMAILS = 'abuse-admin@example.com';
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const admin = await register(app, { email: 'abuse-admin@example.com', organizationName: 'Abuse Admin Org' });
+    const customer = await register(app, {
+      email: 'abuse-customer@example.com',
+      organizationName: 'Abuse Customer Org',
+    });
+
+    const staleSession = await app.inject({
+      method: 'POST',
+      url: '/admin/abuse-events',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: {
+        organizationId: customer.organization.id,
+        userId: customer.user.id,
+        type: 'manual_review',
+        severity: 'high',
+      },
+    });
+    expect(staleSession.statusCode).toBe(403);
+    expect(staleSession.json().code).toBe('ADMIN_REAUTH_REQUIRED');
+
+    await reauth(app, admin.token);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/admin/abuse-events',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: {
+        organizationId: customer.organization.id,
+        userId: customer.user.id,
+        type: 'manual_review',
+        severity: 'high',
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().abuseEvent.organizationId).toBe(customer.organization.id);
+    expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.abuse_event.create')).toBe(
+      true,
+    );
+
     delete process.env.PLATFORM_ADMIN_EMAILS;
     await app.close();
   });
@@ -729,6 +1007,46 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('returns backend project file metadata for workspace file metadata routes', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'workspace-files@example.com', organizationName: 'Workspace Files Org' });
+    const projectResponse = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Workspace Files Project' },
+    });
+    const project = projectResponse.json().project;
+    const workspaceResponse = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/workspaces`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Main workspace' },
+    });
+    const workspace = workspaceResponse.json().workspace;
+
+    const metadata = await app.inject({
+      method: 'GET',
+      url: `/workspaces/${workspace.id}/files/metadata`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    const legacyMetadata = await app.inject({
+      method: 'GET',
+      url: `/files/${workspace.id}/metadata`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(metadata.statusCode).toBe(200);
+    expect(metadata.json().projectId).toBe(project.id);
+    expect(metadata.json().files.length).toBeGreaterThan(0);
+    expect(metadata.json().files.some((file: { path: string }) => file.path === 'package.json')).toBe(true);
+    expect(legacyMetadata.statusCode).toBe(200);
+    expect(legacyMetadata.json().files.map((file: { path: string }) => file.path)).toContain('package.json');
+
+    await app.close();
+  });
+
   it('enables MFA with TOTP and rotates recovery codes', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -757,6 +1075,97 @@ describe('SaaS API', () => {
     });
     expect(recovery.statusCode).toBe(200);
     expect(recovery.json().codes).toHaveLength(10);
+    await app.close();
+  });
+
+  it('requires MFA at login once TOTP is enabled', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'mfa-login@example.com' });
+
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(setup.statusCode).toBe(200);
+    const code = createTotpCode(setup.json().secret);
+    const verify = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { code },
+    });
+    expect(verify.statusCode).toBe(200);
+    const recovery = await app.inject({
+      method: 'POST',
+      url: '/auth/recovery-codes',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    const recoveryCode = recovery.json().codes[0];
+
+    const missingMfa = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123' },
+    });
+    expect(missingMfa.statusCode).toBe(401);
+    expect(missingMfa.json().code).toBe('AUTH_MFA_REQUIRED');
+
+    const invalidMfa = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123', mfaCode: '000000' },
+    });
+    expect(invalidMfa.statusCode).toBe(401);
+    expect(invalidMfa.json().code).toBe('AUTH_INVALID_MFA_CODE');
+
+    const totpLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123', mfaCode: code },
+    });
+    expect(totpLogin.statusCode).toBe(200);
+    expect(totpLogin.json().token).toMatch(/^session_/);
+
+    const formattedTotpLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        email: 'mfa-login@example.com',
+        password: 'password123',
+        mfaCode: `${code.slice(0, 3)}-${code.slice(3)}`,
+      },
+    });
+    expect(formattedTotpLogin.statusCode).toBe(200);
+
+    const recoveryLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123', mfaCode: recoveryCode },
+    });
+    expect(recoveryLogin.statusCode).toBe(200);
+
+    const reusedRecovery = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123', mfaCode: recoveryCode },
+    });
+    expect(reusedRecovery.statusCode).toBe(401);
+    expect(reusedRecovery.json().code).toBe('AUTH_INVALID_MFA_CODE');
+
+    await store.updateUser({
+      userId: auth.user.id,
+      mfaSecretEncrypted: 'not-a-valid-encrypted-secret',
+    });
+    const corruptedSecretLogin = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { email: 'mfa-login@example.com', password: 'password123', mfaCode: '000000' },
+    });
+    expect(corruptedSecretLogin.statusCode).toBe(401);
+    expect(corruptedSecretLogin.json().code).toBe('AUTH_INVALID_MFA_CODE');
+
     await app.close();
   });
 
@@ -846,6 +1255,7 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'scim-admin@example.com', organizationName: 'SCIM Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'team', status: 'ACTIVE' });
     await reauth(app, auth.token);
 
     const tokenResponse = await app.inject({
@@ -984,6 +1394,15 @@ describe('SaaS API', () => {
     });
     expect(blocked.statusCode).toBe(429);
 
+    const usageBeforeOverride = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(usageBeforeOverride.statusCode).toBe(200);
+    expect(usageBeforeOverride.json().quotaUsage['projects.count']).toBe(3);
+    expect(usageBeforeOverride.json().quotaUsage['workspaces.active']).toBe(0);
+
     await reauth(app, auth.token);
     const override = await app.inject({
       method: 'POST',
@@ -1000,6 +1419,12 @@ describe('SaaS API', () => {
       payload: { name: 'Four' },
     });
     expect(allowed.statusCode).toBe(201);
+    const usageAfterOverride = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(usageAfterOverride.json().quotaUsage['projects.count']).toBe(4);
     expect(store.auditLogs.some((event) => event.action === 'quota.override.create')).toBe(true);
     await app.close();
   });
@@ -1112,6 +1537,11 @@ describe('SaaS API', () => {
       expect(requests.map((entry) => entry.url)).toEqual(['/v1/customers', '/v1/checkout/sessions']);
       expect(requests[1].body.customer).toBe('cus_checkout');
       expect(requests[1].body['line_items[0][price]']).toBe('price_checkout_pro');
+      expect(requests[1].body['metadata[organizationId]']).toBe(auth.organization.id);
+      expect(requests[1].body['metadata[planKey]']).toBe('pro');
+      expect(requests[1].body['metadata[priceId]']).toBe('price_checkout_pro');
+      expect(requests[1].body['subscription_data[metadata][organizationId]']).toBe(auth.organization.id);
+      expect(requests[1].body['subscription_data[metadata][planKey]']).toBe('pro');
       expect(store.auditLogs.some((event) => event.action === 'billing.checkout.create')).toBe(true);
     } finally {
       process.env.STRIPE_SECRET_KEY = previousSecretKey;
@@ -1122,12 +1552,119 @@ describe('SaaS API', () => {
     }
   });
 
+  it('creates Stripe customer portal sessions for existing billing customers', async () => {
+    const previousSecretKey = process.env.STRIPE_SECRET_KEY;
+    const previousApiBase = process.env.STRIPE_API_BASE_URL;
+    process.env.STRIPE_SECRET_KEY = 'sk_test_portal';
+
+    const requests: Array<{ url?: string; body: Record<string, string> }> = [];
+    const stripeServer = createServer((request, response) => {
+      let raw = '';
+      request.on('data', (chunk) => {
+        raw += chunk.toString();
+      });
+      request.on('end', () => {
+        const body = Object.fromEntries(new URLSearchParams(raw).entries());
+        requests.push({ url: request.url, body });
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify({ id: 'bps_portal', url: 'https://billing.stripe.local/session' }));
+      });
+    });
+
+    await new Promise<void>((resolve) => stripeServer.listen(0, '127.0.0.1', () => resolve()));
+    const address = stripeServer.address();
+    if (typeof address !== 'object' || !address) {
+      throw new Error('Local billing endpoint did not start');
+    }
+    process.env.STRIPE_API_BASE_URL = `http://127.0.0.1:${address.port}`;
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'portal@example.com', organizationName: 'Portal Org' });
+    await store.upsertBillingCustomer({
+      organizationId: auth.organization.id,
+      provider: 'stripe',
+      externalId: 'cus_portal',
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/portal`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { returnUrl: 'https://app.example.com/billing' },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().portalUrl).toBe('https://billing.stripe.local/session');
+      expect(requests).toHaveLength(1);
+      expect(requests[0].url).toBe('/v1/billing_portal/sessions');
+      expect(requests[0].body.customer).toBe('cus_portal');
+      expect(requests[0].body.return_url).toBe('https://app.example.com/billing');
+      expect(store.auditLogs.some((event) => event.action === 'billing.portal.create')).toBe(true);
+    } finally {
+      process.env.STRIPE_SECRET_KEY = previousSecretKey;
+      process.env.STRIPE_API_BASE_URL = previousApiBase;
+      await app.close();
+      await new Promise<void>((resolve, reject) => stripeServer.close((error) => (error ? reject(error) : resolve())));
+    }
+  });
+
+  it('maps checkout completed webhooks from checkout metadata when subscription items are absent', async () => {
+    const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const previousTeamPrice = process.env.STRIPE_TEAM_PRICE_ID;
+    process.env.STRIPE_WEBHOOK_SECRET = 'whsec_checkout_completed';
+    process.env.STRIPE_TEAM_PRICE_ID = 'price_team_checkout';
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, {
+      email: 'checkout-webhook@example.com',
+      organizationName: 'Checkout Webhook Org',
+    });
+    const payload = JSON.stringify({
+      id: 'evt_checkout_completed',
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_completed',
+          subscription: 'sub_from_checkout',
+          customer: 'cus_checkout_webhook',
+          status: 'complete',
+          metadata: {
+            organizationId: auth.organization.id,
+            planKey: 'team',
+            priceId: 'price_team_checkout',
+          },
+        },
+      },
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/billing/stripe/webhook',
+        headers: {
+          'stripe-signature': stripeSignature(payload, 'whsec_checkout_completed'),
+          'content-type': 'application/json',
+        },
+        payload: Buffer.from(payload),
+      });
+      expect(response.statusCode).toBe(200);
+      expect((await store.getSubscription(auth.organization.id))?.planKey).toBe('team');
+      expect((await store.getSubscription(auth.organization.id))?.externalId).toBe('sub_from_checkout');
+    } finally {
+      process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
+      process.env.STRIPE_TEAM_PRICE_ID = previousTeamPrice;
+      await app.close();
+    }
+  });
+
   it('records cancellation behavior from Stripe subscription deletion', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_cancel_secret';
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'cancel@example.com', organizationName: 'Cancel Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
     const payload = JSON.stringify({
       id: 'evt_cancel',
       type: 'customer.subscription.deleted',
@@ -1153,6 +1690,14 @@ describe('SaaS API', () => {
       });
       expect(response.statusCode).toBe(200);
       expect((await store.getSubscription(auth.organization.id))?.status).toBe('CANCELED');
+      const billing = await app.inject({
+        method: 'GET',
+        url: `/orgs/${auth.organization.id}/billing`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(billing.statusCode).toBe(200);
+      expect(billing.json().plan.key).toBe('free');
+      expect(billing.json().limits['projects.count']).toBe(3);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       await app.close();
@@ -1181,6 +1726,16 @@ describe('SaaS API', () => {
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
 
+    const homepagePreview = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/homepage-preview.svg`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(homepagePreview.statusCode).toBe(200);
+    expect(homepagePreview.headers['content-type']).toContain('image/svg+xml');
+    expect(homepagePreview.body).toContain('Template App');
+    expect(homepagePreview.body).toContain('Generated from the current homepage files');
+
     const saveIdeState = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
@@ -1205,6 +1760,35 @@ describe('SaaS API', () => {
     });
     expect(loadIdeState.statusCode).toBe(200);
     expect(loadIdeState.json().ideState.state.chat.messages[0].content).toBe('Continue from yesterday');
+
+    const saveUiOnlyIdeState = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        state: {
+          ui: { activeWorkspacePanel: 'preview', agentWidth: 700 },
+        },
+      },
+    });
+    expect(saveUiOnlyIdeState.statusCode).toBe(200);
+    expect(saveUiOnlyIdeState.json().ideState.state.chat.messages[0].content).toBe('Continue from yesterday');
+    expect(saveUiOnlyIdeState.json().ideState.state.ui.agentWidth).toBe(700);
+
+    const clearIdeStateChat = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        state: {
+          chat: { messages: [], clearMessages: true },
+        },
+      },
+    });
+    expect(clearIdeStateChat.statusCode).toBe(200);
+    expect(clearIdeStateChat.json().ideState.state.chat.messages).toEqual([]);
+    expect(clearIdeStateChat.json().ideState.state.chat.clearMessages).toBeUndefined();
+    expect(clearIdeStateChat.json().ideState.state.ui.agentWidth).toBe(700);
 
     const settings = await app.inject({
       method: 'PATCH',
@@ -1249,6 +1833,7 @@ describe('SaaS API', () => {
     const owner = await register(app, { email: 'collab-owner@example.com', organizationName: 'Collab Org' });
     const member = await register(app, { email: 'collab-member@example.com' });
     const viewer = await register(app, { email: 'collab-viewer@example.com' });
+    const outsider = await register(app, { email: 'collab-outsider@example.com' });
     await store.addMember({ organizationId: owner.organization.id, userId: member.user.id, roleKey: 'member' });
     await store.addMember({ organizationId: owner.organization.id, userId: viewer.user.id, roleKey: 'viewer' });
 
@@ -1260,6 +1845,14 @@ describe('SaaS API', () => {
     });
     expect(create.statusCode).toBe(201);
     const projectId = create.json().project.id as string;
+
+    const outsiderCollaborator = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaborators`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { userId: outsider.user.id, roleKey: 'viewer' },
+    });
+    expect(outsiderCollaborator.statusCode).toBe(403);
 
     for (const collaborator of [
       { userId: member.user.id, roleKey: 'member' },
@@ -1375,6 +1968,62 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('issues collaboration WebSocket tickets and streams ready state over a dedicated socket', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'collab-ws-owner@example.com', organizationName: 'Collab WS Org' });
+    const create = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Collaboration Socket Project' },
+    });
+    expect(create.statusCode).toBe(201);
+    const projectId = create.json().project.id as string;
+
+    const ticket = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/collaboration/ws-ticket?sessionId=browser-session`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(ticket.statusCode).toBe(200);
+    expect(ticket.json().websocketPath).toBe(`/projects/${projectId}/collaboration/ws`);
+    expect(ticket.json().ticket).toEqual(expect.any(String));
+
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+    const socket = new WebSocket(
+      `${address.replace(/^http/, 'ws')}/projects/${projectId}/collaboration/ws?ticket=${encodeURIComponent(
+        ticket.json().ticket,
+      )}&sessionId=browser-session`,
+    );
+
+    try {
+      const ready = await new Promise<any>((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Collaboration WebSocket did not become ready')), 2000);
+        socket.addEventListener('message', (event) => {
+          const payload = JSON.parse(String(event.data));
+
+          if (payload.type === 'collaboration.ready') {
+            clearTimeout(timeout);
+            resolve(payload);
+          }
+        });
+        socket.addEventListener('error', () => {
+          clearTimeout(timeout);
+          reject(new Error('Collaboration WebSocket failed'));
+        });
+      });
+
+      expect(ready.projectId).toBe(projectId);
+      expect(ready.presence.some((presence: { sessionId: string }) => presence.sessionId === 'browser-session')).toBe(
+        true,
+      );
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  });
+
   it('imports and exports project zip archives', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'zip@example.com', organizationName: 'Zip Org' });
@@ -1399,6 +2048,20 @@ describe('SaaS API', () => {
     });
     expect(exported.statusCode).toBe(200);
     expect(exported.json().archive.base64).toEqual(expect.any(String));
+
+    const replacementZip = new JSZip();
+    replacementZip.file('README.md', '# Replaced project\n');
+    const replacementZipBase64 = (await replacementZip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+    const replaced = await app.inject({
+      method: 'POST',
+      url: `/projects/${imported.json().project.id}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64: replacementZipBase64, replaceExisting: true },
+    });
+
+    expect(replaced.statusCode).toBe(200);
+    expect(replaced.json().files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
+
     await app.close();
   });
 
@@ -1446,6 +2109,50 @@ describe('SaaS API', () => {
     });
     expect(restore.statusCode).toBe(200);
     expect(restore.json().files.length).toBeGreaterThan(0);
+    await app.close();
+  });
+
+  it('creates an interactive enterprise app scaffold for AI generated app-builder projects', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'ai-builder@example.com', organizationName: 'AI Builder Org' });
+    const prompt = 'build a saas platform a clone of bolt';
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/from-ai`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { prompt, name: 'Bolt Enterprise Studio', artifactType: 'Web', framework: 'React + Vite + TypeScript' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.json().project.id}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const zip = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    const appSource = await zip.file('src/App.tsx')!.async('string');
+    const packageJson = JSON.parse(await zip.file('package.json')!.async('string'));
+
+    expect(packageJson.scripts).toMatchObject({ dev: 'vite', build: 'vite build', preview: 'vite preview' });
+    expect(packageJson.dependencies).toMatchObject({
+      react: expect.any(String),
+      'react-dom': expect.any(String),
+      'lucide-react': expect.any(String),
+      'react-router-dom': expect.any(String),
+      vite: expect.any(String),
+    });
+    expect(Object.values(packageJson.dependencies)).not.toContain('latest');
+    expect(appSource).toContain('AI delivery command center');
+    expect(appSource).toContain('Agent Stream');
+    expect(appSource).toContain('Live Preview Runtime');
+    expect(appSource).toContain('function createWorkspace');
+    expect(appSource).toContain('function approveSelectedModule');
+    expect(appSource).toContain('onClick={simulateSync}');
+    expect(appSource).not.toContain(prompt);
+    expect(appSource).not.toContain('VibeCore project');
+
     await app.close();
   });
 
@@ -1698,6 +2405,59 @@ describe('SaaS API', () => {
     }
   });
 
+  it('redacts canary secrets from AI runtime tool responses and persisted tool output', async () => {
+    const canary = 'canary_runtimeAiToolLeakProbe_1234567890';
+    const store = new TestApiStore();
+    const runtime = await startRuntimeServices({
+      logs: [`workspace ready`, `terminal leaked ${canary}`, `provider token sk_live_${'A'.repeat(20)}`],
+      commandStdout: `stdout leaked ${canary} and ghp_${'B'.repeat(20)}`,
+      commandStderr: `stderr leaked ya29.${'C'.repeat(20)}`,
+    });
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-canary@example.com', organizationName: 'AI Canary Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Canary Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const logs = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/tools/get_terminal_output`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {},
+      });
+      expect(logs.statusCode).toBe(201);
+
+      const command = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/tools/run_command`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { command: 'node', args: ['--version'] },
+      });
+      expect(command.statusCode).toBe(201);
+
+      const serializedResponses = `${JSON.stringify(logs.json())}\n${JSON.stringify(command.json())}`;
+      expect(serializedResponses).not.toContain(canary);
+      expect(serializedResponses).not.toContain('sk_live_');
+      expect(serializedResponses).not.toContain('ghp_');
+      expect(serializedResponses).not.toContain('ya29.');
+      expect(serializedResponses).toContain('[REDACTED]');
+
+      const serializedStoredOutput = JSON.stringify([...store.aiToolCalls.values()].map((call) => call.output));
+      expect(serializedStoredOutput).not.toContain(canary);
+      expect(serializedStoredOutput).not.toContain('sk_live_');
+      expect(serializedStoredOutput).not.toContain('ghp_');
+      expect(serializedStoredOutput).not.toContain('ya29.');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('blocks abusive runtime commands, logs AbuseEvent, and stops the workspace before agent execution', async () => {
     const store = new TestApiStore();
     const runtime = await startRuntimeServices();
@@ -1724,7 +2484,11 @@ describe('SaaS API', () => {
       expect(runtime.calls).not.toContain('POST /commands/run');
       const abuseEvents = await store.listAbuseEvents();
       expect(abuseEvents).toHaveLength(1);
-      expect(abuseEvents[0]).toMatchObject({ organizationId: auth.organization.id, severity: 'high', type: 'port_scanning' });
+      expect(abuseEvents[0]).toMatchObject({
+        organizationId: auth.organization.id,
+        severity: 'high',
+        type: 'port_scanning',
+      });
       expect(store.auditLogs.some((event) => event.action === 'abuse.signal.detected')).toBe(true);
     } finally {
       await runtime.close();
@@ -1765,6 +2529,88 @@ describe('SaaS API', () => {
     } finally {
       process.env.PREVIEW_URL_TEMPLATE = previousPreviewTemplate;
       await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('starts isolated runtime workspaces per user for the same shared project', async () => {
+    const runtime = await startRuntimeServices();
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'runtime-owner@example.com', organizationName: 'Runtime Owner Org' });
+    const editor = await register(app, { email: 'runtime-editor@example.com' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    await store.addMember({ organizationId: owner.organization.id, userId: editor.user.id, roleKey: 'editor' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Shared Runtime Project' },
+    });
+    const projectId = project.json().project.id as string;
+    await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaborators`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { userId: editor.user.id, roleKey: 'editor' },
+    });
+
+    try {
+      const ownerStart = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { workspaceId: projectId, metadata: { projectId } },
+      });
+      const editorStart = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${editor.token}` },
+        payload: { workspaceId: projectId, metadata: { projectId } },
+      });
+
+      expect(ownerStart.statusCode).toBe(200);
+      expect(editorStart.statusCode).toBe(200);
+      expect(ownerStart.json().id).not.toBe(projectId);
+      expect(editorStart.json().id).not.toBe(projectId);
+      expect(ownerStart.json().id).not.toBe(editorStart.json().id);
+      expect((await store.getWorkspace(ownerStart.json().id))?.projectId).toBe(projectId);
+      expect((await store.getWorkspace(editorStart.json().id))?.projectId).toBe(projectId);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('returns a controlled 502 when the workspace manager is unavailable', async () => {
+    const previousManager = process.env.WORKSPACE_MANAGER_URL;
+    process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:9';
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, {
+      email: 'runtime-manager-down@example.com',
+      organizationName: 'Runtime Manager Down Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Manager Down Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { workspaceId: projectId, metadata: { projectId } },
+      });
+
+      expect(response.statusCode).toBe(502);
+      expect(response.json().error).toBe('Workspace manager is unavailable');
+      expect(response.json().code).toBe('WORKSPACE_MANAGER_UNAVAILABLE');
+    } finally {
+      process.env.WORKSPACE_MANAGER_URL = previousManager;
       await app.close();
     }
   });

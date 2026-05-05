@@ -12,6 +12,13 @@ const startSchema = z.object({
   env: z.record(z.string()).default({}),
   allowedSecretKeys: z.array(z.string()).default([]),
   allowedSecrets: z.record(z.string()).optional(),
+  resourceLimits: z
+    .object({
+      cpuMillicores: z.number().int().positive().optional(),
+      ramMb: z.number().int().positive().optional(),
+      storageGb: z.number().int().positive().optional(),
+    })
+    .optional(),
 });
 
 export function buildWorkspaceManagerApp(manager: WorkspaceManager) {

@@ -20,6 +20,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
+import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import useViewport from '~/lib/hooks';
 
 import { usePreviewStore } from '~/lib/stores/previews';
@@ -353,12 +354,15 @@ export const Workbench = memo(
     }, []);
 
     const onFileSave = useCallback(() => {
+      const filePath = workbenchStore.currentDocument.get()?.filePath;
+
       workbenchStore
         .saveCurrentDocument()
         .then(() => {
           // Explicitly refresh all previews after a file save
           const previewStore = usePreviewStore();
           previewStore.refreshAllPreviews();
+          toast.success(filePath ? `Saved ${filePath.split('/').pop()}` : 'File saved', { toastId: 'file-saved' });
         })
         .catch(() => {
           toast.error('Failed to update file content');
@@ -464,7 +468,7 @@ export const Workbench = memo(
                           <DropdownMenu.Content
                             className={classNames(
                               'min-w-[240px] z-[250]',
-                              'bg-white dark:bg-[#141414]',
+                              'bg-bolt-elements-bg-depth-2',
                               'rounded-lg shadow-lg',
                               'border border-gray-200/50 dark:border-gray-800/50',
                               'animate-in fade-in-0 zoom-in-95',
@@ -542,11 +546,7 @@ export const Workbench = memo(
                       onEditorChange={onEditorChange}
                       onFileSave={onFileSave}
                       onFileReset={onFileReset}
-                      mobilePanel={
-                        mobilePanel === 'files' || mobilePanel === 'terminal' || mobilePanel === 'deploy'
-                          ? mobilePanel
-                          : 'editor'
-                      }
+                      mobilePanel={mobilePanel === 'files' || mobilePanel === 'terminal' ? mobilePanel : 'editor'}
                     />
                   </View>
                   <View
@@ -555,10 +555,18 @@ export const Workbench = memo(
                       x: activeWorkbenchView === 'diff' ? '0%' : activeWorkbenchView === 'code' ? '100%' : '-100%',
                     }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                    <PanelBoundary title="Diff">
+                      <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} />
+                    </PanelBoundary>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: activeWorkbenchView === 'preview' ? '0%' : '100%' }}>
-                    <Preview setSelectedElement={setSelectedElement} projectId={projectId} />
+                    <PanelBoundary title="Preview">
+                      <Preview
+                        setSelectedElement={setSelectedElement}
+                        projectId={projectId}
+                        autoStart={activeWorkbenchView === 'preview'}
+                      />
+                    </PanelBoundary>
                   </View>
                 </div>
               </div>

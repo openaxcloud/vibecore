@@ -29,8 +29,12 @@ functions/build/
 .vibecore-project-storage/
 **/.vibecore/
 test-results/
+tmp/
+.claude/
 .env.local
 .env
+.env.production
+.env.production.local
 .dev.vars
 *.vars
 .wrangler

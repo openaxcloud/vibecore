@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "fastify": "^5.8.5"
+    "fastify": "^5.8.5",
+    "gpt-tokenizer": "^3.4.0",
+    "ioredis": "^5.10.1"
   },
   "devDependencies": {
     "tsx": "^4.21.0",

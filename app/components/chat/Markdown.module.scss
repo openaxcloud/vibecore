@@ -1,5 +1,6 @@
-$font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono',
-  'Courier New', monospace;
+$font-mono:
+  'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+  monospace;
 $code-font-size: 13px;
 
 @mixin not-inside-actions {
@@ -56,7 +57,7 @@ $code-font-size: 13px;
 
   h6 {
     font-size: 0.85em;
-    color: #6a737d;
+    color: var(--bolt-elements-textTertiary);
   }
 
   p {
@@ -162,11 +163,11 @@ $code-font-size: 13px;
 
     :is(th, td) {
       padding: 6px 13px;
-      border: 1px solid #dfe2e5;
+      border: 1px solid var(--bolt-elements-borderColor);
     }
 
     tr:nth-child(2n) {
-      background-color: #f6f8fa;
+      background-color: var(--bolt-elements-bg-depth-2);
     }
   }
 }

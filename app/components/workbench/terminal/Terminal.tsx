@@ -29,6 +29,7 @@ export const Terminal = memo(
       const terminalRef = useRef<XTerm>();
       const fitAddonRef = useRef<FitAddon>();
       const resizeObserverRef = useRef<ResizeObserver>();
+      const resizeFrameRef = useRef<number>();
 
       useEffect(() => {
         const element = terminalElementRef.current!;
@@ -74,14 +75,19 @@ export const Terminal = memo(
         }
 
         const resizeObserver = new ResizeObserver((entries) => {
-          // Debounce resize events
           if (entries.length > 0) {
-            try {
-              fitAddon.fit();
-              onTerminalResize?.(terminal.cols, terminal.rows);
-            } catch (error) {
-              logger.error(`Resize error [${id}]:`, error);
+            if (resizeFrameRef.current) {
+              cancelAnimationFrame(resizeFrameRef.current);
             }
+
+            resizeFrameRef.current = requestAnimationFrame(() => {
+              try {
+                fitAddon.fit();
+                onTerminalResize?.(terminal.cols, terminal.rows);
+              } catch (error) {
+                logger.error(`Resize error [${id}]:`, error);
+              }
+            });
           }
         });
 
@@ -94,6 +100,11 @@ export const Terminal = memo(
 
         return () => {
           try {
+            if (resizeFrameRef.current) {
+              cancelAnimationFrame(resizeFrameRef.current);
+              resizeFrameRef.current = undefined;
+            }
+
             resizeObserver.disconnect();
             terminal.dispose();
           } catch (error) {

@@ -2,6 +2,7 @@ import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from '
 import type { CommandEvent, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
+import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ITerminal } from '~/types/terminal';
@@ -13,6 +14,7 @@ import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import fileSaver from 'file-saver';
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
+import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { path } from '~/utils/path';
 import { WORK_DIR } from '~/utils/constants';
 import { extractRelativePath } from '~/utils/diff';
@@ -34,8 +36,134 @@ export interface ArtifactState {
 export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
+type PreviewCommand = {
+  command: string;
+  args: string[];
+  label: string;
+  cwd?: string;
+};
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
+
+const WORKSPACE_LOG_LIMIT = 500;
+const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
+const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
+const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
+  '.git',
+  '.next',
+  '.turbo',
+  '.vite',
+  '.cache',
+  'build',
+  'coverage',
+  'dist',
+  'node_modules',
+  'out',
+]);
+const PROJECT_STORAGE_SYNC_EXCLUDED_FILES = new Set(['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', '.DS_Store']);
+const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
+const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
+const IMPORT_TO_RUNTIME_DEPENDENCY: Record<string, string> = {
+  '@hookform/resolvers': '@hookform/resolvers',
+  '@radix-ui/react-accordion': '@radix-ui/react-accordion',
+  '@radix-ui/react-alert-dialog': '@radix-ui/react-alert-dialog',
+  '@radix-ui/react-avatar': '@radix-ui/react-avatar',
+  '@radix-ui/react-checkbox': '@radix-ui/react-checkbox',
+  '@radix-ui/react-dialog': '@radix-ui/react-dialog',
+  '@radix-ui/react-dropdown-menu': '@radix-ui/react-dropdown-menu',
+  '@radix-ui/react-label': '@radix-ui/react-label',
+  '@radix-ui/react-popover': '@radix-ui/react-popover',
+  '@radix-ui/react-progress': '@radix-ui/react-progress',
+  '@radix-ui/react-radio-group': '@radix-ui/react-radio-group',
+  '@radix-ui/react-scroll-area': '@radix-ui/react-scroll-area',
+  '@radix-ui/react-select': '@radix-ui/react-select',
+  '@radix-ui/react-separator': '@radix-ui/react-separator',
+  '@radix-ui/react-slot': '@radix-ui/react-slot',
+  '@radix-ui/react-switch': '@radix-ui/react-switch',
+  '@radix-ui/react-tabs': '@radix-ui/react-tabs',
+  '@radix-ui/react-toast': '@radix-ui/react-toast',
+  '@radix-ui/react-toggle': '@radix-ui/react-toggle',
+  '@radix-ui/react-toggle-group': '@radix-ui/react-toggle-group',
+  '@radix-ui/react-tooltip': '@radix-ui/react-tooltip',
+  '@tanstack/react-query': '@tanstack/react-query',
+  '@vitejs/plugin-react': '@vitejs/plugin-react',
+  axios: 'axios',
+  classnames: 'classnames',
+  clsx: 'clsx',
+  'date-fns': 'date-fns',
+  'framer-motion': 'framer-motion',
+  'lucide-react': 'lucide-react',
+  'react-hook-form': 'react-hook-form',
+  'react-icons': 'react-icons',
+  'react-router-dom': 'react-router-dom',
+  recharts: 'recharts',
+  sonner: 'sonner',
+  'tailwind-merge': 'tailwind-merge',
+  vite: 'vite',
+  zod: 'zod',
+};
+const RUNTIME_DEPENDENCY_VERSIONS: Record<string, string> = {
+  '@vitejs/plugin-react': '^4.3.4',
+  vite: '^5.4.19',
+  typescript: '^5.7.2',
+  react: '^18.3.1',
+  'react-dom': '^18.3.1',
+  'lucide-react': '^0.485.0',
+  'react-router-dom': '^6.28.2',
+};
+
+function workspaceLogLines(event: CommandEvent | string) {
+  const rawLine = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
+
+  return rawLine
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => {
+      const normalizedLine = line.replace(ANSI_ESCAPE_SEQUENCE, '').trim();
+
+      return normalizedLine.length > 0 && !WORKSPACE_LOG_NOISE_PATTERNS.some((pattern) => pattern.test(normalizedLine));
+    });
+}
+
+function inferRuntimeDependenciesFromImports(files: Record<string, string>) {
+  const dependencies = new Set<string>();
+  const importPatterns = [
+    /\bimport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bexport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
+    /\bimport\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\brequire\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+
+  for (const [filePath, content] of Object.entries(files)) {
+    if (!/\.(c|m)?(j|t)sx?$/.test(filePath)) {
+      continue;
+    }
+
+    for (const pattern of importPatterns) {
+      pattern.lastIndex = 0;
+
+      for (let match = pattern.exec(content); match; match = pattern.exec(content)) {
+        const dependency = runtimeDependencyForImport(match[1]);
+
+        if (dependency) {
+          dependencies.add(dependency);
+        }
+      }
+    }
+  }
+
+  return dependencies;
+}
+
+function runtimeDependencyForImport(specifier: string) {
+  if (!specifier || specifier.startsWith('.') || specifier.startsWith('/') || specifier.startsWith('node:')) {
+    return undefined;
+  }
+
+  const barePackage = specifier.startsWith('@') ? specifier.split('/').slice(0, 2).join('/') : specifier.split('/')[0];
+
+  return IMPORT_TO_RUNTIME_DEPENDENCY[specifier] ?? IMPORT_TO_RUNTIME_DEPENDENCY[barePackage];
+}
 
 export class WorkbenchStore {
   #runtime: RuntimeAdapter = runtimeAdapter;
@@ -45,6 +173,9 @@ export class WorkbenchStore {
   #terminalStore = new TerminalStore(this.#runtime);
 
   #reloadedMessages = new Set<string>();
+  #previewStartPromise: Promise<string> | undefined;
+  #previewCommandRunning = false;
+  #projectId: string | undefined;
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -113,6 +244,10 @@ export class WorkbenchStore {
     this.#snapshottedArtifacts.clear();
   }
 
+  configureProject(projectId?: string) {
+    this.#projectId = projectId;
+  }
+
   async loadRuntimeFiles(rootPath = '.') {
     await this.#filesStore.reloadFromRuntime(rootPath);
     this.setDocuments(this.files.get());
@@ -123,27 +258,83 @@ export class WorkbenchStore {
   }
 
   async startPreviewServer() {
+    await this.refreshRuntimePorts().catch(() => undefined);
+
+    if (this.#previewStartPromise) {
+      return this.#previewStartPromise;
+    }
+
+    if (!this.#findPackageJsonEntry()) {
+      await this.loadRuntimeFiles('.').catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error ? `Preview file reload failed: ${error.message}` : 'Preview file reload failed',
+        );
+      });
+    }
+
+    let dependenciesChanged = false;
+
+    if (this.#findPackageJsonEntry()) {
+      dependenciesChanged = await this.#syncPackageJsonDependenciesFromRuntimeImports().catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `Dependency sync skipped before preview: ${error.message}`
+            : 'Dependency sync skipped before preview',
+        );
+
+        return false;
+      });
+      await this.loadRuntimeFiles('.').catch(() => undefined);
+    }
+
+    if (dependenciesChanged) {
+      await this.stopPreviewServer();
+    } else if (this.previews.get().some((preview) => preview.ready !== false)) {
+      return 'existing preview server';
+    }
+
     const command = this.#detectPreviewCommand();
     this.toggleTerminal(true);
 
+    this.#previewStartPromise = Promise.resolve(command.label);
+    this.#previewCommandRunning = true;
+
     void (async () => {
       try {
-        for await (const event of this.#runtime.streamCommand({ command: command.command, args: command.args })) {
+        this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
+
+        for await (const event of this.#runtime.streamCommand({
+          command: command.command,
+          args: command.args,
+          cwd: command.cwd,
+        })) {
           this.appendWorkspaceLog(event);
 
           if (event.type === 'stdout' || event.type === 'stderr') {
             await this.refreshRuntimePorts().catch(() => undefined);
           }
+
+          if (event.type === 'exit' && event.exitCode && event.exitCode !== 0) {
+            this.appendWorkspaceLog(`Preview command exited with code ${event.exitCode}`);
+          }
         }
       } catch (error) {
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+      } finally {
+        this.#previewStartPromise = undefined;
+        this.#previewCommandRunning = false;
       }
     })();
 
-    window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), 750);
-    window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), 2000);
+    [500, 1000, 2000, 3500, 5500, 8000].forEach((delay) => {
+      window.setTimeout(() => void this.refreshRuntimePorts().catch(() => undefined), delay);
+    });
 
     return command.label;
+  }
+
+  isPreviewServerStarting() {
+    return Boolean(this.#previewStartPromise) || this.#previewCommandRunning;
   }
 
   async stopPreviewServer() {
@@ -171,30 +362,64 @@ export class WorkbenchStore {
     return previewProcesses.length;
   }
 
-  #detectPreviewCommand() {
-    const files = this.files.get();
-    const packageJsonEntry = Object.entries(files).find(([filePath, dirent]) => {
-      return dirent?.type === 'file' && (filePath === `${WORK_DIR}/package.json` || filePath.endsWith('/package.json'));
-    });
+  async restartPreviewServer() {
+    await this.stopPreviewServer();
+    this.#previewStartPromise = undefined;
+
+    return this.startPreviewServer();
+  }
+
+  #detectPreviewCommand(): PreviewCommand {
+    const packageJsonEntry = this.#findPackageJsonEntry();
 
     if (packageJsonEntry?.[1]?.type === 'file' && packageJsonEntry[1].content) {
       try {
-        const pkg = JSON.parse(packageJsonEntry[1].content) as { scripts?: Record<string, string> };
+        const pkg = JSON.parse(packageJsonEntry[1].content) as {
+          scripts?: Record<string, string>;
+          packageManager?: string;
+          dependencies?: Record<string, string>;
+          devDependencies?: Record<string, string>;
+        };
         const scripts = pkg.scripts ?? {};
+        const cwd = this.#runtimeCwdForPackageJson(packageJsonEntry[0]);
+        const installCommand = this.#installCommandForPackage(packageJsonEntry[0], pkg);
+        const installGuardCommand = this.#installGuardCommand(installCommand);
+        const dependencies = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+        const shouldRunViteWithoutInstall = this.#canRunViteWithoutDependencyInstall(packageJsonEntry[0], dependencies);
 
         if (scripts.dev) {
+          const devScript = scripts.dev.toLowerCase();
+
+          if (devScript.includes('vite') && (!dependencies.vite || shouldRunViteWithoutInstall)) {
+            return {
+              command: 'npx',
+              args: ['--yes', 'vite', '--host', '0.0.0.0'],
+              label: 'npx vite',
+              cwd,
+            };
+          }
+
+          const hostArgs =
+            devScript.includes('--host') || devScript.includes(' -h ') || devScript.includes(' --hostname ')
+              ? ''
+              : devScript.includes('next')
+                ? ' -- -H 0.0.0.0'
+                : ' -- --host 0.0.0.0';
+
           return {
             command: 'sh',
-            args: ['-lc', 'test -d node_modules || npm install; npm run dev -- --host 0.0.0.0'],
+            args: ['-lc', `${installGuardCommand}; npm run dev${hostArgs}`],
             label: 'npm run dev',
+            cwd,
           };
         }
 
         if (scripts.start) {
           return {
             command: 'sh',
-            args: ['-lc', 'test -d node_modules || npm install; npm run start'],
+            args: ['-lc', `${installGuardCommand}; npm run start`],
             label: 'npm run start',
+            cwd,
           };
         }
       } catch (error) {
@@ -202,12 +427,115 @@ export class WorkbenchStore {
       }
     }
 
-    return { command: 'npx', args: ['vite', '--host', '0.0.0.0'], label: 'npx vite' };
+    return {
+      command: 'npx',
+      args: ['--yes', 'vite', '--host', '0.0.0.0'],
+      label: 'npx vite',
+    };
+  }
+
+  #findPackageJsonEntry() {
+    return Object.entries(this.files.get()).find(([filePath, dirent]) => {
+      return dirent?.type === 'file' && this.#isPackageJsonPath(filePath);
+    });
+  }
+
+  #isPackageJsonPath(filePath: string) {
+    const normalizedPath = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
+    const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
+
+    return (
+      normalizedPath === 'package.json' ||
+      normalizedPath === `${normalizedWorkDir}/package.json` ||
+      normalizedPath.endsWith('/package.json')
+    );
+  }
+
+  #packageJsonCwd(packageJsonPath: string) {
+    const normalizedPath = packageJsonPath.replaceAll('\\', '/').replace(/^\/+/, '');
+    const workdirPrefix = `${WORK_DIR.replace(/^\/+/, '')}/`;
+    const relativePath = normalizedPath.startsWith(workdirPrefix)
+      ? normalizedPath.slice(workdirPrefix.length)
+      : normalizedPath;
+    const directory = relativePath.replace(/\/?package\.json$/, '');
+
+    return directory && directory !== relativePath ? directory : undefined;
+  }
+
+  #runtimeCwdForPackageJson(packageJsonPath: string) {
+    return this.#packageJsonCwd(packageJsonPath);
+  }
+
+  #installCommandForPackage(packageJsonPath: string, pkg: { packageManager?: string }) {
+    const packageManager = pkg.packageManager?.toLowerCase() ?? '';
+    const hasPnpmLock = this.#packageDirectoryHasFile(packageJsonPath, 'pnpm-lock.yaml');
+    const hasYarnLock = this.#packageDirectoryHasFile(packageJsonPath, 'yarn.lock');
+
+    if (packageManager.startsWith('pnpm') || hasPnpmLock) {
+      return 'corepack enable >/dev/null 2>&1 || true; pnpm install';
+    }
+
+    if (packageManager.startsWith('yarn') || hasYarnLock) {
+      return 'corepack enable >/dev/null 2>&1 || true; yarn install';
+    }
+
+    return 'npm install --prefer-offline --no-audit --no-fund';
+  }
+
+  #installGuardCommand(installCommand: string) {
+    return `if [ ! -d node_modules ] || [ package.json -nt node_modules ]; then ${installCommand}; fi`;
+  }
+
+  #packageDirectoryHasFile(packageJsonPath: string, fileName: string) {
+    const files = this.files.get();
+    const cwd = this.#packageJsonCwd(packageJsonPath);
+    const relativePath = cwd ? `${cwd}/${fileName}` : fileName;
+    const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
+    const candidates = new Set([relativePath, `${WORK_DIR}/${relativePath}`, `${normalizedWorkDir}/${relativePath}`]);
+
+    return Array.from(candidates).some((candidate) => Boolean(files[candidate]));
+  }
+
+  #packageDirectoryFileContent(packageJsonPath: string, fileName: string) {
+    const files = this.files.get();
+    const cwd = this.#packageJsonCwd(packageJsonPath);
+    const relativePath = cwd ? `${cwd}/${fileName}` : fileName;
+    const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
+    const candidates = [relativePath, `${WORK_DIR}/${relativePath}`, `${normalizedWorkDir}/${relativePath}`];
+
+    for (const candidate of candidates) {
+      const file = files[candidate];
+
+      if (file?.type === 'file' && typeof file.content === 'string') {
+        return file.content;
+      }
+    }
+
+    return undefined;
+  }
+
+  #canRunViteWithoutDependencyInstall(packageJsonPath: string, dependencies: Record<string, string>) {
+    const indexHtml = this.#packageDirectoryFileContent(packageJsonPath, 'index.html');
+
+    if (indexHtml && !/<script\b[^>]*\btype=["']module["'][^>]*>/i.test(indexHtml)) {
+      return true;
+    }
+
+    const runtimeDependencies = Object.keys(dependencies).filter(
+      (dependency) => dependency !== 'vite' && dependency !== 'typescript',
+    );
+
+    return runtimeDependencies.length === 0;
   }
 
   appendWorkspaceLog(event: CommandEvent | string) {
-    const line = typeof event === 'string' ? event : event.data || event.error?.message || event.type;
-    this.workspaceLogs.set([...this.workspaceLogs.get(), line].slice(-500));
+    const lines = workspaceLogLines(event);
+
+    if (!lines.length) {
+      return;
+    }
+
+    this.workspaceLogs.set([...this.workspaceLogs.get(), ...lines].slice(-WORKSPACE_LOG_LIMIT));
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {
@@ -420,6 +748,14 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+  getDeletedPaths() {
+    return this.#filesStore.getDeletedPaths();
+  }
+
+  setDeletedPaths(paths: string[]) {
+    this.#filesStore.setDeletedPaths(paths);
+  }
+
   /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
@@ -589,7 +925,7 @@ export class WorkbenchStore {
   }
 
   abortAllActions() {
-    // TODO: what do we wanna do and how do we wanna recover from this?
+    Object.values(this.artifacts.get()).forEach((artifact) => artifact.runner.abortAll());
   }
 
   setReloadedMessages(messages: string[]) {
@@ -651,7 +987,12 @@ export class WorkbenchStore {
       return;
     }
 
+    const wasClosed = artifact.closed;
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
+
+    if (state.closed && !wasClosed) {
+      this.addToExecutionQueue(() => this.#refreshPreviewAfterArtifactClose(artifactId));
+    }
   }
   addAction(data: ActionCallbackData) {
     // this._addAction(data);
@@ -729,6 +1070,168 @@ export class WorkbenchStore {
       }
     } else {
       await artifact.runner.runAction(data);
+    }
+  }
+
+  async #refreshPreviewAfterArtifactClose(artifactId: string) {
+    await this.loadRuntimeFiles('.').catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error ? `Preview file refresh skipped: ${error.message}` : 'Preview file refresh skipped',
+      );
+    });
+
+    if (!this.#findPackageJsonEntry()) {
+      await this.#persistRuntimeFilesToProjectStorage(artifactId);
+      return;
+    }
+
+    await this.#syncPackageJsonDependenciesFromRuntimeImports().catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error
+          ? `Dependency sync skipped after ${artifactId}: ${error.message}`
+          : `Dependency sync skipped after ${artifactId}`,
+      );
+    });
+
+    await this.loadRuntimeFiles('.').catch(() => undefined);
+    await this.#persistRuntimeFilesToProjectStorage(artifactId);
+
+    await this.restartPreviewServer().catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error
+          ? `Preview restart skipped after ${artifactId}: ${error.message}`
+          : `Preview restart skipped after ${artifactId}`,
+      );
+    });
+  }
+
+  async #syncPackageJsonDependenciesFromRuntimeImports() {
+    const packageJsonEntry = this.#findPackageJsonEntry();
+
+    if (!packageJsonEntry) {
+      return false;
+    }
+
+    const [packageJsonFilePath, packageJsonFile] = packageJsonEntry;
+
+    if (!packageJsonFile || packageJsonFile.type !== 'file' || !packageJsonFile.content) {
+      return false;
+    }
+
+    const files = await collectRuntimeTextFiles(this.#runtime, '.', {
+      excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
+      excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
+    });
+    const requiredDependencies = inferRuntimeDependenciesFromImports(files);
+
+    if (!requiredDependencies.size) {
+      return false;
+    }
+
+    const packageJsonPath = packageJsonFilePath.replace(/^\/+/, '');
+    const packageJson = JSON.parse(packageJsonFile.content) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    };
+    const dependencies = { ...(packageJson.dependencies ?? {}) };
+    const devDependencies = packageJson.devDependencies ?? {};
+    const missing = [...requiredDependencies].filter(
+      (dependency) => !dependencies[dependency] && !devDependencies[dependency],
+    );
+    let changed = missing.length > 0;
+    const normalizedDependencies = { ...dependencies };
+
+    for (const dependency of new Set([...Object.keys(normalizedDependencies), ...requiredDependencies])) {
+      const pinnedVersion = RUNTIME_DEPENDENCY_VERSIONS[dependency];
+
+      if (pinnedVersion && normalizedDependencies[dependency] === 'latest') {
+        normalizedDependencies[dependency] = pinnedVersion;
+        changed = true;
+      }
+    }
+
+    if (!changed) {
+      return false;
+    }
+
+    const nextPackageJson = {
+      ...packageJson,
+      dependencies: Object.fromEntries(
+        Object.entries({
+          ...normalizedDependencies,
+          ...Object.fromEntries(
+            missing.map((dependency) => [dependency, RUNTIME_DEPENDENCY_VERSIONS[dependency] ?? 'latest']),
+          ),
+        }).sort(([left], [right]) => left.localeCompare(right)),
+      ),
+    };
+
+    await this.#runtime.writeFile(packageJsonPath, `${JSON.stringify(nextPackageJson, null, 2)}\n`);
+
+    if (missing.length) {
+      this.appendWorkspaceLog(`Added missing runtime dependencies: ${missing.join(', ')}`);
+    }
+
+    return true;
+  }
+
+  async #persistRuntimeFilesToProjectStorage(artifactId: string) {
+    if (!this.#projectId) {
+      return;
+    }
+
+    try {
+      const files = await collectRuntimeTextFiles(this.#runtime, '.', {
+        excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
+        excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
+      });
+      const zip = new JSZip();
+      let fileCount = 0;
+      let totalBytes = 0;
+
+      for (const [filePath, content] of Object.entries(files)) {
+        const byteLength = new TextEncoder().encode(content).byteLength;
+
+        if (byteLength > PROJECT_STORAGE_SYNC_MAX_FILE_BYTES) {
+          this.appendWorkspaceLog(`Project storage sync skipped large file ${filePath}`);
+          continue;
+        }
+
+        if (totalBytes + byteLength > PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES) {
+          this.appendWorkspaceLog('Project storage sync stopped at size limit');
+          break;
+        }
+
+        zip.file(filePath, content);
+        fileCount++;
+        totalBytes += byteLength;
+      }
+
+      if (!fileCount) {
+        return;
+      }
+
+      const response = await fetch(`/api/projects/${encodeURIComponent(this.#projectId)}/files/import/zip`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`import returned ${response.status}`);
+      }
+
+      this.appendWorkspaceLog(`Project storage synced ${fileCount} files after ${artifactId}`);
+    } catch (error) {
+      this.appendWorkspaceLog(
+        error instanceof Error
+          ? `Project storage sync skipped after ${artifactId}: ${error.message}`
+          : `Project storage sync skipped after ${artifactId}`,
+      );
     }
   }
 
@@ -1034,8 +1537,7 @@ export class WorkbenchStore {
       }
 
       if (isGitLab) {
-        const { GitLabApiService: gitLabApiServiceClass } = await import('~/lib/services/gitlabApiService');
-        const gitLabApiService = new gitLabApiServiceClass(authToken, 'https://gitlab.com');
+        const gitLabApiService = new GitLabApiService(authToken, 'https://gitlab.com');
 
         // Check or create repo
         let repo = await gitLabApiService.getProject(owner, repoName);

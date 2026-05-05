@@ -31,6 +31,7 @@ The API uses an in-process room broker for local development and automatically e
 ## Security
 
 - All routes require project/org membership through backend RBAC.
+- Project collaborators must already be members of the owning organization.
 - Viewer collaborators are forced into read-only mode and cannot edit files.
 - Project paths are normalized and path traversal is rejected.
 - Shared terminal access is denied for viewer collaborators unless explicitly granted.

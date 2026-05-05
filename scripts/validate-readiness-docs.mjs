@@ -81,12 +81,15 @@ for (const phrase of strictPhrases) {
 }
 
 for (const item of requiredItems) {
-  if (!matrix.includes(`| ${requiredItems.indexOf(item) + 1} | ${item} |`)) {
+  const index = requiredItems.indexOf(item) + 1;
+  // Tolerate prettier-style column padding (multiple spaces around | separators).
+  const rowPattern = new RegExp(`\\|\\s+${index}\\s+\\|\\s+${item.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\s+\\|`);
+  if (!rowPattern.test(matrix)) {
     failures.push(`COMPLETION_MATRIX.md is missing item: ${item}`);
   }
 }
 
-const statusMatches = matrix.match(/\| (complete|partial|missing) \|/g) ?? [];
+const statusMatches = matrix.match(/\|\s+(complete|partial|missing)\s+\|/g) ?? [];
 if (statusMatches.length < requiredItems.length) {
   failures.push(`COMPLETION_MATRIX.md has ${statusMatches.length} statuses, expected at least ${requiredItems.length}`);
 }

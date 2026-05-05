@@ -25,15 +25,15 @@ test('public platform pages use the shared typography system', async ({ page }) 
   });
 
   expect(landingTypography.interfaceFont).toContain('Inter');
-  expect(landingTypography.interfaceSize).toBe('13px');
-  expect(landingTypography.headingSize).toBe('15px');
+  expect(landingTypography.interfaceSize).toBe('12px');
+  expect(landingTypography.headingSize).toBe('14px');
   expect(landingTypography.bodyFont).toContain('Inter');
-  expect(landingTypography.bodySize).toBe('13px');
-  expect(Number.parseFloat(landingTypography.bodyLineHeight)).toBeCloseTo(19.5, 1);
-  expect(landingTypography.headingSizeActual).toBe('15px');
+  expect(landingTypography.bodySize).toBe('12px');
+  expect(Number.parseFloat(landingTypography.bodyLineHeight)).toBeCloseTo(17, 1);
+  expect(landingTypography.headingSizeActual).toBe('14px');
   expect(landingTypography.headingWeight).toBe('600');
-  expect(landingTypography.paragraphSizeActual).toBe('13px');
-  expect(Number.parseFloat(landingTypography.paragraphLineHeight)).toBeCloseTo(19.5, 1);
+  expect(landingTypography.paragraphSizeActual).toBe('12px');
+  expect(Number.parseFloat(landingTypography.paragraphLineHeight)).toBeCloseTo(17, 1);
 
   await page.goto('/pricing', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'Pricing' })).toBeVisible();
@@ -50,8 +50,8 @@ test('public platform pages use the shared typography system', async ({ page }) 
     };
   });
 
-  expect(pricingTypography.headingSizeActual).toBe('15px');
+  expect(pricingTypography.headingSizeActual).toBe('14px');
   expect(pricingTypography.headingWeight).toBe('600');
-  expect(pricingTypography.cardHeadingSizeActual).toBe('15px');
+  expect(pricingTypography.cardHeadingSizeActual).toBe('14px');
   expect(pricingTypography.cardHeadingWeight).toBe('600');
 });

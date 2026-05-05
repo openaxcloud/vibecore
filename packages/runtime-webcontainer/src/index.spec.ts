@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import JSZip from 'jszip';
 import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerProcessLike } from './index';
 
 class MemoryFs {
@@ -67,18 +68,27 @@ function processWithOutput(output: string, exitCode = 0): WebContainerProcessLik
   };
 }
 
-function createWebContainer(): WebContainerLike & { fs: MemoryFs; emitPort(port: number, type: 'open' | 'close', url: string): void } {
+function createWebContainer(): WebContainerLike & {
+  fs: MemoryFs;
+  emitPort(port: number, type: 'open' | 'close', url: string): void;
+} {
   const listeners = new Map<string, Function[]>();
   const fs = new MemoryFs();
 
   return {
     workdir: '/home/project',
     fs,
-    spawn: vi.fn(async (command: string, args?: string[]) => processWithOutput(`${command} ${(args ?? []).join(' ')}`.trim())),
+    spawn: vi.fn(async (command: string, args?: string[]) =>
+      processWithOutput(`${command} ${(args ?? []).join(' ')}`.trim()),
+    ),
     setPreviewScript: vi.fn(async () => {}),
     on: vi.fn((event: string, listener: Function) => {
       listeners.set(event, [...(listeners.get(event) ?? []), listener]);
-      return () => listeners.set(event, (listeners.get(event) ?? []).filter((item) => item !== listener));
+      return () =>
+        listeners.set(
+          event,
+          (listeners.get(event) ?? []).filter((item) => item !== listener),
+        );
     }),
     internal: {
       watchPaths: vi.fn((_paths, callback) => {
@@ -104,9 +114,7 @@ describe('WebContainerRuntimeAdapter', () => {
     await adapter.writeFile('src/App.tsx', 'export default function App() {}');
 
     expect(await adapter.readFile('src/App.tsx')).toContain('App');
-    expect(await adapter.listFiles('.')).toEqual([
-      expect.objectContaining({ path: 'src', type: 'directory' }),
-    ]);
+    expect(await adapter.listFiles('.')).toEqual([expect.objectContaining({ path: 'src', type: 'directory' })]);
 
     webcontainer.emitPort(5173, 'open', 'https://5173.local-credentialless.webcontainer-api.io');
     await expect(adapter.getPreviewUrl(5173)).resolves.toEqual({
@@ -128,5 +136,19 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toBe('npm test');
     expect(changes).toEqual(['update:src/App.tsx']);
+  });
+
+  it('imports real zip archives into the workspace filesystem', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    const zip = new JSZip();
+
+    zip.file('index.html', '<main>preview smoke</main>');
+    zip.file('src/App.tsx', 'export default function App() {}');
+
+    await adapter.importZip(await zip.generateAsync({ type: 'uint8array' }));
+
+    expect(await adapter.readFile('index.html')).toContain('preview smoke');
+    expect(await adapter.readFile('src/App.tsx')).toContain('App');
   });
 });

@@ -8,18 +8,27 @@ import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
+import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
 import { WORK_DIR } from '~/utils/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import {
+  AgentExecutorError,
+  areParallelSubagentsAvailable,
+  buildAgentOrchestrationPlan,
+  createAgentExecutionContext,
+  executeAgentOrchestration,
+} from '~/lib/.server/llm/agent-orchestration';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
 const logger = createScopedLogger('api.chat');
+const RECENT_HISTORY_MESSAGES = 12;
 
 function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -40,6 +49,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
+  let clientDisconnected = false;
   const streamRecovery = new StreamRecoveryManager({
     timeout: 45000,
     maxRetries: 2,
@@ -47,6 +57,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       logger.warn('Stream timeout - attempting recovery');
     },
   });
+
+  if (request.signal) {
+    const abortHandler = () => {
+      clientDisconnected = true;
+      streamRecovery.stop();
+      logger.warn('Client disconnected - cancelling stream');
+    };
+    request.signal.addEventListener('abort', abortHandler, { once: true });
+  }
 
   const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
     await request.json<{
@@ -100,111 +119,181 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let messageSliceId = 0;
 
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+        let orchestrationPlan = buildAgentOrchestrationPlan({
+          messages: processedMessages,
+          chatMode,
+          subagentsAvailable: areParallelSubagentsAvailable(
+            context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+          ),
+        });
+        let agentOrchestrationContext: string | undefined;
 
-        if (processedMessages.length > 3) {
-          messageSliceId = processedMessages.length - 3;
-        }
+        if (orchestrationPlan.enabled) {
+          if (orchestrationPlan.mode === 'parallel-subagents') {
+            dataStream.writeData({
+              type: 'progress',
+              label: 'orchestration',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Executing specialist agent lanes',
+            } satisfies ProgressAnnotation);
 
-        if (filePaths.length > 0 && contextOptimization) {
-          logger.debug('Generating Chat Summary');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Analysing Request',
-          } satisfies ProgressAnnotation);
-
-          // Create a summary of the chat
-          console.log(`Messages count: ${processedMessages.length}`);
-
-          summary = await createSummary({
-            messages: [...processedMessages],
-            env: context.cloudflare?.env,
-            apiKeys,
-            providerSettings,
-            promptId,
-            contextOptimization,
-            onFinish(resp) {
-              if (resp.usage) {
-                logger.debug('createSummary token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-              }
-            },
-          });
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'complete',
-            order: progressCounter++,
-            message: 'Analysis Complete',
-          } satisfies ProgressAnnotation);
-
-          dataStream.writeMessageAnnotation({
-            type: 'chatSummary',
-            summary,
-            chatId: processedMessages.slice(-1)?.[0]?.id,
-          } as ContextAnnotation);
-
-          // Update context buffer
-          logger.debug('Updating Context Buffer');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'context',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Determining Files to Read',
-          } satisfies ProgressAnnotation);
-
-          // Select context files
-          console.log(`Messages count: ${processedMessages.length}`);
-          filteredFiles = await selectContext({
-            messages: [...processedMessages],
-            env: context.cloudflare?.env,
-            apiKeys,
-            files,
-            providerSettings,
-            promptId,
-            contextOptimization,
-            summary,
-            onFinish(resp) {
-              if (resp.usage) {
-                logger.debug('selectContext token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-              }
-            },
-          });
-
-          if (filteredFiles) {
-            logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
+            try {
+              const execution = await executeAgentOrchestration({
+                env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+                plan: orchestrationPlan,
+                messages: processedMessages,
+              });
+              agentOrchestrationContext = createAgentExecutionContext(execution);
+              dataStream.writeMessageAnnotation({
+                type: 'agentExecution',
+                runId: execution.runId,
+                status: execution.status,
+                results: execution.results,
+              } satisfies ContextAnnotation);
+            } catch (error) {
+              const message =
+                error instanceof AgentExecutorError
+                  ? `${error.message} Falling back to single-model lanes.`
+                  : 'Sub-agent executor failed. Falling back to single-model lanes.';
+              logger.warn(message);
+              orchestrationPlan = {
+                ...orchestrationPlan,
+                mode: 'single-model-lanes',
+                reason: message,
+              };
+            }
           }
 
           dataStream.writeMessageAnnotation({
-            type: 'codeContext',
-            files: Object.keys(filteredFiles).map((key) => {
-              let path = key;
-
-              if (path.startsWith(WORK_DIR)) {
-                path = path.replace(WORK_DIR, '');
-              }
-
-              return path;
-            }),
-          } as ContextAnnotation);
+            type: 'agentOrchestration',
+            mode: orchestrationPlan.mode,
+            reason: orchestrationPlan.reason,
+            roles: orchestrationPlan.roles.map((role) => ({
+              id: role.id,
+              title: role.title,
+              responsibility: role.responsibility,
+            })),
+          } satisfies ContextAnnotation);
 
           dataStream.writeData({
             type: 'progress',
-            label: 'context',
+            label: 'orchestration',
             status: 'complete',
             order: progressCounter++,
-            message: 'Code Files Selected',
+            message: `Agent lanes planned: ${orchestrationPlan.roles.map((role) => role.title).join(', ')}`,
           } satisfies ProgressAnnotation);
+        }
 
-          // logger.debug('Code Files Selected');
+        if (processedMessages.length > RECENT_HISTORY_MESSAGES) {
+          messageSliceId = processedMessages.length - RECENT_HISTORY_MESSAGES;
+        }
+
+        if (filePaths.length > 0 && contextOptimization) {
+          try {
+            logger.debug('Generating Chat Summary');
+            dataStream.writeData({
+              type: 'progress',
+              label: 'summary',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Analysing Request',
+            } satisfies ProgressAnnotation);
+
+            summary = await createSummary({
+              messages: [...processedMessages],
+              env: context.cloudflare?.env,
+              apiKeys,
+              providerSettings,
+              promptId,
+              contextOptimization,
+              onFinish(resp) {
+                if (resp.usage) {
+                  logger.debug('createSummary token usage', JSON.stringify(resp.usage));
+                  cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+                  cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                  cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+                }
+              },
+            });
+            dataStream.writeData({
+              type: 'progress',
+              label: 'summary',
+              status: 'complete',
+              order: progressCounter++,
+              message: 'Analysis Complete',
+            } satisfies ProgressAnnotation);
+
+            dataStream.writeMessageAnnotation({
+              type: 'chatSummary',
+              summary,
+              chatId: processedMessages.slice(-1)?.[0]?.id,
+            } as ContextAnnotation);
+
+            logger.debug('Updating Context Buffer');
+            dataStream.writeData({
+              type: 'progress',
+              label: 'context',
+              status: 'in-progress',
+              order: progressCounter++,
+              message: 'Determining Files to Read',
+            } satisfies ProgressAnnotation);
+
+            filteredFiles = await selectContext({
+              messages: [...processedMessages],
+              env: context.cloudflare?.env,
+              apiKeys,
+              files,
+              providerSettings,
+              promptId,
+              contextOptimization,
+              summary,
+              onFinish(resp) {
+                if (resp.usage) {
+                  logger.debug('selectContext token usage', JSON.stringify(resp.usage));
+                  cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+                  cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+                  cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+                }
+              },
+            });
+
+            if (filteredFiles) {
+              logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
+            }
+
+            dataStream.writeMessageAnnotation({
+              type: 'codeContext',
+              files: Object.keys(filteredFiles).map((key) => {
+                let path = key;
+
+                if (path.startsWith(WORK_DIR)) {
+                  path = path.replace(WORK_DIR, '');
+                }
+
+                return path;
+              }),
+            } as ContextAnnotation);
+
+            dataStream.writeData({
+              type: 'progress',
+              label: 'context',
+              status: 'complete',
+              order: progressCounter++,
+              message: 'Code Files Selected',
+            } satisfies ProgressAnnotation);
+          } catch (contextError) {
+            logger.warn('Context optimization failed; continuing without selected context', contextError);
+            filteredFiles = undefined;
+            summary = undefined;
+            dataStream.writeData({
+              type: 'progress',
+              label: 'context',
+              status: 'complete',
+              order: progressCounter++,
+              message: 'Context optimization skipped',
+            } satisfies ProgressAnnotation);
+          }
         }
 
         const options: StreamingOptions = {
@@ -228,6 +317,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
 
             if (finishReason !== 'length') {
+              streamRecovery.stop();
               dataStream.writeMessageAnnotation({
                 type: 'usage',
                 value: {
@@ -280,20 +370,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               designScheme,
               summary,
               messageSliceId,
+              abortSignal: request.signal,
+              agentOrchestrationPlan: orchestrationPlan,
+              agentOrchestrationContext,
             });
 
             result.mergeIntoDataStream(dataStream);
-
-            (async () => {
-              for await (const part of result.fullStream) {
-                if (part.type === 'error') {
-                  const error: any = part.error;
-                  logger.error(`${error}`);
-
-                  return;
-                }
-              }
-            })();
 
             return;
           },
@@ -321,64 +403,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           designScheme,
           summary,
           messageSliceId,
+          agentOrchestrationPlan: orchestrationPlan,
+          agentOrchestrationContext,
         });
 
-        (async () => {
-          for await (const part of result.fullStream) {
-            streamRecovery.updateActivity();
-
-            if (part.type === 'error') {
-              const error: any = part.error;
-              logger.error('Streaming error:', error);
-              streamRecovery.stop();
-
-              // Enhanced error handling for common streaming issues
-              if (error.message?.includes('Invalid JSON response')) {
-                logger.error('Invalid JSON response detected - likely malformed API response');
-              } else if (error.message?.includes('token')) {
-                logger.error('Token-related error detected - possible token limit exceeded');
-              }
-
-              return;
-            }
-          }
-          streamRecovery.stop();
-        })();
         result.mergeIntoDataStream(dataStream);
       },
       onError: (error: any) => {
-        // Provide more specific error messages for common issues
-        const errorMessage = error.message || 'Unknown error';
+        streamRecovery.stop();
 
-        if (errorMessage.includes('model') && errorMessage.includes('not found')) {
-          return 'Custom error: Invalid model selected. Please check that the model name is correct and available.';
-        }
+        const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
+        const baseMessage = streamErrorCodeMessages[code];
+        const detail = error?.message ? ` (${error.message})` : '';
 
-        if (errorMessage.includes('Invalid JSON response')) {
-          return 'Custom error: The AI service returned an invalid response. This may be due to an invalid model name, API rate limiting, or server issues. Try selecting a different model or check your API key.';
-        }
+        logger.info(`stream onError code=${code}${detail}`);
 
-        if (
-          errorMessage.includes('API key') ||
-          errorMessage.includes('unauthorized') ||
-          errorMessage.includes('authentication')
-        ) {
-          return 'Custom error: Invalid or missing API key. Please check your API key configuration.';
-        }
-
-        if (errorMessage.includes('token') && errorMessage.includes('limit')) {
-          return 'Custom error: Token limit exceeded. The conversation is too long for the selected model. Try using a model with larger context window or start a new conversation.';
-        }
-
-        if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
-          return 'Custom error: API rate limit exceeded. Please wait a moment before trying again.';
-        }
-
-        if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-          return 'Custom error: Network error. Please check your internet connection and try again.';
-        }
-
-        return `Custom error: ${errorMessage}`;
+        return `Custom error: [${code}] ${baseMessage}`;
       },
     }).pipeThrough(
       new TransformStream({

@@ -94,8 +94,8 @@ export function createSecurityHeaders() {
     // Content Security Policy - restrict to same origin and trusted sources
     'Content-Security-Policy': [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Allow inline scripts for React
-      "style-src 'self' 'unsafe-inline'", // Allow inline styles
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'", // Inline styles remain until the app has a nonce/hash style pipeline.
       "img-src 'self' data: https: blob:", // Allow images from same origin, data URLs, and HTTPS
       "font-src 'self' data:", // Allow fonts from same origin and data URLs
       "connect-src 'self' https://api.github.com https://api.netlify.com", // Allow connections to GitHub and Netlify APIs

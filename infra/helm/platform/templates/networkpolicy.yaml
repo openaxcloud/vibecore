@@ -49,4 +49,6 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: ingress-nginx
+{{- range $key, $value := .Values.networkPolicy.ingressControllerNamespaceSelector }}
+              {{ $key }}: {{ $value | quote }}
+{{- end }}

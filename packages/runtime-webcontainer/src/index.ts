@@ -17,6 +17,7 @@ import {
   type WorkspaceProcess,
   type WorkspaceSession,
 } from '@vibecore/runtime-contract';
+import JSZip from 'jszip';
 
 export interface WebContainerProcessLike {
   input: WritableStream<string>;
@@ -55,7 +56,11 @@ export interface WebContainerLike {
       paths: string[] | Record<string, unknown>,
       callback: (...events: any[]) => void,
     ) => { close?: () => void } | (() => void);
-    textSearch?: (query: string, options: TextSearchOptionsLike, onProgress: TextSearchOnProgressCallbackLike) => Promise<unknown>;
+    textSearch?: (
+      query: string,
+      options: TextSearchOptionsLike,
+      onProgress: TextSearchOnProgressCallbackLike,
+    ) => Promise<unknown>;
   };
 }
 
@@ -114,7 +119,9 @@ export async function loadWebContainerAuth() {
   return auth;
 }
 
-export function createBrowserWebContainerRuntime(options: BrowserWebContainerRuntimeOptions): BrowserWebContainerRuntime {
+export function createBrowserWebContainerRuntime(
+  options: BrowserWebContainerRuntimeOptions,
+): BrowserWebContainerRuntime {
   const context = options.context ?? { loaded: false };
   let webcontainer: Promise<WebContainerLike> = new Promise(() => {
     // WebContainer is browser-only; SSR receives a pending promise and never boots it.
@@ -230,7 +237,9 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   }
 
   async stopWorkspace(): Promise<void> {
-    this.#session = this.#session ? { ...this.#session, status: 'stopped', updatedAt: new Date().toISOString() } : undefined;
+    this.#session = this.#session
+      ? { ...this.#session, status: 'stopped', updatedAt: new Date().toISOString() }
+      : undefined;
 
     for (const [id, process] of this.#processes) {
       process.process?.kill();
@@ -299,24 +308,20 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
     if (typeof webcontainer.internal?.textSearch === 'function') {
       const matches: FileSearchMatch[] = [];
-      await webcontainer.internal.textSearch(
-        query,
-        { ...options, folders: ['.'] },
-        (filePath, apiMatches) => {
-          for (const apiMatch of apiMatches) {
-            const previewText = String(apiMatch.preview?.text ?? '');
-            for (const range of apiMatch.ranges ?? []) {
-              matches.push({
-                path: filePath,
-                lineNumber: Number(range.startLineNumber ?? 1),
-                line: previewText.split('\n')[0] ?? '',
-                startColumn: Number(range.startColumn ?? 0),
-                endColumn: Number(range.endColumn ?? 0),
-              });
-            }
+      await webcontainer.internal.textSearch(query, { ...options, folders: ['.'] }, (filePath, apiMatches) => {
+        for (const apiMatch of apiMatches) {
+          const previewText = String(apiMatch.preview?.text ?? '');
+          for (const range of apiMatch.ranges ?? []) {
+            matches.push({
+              path: filePath,
+              lineNumber: Number(range.startLineNumber ?? 1),
+              line: previewText.split('\n')[0] ?? '',
+              startColumn: Number(range.startColumn ?? 0),
+              endColumn: Number(range.endColumn ?? 0),
+            });
           }
-        },
-      );
+        }
+      });
 
       return matches.slice(0, options.resultLimit);
     }
@@ -524,9 +529,32 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   }
 
   async importZip(data: Uint8Array, targetPath = '.'): Promise<void> {
-    const decoded = new TextDecoder().decode(data);
-    const payload = JSON.parse(decoded) as { files?: FileNode[] };
-    await this.#restoreNodes(payload.files ?? [], targetPath);
+    if (await this.#tryImportLegacyJsonExport(data, targetPath)) {
+      return;
+    }
+
+    const zip = await JSZip.loadAsync(data);
+    const webcontainer = await this.#getWebContainer();
+    const basePath = this.#toRuntimePath(targetPath);
+
+    for (const entry of Object.values(zip.files)) {
+      const safePath = normalizeZipEntryPath(entry.name);
+
+      if (!safePath) {
+        continue;
+      }
+
+      const runtimePath = basePath === '.' ? safePath : joinPath(basePath, safePath);
+
+      if (entry.dir) {
+        await webcontainer.fs.mkdir(runtimePath, { recursive: true });
+        continue;
+      }
+
+      const content = await entry.async('uint8array');
+      await this.#ensureParentDirectory(webcontainer, runtimePath);
+      await webcontainer.fs.writeFile(runtimePath, content);
+    }
   }
 
   async #getWebContainer(): Promise<WebContainerLike> {
@@ -611,7 +639,8 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     for (const entry of entries) {
       const name = typeof entry === 'string' ? entry : entry.name;
       const path = joinPath(dirPath, name);
-      const isDirectory = typeof entry === 'string' ? false : entry.type === 'directory' || entry.isDirectory?.() === true;
+      const isDirectory =
+        typeof entry === 'string' ? false : entry.type === 'directory' || entry.isDirectory?.() === true;
       const node: FileNode = { path, name, type: isDirectory ? 'directory' : 'file' };
 
       if (isDirectory) {
@@ -691,6 +720,28 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     }
   }
 
+  async #tryImportLegacyJsonExport(data: Uint8Array, targetPath: string): Promise<boolean> {
+    let decoded: string;
+
+    try {
+      decoded = new TextDecoder('utf-8', { fatal: true }).decode(data).trim();
+    } catch {
+      return false;
+    }
+
+    if (!decoded.startsWith('{')) {
+      return false;
+    }
+
+    try {
+      const payload = JSON.parse(decoded) as { files?: FileNode[] };
+      await this.#restoreNodes(payload.files ?? [], targetPath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   #mapWatchEvent(type?: string): FileChange['type'] {
     if (type === 'delete' || type === 'remove' || type === 'remove_file' || type === 'remove_dir') {
       return 'delete';
@@ -714,6 +765,19 @@ function joinPath(left: string, right: string) {
   }
 
   return `${left.replace(/\/+$/, '')}/${right.replace(/^\/+/, '')}`;
+}
+
+function normalizeZipEntryPath(path: string) {
+  const parts = path
+    .replace(/\\/g, '/')
+    .split('/')
+    .filter((part) => part && part !== '.');
+
+  if (parts.some((part) => part === '..')) {
+    return null;
+  }
+
+  return parts.join('/');
 }
 
 function toRuntimeError(error: unknown) {

@@ -4,9 +4,7 @@ import { EditorAdapter, TouchSymbolToolbar, useResponsiveLayout } from '@vibecor
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
-  CodeMirrorEditor,
   type EditorDocument,
-  type EditorSettings,
   type OnChangeCallback as OnEditorChange,
   type OnSaveCallback as OnEditorSave,
   type OnScrollCallback as OnEditorScroll,
@@ -26,6 +24,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { Search } from './Search'; // <-- Ensure Search is imported
 import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { LockManager } from './LockManager'; // <-- Import LockManager
+import { PanelBoundary } from '~/components/ui/PanelBoundary';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -39,12 +38,11 @@ interface EditorPanelProps {
   onFileSelect?: (value?: string) => void;
   onFileSave?: OnEditorSave;
   onFileReset?: () => void;
-  mobilePanel?: 'files' | 'editor' | 'terminal' | 'deploy';
+  mobilePanel?: 'files' | 'editor' | 'terminal';
 }
 
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
-
-const editorSettings: EditorSettings = { tabSize: 2 };
+const LARGE_FILE_BYTES = 1_000_000;
 
 export const EditorPanel = memo(
   ({
@@ -56,7 +54,6 @@ export const EditorPanel = memo(
     fileHistory,
     onFileSelect,
     onEditorChange,
-    onEditorScroll,
     onFileSave,
     onFileReset,
     mobilePanel,
@@ -67,7 +64,6 @@ export const EditorPanel = memo(
     const showTerminal = useStore(workbenchStore.showTerminal);
     const layout = useResponsiveLayout();
     const useMobilePanelLayout = layout.isMobile || layout.isTabletPortrait;
-    const useDesktopEditorAdapter = layout.isDesktop || layout.isTabletLandscape;
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -85,6 +81,9 @@ export const EditorPanel = memo(
       // Make sure unsavedFiles is a Set before calling has()
       return unsavedFiles instanceof Set && unsavedFiles.has(editorDocument.filePath);
     }, [editorDocument, unsavedFiles]);
+    const isLargeFile = Boolean(
+      editorDocument && !editorDocument.isBinary && editorDocument.value.length > LARGE_FILE_BYTES,
+    );
 
     const fileTabs = (
       <Tabs.Root defaultValue="files" className="flex flex-col h-full">
@@ -171,7 +170,12 @@ export const EditorPanel = memo(
           />
         )}
         <div className="h-full flex-1 overflow-hidden modern-scrollbar" data-testid="responsive-code-editor">
-          {useDesktopEditorAdapter && editorDocument && !editorDocument.isBinary ? (
+          {isLargeFile && (
+            <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
+              Large file mode: rich editor features are reduced to keep typing and scrolling responsive.
+            </div>
+          )}
+          {editorDocument && !editorDocument.isBinary ? (
             <EditorAdapter
               className="h-full w-full"
               value={editorDocument.value}
@@ -179,22 +183,18 @@ export const EditorPanel = memo(
               readOnly={isStreaming || editorDocument === undefined}
               theme={theme === 'dark' ? 'dark' : 'light'}
               autoFocus={!isMobile() && !useMobilePanelLayout}
+              largeFile={isLargeFile}
               onSave={onFileSave}
               onChange={(update) => {
                 onEditorChange?.({ content: update.value, selection: undefined as any });
               }}
             />
           ) : (
-            <CodeMirrorEditor
-              theme={theme}
-              editable={!isStreaming && editorDocument !== undefined}
-              settings={editorSettings}
-              doc={editorDocument}
-              autoFocusOnDocumentChange={!isMobile() && !useMobilePanelLayout}
-              onScroll={onEditorScroll}
-              onChange={onEditorChange}
-              onSave={onFileSave}
-            />
+            <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
+              {editorDocument?.isBinary
+                ? 'Binary file preview is not available in the mobile editor.'
+                : 'No file selected.'}
+            </div>
           )}
         </div>
       </div>
@@ -202,34 +202,24 @@ export const EditorPanel = memo(
 
     if (useMobilePanelLayout) {
       if (mobilePanel === 'files') {
-        return <div className="h-full">{fileTabs}</div>;
+        return (
+          <PanelBoundary title="Files">
+            <div className="h-full">{fileTabs}</div>
+          </PanelBoundary>
+        );
       }
 
       if (mobilePanel === 'terminal') {
         return (
-          <PanelGroup direction="vertical">
-            <TerminalTabs />
-          </PanelGroup>
+          <PanelBoundary title="Terminal">
+            <PanelGroup direction="vertical">
+              <TerminalTabs panelDefaultSize={100} />
+            </PanelGroup>
+          </PanelBoundary>
         );
       }
 
-      if (mobilePanel === 'deploy') {
-        return (
-          <div className="flex h-full flex-col bg-bolt-elements-background-depth-1">
-            <PanelHeader>Deploy</PanelHeader>
-            <div className="flex flex-1 flex-col justify-center gap-3 p-5 text-sm text-bolt-elements-textSecondary">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-bolt-elements-borderColor">
-                <div className="i-ph:rocket-launch text-2xl" />
-              </div>
-              <div className="mx-auto max-w-sm text-center">
-                Deploy flows stay connected to the existing Bolt deployment panels and runtime commands.
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      return editorPane;
+      return <PanelBoundary title="Editor">{editorPane}</PanelBoundary>;
     }
 
     return (
@@ -237,17 +227,21 @@ export const EditorPanel = memo(
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
           <PanelGroup direction="horizontal">
             <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
-              <div className="h-full">{fileTabs}</div>
+              <PanelBoundary title="Files">
+                <div className="h-full">{fileTabs}</div>
+              </PanelBoundary>
             </Panel>
 
             <PanelResizeHandle />
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
-              {editorPane}
+              <PanelBoundary title="Editor">{editorPane}</PanelBoundary>
             </Panel>
           </PanelGroup>
         </Panel>
         <PanelResizeHandle />
-        <TerminalTabs />
+        <PanelBoundary title="Terminal">
+          <TerminalTabs />
+        </PanelBoundary>
       </PanelGroup>
     );
   },

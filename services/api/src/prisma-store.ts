@@ -124,6 +124,16 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async deleteUser(userId: string) {
+    try {
+      await this.prisma.user.delete({ where: { id: userId } });
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async findUserByEmail(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     return user ? mapUser(user) : undefined;
@@ -321,6 +331,20 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async removeMember(organizationId: string, userId: string) {
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: { organizationId_userId: { organizationId, userId } },
+      include: { role: true },
+    });
+
+    if (!membership) {
+      return undefined;
+    }
+
+    await this.prisma.organizationMember.delete({ where: { id: membership.id } });
+    return mapMembership(membership);
+  }
+
   async createProject(input: {
     organizationId: string;
     name: string;
@@ -467,6 +491,16 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectEnvVar.findMany({ where: { projectId } })).map(mapEnvVar);
   }
 
+  async deleteProjectEnvVar(projectId: string, key: string) {
+    const existing = await this.prisma.projectEnvVar.findUnique({ where: { projectId_key: { projectId, key } } });
+
+    if (!existing) {
+      return undefined;
+    }
+
+    return mapEnvVar(await this.prisma.projectEnvVar.delete({ where: { projectId_key: { projectId, key } } }));
+  }
+
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
     return mapSecret(
       await this.prisma.projectSecret.upsert({
@@ -488,6 +522,16 @@ export class PrismaApiStore implements ApiStore {
   async getProjectSecret(projectId: string, key: string) {
     const secret = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
     return secret ? mapSecret(secret) : undefined;
+  }
+
+  async deleteProjectSecret(projectId: string, key: string) {
+    const existing = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
+
+    if (!existing) {
+      return undefined;
+    }
+
+    return mapSecret(await this.prisma.projectSecret.delete({ where: { projectId_key: { projectId, key } } }));
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }) {
@@ -630,7 +674,7 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async createWorkspace(input: { projectId: string; name: string; runtimeMode: string }) {
+  async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
     return mapWorkspace(await this.prisma.workspace.create({ data: { ...input, status: 'PENDING' } }));
   }
 
@@ -940,6 +984,23 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async listScimTokens(organizationId: string) {
+    const records = await this.prisma.scimToken.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return records.map(mapScimToken);
+  }
+
+  async revokeScimToken(tokenId: string) {
+    try {
+      const deleted = await this.prisma.scimToken.delete({ where: { id: tokenId } });
+      return mapScimToken(deleted);
+    } catch {
+      return undefined;
+    }
+  }
+
   async createCustomRole(input: { organizationId: string; key: string; name: string; permissions: PermissionKey[] }) {
     return mapCustomRole(
       await this.prisma.customRole.upsert({
@@ -996,6 +1057,17 @@ export class PrismaApiStore implements ApiStore {
       },
       include: { role: true },
     });
+    return mapOrganizationInvite(invite);
+  }
+
+  async findOrganizationInviteByToken(token: string) {
+    const tokenHash = hashToken(token);
+    const invite = await this.prisma.organizationInvite.findUnique({ where: { tokenHash }, include: { role: true } });
+
+    if (!invite || invite.acceptedAt || invite.expiresAt.getTime() < Date.now()) {
+      return undefined;
+    }
+
     return mapOrganizationInvite(invite);
   }
 
@@ -1256,6 +1328,16 @@ export class PrismaApiStore implements ApiStore {
       orderBy: { createdAt: 'desc' },
     });
     return subscription ? mapSubscription(subscription) : undefined;
+  }
+
+  async listAdminSubscriptions() {
+    return (
+      await this.prisma.subscription.findMany({
+        include: { plan: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 1000,
+      })
+    ).map(mapSubscription);
   }
 
   async recordUsageEvent(input: {

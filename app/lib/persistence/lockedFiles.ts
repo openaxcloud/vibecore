@@ -429,7 +429,7 @@ export function migrateLegacyLocks(currentChatId: string): void {
 export function clearCache(): void {
   lockedItemsCache = null;
   lockedItemsMap.clear();
-  logger.info('Cleared locked items cache');
+  logger.debug('Cleared locked items cache');
 }
 
 /**

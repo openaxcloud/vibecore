@@ -16,8 +16,10 @@ export function readSessionToken(request: Request) {
   return match ? decodeURIComponent(match.slice(sessionCookieName.length + 1)) : undefined;
 }
 
-export function sessionCookie(token: string) {
-  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`;
+export function sessionCookie(token: string, maxAgeSeconds?: number) {
+  const maxAge = typeof maxAgeSeconds === 'number' ? `; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : '';
+
+  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${maxAge}`;
 }
 
 export function clearSessionCookie() {
@@ -46,12 +48,34 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
       {
         ok: false,
         error: typeof payload === 'object' && payload ? ((payload as any).error ?? 'Request failed') : String(payload),
+        code: typeof payload === 'object' && payload ? (payload as any).code : undefined,
       },
       { status: response.status },
     );
   }
 
   return payload as T;
+}
+
+export function isApiResponse(error: unknown, status?: number) {
+  return error instanceof Response && (typeof status !== 'number' || error.status === status);
+}
+
+export function isForbiddenApiResponse(error: unknown) {
+  return isApiResponse(error, 403);
+}
+
+export async function apiErrorMessage(error: unknown, fallback = 'Request failed') {
+  if (!(error instanceof Response)) {
+    return error instanceof Error ? error.message : fallback;
+  }
+
+  try {
+    const payload = (await error.clone().json()) as { error?: string };
+    return payload.error ?? fallback;
+  } catch {
+    return error.statusText || fallback;
+  }
 }
 
 export async function firstOrganization(request: Request) {

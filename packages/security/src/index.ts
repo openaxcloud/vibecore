@@ -1,8 +1,24 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 export const secretKeyPattern = /authorization|cookie|password|secret|token|api[-_]?key|refresh/i;
+export const secretValuePatterns = [
+  /\bcanary_[A-Za-z0-9_-]{16,}\b/g,
+  /\bsk_(?:live|test)_[A-Za-z0-9_-]{16,}\b/g,
+  /\bsk-[A-Za-z0-9_-]{16,}\b/g,
+  /\bghp_[A-Za-z0-9_]{16,}\b/g,
+  /\bya29\.[A-Za-z0-9._-]{16,}\b/g,
+  /\bxox[baprs]-[A-Za-z0-9-]{16,}\b/g,
+];
+
+export function redactSecretString(value: string) {
+  return secretValuePatterns.reduce((output, pattern) => output.replace(pattern, '[REDACTED]'), value);
+}
 
 export function redactSecrets(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return redactSecretString(value);
+  }
+
   if (!value || typeof value !== 'object') {
     return value;
   }
@@ -46,23 +62,38 @@ function encryptionKey(secret: string) {
   return createHash('sha256').update(secret).digest();
 }
 
-export function encryptJson(value: unknown, secret = process.env.CONFIG_ENCRYPTION_KEY ?? 'dev-config-encryption-key-change-me') {
+function resolveEncryptionSecret(secret?: string) {
+  const resolved = secret ?? process.env.CONFIG_ENCRYPTION_KEY ?? 'dev-config-encryption-key-change-me';
+
+  if (process.env.NODE_ENV === 'production' && resolved === 'dev-config-encryption-key-change-me') {
+    throw Object.assign(new Error('CONFIG_ENCRYPTION_KEY is required in production'), {
+      statusCode: 500,
+      code: 'CONFIG_ENCRYPTION_KEY_REQUIRED',
+    });
+  }
+
+  return resolved;
+}
+
+export function encryptJson(value: unknown, secret?: string) {
+  const resolvedSecret = resolveEncryptionSecret(secret);
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', encryptionKey(secret), iv);
+  const cipher = createCipheriv('aes-256-gcm', encryptionKey(resolvedSecret), iv);
   const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
 
   return `v1.${iv.toString('base64url')}.${tag.toString('base64url')}.${ciphertext.toString('base64url')}`;
 }
 
-export function decryptJson<T = unknown>(encrypted: string, secret = process.env.CONFIG_ENCRYPTION_KEY ?? 'dev-config-encryption-key-change-me'): T {
+export function decryptJson<T = unknown>(encrypted: string, secret?: string): T {
+  const resolvedSecret = resolveEncryptionSecret(secret);
   const [version, iv, tag, ciphertext] = encrypted.split('.');
 
   if (version !== 'v1' || !iv || !tag || !ciphertext) {
     throw new Error('Invalid encrypted payload');
   }
 
-  const decipher = createDecipheriv('aes-256-gcm', encryptionKey(secret), Buffer.from(iv, 'base64url'));
+  const decipher = createDecipheriv('aes-256-gcm', encryptionKey(resolvedSecret), Buffer.from(iv, 'base64url'));
   decipher.setAuthTag(Buffer.from(tag, 'base64url'));
   const plaintext = Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]);
 

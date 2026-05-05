@@ -1,5 +1,24 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
+import { toast } from 'react-toastify';
+import {
+  Cloud,
+  Database,
+  ExternalLink,
+  Globe,
+  History,
+  Lightbulb,
+  MessageSquare,
+  Pencil,
+  Puzzle,
+  Settings,
+  Shield,
+  Smartphone,
+  Sparkles,
+  UserPlus,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react';
 import { IconButton } from '~/components/ui/IconButton';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { PortDropdown } from './PortDropdown';
@@ -7,13 +26,31 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import type { ElementInfo } from './Inspector';
+import type { FileMap } from '~/lib/stores/files';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 type ResizeSide = 'left' | 'right' | null;
+type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom';
+type PreviewLogTab = 'webview' | 'server';
+type SplashLayout = 'icon-hero' | 'two-column' | 'tips-carousel' | 'stat-highlight' | 'icon-grid';
+
+interface SplashSlide {
+  layout: SplashLayout;
+  icon?: LucideIcon;
+  headline: string;
+  subtitle: string;
+  color: string;
+  stats?: Array<{ label: string; value: string }>;
+  gridItems?: Array<{ icon: LucideIcon; label: string }>;
+}
 
 interface PreviewProps {
   setSelectedElement?: (element: ElementInfo | null) => void;
   projectId?: string;
+  autoStart?: boolean;
+  previewDevice?: PreviewDevice;
+  onPreviewDeviceChange?: (device: PreviewDevice) => void;
+  onOpenLogsRight?: () => void;
 }
 
 interface WindowSize {
@@ -54,331 +91,667 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
-  const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const hasSelectedPreview = useRef(false);
-  const previews = useStore(workbenchStore.previews);
-  const activePreview = previews[activePreviewIndex];
-  const [displayPath, setDisplayPath] = useState('/');
-  const [iframeUrl, setIframeUrl] = useState<string | undefined>();
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isInspectorMode, setIsInspectorMode] = useState(false);
-  const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
-  const [widthPercent, setWidthPercent] = useState<number>(37.5);
-  const [currentWidth, setCurrentWidth] = useState<number>(0);
+const previewTips = [
+  { icon: MessageSquare, text: 'Ask the Agent to add features while the preview boots.' },
+  { icon: Cloud, text: 'Deploy to staging or production directly from the Deployments panel.' },
+  { icon: Pencil, text: 'Open Files to inspect and edit generated code without leaving the IDE.' },
+  { icon: UserPlus, text: 'Invite collaborators and keep everyone in the same workspace.' },
+  { icon: History, text: 'Use snapshots and rollback when you want to return to a stable version.' },
+  { icon: Settings, text: 'Configure environment variables and secrets per project.' },
+  { icon: ExternalLink, text: 'Open the preview in a dedicated browser window when you need more space.' },
+  { icon: Sparkles, text: 'The Agent can continue working while ports are being detected.' },
+  { icon: Shield, text: 'Workspace isolation keeps user apps scoped to their project runtime.' },
+  { icon: Globe, text: 'Attach custom domains when your app is ready to publish.' },
+  { icon: Database, text: 'Use the Database panel for SQL browsing and project data workflows.' },
+  { icon: Smartphone, text: 'Switch Desktop, Tablet, and Mobile views from this preview toolbar.' },
+];
 
-  const resizingState = useRef({
-    isResizing: false,
-    side: null as ResizeSide,
-    startX: 0,
-    startWidthPercent: 37.5,
-    windowWidth: window.innerWidth,
-    pointerId: null as number | null,
-  });
+const previewSplashSlides: SplashSlide[] = [
+  {
+    layout: 'icon-hero',
+    icon: Sparkles,
+    headline: 'Preparing your live preview',
+    subtitle: 'E-code is starting the dev server, scanning runtime ports, and wiring the webview automatically.',
+    color: '#7B61FF',
+  },
+  {
+    layout: 'two-column',
+    icon: Zap,
+    headline: 'Preview runs without manual setup',
+    subtitle: 'The workspace detects package scripts, installs dependencies if needed, and keeps refreshing ports.',
+    color: '#D29922',
+    stats: [
+      { label: 'Port scans', value: 'Auto' },
+      { label: 'Dev server', value: 'Live' },
+    ],
+  },
+  {
+    layout: 'tips-carousel',
+    icon: Lightbulb,
+    headline: 'While it boots',
+    subtitle: 'Use the rest of the IDE immediately. The preview will attach as soon as the app exposes a port.',
+    color: '#3FB950',
+  },
+  {
+    layout: 'icon-grid',
+    icon: Puzzle,
+    headline: 'Everything stays connected',
+    subtitle: 'Preview, files, terminal, logs, deployments, secrets, and collaboration run from one workspace.',
+    color: '#F85149',
+    gridItems: [
+      { icon: Database, label: 'Database' },
+      { icon: Shield, label: 'Secrets' },
+      { icon: Globe, label: 'Domains' },
+      { icon: Cloud, label: 'Deploys' },
+    ],
+  },
+  {
+    layout: 'stat-highlight',
+    icon: Globe,
+    headline: 'Ready for publishing',
+    subtitle: 'When your app is stable, publish previews, staging, or production deployments from the same project.',
+    color: '#0099FF',
+    stats: [
+      { label: 'TLS', value: 'Built-in' },
+      { label: 'Rollback', value: '1 click' },
+      { label: 'Logs', value: 'Live' },
+    ],
+  },
+];
 
-  // Reduce scaling factor to make resizing less sensitive
-  const SCALING_FACTOR = 1;
+function staticPreviewFileContent(files: FileMap, filePath: string) {
+  const normalizedTarget = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
 
-  const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
-  const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[0]);
-  const [isLandscape, setIsLandscape] = useState(false);
-  const [showDeviceFrame, setShowDeviceFrame] = useState(true);
-  const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
-  const expoUrl = useStore(expoUrlAtom);
-  const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
-  const [isRefreshingPorts, setIsRefreshingPorts] = useState(false);
-  const [isStartingPreview, setIsStartingPreview] = useState(false);
-  const [previewStatus, setPreviewStatus] = useState<string | undefined>();
+  for (const [candidatePath, file] of Object.entries(files)) {
+    const normalizedCandidate = candidatePath.replaceAll('\\', '/').replace(/^\/+/, '');
 
-  useEffect(() => {
-    if (!projectId || previews.length === 0) {
-      return undefined;
+    if (
+      (normalizedCandidate === normalizedTarget || normalizedCandidate.endsWith(`/${normalizedTarget}`)) &&
+      file?.type === 'file' &&
+      typeof file.content === 'string'
+    ) {
+      return file.content;
     }
+  }
 
-    let cancelled = false;
+  return undefined;
+}
 
-    getProjectIdeMemory(projectId)
-      .then((memory) => {
-        if (cancelled) {
+function buildStaticPreviewHtml(files: FileMap) {
+  const indexHtml = staticPreviewFileContent(files, 'index.html');
+
+  if (!indexHtml) {
+    return undefined;
+  }
+
+  let inlinedAnyModule = false;
+  let canInlineModules = true;
+  const html = indexHtml.replace(
+    /<script\b([^>]*\btype=["']module["'][^>]*)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
+    (match, beforeSrc: string, sourcePath: string, afterSrc: string) => {
+      const normalizedSourcePath = decodeURIComponent(sourcePath).replace(/^\/+/, '');
+      const source = staticPreviewFileContent(files, normalizedSourcePath);
+
+      if (!source || /\b(?:import|export)\b/.test(source)) {
+        canInlineModules = false;
+
+        return match;
+      }
+
+      inlinedAnyModule = true;
+
+      return `<script ${beforeSrc} ${afterSrc}>${source}</script>`;
+    },
+  );
+
+  if (/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']+["'][^>]*><\/script>/i.test(indexHtml)) {
+    return inlinedAnyModule && canInlineModules ? html : buildBoltTemplateStaticPreview(files);
+  }
+
+  return indexHtml;
+}
+
+function buildBoltTemplateStaticPreview(files: FileMap) {
+  const appSource =
+    staticPreviewFileContent(files, 'src/App.tsx') ??
+    staticPreviewFileContent(files, 'src/App.jsx') ??
+    staticPreviewFileContent(files, 'src/App.ts') ??
+    staticPreviewFileContent(files, 'src/App.js');
+
+  if (!appSource || !appSource.includes('Created from Bolt template')) {
+    return undefined;
+  }
+
+  const title = jsonLiteralFromJsxTextExpression(appSource.match(/<h1>\{([^}]+)\}<\/h1>/)?.[1]);
+  const subtitle = jsonLiteralFromJsxTextExpression(appSource.match(/<p>\{([^}]+)\}<\/p>/)?.[1]);
+
+  if (!title && !subtitle) {
+    return undefined;
+  }
+
+  const styles = staticPreviewFileContent(files, 'src/styles.css') ?? '';
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${escapeHtml(title ?? 'Template preview')}</title>
+    <style>${styles}</style>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        ${title ? `<h1>${escapeHtml(title)}</h1>` : ''}
+        ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ''}
+      </section>
+    </main>
+  </body>
+</html>`;
+}
+
+function jsonLiteralFromJsxTextExpression(value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(value.trim());
+
+    return typeof parsed === 'string' ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export const Preview = memo(
+  ({
+    setSelectedElement,
+    projectId,
+    autoStart = true,
+    previewDevice = 'desktop',
+    onPreviewDeviceChange,
+    onOpenLogsRight,
+  }: PreviewProps) => {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+    const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const hasSelectedPreview = useRef(false);
+    const previews = useStore(workbenchStore.previews);
+    const workspaceLoading = useStore(workbenchStore.workspaceLoading);
+    const workspaceStatus = useStore(workbenchStore.workspaceStatus);
+    const workspaceLogs = useStore(workbenchStore.workspaceLogs);
+    const files = useStore(workbenchStore.files);
+    const normalizedActivePreviewIndex = previews[activePreviewIndex]
+      ? activePreviewIndex
+      : previews.length > 0
+        ? 0
+        : -1;
+    const activePreview = normalizedActivePreviewIndex >= 0 ? previews[normalizedActivePreviewIndex] : undefined;
+    const [displayPath, setDisplayPath] = useState('/');
+    const [addressInput, setAddressInput] = useState('/');
+    const [iframeUrl, setIframeUrl] = useState<string | undefined>();
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [isInspectorMode, setIsInspectorMode] = useState(false);
+    const [isDeviceModeOn, setIsDeviceModeOn] = useState(false);
+    const [widthPercent, setWidthPercent] = useState<number>(37.5);
+    const [currentWidth, setCurrentWidth] = useState<number>(0);
+
+    const resizingState = useRef({
+      isResizing: false,
+      side: null as ResizeSide,
+      startX: 0,
+      startWidthPercent: 37.5,
+      windowWidth: window.innerWidth,
+      pointerId: null as number | null,
+    });
+
+    // Reduce scaling factor to make resizing less sensitive
+    const SCALING_FACTOR = 1;
+
+    const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
+    const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[0]);
+    const [isLandscape, setIsLandscape] = useState(false);
+    const [showDeviceFrame, setShowDeviceFrame] = useState(true);
+    const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
+    const expoUrl = useStore(expoUrlAtom);
+    const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
+    const [isRefreshingPorts, setIsRefreshingPorts] = useState(false);
+    const [isStartingPreview, setIsStartingPreview] = useState(false);
+    const [previewStatus, setPreviewStatus] = useState<string | undefined>();
+    const [previewRunFailed, setPreviewRunFailed] = useState(false);
+    const [logsOpen, setLogsOpen] = useState(false);
+    const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
+    const workspaceReady = !projectId || (!workspaceLoading && Boolean(workspaceStatus));
+    const previewableFilesSignature = Object.keys(files)
+      .filter((filePath) =>
+        /(^|\/)(package\.json|index\.html|src\/App\.(tsx|ts|jsx|js)|app\/page\.(tsx|ts|jsx|js))$/.test(filePath),
+      )
+      .sort()
+      .join('|');
+    const staticPreviewHtml = buildStaticPreviewHtml(files);
+    const lastPreviewableFilesSignature = useRef(previewableFilesSignature);
+
+    useEffect(() => {
+      setPreviewRunFailed(false);
+      setPreviewStatus(undefined);
+    }, [projectId]);
+
+    useEffect(() => {
+      return () => {
+        const iframe = iframeRef.current;
+
+        if (iframe) {
+          iframe.removeAttribute('src');
+          iframe.src = 'about:blank';
+        }
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!projectId || previews.length === 0) {
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      getProjectIdeMemory(projectId)
+        .then((memory) => {
+          if (cancelled) {
+            return;
+          }
+
+          const previewIndex = memory.ui?.previewIndex;
+
+          if (typeof previewIndex === 'number' && previews[previewIndex]) {
+            setActivePreviewIndex(previewIndex);
+            hasSelectedPreview.current = true;
+          }
+
+          if (memory.ui?.previewPath) {
+            setDisplayPath(memory.ui.previewPath);
+          }
+        })
+        .catch((error) => console.error('Failed to restore preview memory', error));
+
+      return () => {
+        cancelled = true;
+      };
+    }, [projectId, previews]);
+
+    useEffect(() => {
+      if (!projectId) {
+        return undefined;
+      }
+
+      const saveTimer = window.setTimeout(() => {
+        saveProjectIdeMemory(projectId, {
+          ui: {
+            previewIndex: Math.max(normalizedActivePreviewIndex, 0),
+            previewPath: displayPath,
+          },
+        }).catch((error) => console.error('Failed to persist preview memory', error));
+      }, 400);
+
+      return () => window.clearTimeout(saveTimer);
+    }, [projectId, normalizedActivePreviewIndex, displayPath]);
+
+    useEffect(() => {
+      if (!activePreview) {
+        setIframeUrl(undefined);
+        setDisplayPath('/');
+        setAddressInput('/');
+
+        return;
+      }
+
+      const { baseUrl } = activePreview;
+      setPreviewRunFailed(false);
+      setIframeUrl(baseUrl);
+      setDisplayPath('/');
+      setAddressInput(baseUrl);
+    }, [activePreview]);
+
+    useEffect(() => {
+      if (!activePreview) {
+        setAddressInput(displayPath || '/');
+
+        return;
+      }
+
+      setAddressInput(`${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}`);
+    }, [activePreview, displayPath]);
+
+    const findMinPortIndex = useCallback(
+      (minIndex: number, preview: { port: number }, index: number, array: { port: number }[]) => {
+        return preview.port < array[minIndex].port ? index : minIndex;
+      },
+      [],
+    );
+
+    useEffect(() => {
+      if (previews.length > 1 && !hasSelectedPreview.current) {
+        const minPortIndex = previews.reduce(findMinPortIndex, 0);
+        setActivePreviewIndex(minPortIndex);
+      }
+    }, [previews, findMinPortIndex]);
+
+    useEffect(() => {
+      if (previews.length > 0 && !previews[activePreviewIndex]) {
+        setActivePreviewIndex(0);
+        hasSelectedPreview.current = false;
+      }
+    }, [activePreviewIndex, previews]);
+
+    const refreshPorts = useCallback(async () => {
+      setIsRefreshingPorts(true);
+      setPreviewStatus(undefined);
+
+      try {
+        await workbenchStore.refreshRuntimePorts();
+      } catch (error) {
+        setPreviewStatus(error instanceof Error ? error.message : 'Failed to refresh preview ports');
+      } finally {
+        setIsRefreshingPorts(false);
+      }
+    }, []);
+
+    const startPreviewServer = useCallback(async () => {
+      setIsStartingPreview(true);
+      setPreviewStatus(undefined);
+      setPreviewRunFailed(false);
+
+      try {
+        const label = await workbenchStore.startPreviewServer();
+        setPreviewStatus(`Starting ${label}...`);
+        toast.info(`Build started: ${label}`, { toastId: 'preview-build-started' });
+        window.setTimeout(() => setIsStartingPreview(false), 2500);
+      } catch (error) {
+        setPreviewStatus(error instanceof Error ? error.message : 'Failed to start preview server');
+        setPreviewRunFailed(true);
+        setIsStartingPreview(false);
+      }
+    }, []);
+
+    useEffect(() => {
+      if (lastPreviewableFilesSignature.current === previewableFilesSignature) {
+        return;
+      }
+
+      lastPreviewableFilesSignature.current = previewableFilesSignature;
+
+      if (!previewableFilesSignature || previews.length > 0) {
+        return;
+      }
+
+      setPreviewRunFailed(false);
+      setPreviewStatus('App files changed. Detecting preview port...');
+      setIsStartingPreview(false);
+    }, [previewableFilesSignature, previews.length]);
+
+    useEffect(() => {
+      if (!autoStart || !workspaceReady || previews.length > 0 || isStartingPreview || previewRunFailed) {
+        return;
+      }
+
+      void startPreviewServer();
+    }, [
+      autoStart,
+      isStartingPreview,
+      previewableFilesSignature,
+      previews.length,
+      previewRunFailed,
+      startPreviewServer,
+      workspaceReady,
+    ]);
+
+    useEffect(() => {
+      if (!autoStart || !workspaceReady || previews.length > 0) {
+        return undefined;
+      }
+
+      let tick = 0;
+      const interval = window.setInterval(() => {
+        tick += 1;
+        void workbenchStore.refreshRuntimePorts().catch(() => undefined);
+
+        if (workbenchStore.isPreviewServerStarting()) {
+          setPreviewStatus('Starting dev server and detecting runtime ports...');
           return;
         }
 
-        const previewIndex = memory.ui?.previewIndex;
-
-        if (typeof previewIndex === 'number' && previews[previewIndex]) {
-          setActivePreviewIndex(previewIndex);
-          hasSelectedPreview.current = true;
+        if (tick % 6 === 0) {
+          setPreviewStatus('Restarting preview server and detecting runtime ports...');
+          void workbenchStore.restartPreviewServer().catch(() => undefined);
+        } else if (tick % 2 === 0) {
+          setPreviewStatus('Starting dev server and detecting runtime ports...');
+          void workbenchStore.startPreviewServer().catch(() => undefined);
         }
+      }, 2500);
 
-        if (memory.ui?.previewPath) {
-          setDisplayPath(memory.ui.previewPath);
-        }
-      })
-      .catch((error) => console.error('Failed to restore preview memory', error));
+      return () => window.clearInterval(interval);
+    }, [autoStart, previews.length, workspaceReady]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, previews]);
+    useEffect(() => {
+      if (!autoStart || !workspaceReady || previews.length > 0) {
+        return undefined;
+      }
 
-  useEffect(() => {
-    if (!projectId) {
-      return undefined;
-    }
+      const timeout = window.setTimeout(() => {
+        setPreviewStatus('No running preview port was detected.');
+        setPreviewRunFailed(true);
+        setIsStartingPreview(false);
+        setIsRefreshingPorts(false);
+      }, 120000);
 
-    const saveTimer = window.setTimeout(() => {
-      saveProjectIdeMemory(projectId, {
-        ui: {
-          previewIndex: activePreviewIndex,
-          previewPath: displayPath,
-        },
-      }).catch((error) => console.error('Failed to persist preview memory', error));
-    }, 400);
+      return () => window.clearTimeout(timeout);
+    }, [autoStart, previews.length, workspaceReady]);
 
-    return () => window.clearTimeout(saveTimer);
-  }, [projectId, activePreviewIndex, displayPath]);
-
-  useEffect(() => {
-    if (!activePreview) {
-      setIframeUrl(undefined);
-      setDisplayPath('/');
-
-      return;
-    }
-
-    const { baseUrl } = activePreview;
-    setIframeUrl(baseUrl);
-    setDisplayPath('/');
-  }, [activePreview]);
-
-  const findMinPortIndex = useCallback(
-    (minIndex: number, preview: { port: number }, index: number, array: { port: number }[]) => {
-      return preview.port < array[minIndex].port ? index : minIndex;
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (previews.length > 1 && !hasSelectedPreview.current) {
-      const minPortIndex = previews.reduce(findMinPortIndex, 0);
-      setActivePreviewIndex(minPortIndex);
-    }
-  }, [previews, findMinPortIndex]);
-
-  const refreshPorts = useCallback(async () => {
-    setIsRefreshingPorts(true);
-    setPreviewStatus(undefined);
-
-    try {
-      await workbenchStore.refreshRuntimePorts();
-    } catch (error) {
-      setPreviewStatus(error instanceof Error ? error.message : 'Failed to refresh preview ports');
-    } finally {
-      setIsRefreshingPorts(false);
-    }
-  }, []);
-
-  const startPreviewServer = useCallback(async () => {
-    setIsStartingPreview(true);
-    setPreviewStatus(undefined);
-
-    try {
-      const label = await workbenchStore.startPreviewServer();
-      setPreviewStatus(`Starting ${label}...`);
-      window.setTimeout(() => setIsStartingPreview(false), 2500);
-    } catch (error) {
-      setPreviewStatus(error instanceof Error ? error.message : 'Failed to start preview server');
-      setIsStartingPreview(false);
-    }
-  }, []);
-
-  const reloadPreview = () => {
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src;
-    } else {
-      void refreshPorts();
-    }
-  };
-
-  const toggleFullscreen = async () => {
-    if (!isFullscreen && containerRef.current) {
-      await containerRef.current.requestFullscreen();
-    } else if (document.fullscreenElement) {
-      await document.exitFullscreen();
-    }
-  };
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    const reloadPreview = () => {
+      if (iframeRef.current) {
+        iframeRef.current.src = iframeRef.current.src;
+      } else {
+        void refreshPorts();
+      }
     };
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    const navigatePreviewHistory = (direction: 'back' | 'forward') => {
+      try {
+        iframeRef.current?.contentWindow?.history[direction]();
+      } catch {
+        // Cross-origin previews can block direct history access. In that case the click is safely ignored.
+      }
     };
-  }, []);
 
-  const toggleDeviceMode = () => {
-    setIsDeviceModeOn((prev) => !prev);
-  };
-
-  const startResizing = (e: React.PointerEvent, side: ResizeSide) => {
-    if (!isDeviceModeOn) {
-      return;
-    }
-
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
-
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'ew-resize';
-
-    resizingState.current = {
-      isResizing: true,
-      side,
-      startX: e.clientX,
-      startWidthPercent: widthPercent,
-      windowWidth: window.innerWidth,
-      pointerId: e.pointerId,
-    };
-  };
-
-  const ResizeHandle = ({ side }: { side: ResizeSide }) => {
-    if (!side) {
-      return null;
-    }
-
-    return (
-      <div
-        className={`resize-handle-${side}`}
-        onPointerDown={(e) => startResizing(e, side)}
-        style={{
-          position: 'absolute',
-          top: 0,
-          ...(side === 'left' ? { left: 0, marginLeft: '-7px' } : { right: 0, marginRight: '-7px' }),
-          width: '15px',
-          height: '100%',
-          cursor: 'ew-resize',
-          background: 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background 0.2s',
-          userSelect: 'none',
-          touchAction: 'none',
-          zIndex: 10,
-        }}
-        onMouseOver={(e) =>
-          (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
-        }
-        onMouseOut={(e) =>
-          (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
-        }
-        title="Drag to resize width"
-      >
-        <GripIcon />
-      </div>
-    );
-  };
-
-  useEffect(() => {
-    // Skip if not in device mode
-    if (!isDeviceModeOn) {
-      return;
-    }
-
-    const handlePointerMove = (e: PointerEvent) => {
-      const state = resizingState.current;
-
-      if (!state.isResizing || e.pointerId !== state.pointerId) {
+    const resolveAddressInput = () => {
+      if (!activePreview) {
         return;
       }
 
-      const dx = e.clientX - state.startX;
-      const dxPercent = (dx / state.windowWidth) * 100 * SCALING_FACTOR;
+      const rawAddress = addressInput.trim() || '/';
 
-      let newWidthPercent = state.startWidthPercent;
+      if (/^https?:\/\//i.test(rawAddress)) {
+        try {
+          const parsedUrl = new URL(rawAddress);
+          const activeOrigin = new URL(activePreview.baseUrl);
 
-      if (state.side === 'right') {
-        newWidthPercent = state.startWidthPercent + dxPercent;
-      } else if (state.side === 'left') {
-        newWidthPercent = state.startWidthPercent - dxPercent;
+          if (parsedUrl.origin === activeOrigin.origin) {
+            const targetPath = `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}` || '/';
+            setIframeUrl(`${activePreview.baseUrl}${targetPath}`);
+            setDisplayPath(targetPath);
+            setAddressInput(`${activePreview.baseUrl}${targetPath}`);
+          } else {
+            setIframeUrl(rawAddress);
+            setDisplayPath(rawAddress);
+            setAddressInput(rawAddress);
+          }
+        } catch {
+          setAddressInput(`${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}`);
+        }
+      } else {
+        const targetPath = rawAddress.startsWith('/') ? rawAddress : `/${rawAddress}`;
+        setIframeUrl(`${activePreview.baseUrl}${targetPath}`);
+        setDisplayPath(targetPath);
+        setAddressInput(`${activePreview.baseUrl}${targetPath}`);
       }
 
-      // Limit width percentage between 10% and 90%
-      newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
+      inputRef.current?.blur();
+    };
 
-      // Force a synchronous update to ensure the UI reflects the change immediately
-      setWidthPercent(newWidthPercent);
-
-      // Calculate and update the actual pixel width
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const newWidth = Math.round((containerWidth * newWidthPercent) / 100);
-        setCurrentWidth(newWidth);
-
-        // Apply the width directly to the container for immediate feedback
-        const previewContainer = containerRef.current.querySelector('div[style*="width"]');
-
-        if (previewContainer) {
-          (previewContainer as HTMLElement).style.width = `${newWidthPercent}%`;
-        }
+    const toggleFullscreen = async () => {
+      if (!isFullscreen && containerRef.current) {
+        await containerRef.current.requestFullscreen();
+      } else if (document.fullscreenElement) {
+        await document.exitFullscreen();
       }
     };
 
-    const handlePointerUp = (e: PointerEvent) => {
-      const state = resizingState.current;
-
-      if (!state.isResizing || e.pointerId !== state.pointerId) {
-        return;
-      }
-
-      // Find all resize handles
-      const handles = document.querySelectorAll('.resize-handle-left, .resize-handle-right');
-
-      // Release pointer capture from any handle that has it
-      handles.forEach((handle) => {
-        if ((handle as HTMLElement).hasPointerCapture?.(e.pointerId)) {
-          (handle as HTMLElement).releasePointerCapture(e.pointerId);
-        }
-      });
-
-      // Reset state
-      resizingState.current = {
-        ...resizingState.current,
-        isResizing: false,
-        side: null,
-        pointerId: null,
+    useEffect(() => {
+      const handleFullscreenChange = () => {
+        setIsFullscreen(!!document.fullscreenElement);
       };
 
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+      return () => {
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      };
+    }, []);
+
+    const toggleDeviceMode = () => {
+      setIsDeviceModeOn((prev) => !prev);
     };
 
-    // Add event listeners
-    document.addEventListener('pointermove', handlePointerMove, { passive: false });
-    document.addEventListener('pointerup', handlePointerUp);
-    document.addEventListener('pointercancel', handlePointerUp);
+    const startResizing = (e: React.PointerEvent, side: ResizeSide) => {
+      if (!isDeviceModeOn) {
+        return;
+      }
 
-    // Define cleanup function
-    function cleanupResizeListeners() {
-      document.removeEventListener('pointermove', handlePointerMove);
-      document.removeEventListener('pointerup', handlePointerUp);
-      document.removeEventListener('pointercancel', handlePointerUp);
+      const target = e.currentTarget as HTMLElement;
+      target.setPointerCapture(e.pointerId);
 
-      // Release any lingering pointer captures
-      if (resizingState.current.pointerId !== null) {
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'ew-resize';
+
+      resizingState.current = {
+        isResizing: true,
+        side,
+        startX: e.clientX,
+        startWidthPercent: widthPercent,
+        windowWidth: window.innerWidth,
+        pointerId: e.pointerId,
+      };
+    };
+
+    const ResizeHandle = ({ side }: { side: ResizeSide }) => {
+      if (!side) {
+        return null;
+      }
+
+      return (
+        <div
+          className={`resize-handle-${side}`}
+          onPointerDown={(e) => startResizing(e, side)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            ...(side === 'left' ? { left: 0, marginLeft: '-7px' } : { right: 0, marginRight: '-7px' }),
+            width: '15px',
+            height: '100%',
+            cursor: 'ew-resize',
+            background: 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.2s',
+            userSelect: 'none',
+            touchAction: 'none',
+            zIndex: 10,
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
+          }
+          onMouseOut={(e) =>
+            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
+          }
+          title="Drag to resize width"
+        >
+          <GripIcon />
+        </div>
+      );
+    };
+
+    useEffect(() => {
+      // Skip if not in device mode
+      if (!isDeviceModeOn) {
+        return;
+      }
+
+      const handlePointerMove = (e: PointerEvent) => {
+        const state = resizingState.current;
+
+        if (!state.isResizing || e.pointerId !== state.pointerId) {
+          return;
+        }
+
+        const dx = e.clientX - state.startX;
+        const dxPercent = (dx / state.windowWidth) * 100 * SCALING_FACTOR;
+
+        let newWidthPercent = state.startWidthPercent;
+
+        if (state.side === 'right') {
+          newWidthPercent = state.startWidthPercent + dxPercent;
+        } else if (state.side === 'left') {
+          newWidthPercent = state.startWidthPercent - dxPercent;
+        }
+
+        // Limit width percentage between 10% and 90%
+        newWidthPercent = Math.max(10, Math.min(newWidthPercent, 90));
+
+        // Force a synchronous update to ensure the UI reflects the change immediately
+        setWidthPercent(newWidthPercent);
+
+        // Calculate and update the actual pixel width
+        if (containerRef.current) {
+          const containerWidth = containerRef.current.clientWidth;
+          const newWidth = Math.round((containerWidth * newWidthPercent) / 100);
+          setCurrentWidth(newWidth);
+
+          // Apply the width directly to the container for immediate feedback
+          const previewContainer = containerRef.current.querySelector('div[style*="width"]');
+
+          if (previewContainer) {
+            (previewContainer as HTMLElement).style.width = `${newWidthPercent}%`;
+          }
+        }
+      };
+
+      const handlePointerUp = (e: PointerEvent) => {
+        const state = resizingState.current;
+
+        if (!state.isResizing || e.pointerId !== state.pointerId) {
+          return;
+        }
+
+        // Find all resize handles
         const handles = document.querySelectorAll('.resize-handle-left, .resize-handle-right');
+
+        // Release pointer capture from any handle that has it
         handles.forEach((handle) => {
-          if ((handle as HTMLElement).hasPointerCapture?.(resizingState.current.pointerId!)) {
-            (handle as HTMLElement).releasePointerCapture(resizingState.current.pointerId!);
+          if ((handle as HTMLElement).hasPointerCapture?.(e.pointerId)) {
+            (handle as HTMLElement).releasePointerCapture(e.pointerId);
           }
         });
 
@@ -392,141 +765,173 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
 
         document.body.style.userSelect = '';
         document.body.style.cursor = '';
+      };
+
+      // Add event listeners
+      document.addEventListener('pointermove', handlePointerMove, { passive: false });
+      document.addEventListener('pointerup', handlePointerUp);
+      document.addEventListener('pointercancel', handlePointerUp);
+
+      // Define cleanup function
+      function cleanupResizeListeners() {
+        document.removeEventListener('pointermove', handlePointerMove);
+        document.removeEventListener('pointerup', handlePointerUp);
+        document.removeEventListener('pointercancel', handlePointerUp);
+
+        // Release any lingering pointer captures
+        if (resizingState.current.pointerId !== null) {
+          const handles = document.querySelectorAll('.resize-handle-left, .resize-handle-right');
+          handles.forEach((handle) => {
+            if ((handle as HTMLElement).hasPointerCapture?.(resizingState.current.pointerId!)) {
+              (handle as HTMLElement).releasePointerCapture(resizingState.current.pointerId!);
+            }
+          });
+
+          // Reset state
+          resizingState.current = {
+            ...resizingState.current,
+            isResizing: false,
+            side: null,
+            pointerId: null,
+          };
+
+          document.body.style.userSelect = '';
+          document.body.style.cursor = '';
+        }
       }
-    }
 
-    // Return the cleanup function
-    // eslint-disable-next-line consistent-return
-    return cleanupResizeListeners;
-  }, [isDeviceModeOn, SCALING_FACTOR]);
+      // Return the cleanup function
+      // eslint-disable-next-line consistent-return
+      return cleanupResizeListeners;
+    }, [isDeviceModeOn, SCALING_FACTOR]);
 
-  useEffect(() => {
-    const handleWindowResize = () => {
-      // Update the window width in the resizing state
-      resizingState.current.windowWidth = window.innerWidth;
+    useEffect(() => {
+      const handleWindowResize = () => {
+        // Update the window width in the resizing state
+        resizingState.current.windowWidth = window.innerWidth;
 
-      // Update the current width in pixels
+        // Update the current width in pixels
+        if (containerRef.current && isDeviceModeOn) {
+          const containerWidth = containerRef.current.clientWidth;
+          setCurrentWidth(Math.round((containerWidth * widthPercent) / 100));
+        }
+      };
+
+      window.addEventListener('resize', handleWindowResize);
+
+      // Initial calculation of current width
       if (containerRef.current && isDeviceModeOn) {
         const containerWidth = containerRef.current.clientWidth;
         setCurrentWidth(Math.round((containerWidth * widthPercent) / 100));
       }
-    };
 
-    window.addEventListener('resize', handleWindowResize);
+      return () => {
+        window.removeEventListener('resize', handleWindowResize);
+      };
+    }, [isDeviceModeOn, widthPercent]);
 
-    // Initial calculation of current width
-    if (containerRef.current && isDeviceModeOn) {
-      const containerWidth = containerRef.current.clientWidth;
-      setCurrentWidth(Math.round((containerWidth * widthPercent) / 100));
-    }
+    // Update current width when device mode is toggled
+    useEffect(() => {
+      if (containerRef.current && isDeviceModeOn) {
+        const containerWidth = containerRef.current.clientWidth;
+        setCurrentWidth(Math.round((containerWidth * widthPercent) / 100));
+      }
+    }, [isDeviceModeOn]);
 
-    return () => {
-      window.removeEventListener('resize', handleWindowResize);
-    };
-  }, [isDeviceModeOn, widthPercent]);
-
-  // Update current width when device mode is toggled
-  useEffect(() => {
-    if (containerRef.current && isDeviceModeOn) {
-      const containerWidth = containerRef.current.clientWidth;
-      setCurrentWidth(Math.round((containerWidth * widthPercent) / 100));
-    }
-  }, [isDeviceModeOn]);
-
-  const GripIcon = () => (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100%',
-        pointerEvents: 'none',
-      }}
-    >
+    const GripIcon = () => (
       <div
         style={{
-          color: 'var(--bolt-elements-textSecondary, rgba(0,0,0,0.5))',
-          fontSize: '10px',
-          lineHeight: '5px',
-          userSelect: 'none',
-          marginLeft: '1px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100%',
+          pointerEvents: 'none',
         }}
       >
-        ••• •••
+        <div
+          style={{
+            color: 'var(--bolt-elements-textSecondary, rgba(0,0,0,0.5))',
+            fontSize: '10px',
+            lineHeight: '5px',
+            userSelect: 'none',
+            marginLeft: '1px',
+          }}
+        >
+          ••• •••
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  const previewWindowTarget = (baseUrl: string) => {
-    const match = baseUrl.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
+    const previewWindowTarget = (baseUrl: string) => {
+      const match = baseUrl.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
 
-    if (!match) {
-      return { id: encodeURIComponent(baseUrl), url: baseUrl };
-    }
-
-    return { id: match[1], url: `/webcontainer/preview/${match[1]}` };
-  };
-
-  const openInNewWindow = (size: WindowSize) => {
-    if (activePreview?.baseUrl) {
-      const previewTarget = previewWindowTarget(activePreview.baseUrl);
-      const previewUrl = previewTarget.url;
-
-      // Adjust dimensions for landscape mode if applicable
-      let width = size.width;
-      let height = size.height;
-
-      if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
-        // Swap width and height for landscape mode
-        width = size.height;
-        height = size.width;
+      if (!match) {
+        return { id: encodeURIComponent(baseUrl), url: baseUrl };
       }
 
-      // Create a window with device frame if enabled
-      if (showDeviceFrame && size.hasFrame) {
-        // Calculate frame dimensions
-        const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
-        const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
+      return { id: match[1], url: `/webcontainer/preview/${match[1]}` };
+    };
 
-        // Create a window with the correct dimensions first
-        const newWindow = window.open(
-          '',
-          '_blank',
-          `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
-        );
+    const openInNewWindow = (size: WindowSize) => {
+      if (activePreview?.baseUrl) {
+        const previewTarget = previewWindowTarget(activePreview.baseUrl);
+        const previewUrl = previewTarget.url;
 
-        if (!newWindow) {
-          console.error('Failed to open new window');
-          return;
+        // Adjust dimensions for landscape mode if applicable
+        let width = size.width;
+        let height = size.height;
+
+        if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
+          // Swap width and height for landscape mode
+          width = size.height;
+          height = size.width;
         }
 
-        // Create the HTML content for the frame
-        const frameColor = getFrameColor();
-        const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
-        const framePadding =
-          size.frameType === 'mobile'
-            ? isLandscape
-              ? '40px 60px'
-              : '40px 20px'
-            : isLandscape
-              ? '30px 50px'
-              : '50px 30px';
+        // Create a window with device frame if enabled
+        if (showDeviceFrame && size.hasFrame) {
+          // Calculate frame dimensions
+          const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
+          const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
 
-        // Position notch and home button based on orientation
-        const notchTop = isLandscape ? '50%' : '20px';
-        const notchLeft = isLandscape ? '30px' : '50%';
-        const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
-        const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
-        const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
+          // Create a window with the correct dimensions first
+          const newWindow = window.open(
+            '',
+            '_blank',
+            `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
+          );
 
-        const homeBottom = isLandscape ? '50%' : '15px';
-        const homeRight = isLandscape ? '30px' : '50%';
-        const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
-        const homeWidth = isLandscape ? '4px' : '40px';
-        const homeHeight = isLandscape ? '40px' : '4px';
+          if (!newWindow) {
+            console.error('Failed to open new window');
+            return;
+          }
 
-        // Create HTML content for the wrapper page
-        const htmlContent = `
+          // Create the HTML content for the frame
+          const frameColor = getFrameColor();
+          const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+          const framePadding =
+            size.frameType === 'mobile'
+              ? isLandscape
+                ? '40px 60px'
+                : '40px 20px'
+              : isLandscape
+                ? '30px 50px'
+                : '50px 30px';
+
+          // Position notch and home button based on orientation
+          const notchTop = isLandscape ? '50%' : '20px';
+          const notchLeft = isLandscape ? '30px' : '50%';
+          const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
+          const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
+          const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
+
+          const homeBottom = isLandscape ? '50%' : '15px';
+          const homeRight = isLandscape ? '30px' : '50%';
+          const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
+          const homeWidth = isLandscape ? '4px' : '40px';
+          const homeHeight = isLandscape ? '40px' : '4px';
+
+          // Create HTML content for the wrapper page
+          const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -616,256 +1021,282 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
             </html>
           `;
 
-        // Write the HTML content to the new window
-        newWindow.document.open();
-        newWindow.document.write(htmlContent);
-        newWindow.document.close();
-      } else {
-        // Standard window without frame
-        const newWindow = window.open(
-          previewUrl,
-          '_blank',
-          `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
-        );
-
-        if (newWindow) {
-          newWindow.focus();
-        }
-      }
-    }
-  };
-
-  const openInNewTab = () => {
-    if (activePreview?.baseUrl) {
-      window.open(activePreview?.baseUrl, '_blank');
-    }
-  };
-
-  // Function to get the correct frame padding based on orientation
-  const getFramePadding = useCallback(() => {
-    if (!selectedWindowSize) {
-      return '40px 20px';
-    }
-
-    const isMobile = selectedWindowSize.frameType === 'mobile';
-
-    if (isLandscape) {
-      // Increase horizontal padding in landscape mode to ensure full device frame is visible
-      return isMobile ? '40px 60px' : '30px 50px';
-    }
-
-    return isMobile ? '40px 20px' : '50px 30px';
-  }, [isLandscape, selectedWindowSize]);
-
-  // Function to get the scale factor for the device frame
-  const getDeviceScale = useCallback(() => {
-    // Always return 1 to ensure the device frame is shown at its exact size
-    return 1;
-  }, [isLandscape, selectedWindowSize, widthPercent]);
-
-  // Update the device scale when needed
-  useEffect(() => {
-    /*
-     * Intentionally disabled - we want to maintain scale of 1
-     * No dynamic scaling to ensure device frame matches external window exactly
-     */
-    // Intentionally empty cleanup function - no cleanup needed
-    return () => {
-      // No cleanup needed
-    };
-  }, [isDeviceModeOn, showDeviceFrameInPreview, getDeviceScale, isLandscape, selectedWindowSize]);
-
-  // Function to get the frame color based on dark mode
-  const getFrameColor = useCallback(() => {
-    // Check if the document has a dark class or data-theme="dark"
-    const isDarkMode =
-      document.documentElement.classList.contains('dark') ||
-      document.documentElement.getAttribute('data-theme') === 'dark' ||
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // Return a darker color for light mode, lighter color for dark mode
-    return isDarkMode ? '#555' : '#111';
-  }, []);
-
-  // Effect to handle color scheme changes
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handleColorSchemeChange = () => {
-      // Force a re-render when color scheme changes
-      if (showDeviceFrameInPreview) {
-        setShowDeviceFrameInPreview(true);
-      }
-    };
-
-    darkModeMediaQuery.addEventListener('change', handleColorSchemeChange);
-
-    return () => {
-      darkModeMediaQuery.removeEventListener('change', handleColorSchemeChange);
-    };
-  }, [showDeviceFrameInPreview]);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'INSPECTOR_READY') {
-        if (iframeRef.current?.contentWindow) {
-          iframeRef.current.contentWindow.postMessage(
-            {
-              type: 'INSPECTOR_ACTIVATE',
-              active: isInspectorMode,
-            },
-            '*',
+          // Write the HTML content to the new window
+          newWindow.document.open();
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+        } else {
+          // Standard window without frame
+          const newWindow = window.open(
+            previewUrl,
+            '_blank',
+            `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
           );
-        }
-      } else if (event.data.type === 'INSPECTOR_CLICK') {
-        const element = event.data.elementInfo;
 
-        navigator.clipboard.writeText(element.displayText).then(() => {
-          setSelectedElement?.(element);
-        });
+          if (newWindow) {
+            newWindow.focus();
+          }
+        }
       }
     };
 
-    window.addEventListener('message', handleMessage);
+    const openInNewTab = () => {
+      if (activePreview?.baseUrl) {
+        window.open(activePreview?.baseUrl, '_blank');
+      }
+    };
 
-    return () => window.removeEventListener('message', handleMessage);
-  }, [isInspectorMode]);
+    // Function to get the correct frame padding based on orientation
+    const getFramePadding = useCallback(() => {
+      if (!selectedWindowSize) {
+        return '40px 20px';
+      }
 
-  const toggleInspectorMode = () => {
-    const newInspectorMode = !isInspectorMode;
-    setIsInspectorMode(newInspectorMode);
+      const isMobile = selectedWindowSize.frameType === 'mobile';
 
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        {
-          type: 'INSPECTOR_ACTIVATE',
-          active: newInspectorMode,
-        },
-        '*',
-      );
-    }
-  };
+      if (isLandscape) {
+        // Increase horizontal padding in landscape mode to ensure full device frame is visible
+        return isMobile ? '40px 60px' : '30px 50px';
+      }
 
-  return (
-    <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
-      {isPortDropdownOpen && (
-        <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
-      )}
-      <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
-        <div className="flex items-center gap-2">
-          <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
-          <IconButton
-            icon="i-ph:selection"
-            onClick={() => setIsSelectionMode(!isSelectionMode)}
-            className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
-          />
-        </div>
+      return isMobile ? '40px 20px' : '50px 30px';
+    }, [isLandscape, selectedWindowSize]);
 
-        <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <PortDropdown
-            activePreviewIndex={activePreviewIndex}
-            setActivePreviewIndex={setActivePreviewIndex}
-            isDropdownOpen={isPortDropdownOpen}
-            setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
-            setIsDropdownOpen={setIsPortDropdownOpen}
-            previews={previews}
-          />
-          <input
-            title="URL Path"
-            ref={inputRef}
-            className="w-full bg-transparent outline-none"
-            type="text"
-            value={displayPath}
-            onChange={(event) => {
-              setDisplayPath(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && activePreview) {
-                let targetPath = displayPath.trim();
+    // Function to get the scale factor for the device frame
+    const getDeviceScale = useCallback(() => {
+      // Always return 1 to ensure the device frame is shown at its exact size
+      return 1;
+    }, [isLandscape, selectedWindowSize, widthPercent]);
 
-                if (!targetPath.startsWith('/')) {
-                  targetPath = '/' + targetPath;
-                }
+    // Update the device scale when needed
+    useEffect(() => {
+      /*
+       * Intentionally disabled - we want to maintain scale of 1
+       * No dynamic scaling to ensure device frame matches external window exactly
+       */
+      // Intentionally empty cleanup function - no cleanup needed
+      return () => {
+        // No cleanup needed
+      };
+    }, [isDeviceModeOn, showDeviceFrameInPreview, getDeviceScale, isLandscape, selectedWindowSize]);
 
-                const fullUrl = activePreview.baseUrl + targetPath;
-                setIframeUrl(fullUrl);
-                setDisplayPath(targetPath);
+    // Function to get the frame color based on dark mode
+    const getFrameColor = useCallback(() => {
+      // Check if the document has a dark class or data-theme="dark"
+      const isDarkMode =
+        document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-                if (inputRef.current) {
-                  inputRef.current.blur();
-                }
-              }
-            }}
-            disabled={!activePreview}
-          />
-        </div>
+      // Return a darker color for light mode, lighter color for dark mode
+      return isDarkMode ? '#555' : '#111';
+    }, []);
 
-        <div className="flex items-center gap-2">
-          <IconButton
-            icon="i-ph:devices"
-            onClick={toggleDeviceMode}
-            title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
-          />
+    // Effect to handle color scheme changes
+    useEffect(() => {
+      const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-          {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
+      const handleColorSchemeChange = () => {
+        // Force a re-render when color scheme changes
+        if (showDeviceFrameInPreview) {
+          setShowDeviceFrameInPreview(true);
+        }
+      };
 
-          <ExpoQrModal open={isExpoQrModalOpen} onClose={() => setIsExpoQrModalOpen(false)} />
+      darkModeMediaQuery.addEventListener('change', handleColorSchemeChange);
 
-          {isDeviceModeOn && (
-            <>
-              <IconButton
-                icon="i-ph:device-rotate"
-                onClick={() => setIsLandscape(!isLandscape)}
-                title={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'}
-              />
-              <IconButton
-                icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
-                onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
-                title={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'}
-              />
-            </>
-          )}
-          <IconButton
-            icon="i-ph:cursor-click"
-            onClick={toggleInspectorMode}
-            className={
-              isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
-            }
-            title={isInspectorMode ? 'Disable Element Inspector' : 'Enable Element Inspector'}
-          />
-          <IconButton
-            icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          />
+      return () => {
+        darkModeMediaQuery.removeEventListener('change', handleColorSchemeChange);
+      };
+    }, [showDeviceFrameInPreview]);
 
-          <div className="flex items-center relative">
+    useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'INSPECTOR_READY') {
+          if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(
+              {
+                type: 'INSPECTOR_ACTIVATE',
+                active: isInspectorMode,
+              },
+              '*',
+            );
+          }
+        } else if (event.data.type === 'INSPECTOR_CLICK') {
+          const element = event.data.elementInfo;
+
+          navigator.clipboard.writeText(element.displayText).then(() => {
+            setSelectedElement?.(element);
+          });
+        } else if (event.data.type === 'PREVIEW_ERROR') {
+          const filename = event.data.filename ? ` (${event.data.filename}:${event.data.lineno ?? '?'})` : '';
+          workbenchStore.appendWorkspaceLog(`Preview error: ${event.data.message ?? 'unknown'}${filename}`);
+
+          if (event.data.stack) {
+            workbenchStore.appendWorkspaceLog(String(event.data.stack));
+          }
+        } else if (event.data.type === 'PREVIEW_UNHANDLED_REJECTION') {
+          workbenchStore.appendWorkspaceLog(`Preview unhandled rejection: ${event.data.message ?? 'unknown'}`);
+
+          if (event.data.stack) {
+            workbenchStore.appendWorkspaceLog(String(event.data.stack));
+          }
+        }
+      };
+
+      window.addEventListener('message', handleMessage);
+
+      return () => window.removeEventListener('message', handleMessage);
+    }, [isInspectorMode]);
+
+    const toggleInspectorMode = () => {
+      const newInspectorMode = !isInspectorMode;
+      setIsInspectorMode(newInspectorMode);
+
+      if (iframeRef.current?.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          {
+            type: 'INSPECTOR_ACTIVATE',
+            active: newInspectorMode,
+          },
+          '*',
+        );
+      }
+    };
+
+    return (
+      <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
+        {isPortDropdownOpen && (
+          <div className="z-iframe-overlay w-full h-full absolute" onClick={() => setIsPortDropdownOpen(false)} />
+        )}
+        <div className="bolt-project-webview-toolbar">
+          <div className="flex items-center gap-1">
+            <IconButton icon="i-ph:arrow-left" onClick={() => navigatePreviewHistory('back')} title="Back" />
+            <IconButton icon="i-ph:arrow-right" onClick={() => navigatePreviewHistory('forward')} title="Forward" />
+            <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} title="Refresh preview" />
             <IconButton
-              icon="i-ph:list"
-              onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-              title="New Window Options"
+              icon="i-ph:selection"
+              onClick={() => setIsSelectionMode(!isSelectionMode)}
+              className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
+              title={isSelectionMode ? 'Disable screenshot selection' : 'Select preview area'}
+            />
+          </div>
+
+          <div className="bolt-preview-addressbar flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
+            <PortDropdown
+              activePreviewIndex={Math.max(normalizedActivePreviewIndex, 0)}
+              setActivePreviewIndex={setActivePreviewIndex}
+              isDropdownOpen={isPortDropdownOpen}
+              setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
+              setIsDropdownOpen={setIsPortDropdownOpen}
+              previews={previews}
+            />
+            <input
+              title="Preview URL"
+              aria-label="Preview URL"
+              ref={inputRef}
+              className="w-full bg-transparent outline-none"
+              type="text"
+              value={addressInput}
+              onChange={(event) => {
+                setAddressInput(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  resolveAddressInput();
+                }
+              }}
+              disabled={!activePreview}
+            />
+          </div>
+
+          <div className="flex items-center gap-1">
+            <select
+              aria-label="Preview device"
+              value={previewDevice}
+              onChange={(event) => onPreviewDeviceChange?.(event.currentTarget.value as PreviewDevice)}
+            >
+              <option value="desktop">Desktop</option>
+              <option value="tablet">Tablet</option>
+              <option value="mobile">Mobile</option>
+              <option value="custom">Custom width</option>
+            </select>
+            <IconButton
+              icon="i-ph:devices"
+              onClick={toggleDeviceMode}
+              title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
             />
 
-            {isWindowSizeDropdownOpen && (
+            {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
+
+            <ExpoQrModal open={isExpoQrModalOpen} onClose={() => setIsExpoQrModalOpen(false)} />
+
+            {isDeviceModeOn && (
               <>
-                <div className="fixed inset-0 z-50" onClick={() => setIsWindowSizeDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 min-w-[240px] max-h-[400px] overflow-y-auto bg-white dark:bg-black rounded-xl shadow-2xl border border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)] overflow-hidden">
-                  <div className="p-3 border-b border-[#E5E7EB] dark:border-[rgba(255,255,255,0.1)]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-[#111827] dark:text-gray-300">Window Options</span>
+                <IconButton
+                  icon="i-ph:device-rotate"
+                  onClick={() => setIsLandscape(!isLandscape)}
+                  title={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'}
+                />
+                <IconButton
+                  icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
+                  onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
+                  title={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'}
+                />
+              </>
+            )}
+            <IconButton
+              icon="i-ph:cursor-click"
+              onClick={toggleInspectorMode}
+              className={
+                isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
+              }
+              title={isInspectorMode ? 'Disable Element Inspector' : 'Enable Element Inspector'}
+            />
+            <IconButton
+              icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+            />
+            <IconButton
+              icon="i-ph:arrow-square-out"
+              onClick={openInNewTab}
+              disabled={!activePreview}
+              title="Open in browser"
+            />
+            <IconButton
+              icon="i-ph:terminal-window"
+              onClick={() => {
+                setActiveLogTab('webview');
+                setLogsOpen((open) => !open);
+              }}
+              title="Webview logs"
+            />
+
+            <div className="flex items-center relative">
+              <IconButton
+                icon="i-ph:browser"
+                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+                title="Preview window options"
+              />
+
+              {isWindowSizeDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setIsWindowSizeDropdownOpen(false)} />
+                  <div className="bolt-preview-window-menu">
+                    <div className="bolt-preview-window-menu-header">
+                      <div>
+                        <strong>Preview window</strong>
+                        <span>Open externally or test a viewport</span>
+                      </div>
+                      <span className="i-ph:browser" aria-hidden />
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary`}
-                        onClick={() => {
-                          openInNewTab();
-                        }}
-                      >
-                        <span>Open in new tab</span>
-                        <div className="i-ph:arrow-square-out h-5 w-4" />
+                    <div className="bolt-preview-window-menu-actions">
+                      <button onClick={openInNewTab}>
+                        <span className="i-ph:arrow-square-out" aria-hidden />
+                        <strong>New tab</strong>
                       </button>
                       <button
-                        className={`flex w-full justify-between items-center text-start bg-transparent text-xs text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary`}
                         onClick={() => {
                           if (!activePreview?.baseUrl) {
                             console.warn('[Preview] No active preview available');
@@ -874,7 +1305,6 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
 
                           const previewTarget = previewWindowTarget(activePreview.baseUrl);
 
-                          // Open in a new window with simple parameters
                           window.open(
                             previewTarget.url,
                             `preview-${previewTarget.id}`,
@@ -882,269 +1312,486 @@ export const Preview = memo(({ setSelectedElement, projectId }: PreviewProps) =>
                           );
                         }}
                       >
-                        <span>Open in new window</span>
-                        <div className="i-ph:browser h-5 w-4" />
+                        <span className="i-ph:browser" aria-hidden />
+                        <strong>Window</strong>
                       </button>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-bolt-elements-textTertiary">Show Device Frame</span>
+                    </div>
+                    <div className="bolt-preview-window-menu-section">
+                      <button
+                        type="button"
+                        className="bolt-preview-window-menu-toggle"
+                        aria-pressed={showDeviceFrame}
+                        onClick={() => setShowDeviceFrame(!showDeviceFrame)}
+                      >
+                        <span>Show device frame</span>
+                        <span className="bolt-preview-window-switch" aria-hidden>
+                          <span />
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bolt-preview-window-menu-toggle"
+                        aria-pressed={isLandscape}
+                        onClick={() => setIsLandscape(!isLandscape)}
+                      >
+                        <span>Landscape mode</span>
+                        <span className="bolt-preview-window-switch" aria-hidden>
+                          <span />
+                        </span>
+                      </button>
+                    </div>
+                    <div className="bolt-preview-window-menu-label">Responsive presets</div>
+                    <div className="bolt-preview-window-menu-sizes">
+                      {WINDOW_SIZES.map((size) => (
                         <button
-                          className={`w-10 h-5 rounded-full transition-colors duration-200 ${
-                            showDeviceFrame ? 'bg-[#6D28D9]' : 'bg-gray-300 dark:bg-gray-700'
-                          } relative`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowDeviceFrame(!showDeviceFrame);
+                          key={size.name}
+                          className="bolt-preview-window-size"
+                          onClick={() => {
+                            setSelectedWindowSize(size);
+                            setIsWindowSizeDropdownOpen(false);
+                            openInNewWindow(size);
                           }}
                         >
-                          <span
-                            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-                              showDeviceFrame ? 'transform translate-x-5' : ''
-                            }`}
-                          />
+                          <span className={size.icon} aria-hidden />
+                          <div>
+                            <strong>{size.name}</strong>
+                            <small>
+                              {isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')
+                                ? `${size.height} × ${size.width}`
+                                : `${size.width} × ${size.height}`}
+                              {size.hasFrame && showDeviceFrame ? ' (with frame)' : ''}
+                            </small>
+                          </div>
+                          {selectedWindowSize.name === size.name && <span className="i-ph:check" aria-hidden />}
                         </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-bolt-elements-textTertiary">Landscape Mode</span>
-                        <button
-                          className={`w-10 h-5 rounded-full transition-colors duration-200 ${
-                            isLandscape ? 'bg-[#6D28D9]' : 'bg-gray-300 dark:bg-gray-700'
-                          } relative`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setIsLandscape(!isLandscape);
-                          }}
-                        >
-                          <span
-                            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${
-                              isLandscape ? 'transform translate-x-5' : ''
-                            }`}
-                          />
-                        </button>
-                      </div>
+                      ))}
                     </div>
                   </div>
-                  {WINDOW_SIZES.map((size) => (
-                    <button
-                      key={size.name}
-                      className="w-full px-4 py-3.5 text-left text-[#111827] dark:text-gray-300 text-sm whitespace-nowrap flex items-center gap-3 group hover:bg-[#F5EEFF] dark:hover:bg-gray-900 bg-white dark:bg-black"
-                      onClick={() => {
-                        setSelectedWindowSize(size);
-                        setIsWindowSizeDropdownOpen(false);
-                        openInNewWindow(size);
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto">
+          <div
+            style={{
+              width: isDeviceModeOn ? (showDeviceFrameInPreview ? '100%' : `${widthPercent}%`) : '100%',
+              height: '100%',
+              overflow: 'auto',
+              background: 'var(--bolt-elements-background-depth-1)',
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            {activePreview || staticPreviewHtml ? (
+              <>
+                {staticPreviewHtml && !activePreview ? (
+                  <iframe
+                    ref={iframeRef}
+                    title="preview"
+                    className="border-none w-full h-full bg-white"
+                    srcDoc={staticPreviewHtml}
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                    allow="cross-origin-isolated"
+                  />
+                ) : isDeviceModeOn && showDeviceFrameInPreview ? (
+                  <div
+                    className="device-wrapper"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: '100%',
+                      height: '100%',
+                      padding: '0',
+                      overflow: 'auto',
+                      transition: 'all 0.3s ease',
+                      position: 'relative',
+                    }}
+                  >
+                    <div
+                      className="device-frame-container"
+                      style={{
+                        position: 'relative',
+                        borderRadius: selectedWindowSize.frameType === 'mobile' ? '36px' : '20px',
+                        background: getFrameColor(),
+                        padding: getFramePadding(),
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                        overflow: 'hidden',
+                        transform: 'scale(1)',
+                        transformOrigin: 'center center',
+                        transition: 'all 0.3s ease',
+                        margin: '40px',
+                        width: isLandscape
+                          ? `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 120 : 60)}px`
+                          : `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 40 : 60)}px`,
+                        height: isLandscape
+                          ? `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 80 : 60)}px`
+                          : `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 80 : 100)}px`,
                       }}
                     >
+                      {/* Notch - positioned based on orientation */}
                       <div
-                        className={`${size.icon} w-5 h-5 text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200`}
+                        style={{
+                          position: 'absolute',
+                          top: isLandscape ? '50%' : '20px',
+                          left: isLandscape ? '30px' : '50%',
+                          transform: isLandscape ? 'translateY(-50%)' : 'translateX(-50%)',
+                          width: isLandscape ? '8px' : selectedWindowSize.frameType === 'mobile' ? '60px' : '80px',
+                          height: isLandscape ? (selectedWindowSize.frameType === 'mobile' ? '60px' : '80px') : '8px',
+                          background: '#333',
+                          borderRadius: '4px',
+                          zIndex: 2,
+                        }}
                       />
-                      <div className="flex-grow flex flex-col">
-                        <span className="font-medium group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
-                          {size.name}
-                        </span>
-                        <span className="text-xs text-[#6B7280] dark:text-gray-400 group-hover:text-[#6D28D9] dark:group-hover:text-[#6D28D9] transition-colors duration-200">
-                          {isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')
-                            ? `${size.height} × ${size.width}`
-                            : `${size.width} × ${size.height}`}
-                          {size.hasFrame && showDeviceFrame ? ' (with frame)' : ''}
-                        </span>
-                      </div>
-                      {selectedWindowSize.name === size.name && (
-                        <div className="text-[#6D28D9] dark:text-[#6D28D9]">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  ))}
+
+                      {/* Home button - positioned based on orientation */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: isLandscape ? '50%' : '15px',
+                          right: isLandscape ? '30px' : '50%',
+                          transform: isLandscape ? 'translateY(50%)' : 'translateX(50%)',
+                          width: isLandscape ? '4px' : '40px',
+                          height: isLandscape ? '40px' : '4px',
+                          background: '#333',
+                          borderRadius: '50%',
+                          zIndex: 2,
+                        }}
+                      />
+
+                      <iframe
+                        ref={iframeRef}
+                        title="preview"
+                        style={{
+                          border: 'none',
+                          width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
+                          height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
+                          background: 'white',
+                          display: 'block',
+                        }}
+                        src={iframeUrl}
+                        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                        allow="cross-origin-isolated"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <iframe
+                    ref={iframeRef}
+                    title="preview"
+                    className="border-none w-full h-full bg-bolt-elements-background-depth-1"
+                    src={iframeUrl}
+                    sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+                    allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                  />
+                )}
+                <ScreenshotSelector
+                  isSelectionMode={isSelectionMode}
+                  setIsSelectionMode={setIsSelectionMode}
+                  containerRef={iframeRef}
+                />
+              </>
+            ) : (
+              <>
+                {previewRunFailed ? (
+                  <PreviewNotRunningState
+                    detail={previewStatus}
+                    isRunning={isStartingPreview}
+                    logs={workspaceLogs.slice(-8)}
+                    onRun={() => {
+                      setIsStartingPreview(true);
+                      setPreviewRunFailed(false);
+                      setPreviewStatus('Restarting preview server and detecting runtime ports...');
+                      toast.info('Build started: restarting preview server', { toastId: 'preview-build-restart' });
+                      void workbenchStore
+                        .restartPreviewServer()
+                        .catch((error) => {
+                          setPreviewStatus(error instanceof Error ? error.message : 'Failed to restart preview server');
+                          setPreviewRunFailed(true);
+                        })
+                        .finally(() => {
+                          window.setTimeout(() => setIsStartingPreview(false), 2500);
+                        });
+                    }}
+                  />
+                ) : (
+                  <PreviewSplashSequence
+                    appName={projectId ? 'Project preview' : undefined}
+                    currentTask={
+                      previewStatus ??
+                      (workspaceReady
+                        ? 'Starting dev server and detecting runtime ports...'
+                        : 'Starting project workspace...')
+                    }
+                    isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
+                  />
+                )}
+              </>
+            )}
+
+            {isDeviceModeOn && !showDeviceFrameInPreview && (
+              <>
+                {/* Width indicator */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-25px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,0.7))',
+                    color: 'var(--bolt-elements-textPrimary, white)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    pointerEvents: 'none',
+                    opacity: resizingState.current.isResizing ? 1 : 0,
+                    transition: 'opacity 0.3s',
+                  }}
+                >
+                  {currentWidth}px
                 </div>
+
+                <ResizeHandle side="left" />
+                <ResizeHandle side="right" />
               </>
             )}
           </div>
         </div>
-      </div>
-
-      <div className="flex-1 border-t border-bolt-elements-borderColor flex justify-center items-center overflow-auto">
-        <div
-          style={{
-            width: isDeviceModeOn ? (showDeviceFrameInPreview ? '100%' : `${widthPercent}%`) : '100%',
-            height: '100%',
-            overflow: 'auto',
-            background: 'var(--bolt-elements-background-depth-1)',
-            position: 'relative',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          {activePreview ? (
-            <>
-              {isDeviceModeOn && showDeviceFrameInPreview ? (
-                <div
-                  className="device-wrapper"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    width: '100%',
-                    height: '100%',
-                    padding: '0',
-                    overflow: 'auto',
-                    transition: 'all 0.3s ease',
-                    position: 'relative',
-                  }}
-                >
-                  <div
-                    className="device-frame-container"
-                    style={{
-                      position: 'relative',
-                      borderRadius: selectedWindowSize.frameType === 'mobile' ? '36px' : '20px',
-                      background: getFrameColor(),
-                      padding: getFramePadding(),
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                      overflow: 'hidden',
-                      transform: 'scale(1)',
-                      transformOrigin: 'center center',
-                      transition: 'all 0.3s ease',
-                      margin: '40px',
-                      width: isLandscape
-                        ? `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 120 : 60)}px`
-                        : `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 40 : 60)}px`,
-                      height: isLandscape
-                        ? `${selectedWindowSize.width + (selectedWindowSize.frameType === 'mobile' ? 80 : 60)}px`
-                        : `${selectedWindowSize.height + (selectedWindowSize.frameType === 'mobile' ? 80 : 100)}px`,
-                    }}
+        {logsOpen && (
+          <section className="bolt-preview-logs-panel" aria-label="Preview logs">
+            <header>
+              <div role="tablist" aria-label="Preview log type">
+                {(['webview', 'server'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeLogTab === tab}
+                    onClick={() => setActiveLogTab(tab)}
                   >
-                    {/* Notch - positioned based on orientation */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: isLandscape ? '50%' : '20px',
-                        left: isLandscape ? '30px' : '50%',
-                        transform: isLandscape ? 'translateY(-50%)' : 'translateX(-50%)',
-                        width: isLandscape ? '8px' : selectedWindowSize.frameType === 'mobile' ? '60px' : '80px',
-                        height: isLandscape ? (selectedWindowSize.frameType === 'mobile' ? '60px' : '80px') : '8px',
-                        background: '#333',
-                        borderRadius: '4px',
-                        zIndex: 2,
-                      }}
-                    />
-
-                    {/* Home button - positioned based on orientation */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: isLandscape ? '50%' : '15px',
-                        right: isLandscape ? '30px' : '50%',
-                        transform: isLandscape ? 'translateY(50%)' : 'translateX(50%)',
-                        width: isLandscape ? '4px' : '40px',
-                        height: isLandscape ? '40px' : '4px',
-                        background: '#333',
-                        borderRadius: '50%',
-                        zIndex: 2,
-                      }}
-                    />
-
-                    <iframe
-                      ref={iframeRef}
-                      title="preview"
-                      style={{
-                        border: 'none',
-                        width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
-                        height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
-                        background: 'white',
-                        display: 'block',
-                      }}
-                      src={iframeUrl}
-                      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                      allow="cross-origin-isolated"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <iframe
-                  ref={iframeRef}
-                  title="preview"
-                  className="border-none w-full h-full bg-bolt-elements-background-depth-1"
-                  src={iframeUrl}
-                  sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                  allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
-                />
-              )}
-              <ScreenshotSelector
-                isSelectionMode={isSelectionMode}
-                setIsSelectionMode={setIsSelectionMode}
-                containerRef={iframeRef}
-              />
-            </>
-          ) : (
-            <div className="bolt-preview-empty-state">
-              <div className="bolt-preview-empty-card">
-                <div className="bolt-preview-empty-icon">
-                  <span className="i-ph:browser" aria-hidden />
-                </div>
-                <h3>Preview not running</h3>
-                <p>Start the project dev server or refresh ports after the app finishes booting.</p>
-                {previewStatus && <small>{previewStatus}</small>}
-                <div className="bolt-preview-empty-actions">
-                  <button type="button" onClick={startPreviewServer} disabled={isStartingPreview}>
-                    {isStartingPreview ? (
-                      <span className="i-ph:circle-notch animate-spin" aria-hidden />
-                    ) : (
-                      <span className="i-ph:play" aria-hidden />
-                    )}
-                    Start dev server
+                    {tab === 'webview' ? 'Webview logs' : 'Server logs'}
                   </button>
-                  <button type="button" onClick={refreshPorts} disabled={isRefreshingPorts}>
-                    {isRefreshingPorts ? (
-                      <span className="i-ph:circle-notch animate-spin" aria-hidden />
-                    ) : (
-                      <span className="i-ph:arrow-clockwise" aria-hidden />
-                    )}
-                    Refresh ports
-                  </button>
-                </div>
+                ))}
               </div>
-            </div>
-          )}
-
-          {isDeviceModeOn && !showDeviceFrameInPreview && (
-            <>
-              {/* Width indicator */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-25px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,0.7))',
-                  color: 'var(--bolt-elements-textPrimary, white)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  pointerEvents: 'none',
-                  opacity: resizingState.current.isResizing ? 1 : 0,
-                  transition: 'opacity 0.3s',
+              <button
+                type="button"
+                aria-label="Open logs in right panel"
+                onClick={() => {
+                  setLogsOpen(false);
+                  onOpenLogsRight?.();
                 }}
               >
-                {currentWidth}px
-              </div>
+                <span className="i-ph:sidebar-simple" aria-hidden />
+                Dock right
+              </button>
+            </header>
+            <pre>
+              {(activeLogTab === 'webview'
+                ? [
+                    `Preview URL: ${iframeUrl ?? 'not running'}`,
+                    `Active port: ${activePreview?.port ?? 'none'}`,
+                    `Device: ${previewDevice}`,
+                    previewStatus ? `Status: ${previewStatus}` : 'Status: ready',
+                  ]
+                : workspaceLogs.length
+                  ? workspaceLogs.slice(-120)
+                  : ['No server logs yet. Start the dev server to stream logs here.']
+              ).join('\n')}
+            </pre>
+          </section>
+        )}
+      </div>
+    );
+  },
+);
 
-              <ResizeHandle side="left" />
-              <ResizeHandle side="right" />
-            </>
-          )}
+function PreviewSplashSequence({
+  appName,
+  currentTask,
+  isBusy,
+}: {
+  appName?: string;
+  currentTask: string;
+  isBusy: boolean;
+}) {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveSlide((slide) => (slide + 1) % previewSplashSlides.length);
+    }, 3600);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const slide = previewSplashSlides[activeSlide];
+
+  return (
+    <div className="bolt-preview-splash" data-testid="preview-splash-sequence">
+      <div className="bolt-preview-splash-shell">
+        <div className="bolt-preview-splash-chrome">
+          <span />
+          <span />
+          <span />
+          <div />
+        </div>
+        <div key={slide.headline} className="bolt-preview-splash-slide">
+          <PreviewSplashSlide slide={slide} />
+        </div>
+        <div className="bolt-preview-splash-task">
+          {isBusy ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
+          <span>{currentTask}</span>
+        </div>
+        <div className="bolt-preview-splash-progress" aria-hidden>
+          <span style={{ backgroundColor: slide.color }} />
+        </div>
+        <div className="bolt-preview-splash-footer">
+          <div className="bolt-preview-splash-dots" aria-label="Preview preparation slides">
+            {previewSplashSlides.map((item, index) => (
+              <button
+                key={item.headline}
+                type="button"
+                className={index === activeSlide ? 'active' : undefined}
+                onClick={() => setActiveSlide(index)}
+                aria-label={`Show ${item.headline}`}
+              />
+            ))}
+          </div>
+          {appName ? <p>Preparing: {appName}</p> : null}
         </div>
       </div>
     </div>
   );
-});
+}
+
+function PreviewNotRunningState({
+  detail,
+  isRunning,
+  logs,
+  onRun,
+}: {
+  detail?: string;
+  isRunning: boolean;
+  logs: string[];
+  onRun: () => void;
+}) {
+  return (
+    <div className="bolt-preview-not-running" data-testid="preview-not-running-state">
+      <div className="bolt-preview-not-running-card">
+        <div className="bolt-preview-not-running-orbit" aria-hidden>
+          <span />
+          <span />
+          <span />
+          <Zap />
+        </div>
+        <div className="bolt-preview-not-running-copy">
+          <span>Preview status</span>
+          <h3>Your app is not running</h3>
+          <p>
+            {detail ??
+              'E-code could not detect a live dev server port yet. Run the app again and the preview will attach automatically.'}
+          </p>
+          {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{logs.join('\n')}</pre> : null}
+        </div>
+        <button type="button" onClick={onRun} disabled={isRunning} className="bolt-preview-not-running-run">
+          {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}
+          <span>{isRunning ? 'Starting preview...' : 'Run to preview your app'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PreviewSplashSlide({ slide }: { slide: SplashSlide }) {
+  const SlideIcon = slide.icon;
+
+  if (slide.layout === 'tips-carousel') {
+    return (
+      <div className="bolt-preview-splash-content">
+        {SlideIcon ? (
+          <div className="bolt-preview-splash-icon" style={{ color: slide.color, backgroundColor: `${slide.color}18` }}>
+            <SlideIcon aria-hidden />
+          </div>
+        ) : null}
+        <h3>{slide.headline}</h3>
+        <p>{slide.subtitle}</p>
+        <RotatingPreviewTips color={slide.color} />
+      </div>
+    );
+  }
+
+  if (slide.layout === 'icon-grid') {
+    return (
+      <div className="bolt-preview-splash-content">
+        <h3>{slide.headline}</h3>
+        <p>{slide.subtitle}</p>
+        <div className="bolt-preview-splash-grid">
+          {slide.gridItems?.map((item) => {
+            const ItemIcon = item.icon;
+
+            return (
+              <div key={item.label}>
+                <ItemIcon style={{ color: slide.color }} aria-hidden />
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bolt-preview-splash-content">
+      {SlideIcon ? (
+        <div className="bolt-preview-splash-icon" style={{ color: slide.color, backgroundColor: `${slide.color}18` }}>
+          <SlideIcon aria-hidden />
+        </div>
+      ) : null}
+      <h3>{slide.headline}</h3>
+      <p>{slide.subtitle}</p>
+      {slide.stats ? (
+        <div className="bolt-preview-splash-stats">
+          {slide.stats.map((stat) => (
+            <div key={stat.label}>
+              <strong style={{ color: slide.color }}>{stat.value}</strong>
+              <span>{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RotatingPreviewTips({ color }: { color: string }) {
+  const [tipIndex, setTipIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setTipIndex((index) => (index + 1) % previewTips.length);
+    }, 2400);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="bolt-preview-splash-tips">
+      {[0, 1, 2].map((offset) => {
+        const tip = previewTips[(tipIndex + offset) % previewTips.length];
+        const TipIcon = tip.icon;
+
+        return (
+          <div key={`${tip.text}-${offset}`} className={offset === 0 ? 'active' : undefined}>
+            <TipIcon style={{ color: offset === 0 ? color : undefined }} aria-hidden />
+            <span>{tip.text}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

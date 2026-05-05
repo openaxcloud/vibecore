@@ -60,6 +60,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #WebSocket?: WebSocketConstructor;
   #session?: WorkspaceSession;
   #terminals = new Map<string, WebSocketLike>();
+  #terminalStops = new Map<string, () => void>();
   #eventStreams = new Map<string, AsyncQueue<CommandEvent>>();
 
   constructor(options: RemoteKubernetesRuntimeAdapterOptions) {
@@ -106,7 +107,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async listFiles(path = '.'): Promise<FileNode[]> {
-    return this.#request<FileNode[]>(`/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`);
+    return this.#request<FileNode[]>(
+      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
+    );
   }
 
   async readFile(path: string): Promise<string> {
@@ -162,14 +165,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async watchFiles(paths: string[], onChange: (change: FileChange) => void): Promise<() => void> {
-    const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/files/watch`, { paths });
-    const onMessage = (event: { data: string }) => onChange(JSON.parse(event.data) as FileChange);
-    socket.addEventListener('message', onMessage);
-
-    return () => {
-      socket.removeEventListener?.('message', onMessage);
-      socket.close();
-    };
+    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/files/watch`, { paths }, (event) =>
+      onChange(JSON.parse(event.data) as FileChange),
+    );
   }
 
   async applyPatch(patch: RuntimePatch): Promise<FileChange[]> {
@@ -190,7 +188,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/commands/stream`, request);
     const queue = new AsyncQueue<CommandEvent>();
     socket.addEventListener('message', (event: { data: string }) => queue.push(JSON.parse(event.data)));
-    socket.addEventListener('error', () => queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() }));
+    socket.addEventListener('error', () =>
+      queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() }),
+    );
     socket.addEventListener('close', () => queue.close());
 
     for await (const event of queue) {
@@ -200,15 +200,59 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async openTerminal(request: Partial<CommandRequest> = {}): Promise<TerminalSession> {
     const terminalId = `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/terminal`, {
+    let stopped = false;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let reconnectAttempts = 0;
+    let socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/terminal`, {
       terminalId,
       ...request,
     });
     const queue = new AsyncQueue<CommandEvent>();
-    socket.addEventListener('message', (event: { data: string }) => queue.push(JSON.parse(event.data)));
-    socket.addEventListener('error', () => queue.push({ type: 'error', error: new RuntimeError('Terminal stream failed'), timestamp: now() }));
-    socket.addEventListener('close', () => queue.close());
+    const onMessage = (event: { data: string }) => queue.push(JSON.parse(event.data));
+    const scheduleReconnect = () => {
+      if (stopped || reconnectTimer) {
+        return;
+      }
+
+      const delay = Math.min(1000 * 2 ** reconnectAttempts, 10_000);
+      reconnectAttempts += 1;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = undefined;
+        void reconnect();
+      }, delay);
+    };
+    const bindSocket = (nextSocket: WebSocketLike) => {
+      nextSocket.addEventListener('message', onMessage);
+      nextSocket.addEventListener('error', scheduleReconnect);
+      nextSocket.addEventListener('close', scheduleReconnect);
+    };
+    const reconnect = async () => {
+      if (stopped) {
+        return;
+      }
+
+      try {
+        socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/terminal`, {
+          terminalId,
+          ...request,
+        });
+        reconnectAttempts = 0;
+        this.#terminals.set(terminalId, socket);
+        bindSocket(socket);
+        queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
+      } catch {
+        scheduleReconnect();
+      }
+    };
+    bindSocket(socket);
     this.#terminals.set(terminalId, socket);
+    this.#terminalStops.set(terminalId, () => {
+      stopped = true;
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    });
     this.#eventStreams.set(terminalId, queue);
 
     return {
@@ -231,6 +275,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const terminal = this.#terminals.get(processId);
 
     if (terminal) {
+      this.#terminalStops.get(processId)?.();
+      this.#terminalStops.delete(processId);
       terminal.send(JSON.stringify({ type: 'kill' }));
       terminal.close();
       this.#terminals.delete(processId);
@@ -251,14 +297,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async watchPorts(onChange: (port: WorkspacePort) => void): Promise<() => void> {
-    const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/ports/watch`);
-    const onMessage = (event: { data: string }) => onChange(JSON.parse(event.data) as WorkspacePort);
-    socket.addEventListener('message', onMessage);
-
-    return () => {
-      socket.removeEventListener?.('message', onMessage);
-      socket.close();
-    };
+    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/ports/watch`, undefined, (event) =>
+      onChange(JSON.parse(event.data) as WorkspacePort),
+    );
   }
 
   async getPreviewUrl(port: number): Promise<PreviewRoute> {
@@ -273,31 +314,33 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async restoreSnapshot(snapshotId: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/snapshots/${snapshotId}/restore`, { method: 'POST' });
+    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/snapshots/${snapshotId}/restore`, {
+      method: 'POST',
+    });
   }
 
   async exportZip(path = '.'): Promise<Uint8Array> {
-    const response = await this.#rawRequest(`/workspaces/${this.#requireWorkspaceId()}/export?path=${encodeURIComponent(path)}`);
+    const response = await this.#rawRequest(
+      `/workspaces/${this.#requireWorkspaceId()}/export?path=${encodeURIComponent(path)}`,
+    );
     return new Uint8Array(await response.arrayBuffer());
   }
 
   async importZip(data: Uint8Array, targetPath = '.'): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/import?targetPath=${encodeURIComponent(targetPath)}`, {
-      method: 'POST',
-      body: data,
-      headers: { 'content-type': 'application/zip' },
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/import?targetPath=${encodeURIComponent(targetPath)}`,
+      {
+        method: 'POST',
+        body: data,
+        headers: { 'content-type': 'application/zip' },
+      },
+    );
   }
 
   async watchLogs(onEvent: (event: CommandEvent) => void): Promise<() => void> {
-    const socket = await this.#openSocket(`/workspaces/${this.#requireWorkspaceId()}/logs`);
-    const onMessage = (event: { data: string }) => onEvent(JSON.parse(event.data) as CommandEvent);
-    socket.addEventListener('message', onMessage);
-
-    return () => {
-      socket.removeEventListener?.('message', onMessage);
-      socket.close();
-    };
+    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/logs`, undefined, (event) =>
+      onEvent(JSON.parse(event.data) as CommandEvent),
+    );
   }
 
   async #request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -363,6 +406,59 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     });
 
     return socket;
+  }
+
+  async #watchSocket(path: string, hello: unknown, onMessage: (event: { data: string }) => void): Promise<() => void> {
+    let stopped = false;
+    let socket: WebSocketLike | undefined;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const connect = async () => {
+      if (stopped) {
+        return;
+      }
+
+      try {
+        socket = await this.#openSocket(path, hello);
+        attempts = 0;
+        socket.addEventListener('message', onMessage);
+        socket.addEventListener('close', scheduleReconnect);
+        socket.addEventListener('error', scheduleReconnect);
+      } catch {
+        scheduleReconnect();
+      }
+    };
+
+    const scheduleReconnect = () => {
+      if (stopped || reconnectTimer) {
+        return;
+      }
+
+      const delay = Math.min(1000 * 2 ** attempts, 15_000);
+      attempts += 1;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = undefined;
+        void connect();
+      }, delay);
+    };
+
+    await connect();
+
+    return () => {
+      stopped = true;
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+
+      if (socket) {
+        socket.removeEventListener?.('message', onMessage);
+        socket.removeEventListener?.('close', scheduleReconnect);
+        socket.removeEventListener?.('error', scheduleReconnect);
+        socket.close();
+      }
+    };
   }
 
   async #resolveAuthToken(): Promise<string | undefined> {

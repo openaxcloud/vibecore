@@ -931,10 +931,14 @@ function buildFileList(
   }
 
   for (const [filePath, dirent] of Object.entries(files)) {
-    const segments = filePath.split('/').filter((segment) => segment);
+    const normalizedFilePath =
+      rootFolder && rootFolder !== '/' && !filePath.startsWith(rootFolder)
+        ? path.join(rootFolder, filePath.replace(/^\/+/, ''))
+        : filePath;
+    const segments = normalizedFilePath.split('/').filter((segment) => segment);
     const fileName = segments.at(-1);
 
-    if (!fileName || isHiddenFile(filePath, fileName, hiddenFiles)) {
+    if (!fileName || isHiddenFile(normalizedFilePath, fileName, hiddenFiles)) {
       continue;
     }
 

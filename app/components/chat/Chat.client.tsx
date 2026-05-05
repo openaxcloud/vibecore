@@ -31,6 +31,78 @@ import type { LlmErrorAlertType } from '~/types/actions';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 const logger = createScopedLogger('Chat');
+const MAX_PROJECT_ARCHIVED_CONVERSATIONS = 24;
+
+function providerByName(providerName?: string | null) {
+  if (!providerName) {
+    return undefined;
+  }
+
+  return PROVIDER_LIST.find((provider) => provider.name.toLowerCase() === providerName.toLowerCase());
+}
+
+function providerForModel(model: string) {
+  const exactProvider = PROVIDER_LIST.find((provider) =>
+    provider.staticModels?.some((staticModel) => staticModel.name === model),
+  );
+
+  if (exactProvider) {
+    return exactProvider;
+  }
+
+  if (model.startsWith('claude-')) {
+    return providerByName('Anthropic');
+  }
+
+  if (model.startsWith('gemini-')) {
+    return providerByName('Google');
+  }
+
+  if (model.startsWith('openai/')) {
+    return providerByName('Github');
+  }
+
+  if (model.startsWith('gpt-') || model.startsWith('o1')) {
+    return providerByName('OpenAI');
+  }
+
+  return undefined;
+}
+
+function fallbackProjectModelSelection() {
+  const provider = providerForModel(DEFAULT_MODEL) ?? DEFAULT_PROVIDER;
+
+  return {
+    model: DEFAULT_MODEL,
+    provider: provider as ProviderInfo,
+  };
+}
+
+function projectModelSelectionFromParams(searchParams: URLSearchParams) {
+  const requestedModel = searchParams.get('model')?.trim();
+
+  if (!requestedModel) {
+    return null;
+  }
+
+  const requestedProvider = providerByName(searchParams.get('provider')?.trim()) ?? providerForModel(requestedModel);
+  const fallbackSelection = fallbackProjectModelSelection();
+  const provider = (requestedProvider ?? fallbackSelection.provider) as ProviderInfo;
+  const modelKnownForProvider = provider.staticModels?.some((model) => model.name === requestedModel) ?? false;
+
+  return {
+    model: modelKnownForProvider ? requestedModel : fallbackSelection.model,
+    provider: modelKnownForProvider ? provider : fallbackSelection.provider,
+  };
+}
+
+function initialProjectModelSelection() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return projectModelSelectionFromParams(new URLSearchParams(window.location.search));
+}
 
 export function Chat({
   forceWorkbench = false,
@@ -45,51 +117,12 @@ export function Chat({
 
   const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
   const title = useStore(description);
-  const [projectInitialMessages, setProjectInitialMessages] = useState<Message[] | undefined>(undefined);
-  const [projectMemoryReady, setProjectMemoryReady] = useState(!projectIdeMode || !projectId);
-
-  useEffect(() => {
-    if (!projectIdeMode || !projectId) {
-      setProjectMemoryReady(true);
-      setProjectInitialMessages(undefined);
-
-      return undefined;
-    }
-
-    let cancelled = false;
-    setProjectMemoryReady(false);
-
-    getProjectIdeMemory(projectId)
-      .then((memory) => {
-        if (cancelled) {
-          return;
-        }
-
-        setProjectInitialMessages(Array.isArray(memory.chat?.messages) ? memory.chat.messages : []);
-      })
-      .catch((error) => {
-        console.error('Failed to load project chat memory', error);
-
-        if (!cancelled) {
-          setProjectInitialMessages([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setProjectMemoryReady(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectIdeMode, projectId]);
 
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
-  if (!ready || !projectMemoryReady) {
+  if (!ready) {
     return <BaseChat chatStarted={forceWorkbench} projectIdeMode={projectIdeMode} projectId={projectId} />;
   }
 
@@ -99,7 +132,7 @@ export function Chat({
       projectIdeMode={projectIdeMode}
       projectId={projectId}
       description={title}
-      initialMessages={projectIdeMode ? (projectInitialMessages ?? []) : initialMessages}
+      initialMessages={initialMessages}
       exportChat={exportChat}
       storeMessageHistory={storeMessageHistory}
       importChat={importChat}
@@ -113,13 +146,13 @@ const processSampledMessages = createSampler(
     initialMessages: Message[];
     isLoading: boolean;
     parseMessages: (messages: Message[], isLoading: boolean) => void;
-    storeMessageHistory: (messages: Message[]) => Promise<void>;
+    persistMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
-    const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    const { messages, initialMessages, isLoading, parseMessages, persistMessageHistory } = options;
     parseMessages(messages, isLoading);
 
-    if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+    if (messages.length > 0 && messages !== initialMessages) {
+      void persistMessageHistory(messages);
     }
   },
   50,
@@ -166,13 +199,28 @@ export const ChatImpl = memo(
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
+    const initialSelectionRef = useRef(projectIdeMode ? initialProjectModelSelection() : null);
     const [model, setModel] = useState(() => {
+      if (initialSelectionRef.current?.model) {
+        return initialSelectionRef.current.model;
+      }
+
       const savedModel = Cookies.get('selectedModel');
+
       return savedModel || DEFAULT_MODEL;
     });
     const [provider, setProvider] = useState(() => {
+      if (initialSelectionRef.current?.provider) {
+        return initialSelectionRef.current.provider;
+      }
+
       const savedProvider = Cookies.get('selectedProvider');
-      return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
+      const savedModel = Cookies.get('selectedModel') || DEFAULT_MODEL;
+      const providerForSavedModel = providerForModel(savedModel);
+
+      return (PROVIDER_LIST.find((p) => p.name === savedProvider) ||
+        providerForSavedModel ||
+        DEFAULT_PROVIDER) as ProviderInfo;
     });
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
@@ -180,6 +228,44 @@ export const ChatImpl = memo(
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
     const mcpSettings = useMCPStore((state) => state.settings);
+    const latestMessagesRef = useRef<Message[]>(initialMessages);
+    const pendingPersistRef = useRef<Message[] | null>(null);
+    const persistInFlightRef = useRef<Promise<void> | null>(null);
+
+    const persistMessageHistory = useCallback(
+      (nextMessages: Message[]) => {
+        pendingPersistRef.current = nextMessages;
+
+        if (persistInFlightRef.current) {
+          return persistInFlightRef.current;
+        }
+
+        const drainPendingSaves = async () => {
+          while (pendingPersistRef.current) {
+            const snapshot = pendingPersistRef.current;
+            pendingPersistRef.current = null;
+            await storeMessageHistory(snapshot);
+          }
+        };
+
+        const savePromise = drainPendingSaves()
+          .catch((error) => {
+            toast.error(error.message);
+          })
+          .finally(() => {
+            persistInFlightRef.current = null;
+
+            if (pendingPersistRef.current) {
+              void persistMessageHistory(pendingPersistRef.current);
+            }
+          });
+
+        persistInFlightRef.current = savePromise;
+
+        return savePromise;
+      },
+      [storeMessageHistory],
+    );
 
     const {
       messages,
@@ -218,10 +304,24 @@ export const ChatImpl = memo(
       onError: (e) => {
         setFakeLoading(false);
         handleError(e, 'chat');
+        window.setTimeout(() => {
+          const snapshot = latestMessagesRef.current;
+
+          if (snapshot.length > 0) {
+            void persistMessageHistory(snapshot);
+          }
+        }, 0);
       },
       onFinish: (message, response) => {
         const usage = response.usage;
         setData(undefined);
+        window.setTimeout(() => {
+          const snapshot = latestMessagesRef.current;
+
+          if (snapshot.length > 0) {
+            void persistMessageHistory(snapshot);
+          }
+        }, 0);
 
         if (usage) {
           console.log('Token usage:', usage);
@@ -248,6 +348,10 @@ export const ChatImpl = memo(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     useEffect(() => {
+      latestMessagesRef.current = messages;
+    }, [messages]);
+
+    useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
     }, []);
 
@@ -257,28 +361,9 @@ export const ChatImpl = memo(
         initialMessages,
         isLoading,
         parseMessages,
-        storeMessageHistory,
+        persistMessageHistory,
       });
-
-      if (projectIdeMode && projectId) {
-        saveProjectIdeMemory(projectId, {
-          chat: {
-            id: `project:${projectId}`,
-            description: description ?? 'Project agent',
-            messages,
-          },
-        }).catch((error) => console.error('Failed to persist project chat memory', error));
-      }
-    }, [
-      description,
-      initialMessages,
-      isLoading,
-      messages,
-      parseMessages,
-      projectId,
-      projectIdeMode,
-      storeMessageHistory,
-    ]);
+    }, [initialMessages, isLoading, messages, parseMessages, persistMessageHistory]);
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
@@ -292,6 +377,12 @@ export const ChatImpl = memo(
       stop();
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
+
+      const snapshot = latestMessagesRef.current;
+
+      if (snapshot.length > 0) {
+        void persistMessageHistory(snapshot);
+      }
 
       logStore.logProvider('Chat response aborted', {
         component: 'Chat',
@@ -405,6 +496,7 @@ export const ChatImpl = memo(
 
     useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
+      const requestedSelection = projectModelSelectionFromParams(searchParams);
 
       if (!projectIdeMode || !projectId || !prompt) {
         return;
@@ -417,16 +509,66 @@ export const ChatImpl = memo(
       }
 
       submittedProjectPromptRef.current = promptKey;
+
+      const selectedModel = requestedSelection?.model ?? model;
+      const selectedProvider = requestedSelection?.provider ?? provider;
+
+      if (requestedSelection) {
+        setModel(selectedModel);
+        setProvider(selectedProvider);
+        Cookies.set('selectedModel', selectedModel, { expires: 30 });
+        Cookies.set('selectedProvider', selectedProvider.name, { expires: 30 });
+      }
+
       runAnimation();
       append({
         role: 'user',
-        content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
+        content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
       });
 
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete('prompt');
+      nextParams.delete('model');
+      nextParams.delete('provider');
       setSearchParams(nextParams, { replace: true });
     }, [append, model, projectId, projectIdeMode, provider.name, runAnimation, searchParams, setSearchParams]);
+
+    useEffect(() => {
+      const requestedSelection = projectModelSelectionFromParams(searchParams);
+
+      if (!projectIdeMode || !requestedSelection || searchParams.has('prompt')) {
+        return;
+      }
+
+      setModel(requestedSelection.model);
+      setProvider(requestedSelection.provider);
+      Cookies.set('selectedModel', requestedSelection.model, { expires: 30 });
+      Cookies.set('selectedProvider', requestedSelection.provider.name, { expires: 30 });
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('model');
+      nextParams.delete('provider');
+      setSearchParams(nextParams, { replace: true });
+    }, [projectIdeMode, searchParams, setSearchParams]);
+
+    useEffect(() => {
+      if (!projectIdeMode || searchParams.get('aiFallback') !== 'true') {
+        return;
+      }
+
+      const reason = searchParams.get('aiFallbackReason')?.trim();
+      toast.warn(
+        reason
+          ? `AI generation failed (${reason}). The project was created empty so you can keep your prompt and retry.`
+          : 'AI generation failed. The project was created empty so you can keep your prompt and retry.',
+        { autoClose: 8000 },
+      );
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('aiFallback');
+      nextParams.delete('aiFallbackReason');
+      setSearchParams(nextParams, { replace: true });
+    }, [projectIdeMode, searchParams, setSearchParams]);
 
     // Helper function to create message parts array from text and images
     const createMessageParts = (text: string, images: string[] = []): Array<TextUIPart | FileUIPart> => {
@@ -739,7 +881,7 @@ export const ChatImpl = memo(
 
           return {
             ...message,
-            content: parsedMessages[i] || '',
+            content: parsedMessages[i] || message.content,
           };
         })}
         enhancePrompt={() => {
@@ -771,7 +913,47 @@ export const ChatImpl = memo(
         setChatMode={setChatMode}
         append={append}
         resetChat={() => {
+          if (projectIdeMode && projectId) {
+            getProjectIdeMemory(projectId)
+              .then((memory) => {
+                const currentMessages = messages.filter((message) => !message.annotations?.includes('no-store'));
+
+                if (!currentMessages.length) {
+                  return;
+                }
+
+                const now = new Date().toISOString();
+                const firstUserMessage = currentMessages.find((message) => message.role === 'user');
+                const conversationId =
+                  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                    ? crypto.randomUUID()
+                    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+                void saveProjectIdeMemory(projectId, {
+                  chat: {
+                    id: `project:${projectId}`,
+                    description: description ?? 'Project agent',
+                    messages: [],
+                    clearMessages: true,
+                    conversations: [
+                      ...(memory.chat?.conversations ?? []),
+                      {
+                        id: conversationId,
+                        title: String(firstUserMessage?.content ?? 'Project conversation').slice(0, 96),
+                        messages: currentMessages,
+                        createdAt: now,
+                        updatedAt: now,
+                      },
+                    ].slice(-MAX_PROJECT_ARCHIVED_CONVERSATIONS),
+                  },
+                });
+              })
+              .catch((error) => console.error('Failed to archive project conversation', error));
+          }
+
           setMessages([]);
+          pendingPersistRef.current = null;
+          persistMessageHistory([]).catch((error) => toast.error(error.message));
           setInput('');
           setData(undefined);
         }}

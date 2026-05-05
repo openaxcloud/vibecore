@@ -160,6 +160,24 @@ export class TestApiStore implements ApiStore {
     return user;
   }
 
+  async deleteUser(userId: string) {
+    const deleted = this.users.delete(userId);
+
+    for (const [tokenHash, session] of this.sessions.entries()) {
+      if (session.userId === userId) {
+        this.sessions.delete(tokenHash);
+      }
+    }
+
+    for (const [id, membership] of this.memberships.entries()) {
+      if (membership.userId === userId) {
+        this.memberships.delete(id);
+      }
+    }
+
+    return deleted;
+  }
+
   async findUserByEmail(email: string) {
     return [...this.users.values()].find((user) => user.email === email.toLowerCase());
   }
@@ -348,6 +366,17 @@ export class TestApiStore implements ApiStore {
     return [...this.memberships.values()].filter((member) => member.organizationId === organizationId);
   }
 
+  async removeMember(organizationId: string, userId: string) {
+    const membership = await this.getMembership(userId, organizationId);
+
+    if (!membership) {
+      return undefined;
+    }
+
+    this.memberships.delete(membership.id);
+    return membership;
+  }
+
   async createProject(input: {
     organizationId: string;
     name: string;
@@ -489,6 +518,14 @@ export class TestApiStore implements ApiStore {
     return [...this.projectEnvVars.values()].filter((envVar) => envVar.projectId === projectId);
   }
 
+  async deleteProjectEnvVar(projectId: string, key: string) {
+    const mapKey = `${projectId}:${key}`;
+    const existing = this.projectEnvVars.get(mapKey);
+    this.projectEnvVars.delete(mapKey);
+
+    return existing;
+  }
+
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectSecrets.get(key);
@@ -511,6 +548,14 @@ export class TestApiStore implements ApiStore {
 
   async getProjectSecret(projectId: string, key: string) {
     return this.projectSecrets.get(`${projectId}:${key}`);
+  }
+
+  async deleteProjectSecret(projectId: string, key: string) {
+    const mapKey = `${projectId}:${key}`;
+    const existing = this.projectSecrets.get(mapKey);
+    this.projectSecrets.delete(mapKey);
+
+    return existing;
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string }) {
@@ -657,8 +702,15 @@ export class TestApiStore implements ApiStore {
     return [...this.projectShareLinks.values()].filter((link) => link.projectId === projectId);
   }
 
-  async createWorkspace(input: { projectId: string; name: string; runtimeMode: string }) {
-    const workspace: WorkspaceRecord = { id: id('workspace'), ...input, status: 'PENDING', createdAt: now() };
+  async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
+    const workspace: WorkspaceRecord = {
+      id: input.id ?? id('workspace'),
+      projectId: input.projectId,
+      name: input.name,
+      runtimeMode: input.runtimeMode,
+      status: 'PENDING',
+      createdAt: now(),
+    };
     this.workspaces.set(workspace.id, workspace);
 
     return workspace;
@@ -925,6 +977,19 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
+  async listScimTokens(organizationId: string) {
+    return [...this.scimTokens.values()]
+      .filter((token) => token.organizationId === organizationId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async revokeScimToken(tokenId: string) {
+    const record = this.scimTokens.get(tokenId);
+    if (!record) return undefined;
+    this.scimTokens.delete(tokenId);
+    return record;
+  }
+
   async createCustomRole(input: { organizationId: string; key: string; name: string; permissions: PermissionKey[] }) {
     const record: CustomRoleRecord = { id: id('role'), ...input, createdAt: now() };
     this.customRoles.set(`${input.organizationId}:${input.key}`, record);
@@ -979,6 +1044,17 @@ export class TestApiStore implements ApiStore {
     };
     this.organizationInvites.set(record.id, record);
     return record;
+  }
+
+  async findOrganizationInviteByToken(token: string) {
+    const tokenHash = hashToken(token);
+    const invite = [...this.organizationInvites.values()].find((item) => item.tokenHash === tokenHash);
+
+    if (!invite || invite.acceptedAt || new Date(invite.expiresAt).getTime() < Date.now()) {
+      return undefined;
+    }
+
+    return invite;
   }
 
   async consumeOrganizationInvite(token: string, userId: string) {
@@ -1177,6 +1253,10 @@ export class TestApiStore implements ApiStore {
 
   async getSubscription(organizationId: string) {
     return [...this.subscriptions.values()].find((subscription) => subscription.organizationId === organizationId);
+  }
+
+  async listAdminSubscriptions() {
+    return [...this.subscriptions.values()];
   }
 
   async recordUsageEvent(input: {

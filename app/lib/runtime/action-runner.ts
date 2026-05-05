@@ -117,6 +117,19 @@ export class ActionRunner {
     });
   }
 
+  abortAll() {
+    const actions = this.actions.get();
+
+    Object.entries(actions).forEach(([actionId, action]) => {
+      if (action.status === 'complete' || action.status === 'failed' || action.status === 'aborted') {
+        return;
+      }
+
+      action.abort();
+      this.#updateAction(actionId, { status: 'aborted' });
+    });
+  }
+
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
     const { actionId } = data;
     const action = this.actions.get()[actionId];

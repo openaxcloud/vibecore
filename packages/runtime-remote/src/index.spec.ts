@@ -25,7 +25,10 @@ class FakeWebSocket implements WebSocketLike {
   }
 
   removeEventListener(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void) {
-    this.listeners.set(type, (this.listeners.get(type) ?? []).filter((item) => item !== listener));
+    this.listeners.set(
+      type,
+      (this.listeners.get(type) ?? []).filter((item) => item !== listener),
+    );
   }
 
   emit(type: string, event: any) {
@@ -63,7 +66,9 @@ function createFetchMock() {
     }
 
     if (url.endsWith('/files/write') || url.endsWith('/patch')) {
-      return url.endsWith('/patch') ? Response.json([{ path: 'a.ts', type: 'update' }]) : new Response(null, { status: 204 });
+      return url.endsWith('/patch')
+        ? Response.json([{ path: 'a.ts', type: 'update' }])
+        : new Response(null, { status: 204 });
     }
 
     if (url.endsWith('/ports')) {
@@ -105,9 +110,9 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       ready: true,
       url: 'https://preview.example.com',
     });
-    await expect(adapter.applyPatch({ operations: [{ type: 'write', path: 'a.ts', content: 'updated' }] })).resolves.toEqual([
-      { path: 'a.ts', type: 'update' },
-    ]);
+    await expect(
+      adapter.applyPatch({ operations: [{ type: 'write', path: 'a.ts', content: 'updated' }] }),
+    ).resolves.toEqual([{ path: 'a.ts', type: 'update' }]);
 
     const writeCall = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/files/write'));
     expect((writeCall?.[1]?.headers as Headers).get('authorization')).toBe('Bearer token-123');
@@ -141,9 +146,48 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     const logs: string[] = [];
     const stopLogs = await adapter.watchLogs((event) => logs.push(event.data ?? ''));
-    FakeWebSocket.instances[2].emit('message', { data: JSON.stringify({ type: 'stdout', data: 'server ready', timestamp: 'now' }) });
+    FakeWebSocket.instances[2].emit('message', {
+      data: JSON.stringify({ type: 'stdout', data: 'server ready', timestamp: 'now' }),
+    });
     stopLogs();
     expect(logs).toEqual(['server ready']);
+  });
+
+  it('reconnects watch sockets and terminal sockets after disconnects', async () => {
+    vi.useFakeTimers();
+    FakeWebSocket.instances = [];
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token-reconnect',
+      workspaceId: 'ws-1',
+      fetchImpl: createFetchMock() as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    try {
+      const changes: string[] = [];
+      const stopWatching = await adapter.watchFiles(['src'], (change) => changes.push(`${change.type}:${change.path}`));
+      FakeWebSocket.instances[0].emit('close', {});
+      await vi.advanceTimersByTimeAsync(1000);
+      await Promise.resolve();
+      FakeWebSocket.instances[1].emit('message', { data: JSON.stringify({ type: 'update', path: 'src/App.tsx' }) });
+      stopWatching();
+
+      expect(changes).toEqual(['update:src/App.tsx']);
+
+      const terminal = await adapter.openTerminal();
+      const firstTerminalSocket = FakeWebSocket.instances.at(-1)!;
+      firstTerminalSocket.emit('close', {});
+      await vi.advanceTimersByTimeAsync(1000);
+      await Promise.resolve();
+      terminal.write('echo after reconnect\n');
+      expect(FakeWebSocket.instances.at(-1)!.sent).toContain(
+        JSON.stringify({ type: 'stdin', data: 'echo after reconnect\n' }),
+      );
+      terminal.kill();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('surfaces workspace start failures and quota exceeded responses', async () => {

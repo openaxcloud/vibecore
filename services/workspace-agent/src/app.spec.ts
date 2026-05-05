@@ -31,7 +31,12 @@ describe('workspace-agent', () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };
 
-    const write = await app.inject({ method: 'POST', url: '/files/write', headers, payload: { path: 'src/index.ts', content: 'export const ok = true;' } });
+    const write = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'src/index.ts', content: 'export const ok = true;' },
+    });
     expect(write.statusCode).toBe(200);
 
     const read = await app.inject({ method: 'GET', url: '/files/read?path=src/index.ts', headers });
@@ -40,7 +45,12 @@ describe('workspace-agent', () => {
 
   it('blocks path traversal', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
-    const response = await app.inject({ method: 'POST', url: '/files/write', headers: { authorization: `Bearer ${token}` }, payload: { path: '../escape.txt', content: 'nope' } });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { path: '../escape.txt', content: 'nope' },
+    });
     expect(response.statusCode).toBeGreaterThanOrEqual(400);
   });
 
@@ -99,5 +109,32 @@ describe('workspace-agent', () => {
     expect(response.headers['content-type']).toContain('text/plain');
     expect(response.body).toContain('active_workspaces');
     expect(response.body).toContain('terminal_sessions');
+  });
+
+  it('streams terminal WebSocket input and command output', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    const address = app.server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const messages: string[] = [];
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?token=${encodeURIComponent(token)}`);
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('Terminal WebSocket failed to open')), { once: true });
+      });
+
+      socket.addEventListener('message', (event) => messages.push(String(event.data)));
+      socket.send(`${process.execPath} -e "console.log('terminal-critical-path')"\n`);
+
+      await expect.poll(() => messages.join(''), { timeout: 5_000 }).toContain('terminal-critical-path');
+    } finally {
+      socket.close();
+      await app.close();
+    }
   });
 });

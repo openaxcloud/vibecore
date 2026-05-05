@@ -31,3 +31,15 @@ Handled events:
 - `invoice.payment_failed`
 
 Subscription plan mapping uses the Stripe price ID from the event payload and the seeded `Plan` table.
+
+Checkout sessions also include `organizationId`, `planKey` and `priceId` metadata on both the checkout session and the created subscription. This lets `checkout.session.completed` map the selected plan even before Stripe sends a separate `customer.subscription.created` event with subscription items.
+
+Subscription states are applied as follows:
+
+- `trialing` -> `TRIALING`
+- `active` -> `ACTIVE`
+- `past_due` -> `PAST_DUE`
+- `unpaid` -> `UNPAID`
+- deleted subscription event -> `CANCELED`
+
+Only `TRIALING`, `ACTIVE` and `PAST_DUE` keep paid entitlements. `UNPAID` and `CANCELED` fall back to Free limits.

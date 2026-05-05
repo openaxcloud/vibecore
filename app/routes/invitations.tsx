@@ -2,8 +2,10 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
+  apiErrorMessage,
   firstOrganization,
   formObject,
+  isForbiddenApiResponse,
   json,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -15,11 +17,39 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     ? { id: url.searchParams.get('orgId')! }
     : await firstOrganization(request);
 
-  const result = await apiRequest<{
+  const rolesResult = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
+    request,
+    `/orgs/${organization.id}/roles`,
+  );
+  let canManageInvitations = true;
+  let invitationsResult: {
     invitations: Array<{ id: string; email: string; roleKey: string; acceptedAt?: string; expiresAt: string }>;
-  }>(request, `/orgs/${organization.id}/invitations`);
+  } = { invitations: [] };
 
-  return json({ orgId: organization.id, invitations: result.invitations });
+  try {
+    invitationsResult = await apiRequest<{
+      invitations: Array<{ id: string; email: string; roleKey: string; acceptedAt?: string; expiresAt: string }>;
+    }>(request, `/orgs/${organization.id}/invitations`);
+  } catch (error) {
+    if (!isForbiddenApiResponse(error)) {
+      throw error;
+    }
+
+    canManageInvitations = false;
+  }
+
+  return json({
+    orgId: organization.id,
+    invitations: invitationsResult.invitations,
+    canManageInvitations,
+    roles: [
+      { key: 'viewer', name: 'Viewer' },
+      { key: 'member', name: 'Member' },
+      { key: 'admin', name: 'Admin' },
+      { key: 'owner', name: 'Owner' },
+      ...rolesResult.roles.map((role) => ({ key: role.key, name: role.name })),
+    ],
+  });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -35,26 +65,37 @@ export async function action({ request }: EnterpriseActionArgs) {
     return json({ error: 'Organization ID is required.' }, { status: 400 });
   }
 
-  if (body.intent === 'resend' && body.inviteId) {
-    await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/resend`, { method: 'POST' });
-    return json({ status: 'Invitation resent.' });
+  try {
+    if (body.intent === 'resend' && body.inviteId) {
+      await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/resend`, { method: 'POST' });
+      return json({ status: 'Invitation resent.' });
+    }
+
+    if (body.intent === 'expire' && body.inviteId) {
+      await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/expire`, { method: 'POST' });
+      return json({ status: 'Invitation expired.' });
+    }
+
+    await apiRequest(request, `/orgs/${body.orgId}/invitations`, {
+      method: 'POST',
+      body: JSON.stringify({ email: body.email, roleKey: body.roleKey }),
+    });
+
+    return json({ status: 'Invitation created.' });
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'You cannot manage invitations for this organization.') },
+        { status: 403 },
+      );
+    }
+
+    throw error;
   }
-
-  if (body.intent === 'expire' && body.inviteId) {
-    await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/expire`, { method: 'POST' });
-    return json({ status: 'Invitation expired.' });
-  }
-
-  await apiRequest(request, `/orgs/${body.orgId}/invitations`, {
-    method: 'POST',
-    body: JSON.stringify({ email: body.email, roleKey: body.roleKey }),
-  });
-
-  return json({ status: 'Invitation created.' });
 }
 
 export default function InvitationsPage() {
-  const { orgId, invitations } = useLoaderData<typeof loader>();
+  const { orgId, invitations, roles, canManageInvitations } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
 
   return (
@@ -64,21 +105,23 @@ export default function InvitationsPage() {
       status={actionData?.status}
       error={actionData?.error}
     >
-      <Form method="post" className="space-y-4">
-        <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
-        <TextField label="Email" name="email" type="email" required />
-        <SelectField
-          label="Role"
-          name="roleKey"
-          defaultValue="member"
-          options={[
-            { value: 'member', label: 'Member' },
-            { value: 'admin', label: 'Admin' },
-            { value: 'viewer', label: 'Viewer' },
-          ]}
-        />
-        <PrimaryButton>Create invitation</PrimaryButton>
-      </Form>
+      {canManageInvitations ? (
+        <Form method="post" className="space-y-4">
+          <TextField label="Organization ID" name="orgId" defaultValue={orgId} required />
+          <TextField label="Email" name="email" type="email" required />
+          <SelectField
+            label="Role"
+            name="roleKey"
+            defaultValue="member"
+            options={roles.map((role) => ({ value: role.key, label: role.name }))}
+          />
+          <PrimaryButton>Create invitation</PrimaryButton>
+        </Form>
+      ) : (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+          Invitations are available only to organization owners or member managers.
+        </p>
+      )}
       {invitations.length ? (
         <div className="mt-6 space-y-3">
           {invitations.map((invite) => (

@@ -9,6 +9,7 @@ import {
   isReasoningModel,
   temperatureOptionsForModel,
 } from '~/lib/.server/llm/constants';
+import { removeUnsupportedModelSettings } from '~/lib/.server/llm/model-compat';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
@@ -205,12 +206,16 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
             content: `${message}`,
           },
         ],
-        model: providerInfo.getModelInstance({
-          model: modelDetails.name,
-          serverEnv: context.cloudflare?.env as any,
-          apiKeys,
-          providerSettings,
-        }),
+        model: removeUnsupportedModelSettings(
+          providerInfo.getModelInstance({
+            model: modelDetails.name,
+            serverEnv: context.cloudflare?.env as any,
+            apiKeys,
+            providerSettings,
+          }),
+          modelDetails.name,
+          modelDetails.provider,
+        ),
         ...tokenParams,
         toolChoice: 'none' as const,
       };

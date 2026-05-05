@@ -12,7 +12,7 @@ import {
   statsFromUsage,
   type ProjectCard,
 } from '~/components/dashboard/SaaSLayout';
-import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 type Organization = { id: string };
 type ApiProject = { id: string; name: string; updatedAt?: string; sourceType?: string; gitRepositoryUrl?: string };
@@ -21,6 +21,26 @@ type BillingState = {
   usage: Array<{ type: string; quantity: number }>;
 };
 
+const fallbackBilling: BillingState = {
+  plan: { name: 'Unavailable' },
+  usage: [],
+};
+
+async function optionalBillingRequest(request: Request, organizationId: string) {
+  try {
+    return {
+      billing: await apiRequest<BillingState>(request, `/orgs/${organizationId}/billing`),
+      billingAccessLimited: false,
+    };
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return { billing: fallbackBilling, billingAccessLimited: true };
+    }
+
+    throw error;
+  }
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
   const organization = orgs.organizations[0];
@@ -28,14 +48,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   if (!organization) {
     return {
       usageSummary: { projects: 0, activeWorkspaces: 0, planName: 'Free', usageEvents: 0, aiCostCents: 0 },
+      billingAccessLimited: false,
       projects: [] satisfies ProjectCard[],
     };
   }
 
-  const [result, billing] = await Promise.all([
+  const [result, billingResult] = await Promise.all([
     apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`),
-    apiRequest<BillingState>(request, `/orgs/${organization.id}/billing`),
+    optionalBillingRequest(request, organization.id),
   ]);
+  const { billing, billingAccessLimited } = billingResult;
 
   return {
     usageSummary: {
@@ -47,6 +69,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       usageEvents: billing.usage.length,
       aiCostCents: 0,
     },
+    billingAccessLimited,
     projects: result.projects.slice(0, 6).map((project) => ({
       id: project.id,
       name: project.name,
@@ -54,6 +77,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       updated: project.updatedAt ? new Date(project.updatedAt).toLocaleString() : 'recently',
       stack: project.gitRepositoryUrl ?? project.sourceType ?? 'Bolt project',
       sourceType: project.sourceType,
+      previewImageUrl: `/api/projects/${project.id}/homepage-preview`,
     })),
   };
 }
@@ -61,7 +85,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 export const meta: MetaFunction = () => [{ title: 'Dashboard - VibeCore' }];
 
 export default function DashboardPage() {
-  const { projects, usageSummary } = useLoaderData<typeof loader>();
+  const { projects, usageSummary, billingAccessLimited } = useLoaderData<typeof loader>();
 
   return (
     <AppShell
@@ -93,7 +117,13 @@ export default function DashboardPage() {
             <ActivityList
               items={[
                 { title: 'Usage checked', detail: 'Backend quotas protected project and AI actions.', icon: Activity },
-                { title: 'Billing synced', detail: 'Stripe subscription state is current.', icon: CreditCard },
+                {
+                  title: billingAccessLimited ? 'Billing access limited' : 'Billing synced',
+                  detail: billingAccessLimited
+                    ? 'Your role can open the dashboard without billing metrics.'
+                    : 'Stripe subscription state is current.',
+                  icon: CreditCard,
+                },
                 { title: 'Workspace ready', detail: 'Runtime quota allows another project session.', icon: Boxes },
                 {
                   title: 'Deployment available',

@@ -1,11 +1,14 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useLoaderData } from '@remix-run/react';
+import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { LifeBuoy, MessageSquare, ShieldAlert } from 'lucide-react';
 import { ActivityList, AppShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
+  apiErrorMessage,
   firstOrganization,
+  isForbiddenApiResponse,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -25,20 +28,38 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganization(request);
   const form = await request.formData();
-  await apiRequest(request, `/orgs/${organization.id}/support/tickets`, {
-    method: 'POST',
-    body: JSON.stringify({ subject: String(form.get('subject') ?? '') }),
-  });
+
+  try {
+    await apiRequest(request, `/orgs/${organization.id}/support/tickets`, {
+      method: 'POST',
+      body: JSON.stringify({ subject: String(form.get('subject') ?? '') }),
+    });
+  } catch (error) {
+    if (isForbiddenApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'You cannot create support tickets for this organization.') },
+        { status: 403 },
+      );
+    }
+
+    throw error;
+  }
 
   return redirect('/support');
 }
 
 export default function SupportPage() {
   const { tickets } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
 
   return (
     <AppShell title="Support" description="Open support tickets and review enterprise support status.">
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        {actionData?.error ? (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-400 lg:col-span-2">
+            {actionData.error}
+          </div>
+        ) : null}
         <ActivityList
           items={
             tickets.length

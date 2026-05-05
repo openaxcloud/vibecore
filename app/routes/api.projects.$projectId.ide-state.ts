@@ -5,7 +5,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     return json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
-  return apiRequest(request, `/projects/${params.projectId}/ide-state`);
+  const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`);
+
+  return json(payload);
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
@@ -19,8 +21,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   const body = await request.text();
 
-  return apiRequest(request, `/projects/${params.projectId}/ide-state`, {
+  const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`, {
     method: 'PUT',
     body,
   });
+
+  return json(payload);
 }

@@ -8,7 +8,7 @@ pnpm install
 
 ## IDE Bolt
 
-L'IDE Bolt reste lance depuis la racine :
+L'IDE Bolt avec le backend SaaS local se lance depuis la racine. C'est le mode par defaut attendu pour que la creation de projet, les fichiers, le terminal, la preview et les panels utilisent les vraies API :
 
 ```bash
 pnpm run dev
@@ -18,7 +18,12 @@ Alias monorepo :
 
 ```bash
 pnpm platform:dev
-pnpm --filter @vibecore/web dev
+```
+
+Pour lancer uniquement le frontend historique Bolt sans API locale, utiliser explicitement le mode web-only. Dans ce mode, les projets persistants, l'import des fichiers et la preview projet ne peuvent pas fonctionner completement :
+
+```bash
+pnpm run dev:web
 ```
 
 ## Backend SaaS local
@@ -38,6 +43,12 @@ docker compose -p vibecore -f docker-compose.dev.yml up -d postgres redis mailpi
 DATABASE_URL="postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore" pnpm --filter @vibecore/database db:deploy
 DATABASE_URL="postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore" pnpm --filter @vibecore/database db:seed
 set -a; . ./.env; set +a; pnpm --filter @vibecore/api dev
+pnpm run dev:web
+```
+
+La commande equivalente integree est :
+
+```bash
 pnpm run dev
 ```
 

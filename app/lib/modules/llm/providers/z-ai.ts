@@ -3,7 +3,8 @@ import type { IProviderSetting } from '~/types/model';
 import type { LanguageModelV1 } from 'ai';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { createOpenAI } from '@ai-sdk/openai';
-import crypto from 'node:crypto';
+import { hmac } from '@noble/hashes/hmac';
+import { sha256 } from '@noble/hashes/sha256';
 
 export default class ZaiProvider extends BaseProvider {
   name = 'Z.ai';
@@ -133,17 +134,22 @@ export default class ZaiProvider extends BaseProvider {
 
       const header = { alg: 'HS256', sign_type: 'SIGN' };
 
-      const base64Url = (obj: any) =>
-        Buffer.from(JSON.stringify(obj)).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-      const signature = crypto
-        .createHmac('sha256', secret)
-        .update(base64Url(header) + '.' + base64Url(payload))
-        .digest('base64')
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_');
+      const base64Url = (value: object | Uint8Array) => {
+        const bytes = value instanceof Uint8Array ? value : new TextEncoder().encode(JSON.stringify(value));
+        let binary = '';
 
-      return `${base64Url(header)}.${base64Url(payload)}.${signature}`;
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte);
+        }
+
+        return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+      };
+      const signingInput = `${base64Url(header)}.${base64Url(payload)}`;
+      const signature = base64Url(
+        hmac(sha256, new TextEncoder().encode(secret), new TextEncoder().encode(signingInput)),
+      );
+
+      return `${signingInput}.${signature}`;
     } catch (error) {
       console.error(`Failed to generate JWT token for ${this.name}:`, error);
       throw new Error(`Failed to generate JWT token: ${error instanceof Error ? error.message : 'Unknown error'}`);

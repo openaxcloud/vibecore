@@ -4,6 +4,7 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constant
 import { extractCurrentContext, extractPropertiesFromMessage, simplifyBoltActions } from './utils';
 import { createScopedLogger } from '~/utils/logger';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { removeUnsupportedModelSettings } from './model-compat';
 
 const logger = createScopedLogger('create-summary');
 
@@ -179,12 +180,16 @@ ${slicedMessages
 
 Please provide a summary of the chat till now including the hitorical summary of the chat.
 `,
-    model: provider.getModelInstance({
-      model: currentModel,
-      serverEnv,
-      apiKeys,
-      providerSettings,
-    }),
+    model: removeUnsupportedModelSettings(
+      provider.getModelInstance({
+        model: modelDetails.name,
+        serverEnv,
+        apiKeys,
+        providerSettings,
+      }),
+      modelDetails.name,
+      modelDetails.provider,
+    ),
   });
 
   const response = resp.text;

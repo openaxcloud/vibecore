@@ -21,6 +21,7 @@ export interface WorkspaceRecord {
   pvcName: string;
   podName: string;
   serviceName: string;
+  agentTokenSecretName: string;
   createdAt: string;
   lastActiveAt: string;
   error?: string;
@@ -103,6 +104,11 @@ export interface StartWorkspaceInput {
   env: Record<string, string>;
   allowedSecretKeys: string[];
   allowedSecrets?: Record<string, string>;
+  resourceLimits?: {
+    cpuMillicores?: number;
+    ramMb?: number;
+    storageGb?: number;
+  };
 }
 
 export class WorkspaceManager {
@@ -114,13 +120,14 @@ export class WorkspaceManager {
   ) {}
 
   async startWorkspace(input: StartWorkspaceInput) {
-    const pvcName = `pvc-${input.projectId}`;
+    const pvcName = `pvc-${input.workspaceId}`;
+    const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
     const secretEnv = Object.fromEntries([...new Set([...input.allowedSecretKeys, ...Object.keys(allowedSecrets)])].map((key) => [key, key]));
     const runtimeInput = {
       ...input,
       pvcName,
-      agentTokenSecretName: `agent-token-${input.workspaceId}`,
+      agentTokenSecretName,
       tokenSecret: this.tokenSecret,
       secretEnv,
       env: { ...input.env, WORKSPACE_ID: input.workspaceId },
@@ -134,6 +141,7 @@ export class WorkspaceManager {
       pvcName,
       podName: `workspace-${input.workspaceId}`,
       serviceName: `workspace-${input.workspaceId}`,
+      agentTokenSecretName,
     });
 
     try {
@@ -167,8 +175,12 @@ export class WorkspaceManager {
 
   async deleteWorkspace(namespace: string, workspaceId: string) {
     const workspace = await this.requireWorkspace(workspaceId);
-    await this.k8s.delete('Service', namespace, workspace.serviceName);
-    await this.k8s.delete('Pod', namespace, workspace.podName);
+    await Promise.all([
+      this.k8s.delete('Service', namespace, workspace.serviceName),
+      this.k8s.delete('Pod', namespace, workspace.podName),
+      this.k8s.delete('Secret', namespace, workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`),
+      this.k8s.delete('PersistentVolumeClaim', namespace, workspace.pvcName),
+    ]);
     const deleted = await this.store.update(workspaceId, { status: 'DELETED' });
     await this.publish(deleted, 'workspace.deleted');
     return deleted;

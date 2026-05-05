@@ -16,16 +16,26 @@ const clusterName = process.env.KIND_CLUSTER_NAME ?? 'vibecore-runtime-e2e';
 const namespace = process.env.RUNTIME_E2E_NAMESPACE ?? 'vibecore-runtime-e2e';
 const workspaceId = process.env.RUNTIME_E2E_WORKSPACE_ID ?? 'workspace-e2e';
 const image = process.env.RUNTIME_E2E_AGENT_IMAGE ?? 'vibecore/workspace-agent:e2e';
+const kindNodeImage = process.env.KIND_NODE_IMAGE ?? 'kindest/node:v1.34.0';
 const apiToken = process.env.RUNTIME_E2E_API_TOKEN ?? 'remote-runtime-e2e-token';
 const agentSecret = process.env.RUNTIME_E2E_AGENT_SECRET ?? 'remote-runtime-e2e-agent-secret';
+const runtimeClassName = process.env.RUNTIME_E2E_RUNTIME_CLASS ?? 'gvisor';
 const skipKind = process.env.RUNTIME_E2E_SKIP_KIND === '1';
 const k3sContainer = process.env.RUNTIME_E2E_K3S_CONTAINER;
+const skipImageBuild = process.env.RUNTIME_E2E_SKIP_IMAGE_BUILD === '1';
 const skipImageLoad = process.env.RUNTIME_E2E_SKIP_IMAGE_LOAD === '1';
+const preflightTimeoutMs = Number(process.env.RUNTIME_E2E_PREFLIGHT_TIMEOUT_MS ?? 15_000);
+const kubectlTimeoutMs = Number(process.env.RUNTIME_E2E_KUBECTL_TIMEOUT_MS ?? 30_000);
+const kindCreateTimeoutMs = Number(process.env.RUNTIME_E2E_KIND_CREATE_TIMEOUT_MS ?? 180_000);
+const kindImagePullTimeoutMs = Number(process.env.RUNTIME_E2E_KIND_IMAGE_PULL_TIMEOUT_MS ?? 600_000);
+const imageBuildTimeoutMs = Number(process.env.RUNTIME_E2E_IMAGE_BUILD_TIMEOUT_MS ?? 600_000);
+const imageLoadTimeoutMs = Number(process.env.RUNTIME_E2E_IMAGE_LOAD_TIMEOUT_MS ?? 180_000);
 
 let portForward: ChildProcess | undefined;
 let bridge: Awaited<ReturnType<typeof startRuntimeBridge>> | undefined;
 
 async function main() {
+  await preflight();
   await ensureKindCluster();
   await buildAndLoadAgentImage();
   await deployWorkspace();
@@ -91,6 +101,7 @@ async function main() {
         workspaceId,
         pod: `workspace-${workspaceId}`,
         image,
+        runtimeClassName,
         checks: [
           'boot',
           'startWorkspace',
@@ -112,29 +123,80 @@ async function main() {
   );
 }
 
-async function ensureKindCluster() {
+async function preflight() {
+  await execChecked('kubectl', ['version', '--client=true'], 'kubectl client is required for remote Kubernetes runtime validation', preflightTimeoutMs);
+
   if (skipKind) {
-    await execFile('kubectl', ['cluster-info'], { maxBuffer: 10 * 1024 * 1024 });
+    await execChecked(
+      'kubectl',
+      ['cluster-info'],
+      'Kubernetes cluster is not reachable. Configure KUBECONFIG/current context or unset RUNTIME_E2E_SKIP_KIND so the validator can create a kind cluster',
+      preflightTimeoutMs,
+      { maxBuffer: 10 * 1024 * 1024 },
+    );
     return;
   }
 
-  await execFile('kind', ['version']);
-  const clusters = (await execFile('kind', ['get', 'clusters']).catch(() => ({ stdout: '' }))).stdout
+  await execChecked('kind', ['version'], 'kind is required for remote runtime validation when RUNTIME_E2E_SKIP_KIND is not set', preflightTimeoutMs);
+
+  if (!skipImageBuild || (!skipImageLoad && !k3sContainer)) {
+    await execChecked('docker', ['version'], 'Docker is required to build or load the workspace-agent image for remote runtime validation', preflightTimeoutMs, {
+      maxBuffer: 10 * 1024 * 1024,
+    });
+  }
+
+  await ensureDockerImage(kindNodeImage, kindImagePullTimeoutMs);
+}
+
+async function ensureKindCluster() {
+  if (skipKind) {
+    await execChecked(
+      'kubectl',
+      ['cluster-info'],
+      'Kubernetes cluster is not reachable. Configure KUBECONFIG/current context or unset RUNTIME_E2E_SKIP_KIND so the validator can create a kind cluster',
+      preflightTimeoutMs,
+      { maxBuffer: 10 * 1024 * 1024 },
+    );
+    return;
+  }
+
+  await execChecked('kind', ['version'], 'kind is required for remote runtime validation', preflightTimeoutMs);
+  const clusters = (await execChecked('kind', ['get', 'clusters'], 'Unable to list kind clusters', preflightTimeoutMs).catch(() => ({ stdout: '' }))).stdout
     .split('\n')
     .map((value) => value.trim())
     .filter(Boolean);
 
   if (!clusters.includes(clusterName)) {
-    await execFile('kind', ['create', 'cluster', '--name', clusterName, '--image', process.env.KIND_NODE_IMAGE ?? 'kindest/node:v1.34.0', '--wait', '120s'], {
-      maxBuffer: 20 * 1024 * 1024,
-    });
+    await execChecked(
+      'kind',
+      ['create', 'cluster', '--name', clusterName, '--image', kindNodeImage, '--wait', '120s'],
+      `Unable to create kind cluster "${clusterName}"`,
+      kindCreateTimeoutMs,
+      { maxBuffer: 20 * 1024 * 1024 },
+    );
   }
 
-  await execFile('kubectl', ['config', 'use-context', `kind-${clusterName}`]);
+  await execChecked('kubectl', ['config', 'use-context', `kind-${clusterName}`], `Unable to switch kubectl context to kind-${clusterName}`, kubectlTimeoutMs);
+}
+
+async function ensureDockerImage(requiredImage: string, timeoutMs: number) {
+  const inspect = await execFile('docker', ['image', 'inspect', requiredImage], { timeout: preflightTimeoutMs }).catch(() => undefined);
+  if (inspect) {
+    return;
+  }
+
+  await execChecked('docker', ['pull', requiredImage], `Unable to pull required Docker image "${requiredImage}"`, timeoutMs, {
+    maxBuffer: 40 * 1024 * 1024,
+  });
 }
 
 async function buildAndLoadAgentImage() {
-  await execFile('docker', ['build', '-f', 'services/workspace-agent/Dockerfile', '-t', image, '.'], {
+  if (skipImageBuild) {
+    console.log(`skipping local workspace-agent image build; cluster must pull ${image}`);
+    return;
+  }
+
+  await execChecked('docker', ['build', '-f', 'services/workspace-agent/Dockerfile', '-t', image, '.'], `Unable to build workspace-agent image "${image}"`, imageBuildTimeoutMs, {
     maxBuffer: 40 * 1024 * 1024,
   });
 
@@ -146,24 +208,30 @@ async function buildAndLoadAgentImage() {
     const dir = await mkdtemp(join(tmpdir(), 'vibecore-agent-image-'));
     const tarFile = join(dir, 'workspace-agent.tar');
     try {
-      await execFile('docker', ['save', image, '-o', tarFile], { maxBuffer: 20 * 1024 * 1024 });
-      await execFile('docker', ['cp', tarFile, `${k3sContainer}:/tmp/workspace-agent.tar`], { maxBuffer: 20 * 1024 * 1024 });
-      await execFile('docker', ['exec', k3sContainer, 'ctr', 'images', 'import', '/tmp/workspace-agent.tar'], { maxBuffer: 40 * 1024 * 1024 });
+      await execChecked('docker', ['save', image, '-o', tarFile], `Unable to save workspace-agent image "${image}"`, imageLoadTimeoutMs, { maxBuffer: 20 * 1024 * 1024 });
+      await execChecked('docker', ['cp', tarFile, `${k3sContainer}:/tmp/workspace-agent.tar`], `Unable to copy workspace-agent image into ${k3sContainer}`, imageLoadTimeoutMs, {
+        maxBuffer: 20 * 1024 * 1024,
+      });
+      await execChecked('docker', ['exec', k3sContainer, 'ctr', 'images', 'import', '/tmp/workspace-agent.tar'], `Unable to import workspace-agent image inside ${k3sContainer}`, imageLoadTimeoutMs, {
+        maxBuffer: 40 * 1024 * 1024,
+      });
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
     return;
   }
 
-  await execFile('kind', ['load', 'docker-image', image, '--name', clusterName], { maxBuffer: 20 * 1024 * 1024 });
+  await execChecked('kind', ['load', 'docker-image', image, '--name', clusterName], `Unable to load workspace-agent image "${image}" into kind cluster "${clusterName}"`, imageLoadTimeoutMs, {
+    maxBuffer: 20 * 1024 * 1024,
+  });
 }
 
 async function deployWorkspace() {
-  await execFile('kubectl', ['create', 'namespace', namespace]).catch(() => undefined);
-  await execFile('kubectl', ['-n', namespace, 'delete', 'pod', `workspace-${workspaceId}`, '--ignore-not-found=true']);
-  await execFile('kubectl', ['-n', namespace, 'delete', 'service', `workspace-${workspaceId}`, '--ignore-not-found=true']);
-  await execFile('kubectl', ['-n', namespace, 'delete', 'pvc', `pvc-${workspaceId}`, '--ignore-not-found=true']);
-  await execFile('kubectl', ['-n', namespace, 'delete', 'secret', `agent-token-${workspaceId}`, '--ignore-not-found=true']);
+  await execChecked('kubectl', ['create', 'namespace', namespace], `Unable to create namespace "${namespace}"`, kubectlTimeoutMs).catch(() => undefined);
+  await execChecked('kubectl', ['-n', namespace, 'delete', 'pod', `workspace-${workspaceId}`, '--ignore-not-found=true'], `Unable to delete existing workspace pod in namespace "${namespace}"`, kubectlTimeoutMs);
+  await execChecked('kubectl', ['-n', namespace, 'delete', 'service', `workspace-${workspaceId}`, '--ignore-not-found=true'], `Unable to delete existing workspace service in namespace "${namespace}"`, kubectlTimeoutMs);
+  await execChecked('kubectl', ['-n', namespace, 'delete', 'pvc', `pvc-${workspaceId}`, '--ignore-not-found=true'], `Unable to delete existing workspace PVC in namespace "${namespace}"`, kubectlTimeoutMs);
+  await execChecked('kubectl', ['-n', namespace, 'delete', 'secret', `agent-token-${workspaceId}`, '--ignore-not-found=true'], `Unable to delete existing workspace secret in namespace "${namespace}"`, kubectlTimeoutMs);
 
   const manifest = {
     apiVersion: 'v1',
@@ -195,6 +263,7 @@ async function deployWorkspace() {
           },
         },
         spec: {
+          runtimeClassName,
           securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000, seccompProfile: { type: 'RuntimeDefault' } },
           containers: [
             {
@@ -207,6 +276,10 @@ async function deployWorkspace() {
                 { name: 'WORKSPACE_ID', value: workspaceId },
                 { name: 'WORKSPACE_AGENT_TOKEN_SECRET', valueFrom: { secretKeyRef: { name: `agent-token-${workspaceId}`, key: 'tokenSecret' } } },
               ],
+              resources: {
+                requests: { cpu: process.env.RUNTIME_E2E_CPU_REQUEST ?? '250m', memory: process.env.RUNTIME_E2E_MEMORY_REQUEST ?? '512Mi' },
+                limits: { cpu: process.env.RUNTIME_E2E_CPU_LIMIT ?? '1', memory: process.env.RUNTIME_E2E_MEMORY_LIMIT ?? '1Gi' },
+              },
               volumeMounts: [{ name: 'workspace', mountPath: '/workspace' }],
               readinessProbe: { httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 2, periodSeconds: 2 },
               livenessProbe: { httpGet: { path: '/health', port: 8080 }, initialDelaySeconds: 10, periodSeconds: 10 },
@@ -240,14 +313,18 @@ async function deployWorkspace() {
   await import('node:fs/promises').then((fs) => fs.writeFile(file, JSON.stringify(manifest)));
 
   try {
-    await execFile('kubectl', ['apply', '-f', file], { maxBuffer: 10 * 1024 * 1024 });
+    await execChecked('kubectl', ['apply', '-f', file], `Unable to apply workspace manifest in namespace "${namespace}"`, kubectlTimeoutMs, { maxBuffer: 10 * 1024 * 1024 });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 
-  await execFile('kubectl', ['-n', namespace, 'wait', '--for=condition=Ready', `pod/workspace-${workspaceId}`, '--timeout=180s'], {
-    maxBuffer: 20 * 1024 * 1024,
-  });
+  await execChecked(
+    'kubectl',
+    ['-n', namespace, 'wait', '--for=condition=Ready', `pod/workspace-${workspaceId}`, '--timeout=180s'],
+    `Workspace pod did not become Ready in namespace "${namespace}". Verify runtimeClassName "${runtimeClassName}", image availability, PVC provisioning, and pod events`,
+    200_000,
+    { maxBuffer: 20 * 1024 * 1024 },
+  );
 }
 
 async function startPortForward() {
@@ -270,7 +347,7 @@ async function startPortForward() {
       throw new Error(`kubectl port-forward exited early: ${output}`);
     }
     return output.includes(`:${port}`) || output.includes(`127.0.0.1:${port}`);
-  }, 30_000);
+  }, 30_000, `kubectl port-forward did not become ready for service/workspace-${workspaceId}. Output: ${output}`);
 
   return port;
 }
@@ -584,7 +661,7 @@ async function freePort() {
   return port;
 }
 
-async function waitFor(predicate: () => Promise<boolean> | boolean, timeoutMs: number) {
+async function waitFor(predicate: () => Promise<boolean> | boolean, timeoutMs: number, description = 'condition') {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
     if (await predicate()) {
@@ -592,7 +669,43 @@ async function waitFor(predicate: () => Promise<boolean> | boolean, timeoutMs: n
     }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
   }
-  throw new Error('Timed out waiting for condition');
+  throw new Error(`Timed out waiting for ${description}`);
+}
+
+type ExecCheckedOptions = {
+  maxBuffer?: number;
+};
+
+async function execChecked(command: string, args: string[], context: string, timeoutMs: number, options: ExecCheckedOptions = {}) {
+  try {
+    return await execFile(command, args, { ...options, timeout: timeoutMs });
+  } catch (error) {
+    throw new Error(`${context}\nCommand: ${[command, ...args].join(' ')}\nTimeout: ${timeoutMs}ms\n${formatExecError(error)}`);
+  }
+}
+
+function formatExecError(error: unknown) {
+  const maybeError = error as { message?: string; stdout?: unknown; stderr?: unknown; code?: unknown; signal?: unknown; killed?: unknown };
+  const parts = [
+    maybeError.message,
+    maybeError.code !== undefined ? `code: ${String(maybeError.code)}` : undefined,
+    maybeError.signal !== undefined ? `signal: ${String(maybeError.signal)}` : undefined,
+    maybeError.killed !== undefined ? `killed: ${String(maybeError.killed)}` : undefined,
+    stringifyOutput('stdout', maybeError.stdout),
+    stringifyOutput('stderr', maybeError.stderr),
+  ].filter(Boolean);
+
+  return parts.join('\n');
+}
+
+function stringifyOutput(label: string, value: unknown) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const text = Buffer.isBuffer(value) ? value.toString() : String(value);
+  const trimmed = text.trim();
+
+  return trimmed ? `${label}: ${trimmed}` : undefined;
 }
 
 function assert(condition: unknown, message: string): asserts condition {

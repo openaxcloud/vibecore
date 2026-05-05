@@ -150,4 +150,140 @@ describe('project IDE memory persistence', () => {
     const restored = await getProjectIdeMemory(projectId);
     expect(restored.ui?.agentWidth).toBe(620);
   });
+
+  it('persists project chat messages in insertion order and can clear the active conversation', async () => {
+    const projectId = 'project-chat-order';
+    const messages = [
+      { id: 'u1', role: 'user' as const, content: 'First user request' },
+      { id: 'a1', role: 'assistant' as const, content: 'First assistant response' },
+      { id: 'u2', role: 'user' as const, content: 'Second user request' },
+    ];
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages,
+      },
+    });
+
+    let restored = await getProjectIdeMemory(projectId);
+    expect(restored.chat?.messages?.map((message) => message.id)).toEqual(['u1', 'a1', 'u2']);
+    expect(restored.chat?.messages?.[0].role).toBe('user');
+    expect(restored.chat?.messages?.[2].content).toBe('Second user request');
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages: [],
+        clearMessages: true,
+        conversations: [
+          {
+            id: 'archived-1',
+            messages,
+          },
+        ],
+      },
+    });
+
+    restored = await getProjectIdeMemory(projectId);
+    expect(restored.chat?.messages).toEqual([]);
+    expect(restored.chat?.conversations?.[0].messages.map((message) => message.id)).toEqual(['u1', 'a1', 'u2']);
+  });
+
+  it('merges chat saves so UI-only persistence cannot erase the conversation', async () => {
+    const projectId = 'project-chat-merge';
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages: [{ id: 'u1', role: 'user', content: 'Original prompt' }],
+      },
+    });
+
+    await saveProjectIdeMemory(projectId, {
+      ui: {
+        activeWorkspacePanel: 'preview',
+        agentWidth: 720,
+      },
+    });
+
+    await saveProjectIdeMemory(projectId, {
+      chat: {
+        id: `project:${projectId}`,
+        messages: [
+          { id: 'u1', role: 'user', content: 'Original prompt' },
+          { id: 'a1', role: 'assistant', content: 'Generated response' },
+        ],
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.activeWorkspacePanel).toBe('preview');
+    expect(restored.chat?.messages?.map((message) => message.id)).toEqual(['u1', 'a1']);
+    expect(restored.chat?.messages?.[1].content).toBe('Generated response');
+  });
+
+  it('persists locked IDE files and folders in project memory', async () => {
+    const projectId = 'project-locks';
+
+    await saveProjectIdeMemory(projectId, {
+      ui: {
+        lockedItems: [
+          { path: '/home/project/src/App.tsx', type: 'file' },
+          { path: '/home/project/src/admin', type: 'folder' },
+        ],
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.lockedItems).toEqual([
+      { path: '/home/project/src/App.tsx', type: 'file' },
+      { path: '/home/project/src/admin', type: 'folder' },
+    ]);
+  });
+
+  it('persists deleted IDE paths in project memory', async () => {
+    const projectId = 'project-deleted-paths';
+
+    await saveProjectIdeMemory(projectId, {
+      ui: {
+        deletedPaths: ['/home/project/src/old.tsx', '/home/project/tmp'],
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.deletedPaths).toEqual(['/home/project/src/old.tsx', '/home/project/tmp']);
+  });
+
+  it('persists the terminal as a first-class workspace panel', async () => {
+    const projectId = 'project-terminal-panel';
+
+    await saveProjectIdeMemory(projectId, {
+      ui: {
+        workspaceTabs: ['editor', 'terminal', 'preview'],
+        activeWorkspacePanel: 'terminal',
+        paneTree: {
+          type: 'leaf',
+          id: 'pane-main',
+          tabs: [
+            { id: 'tab-editor', panel: 'editor' },
+            { id: 'tab-terminal', panel: 'terminal' },
+          ],
+          activeTabId: 'tab-terminal',
+        },
+      },
+    });
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.workspaceTabs).toEqual(['editor', 'terminal', 'preview']);
+    expect(restored.ui?.activeWorkspacePanel).toBe('terminal');
+    expect(restored.ui?.paneTree).toMatchObject({
+      type: 'leaf',
+      activeTabId: 'tab-terminal',
+      tabs: [
+        { id: 'tab-editor', panel: 'editor' },
+        { id: 'tab-terminal', panel: 'terminal' },
+      ],
+    });
+  });
 });

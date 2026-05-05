@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import websocket from '@fastify/websocket';
-import { createVerify, randomUUID } from 'node:crypto';
+import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { Redis } from 'ioredis';
 import JSZip from 'jszip';
@@ -9,6 +9,9 @@ import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import { SignedXml } from 'xml-crypto';
+import { DOMParser } from '@xmldom/xmldom';
 import { z, type ZodSchema } from 'zod';
 import {
   createOpaqueToken,
@@ -23,13 +26,15 @@ import {
   authCookieOptions,
   type AuthenticatedUser,
 } from '@vibecore/auth';
-import { requirePermission, type PermissionKey } from '@vibecore/rbac';
+import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import {
   redactSecrets,
+  redactSecretString,
   assertStrictCorsOrigin,
   decryptJson,
   detectCommandAbuse,
+  detectUsageAbuse,
   encryptJson,
   hasRecentReauth,
   isIpAllowed,
@@ -65,7 +70,11 @@ import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
   createDeploymentLogs,
+  sanitizeDeploymentEnvVars,
+  triggerProviderDeployHook,
+  triggerProviderRollback,
   createDeploymentSchema,
+  deploymentProviders,
   detectFramework,
   redactDeploymentLog,
 } from './deployments.js';
@@ -76,7 +85,9 @@ declare module 'fastify' {
     currentSession?: SessionRecord;
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
-    observabilityMetrics?: { increment: (name: string, labels?: Record<string, string | number | boolean | undefined>, value?: number) => void };
+    observabilityMetrics?: {
+      increment: (name: string, labels?: Record<string, string | number | boolean | undefined>, value?: number) => void;
+    };
   }
 }
 
@@ -89,6 +100,7 @@ export interface ApiAppOptions {
   allowedOrigins?: string[];
   isProduction?: boolean;
   aiGatewayUrl?: string;
+  loggerStream?: { write(line: string): void };
 }
 
 function createDefaultStore() {
@@ -98,6 +110,8 @@ function createDefaultStore() {
 
   throw new Error('DATABASE_URL is required. The API does not start with an in-memory store.');
 }
+
+const allPermissionKeys = new Set(Object.values(rolePermissions).flat() as PermissionKey[]);
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -109,6 +123,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  mfaCode: z.string().min(6).max(32).optional(),
 });
 
 const contactSalesSchema = z.object({
@@ -122,13 +137,19 @@ const userProfileSchema = z.object({
   email: z.string().email().optional(),
   timezone: z.string().min(1).optional(),
 });
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+const deleteAccountSchema = z.object({ confirmation: z.literal('DELETE MY ACCOUNT') });
 const tokenSchema = z.object({ token: z.string().min(16) });
 const passwordResetRequestSchema = z.object({ email: z.string().email() });
 const passwordResetConfirmSchema = z.object({ token: z.string().min(16), password: z.string().min(8) });
-const mfaVerifySchema = z.object({ code: z.string().min(6).max(16) });
+const mfaVerifySchema = z.object({ code: z.string().min(6).max(32) });
 const reauthSchema = z.object({ password: z.string().min(1) });
 const createOrgSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
 const orgParams = z.object({ orgId: z.string().min(1) });
+const membershipParams = orgParams.extend({ userId: z.string().min(1) });
 const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
@@ -143,6 +164,9 @@ const createProjectFromAiSchema = z.object({
   prompt: z.string().min(1),
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),
+  artifactType: z.string().min(1).max(80).optional(),
+  framework: z.string().min(1).max(120).optional(),
+  model: z.string().min(1).max(120).optional(),
 });
 const githubImportSchema = z.object({
   repositoryUrl: z.string().url(),
@@ -154,6 +178,7 @@ const zipImportSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(2).optional(),
   zipBase64: z.string().min(1),
+  replaceExisting: z.boolean().optional(),
 });
 const projectSettingsSchema = z.object({
   name: z.string().min(1).optional(),
@@ -164,6 +189,80 @@ const projectSettingsSchema = z.object({
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
+
+function ideStateRecord(value: unknown): Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
+}
+
+function ideMessageKey(message: any, index: number) {
+  return typeof message?.id === 'string'
+    ? message.id
+    : `${message?.role ?? 'message'}:${index}:${String(message?.content ?? '').slice(0, 80)}`;
+}
+
+function mergeIdeMessages(existing: any[] | undefined, incoming: any[] | undefined, clearMessages?: boolean) {
+  if (incoming === undefined) {
+    return existing;
+  }
+
+  if (clearMessages) {
+    return incoming;
+  }
+
+  if (!Array.isArray(existing) || !existing.length || !incoming.length) {
+    return Array.isArray(existing) && existing.length && !incoming.length ? existing : incoming;
+  }
+
+  const order: string[] = [];
+  const byKey = new Map<string, any>();
+
+  existing.forEach((message, index) => {
+    const key = ideMessageKey(message, index);
+    order.push(key);
+    byKey.set(key, message);
+  });
+
+  incoming.forEach((message, index) => {
+    const key = ideMessageKey(message, index);
+
+    if (!byKey.has(key)) {
+      order.push(key);
+    }
+
+    byKey.set(key, message);
+  });
+
+  return order.map((key) => byKey.get(key)).filter(Boolean);
+}
+
+function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
+  const existing = ideStateRecord(existingState);
+  const incoming = ideStateRecord(incomingState);
+  const existingChat = ideStateRecord(existing.chat);
+  const incomingChat = ideStateRecord(incoming.chat);
+  const clearMessages = incomingChat.clearMessages === true;
+  const mergedChat =
+    incoming.chat === undefined
+      ? existing.chat
+      : {
+          ...existingChat,
+          ...incomingChat,
+          messages: mergeIdeMessages(existingChat.messages, incomingChat.messages, clearMessages),
+          archivedMessages: mergeIdeMessages(existingChat.archivedMessages, incomingChat.archivedMessages),
+          conversations: incomingChat.conversations ?? existingChat.conversations,
+        };
+
+  if (mergedChat && typeof mergedChat === 'object') {
+    delete (mergedChat as Record<string, unknown>).clearMessages;
+  }
+
+  return {
+    ...existing,
+    ...incoming,
+    chat: mergedChat,
+    ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
+  };
+}
 const projectKeyValueSchema = z.object({
   key: z
     .string()
@@ -171,10 +270,15 @@ const projectKeyValueSchema = z.object({
     .regex(/^[A-Z0-9_]+$/),
   value: z.string(),
 });
+const projectKeySchema = projectKeyValueSchema.pick({ key: true });
 const collaboratorSchema = z.object({
   userId: z.string().min(1),
-  roleKey: z.enum(['owner', 'admin', 'member', 'viewer']),
+  roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
 });
+const roleKeySchema = z
+  .string()
+  .min(2)
+  .regex(/^[a-z0-9:_-]+$/);
 const collaborationPresenceSchema = z.object({
   sessionId: z.string().min(1),
   status: z.enum(['online', 'idle', 'offline']).default('online'),
@@ -204,11 +308,19 @@ const collaborationTerminalPermissionSchema = z.object({
 });
 const collaborationShareLinkSchema = z.object({
   roleKey: z.enum(['viewer', 'member']).default('viewer'),
-  expiresInMinutes: z.coerce.number().int().min(5).max(60 * 24 * 30).default(60 * 24),
+  expiresInMinutes: z.coerce
+    .number()
+    .int()
+    .min(5)
+    .max(60 * 24 * 30)
+    .default(60 * 24),
 });
 const collaborationAiSharingSchema = z.object({
   shared: z.boolean().default(true),
   mode: z.enum(['read-only', 'comment', 'pair-programming']).default('comment'),
+});
+const collaborationWebSocketTicketSchema = z.object({
+  sessionId: z.string().min(1).optional(),
 });
 const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
 const duplicateProjectSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
@@ -236,7 +348,7 @@ const createTicketSchema = z.object({ subject: z.string().min(1) });
 const featureFlagSchema = z.object({ key: z.string().min(1), enabled: z.boolean() });
 const addMemberSchema = z.object({
   userId: z.string().min(1),
-  roleKey: z.enum(['owner', 'admin', 'member', 'viewer']),
+  roleKey: roleKeySchema,
 });
 const abuseEventSchema = z.object({
   organizationId: z.string().optional(),
@@ -314,13 +426,22 @@ const scimUserSchema = z.object({
   name: z.object({ givenName: z.string().optional(), familyName: z.string().optional() }).optional(),
   active: z.boolean().default(true),
 });
+const scimUserParams = z.object({ orgId: z.string().min(1), userId: z.string().min(1) });
+const scimPatchOpSchema = z.object({
+  op: z.enum(['add', 'replace', 'Add', 'Replace', 'remove', 'Remove']).optional(),
+  path: z.string().optional(),
+  value: z.union([z.string(), z.number(), z.boolean(), z.record(z.unknown()), z.array(z.unknown())]).optional(),
+});
+const scimPatchSchema = z.object({
+  schemas: z.array(z.string()).optional(),
+  Operations: z.array(scimPatchOpSchema).min(1),
+});
 const customRoleSchema = z.object({
-  key: z
-    .string()
-    .min(2)
-    .regex(/^[a-z0-9:_-]+$/),
+  key: roleKeySchema,
   name: z.string().min(1),
-  permissions: z.array(z.string()).min(1),
+  permissions: z
+    .array(z.string().refine((permission) => allPermissionKeys.has(permission as PermissionKey), 'Invalid permission'))
+    .min(1),
 });
 const siemWebhookSchema = z.object({
   url: z.string().url(),
@@ -329,12 +450,13 @@ const siemWebhookSchema = z.object({
 });
 const inviteSchema = z.object({
   email: z.string().email(),
-  roleKey: z.enum(['owner', 'admin', 'member', 'viewer']).default('member'),
+  roleKey: roleKeySchema.default('member'),
 });
 const inviteParams = orgParams.extend({ inviteId: z.string().min(1) });
 const acceptInviteSchema = z.object({ token: z.string().min(16) });
 const oauthCallbackSchema = z.object({
   code: z.string().min(1).optional(),
+  state: z.string().min(1).optional(),
   email: z.string().email().optional(),
   name: z.string().optional(),
   externalId: z.string().min(1).optional(),
@@ -455,8 +577,107 @@ function bearerToken(request: FastifyRequest) {
   return request.cookies.session;
 }
 
+function collaborationTicketSecret() {
+  return process.env.COLLABORATION_WS_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET ?? 'dev';
+}
+
+function signCollaborationTicket(payload: string) {
+  return createHmac('sha256', collaborationTicketSecret()).update(payload).digest('base64url');
+}
+
+function createCollaborationWebSocketTicket(input: { projectId: string; userId: string; sessionId?: string }) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      projectId: input.projectId,
+      userId: input.userId,
+      sessionId: input.sessionId,
+      expiresAt: Date.now() + 60_000,
+    }),
+  ).toString('base64url');
+  const signature = signCollaborationTicket(payload);
+
+  return `${payload}.${signature}`;
+}
+
+function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: string; sessionId?: string }) {
+  const [payload, signature] = ticket.split('.');
+
+  if (!payload || !signature || signCollaborationTicket(payload) !== signature) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      projectId?: string;
+      userId?: string;
+      sessionId?: string;
+      expiresAt?: number;
+    };
+
+    if (
+      parsed.projectId !== input.projectId ||
+      !parsed.userId ||
+      typeof parsed.expiresAt !== 'number' ||
+      parsed.expiresAt < Date.now() ||
+      (parsed.sessionId && input.sessionId && parsed.sessionId !== input.sessionId)
+    ) {
+      return undefined;
+    }
+
+    return parsed as { projectId: string; userId: string; sessionId?: string; expiresAt: number };
+  } catch {
+    return undefined;
+  }
+}
+
+async function authenticateCollaborationWebSocketTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
+  const pathname = new URL(request.url, 'http://vibecore.local').pathname;
+  const match = pathname.match(/^\/projects\/([^/]+)\/collaboration\/ws$/);
+
+  if (!match) {
+    return 'not-ticketed' as const;
+  }
+
+  const query = request.query as { ticket?: unknown; sessionId?: unknown } | undefined;
+  const ticket = typeof query?.ticket === 'string' ? query.ticket : undefined;
+
+  if (!ticket) {
+    return 'not-ticketed' as const;
+  }
+
+  const sessionId = typeof query?.sessionId === 'string' ? query.sessionId : undefined;
+  const payload = verifyCollaborationWebSocketTicket(ticket, { projectId: match[1], sessionId });
+
+  if (!payload) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const user = await store.findUserById(payload.userId);
+
+  if (!user || (await isUserSuspended(store, user.id))) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+
+  return 'authenticated' as const;
+}
+
 function authError(reply: FastifyReply) {
   return reply.code(401).send({ error: 'Unauthorized', code: 'AUTH_REQUIRED' });
+}
+
+function adminMfaRequired() {
+  return process.env.ADMIN_MFA_REQUIRED !== 'false';
 }
 
 async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
@@ -493,6 +714,7 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   request.currentSession = session;
 
   if (
+    adminMfaRequired() &&
     user.platformAdmin &&
     !user.mfaEnabled &&
     !request.url.startsWith('/auth/mfa') &&
@@ -536,9 +758,63 @@ async function requireOrg(request: any, store: ApiStore, organizationId: string,
     throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORG_NOT_FOUND' });
   }
 
-  requirePermission(member.roleKey, permission);
+  const permissions = await permissionsForOrganizationRole(store, organizationId, member.roleKey);
+
+  if (!permissions.includes(permission)) {
+    throw Object.assign(new Error(`Missing permission: ${permission}`), {
+      statusCode: 403,
+      code: 'RBAC_FORBIDDEN',
+    });
+  }
 
   return member;
+}
+
+async function requireOrgAny(
+  request: any,
+  store: ApiStore,
+  organizationId: string,
+  permissionsToMatch: PermissionKey[],
+) {
+  if (!request.currentUser) {
+    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+  }
+
+  const member = await store.getMembership(request.currentUser.id, organizationId);
+
+  if (!member) {
+    throw Object.assign(new Error('Organization not found'), { statusCode: 404, code: 'ORG_NOT_FOUND' });
+  }
+
+  const permissions = await permissionsForOrganizationRole(store, organizationId, member.roleKey);
+
+  if (!permissionsToMatch.some((permission) => permissions.includes(permission))) {
+    throw Object.assign(new Error(`Missing one of permissions: ${permissionsToMatch.join(', ')}`), {
+      statusCode: 403,
+      code: 'RBAC_FORBIDDEN',
+    });
+  }
+
+  return member;
+}
+
+async function permissionsForOrganizationRole(store: ApiStore, organizationId: string, roleKey: string) {
+  const staticPermissions = rolePermissions[roleKey];
+
+  if (staticPermissions) {
+    return staticPermissions;
+  }
+
+  const customRole = (await store.listCustomRoles(organizationId)).find((role) => role.key === roleKey);
+  return customRole?.permissions ?? [];
+}
+
+async function requireAssignableOrganizationRole(store: ApiStore, organizationId: string, roleKey: string) {
+  const permissions = await permissionsForOrganizationRole(store, organizationId, roleKey);
+
+  if (permissions.length === 0 && !rolePermissions[roleKey]) {
+    throw Object.assign(new Error('Role not found'), { statusCode: 404, code: 'ROLE_NOT_FOUND' });
+  }
 }
 
 async function requireProject(
@@ -643,12 +919,41 @@ async function requireAnyOrgPermission(request: any, store: ApiStore, permission
   throw Object.assign(new Error(`Missing permission: ${permission}`), { statusCode: 403, code: 'RBAC_FORBIDDEN' });
 }
 
-async function requireRecentAdminReauth(request: FastifyRequest) {
-  if (!hasRecentReauth(request.currentSession?.lastReauthAt, 300)) {
+async function requireRecentAdminReauth(request: FastifyRequest, ttlSeconds = 300) {
+  if (!hasRecentReauth(request.currentSession?.lastReauthAt, ttlSeconds)) {
     throw Object.assign(new Error('Recent administrator re-authentication required'), {
       statusCode: 403,
       code: 'ADMIN_REAUTH_REQUIRED',
     });
+  }
+}
+
+async function requireAdminMfaForSensitiveAction(request: FastifyRequest) {
+  if (!adminMfaRequired()) {
+    return;
+  }
+
+  if (!request.currentUser?.mfaEnabled) {
+    throw Object.assign(new Error('Administrator MFA must be enabled to perform this action'), {
+      statusCode: 403,
+      code: 'ADMIN_MFA_REQUIRED',
+    });
+  }
+}
+
+function verifyEncryptedTotpCode(encryptedSecret: string | undefined, code: string) {
+  if (!encryptedSecret) {
+    return false;
+  }
+
+  try {
+    const payload = decryptJson<{ secret?: string }>(encryptedSecret);
+
+    return typeof payload.secret === 'string' && payload.secret.length > 0
+      ? verifyTotpCode(payload.secret, code)
+      : false;
+  } catch {
+    return false;
   }
 }
 
@@ -765,6 +1070,52 @@ async function adminHealthSummary() {
   };
 }
 
+let cachedOidcJwksUri: string | undefined;
+let cachedOidcJwks: JWTVerifyGetKey | undefined;
+
+function oidcJwksResolver(): JWTVerifyGetKey | undefined {
+  const uri = process.env.OIDC_JWKS_URI;
+
+  if (!uri) {
+    return undefined;
+  }
+
+  if (uri !== cachedOidcJwksUri || !cachedOidcJwks) {
+    cachedOidcJwks = createRemoteJWKSet(new URL(uri));
+    cachedOidcJwksUri = uri;
+  }
+
+  return cachedOidcJwks;
+}
+
+export async function assertOidcIdToken(
+  idToken: string,
+  options?: { jwks?: JWTVerifyGetKey; issuer?: string; audience?: string },
+): Promise<JWTPayload> {
+  const jwks = options?.jwks ?? oidcJwksResolver();
+
+  if (!jwks) {
+    return {};
+  }
+
+  const issuer = options?.issuer ?? process.env.OIDC_ISSUER;
+  const audience = options?.audience ?? process.env.OIDC_AUDIENCE ?? process.env.OIDC_CLIENT_ID;
+
+  try {
+    const { payload } = await jwtVerify(idToken, jwks, {
+      issuer: issuer || undefined,
+      audience: audience || undefined,
+    });
+    return payload;
+  } catch (error) {
+    throw Object.assign(new Error('OIDC id_token verification failed'), {
+      statusCode: 401,
+      code: 'OIDC_ID_TOKEN_INVALID',
+      cause: error,
+    });
+  }
+}
+
 async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
   if (body.email && body.externalId && body.accessToken) {
     return {
@@ -835,6 +1186,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     });
   }
 
+  if (provider === 'oidc' && tokens.id_token) {
+    await assertOidcIdToken(tokens.id_token);
+  }
+
   const profileResponse = await fetch(userInfoUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
 
   if (!profileResponse.ok) {
@@ -887,23 +1242,48 @@ function xmlText(xml: string, pattern: RegExp) {
     .trim();
 }
 
+function verifySamlXmlSignature(xml: string, certificate: string): boolean {
+  try {
+    const dom = new DOMParser().parseFromString(xml, 'text/xml');
+    const signatureNode = dom.getElementsByTagNameNS('http://www.w3.org/2000/09/xmldsig#', 'Signature')[0];
+
+    if (!signatureNode) {
+      return false;
+    }
+
+    const verifier = new SignedXml({
+      publicCert: pemFromCertificate(certificate),
+      idMode: 'wssecurity',
+    });
+    verifier.loadSignature(signatureNode as unknown as Node);
+    return verifier.checkSignature(xml);
+  } catch {
+    return false;
+  }
+}
+
 function parseSamlXmlAssertion(xml: string, certificate: string) {
   const assertionXml =
     /<Assertion[\s\S]*<\/Assertion>/.exec(xml)?.[0] ?? /<saml:Assertion[\s\S]*<\/saml:Assertion>/.exec(xml)?.[0];
-  const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
 
-  if (!assertionXml || !signatureValue) {
-    throw Object.assign(new Error('SAML response is missing assertion or signature'), {
+  if (!assertionXml) {
+    throw Object.assign(new Error('SAML response is missing assertion'), {
       statusCode: 400,
       code: 'SAML_INVALID_ASSERTION',
     });
   }
 
-  const verifier = createVerify('RSA-SHA256');
-  verifier.update(assertionXml);
-  verifier.end();
+  let signatureValid = verifySamlXmlSignature(xml, certificate);
 
-  const signatureValid = verifier.verify(pemFromCertificate(certificate), signatureValue, 'base64');
+  if (!signatureValid) {
+    const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
+    if (signatureValue) {
+      const verifier = createVerify('RSA-SHA256');
+      verifier.update(assertionXml);
+      verifier.end();
+      signatureValid = verifier.verify(pemFromCertificate(certificate), signatureValue, 'base64');
+    }
+  }
   const email =
     xmlText(assertionXml, /<NameID[^>]*>([\s\S]*?)<\/(?:\w+:)?NameID>/) ??
     xmlText(
@@ -1007,11 +1387,15 @@ function starterFiles(input: {
   name: string;
   templateName?: string;
   prompt?: string;
+  artifactType?: string;
+  framework?: string;
+  model?: string;
 }): Array<{ path: string; content: string }> {
   if (input.sourceType === 'template') {
     return [
       { path: 'README.md', content: `# ${input.name}\n\nCreated from Bolt template \`${input.templateName}\`.\n` },
       { path: 'package.json', content: vitePackageJson(input.name) },
+      { path: 'vite.config.ts', content: viteConfigTs() },
       { path: 'index.html', content: viteIndexHtml(input.name) },
       { path: 'src/main.tsx', content: viteMainTsx() },
       { path: 'src/App.tsx', content: viteAppTsx(input.name, `Created from Bolt template ${input.templateName}.`) },
@@ -1020,19 +1404,32 @@ function starterFiles(input: {
   }
 
   if (input.sourceType === 'ai') {
+    const generationContext = [
+      input.artifactType ? `Artifact type: ${input.artifactType}` : undefined,
+      input.framework ? `Preferred framework: ${input.framework}` : undefined,
+      input.model ? `Requested model: ${input.model}` : undefined,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     return [
-      { path: 'README.md', content: `# ${input.name}\n\nGenerated from prompt:\n\n${input.prompt}\n` },
+      {
+        path: 'README.md',
+        content: `# ${input.name}\n\n${generationContext ? `Generation context:\n\n${generationContext}\n\n` : ''}Generated from prompt:\n\n${input.prompt}\n`,
+      },
       { path: 'package.json', content: vitePackageJson(input.name) },
+      { path: 'vite.config.ts', content: viteConfigTs() },
       { path: 'index.html', content: viteIndexHtml(input.name) },
       { path: 'src/main.tsx', content: viteMainTsx() },
-      { path: 'src/App.tsx', content: viteAppTsx(input.name, input.prompt ?? 'Generated app') },
-      { path: 'src/styles.css', content: viteStylesCss() },
+      { path: 'src/App.tsx', content: aiSaasAppTsx(input.name, input.prompt ?? '') },
+      { path: 'src/styles.css', content: aiSaasStylesCss() },
     ];
   }
 
   return [
     { path: 'README.md', content: `# ${input.name}\n` },
     { path: 'package.json', content: vitePackageJson(input.name) },
+    { path: 'vite.config.ts', content: viteConfigTs() },
     { path: 'index.html', content: viteIndexHtml(input.name) },
     { path: 'src/main.tsx', content: viteMainTsx() },
     { path: 'src/App.tsx', content: viteAppTsx(input.name, 'Start building your app with the VibeCore agent.') },
@@ -1043,7 +1440,11 @@ function starterFiles(input: {
 function vitePackageJson(name: string) {
   return `${JSON.stringify(
     {
-      name: name.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'vibecore-app',
+      name:
+        name
+          .toLowerCase()
+          .replace(/[^a-z0-9-]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'vibecore-app',
       private: true,
       version: '0.0.0',
       type: 'module',
@@ -1053,17 +1454,29 @@ function vitePackageJson(name: string) {
         preview: 'vite preview',
       },
       dependencies: {
-        '@vitejs/plugin-react': 'latest',
-        vite: 'latest',
-        typescript: 'latest',
-        react: 'latest',
-        'react-dom': 'latest',
+        '@vitejs/plugin-react': '^4.3.4',
+        vite: '^5.4.19',
+        typescript: '^5.7.2',
+        react: '^18.3.1',
+        'react-dom': '^18.3.1',
+        'lucide-react': '^0.485.0',
+        'react-router-dom': '^6.28.2',
       },
       devDependencies: {},
     },
     null,
     2,
   )}\n`;
+}
+
+function viteConfigTs() {
+  return `import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+});
+`;
 }
 
 function viteIndexHtml(name: string) {
@@ -1096,6 +1509,970 @@ createRoot(document.getElementById('root')!).render(
 `;
 }
 
+function aiSaasAppTsx(name: string, prompt: string) {
+  const blueprint = projectBlueprint(name, prompt);
+
+  return `import { useMemo, useState, type FormEvent } from 'react';
+
+type Status = 'healthy' | 'warning' | 'blocked';
+type Module = {
+  name: string;
+  owner: string;
+  status: Status;
+  progress: number;
+  activity: string;
+  spend: number;
+};
+
+const initialModules: Module[] = ${JSON.stringify(blueprint.modules, null, 2)};
+
+const incidents = ${JSON.stringify(blueprint.incidents, null, 2)};
+
+const customers = ${JSON.stringify(blueprint.customers, null, 2)};
+
+const statusLabel: Record<Status, string> = {
+  healthy: 'Healthy',
+  warning: 'Needs attention',
+  blocked: 'Blocked',
+};
+
+export default function App() {
+  const [activeView, setActiveView] = useState('Command Center');
+  const [statusFilter, setStatusFilter] = useState<'all' | Status>('all');
+  const [modules, setModules] = useState(initialModules);
+  const [selectedModule, setSelectedModule] = useState(initialModules[0]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [query, setQuery] = useState('');
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [formError, setFormError] = useState('');
+  const [notice, setNotice] = useState('Ready for review. All data is running locally in preview.');
+
+  const visibleModules = useMemo(
+    () =>
+      modules.filter((module) => {
+        const matchesStatus = statusFilter === 'all' || module.status === statusFilter;
+        const matchesQuery = [module.name, module.owner, module.activity].join(' ').toLowerCase().includes(query.toLowerCase());
+
+        return matchesStatus && matchesQuery;
+      }),
+    [modules, query, statusFilter],
+  );
+  const activeSpend = useMemo(() => visibleModules.reduce((total, module) => total + module.spend, 0), [visibleModules]);
+
+  function simulateSync() {
+    setIsSyncing(true);
+    setNotice('Syncing workspace telemetry...');
+    window.setTimeout(() => {
+      setModules((current) =>
+        current.map((module) =>
+          module.status === 'blocked'
+            ? { ...module, status: 'warning', progress: Math.min(module.progress + 11, 100), activity: 'Policy exception drafted' }
+            : { ...module, progress: Math.min(module.progress + 3, 100) },
+        ),
+      );
+      setIsSyncing(false);
+      setNotice('Workspace telemetry refreshed and policy queue updated.');
+    }, 700);
+  }
+
+  function approveSelectedModule() {
+    setModules((current) =>
+      current.map((module) =>
+        module.name === selectedModule.name
+          ? { ...module, status: 'healthy', progress: 100, activity: 'Approved for rollout' }
+          : module,
+      ),
+    );
+    setSelectedModule((module) => ({ ...module, status: 'healthy', progress: 100, activity: 'Approved for rollout' }));
+    setNotice(\`\${selectedModule.name} approved for rollout.\`);
+  }
+
+  function createWorkspace(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = workspaceName.trim();
+
+    if (trimmedName.length < 3) {
+      setFormError('Workspace name must be at least 3 characters.');
+      return;
+    }
+
+    if (modules.some((module) => module.name.toLowerCase() === trimmedName.toLowerCase())) {
+      setFormError('A workspace with this name already exists.');
+      return;
+    }
+
+    const nextModule: Module = {
+      name: trimmedName,
+      owner: 'New Business Unit',
+      status: 'warning',
+      progress: 12,
+      activity: 'Intake created',
+      spend: 3200,
+    };
+
+    setModules((current) => [nextModule, ...current]);
+    setSelectedModule(nextModule);
+    setWorkspaceName('');
+    setFormError('');
+    setStatusFilter('all');
+    setNotice(\`\${trimmedName} was added to the workspace queue.\`);
+  }
+
+  return (
+    <main className="app-shell">
+      <aside className="sidebar" aria-label="Primary">
+        <div className="brand">
+          <span className="brand-mark">V</span>
+          <span>
+            <strong>{${JSON.stringify(blueprint.productName)}}</strong>
+            <small>{${JSON.stringify(blueprint.category)}}</small>
+          </span>
+        </div>
+        <nav aria-label="Workspace navigation">
+          {['Command Center', 'Projects', 'Agents', 'Deployments', 'Governance', 'Billing'].map((item, index) => (
+            <button key={item} className={activeView === item || (index === 0 && activeView === item) ? 'active' : ''} type="button" onClick={() => setActiveView(item)}>
+              {item}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-card">
+          <span>Capacity</span>
+          <strong>76%</strong>
+          <p>Runtime fleet is ready for 128 more concurrent previews.</p>
+        </div>
+      </aside>
+
+      <section className="workspace">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">{${JSON.stringify(blueprint.eyebrow)}}</p>
+            <h1>{${JSON.stringify(blueprint.headline)}}</h1>
+          </div>
+          <div className="topbar-actions">
+            <button type="button" className="ghost" onClick={() => setNotice(\`Report prepared for \${visibleModules.length} modules.\`)}>
+              Export report
+            </button>
+            <button type="button" onClick={simulateSync} disabled={isSyncing}>
+              {isSyncing ? 'Syncing...' : 'Refresh telemetry'}
+            </button>
+          </div>
+        </header>
+
+        <div className="notice" role="status">{notice}</div>
+
+        <section className="filters" aria-label="Status filters">
+          <label className="search-field">
+            <span>Search modules</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Owner, module, activity" />
+          </label>
+          {(['all', 'healthy', 'warning', 'blocked'] as const).map((status) => (
+            <button key={status} type="button" className={statusFilter === status ? 'active' : ''} onClick={() => setStatusFilter(status)}>
+              {status === 'all' ? 'All modules' : statusLabel[status]}
+            </button>
+          ))}
+        </section>
+
+        <section className="metrics" aria-label="Platform metrics">
+          {[
+            ['Active workspaces', '248', '+18%'],
+            [${JSON.stringify(blueprint.primaryMetric)}, ${JSON.stringify(blueprint.primaryMetricValue)}, '+2.1%'],
+            ['Visible modules', String(visibleModules.length), statusFilter === 'all' ? 'All statuses' : statusLabel[statusFilter]],
+            ['Filtered spend', \`$\${Math.round(activeSpend / 1000)}k\`, 'This month'],
+          ].map(([label, value, delta]) => (
+            <article className="metric-card" key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{delta} vs last week</small>
+            </article>
+          ))}
+        </section>
+
+        <section className="content-grid">
+          <article className="panel span-2">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Delivery pipeline</p>
+                <h2>Workspace modules</h2>
+              </div>
+              <span className="live-pill">Live</span>
+            </div>
+            <div className="module-list">
+              {visibleModules.map((module) => (
+                <button className={\`module-row \${selectedModule.name === module.name ? 'selected' : ''}\`} key={module.name} type="button" onClick={() => setSelectedModule(module)}>
+                  <div>
+                    <strong>{module.name}</strong>
+                    <small>{module.owner} - {module.activity}</small>
+                  </div>
+                  <div className="progress" aria-label={\`\${module.progress}% complete\`}>
+                    <span style={{ width: \`\${module.progress}%\` }} />
+                  </div>
+                  <span className={\`status \${module.status}\`}>{statusLabel[module.status]}</span>
+                </button>
+              ))}
+              {visibleModules.length === 0 && <div className="empty-state">No modules match this filter. Choose another status to recover the list.</div>}
+            </div>
+          </article>
+
+          <article className="panel">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">States</p>
+                <h2>Preview health</h2>
+              </div>
+            </div>
+            <div className="state-stack">
+              <form className="workspace-form" onSubmit={createWorkspace}>
+                <label htmlFor="workspace-name">Create workspace</label>
+                <div>
+                  <input
+                    id="workspace-name"
+                    value={workspaceName}
+                    onChange={(event) => {
+                      setWorkspaceName(event.target.value);
+                      setFormError('');
+                    }}
+                    placeholder="Revenue intelligence"
+                  />
+                  <button type="submit" disabled={!workspaceName.trim()}>Create</button>
+                </div>
+                {formError && <p role="alert">{formError}</p>}
+              </form>
+              <div className="state success">Success: production checks passed</div>
+              <div className="state loading">{isSyncing ? 'Loading: syncing workspace files' : 'Idle: telemetry is current'}</div>
+              <div className="state empty">{visibleModules.length ? \`\${visibleModules.length} modules visible\` : 'Empty: no modules visible'}</div>
+              <div className="state error">Error: one policy requires review</div>
+              <button type="button" disabled={selectedModule.status === 'healthy'} onClick={approveSelectedModule}>
+                {selectedModule.status === 'healthy' ? 'Already approved' : \`Approve \${selectedModule.name}\`}
+              </button>
+            </div>
+          </article>
+
+          <article className="panel">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Accounts</p>
+                <h2>Customer health</h2>
+              </div>
+            </div>
+            <div className="table">
+              {customers.map((customer) => (
+                <div className="table-row" key={customer.company}>
+                  <strong>{customer.company}</strong>
+                  <span>{customer.plan}</span>
+                  <span>{customer.usage}</span>
+                  <em>{customer.health}</em>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="panel span-2">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Operations</p>
+                <h2>Change queue</h2>
+              </div>
+              <button type="button" className="ghost" onClick={() => setStatusFilter('warning')}>Review attention items</button>
+            </div>
+            <div className="incident-grid">
+              <div className="incident selected">
+                <span>SELECTED</span>
+                <strong>{selectedModule.name}</strong>
+                <small>{selectedModule.owner} - ${'${selectedModule.spend.toLocaleString()}'}</small>
+                <em>{statusLabel[selectedModule.status]}</em>
+              </div>
+              {incidents.map((incident) => (
+                <div className="incident" key={incident.id}>
+                  <span>{incident.id}</span>
+                  <strong>{incident.service}</strong>
+                  <small>{incident.severity} - ETA {incident.eta}</small>
+                  <em>{incident.state}</em>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  );
+}
+`;
+}
+
+type StarterModule = {
+  name: string;
+  owner: string;
+  status: 'healthy' | 'warning' | 'blocked';
+  progress: number;
+  activity: string;
+  spend: number;
+};
+
+function projectBlueprint(name: string, prompt: string) {
+  const source = `${name} ${prompt}`.toLowerCase();
+  const productName = projectProductName(name, prompt);
+
+  if (/\bbolt\b|app builder|code generation|ide|developer platform|vibe/i.test(source)) {
+    return {
+      productName,
+      category: 'Enterprise app generation IDE',
+      eyebrow: 'AI delivery command center',
+      headline: 'Generate, review and ship production applications from one governed workspace.',
+      primaryMetric: 'Preview quality',
+      primaryMetricValue: '97.8%',
+      modules: [
+        {
+          name: 'Agent Stream',
+          owner: 'AI Platform',
+          status: 'healthy',
+          progress: 88,
+          activity: '42 streamed steps today',
+          spend: 32600,
+        },
+        {
+          name: 'Live Preview Runtime',
+          owner: 'Developer Experience',
+          status: 'healthy',
+          progress: 81,
+          activity: '31 previews attached',
+          spend: 24800,
+        },
+        {
+          name: 'App Quality Gates',
+          owner: 'Product Engineering',
+          status: 'warning',
+          progress: 67,
+          activity: '3 accessibility checks pending',
+          spend: 18600,
+        },
+        {
+          name: 'Enterprise Governance',
+          owner: 'Security',
+          status: 'blocked',
+          progress: 46,
+          activity: 'SOC2 policy review needed',
+          spend: 12100,
+        },
+      ] satisfies StarterModule[],
+      incidents: [
+        { id: 'PRV-1042', service: 'Preview attach', severity: 'Low', eta: '18 min', state: 'Monitoring' },
+        { id: 'AGT-8821', service: 'Agent memory', severity: 'Medium', eta: 'Today', state: 'Approval' },
+        { id: 'REL-7094', service: 'React/Vite templates', severity: 'Info', eta: 'Ready', state: 'Queued' },
+      ],
+      customers: [
+        { company: 'Northstar Bank', plan: 'Enterprise', usage: '82%', health: 'Excellent' },
+        { company: 'HelioGrid Energy', plan: 'Business', usage: '61%', health: 'Good' },
+        { company: 'Atlas Retail Group', plan: 'Enterprise', usage: '94%', health: 'Watch' },
+      ],
+    };
+  }
+
+  return {
+    productName,
+    category: 'Enterprise SaaS platform',
+    eyebrow: 'Command center',
+    headline: 'Ship AI-native software with controlled enterprise workflows.',
+    primaryMetric: 'Deploy success',
+    primaryMetricValue: '99.3%',
+    modules: [
+      {
+        name: 'Agent Builder',
+        owner: 'Platform AI',
+        status: 'healthy',
+        progress: 86,
+        activity: '14 runs today',
+        spend: 28400,
+      },
+      {
+        name: 'Workspace Runtime',
+        owner: 'Developer Infra',
+        status: 'healthy',
+        progress: 78,
+        activity: '31 live previews',
+        spend: 21800,
+      },
+      {
+        name: 'Deploy Control',
+        owner: 'Release Ops',
+        status: 'warning',
+        progress: 64,
+        activity: '2 approvals pending',
+        spend: 14200,
+      },
+      {
+        name: 'Governance',
+        owner: 'Security',
+        status: 'blocked',
+        progress: 42,
+        activity: 'Policy review needed',
+        spend: 9600,
+      },
+    ] satisfies StarterModule[],
+    incidents: [
+      { id: 'INC-1042', service: 'Preview routing', severity: 'Low', eta: '18 min', state: 'Monitoring' },
+      { id: 'CHG-8821', service: 'Enterprise SSO', severity: 'Medium', eta: 'Today', state: 'Approval' },
+      { id: 'REL-7094', service: 'React templates', severity: 'Info', eta: 'Ready', state: 'Queued' },
+    ],
+    customers: [
+      { company: 'Northstar Bank', plan: 'Enterprise', usage: '82%', health: 'Excellent' },
+      { company: 'HelioGrid Energy', plan: 'Business', usage: '61%', health: 'Good' },
+      { company: 'Atlas Retail Group', plan: 'Enterprise', usage: '94%', health: 'Watch' },
+    ],
+  };
+}
+
+function aiSaasStylesCss() {
+  return `:root {
+  color: #111827;
+  background: #eef2f7;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: #eef2f7;
+}
+
+.sidebar {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  gap: 28px;
+  border-right: 1px solid #d8dee8;
+  background: #ffffff;
+  padding: 22px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand small,
+small,
+.eyebrow {
+  color: #6b7280;
+}
+
+nav {
+  display: grid;
+  gap: 4px;
+}
+
+nav button {
+  min-height: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 10px 12px;
+  text-align: left;
+  text-decoration: none;
+}
+
+nav button.active,
+nav button:hover {
+  background: #eef2f7;
+  color: #111827;
+}
+
+.sidebar-card {
+  margin-top: auto;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.sidebar-card span,
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar-card strong {
+  display: block;
+  margin: 8px 0;
+  font-size: 28px;
+}
+
+.workspace {
+  min-width: 0;
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  max-width: 820px;
+  margin-top: 8px;
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 18px;
+}
+
+.topbar-actions,
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbar-actions {
+  flex-shrink: 0;
+}
+
+.notice,
+.filters {
+  margin-bottom: 16px;
+}
+
+.notice {
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 11px 14px;
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(4, auto);
+  gap: 8px;
+  align-items: end;
+}
+
+.filters button {
+  min-height: 34px;
+  border: 1px solid #c4ccd8;
+  background: #ffffff;
+  color: #111827;
+}
+
+.filters button.active {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.search-field,
+.workspace-form {
+  display: grid;
+  gap: 6px;
+}
+
+.search-field span,
+.workspace-form label {
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+input {
+  min-height: 38px;
+  width: 100%;
+  border: 1px solid #c4ccd8;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  padding: 0 10px;
+}
+
+input:focus-visible {
+  border-color: #006fd6;
+  outline: 3px solid #bfdbfe;
+}
+
+button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: #111827;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0 14px;
+}
+
+button.ghost {
+  border: 1px solid #c4ccd8;
+  background: #ffffff;
+  color: #111827;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #006fd6;
+  outline-offset: 2px;
+}
+
+.metrics,
+.content-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.metric-card,
+.panel {
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 48px rgb(15 23 42 / 0.08);
+}
+
+.metric-card {
+  padding: 18px;
+}
+
+.metric-card span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.metric-card strong {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.panel {
+  min-width: 0;
+  padding: 18px;
+}
+
+.panel-head {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.live-pill,
+.status,
+.incident em,
+.table-row em {
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 5px 9px;
+}
+
+.live-pill {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.module-list,
+.state-stack,
+.table,
+.incident-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-form {
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.workspace-form > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.workspace-form p {
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.module-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(140px, 0.7fr) auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+  padding: 12px;
+  text-align: left;
+}
+
+.module-row.selected,
+.module-row:hover {
+  border-color: #006fd6;
+  background: #f8fbff;
+}
+
+.module-row strong,
+.module-row small {
+  display: block;
+}
+
+.empty-state {
+  border: 1px dashed #c4ccd8;
+  border-radius: 8px;
+  color: #4b5563;
+  padding: 18px;
+}
+
+.progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #006fd6;
+}
+
+.status.healthy {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status.blocked,
+.state.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.state {
+  border-radius: 6px;
+  padding: 11px 12px;
+}
+
+.state.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.state.loading {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.state.empty {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 92px 56px 80px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #eef2f7;
+  padding: 10px 0;
+}
+
+.table-row:last-child {
+  border-bottom: 0;
+}
+
+.table-row span {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.table-row em {
+  background: #eef2f7;
+  color: #111827;
+  text-align: center;
+}
+
+.incident-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.incident {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #eef2f7;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.incident.selected {
+  border-color: #006fd6;
+  background: #eff6ff;
+}
+
+.incident span {
+  color: #006fd6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.incident em {
+  width: fit-content;
+  background: #111827;
+  color: #ffffff;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+  }
+
+  nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .metrics,
+  .content-grid,
+  .incident-grid,
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2 {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace,
+  .sidebar {
+    padding: 16px;
+  }
+
+  .topbar,
+  .topbar-actions,
+  .module-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .module-row,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  nav {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .metric-card,
+  .panel {
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .metric-card:hover,
+  .panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 56px rgb(15 23 42 / 0.12);
+  }
+}
+`;
+}
+
 function viteAppTsx(name: string, prompt: string) {
   return `export default function App() {
   return (
@@ -1109,6 +2486,19 @@ function viteAppTsx(name: string, prompt: string) {
   );
 }
 `;
+}
+
+function projectProductName(name: string, prompt: string) {
+  const source = name || prompt || 'VibeCore';
+  const cleaned = source
+    .replace(/\b(build|create|make|clone|of|the|a|an|app|platform|saas|application)\b/gi, ' ')
+    .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 3)
+    .join(' ');
+
+  return cleaned || 'VibeCore';
 }
 
 function viteStylesCss() {
@@ -1168,9 +2558,121 @@ h1 {
 }
 
 function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+  return value.replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!,
+  );
 }
 
+function previewLine(value: string, maxLength: number) {
+  const cleaned = value
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength - 1).trim()}…` : cleaned;
+}
+
+function homepagePreviewText(files: ProjectFile[]) {
+  const preferredPaths = [
+    'src/App.tsx',
+    'src/App.jsx',
+    'src/app/page.tsx',
+    'app/page.tsx',
+    'pages/index.tsx',
+    'pages/index.jsx',
+    'src/pages/index.tsx',
+    'src/pages/Home.tsx',
+    'index.html',
+    'README.md',
+  ];
+  const homepage =
+    preferredPaths.map((path) => files.find((file) => file.path === path)).find(Boolean) ??
+    files.find((file) => /\.(tsx|jsx|html|md)$/i.test(file.path)) ??
+    files[0];
+
+  if (!homepage) {
+    return { sourcePath: 'No files yet', lines: ['Open the E-code IDE to create the homepage preview.'] };
+  }
+
+  const cleaned = homepage.content
+    .replace(/import\s+.*?;?\n/g, ' ')
+    .replace(/className=\{?["'`][^"'`]+["'`]}?/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[{}()[\];=]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const words = cleaned
+    .split(' ')
+    .filter((word) => word.length > 2 && !['const', 'return', 'function', 'export'].includes(word));
+  const lines = [words.slice(0, 7).join(' '), words.slice(7, 17).join(' '), words.slice(17, 29).join(' ')].filter(
+    Boolean,
+  );
+
+  return {
+    sourcePath: homepage.path,
+    lines: lines.length ? lines : ['Homepage files are ready in the E-code IDE.'],
+  };
+}
+
+function renderProjectHomepagePreviewSvg(input: {
+  project: { name: string; updatedAt?: string; sourceType?: string };
+  files: ProjectFile[];
+}) {
+  const { sourcePath, lines } = homepagePreviewText(input.files);
+  const updated = input.project.updatedAt ? new Date(input.project.updatedAt).toLocaleDateString('en-US') : 'recent';
+  const fileCount = input.files.length;
+  const title = escapeHtml(previewLine(input.project.name, 42));
+  const subtitle = escapeHtml(previewLine(lines[0] ?? 'Homepage preview', 84));
+  const detail = escapeHtml(previewLine(lines[1] ?? 'Latest project files', 52));
+  const small = escapeHtml(previewLine(lines[2] ?? sourcePath, 72));
+  const source = escapeHtml(previewLine(sourcePath, 70));
+  const sourceType = escapeHtml(previewLine(input.project.sourceType ?? 'E-code project', 36));
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="${title} homepage preview">
+  <defs>
+    <linearGradient id="accent" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7B61FF"/>
+      <stop offset="100%" stop-color="#0099FF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="26%" cy="15%" r="65%">
+      <stop offset="0%" stop-color="#0099FF" stop-opacity="0.24"/>
+      <stop offset="45%" stop-color="#7B61FF" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#0A0F1C" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000414" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="#0A0F1C"/>
+  <rect width="1200" height="675" fill="url(#glow)"/>
+  <rect x="92" y="70" width="1016" height="535" rx="22" fill="#0E1525" stroke="#2B3245" filter="url(#shadow)"/>
+  <rect x="92" y="70" width="1016" height="52" rx="22" fill="#111827"/>
+  <rect x="92" y="100" width="1016" height="22" fill="#111827"/>
+  <circle cx="128" cy="96" r="7" fill="#F85149"/>
+  <circle cx="152" cy="96" r="7" fill="#D29922"/>
+  <circle cx="176" cy="96" r="7" fill="#3FB950"/>
+  <rect x="226" y="84" width="520" height="24" rx="8" fill="#0A0F1C" stroke="#1A2030"/>
+  <text x="246" y="101" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">${source}</text>
+  <rect x="142" y="166" width="916" height="92" rx="18" fill="#1A2030" stroke="#2B3245"/>
+  <text x="178" y="207" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700">${title}</text>
+  <text x="180" y="238" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="17">${subtitle}</text>
+  <rect x="142" y="292" width="566" height="196" rx="18" fill="#0A0F1C" stroke="#1A2030"/>
+  <rect x="178" y="328" width="138" height="10" rx="5" fill="url(#accent)"/>
+  <text x="178" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="650">${detail}</text>
+  <text x="178" y="416" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="16">${small}</text>
+  <rect x="178" y="444" width="210" height="36" rx="9" fill="url(#accent)"/>
+  <text x="210" y="467" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="650">Open in E-code IDE</text>
+  <rect x="744" y="292" width="314" height="196" rx="18" fill="#111827" stroke="#2B3245"/>
+  <text x="782" y="340" fill="#6E7681" font-family="JetBrains Mono, monospace" font-size="14">latest preview</text>
+  <text x="782" y="378" fill="#F5F9FC" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="650">${fileCount} files</text>
+  <text x="782" y="410" fill="#C2C8CC" font-family="Inter, Arial, sans-serif" font-size="15">${sourceType}</text>
+  <text x="782" y="442" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">Updated ${updated}</text>
+  <rect x="142" y="522" width="916" height="1" fill="#1A2030"/>
+  <text x="142" y="556" fill="#6E7681" font-family="Inter, Arial, sans-serif" font-size="13">Generated from the current homepage files for this project.</text>
+</svg>`;
+}
 
 function publicFiles(files: ProjectFile[]) {
   return files.map(({ path, updatedAt, content }) => ({ path, updatedAt, sizeBytes: Buffer.byteLength(content) }));
@@ -1240,6 +2742,11 @@ function runtimeSession(
     updatedAt: now,
     metadata,
   };
+}
+
+function runtimeWorkspaceId(projectId: string, userId: string) {
+  const digest = createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16);
+  return `ws-${digest}`;
 }
 
 function mapRuntimeNodes(nodes: AgentNode[]): RuntimeFileNode[] {
@@ -1389,7 +2896,10 @@ function createCollaborationBroker() {
       }
     },
     publish(projectId: string, payload: unknown, except?: CollaborationSocket) {
-      const message = JSON.stringify({ ...((payload as Record<string, unknown>) ?? {}), timestamp: new Date().toISOString() });
+      const message = JSON.stringify({
+        ...((payload as Record<string, unknown>) ?? {}),
+        timestamp: new Date().toISOString(),
+      });
       broadcastLocal(projectId, message, except);
       publisher?.publish(channel(projectId), message).catch(() => undefined);
     },
@@ -1466,7 +2976,85 @@ async function recordAbuseSignal(
     ]);
   }
 
+  if (
+    input.organizationId &&
+    ['alert_admin', 'suspend_org', 'stop_workspace', 'manual_review'].includes(input.action)
+  ) {
+    await deliverSiemAbuseSignal(store, {
+      organizationId: input.organizationId,
+      abuseEventId: abuseEvent.id,
+      type: input.type,
+      severity: input.severity,
+      reason: input.reason,
+      action: input.action,
+      userId: input.userId,
+      workspaceId: input.workspaceId,
+    }).catch(() => undefined);
+  }
+
   return abuseEvent;
+}
+
+async function deliverSiemAbuseSignal(
+  store: ApiStore,
+  payload: {
+    organizationId: string;
+    abuseEventId: string;
+    type: string;
+    severity: string;
+    reason: string;
+    action: string;
+    userId?: string;
+    workspaceId?: string;
+  },
+) {
+  const webhooks = await store.listSiemWebhooks(payload.organizationId).catch(() => []);
+  const enabled = webhooks.filter((webhook) => webhook.enabled);
+
+  if (enabled.length === 0) return;
+
+  const body = JSON.stringify({
+    schema: 'vibecore.abuse.v1',
+    deliveredAt: new Date().toISOString(),
+    organizationId: payload.organizationId,
+    abuseEventId: payload.abuseEventId,
+    type: payload.type,
+    severity: payload.severity,
+    reason: payload.reason,
+    action: payload.action,
+    userId: payload.userId,
+    workspaceId: payload.workspaceId,
+  });
+
+  await Promise.allSettled(
+    enabled.map(async (webhook) => {
+      let secret: string;
+      try {
+        ({ secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext));
+      } catch {
+        return;
+      }
+      const signature = createHmac('sha256', secret).update(body).digest('hex');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      try {
+        await fetch(webhook.url, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-vibecore-signature': `sha256=${signature}`,
+            'x-vibecore-event': 'abuse.signal',
+          },
+          body,
+          signal: controller.signal,
+        });
+      } catch {
+        // delivery failure must not block abuse handling
+      } finally {
+        clearTimeout(timeout);
+      }
+    }),
+  );
 }
 
 function normalizeAiPath(path = '.') {
@@ -1493,7 +3081,7 @@ function normalizeAiPath(path = '.') {
 
 function redactAiValue(value: unknown): unknown {
   if (typeof value === 'string') {
-    return value.replace(/(sk-[a-zA-Z0-9_-]{16,}|ghp_[a-zA-Z0-9_]{16,}|xox[baprs]-[a-zA-Z0-9-]{16,})/g, '[REDACTED]');
+    return redactSecretString(value);
   }
 
   if (Array.isArray(value)) {
@@ -1535,7 +3123,31 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
   }
 }
 
-function estimateAiTokens(content: string) {
+let gptTokenEncoder: ((text: string) => Uint32Array) | undefined;
+let gptTokenizerLoadFailed = false;
+
+export async function ensureGptTokenizer() {
+  if (gptTokenEncoder || gptTokenizerLoadFailed) return;
+  try {
+    const tokenizer = (await import('gpt-tokenizer')) as {
+      encode: (text: string) => number[] | Uint32Array;
+    };
+    gptTokenEncoder = (text) => Uint32Array.from(tokenizer.encode(text));
+  } catch {
+    gptTokenizerLoadFailed = true;
+  }
+}
+
+export async function estimateAiTokens(content: string) {
+  await ensureGptTokenizer();
+
+  if (gptTokenEncoder) {
+    try {
+      return Math.max(1, gptTokenEncoder(content).length);
+    } catch {
+      // fall through to length/4 fallback
+    }
+  }
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
@@ -1578,6 +3190,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
 
   const app = Fastify({
+    bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
     genReqId(request) {
       const header = request.headers['x-request-id'];
       return typeof header === 'string' && header.length > 0 ? header : randomUUID();
@@ -1595,6 +3208,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         },
       },
+      ...(options.loggerStream ? { stream: options.loggerStream } : {}),
     },
   }) as FastifyInstance;
   app.addHook('onClose', async () => {
@@ -1611,7 +3225,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'base-uri': ["'self'"],
         'frame-ancestors': ["'none'"],
         'object-src': ["'none'"],
-        'script-src': ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'"],
+        'script-src': ["'self'", "'wasm-unsafe-eval'"],
         'style-src': ["'self'", "'unsafe-inline'"],
         'img-src': ["'self'", 'data:', 'blob:', 'https:'],
         'font-src': ["'self'", 'data:'],
@@ -1622,6 +3236,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     crossOriginEmbedderPolicy: false,
     referrerPolicy: { policy: 'no-referrer' },
+    strictTransportSecurity: isProduction ? { maxAge: 63072000, includeSubDomains: true, preload: true } : false,
   });
   await app.register(cookie, { secret: process.env.COOKIE_SECRET || 'dev-cookie-secret-change-me' });
   await app.register(jwt, { secret: options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me' });
@@ -1638,7 +3253,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     timeWindow: '1 minute',
     keyGenerator(request) {
       const org = (request.headers['x-org-id'] as string | undefined) ?? 'no-org';
-      return `${request.ip}:${request.currentUser?.id ?? 'anonymous'}:${org}`;
+      const authorization = request.headers.authorization;
+      const sessionKey =
+        typeof authorization === 'string' && authorization.startsWith('Bearer ')
+          ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
+          : request.cookies.session
+            ? hashToken(request.cookies.session).slice(0, 16)
+            : 'anonymous';
+      return `${request.ip}:${request.currentUser?.id ?? sessionKey}:${org}`;
     },
   });
 
@@ -1646,7 +3268,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.addContentTypeParser('application/zip', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.addHook('onRequest', async (request, reply) => {
     const correlationHeader = request.headers['x-correlation-id'];
-    const correlationId = typeof correlationHeader === 'string' && correlationHeader.length > 0 ? correlationHeader : request.id;
+    const correlationId =
+      typeof correlationHeader === 'string' && correlationHeader.length > 0 ? correlationHeader : request.id;
     request.observability = { startedAt: nowSeconds(), correlationId };
     request.observabilityMetrics = metrics;
     reply.header('x-request-id', request.id);
@@ -1715,13 +3338,69 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(statusCode).send({
-      error: statusCode >= 500 ? 'Internal server error' : error.message,
+      error: statusCode >= 500 ? error.publicMessage ?? 'Internal server error' : error.message,
       code: (error as Error & { code?: string }).code ?? 'API_ERROR',
     });
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
-  app.get('/ready', async () => ({ status: 'ready' }));
+  app.get('/ready', async (_request, reply) => {
+    const checks: Record<string, { status: 'ok' | 'unconfigured' | 'down'; latencyMs?: number; detail?: string }> = {};
+    let degraded = false;
+
+    if (process.env.DATABASE_URL) {
+      const started = Date.now();
+      try {
+        await store.findUserById('__readiness_probe__');
+        checks.database = { status: 'ok', latencyMs: Date.now() - started };
+      } catch (error) {
+        degraded = true;
+        checks.database = {
+          status: 'down',
+          latencyMs: Date.now() - started,
+          detail: error instanceof Error ? error.message : 'unknown error',
+        };
+      }
+    } else {
+      checks.database = { status: 'unconfigured' };
+    }
+
+    if (process.env.REDIS_URL) {
+      const started = Date.now();
+      const probe = new Redis(process.env.REDIS_URL, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        connectTimeout: 1500,
+      });
+      try {
+        await probe.connect();
+        const pong = await probe.ping();
+        checks.redis = {
+          status: pong === 'PONG' ? 'ok' : 'down',
+          latencyMs: Date.now() - started,
+          detail: pong,
+        };
+        if (pong !== 'PONG') degraded = true;
+      } catch (error) {
+        degraded = true;
+        checks.redis = {
+          status: 'down',
+          latencyMs: Date.now() - started,
+          detail: error instanceof Error ? error.message : 'unknown error',
+        };
+      } finally {
+        probe.disconnect();
+      }
+    } else {
+      checks.redis = { status: 'unconfigured' };
+    }
+
+    if (degraded) {
+      return reply.code(503).send({ status: 'degraded', checks, checkedAt: new Date().toISOString() });
+    }
+
+    return { status: 'ready', checks, checkedAt: new Date().toISOString() };
+  });
   app.get('/metrics', async (_request, reply) =>
     reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8').send(metrics.render()),
   );
@@ -1752,119 +3431,214 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(202).send({ ok: true });
   });
 
-  app.post('/auth/register', async (request, reply) => {
-    const body = parse(registerSchema, request.body);
-    const existing = await store.findUserByEmail(body.email);
+  app.post(
+    '/auth/register',
+    { config: { rateLimit: { max: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? 200), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(registerSchema, request.body);
+      const existing = await store.findUserByEmail(body.email);
 
-    if (existing) {
-      return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
-    }
+      if (existing) {
+        return reply.code(409).send({ error: 'Email already registered', code: 'AUTH_EMAIL_EXISTS' });
+      }
 
-    const user = await store.createUser({
-      email: body.email,
-      name: body.name,
-      passwordHash: hashPassword(body.password),
-      platformAdmin: bootstrapPlatformAdmin(body.email),
-    });
-    const verificationToken = createOpaqueToken('verify');
-    await store.createEmailVerification({
-      userId: user.id,
-      token: verificationToken,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
-    });
-    const organization = await store.createOrganization({
-      name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-      slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
-      ownerUserId: user.id,
-    });
-    const token = createOpaqueToken('session');
-    await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await emailProvider.send({
-      to: user.email,
-      subject: 'Verify your email',
-      text: `Use this verification token to verify your email: ${verificationToken}`,
-    });
-    await audit(request, store, {
-      organizationId: organization.id,
-      action: 'auth.register',
-      resourceType: 'user',
-      resourceId: user.id,
-    });
-
-    return reply.code(201).send({
-      token,
-      verificationToken: isProduction ? undefined : verificationToken,
-      user: { id: user.id, email: user.email, name: user.name },
-      organization,
-    });
-  });
-
-  app.post('/auth/login', async (request, reply) => {
-    const body = parse(loginSchema, request.body);
-    const user = await store.findUserByEmail(body.email);
-
-    if (!user || !verifyPassword(body.password, user.passwordHash)) {
-      metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
-      return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
-    }
-
-    const token = createOpaqueToken('session');
-    await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await audit(request, store, { action: 'auth.login', resourceType: 'user', resourceId: user.id });
-
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
-  });
-
-  app.post('/auth/verify-email', async (request, reply) => {
-    const body = parse(tokenSchema, request.body);
-    const user = await store.consumeEmailVerification(body.token);
-
-    if (!user) {
-      return reply.code(400).send({ error: 'Invalid verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
-    }
-
-    await audit(request, store, { action: 'auth.email.verify', resourceType: 'user', resourceId: user.id });
-
-    return { verified: true };
-  });
-
-  app.post('/auth/password-reset/request', async (request) => {
-    const body = parse(passwordResetRequestSchema, request.body);
-    const user = await store.findUserByEmail(body.email);
-    const resetToken = createOpaqueToken('reset');
-
-    if (user) {
-      await store.createPasswordReset({
-        userId: user.id,
-        token: resetToken,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 30),
+      const user = await store.createUser({
+        email: body.email,
+        name: body.name,
+        passwordHash: hashPassword(body.password),
+        platformAdmin: bootstrapPlatformAdmin(body.email),
       });
+      const verificationToken = createOpaqueToken('verify');
+      await store.createEmailVerification({
+        userId: user.id,
+        token: verificationToken,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      });
+      const organization = await store.createOrganization({
+        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
+        slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
+        ownerUserId: user.id,
+      });
+      const token = createOpaqueToken('session');
+      await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
+      reply.setCookie('session', token, authCookieOptions(isProduction));
       await emailProvider.send({
         to: user.email,
-        subject: 'Reset your password',
-        text: `Use this password reset token to continue: ${resetToken}`,
+        subject: 'Verify your email',
+        text: `Use this verification token to verify your email: ${verificationToken}`,
       });
-      await audit(request, store, { action: 'auth.password_reset.request', resourceType: 'user', resourceId: user.id });
+      await audit(request, store, {
+        organizationId: organization.id,
+        action: 'auth.register',
+        resourceType: 'user',
+        resourceId: user.id,
+      });
+
+      return reply.code(201).send({
+        token,
+        verificationToken: isProduction ? undefined : verificationToken,
+        user: { id: user.id, email: user.email, name: user.name },
+        organization,
+      });
+    },
+  );
+
+  app.post(
+    '/auth/login',
+    { config: { rateLimit: { max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(loginSchema, request.body);
+      const user = await store.findUserByEmail(body.email);
+
+      if (!user || !verifyPassword(body.password, user.passwordHash)) {
+        metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
+        return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+      }
+
+      if (user.mfaEnabled) {
+        const encryptedSecret = user.mfaSecretEncrypted;
+
+        if (!body.mfaCode) {
+          metrics.increment('auth_failures_total', { reason: 'mfa_required' });
+          return reply.code(401).send({ error: 'MFA code is required', code: 'AUTH_MFA_REQUIRED' });
+        }
+
+        const totpValid = verifyEncryptedTotpCode(encryptedSecret, body.mfaCode);
+        const recoveryValid = totpValid
+          ? false
+          : await store.consumeRecoveryCode(user.id, hashRecoveryCode(body.mfaCode));
+
+        if (!totpValid && !recoveryValid) {
+          metrics.increment('auth_failures_total', { reason: 'invalid_mfa' });
+          return reply.code(401).send({ error: 'Invalid MFA code', code: 'AUTH_INVALID_MFA_CODE' });
+        }
+      }
+
+      const token = createOpaqueToken('session');
+      await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
+      reply.setCookie('session', token, authCookieOptions(isProduction));
+      await audit(request, store, { action: 'auth.login', resourceType: 'user', resourceId: user.id });
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          mfaEnabled: user.mfaEnabled,
+          platformAdmin: user.platformAdmin,
+        },
+      };
+    },
+  );
+
+  app.post(
+    '/auth/verify-email',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(tokenSchema, request.body);
+      const user = await store.consumeEmailVerification(body.token);
+
+      if (!user) {
+        return reply.code(400).send({ error: 'Invalid verification token', code: 'AUTH_INVALID_VERIFICATION_TOKEN' });
+      }
+
+      await audit(request, store, { action: 'auth.email.verify', resourceType: 'user', resourceId: user.id });
+
+      return { verified: true };
+    },
+  );
+
+  app.post(
+    '/auth/password-reset/request',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request) => {
+      const body = parse(passwordResetRequestSchema, request.body);
+      const user = await store.findUserByEmail(body.email);
+      const resetToken = createOpaqueToken('reset');
+
+      if (user) {
+        await store.createPasswordReset({
+          userId: user.id,
+          token: resetToken,
+          expiresAt: new Date(Date.now() + 1000 * 60 * 30),
+        });
+        await emailProvider.send({
+          to: user.email,
+          subject: 'Reset your password',
+          text: `Use this password reset token to continue: ${resetToken}`,
+        });
+        await audit(request, store, {
+          action: 'auth.password_reset.request',
+          resourceType: 'user',
+          resourceId: user.id,
+        });
+      }
+
+      return { accepted: true, resetToken: !isProduction && user ? resetToken : undefined };
+    },
+  );
+
+  app.post(
+    '/auth/password-reset/confirm',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(passwordResetConfirmSchema, request.body);
+      const user = await store.consumePasswordReset(body.token, hashPassword(body.password));
+
+      if (!user) {
+        return reply.code(400).send({ error: 'Invalid password reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
+      }
+
+      await store.revokeAllSessions(user.id);
+      await audit(request, store, { action: 'auth.password_reset.confirm', resourceType: 'user', resourceId: user.id });
+
+      return { reset: true };
+    },
+  );
+
+  function oauthStateSecret() {
+    return process.env.OAUTH_STATE_SECRET || options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me';
+  }
+
+  function signOauthState(provider: string, ttlSeconds = 600): string {
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+    const nonce = randomUUID();
+    const payload = `${provider}.${expiresAt}.${nonce}`;
+    const signature = createHmac('sha256', oauthStateSecret()).update(payload).digest('hex');
+    return Buffer.from(`${payload}.${signature}`, 'utf8').toString('base64url');
+  }
+
+  function verifyOauthState(state: string, provider: string): boolean {
+    let decoded: string;
+    try {
+      decoded = Buffer.from(state, 'base64url').toString('utf8');
+    } catch {
+      return false;
     }
-
-    return { accepted: true, resetToken: !isProduction && user ? resetToken : undefined };
-  });
-
-  app.post('/auth/password-reset/confirm', async (request, reply) => {
-    const body = parse(passwordResetConfirmSchema, request.body);
-    const user = await store.consumePasswordReset(body.token, hashPassword(body.password));
-
-    if (!user) {
-      return reply.code(400).send({ error: 'Invalid password reset token', code: 'AUTH_INVALID_RESET_TOKEN' });
+    const lastDot = decoded.lastIndexOf('.');
+    if (lastDot < 0) return false;
+    const payload = decoded.slice(0, lastDot);
+    const signature = decoded.slice(lastDot + 1);
+    const expected = createHmac('sha256', oauthStateSecret()).update(payload).digest('hex');
+    if (signature.length !== expected.length) return false;
+    try {
+      const a = Buffer.from(signature, 'hex');
+      const b = Buffer.from(expected, 'hex');
+      if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+    } catch {
+      return false;
     }
-
-    await store.revokeAllSessions(user.id);
-    await audit(request, store, { action: 'auth.password_reset.confirm', resourceType: 'user', resourceId: user.id });
-
-    return { reset: true };
-  });
+    const segments = payload.split('.');
+    if (segments.length < 3) return false;
+    const [statedProvider, expiresAtStr] = segments;
+    if (statedProvider !== provider) return false;
+    const expiresAt = Number(expiresAtStr);
+    if (!Number.isFinite(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
+      return false;
+    }
+    return true;
+  }
 
   function oauthAuthorizationUrl(provider: string) {
     const authorizationUrl =
@@ -1882,6 +3656,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', clientId);
     url.searchParams.set('scope', scope);
+    url.searchParams.set('state', signOauthState(provider));
 
     if (redirectUri) {
       url.searchParams.set('redirect_uri', redirectUri);
@@ -1900,117 +3675,172 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     authorizationUrl: oauthAuthorizationUrl('github'),
     ready: Boolean(process.env.GITHUB_CLIENT_ID),
   }));
-  app.post('/auth/oauth/:provider/callback', async (request, reply) => {
-    const provider = (request.params as { provider: string }).provider;
-    const body = parse(oauthCallbackSchema, request.body);
-    const profile = await resolveOAuthProfile(provider, body);
-    const user =
-      (await store.findUserByEmail(profile.email)) ??
-      (await store.createUser({
-        email: profile.email,
-        name: profile.name,
-        passwordHash: hashPassword(createOpaqueToken('oauth')),
-      }));
-    await store.upsertOAuthConnection({
-      userId: user.id,
-      provider,
-      externalId: profile.externalId,
-      accessToken: profile.accessToken,
-      refreshToken: profile.refreshToken,
-    });
-    const token = createOpaqueToken('session');
-    await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await audit(request, store, { action: `auth.oauth.${provider}.login`, resourceType: 'user', resourceId: user.id });
+  app.post(
+    '/auth/oauth/:provider/callback',
+    { config: { rateLimit: { max: Number(process.env.AUTH_OAUTH_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const provider = (request.params as { provider: string }).provider;
+      const body = parse(oauthCallbackSchema, request.body);
+      if (body.code && body.state && !verifyOauthState(body.state, provider)) {
+        return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
+      }
+      const profile = await resolveOAuthProfile(provider, body);
+      const user =
+        (await store.findUserByEmail(profile.email)) ??
+        (await store.createUser({
+          email: profile.email,
+          name: profile.name,
+          passwordHash: hashPassword(createOpaqueToken('oauth')),
+        }));
+      await store.upsertOAuthConnection({
+        userId: user.id,
+        provider,
+        externalId: profile.externalId,
+        accessToken: profile.accessToken,
+        refreshToken: profile.refreshToken,
+      });
+      const token = createOpaqueToken('session');
+      await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
+      reply.setCookie('session', token, authCookieOptions(isProduction));
+      await audit(request, store, {
+        action: `auth.oauth.${provider}.login`,
+        resourceType: 'user',
+        resourceId: user.id,
+      });
 
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
-  });
+      return { token, user: { id: user.id, email: user.email, name: user.name } };
+    },
+  );
   app.get('/auth/oidc/start', async () => ({
     provider: 'oidc',
     authorizationUrl: oauthAuthorizationUrl('oidc'),
     ready: Boolean(process.env.OIDC_CLIENT_ID),
   }));
-  app.post('/auth/oidc/callback', async (request, reply) => {
-    const body = parse(oidcCallbackSchema, request.body);
-    const profile = await resolveOAuthProfile('oidc', body);
-    const user =
-      (await store.findUserByEmail(profile.email)) ??
-      (await store.createUser({
-        email: profile.email,
-        name: profile.name,
-        passwordHash: hashPassword(createOpaqueToken('oidc')),
-      }));
-    await store.upsertOAuthConnection({
-      userId: user.id,
-      provider: 'oidc',
-      externalId: profile.externalId,
-      accessToken: profile.accessToken,
-      refreshToken: profile.refreshToken,
-    });
-    const token = createOpaqueToken('session');
-    await createLoginSession({
-      store,
-      userId: user.id,
-      organizationId: body.orgId ?? orgIdFromRequest(request),
-      token,
-      request,
-    });
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await audit(request, store, {
-      organizationId: body.orgId,
-      action: 'auth.oidc.login',
-      resourceType: 'user',
-      resourceId: user.id,
-    });
+  app.post(
+    '/auth/oidc/callback',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(oidcCallbackSchema, request.body);
+      if (body.code && body.state && !verifyOauthState(body.state, 'oidc')) {
+        return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
+      }
+      const profile = await resolveOAuthProfile('oidc', body);
+      const user =
+        (await store.findUserByEmail(profile.email)) ??
+        (await store.createUser({
+          email: profile.email,
+          name: profile.name,
+          passwordHash: hashPassword(createOpaqueToken('oidc')),
+        }));
+      await store.upsertOAuthConnection({
+        userId: user.id,
+        provider: 'oidc',
+        externalId: profile.externalId,
+        accessToken: profile.accessToken,
+        refreshToken: profile.refreshToken,
+      });
+      const token = createOpaqueToken('session');
+      await createLoginSession({
+        store,
+        userId: user.id,
+        organizationId: body.orgId ?? orgIdFromRequest(request),
+        token,
+        request,
+      });
+      reply.setCookie('session', token, authCookieOptions(isProduction));
+      await audit(request, store, {
+        organizationId: body.orgId,
+        action: 'auth.oidc.login',
+        resourceType: 'user',
+        resourceId: user.id,
+      });
 
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
-  });
+      return { token, user: { id: user.id, email: user.email, name: user.name } };
+    },
+  );
   app.get('/auth/saml/metadata/:orgId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
 
     return { entityId: `vibecore:${orgId}`, acsUrl: `/auth/saml/${orgId}/acs` };
   });
-  app.post('/auth/saml/:orgId/acs', async (request, reply) => {
-    const { orgId } = parse(orgParams, request.params);
-    const body = parse(samlAcsSchema, request.body);
-    const config = await store.getSsoConfig(orgId, 'saml');
+  app.post(
+    '/auth/saml/:orgId/acs',
+    { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const { orgId } = parse(orgParams, request.params);
+      const body = parse(samlAcsSchema, request.body);
+      const config = await store.getSsoConfig(orgId, 'saml');
 
-    if (!config?.enabled) {
-      return reply.code(404).send({ error: 'SAML provider is not configured', code: 'SAML_PROVIDER_NOT_CONFIGURED' });
+      if (!config?.enabled) {
+        return reply.code(404).send({ error: 'SAML provider is not configured', code: 'SAML_PROVIDER_NOT_CONFIGURED' });
+      }
+
+      const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
+      const assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate);
+
+      if (!assertion.signatureValid) {
+        return reply.code(401).send({ error: 'Invalid SAML assertion signature', code: 'SAML_INVALID_SIGNATURE' });
+      }
+
+      const user =
+        (await store.findUserByEmail(assertion.email)) ??
+        (await store.createUser({
+          email: assertion.email,
+          name: assertion.name,
+          passwordHash: hashPassword(createOpaqueToken('saml')),
+        }));
+      await store.upsertOAuthConnection({
+        userId: user.id,
+        provider: 'saml',
+        externalId: assertion.externalId,
+        accessToken: body.SAMLResponse,
+      });
+      const roleKey = assertion.roleKey ?? 'member';
+      await requireAssignableOrganizationRole(store, orgId, roleKey);
+      const existingMembership = await store.getMembership(user.id, orgId);
+
+      if (!existingMembership) {
+        await ensureQuota(request, orgId, 'team.members');
+      }
+
+      await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
+      if (!existingMembership) {
+        await recordUsage(request, orgId, 'team.members');
+      }
+      const token = createOpaqueToken('session');
+      await createLoginSession({ store, userId: user.id, organizationId: orgId, token, request });
+      reply.setCookie('session', token, authCookieOptions(isProduction));
+      await audit(request, store, {
+        organizationId: orgId,
+        action: 'auth.saml.login',
+        resourceType: 'user',
+        resourceId: user.id,
+      });
+
+      return { token, user: { id: user.id, email: user.email, name: user.name } };
+    },
+  );
+
+  const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  const adminRateLimit = Math.max(1, Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30));
+  const adminRateWindowMs = Math.max(1000, Number(process.env.ADMIN_RATE_LIMIT_WINDOW_MS ?? 60_000));
+
+  app.addHook('preHandler', async (request, reply) => {
+    if (request.url.startsWith('/admin/') && request.method !== 'GET' && request.method !== 'OPTIONS') {
+      const key = `${request.ip}:${request.url.split('?')[0]}`;
+      const now = Date.now();
+      const bucket = adminRateBuckets.get(key);
+      if (!bucket || bucket.resetAt <= now) {
+        adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
+      } else if (bucket.count >= adminRateLimit) {
+        return reply
+          .code(429)
+          .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
+          .send({ error: 'Too many admin requests', code: 'ADMIN_RATE_LIMITED' });
+      } else {
+        bucket.count += 1;
+      }
     }
-
-    const samlConfig = decryptJson<{ x509Certificate: string }>(config.encryptedConfig);
-    const assertion = parseSamlAssertion(body.SAMLResponse, samlConfig.x509Certificate);
-
-    if (!assertion.signatureValid) {
-      return reply.code(401).send({ error: 'Invalid SAML assertion signature', code: 'SAML_INVALID_SIGNATURE' });
-    }
-
-    const user =
-      (await store.findUserByEmail(assertion.email)) ??
-      (await store.createUser({
-        email: assertion.email,
-        name: assertion.name,
-        passwordHash: hashPassword(createOpaqueToken('saml')),
-      }));
-    await store.upsertOAuthConnection({
-      userId: user.id,
-      provider: 'saml',
-      externalId: assertion.externalId,
-      accessToken: body.SAMLResponse,
-    });
-    await store.addMember({ organizationId: orgId, userId: user.id, roleKey: assertion.roleKey ?? 'member' });
-    const token = createOpaqueToken('session');
-    await createLoginSession({ store, userId: user.id, organizationId: orgId, token, request });
-    reply.setCookie('session', token, authCookieOptions(isProduction));
-    await audit(request, store, {
-      organizationId: orgId,
-      action: 'auth.saml.login',
-      resourceType: 'user',
-      resourceId: user.id,
-    });
-
-    return { token, user: { id: user.id, email: user.email, name: user.name } };
   });
 
   app.addHook('preHandler', async (request, reply) => {
@@ -2038,6 +3868,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requireCsrfToken(request.headers as Record<string, string | string[] | undefined>, request.method);
     }
 
+    const collaborationTicketAuth = await authenticateCollaborationWebSocketTicket(request, reply, store);
+
+    if (collaborationTicketAuth !== 'not-ticketed') {
+      return;
+    }
+
     await requireAuth(request, reply, store);
 
     const orgId = orgIdFromRequest(request);
@@ -2054,19 +3890,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {
-    const response = await fetch(`${workspaceManagerUrl()}${path}`, {
-      ...init,
-      headers: {
-        accept: 'application/json',
-        ...(init.body && typeof init.body === 'string' ? { 'content-type': 'application/json' } : {}),
-        ...(init.headers as Record<string, string> | undefined),
-      },
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(`${workspaceManagerUrl()}${path}`, {
+        ...init,
+        headers: {
+          accept: 'application/json',
+          ...(init.body && typeof init.body === 'string' ? { 'content-type': 'application/json' } : {}),
+          ...(init.headers as Record<string, string> | undefined),
+        },
+      });
+    } catch (error) {
+      throw Object.assign(new Error('Workspace manager is unavailable'), {
+        statusCode: 502,
+        code: 'WORKSPACE_MANAGER_UNAVAILABLE',
+        publicMessage: 'Workspace manager is unavailable',
+        cause: error,
+      });
+    }
 
     if (!response.ok) {
       throw Object.assign(new Error(`Workspace manager request failed: ${response.status}`), {
         statusCode: 502,
         code: 'WORKSPACE_MANAGER_REQUEST_FAILED',
+        publicMessage: 'Workspace manager request failed',
       });
     }
 
@@ -2122,6 +3970,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaceId: project.id, projectId: project.id, organizationId: project.organizationId };
   };
 
+  const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {
+    const existing = await store.getWorkspace(workspaceId);
+
+    if (existing) {
+      if (existing.projectId !== project.id) {
+        throw Object.assign(new Error('Workspace does not belong to this project'), {
+          statusCode: 403,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      return existing;
+    }
+
+    return store.createWorkspace({
+      id: workspaceId,
+      projectId: project.id,
+      name: `${project.name} runtime`,
+      runtimeMode: 'remote-kubernetes',
+    });
+  };
+
   const aiGatewayCompletion = async (input: {
     project: ProjectRecord;
     content: string;
@@ -2164,7 +4034,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const billingState = async (organizationId: string) => {
     const subscription = await store.getSubscription(organizationId);
-    const plan = (subscription ? await store.getBillingPlan(subscription.planKey) : undefined) ??
+    const entitledPlanKey =
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+    const plan = (await store.getBillingPlan(entitledPlanKey)) ??
       (await store.getBillingPlan('free')) ?? {
         key: 'free' as PlanKey,
         limits: planByKey('free').limits,
@@ -2182,7 +4054,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   };
 
-  const usageForQuota = async (organizationId: string, key: QuotaKey) => {
+  const computeUsageForQuota = async (organizationId: string, key: QuotaKey) => {
     if (key === 'projects.count') {
       return (await store.listProjects(organizationId)).length;
     }
@@ -2210,11 +4082,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return store.sumUsage(organizationId, key);
   };
 
+  const usageForQuota = async (organizationId: string, key: QuotaKey, request?: any) => {
+    if (!request) return computeUsageForQuota(organizationId, key);
+    const cache: Map<string, Promise<number>> = (request.__quotaUsageCache ??= new Map());
+    const cacheKey = `${organizationId}:${key}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+    const promise = computeUsageForQuota(organizationId, key);
+    cache.set(cacheKey, promise);
+    return promise;
+  };
+
+  const invalidateQuotaUsageCache = (request: any, organizationId: string, key: QuotaKey) => {
+    const cache: Map<string, Promise<number>> | undefined = request?.__quotaUsageCache;
+    cache?.delete(`${organizationId}:${key}`);
+  };
+
+  const quotaUsageSnapshot = async (organizationId: string, limits: Record<QuotaKey, number>, request?: any) => {
+    const entries = await Promise.all(
+      Object.keys(limits).map(
+        async (key) => [key, await usageForQuota(organizationId, key as QuotaKey, request)] as const,
+      ),
+    );
+
+    return Object.fromEntries(entries) as Record<QuotaKey, number>;
+  };
+
+  const scimTokenMaxAgeDays = Math.max(1, Number(process.env.SCIM_TOKEN_MAX_AGE_DAYS ?? 365));
+
+  const isScimTokenExpired = (token: { createdAt: string } | undefined) => {
+    if (!token) return true;
+    const ageMs = Date.now() - new Date(token.createdAt).getTime();
+    return ageMs > scimTokenMaxAgeDays * 24 * 60 * 60 * 1000;
+  };
+
+  const isQuotaOverrideActive = (override: { expiresAt?: string } | undefined) => {
+    if (!override) return false;
+    if (!override.expiresAt) return true;
+    return new Date(override.expiresAt).getTime() > Date.now();
+  };
+
   const ensureQuota = async (request: any, organizationId: string, key: QuotaKey, increment = 1) => {
     const { limits } = await billingState(organizationId);
     const override = await store.getQuotaOverride(organizationId, key);
-    const limit = override?.limit ?? limits[key] ?? 0;
-    const used = await usageForQuota(organizationId, key);
+    const activeOverride = isQuotaOverrideActive(override) ? override : undefined;
+    const limit = activeOverride?.limit ?? limits[key] ?? 0;
+    const used = await usageForQuota(organizationId, key, request);
     try {
       assertQuota({ key, used, limit, increment });
     } catch (error: any) {
@@ -2229,6 +4142,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
+  const usageAbuseTriggerTypes = new Set<QuotaKey>(['ai.messages', 'previews.public', 'workspaces.active']);
+
+  const evaluateUsageAbuse = async (request: any, organizationId: string, triggerType: QuotaKey) => {
+    try {
+      const [aiMessages, previewRequests, workspaceCreations, abuseEvents] = await Promise.all([
+        store.sumUsage(organizationId, 'ai.messages').catch(() => 0),
+        store.sumUsage(organizationId, 'previews.public').catch(() => 0),
+        store.sumUsage(organizationId, 'workspaces.active').catch(() => 0),
+        store.listAbuseEvents().catch(() => []),
+      ]);
+      const failedAuthAttempts = abuseEvents.filter(
+        (event) => event.organizationId === organizationId && event.type === 'failed_auth_spike',
+      ).length;
+      const signal = detectUsageAbuse({
+        aiMessages,
+        previewRequests,
+        workspaceCreations,
+        failedAuthAttempts,
+      });
+      if (!signal) return;
+      const recent = abuseEvents
+        .filter((event) => event.organizationId === organizationId && event.type === signal.type)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      if (recent && Date.now() - new Date(recent.createdAt).getTime() < 60 * 60 * 1000) {
+        return;
+      }
+      await recordAbuseSignal(request, store, {
+        organizationId,
+        userId: request.currentUser?.id,
+        type: signal.type,
+        severity: signal.severity,
+        reason: `${signal.reason} (trigger=${triggerType})`,
+        action: signal.action,
+      });
+    } catch {
+      // abuse detection must never fail a request
+    }
+  };
+
   const recordUsage = async (
     request: any,
     organizationId: string,
@@ -2237,6 +4189,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     metadata?: unknown,
   ) => {
     await store.recordUsageEvent({ organizationId, userId: request.currentUser?.id, type, quantity, metadata });
+    invalidateQuotaUsageCache(request, organizationId, type);
+    if (usageAbuseTriggerTypes.has(type)) {
+      await evaluateUsageAbuse(request, organizationId, type);
+    }
   };
 
   const ensureAiQuota = async (request: any, organizationId: string, inputTokens: number, outputTokens = 0) => {
@@ -2392,20 +4348,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/api/runtime/runtime/boot', async () => ({ ok: true, mode: 'remote-kubernetes' }));
   app.post('/api/runtime/workspaces', async (request, reply) => {
     const body = parse(runtimeWorkspaceSchema, request.body ?? {});
-    const workspaceId = body.workspaceId ?? body.projectId ?? String(body.metadata?.projectId ?? '');
+    const projectId = body.projectId ?? String(body.metadata?.projectId ?? body.workspaceId ?? '');
 
-    if (!workspaceId) {
+    if (!projectId) {
       return reply
         .code(400)
         .send({ error: 'workspaceId or projectId is required', code: 'RUNTIME_WORKSPACE_ID_REQUIRED' });
     }
 
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    const requestedWorkspaceId = body.workspaceId;
+    const workspaceId =
+      !requestedWorkspaceId || requestedWorkspaceId === project.id
+        ? runtimeWorkspaceId(project.id, request.currentUser!.id)
+        : requestedWorkspaceId;
+    const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
     await requireOrganizationNotSuspended(store, authorized.organizationId);
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
     if (authorized.organizationId) {
       await ensureQuota(request, authorized.organizationId, 'workspaces.active');
     }
+    const workspaceRecord = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+    authorized.workspaceId = workspaceRecord.id;
     const workspaceStartAt = nowSeconds();
     const managerWorkspace = await managerRequest<any>('/workspaces/start', {
       method: 'POST',
@@ -2427,8 +4391,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         allowedSecretKeys: [],
       }),
     });
-    metrics.increment('workspace_starts_total', { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' });
-    metrics.observe('workspace_start_latency_seconds', { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' }, durationSeconds(workspaceStartAt));
+    metrics.increment('workspace_starts_total', {
+      plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+    });
+    metrics.observe(
+      'workspace_start_latency_seconds',
+      { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' },
+      durationSeconds(workspaceStartAt),
+    );
     if (managerWorkspace?.status === 'FAILED') {
       metrics.increment('workspace_failures_total', { reason: 'manager_failed' });
     }
@@ -2815,7 +4785,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(204).send();
   });
 
-  const proxyRuntimeSocket = async (rawSocket: unknown, workspaceId: string, agentPath: string, wrapMessages = true) => {
+  const proxyRuntimeSocket = async (
+    rawSocket: unknown,
+    workspaceId: string,
+    agentPath: string,
+    wrapMessages = true,
+  ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
     const upstream = new WebSocket(
@@ -2949,7 +4924,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
-  app.get('/auth/me', async (request) => ({ user: request.currentUser }));
+  app.get('/auth/me', async (request) => {
+    const user = await store.findUserById(request.currentUser!.id);
+
+    return {
+      user: user
+        ? {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            emailVerifiedAt: user.emailVerifiedAt,
+            mfaEnabled: user.mfaEnabled,
+            platformAdmin: user.platformAdmin,
+            createdAt: user.createdAt,
+          }
+        : request.currentUser,
+    };
+  });
   app.patch('/auth/me', async (request) => {
     const body = parse(userProfileSchema, request.body);
     const user = await store.updateUser({
@@ -2965,6 +4956,147 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { user: { id: user.id, email: user.email, name: user.name } };
+  });
+
+  app.patch(
+    '/auth/password',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(changePasswordSchema, request.body);
+      const existingUser = await store.findUserById(request.currentUser!.id);
+
+      if (!existingUser || !verifyPassword(body.currentPassword, existingUser.passwordHash)) {
+        return reply.code(401).send({ error: 'Invalid credentials', code: 'AUTH_INVALID_CREDENTIALS' });
+      }
+
+      const user = await store.updateUser({
+        userId: request.currentUser!.id,
+        passwordHash: hashPassword(body.newPassword),
+      });
+      const revoked = await store.revokeAllSessions(user.id, request.currentSession?.id);
+      await audit(request, store, {
+        action: 'auth.password.update',
+        resourceType: 'user',
+        resourceId: user.id,
+        metadata: { revokedSessions: revoked },
+      });
+
+      return { updated: true, revokedSessions: revoked };
+    },
+  );
+
+  app.post(
+    '/auth/send-verification',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request) => {
+      const user = await store.findUserById(request.currentUser!.id);
+
+      if (!user) {
+        throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+      }
+
+      if (user.emailVerifiedAt) {
+        return { accepted: true, alreadyVerified: true };
+      }
+
+      const verificationToken = createOpaqueToken('verify');
+      await store.createEmailVerification({
+        userId: user.id,
+        token: verificationToken,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+      });
+      await emailProvider.send({
+        to: user.email,
+        subject: 'Verify your email',
+        text: `Use this verification token to verify your email: ${verificationToken}`,
+      });
+      await audit(request, store, {
+        action: 'auth.email_verification.send',
+        resourceType: 'user',
+        resourceId: user.id,
+      });
+
+      return { accepted: true, verificationToken: isProduction ? undefined : verificationToken };
+    },
+  );
+
+  app.get('/auth/export', async (request) => {
+    const user = await store.findUserById(request.currentUser!.id);
+
+    if (!user) {
+      throw Object.assign(new Error('User not found'), { statusCode: 404, code: 'USER_NOT_FOUND' });
+    }
+
+    const organizations = await store.listOrganizations(user.id);
+    const organizationExports = await Promise.all(
+      organizations.map(async (organization) => {
+        const [projects, usage, aiCosts] = await Promise.all([
+          store.listProjects(organization.id),
+          store.listUsageEvents(organization.id),
+          store.listAiCosts(organization.id),
+        ]);
+
+        return { organization, projects, usage, aiCosts };
+      }),
+    );
+    await audit(request, store, { action: 'auth.data_export', resourceType: 'user', resourceId: user.id });
+
+    return {
+      exportedAt: new Date().toISOString(),
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerifiedAt: user.emailVerifiedAt,
+        createdAt: user.createdAt,
+      },
+      sessions: await store.listSessions(user.id),
+      organizations: organizationExports,
+    };
+  });
+
+  app.delete('/auth/me', async (request, reply) => {
+    parse(deleteAccountSchema, request.body);
+    const userId = request.currentUser!.id;
+    const organizations = await store.listOrganizations(userId);
+
+    for (const organization of organizations) {
+      await audit(request, store, {
+        organizationId: organization.id,
+        action: 'auth.account.delete',
+        resourceType: 'user',
+        resourceId: userId,
+      });
+    }
+
+    const deleted = await store.deleteUser(userId);
+    reply.clearCookie('session', authCookieOptions(isProduction));
+
+    return { deleted };
+  });
+
+  app.post('/auth/refresh', async (request, reply) => {
+    const currentSession = request.currentSession!;
+    const token = createOpaqueToken('session');
+    await createLoginSession({
+      store,
+      userId: request.currentUser!.id,
+      organizationId: orgIdFromRequest(request),
+      token,
+      request,
+    });
+    await store.revokeSession(request.currentUser!.id, currentSession.id);
+    reply.setCookie('session', token, authCookieOptions(isProduction));
+    await audit(request, store, {
+      action: 'auth.session.refresh',
+      resourceType: 'session',
+      resourceId: currentSession.id,
+    });
+
+    return {
+      token,
+      user: { id: request.currentUser!.id, email: request.currentUser!.email, name: request.currentUser!.name },
+    };
   });
 
   app.get('/auth/sessions', async (request) => ({ sessions: await store.listSessions(request.currentUser!.id) }));
@@ -2988,7 +5120,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revoked };
   });
-  app.post('/auth/reauth', async (request, reply) => {
+  app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     const body = parse(reauthSchema, request.body);
     const user = await store.findUserById(request.currentUser!.id);
 
@@ -3019,34 +5151,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       otpauthUrl: createTotpUri({ issuer: 'VibeCore', accountName: request.currentUser!.email, secret }),
     };
   });
-  app.post('/auth/mfa/verify', async (request, reply) => {
-    const body = parse(mfaVerifySchema, request.body);
-    const user = await store.findUserById(request.currentUser!.id);
-    const encryptedSecret = user?.mfaSecretEncrypted;
+  app.post(
+    '/auth/mfa/verify',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(mfaVerifySchema, request.body);
+      const user = await store.findUserById(request.currentUser!.id);
+      const encryptedSecret = user?.mfaSecretEncrypted;
 
-    if (!encryptedSecret) {
-      return reply.code(400).send({ error: 'MFA setup is not started', code: 'MFA_NOT_SETUP' });
-    }
-
-    const { secret } = decryptJson<{ secret: string }>(encryptedSecret);
-
-    if (!verifyTotpCode(secret, body.code)) {
-      const consumed = await store.consumeRecoveryCode(request.currentUser!.id, hashRecoveryCode(body.code));
-
-      if (!consumed) {
-        return reply.code(401).send({ error: 'Invalid MFA code', code: 'MFA_INVALID_CODE' });
+      if (!encryptedSecret) {
+        return reply.code(400).send({ error: 'MFA setup is not started', code: 'MFA_NOT_SETUP' });
       }
-    }
 
-    await store.updateUser({ userId: request.currentUser!.id, mfaEnabled: true });
-    await audit(request, store, {
-      action: 'auth.mfa.enable',
-      resourceType: 'user',
-      resourceId: request.currentUser!.id,
-    });
+      const { secret } = decryptJson<{ secret: string }>(encryptedSecret);
 
-    return { enabled: true };
-  });
+      if (!verifyTotpCode(secret, body.code)) {
+        const consumed = await store.consumeRecoveryCode(request.currentUser!.id, hashRecoveryCode(body.code));
+
+        if (!consumed) {
+          return reply.code(401).send({ error: 'Invalid MFA code', code: 'MFA_INVALID_CODE' });
+        }
+      }
+
+      await store.updateUser({ userId: request.currentUser!.id, mfaEnabled: true });
+      await audit(request, store, {
+        action: 'auth.mfa.enable',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+      });
+
+      return { enabled: true };
+    },
+  );
   app.post('/auth/recovery-codes', async (request) => {
     const codes = createRecoveryCodes();
     await store.setRecoveryCodes(request.currentUser!.id, codes.map(hashRecoveryCode));
@@ -3070,12 +5206,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    await requireAdminMfaForSensitiveAction(request);
     await requireRecentAdminReauth(request);
     const user = await store.updateUser({ userId, platformAdmin: body.platformAdmin });
     await audit(request, store, {
       action: body.platformAdmin ? 'admin.platform_admin.grant' : 'admin.platform_admin.revoke',
       resourceType: 'user',
       resourceId: user.id,
+    });
+    await recordAdminAction(request, store, {
+      action: body.platformAdmin ? 'admin.platform_admin.grant' : 'admin.platform_admin.revoke',
+      metadata: { userId: user.id },
     });
 
     return { user: { id: user.id, email: user.email, name: user.name, platformAdmin: user.platformAdmin } };
@@ -3106,7 +5247,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/orgs/:orgId/memberships', async (request) => {
     const { orgId } = parse(orgParams, request.params);
-    await requireOrg(request, store, orgId, 'members:manage');
+    await requireOrgAny(request, store, orgId, ['org:read', 'members:manage']);
 
     return { memberships: await store.listMembers(orgId) };
   });
@@ -3114,17 +5255,92 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(addMemberSchema, request.body);
     await requireOrg(request, store, orgId, 'members:manage');
-    await ensureQuota(request, orgId, 'team.members');
+    await requireAssignableOrganizationRole(store, orgId, body.roleKey);
+
+    const user = await store.findUserById(body.userId);
+
+    if (!user) {
+      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    const existing = await store.getMembership(body.userId, orgId);
+
+    if (!existing) {
+      await ensureQuota(request, orgId, 'team.members');
+    }
+
     const membership = await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
-    await recordUsage(request, orgId, 'team.members');
+    if (!existing) {
+      await recordUsage(request, orgId, 'team.members');
+    }
     await audit(request, store, {
       organizationId: orgId,
-      action: 'member.add',
+      action: existing ? 'member.updateRole' : 'member.add',
       resourceType: 'organizationMember',
       resourceId: membership.id,
+      metadata: { userId: body.userId, roleKey: body.roleKey },
     });
 
     return reply.code(201).send({ membership });
+  });
+  app.patch('/orgs/:orgId/memberships/:userId', async (request, reply) => {
+    const { orgId, userId } = parse(membershipParams, request.params);
+    const body = parse(z.object({ roleKey: roleKeySchema }), request.body);
+    await requireOrg(request, store, orgId, 'members:manage');
+    await requireAssignableOrganizationRole(store, orgId, body.roleKey);
+
+    const existing = await store.getMembership(userId, orgId);
+
+    if (!existing) {
+      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+    }
+
+    if (existing.roleKey === 'owner' && body.roleKey !== 'owner') {
+      const owners = (await store.listMembers(orgId)).filter((member) => member.roleKey === 'owner');
+
+      if (owners.length <= 1) {
+        return reply.code(409).send({ error: 'Cannot demote the last organization owner', code: 'LAST_OWNER' });
+      }
+    }
+
+    const membership = await store.addMember({ organizationId: orgId, userId, roleKey: body.roleKey });
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'member.updateRole',
+      resourceType: 'organizationMember',
+      resourceId: membership.id,
+      metadata: { userId, roleKey: body.roleKey },
+    });
+
+    return { membership };
+  });
+  app.delete('/orgs/:orgId/memberships/:userId', async (request, reply) => {
+    const { orgId, userId } = parse(membershipParams, request.params);
+    await requireOrg(request, store, orgId, 'members:manage');
+    const existing = await store.getMembership(userId, orgId);
+
+    if (!existing) {
+      return reply.code(404).send({ error: 'Membership not found', code: 'MEMBERSHIP_NOT_FOUND' });
+    }
+
+    if (existing.roleKey === 'owner') {
+      const owners = (await store.listMembers(orgId)).filter((member) => member.roleKey === 'owner');
+
+      if (owners.length <= 1) {
+        return reply.code(409).send({ error: 'Cannot remove the last organization owner', code: 'LAST_OWNER' });
+      }
+    }
+
+    const membership = await store.removeMember(orgId, userId);
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'member.remove',
+      resourceType: 'organizationMember',
+      resourceId: membership!.id,
+      metadata: { userId },
+    });
+
+    return { membership };
   });
   app.get('/orgs/:orgId/invitations', async (request) => {
     const { orgId } = parse(orgParams, request.params);
@@ -3136,11 +5352,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(inviteSchema, request.body);
     await requireOrg(request, store, orgId, 'members:manage');
+    const roleKey = body.roleKey ?? 'member';
+    await requireAssignableOrganizationRole(store, orgId, roleKey);
     const token = createOpaqueToken('invite');
     const invitation = await store.createOrganizationInvite({
       organizationId: orgId,
       email: body.email,
-      roleKey: body.roleKey ?? 'member',
+      roleKey,
       token,
       expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
     });
@@ -3208,10 +5426,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.post('/invitations/accept', async (request, reply) => {
     const body = parse(acceptInviteSchema, request.body);
+    const pendingInvitation = await store.findOrganizationInviteByToken(body.token);
+
+    if (!pendingInvitation) {
+      return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
+
+    if (!existingMembership) {
+      await ensureQuota(request, pendingInvitation.organizationId, 'team.members');
+    }
+
     const invitation = await store.consumeOrganizationInvite(body.token, request.currentUser!.id);
 
     if (!invitation) {
       return reply.code(400).send({ error: 'Invalid invitation token', code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    if (!existingMembership) {
+      await recordUsage(request, invitation.organizationId, 'team.members');
     }
 
     await audit(request, store, {
@@ -3289,7 +5523,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/orgs/:orgId/roles', async (request) => {
     const { orgId } = parse(orgParams, request.params);
-    await requireOrg(request, store, orgId, 'roles:manage');
+    await requireOrgAny(request, store, orgId, ['org:read', 'roles:manage', 'members:manage']);
 
     return { roles: await store.listCustomRoles(orgId) };
   });
@@ -3297,6 +5531,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(customRoleSchema, request.body);
     await requireOrg(request, store, orgId, 'roles:manage');
+
+    if (Object.hasOwn(rolePermissions, body.key)) {
+      return reply.code(409).send({ error: 'System roles cannot be overwritten', code: 'SYSTEM_ROLE_RESERVED' });
+    }
+
     const role = await store.createCustomRole({
       organizationId: orgId,
       key: body.key,
@@ -3366,6 +5605,67 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: scimToken.id,
     });
 
+    return reply
+      .code(201)
+      .send({ token, scimToken: { id: scimToken.id, name: scimToken.name, createdAt: scimToken.createdAt } });
+  });
+  app.get('/orgs/:orgId/scim/tokens', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'scim:manage');
+    const tokens = await store.listScimTokens(orgId);
+    return {
+      scimTokens: tokens.map((token) => {
+        const expiresAt = new Date(
+          new Date(token.createdAt).getTime() + scimTokenMaxAgeDays * 24 * 60 * 60 * 1000,
+        ).toISOString();
+        return {
+          id: token.id,
+          name: token.name,
+          createdAt: token.createdAt,
+          lastUsedAt: token.lastUsedAt,
+          expiresAt,
+          expired: isScimTokenExpired(token),
+        };
+      }),
+    };
+  });
+  app.delete('/orgs/:orgId/scim/tokens/:tokenId', async (request, reply) => {
+    const params = parse(z.object({ orgId: z.string().min(1), tokenId: z.string().min(1) }), request.params);
+    await requireOrg(request, store, params.orgId, 'scim:manage');
+    await requireRecentAdminReauth(request);
+    const revoked = await store.revokeScimToken(params.tokenId);
+    if (!revoked || revoked.organizationId !== params.orgId) {
+      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+    }
+    await audit(request, store, {
+      organizationId: params.orgId,
+      action: 'scim.token.revoke',
+      resourceType: 'scimToken',
+      resourceId: revoked.id,
+    });
+    return reply.code(204).send();
+  });
+  app.post('/orgs/:orgId/scim/tokens/:tokenId/rotate', async (request, reply) => {
+    const params = parse(z.object({ orgId: z.string().min(1), tokenId: z.string().min(1) }), request.params);
+    await requireOrg(request, store, params.orgId, 'scim:manage');
+    await requireRecentAdminReauth(request);
+    const existing = await store.revokeScimToken(params.tokenId);
+    if (!existing || existing.organizationId !== params.orgId) {
+      return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
+    }
+    const token = createOpaqueToken('scim');
+    const scimToken = await store.createScimToken({
+      organizationId: params.orgId,
+      name: existing.name,
+      token,
+    });
+    await audit(request, store, {
+      organizationId: params.orgId,
+      action: 'scim.token.rotate',
+      resourceType: 'scimToken',
+      resourceId: scimToken.id,
+      metadata: { previousTokenId: existing.id },
+    });
     return reply
       .code(201)
       .send({ token, scimToken: { id: scimToken.id, name: scimToken.name, createdAt: scimToken.createdAt } });
@@ -3477,7 +5777,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await projectStorage.writeFiles(
       project.id,
-      starterFiles({ sourceType: 'ai', name: project.name, prompt: body.prompt }),
+      starterFiles({
+        sourceType: 'ai',
+        name: project.name,
+        prompt: body.prompt,
+        artifactType: body.artifactType,
+        framework: body.framework,
+        model: body.model,
+      }),
     );
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -3582,6 +5889,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       recentActivity: (await store.listProjectActivity(project.id)).slice(-20),
     };
   });
+  app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const svg = renderProjectHomepagePreviewSvg({
+      project: {
+        name: project.name,
+        updatedAt: project.updatedAt,
+        sourceType: project.sourceType,
+      },
+      files: await projectStorage.listFiles(project.id),
+    });
+
+    return reply
+      .header('content-type', 'image/svg+xml; charset=utf-8')
+      .header('cache-control', 'private, max-age=60')
+      .send(svg);
+  });
   app.get('/projects/:projectId/ide-state', async (request) => {
     const project = await requireProject(
       request,
@@ -3600,9 +5928,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
     const body = parse(projectIdeStateSchema, request.body ?? {});
+    const existingState = await store.getProjectIdeState(project.id);
+    const state = mergeProjectIdeState(existingState?.state, body.state);
     const ideState = await store.upsertProjectIdeState({
       projectId: project.id,
-      state: body.state,
+      state,
       updatedByUserId: request.currentUser!.id,
     });
     await store.recordProjectActivity({
@@ -3670,20 +6000,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
-    const body = parse(zipImportSchema.pick({ zipBase64: true }), request.body);
-    const files = await projectStorage.importZip(project.id, body.zipBase64);
+    const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
+    const files = await projectStorage.importZip(project.id, body.zipBase64, {
+      replaceExisting: body.replaceExisting === true,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
       action: 'project.files.import_zip',
-      metadata: { files: files.length },
+      metadata: { files: files.length, replaceExisting: body.replaceExisting === true },
     });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.files.import_zip',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { files: files.length },
+      metadata: { files: files.length, replaceExisting: body.replaceExisting === true },
     });
 
     return { files: publicFiles(files) };
@@ -3740,6 +6072,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.env.upsert',
+      resourceType: 'projectEnvironment',
+      resourceId: envVar.id,
+      metadata: { key: body.key },
+    });
+
+    return { envVar };
+  });
+  app.delete('/projects/:projectId/env-vars', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(projectKeySchema, request.body);
+    const envVar = await store.deleteProjectEnvVar(project.id, body.key);
+
+    if (!envVar) {
+      return reply.code(404).send({ error: 'Environment variable not found', code: 'PROJECT_ENV_NOT_FOUND' });
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.env.delete',
+      metadata: { key: body.key },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.env.delete',
       resourceType: 'projectEnvironment',
       resourceId: envVar.id,
       metadata: { key: body.key },
@@ -3812,6 +6174,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
   });
+  app.delete('/projects/:projectId/secrets', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(projectKeySchema, request.body);
+    const secret = await store.deleteProjectSecret(project.id, body.key);
+
+    if (!secret) {
+      return reply.code(404).send({ error: 'Secret not found', code: 'PROJECT_SECRET_NOT_FOUND' });
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'project.secret.delete',
+      metadata: { key: body.key },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.secret.delete',
+      resourceType: 'projectSecret',
+      resourceId: secret.id,
+      metadata: { key: body.key },
+    });
+
+    return {
+      secret: {
+        id: secret.id,
+        projectId: secret.projectId,
+        key: secret.key,
+        createdAt: secret.createdAt,
+        updatedAt: secret.updatedAt,
+      },
+    };
+  });
   app.get('/projects/:projectId/collaborators', async (request) => {
     const project = await requireProject(
       request,
@@ -3830,6 +6230,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
     const body = parse(collaboratorSchema, request.body);
+    const targetUser = await store.findUserById(body.userId);
+
+    if (!targetUser) {
+      return reply.code(404).send({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    const targetMembership = await store.getMembership(body.userId, project.organizationId);
+
+    if (!targetMembership) {
+      return reply
+        .code(403)
+        .send({ error: 'Collaborator must be an organization member', code: 'COLLABORATOR_NOT_ORG_MEMBER' });
+    }
+
     const collaborator = await store.addProjectCollaborator({
       projectId: project.id,
       userId: body.userId,
@@ -3873,7 +6287,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       documents: collaborationState.documents ?? {},
       terminalPermissions: collaborationState.terminalPermissions ?? {},
       aiConversation: collaborationState.aiConversation ?? { shared: false, mode: 'comment' },
-      realtime: { websocketPath: `/projects/${project.id}/collaboration/ws`, redisPubSub: Boolean(process.env.REDIS_URL) },
+      realtime: {
+        websocketPath: `/projects/${project.id}/collaboration/ws`,
+        redisPubSub: Boolean(process.env.REDIS_URL),
+      },
     };
   });
   app.post('/projects/:projectId/collaboration/presence', async (request) => {
@@ -3963,9 +6380,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filePath = normalizeProjectPath(body.filePath)!;
     const existingState = await store.getProjectIdeState(project.id);
     const { root, collaboration, documents } = collaborationDocuments(existingState);
-    const existingDocument = (documents[filePath] && typeof documents[filePath] === 'object'
-      ? (documents[filePath] as Record<string, unknown>)
-      : {}) as { version?: number };
+    const existingDocument = (
+      documents[filePath] && typeof documents[filePath] === 'object'
+        ? (documents[filePath] as Record<string, unknown>)
+        : {}
+    ) as { version?: number };
     const currentVersion = Number(existingDocument.version ?? 0);
 
     if (typeof body.baseVersion === 'number' && body.baseVersion !== currentVersion) {
@@ -4063,7 +6482,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: project.id,
       metadata: { userId: body.userId, allowed: body.allowed },
     });
-    collaborationBroker.publish(project.id, { type: 'terminal.permission', userId: body.userId, allowed: body.allowed });
+    collaborationBroker.publish(project.id, {
+      type: 'terminal.permission',
+      userId: body.userId,
+      allowed: body.allowed,
+    });
 
     return { terminalPermissions, ideState };
   });
@@ -4133,6 +6556,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { aiConversation, ideState };
   });
+  app.get('/projects/:projectId/collaboration/ws-ticket', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(collaborationWebSocketTicketSchema, request.query ?? {});
+    const sessionId = query.sessionId ?? request.currentSession?.id ?? `ws:${request.currentUser!.id}`;
+    const ticket = createCollaborationWebSocketTicket({
+      projectId: project.id,
+      userId: request.currentUser!.id,
+      sessionId,
+    });
+
+    return {
+      ticket,
+      sessionId,
+      expiresInSeconds: 60,
+      websocketPath: `/projects/${project.id}/collaboration/ws`,
+    };
+  });
   app.get('/projects/:projectId/collaboration/ws', { websocket: true }, async (socket, request) => {
     const project = await requireProject(
       request,
@@ -4200,7 +6645,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         collaborationBroker.publish(project.id, event, client);
       } catch (error: any) {
-        client.send(JSON.stringify({ type: 'error', error: { message: error.message }, timestamp: new Date().toISOString() }));
+        client.send(
+          JSON.stringify({ type: 'error', error: { message: error.message }, timestamp: new Date().toISOString() }),
+        );
       }
     });
     client.onClose(async () => {
@@ -4396,8 +6843,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(workspaceParams, request.params).workspaceId,
       'workspaces:read',
     );
+    const project = await requireProject(request, store, workspace.projectId, 'projects:read');
 
-    return { workspaceId: workspace.id, files: [] };
+    return {
+      workspaceId: workspace.id,
+      projectId: project.id,
+      files: publicFiles(await projectStorage.listFiles(project.id)),
+    };
   });
   app.get('/files/:workspaceId/metadata', async (request) => {
     const workspace = await requireWorkspace(
@@ -4406,8 +6858,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(workspaceParams, request.params).workspaceId,
       'workspaces:read',
     );
+    const project = await requireProject(request, store, workspace.projectId, 'projects:read');
 
-    return { workspaceId: workspace.id, files: [] };
+    return {
+      workspaceId: workspace.id,
+      projectId: project.id,
+      files: publicFiles(await projectStorage.listFiles(project.id)),
+    };
   });
 
   app.get('/projects/:projectId/snapshots', async (request) => {
@@ -4590,7 +7047,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiMessageSchema, request.body);
-    const inputTokens = estimateAiTokens(body.content);
+    const inputTokens = await estimateAiTokens(body.content);
     await ensureAiQuota(request, project.organizationId, inputTokens);
     const userMessage = await store.createAiMessage({ conversationId, role: 'user', content: body.content });
     const completion = await aiGatewayCompletion({
@@ -4627,9 +7084,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await recordUsage(request, project.organizationId, 'ai.messages');
     await recordUsage(request, project.organizationId, 'ai.inputTokens', completion.usage.inputTokens);
     await recordUsage(request, project.organizationId, 'ai.outputTokens', completion.usage.outputTokens);
-    metrics.increment('ai_tokens_total', { provider: completion.provider, model: completion.model, direction: 'input' }, completion.usage.inputTokens);
-    metrics.increment('ai_tokens_total', { provider: completion.provider, model: completion.model, direction: 'output' }, completion.usage.outputTokens);
-    metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, completion.usage.estimatedCostCents);
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: completion.provider, model: completion.model, direction: 'input' },
+      completion.usage.inputTokens,
+    );
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: completion.provider, model: completion.model, direction: 'output' },
+      completion.usage.outputTokens,
+    );
+    metrics.setGauge(
+      'cost_estimate_cents',
+      { organizationId: project.organizationId, source: 'ai' },
+      completion.usage.estimatedCostCents,
+    );
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'ai.message.create',
@@ -4712,7 +7181,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       plan: state.plan,
       limits: state.limits,
       usage: await store.listUsageEvents(orgId),
-      overrides: await store.listQuotaOverrides(orgId),
+      overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
       upgradePrompts: billingPlans
         .filter((plan) => plan.monthlyCents > (state.plan.monthlyCents ?? 0))
         .map((plan) => ({ planKey: plan.key, name: plan.name })),
@@ -4753,11 +7222,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const session = await stripeClient.createCheckoutSession({
       customerId: customer.externalId,
       priceId: plan.stripePriceId,
+      planKey: body.planKey,
       successUrl: body.successUrl,
       cancelUrl: body.cancelUrl,
       organizationId: orgId,
       trialDays: body.trialDays,
     });
+    if (!session.url) {
+      throw Object.assign(new Error('Stripe checkout session did not include a redirect URL'), {
+        statusCode: 502,
+        code: 'STRIPE_CHECKOUT_URL_MISSING',
+      });
+    }
     await audit(request, store, {
       organizationId: orgId,
       action: 'billing.checkout.create',
@@ -4789,6 +7265,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       customerId: customer.externalId,
       returnUrl: body.returnUrl,
     });
+    if (!session.url) {
+      throw Object.assign(new Error('Stripe portal session did not include a redirect URL'), {
+        statusCode: 502,
+        code: 'STRIPE_PORTAL_URL_MISSING',
+      });
+    }
     await audit(request, store, {
       organizationId: orgId,
       action: 'billing.portal.create',
@@ -5010,7 +7492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/billing', async (request) => {
     await requirePlatformAdmin(request);
-    return { plans: await store.listBillingPlans(), subscriptions: [] };
+    return { plans: await store.listBillingPlans(), subscriptions: await store.listAdminSubscriptions() };
   });
 
   app.get('/admin/usage', async (request) => {
@@ -5035,7 +7517,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       quotas: await Promise.all(
         organizations.map(async (organization) => ({
           organization,
-          overrides: await store.listQuotaOverrides(organization.id),
+          overrides: (await store.listQuotaOverrides(organization.id)).filter((o) => isQuotaOverrideActive(o)),
           billing: await billingState(organization.id),
         })),
       ),
@@ -5049,6 +7531,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/admin/abuse-events', async (request, reply) => {
     await requirePlatformAdmin(request);
+    await requireRecentAdminReauth(request);
     const body = parse(abuseEventSchema, request.body);
     const abuseEvent = await store.createAbuseEvent(body);
     await audit(request, store, {
@@ -5196,7 +7679,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/admin/users/:userId/reset-mfa', async (request) => {
     await requirePlatformAdmin(request);
-    await requireRecentAdminReauth(request);
+    await requireAdminMfaForSensitiveAction(request);
+    await requireRecentAdminReauth(request, 60);
     const { userId } = parse(adminUserParams, request.params);
     const user = await store.updateUser({ userId, mfaEnabled: false, mfaSecretEncrypted: '' });
     await store.setRecoveryCodes(userId, []);
@@ -5391,23 +7875,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'usage:read');
     const state = await billingState(orgId);
+    const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
     return {
       usage: await store.listUsageEvents(orgId),
       quotas: state.limits,
+      quotaUsage,
       subscription: state.subscription,
       plan: state.plan,
-      overrides: await store.listQuotaOverrides(orgId),
+      overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
     };
   });
   app.get('/usage/:orgId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'usage:read');
     const state = await billingState(orgId);
+    const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
     return {
       usage: await store.listUsageEvents(orgId),
       quotas: state.limits,
+      quotaUsage,
       subscription: state.subscription,
       plan: state.plan,
     };
@@ -5594,20 +8082,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         timeoutSeconds: body.timeoutSeconds,
         artifactSizeLimitMb: body.artifactSizeLimitMb,
         githubIntegration: body.githubIntegration,
-        envVars: Object.fromEntries(
-          Object.entries(body.envVars).map(([key, value]) => [key, redactDeploymentLog(value, { [key]: value })]),
-        ),
+        envVars: sanitizeDeploymentEnvVars(body.envVars),
         injectedSecrets: body.injectSecrets,
       },
       startedAt: new Date().toISOString(),
     });
-    const url = buildDeploymentUrl(project, queued);
+    const hookResult = await triggerProviderDeployHook(body.provider);
+    const url = hookResult?.url ?? buildDeploymentUrl(project, queued);
+    const baseLogs = createDeploymentLogs(body, { ...queued, url }, project);
+    const augmentedLogs = hookResult
+      ? [
+          ...baseLogs,
+          {
+            timestamp: new Date().toISOString(),
+            level: hookResult.status === 'failed' ? ('error' as const) : ('info' as const),
+            message: hookResult.log,
+          },
+        ]
+      : baseLogs;
     const ready = await store.updateDeployment(project.id, queued.id, {
-      status: 'READY',
+      status: hookResult?.status === 'failed' ? 'FAILED' : 'READY',
       url,
       previewUrl: body.environment === 'production' ? undefined : url,
       productionUrl: body.environment === 'production' ? url : undefined,
-      logs: createDeploymentLogs(body, { ...queued, url }, project),
+      metadata: {
+        ...(queued.metadata as Record<string, unknown>),
+        providerBuildId: hookResult?.buildId,
+        hookStatus: hookResult?.status,
+      },
+      logs: augmentedLogs,
       finishedAt: new Date().toISOString(),
     });
     await recordUsage(request, project.organizationId, 'deployments.count');
@@ -5732,21 +8235,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       branch: target.branch,
       commitSha: target.commitSha,
       customDomain: target.customDomain,
-      metadata: { ...target.metadata, rollbackTargetId: target.id },
+      metadata: {
+        ...(target.metadata as Record<string, unknown>),
+        rollbackTargetId: target.id,
+        restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
+      },
       rolledBackFromId: target.id,
       startedAt: new Date().toISOString(),
       finishedAt: new Date().toISOString(),
-      logs: [{ timestamp: new Date().toISOString(), level: 'info', message: `Rolled back to deployment ${target.id}` }],
+      logs: [
+        {
+          timestamp: new Date().toISOString(),
+          level: 'info',
+          message: `Rolled back to deployment ${target.id} (${target.provider} buildId=${(target.metadata as Record<string, unknown>)?.providerBuildId ?? 'unknown'}, url=${target.url ?? 'n/a'})`,
+        },
+      ],
     });
+    const providerRollback = deploymentProviders.includes(target.provider as (typeof deploymentProviders)[number])
+      ? await triggerProviderRollback(
+          target.provider as (typeof deploymentProviders)[number],
+          (target.metadata as Record<string, unknown>)?.providerBuildId as string | undefined,
+        )
+      : undefined;
+    let finalDeployment = rollback;
+    if (providerRollback) {
+      finalDeployment = await store.updateDeployment(project.id, rollback.id, {
+        status: providerRollback.status === 'failed' ? 'FAILED' : rollback.status,
+        logs: [
+          ...rollback.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
+            message: providerRollback.log,
+          },
+        ],
+        metadata: {
+          ...(rollback.metadata as Record<string, unknown>),
+          providerRollbackStatus: providerRollback.status,
+        },
+      });
+    }
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.rollback',
       resourceType: 'deployment',
-      resourceId: rollback.id,
-      metadata: { targetDeploymentId: target.id },
+      resourceId: finalDeployment.id,
+      metadata: {
+        targetDeploymentId: target.id,
+        providerRollbackStatus: providerRollback?.status,
+      },
     });
 
-    return reply.code(201).send({ deployment: rollback });
+    return reply.code(201).send({ deployment: finalDeployment });
   });
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(
@@ -5815,7 +8355,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
-    if (!scimToken || scimToken.organizationId !== orgId) {
+    if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
       return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
     }
 
@@ -5838,7 +8378,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const scimToken = token ? await store.findScimToken(token) : undefined;
 
-    if (!scimToken || scimToken.organizationId !== orgId) {
+    if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
       return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
     }
 
@@ -5851,7 +8391,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: [body.name?.givenName, body.name?.familyName].filter(Boolean).join(' ') || body.userName,
         passwordHash: hashPassword(createOpaqueToken('provisioned')),
       }));
+    const existingMembership = await store.getMembership(user.id, orgId);
+
+    if (!existingMembership) {
+      await ensureQuota(request, orgId, 'team.members');
+    }
+
     const membership = await store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
+    if (!existingMembership) {
+      await recordUsage(request, orgId, 'team.members');
+    }
     await store.recordAudit({
       organizationId: orgId,
       action: 'scim.user.provision',
@@ -5868,6 +8417,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       meta: { resourceType: 'User' },
       membershipId: membership.id,
     });
+  });
+  app.patch('/scim/v2/:orgId/Users/:userId', async (request, reply) => {
+    const token = bearerToken(request);
+    const { orgId, userId } = parse(scimUserParams, request.params);
+    const scimToken = token ? await store.findScimToken(token) : undefined;
+
+    if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
+      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+    }
+
+    const body = parse(scimPatchSchema, request.body);
+    const membership = await store.getMembership(userId, orgId);
+
+    if (!membership) {
+      return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
+    }
+
+    let active: boolean | undefined;
+    for (const op of body.Operations) {
+      const operation = (op.op ?? 'replace').toLowerCase();
+      const path = (op.path ?? '').toLowerCase();
+      if (operation === 'remove' && path === 'active') {
+        active = false;
+        continue;
+      }
+      if (path === 'active') {
+        active = typeof op.value === 'boolean' ? op.value : op.value === 'true';
+        continue;
+      }
+      if (
+        path === '' &&
+        op.value &&
+        typeof op.value === 'object' &&
+        'active' in (op.value as Record<string, unknown>)
+      ) {
+        const next = (op.value as Record<string, unknown>).active;
+        active = typeof next === 'boolean' ? next : next === 'true';
+      }
+    }
+
+    if (active === false) {
+      await store.removeMember(orgId, userId).catch(() => undefined);
+      await store.recordAudit({
+        organizationId: orgId,
+        action: 'scim.user.deactivate',
+        resourceType: 'user',
+        resourceId: userId,
+      });
+    } else {
+      await store.recordAudit({
+        organizationId: orgId,
+        action: 'scim.user.update',
+        resourceType: 'user',
+        resourceId: userId,
+        metadata: { active },
+      });
+    }
+
+    const user = await store.findUserById(userId);
+
+    return {
+      schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+      id: userId,
+      userName: user?.email,
+      active: active ?? true,
+      meta: { resourceType: 'User' },
+    };
+  });
+  app.delete('/scim/v2/:orgId/Users/:userId', async (request, reply) => {
+    const token = bearerToken(request);
+    const { orgId, userId } = parse(scimUserParams, request.params);
+    const scimToken = token ? await store.findScimToken(token) : undefined;
+
+    if (!scimToken || scimToken.organizationId !== orgId || isScimTokenExpired(scimToken)) {
+      return reply.code(401).send({ error: 'Invalid SCIM token', code: 'SCIM_AUTH_REQUIRED' });
+    }
+
+    const membership = await store.getMembership(userId, orgId);
+
+    if (!membership) {
+      return reply.code(404).send({ error: 'User is not a member of this organization', code: 'SCIM_USER_NOT_FOUND' });
+    }
+
+    await store.removeMember(orgId, userId);
+    await store.recordAudit({
+      organizationId: orgId,
+      action: 'scim.user.delete',
+      resourceType: 'user',
+      resourceId: userId,
+    });
+
+    return reply.code(204).send();
   });
 
   return app;

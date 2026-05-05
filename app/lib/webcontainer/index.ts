@@ -1,4 +1,5 @@
 import { createBrowserWebContainerRuntime, type WebContainerLike } from '@vibecore/runtime-webcontainer';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR, WORK_DIR_NAME } from '~/utils/constants';
 import { cleanStackTrace } from '~/utils/stacktrace';
 
@@ -26,7 +27,6 @@ export let webcontainerRuntimeAdapter = createBrowserWebContainerRuntime({
 
 if (!import.meta.env.SSR) {
   const inspectorScript = fetch('/inspector-script.js').then((response) => response.text());
-  const workbenchStore = import('~/lib/stores/workbench').then((module) => module.workbenchStore);
   const runtime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,
     workdirName: WORK_DIR_NAME,
@@ -41,14 +41,12 @@ if (!import.meta.env.SSR) {
       if (message.type === 'PREVIEW_UNCAUGHT_EXCEPTION' || message.type === 'PREVIEW_UNHANDLED_REJECTION') {
         const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
         const title = isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception';
-        void workbenchStore.then((store) => {
-          store.actionAlert.set({
-            type: 'preview',
-            title,
-            description: 'message' in message ? message.message : 'Unknown error',
-            content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
-            source: 'preview',
-          });
+        workbenchStore.actionAlert.set({
+          type: 'preview',
+          title,
+          description: 'message' in message ? message.message : 'Unknown error',
+          content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
+          source: 'preview',
         });
       }
     },

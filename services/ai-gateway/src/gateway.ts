@@ -204,23 +204,45 @@ export const modelCatalog: AiModel[] = [
   },
 ];
 
+let gptTokenEncoder: ((text: string) => number[] | Uint32Array) | undefined;
+let gptTokenizerLoadAttempted = false;
+
+export async function ensureGptTokenizer() {
+  if (gptTokenEncoder || gptTokenizerLoadAttempted) return;
+  gptTokenizerLoadAttempted = true;
+  try {
+    const tokenizer = (await import('gpt-tokenizer')) as { encode: (text: string) => number[] | Uint32Array };
+    gptTokenEncoder = (text) => tokenizer.encode(text);
+  } catch {
+    // tokenizer optional; fall back to length/4
+  }
+}
+
 export function countTokens(messages: AiMessage[] | string) {
   const content = typeof messages === 'string' ? messages : messages.map((message) => message.content).join('\n');
+  if (gptTokenEncoder) {
+    try {
+      const encoded = gptTokenEncoder(content);
+      const length = encoded instanceof Uint32Array ? encoded.length : encoded.length;
+      return Math.max(1, length);
+    } catch {
+      // fall through
+    }
+  }
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
-function canonicalModelName(modelName: string) {
-  return modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-}
-
 export function modelDisallowsTemperature(modelName: string) {
-  return canonicalModelName(modelName).includes('claude-opus-4-7');
+  void modelName;
+
+  return true;
 }
 
 function optionalTemperature(request: AiChatRequest, model: string) {
-  return request.temperature === undefined || modelDisallowsTemperature(model)
-    ? {}
-    : { temperature: request.temperature };
+  void request;
+  void model;
+
+  return {};
 }
 
 function estimateCost(model: AiModel, inputTokens: number, outputTokens: number) {
@@ -519,6 +541,7 @@ export class AiGateway {
   }
 
   async complete(request: AiChatRequest) {
+    await ensureGptTokenizer();
     const routed = this.route(request);
     const inputTokens = countTokens(request.messages);
     let lastError: unknown;
@@ -546,6 +569,7 @@ export class AiGateway {
   }
 
   async *stream(request: AiChatRequest): AsyncGenerator<AiChatChunk> {
+    await ensureGptTokenizer();
     const routed = this.route(request);
     const inputTokens = countTokens(request.messages);
     let content = '';

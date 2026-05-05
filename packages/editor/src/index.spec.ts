@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editorBreakpoints, getResponsiveLayoutState } from './index.js';
+import { editorBreakpoints, editorKindForLayout, getResponsiveLayoutState } from './index.js';
 
 describe('responsive editor layout', () => {
   it('maps desktop, tablet, and mobile breakpoints', () => {
@@ -17,5 +17,12 @@ describe('responsive editor layout', () => {
     expect(state.hasCoarsePointer).toBe(true);
     expect(state.prefersReducedMotion).toBe(true);
     expect(state.safeArea.bottom).toContain('safe-area-inset-bottom');
+  });
+
+  it('uses Monaco only on desktop and landscape tablets', () => {
+    expect(editorKindForLayout(getResponsiveLayoutState(1440))).toBe('monaco');
+    expect(editorKindForLayout(getResponsiveLayoutState(1024))).toBe('monaco');
+    expect(editorKindForLayout(getResponsiveLayoutState(820))).toBe('codemirror');
+    expect(editorKindForLayout(getResponsiveLayoutState(390))).toBe('codemirror');
   });
 });

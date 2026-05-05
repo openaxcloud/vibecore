@@ -15,7 +15,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   });
 
   expect(response.ok(), await response.text()).toBeTruthy();
-  const payload = (await response.json()) as { token: string };
+  const payload = (await response.json()) as { token: string; organization: { id: string } };
 
   await page.context().addCookies([
     {
@@ -26,15 +26,31 @@ async function authenticate(page: import('@playwright/test').Page) {
       sameSite: 'Lax',
     },
   ]);
+
+  return payload;
+}
+
+async function createTestProject(page: import('@playwright/test').Page, name: string) {
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+  const auth = await authenticate(page);
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { name },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+  return (await createProject.json()).project.id as string;
 }
 
 test.describe('responsive IDE shell', () => {
   test('desktop keeps the full IDE workspace available', async ({ page, isMobile }) => {
     test.skip(isMobile, 'desktop-only assertion');
 
-    await authenticate(page);
-    await page.goto('/projects/project_responsive/ide', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+    const projectId = await createTestProject(page, 'Responsive desktop project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
 
@@ -48,8 +64,9 @@ test.describe('responsive IDE shell', () => {
   test('desktop can collapse and restore the right preview panel', async ({ page, isMobile }) => {
     test.skip(isMobile, 'desktop-only assertion');
 
-    await authenticate(page);
-    await page.goto('/projects/project_files_toggle/ide', { waitUntil: 'domcontentloaded' });
+    const projectId = await createTestProject(page, 'Responsive files toggle project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
 
@@ -66,11 +83,23 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
   });
 
+  test('desktop opens terminal as a workspace panel from the panel URL', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'desktop-only assertion');
+
+    const projectId = await createTestProject(page, 'Responsive terminal panel project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('tab', { name: /Terminal/ })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(/panel=terminal/);
+  });
+
   test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
 
-    await authenticate(page);
-    await page.goto('/projects/project_responsive/ide', { waitUntil: 'domcontentloaded' });
+    const projectId = await createTestProject(page, 'Responsive mobile project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
 
@@ -80,18 +109,42 @@ test.describe('responsive IDE shell', () => {
 
     await mobileNav.getByRole('button', { name: 'Editor', exact: true }).tap();
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first()).toBeVisible({
+      timeout: 15000,
+    });
 
     await mobileNav.getByRole('button', { name: 'Terminal', exact: true }).tap();
     await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
+  });
+
+  test('mobile editor accepts edits and exposes save without Monaco', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile-only assertion');
+
+    const projectId = await createTestProject(page, 'Responsive mobile editor project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
+    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await mobileNav.getByRole('button', { name: 'Editor', exact: true }).tap();
+
+    const codeMirror = page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first();
+    await expect(codeMirror).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
+
+    const editorContent = page.locator('.cm-content').first();
+    await editorContent.tap();
+    await page.keyboard.insertText('\n// mobile editor save path');
+    await expect(page.getByRole('button', { name: /Save/ })).toBeVisible({ timeout: 15000 });
   });
 
   test('tablet landscape sizes the agent panel fluidly without horizontal overflow', async ({ page, isMobile }) => {
     test.skip(isMobile, 'tablet landscape assertion');
     await page.setViewportSize({ width: 1024, height: 768 });
 
-    await authenticate(page);
-    await page.goto('/projects/project_tablet_landscape/ide', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 15000 });
+    const projectId = await createTestProject(page, 'Responsive tablet project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible({ timeout: 15000 });
 
     const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();

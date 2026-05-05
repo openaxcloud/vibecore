@@ -58,8 +58,25 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     'support:write',
     'usage:read',
   ],
-  member: ['org:read', 'projects:read', 'projects:write', 'workspaces:read', 'workspaces:write', 'usage:read'],
-  viewer: ['org:read', 'projects:read', 'workspaces:read', 'usage:read'],
+  member: [
+    'org:read',
+    'projects:read',
+    'projects:write',
+    'workspaces:read',
+    'workspaces:write',
+    'support:write',
+    'usage:read',
+  ],
+  editor: [
+    'org:read',
+    'projects:read',
+    'projects:write',
+    'workspaces:read',
+    'workspaces:write',
+    'support:write',
+    'usage:read',
+  ],
+  viewer: ['org:read', 'projects:read', 'workspaces:read', 'support:write', 'usage:read'],
 };
 
 export function hasPermission(roleKey: string, permission: PermissionKey) {

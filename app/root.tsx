@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { Links, Meta, Outlet, Scripts, ScrollRestoration, useFetchers, useNavigation } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -57,7 +57,7 @@ const inlineThemeCode = stripIndents`
     let theme = localStorage.getItem('bolt_theme');
 
     if (!theme) {
-      theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      theme = 'dark';
     }
 
     const root = document.querySelector('html');
@@ -99,34 +99,77 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
-      <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
-        icon={({ type }) => {
-          switch (type) {
-            case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
-            }
-            case 'error': {
-              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
-            }
-          }
-
-          return undefined;
-        }}
-        position="bottom-right"
-        pauseOnFocusLoss
-        transition={toastAnimation}
-        autoClose={3000}
-      />
+      <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
+      <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
+  );
+}
+
+function AppToastContainer() {
+  return (
+    <ToastContainer
+      closeButton={({ closeToast }) => {
+        return (
+          <button className="Toastify__close-button" onClick={closeToast}>
+            <div className="i-ph:x text-lg" />
+          </button>
+        );
+      }}
+      icon={({ type }) => {
+        switch (type) {
+          case 'success': {
+            return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+          }
+          case 'error': {
+            return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
+          }
+        }
+
+        return undefined;
+      }}
+      position="bottom-right"
+      pauseOnFocusLoss
+      transition={toastAnimation}
+      autoClose={3000}
+    />
+  );
+}
+
+function GlobalRouteLoader() {
+  const navigation = useNavigation();
+  const fetchers = useFetchers();
+  const [visible, setVisible] = useState(false);
+  const loading =
+    navigation.state !== 'idle' ||
+    fetchers.some((fetcher) => fetcher.state === 'loading' || fetcher.state === 'submitting');
+
+  useEffect(() => {
+    if (!loading) {
+      setVisible(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setVisible(true), 120);
+
+    return () => window.clearTimeout(timer);
+  }, [loading]);
+
+  return (
+    <div
+      className="bolt-route-loader"
+      data-visible={visible}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading page"
+    >
+      <span className="bolt-route-loader-bar" />
+      <span className="bolt-route-loader-pill">
+        <span className="i-svg-spinners:90-ring-with-bg" aria-hidden />
+        <span>Loading</span>
+      </span>
+    </div>
   );
 }
 

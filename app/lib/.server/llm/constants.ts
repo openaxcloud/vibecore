@@ -38,26 +38,18 @@ export function isReasoningModel(modelName: string): boolean {
   return /^(o1|o3|gpt-5)/i.test(modelName);
 }
 
-function canonicalModelName(modelName: string): string {
-  return modelName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-}
-
 export function modelDisallowsTemperature(modelName: string, providerName?: string): boolean {
-  const canonicalName = canonicalModelName(modelName);
-  const canonicalProvider = providerName ? canonicalModelName(providerName) : '';
+  void modelName;
+  void providerName;
 
-  return (
-    canonicalName.includes('claude-opus-4-7') ||
-    (canonicalProvider === 'anthropic' && canonicalName.includes('opus-4-7'))
-  );
+  return true;
 }
 
 export function temperatureOptionsForModel(modelName: string, providerName?: string): { temperature?: number } {
-  if (modelDisallowsTemperature(modelName, providerName)) {
-    return {};
-  }
+  void modelName;
+  void providerName;
 
-  return isReasoningModel(modelName) ? { temperature: 1 } : { temperature: 0 };
+  return {};
 }
 
 // limits the number of model responses that can be returned in a single request

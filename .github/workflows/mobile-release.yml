@@ -10,9 +10,83 @@ permissions:
 
 jobs:
   android:
-    name: Android build artifact
+    name: Android debug build
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate mobile native assets
+        run: pnpm mobile:validate
+
+      - name: Generate mobile release association assets
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          MOBILE_APP_LINK_HOST: ${{ vars.MOBILE_APP_LINK_HOST }}
+          MOBILE_IOS_ASSOCIATED_DOMAIN_HOST: ${{ vars.MOBILE_IOS_ASSOCIATED_DOMAIN_HOST }}
+          MOBILE_IOS_APP_IDS: ${{ vars.MOBILE_IOS_APP_IDS }}
+          MOBILE_ANDROID_PACKAGE_NAME: ${{ vars.MOBILE_ANDROID_PACKAGE_NAME }}
+          MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS: ${{ vars.MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS }}
+          MOBILE_IOS_APS_ENVIRONMENT: production
+        run: pnpm mobile:release-assets
+
+      - name: Validate mobile release assets
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        run: pnpm mobile:validate:release
+
+      - name: Android build
+        run: pnpm mobile:build:android
+
+      - name: Decode Android release keystore
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          VIBECORE_ANDROID_KEYSTORE_BASE64: ${{ secrets.VIBECORE_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$VIBECORE_ANDROID_KEYSTORE_BASE64"
+          mkdir -p apps/mobile/android/signing
+          echo "$VIBECORE_ANDROID_KEYSTORE_BASE64" | base64 --decode > apps/mobile/android/signing/release.keystore
+
+      - name: Android release bundle
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          VIBECORE_ANDROID_KEYSTORE_PATH: signing/release.keystore
+          VIBECORE_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.VIBECORE_ANDROID_KEYSTORE_PASSWORD }}
+          VIBECORE_ANDROID_KEY_ALIAS: ${{ secrets.VIBECORE_ANDROID_KEY_ALIAS }}
+          VIBECORE_ANDROID_KEY_PASSWORD: ${{ secrets.VIBECORE_ANDROID_KEY_PASSWORD }}
+        run: pnpm mobile:build:android:release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vibecore-android
+          path: apps/mobile/android/app/build/outputs/apk/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        with:
+          name: vibecore-android-release
+          path: apps/mobile/android/app/build/outputs/bundle/release/*.aab
+
+  ios-docs:
+    name: iOS sync check and signing docs
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -28,32 +102,31 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Mobile sync
-        run: pnpm mobile:sync
+      - name: Validate mobile native assets
+        run: pnpm mobile:validate
 
-      - name: Android build placeholder
-        run: |
-          mkdir -p mobile-artifacts
-          printf "Android build requires the native mobile project credentials and keystore configured in repository secrets.\\n" > mobile-artifacts/android-build-readme.txt
+      - name: Generate mobile release association assets
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        env:
+          MOBILE_APP_LINK_HOST: ${{ vars.MOBILE_APP_LINK_HOST }}
+          MOBILE_IOS_ASSOCIATED_DOMAIN_HOST: ${{ vars.MOBILE_IOS_ASSOCIATED_DOMAIN_HOST }}
+          MOBILE_IOS_APP_IDS: ${{ vars.MOBILE_IOS_APP_IDS }}
+          MOBILE_ANDROID_PACKAGE_NAME: ${{ vars.MOBILE_ANDROID_PACKAGE_NAME }}
+          MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS: ${{ vars.MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS }}
+          MOBILE_IOS_APS_ENVIRONMENT: production
+        run: pnpm mobile:release-assets
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vibecore-android
-          path: mobile-artifacts
+      - name: Validate mobile release assets
+        if: startsWith(github.ref, 'refs/tags/mobile-v')
+        run: pnpm mobile:validate:release
 
-  ios-docs:
-    name: iOS macOS runner requirement
-    runs-on: macos-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
+      - name: iOS Capacitor sync
+        run: pnpm --filter @vibecore/mobile sync:ios
 
-      - name: Document iOS build requirement
-        run: |
-          mkdir -p mobile-artifacts
-          printf "iOS builds require macOS runner, Apple signing certificates, provisioning profiles, and App Store Connect API credentials.\\n" > mobile-artifacts/ios-build-readme.txt
+      - name: iOS signing documentation artifact
+        run: pnpm mobile:build:ios:docs
 
       - uses: actions/upload-artifact@v4
         with:
           name: vibecore-ios-docs
-          path: mobile-artifacts
+          path: apps/mobile/mobile-artifacts
