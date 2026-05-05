@@ -1,0 +1,9 @@
+variable "project_id" { type = string }
+variable "region" { type = string }
+variable "name_prefix" { type = string }
+variable "network" { type = string }
+variable "subnet" { type = string }
+variable "service_account_email" { type = string }
+variable "workload_identity_project" { type = string }
+variable "master_cidr" { type = string }
+variable "labels" { type = map(string) }

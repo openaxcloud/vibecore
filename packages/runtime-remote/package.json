@@ -1,0 +1,15 @@
+{
+  "name": "@vibecore/runtime-remote",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest --run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"runtime-remote lint delegated to root\""
+  },
+  "dependencies": {
+    "@vibecore/runtime-contract": "workspace:*"
+  }
+}

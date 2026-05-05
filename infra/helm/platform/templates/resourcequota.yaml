@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: platform-quota
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 80Gi
+    limits.cpu: "80"
+    limits.memory: 240Gi
+    pods: "200"

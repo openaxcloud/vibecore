@@ -1,0 +1,12 @@
+{
+  "name": "@vibecore/runtime-contract",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest --run src",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"runtime-contract lint delegated to root\""
+  }
+}

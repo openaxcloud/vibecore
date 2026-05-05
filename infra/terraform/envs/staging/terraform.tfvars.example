@@ -1,0 +1,7 @@
+project_id     = "vibecore-staging"
+region         = "us-central1"
+domain         = "staging.example.com"
+preview_domain = "preview.staging.example.com"
+labels = {
+  owner = "platform"
+}

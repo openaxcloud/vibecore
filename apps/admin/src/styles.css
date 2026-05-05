@@ -1,0 +1,968 @@
+:root {
+  color-scheme: dark;
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --vc-font-interface: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --vc-font-code: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+  --vc-type-interface-size: 13px;
+  --vc-type-interface-compact-size: 12px;
+  --vc-type-code-size: 13px;
+  --vc-type-heading-size: 15px;
+  --vc-type-heading-compact-size: 14px;
+  --vc-type-label-size: 11px;
+  --vc-type-line-height: 1.5;
+  --vc-type-label-letter-spacing: 0.4px;
+  --vc-ui-radius-button: 4px;
+  --vc-ui-radius-input: 6px;
+  --vc-ui-radius-card: 6px;
+  --vc-ui-radius-modal: 8px;
+  --vc-ui-radius-popover: 12px;
+  --vc-ui-shadow-sm: 0 1px 2px rgb(0 4 20 / 0.4);
+  --vc-ui-shadow-md: 0 4px 12px rgb(0 4 20 / 0.5);
+  --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
+  --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+  --vc-ui-transition-hover: 150ms ease-out;
+  --vc-ui-transition-panel: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --vc-ui-transition-popover: 100ms ease-out;
+  --vc-ui-overlay-bg: rgb(26 32 48 / 0.85);
+  --vc-ui-overlay-blur: blur(12px);
+  --vc-ui-focus-ring: #0099ff;
+  --vc-ui-tooltip-bg: #0e1525;
+  --vc-ui-tooltip-border: #2b3245;
+  --vc-ui-tooltip-text-size: 11px;
+  --vc-ui-tooltip-delay: 500ms;
+  --vc-ui-scrollbar-size: 10px;
+  --vc-ui-scrollbar-thumb: rgb(43 50 69 / 0.72);
+  --vc-ui-scrollbar-thumb-hover: #3b4358;
+  --vc-button-bg: transparent;
+  --vc-button-solid-bg: #1a2030;
+  --vc-button-hover-bg: #2b3245;
+  --vc-button-active-bg: #3b4358;
+  --vc-button-disabled-opacity: 0.4;
+  --vc-button-loading-spinner-size: 14px;
+  --vc-animation-tab-open: 200ms;
+  --vc-animation-tab-close: 150ms;
+  --vc-animation-popover: 150ms;
+  --vc-animation-modal: 200ms;
+  --vc-animation-split-panel: 250ms ease-out;
+  --vc-animation-drop-zone: 100ms;
+  --vc-animation-typing: 1.4s;
+  --vc-run-stop-bg: #f85149;
+  --vc-accessibility-focus-width: 2px;
+  --vc-accessibility-reduced-motion-duration: 50ms;
+  --vc-accessibility-contrast-text: #f5f9fc;
+  --vc-accessibility-contrast-muted: #c2c8cc;
+  font-family:
+    var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  --bg: var(--vc-ide-bg-app);
+  --panel: var(--vc-ide-bg-panel);
+  --panel-raised: var(--vc-ide-bg-card);
+  --panel-soft: var(--vc-ide-bg-hover);
+  --border: var(--vc-ide-border-subtle);
+  --border-strong: var(--vc-ide-border-visible);
+  --text: var(--vc-ide-text-primary);
+  --muted: var(--vc-ide-text-secondary);
+  --subtle: var(--vc-ide-text-muted);
+  --accent: var(--vc-ide-accent-action);
+  --accent-strong: var(--vc-ide-accent-action);
+  --danger: var(--vc-ide-accent-error);
+  --danger-soft: rgb(248 81 73 / 0.12);
+  --ok: var(--vc-ide-accent-success);
+  --warn: var(--vc-ide-accent-warning);
+  --shadow: var(--vc-ui-shadow-md);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--vc-font-code);
+  font-size: var(--vc-type-code-size);
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings:
+    "liga" 1,
+    "calt" 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-heading-size);
+  font-weight: 600;
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--vc-type-heading-compact-size);
+}
+
+:where(.uppercase, [class*="uppercase"], label, legend, th) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-label-size);
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  line-height: var(--vc-type-line-height);
+}
+
+body :where(div, span, p, a, li, td, summary, button, input, select, textarea):not([class*="i-"]) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+body :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-heading-size) !important;
+  font-weight: 600 !important;
+  line-height: var(--vc-type-line-height) !important;
+  letter-spacing: 0 !important;
+}
+
+body :where(h3, h4, h5, h6) {
+  font-size: var(--vc-type-heading-compact-size) !important;
+}
+
+body :where(.uppercase, [class*="uppercase"], label, legend, th) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-label-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: var(--vc-type-label-letter-spacing) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+body :where(button, [role="button"], .btn, .button, summary) {
+  position: relative;
+  border-radius: var(--vc-ui-radius-button);
+  background-color: var(--vc-button-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    opacity var(--vc-ui-transition-hover),
+    filter var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
+}
+
+body :where(button[data-variant="default"], button[data-variant="secondary"], .vc-button-solid) {
+  background-color: var(--vc-button-solid-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled="true"]):hover) {
+  background-color: var(--vc-button-hover-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:active, [aria-pressed="true"], [data-state="active"]) {
+  background-color: var(--vc-button-active-bg);
+}
+
+body :where(button, [role="button"], .btn, .button, summary):where(:disabled, [aria-disabled="true"], [data-disabled="true"]) {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"]) {
+  cursor: progress;
+}
+
+body
+  :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])
+  > :where(svg, .lucide, [class*="i-"]):first-child {
+  opacity: 0;
+}
+
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])::before {
+  position: absolute;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: "";
+  inset: 50% auto auto 50%;
+  margin: calc(var(--vc-button-loading-spinner-size) / -2) 0 0 calc(var(--vc-button-loading-spinner-size) / -2);
+}
+
+@keyframes vc-button-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vc-tab-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes vc-tab-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vc-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-drop-zone-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+body :where(input, select, textarea) {
+  border-radius: var(--vc-ui-radius-input);
+  border-color: var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+body :where(.card, .panel, .table-wrap, [data-card]) {
+  border-radius: var(--vc-ui-radius-card);
+  border-color: var(--border-strong);
+  background: var(--panel-raised);
+  color: var(--text);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([role="dialog"], .dialog, .modal) {
+  border-radius: var(--vc-ui-radius-modal);
+  border-color: var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-modal-in var(--vc-animation-modal) ease-out both;
+  transform-origin: center top;
+}
+
+body :where(.popover, [data-radix-popper-content-wrapper] > *) {
+  border-radius: var(--vc-ui-radius-popover);
+  border-color: var(--border-strong);
+  background: var(--panel-raised);
+  color: var(--text);
+  box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-popover-in var(--vc-animation-popover) ease-out both;
+  transform-origin: top center;
+  transition:
+    opacity var(--vc-ui-transition-popover),
+    transform var(--vc-ui-transition-popover),
+    background-color var(--vc-ui-transition-popover);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]) {
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]) {
+  animation: vc-modal-backdrop-in var(--vc-animation-modal) ease-out both;
+}
+
+body :where(.vc-animated-tab, .tab, [role="tab"]) {
+  animation: vc-tab-slide-in var(--vc-animation-tab-open) ease-out both;
+}
+
+body :where(.vc-animated-tab[data-closing="true"], .tab[data-closing="true"], [role="tab"][data-closing="true"]) {
+  animation: vc-tab-fade-out var(--vc-animation-tab-close) ease-out both;
+}
+
+body :where(.vc-split-panel, [data-panel]) {
+  transition:
+    flex-basis var(--vc-animation-split-panel),
+    width var(--vc-animation-split-panel),
+    height var(--vc-animation-split-panel);
+}
+
+body :where(.vc-drop-zone) {
+  animation: vc-drop-zone-in var(--vc-animation-drop-zone) ease-out both;
+}
+
+body :where(.vc-typing-indicator, .typing-indicator) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body :where(.vc-typing-indicator, .typing-indicator) > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
+  background: var(--vc-ide-accent-ai-start);
+}
+
+body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+body :where(.vc-run-button[data-run-state="running"], button[data-run-state="running"], button[aria-label="Stop app"]) {
+  background: var(--vc-run-stop-bg);
+  color: #ffffff;
+}
+
+body :where(.vc-run-button[data-run-state="running"], button[data-run-state="running"], button[aria-label="Stop app"])::before {
+  position: static;
+  display: inline-block;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: "";
+  margin-right: 6px;
+}
+
+body
+  :where(
+    button,
+    a,
+    summary,
+    input,
+    textarea,
+    select,
+    [tabindex],
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [contenteditable="true"]
+  ):focus-visible {
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
+  outline-offset: 2px;
+}
+
+.sr-only,
+.vc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
+}
+
+body :where([role="tooltip"], .tooltip, .vc-tooltip, [data-radix-tooltip-content]) {
+  border: 1px solid var(--vc-ui-tooltip-border);
+  background: var(--vc-ui-tooltip-bg);
+  color: #f5f9fc;
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
+  fill: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.lucide, svg[data-lucide]) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vc-ui-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: var(--vc-ui-scrollbar-size);
+  height: var(--vc-ui-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: var(--vc-ui-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--vc-ui-scrollbar-thumb-hover);
+  background-clip: content-box;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
+  outline-offset: 2px;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+  }
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  padding: 18px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel-raised);
+}
+
+.brand h1,
+.panel h2,
+.page-title h1 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.brand h1 {
+  font-size: var(--vc-type-heading-size);
+}
+
+.nav {
+  display: grid;
+  gap: 4px;
+}
+
+.nav button,
+.icon-button,
+.action,
+.danger,
+.secondary {
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-button);
+  color: var(--text);
+  background: var(--panel-raised);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
+}
+
+.nav button {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  color: #d4d4d8;
+}
+
+.nav button:hover,
+.secondary:hover {
+  background: var(--panel-soft);
+  border-color: var(--border-strong);
+}
+
+.nav button[aria-current="page"],
+.action {
+  background: var(--accent);
+  border-color: var(--accent-strong);
+  color: #ffffff;
+}
+
+.danger {
+  background: var(--danger-soft);
+  border-color: #7f1d1d;
+  color: #fecaca;
+}
+
+.danger:hover {
+  border-color: #ef4444;
+}
+
+.main {
+  min-width: 0;
+  padding: 24px;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 760px);
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-title,
+.toolbar,
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  min-height: 64px;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel);
+  padding: 16px;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+.page-title h1 {
+  font-size: var(--vc-type-heading-size);
+}
+
+.token-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel);
+  padding: 12px;
+}
+
+.token-form button,
+.token-form .muted {
+  min-height: 40px;
+}
+
+.token-form input,
+.toolbar input,
+.toolbar select,
+.dialog input,
+.dialog textarea,
+.dialog select {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-input);
+  background: var(--panel-raised);
+  color: var(--text);
+  padding: 10px 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.metrics {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.card,
+.panel,
+.dialog {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel-raised);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+.card,
+.panel {
+  padding: 16px;
+}
+
+.metric {
+  color: var(--muted);
+  font-size: var(--vc-type-interface-size);
+}
+
+.metric strong {
+  display: block;
+  color: var(--text);
+  font-size: var(--vc-type-heading-size);
+  margin-top: 8px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: #d4d4d8;
+  background: var(--panel-raised);
+}
+
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ok);
+}
+
+.status.warn::before {
+  background: var(--warn);
+}
+
+.status.bad::before {
+  background: #ef4444;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  padding: 12px;
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+.toolbar input {
+  min-width: min(100%, 360px);
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+}
+
+th,
+td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--panel-raised);
+  color: #d4d4d8;
+  font-size: var(--vc-type-label-size);
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
+th button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+td {
+  color: #d4d4d8;
+  font-size: 13px;
+}
+
+tbody tr:hover {
+  background: rgb(255 255 255 / 0.03);
+}
+
+code,
+pre {
+  border: 1px solid var(--border);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel-raised);
+  color: #d4d4d8;
+}
+
+pre {
+  overflow: auto;
+  padding: 14px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.skeleton {
+  min-height: 260px;
+  background: linear-gradient(90deg, #18181b, #27272a, #18181b);
+  background-size: 200% 100%;
+  animation: pulse 1.3s infinite;
+}
+
+@keyframes pulse {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(460px, calc(100vw - 32px));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--panel-raised);
+  padding: 12px;
+  z-index: 20;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+  z-index: 30;
+}
+
+.dialog {
+  width: min(560px, 100%);
+  border-radius: var(--vc-ui-radius-modal);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.dialog label {
+  display: grid;
+  gap: 7px;
+  color: #d4d4d8;
+}
+
+.dialog textarea {
+  min-height: 120px;
+}
+
+@media (max-width: 1100px) {
+  .app,
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: relative;
+    height: auto;
+  }
+
+  .nav {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .main,
+  .sidebar {
+    padding: 14px;
+  }
+
+  .token-form {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    position: static;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark;
+    background: var(--vc-ide-bg-app);
+    color: var(--vc-ide-text-primary);
+    --bg: var(--vc-ide-bg-app);
+    --panel: var(--vc-ide-bg-panel);
+    --panel-raised: var(--vc-ide-bg-card);
+    --panel-soft: var(--vc-ide-bg-hover);
+    --border: var(--vc-ide-border-subtle);
+    --border-strong: var(--vc-ide-border-visible);
+    --text: var(--vc-ide-text-primary);
+    --muted: var(--vc-ide-text-secondary);
+    --subtle: var(--vc-ide-text-muted);
+    --shadow: var(--vc-ui-shadow-md);
+  }
+
+  .token-form input,
+  .toolbar input,
+  .toolbar select,
+  .dialog input,
+  .dialog textarea,
+  .dialog select,
+  code,
+  pre {
+    background: var(--panel);
+    color: var(--text);
+  }
+
+  td {
+    color: var(--text);
+  }
+}

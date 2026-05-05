@@ -1,0 +1,7 @@
+project_id     = "vibecore-prod"
+region         = "us-central1"
+domain         = "app.example.com"
+preview_domain = "preview.example.com"
+labels = {
+  owner = "platform"
+}

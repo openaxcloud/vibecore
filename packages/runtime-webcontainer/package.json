@@ -1,0 +1,17 @@
+{
+  "name": "@vibecore/runtime-webcontainer",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest --run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"runtime-webcontainer lint delegated to root\""
+  },
+  "dependencies": {
+    "@webcontainer/api": "1.6.1-internal.1",
+    "@vibecore/runtime-contract": "workspace:*",
+    "jszip": "^3.10.1"
+  }
+}

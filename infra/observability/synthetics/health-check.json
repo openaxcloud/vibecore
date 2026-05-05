@@ -1,0 +1,11 @@
+{
+  "name": "vibecore-synthetic-health",
+  "intervalSeconds": 60,
+  "timeoutSeconds": 10,
+  "checks": [
+    { "name": "api-health", "method": "GET", "path": "/health", "expectStatus": 200 },
+    { "name": "api-ready", "method": "GET", "path": "/ready", "expectStatus": 200 },
+    { "name": "api-synthetic", "method": "GET", "path": "/synthetic/health", "expectStatus": 200 },
+    { "name": "api-metrics", "method": "GET", "path": "/metrics", "expectStatus": 200 }
+  ]
+}

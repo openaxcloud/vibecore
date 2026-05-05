@@ -1,0 +1,69 @@
+name: Production Terraform
+
+on:
+  pull_request:
+    paths:
+      - infra/terraform/**
+      - infra/gcp/**
+      - .github/workflows/terraform.yml
+  push:
+    branches: [stable, product/saas-platform-production]
+    paths:
+      - infra/terraform/**
+      - infra/gcp/**
+      - .github/workflows/terraform.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  terraform:
+    name: Terraform fmt, validate, plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [staging, prod]
+
+    defaults:
+      run:
+        working-directory: infra/terraform/envs/${{ matrix.env }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Authenticate to Google Cloud
+        if: github.event_name != 'pull_request'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive ../..
+
+      - name: Terraform init
+        run: terraform init -backend=${{ github.event_name != 'pull_request' }}
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan ${{ matrix.env }}
+        if: github.event_name != 'pull_request'
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Upload plan ${{ matrix.env }}
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-${{ matrix.env }}-plan
+          path: infra/terraform/envs/${{ matrix.env }}/tfplan
+          if-no-files-found: error

@@ -1,0 +1,29 @@
+{
+  "name": "@vibecore/api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fastify/websocket": "^11.2.0",
+    "@vibecore/audit": "workspace:*",
+    "@vibecore/auth": "workspace:*",
+    "@vibecore/billing": "workspace:*",
+    "@vibecore/database": "workspace:*",
+    "@vibecore/observability": "workspace:*",
+    "@vibecore/quota": "workspace:*",
+    "@vibecore/rbac": "workspace:*",
+    "@vibecore/security": "workspace:*",
+    "@xmldom/xmldom": "^0.9.10",
+    "gpt-tokenizer": "^3.4.0",
+    "ioredis": "^5.10.1",
+    "jszip": "^3.10.1",
+    "xml-crypto": "^6.1.2"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/server.ts",
+    "test": "vitest --run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/**/*.ts",
+    "lint": "echo \"api lint covered by root\""
+  }
+}

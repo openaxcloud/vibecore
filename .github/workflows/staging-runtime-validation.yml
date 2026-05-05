@@ -1,0 +1,112 @@
+name: Staging Runtime Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      workspace_agent_image:
+        description: Pullable workspace-agent image to validate in staging
+        required: true
+      blocked_ips:
+        description: Comma-separated staging Cloud SQL/Redis/private IPs that workspace pods must not reach
+        required: true
+      runtime_class:
+        description: RuntimeClass required for workspace validation pods
+        required: true
+        default: gvisor
+      skip_public_egress:
+        description: Set to 1 only for private staging clusters without public egress
+        required: false
+        default: "0"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: staging-runtime-validation
+  cancel-in-progress: false
+
+jobs:
+  validate-runtime:
+    name: Remote Kubernetes RuntimeAdapter
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.STAGING_WORKSPACE_CLUSTER }}
+          location: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Validate remote Kubernetes RuntimeAdapter
+        env:
+          RUNTIME_E2E_SKIP_KIND: "1"
+          RUNTIME_E2E_SKIP_IMAGE_BUILD: "1"
+          RUNTIME_E2E_AGENT_IMAGE: ${{ inputs.workspace_agent_image }}
+          RUNTIME_E2E_RUNTIME_CLASS: ${{ inputs.runtime_class }}
+          RUNTIME_E2E_NAMESPACE: workspaces
+          RUNTIME_E2E_WORKSPACE_ID: github-actions-runtime-validation
+          RUNTIME_E2E_API_TOKEN: ${{ secrets.RUNTIME_E2E_API_TOKEN }}
+          RUNTIME_E2E_AGENT_SECRET: ${{ secrets.RUNTIME_E2E_AGENT_SECRET }}
+        run: pnpm run runtime:validate:remote-kubernetes
+
+  validate-networkpolicies:
+    name: Workspace NetworkPolicies
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.STAGING_WORKSPACE_CLUSTER }}
+          location: ${{ vars.GCP_REGION }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Validate workspace NetworkPolicies
+        env:
+          WORKSPACE_NAMESPACE: workspaces
+          NETWORKPOLICY_PROBE_RUNTIME_CLASS: ${{ inputs.runtime_class }}
+          NETWORKPOLICY_BLOCKED_IPS: ${{ inputs.blocked_ips }}
+          NETWORKPOLICY_SKIP_PUBLIC_EGRESS: ${{ inputs.skip_public_egress }}
+        run: pnpm run networkpolicies:validate:live

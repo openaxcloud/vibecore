@@ -1,0 +1,56 @@
+import { createBrowserWebContainerRuntime, type WebContainerLike } from '@vibecore/runtime-webcontainer';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { WORK_DIR, WORK_DIR_NAME } from '~/utils/constants';
+import { cleanStackTrace } from '~/utils/stacktrace';
+
+interface WebContainerContext {
+  loaded: boolean;
+}
+
+export const webcontainerContext: WebContainerContext = import.meta.hot?.data.webcontainerContext ?? {
+  loaded: false,
+};
+
+if (import.meta.hot) {
+  import.meta.hot.data.webcontainerContext = webcontainerContext;
+}
+
+export let webcontainer: Promise<WebContainerLike> = new Promise(() => {
+  // noop for ssr
+});
+
+export let webcontainerRuntimeAdapter = createBrowserWebContainerRuntime({
+  workdir: WORK_DIR,
+  workdirName: WORK_DIR_NAME,
+  ssr: true,
+}).adapter;
+
+if (!import.meta.env.SSR) {
+  const inspectorScript = fetch('/inspector-script.js').then((response) => response.text());
+  const runtime = createBrowserWebContainerRuntime({
+    workdir: WORK_DIR,
+    workdirName: WORK_DIR_NAME,
+    hotData: import.meta.hot?.data,
+    context: webcontainerContext,
+    inspectorScript,
+    forwardPreviewErrors: true,
+    onPreviewMessage: (message) => {
+      console.log('WebContainer preview message:', message);
+
+      // Handle both uncaught exceptions and unhandled promise rejections
+      if (message.type === 'PREVIEW_UNCAUGHT_EXCEPTION' || message.type === 'PREVIEW_UNHANDLED_REJECTION') {
+        const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
+        const title = isPromise ? 'Unhandled Promise Rejection' : 'Uncaught Exception';
+        workbenchStore.actionAlert.set({
+          type: 'preview',
+          title,
+          description: 'message' in message ? message.message : 'Unknown error',
+          content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
+          source: 'preview',
+        });
+      }
+    },
+  });
+  webcontainer = runtime.webcontainer;
+  webcontainerRuntimeAdapter = runtime.adapter;
+}

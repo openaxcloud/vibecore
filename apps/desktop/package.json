@@ -1,0 +1,13 @@
+{
+  "name": "@vibecore/desktop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -C ../.. electron:dev",
+    "build": "pnpm -C ../.. electron:build:dist",
+    "build:mac": "pnpm -C ../.. electron:build:mac",
+    "build:win": "pnpm -C ../.. electron:build:win",
+    "build:linux": "pnpm -C ../.. electron:build:linux",
+    "test": "pnpm -C ../.. desktop:test"
+  }
+}

@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workspace-example
+  namespace: workspaces
+  labels:
+    app.kubernetes.io/name: vibecore-workspace
+    app.kubernetes.io/part-of: vibecore
+    orgId: org_example
+    projectId: project_example
+    workspaceId: workspace_example
+spec:
+  runtimeClassName: gvisor
+  nodeSelector:
+    vibecore.ai/node-pool: sandbox
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: workspace-agent
+      image: us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:RELEASE
+      imagePullPolicy: IfNotPresent
+      ports:
+        - name: agent
+          containerPort: 8080
+      env:
+        - name: WORKSPACE_ROOT
+          value: /workspace
+      volumeMounts:
+        - name: workspace
+          mountPath: /workspace
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: agent
+        periodSeconds: 5
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: agent
+        periodSeconds: 20
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "2"
+          memory: 4Gi
+      securityContext:
+        allowPrivilegeEscalation: false
+        privileged: false
+        readOnlyRootFilesystem: false
+        runAsNonRoot: true
+        capabilities:
+          drop: ["ALL"]
+  volumes:
+    - name: workspace
+      persistentVolumeClaim:
+        claimName: workspace-example-pvc

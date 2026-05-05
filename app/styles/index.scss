@@ -1,0 +1,6252 @@
+@use 'variables.scss';
+@use 'z-index.scss';
+@use 'animations.scss';
+@use 'components/terminal.scss';
+@use 'components/resize-handle.scss';
+@use 'components/code.scss';
+@use 'components/editor.scss';
+@use 'components/toast.scss';
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  background-color: var(--bolt-elements-bg-depth-1);
+  color: var(--bolt-elements-textPrimary);
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  font-optical-sizing: auto;
+  letter-spacing: 0;
+}
+
+.bolt-route-loader {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.bolt-route-loader[data-visible='true'] {
+  opacity: 1;
+}
+
+.bolt-route-loader-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 2px;
+  width: 42%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--vc-ide-accent-ai-start),
+    var(--vc-ide-accent-action),
+    var(--vc-ide-accent-success)
+  );
+  box-shadow: 0 0 18px rgb(0 153 255 / 0.45);
+  animation: bolt-route-loader-slide 1.05s ease-in-out infinite;
+}
+
+.bolt-route-loader-pill {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bolt-elements-bg-depth-2) 88%, transparent);
+  color: var(--bolt-elements-textSecondary);
+  box-shadow: 0 10px 30px rgb(0 4 20 / 0.28);
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  backdrop-filter: blur(14px);
+}
+
+.bolt-route-loader-pill > span:first-child {
+  width: 14px;
+  height: 14px;
+  color: var(--bolt-elements-loader-progress);
+}
+
+@keyframes bolt-route-loader-slide {
+  0% {
+    transform: translateX(-48vw);
+  }
+
+  55% {
+    transform: translateX(58vw);
+  }
+
+  100% {
+    transform: translateX(118vw);
+  }
+}
+
+:root {
+  color-scheme: dark;
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
+  --bolt-elements-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-bg-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
+  --bolt-elements-textTertiary: var(--vc-ide-text-muted);
+  --bolt-elements-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-code-text: var(--vc-ide-text-primary);
+  --bolt-elements-button-primary-background: var(--vc-ide-bg-card);
+  --bolt-elements-button-primary-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-button-primary-text: var(--vc-ide-accent-action);
+  --bolt-elements-button-secondary-background: transparent;
+  --bolt-elements-button-secondary-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-button-secondary-text: var(--vc-ide-text-secondary);
+  --bolt-elements-button-danger-background: rgb(248 81 73 / 0.12);
+  --bolt-elements-button-danger-backgroundHover: rgb(248 81 73 / 0.2);
+  --bolt-elements-button-danger-text: var(--vc-ide-accent-error);
+  --bolt-elements-item-contentDefault: var(--vc-ide-text-secondary);
+  --bolt-elements-item-contentActive: var(--vc-ide-text-primary);
+  --bolt-elements-item-contentAccent: var(--vc-ide-accent-action);
+  --bolt-elements-item-contentDanger: var(--vc-ide-accent-error);
+  --bolt-elements-item-backgroundDefault: transparent;
+  --bolt-elements-item-backgroundActive: var(--vc-ide-bg-hover);
+  --bolt-elements-item-backgroundAccent: rgb(0 153 255 / 0.14);
+  --bolt-elements-item-backgroundDanger: rgb(248 81 73 / 0.12);
+  --bolt-elements-loader-background: var(--vc-ide-bg-card);
+  --bolt-elements-loader-progress: var(--vc-ide-accent-action);
+  --bolt-elements-artifacts-background: var(--vc-ide-bg-panel);
+  --bolt-elements-artifacts-backgroundHover: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-artifacts-inlineCode-background: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-actions-background: var(--vc-ide-bg-panel);
+  --bolt-elements-actions-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-linkColor: var(--vc-ide-accent-action);
+  --bolt-elements-messages-code-background: var(--vc-ide-bg-app);
+  --bolt-elements-messages-inlineCode-background: var(--vc-ide-bg-hover);
+  --bolt-elements-messages-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-icon-success: var(--vc-ide-accent-success);
+  --bolt-elements-icon-error: var(--vc-ide-accent-error);
+  --bolt-elements-icon-primary: var(--vc-ide-text-primary);
+  --bolt-elements-icon-secondary: var(--vc-ide-text-secondary);
+  --bolt-elements-icon-tertiary: var(--vc-ide-text-muted);
+  --bolt-elements-dividerColor: var(--vc-ide-border-subtle);
+  --bolt-elements-prompt-background: rgb(26 32 48 / 0.86);
+  --bolt-elements-sidebar-dropdownShadow: rgb(0 4 20 / 0.5);
+  --bolt-elements-sidebar-buttonBackgroundDefault: var(--vc-ide-bg-card);
+  --bolt-elements-sidebar-buttonBackgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-sidebar-buttonText: var(--vc-ide-text-primary);
+  --bolt-elements-preview-addressBar-background: var(--vc-ide-bg-card);
+  --bolt-elements-preview-addressBar-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-preview-addressBar-backgroundActive: var(--vc-ide-bg-panel);
+  --bolt-elements-preview-addressBar-text: var(--vc-ide-text-secondary);
+  --bolt-elements-preview-addressBar-textActive: var(--vc-ide-text-primary);
+  --bolt-elements-terminals-background: var(--vc-ide-bg-app);
+  --bolt-elements-terminals-buttonBackground: var(--vc-ide-bg-card);
+  --bolt-elements-cta-background: var(--vc-ide-bg-card);
+  --bolt-elements-cta-text: var(--vc-ide-text-primary);
+  --vc-font-interface:
+    'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vc-font-code:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --vc-type-interface-size: 12px;
+  --vc-type-interface-compact-size: 11px;
+  --vc-type-code-size: 12px;
+  --vc-type-heading-size: 14px;
+  --vc-type-heading-compact-size: 13px;
+  --vc-type-label-size: 10px;
+  --vc-type-line-height: 1.42;
+  --vc-type-label-letter-spacing: 0.4px;
+  --vc-ui-radius-button: 4px;
+  --vc-ui-radius-input: 6px;
+  --vc-ui-radius-card: 6px;
+  --vc-ui-radius-modal: 8px;
+  --vc-ui-radius-popover: 12px;
+  --vc-ui-shadow-sm: 0 1px 2px rgb(0 4 20 / 0.4);
+  --vc-ui-shadow-md: 0 4px 12px rgb(0 4 20 / 0.5);
+  --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
+  --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+  --vc-ui-transition-hover: 150ms ease-out;
+  --vc-ui-transition-panel: 200ms cubic-bezier(0.2, 0, 0, 1);
+  --vc-ui-transition-popover: 100ms ease-out;
+  --vc-ui-overlay-bg: rgb(26 32 48 / 0.85);
+  --vc-ui-overlay-blur: blur(12px);
+  --vc-ui-focus-ring: #0099ff;
+  --vc-ui-tooltip-bg: #0e1525;
+  --vc-ui-tooltip-border: #2b3245;
+  --vc-ui-tooltip-text-size: 11px;
+  --vc-ui-tooltip-delay: 500ms;
+  --vc-ui-scrollbar-size: 10px;
+  --vc-ui-scrollbar-thumb: rgb(43 50 69 / 0.72);
+  --vc-ui-scrollbar-thumb-hover: #3b4358;
+  --vc-button-bg: transparent;
+  --vc-button-solid-bg: #1a2030;
+  --vc-button-hover-bg: #2b3245;
+  --vc-button-active-bg: #3b4358;
+  --vc-button-disabled-opacity: 0.4;
+  --vc-button-loading-spinner-size: 14px;
+  --vc-animation-tab-open: 200ms;
+  --vc-animation-tab-close: 150ms;
+  --vc-animation-popover: 150ms;
+  --vc-animation-modal: 200ms;
+  --vc-animation-split-panel: 250ms ease-out;
+  --vc-animation-drop-zone: 100ms;
+  --vc-animation-typing: 1.4s;
+  --vc-run-stop-bg: #f85149;
+  --vc-accessibility-focus-width: 2px;
+  --vc-accessibility-reduced-motion-duration: 50ms;
+  --vc-accessibility-contrast-text: #f5f9fc;
+  --vc-accessibility-contrast-muted: #c2c8cc;
+  --gradient-opacity: 0.8;
+  --primary-color: rgba(158, 117, 240, var(--gradient-opacity));
+  --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
+  --accent-color: rgba(128, 59, 239, var(--gradient-opacity));
+  // --primary-color: rgba(147, 112, 219, var(--gradient-opacity));
+  // --secondary-color: rgba(138, 43, 226, var(--gradient-opacity));
+  // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
+}
+
+:root:not([data-theme]),
+:root[data-theme='light'] {
+  color-scheme: light;
+  --vc-ide-bg-app: #f6f8fb;
+  --vc-ide-bg-panel: #ffffff;
+  --vc-ide-bg-card: #eef2f7;
+  --vc-ide-bg-hover: #e2e8f0;
+  --vc-ide-border-subtle: #d8dee8;
+  --vc-ide-border-visible: #c4ccd8;
+  --vc-ide-text-primary: #111827;
+  --vc-ide-text-secondary: #4b5563;
+  --vc-ide-text-muted: #6b7280;
+  --vc-ide-accent-ai-start: #6d5dfc;
+  --vc-ide-accent-ai-end: #d9467e;
+  --vc-ide-accent-success: #17803d;
+  --vc-ide-accent-action: #006fd6;
+  --vc-ide-accent-orange: #c2410c;
+  --vc-ide-accent-error: #dc2626;
+  --vc-ide-accent-warning: #a16207;
+  --bolt-elements-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-bg-depth-4: rgb(226 232 240 / 0.82);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
+  --bolt-elements-textTertiary: var(--vc-ide-text-muted);
+  --bolt-elements-background: var(--vc-ide-bg-app);
+  --bolt-elements-background-depth-1: var(--vc-ide-bg-panel);
+  --bolt-elements-background-depth-2: var(--vc-ide-bg-card);
+  --bolt-elements-background-depth-3: var(--vc-ide-bg-hover);
+  --bolt-elements-background-depth-4: rgb(226 232 240 / 0.82);
+  --bolt-elements-messages-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-code-background: var(--vc-ide-bg-panel);
+  --bolt-elements-messages-inlineCode-background: var(--vc-ide-bg-hover);
+  --bolt-elements-messages-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-prompt-background: rgb(255 255 255 / 0.92);
+  --bolt-elements-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-code-text: var(--vc-ide-text-primary);
+  --bolt-elements-button-primary-background: rgb(0 111 214 / 0.1);
+  --bolt-elements-button-primary-backgroundHover: rgb(0 111 214 / 0.16);
+  --bolt-elements-button-primary-text: var(--vc-ide-accent-action);
+  --bolt-elements-button-secondary-background: rgb(226 232 240 / 0.6);
+  --bolt-elements-button-secondary-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-button-secondary-text: var(--vc-ide-text-primary);
+  --bolt-elements-button-danger-background: rgb(220 38 38 / 0.1);
+  --bolt-elements-button-danger-backgroundHover: rgb(220 38 38 / 0.16);
+  --bolt-elements-button-danger-text: var(--vc-ide-accent-error);
+  --bolt-elements-item-contentDefault: var(--vc-ide-text-secondary);
+  --bolt-elements-item-contentActive: var(--vc-ide-text-primary);
+  --bolt-elements-item-contentAccent: var(--vc-ide-accent-action);
+  --bolt-elements-item-contentDanger: var(--vc-ide-accent-error);
+  --bolt-elements-item-backgroundDefault: transparent;
+  --bolt-elements-item-backgroundActive: var(--vc-ide-bg-hover);
+  --bolt-elements-item-backgroundAccent: rgb(0 111 214 / 0.1);
+  --bolt-elements-item-backgroundDanger: rgb(220 38 38 / 0.1);
+  --bolt-elements-loader-background: var(--vc-ide-bg-card);
+  --bolt-elements-loader-progress: var(--vc-ide-accent-action);
+  --bolt-elements-artifacts-background: var(--vc-ide-bg-panel);
+  --bolt-elements-artifacts-backgroundHover: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-artifacts-inlineCode-background: var(--vc-ide-bg-card);
+  --bolt-elements-artifacts-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-actions-background: var(--vc-ide-bg-panel);
+  --bolt-elements-actions-code-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-linkColor: var(--vc-ide-accent-action);
+  --bolt-elements-icon-success: var(--vc-ide-accent-success);
+  --bolt-elements-icon-error: var(--vc-ide-accent-error);
+  --bolt-elements-icon-primary: var(--vc-ide-text-primary);
+  --bolt-elements-icon-secondary: var(--vc-ide-text-secondary);
+  --bolt-elements-icon-tertiary: var(--vc-ide-text-muted);
+  --bolt-elements-dividerColor: var(--vc-ide-border-subtle);
+  --bolt-elements-sidebar-dropdownShadow: rgb(15 23 42 / 0.14);
+  --bolt-elements-sidebar-buttonBackgroundDefault: var(--vc-ide-bg-card);
+  --bolt-elements-sidebar-buttonBackgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-sidebar-buttonText: var(--vc-ide-text-primary);
+  --bolt-elements-preview-addressBar-background: var(--vc-ide-bg-card);
+  --bolt-elements-preview-addressBar-backgroundHover: var(--vc-ide-bg-hover);
+  --bolt-elements-preview-addressBar-backgroundActive: var(--vc-ide-bg-panel);
+  --bolt-elements-preview-addressBar-text: var(--vc-ide-text-secondary);
+  --bolt-elements-preview-addressBar-textActive: var(--vc-ide-text-primary);
+  --bolt-elements-terminals-background: var(--vc-ide-bg-panel);
+  --bolt-elements-terminals-buttonBackground: var(--vc-ide-bg-card);
+  --bolt-elements-cta-background: var(--vc-ide-bg-card);
+  --bolt-elements-cta-text: var(--vc-ide-text-primary);
+  --vc-ui-shadow-sm: 0 1px 2px rgb(15 23 42 / 0.08);
+  --vc-ui-shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
+  --vc-ui-shadow-lg: 0 12px 32px rgb(15 23 42 / 0.12);
+  --vc-ui-shadow-xl: 0 24px 64px rgb(15 23 42 / 0.16);
+  --vc-ui-overlay-bg: rgb(255 255 255 / 0.85);
+  --vc-ui-tooltip-bg: #ffffff;
+  --vc-ui-tooltip-border: var(--vc-ide-border-visible);
+  --vc-ui-scrollbar-thumb: rgb(148 163 184 / 0.6);
+  --vc-ui-scrollbar-thumb-hover: #94a3b8;
+  --vc-button-solid-bg: var(--vc-ide-bg-card);
+  --vc-button-hover-bg: var(--vc-ide-bg-hover);
+  --vc-button-active-bg: #d8dee8;
+  --vc-accessibility-contrast-text: var(--vc-ide-text-primary);
+  --vc-accessibility-contrast-muted: var(--vc-ide-text-secondary);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --vc-ide-bg-app: #0a0f1c;
+  --vc-ide-bg-panel: #0e1525;
+  --vc-ide-bg-card: #1a2030;
+  --vc-ide-bg-hover: #2b3245;
+  --vc-ide-border-subtle: #1a2030;
+  --vc-ide-border-visible: #2b3245;
+  --vc-ide-text-primary: #f5f9fc;
+  --vc-ide-text-secondary: #c2c8cc;
+  --vc-ide-text-muted: #6e7681;
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
+  --vc-ide-accent-success: #3fb950;
+  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-orange: #f26207;
+  --vc-ide-accent-error: #f85149;
+  --vc-ide-accent-warning: #d29922;
+  --bolt-elements-borderColor: var(--vc-ide-border-subtle);
+  --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
+  --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
+  --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
+  --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
+  --bolt-elements-bg-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-textPrimary: var(--vc-ide-text-primary);
+  --bolt-elements-textSecondary: var(--vc-ide-text-secondary);
+  --bolt-elements-textTertiary: var(--vc-ide-text-muted);
+  --bolt-elements-background: var(--vc-ide-bg-app);
+  --bolt-elements-background-depth-1: var(--vc-ide-bg-panel);
+  --bolt-elements-background-depth-2: var(--vc-ide-bg-card);
+  --bolt-elements-background-depth-3: var(--vc-ide-bg-hover);
+  --bolt-elements-background-depth-4: rgb(43 50 69 / 0.64);
+  --bolt-elements-messages-background: var(--vc-ide-bg-card);
+  --bolt-elements-messages-code-background: var(--vc-ide-bg-panel);
+  --bolt-elements-messages-inlineCode-background: var(--vc-ide-bg-hover);
+  --bolt-elements-messages-inlineCode-text: var(--vc-ide-text-primary);
+  --bolt-elements-prompt-background: rgb(26 32 48 / 0.86);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+}
+
+code,
+kbd,
+pre,
+samp,
+.font-mono,
+[class*='font-mono'],
+.xterm,
+.xterm * {
+  font-family: var(--vc-font-code) !important;
+  font-size: var(--vc-type-code-size);
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-heading-size);
+  font-weight: 600;
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--vc-type-heading-compact-size);
+}
+
+:where(.uppercase, [class*='uppercase'], label, legend, th) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-label-size);
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  line-height: var(--vc-type-line-height);
+}
+
+body :where(div, span, p, a, li, td, summary, button, input, select, textarea):not([class*='i-']) {
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+  letter-spacing: 0;
+}
+
+body :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-heading-size) !important;
+  font-weight: 600 !important;
+  line-height: var(--vc-type-line-height) !important;
+  letter-spacing: 0 !important;
+}
+
+body :where(h3, h4, h5, h6) {
+  font-size: var(--vc-type-heading-compact-size) !important;
+}
+
+body
+  :where(
+    .uppercase,
+    [class*='uppercase'],
+    label,
+    legend,
+    th,
+    .bolt-project-tool-section,
+    .bolt-project-command-section
+  ) {
+  font-family: var(--vc-font-interface) !important;
+  font-size: var(--vc-type-label-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: var(--vc-type-label-letter-spacing) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+body :where(button, [role='button'], .btn, .button, summary) {
+  position: relative;
+  border-radius: var(--vc-ui-radius-button);
+  background-color: var(--vc-button-bg);
+  cursor: pointer;
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    opacity var(--vc-ui-transition-hover),
+    filter var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
+}
+
+body :where(button[data-variant='default'], button[data-variant='secondary'], .vc-button-solid) {
+  background-color: var(--vc-button-solid-bg);
+}
+
+body :where(button, [role='button'], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled='true']):hover) {
+  background-color: var(--vc-button-hover-bg);
+}
+
+body
+  :where(button, [role='button'], .btn, .button, summary):where(
+    :enabled:active,
+    [aria-pressed='true'],
+    [data-state='active']
+  ) {
+  background-color: var(--vc-button-active-bg);
+}
+
+body
+  :where(button, [role='button'], .btn, .button, summary):where(
+    :disabled,
+    [aria-disabled='true'],
+    [data-disabled='true']
+  ) {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: var(--vc-button-disabled-opacity);
+}
+
+body
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  ) {
+  cursor: progress;
+}
+
+body
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  )
+  > :where(svg, .lucide, [class*='i-']):first-child {
+  opacity: 0;
+}
+
+body
+  :where(
+    button[aria-busy='true'],
+    button[data-loading='true'],
+    [role='button'][aria-busy='true'],
+    [role='button'][data-loading='true']
+  )::before {
+  position: absolute;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: '';
+  inset: 50% auto auto 50%;
+  margin: calc(var(--vc-button-loading-spinner-size) / -2) 0 0 calc(var(--vc-button-loading-spinner-size) / -2);
+}
+
+@keyframes vc-button-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes vc-tab-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes vc-tab-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vc-popover-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes vc-drop-zone-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vc-typing-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+body :where(input, select, textarea) {
+  border-radius: var(--vc-ui-radius-input);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+body :where(.card, .panel, .bolt-project-action-card, .bolt-project-service-panel, [data-card]) {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body
+  :where(
+    [class*='dark:bg-[#0A0A0A]'],
+    [class*='dark:bg-[#0a0a0a]'],
+    [class*='dark:bg-[#1A1A1A]'],
+    [class*='dark:bg-[#1a1a1a]'],
+    [class*='dark:bg-[#141414]'],
+    [class*='dark:bg-[#252525]'],
+    [class*='dark:bg-black'],
+    [class*='dark:bg-gray-950'],
+    [class*='dark:bg-gray-900'],
+    [class*='dark:bg-zinc-900'],
+    [class*='dark:bg-neutral-900'],
+    [class*='bg-[#0A0A0A]'],
+    [class*='bg-[#0a0a0a]'],
+    [class*='bg-[#141414]']
+  ) {
+  background-color: var(--vc-ide-bg-card) !important;
+}
+
+body
+  :where(
+    [class*='dark:border-[#1A1A1A]'],
+    [class*='dark:border-[#1a1a1a]'],
+    [class*='dark:border-[#333333]'],
+    [class*='dark:border-gray-800'],
+    [class*='dark:border-neutral-800'],
+    [class*='dark:border-zinc-800']
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+}
+
+body
+  :where(
+    [class*='dark:text-white'],
+    [class*='dark:text-gray-300'],
+    [class*='dark:text-gray-400'],
+    [class*='text-gray-900']
+  ) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+body
+  :where(
+    .message,
+    [data-message],
+    [data-testid*='message'],
+    [class*='message'],
+    [class*='Message'],
+    [class*='bg-bolt-elements-messages']
+  ) {
+  border-color: var(--vc-ide-border-visible);
+  background-color: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-panel
+  :where(
+    [class*='bg-[#0A0A0A]'],
+    [class*='bg-[#0a0a0a]'],
+    [class*='bg-[#1A1A1A]'],
+    [class*='bg-[#1a1a1a]'],
+    [class*='bg-black'],
+    [class*='dark:bg-'],
+    [class*='bg-bolt-elements-messages'],
+    [class*='bg-bolt-elements-background']
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel
+  :where(pre, code, [class*='code'], [class*='Code'], [class*='bg-bolt-elements-actions-code']) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel .bolt-chat-message-row {
+  background: transparent !important;
+}
+
+.bolt-project-agent-panel .bolt-chat-message-row-assistant {
+  border-color: transparent !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel .bolt-assistant-message {
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel .bolt-assistant-message :where(.MarkdownContent, p, li, span):not([class*='i-']) {
+  background: transparent !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel
+  .bolt-assistant-message
+  :where(
+    .bolt-assistant-thought-box,
+    .bolt-assistant-thought-header,
+    .mcp-tool-invocation-code,
+    [class*='bg-bolt-elements-background-depth'],
+    [class*='bg-bolt-elements-bg-depth'],
+    [class*='bg-bolt-elements-messages']
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel .bolt-assistant-message :where(pre, code, .shiki):not(:where(p > code)) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-agent-panel .bolt-user-message-bubble {
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%) !important;
+  background-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-card) 88%) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
+  border-radius: var(--vc-ui-radius-modal);
+  box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-modal-in var(--vc-animation-modal) ease-out both;
+  transform-origin: center top;
+}
+
+body
+  :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette, .bolt-web-url-panel)
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']) {
+  font-size: var(--vc-type-interface-size) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+body
+  :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette, .bolt-web-url-panel)
+  :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+  font-size: var(--vc-type-label-size) !important;
+}
+
+body .bolt-project-command-palette {
+  animation: vc-fade-in 100ms ease-out both;
+}
+
+body
+  :where(
+    .popover,
+    [data-radix-popper-content-wrapper] > *,
+    .bolt-project-tool-menu,
+    .bolt-project-tab-menu,
+    .bolt-project-user-menu
+  ) {
+  border-radius: var(--vc-ui-radius-popover);
+  box-shadow: var(--vc-ui-shadow-xl);
+  animation: vc-popover-in var(--vc-animation-popover) ease-out both;
+  transform-origin: top center;
+  transition:
+    opacity var(--vc-ui-transition-popover),
+    transform var(--vc-ui-transition-popover),
+    background-color var(--vc-ui-transition-popover);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay], .bolt-project-drop-overlay) {
+  background: var(--vc-ui-overlay-bg);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]):not(.bolt-project-drop-overlay) {
+  animation: vc-modal-backdrop-in var(--vc-animation-modal) ease-out both;
+}
+
+body :where(.vc-animated-tab, .tab, [role='tab'], .bolt-project-tab, .bolt-project-right-tab) {
+  animation: vc-tab-slide-in var(--vc-animation-tab-open) ease-out both;
+}
+
+body :where(.vc-animated-tab[data-closing='true'], .tab[data-closing='true'], [role='tab'][data-closing='true']) {
+  animation: vc-tab-fade-out var(--vc-animation-tab-close) ease-out both;
+}
+
+body :where(.vc-split-panel, [data-panel], .bolt-project-pane-leaf, .bolt-project-main-panes) {
+  transition:
+    flex-basis var(--vc-animation-split-panel),
+    width var(--vc-animation-split-panel),
+    height var(--vc-animation-split-panel);
+}
+
+body :where(.vc-drop-zone) {
+  animation: vc-drop-zone-in var(--vc-animation-drop-zone) ease-out both;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
+  background: #7b61ff;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
+  background: var(--vc-run-stop-bg);
+  color: #ffffff;
+}
+
+body
+  :where(
+    .vc-run-button[data-run-state='running'],
+    button[data-run-state='running'],
+    button[aria-label='Stop app']
+  )::before {
+  position: static;
+  display: inline-block;
+  width: var(--vc-button-loading-spinner-size);
+  height: var(--vc-button-loading-spinner-size);
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: vc-button-spinner 0.8s linear infinite;
+  content: '';
+  margin-right: 6px;
+}
+
+body
+  :where(
+    button,
+    a,
+    summary,
+    input,
+    textarea,
+    select,
+    [tabindex],
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [contenteditable='true']
+  ):focus-visible {
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
+  outline-offset: 2px;
+}
+
+.sr-only,
+.vc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  padding: 0;
+  margin: -1px;
+}
+
+body :where([role='tooltip'], .tooltip, .vc-tooltip, .cm-tooltip, [data-radix-tooltip-content]) {
+  border: 1px solid var(--vc-ui-tooltip-border);
+  background: var(--vc-ui-tooltip-bg);
+  color: #f5f9fc;
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
+  fill: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.cm-tooltip-arrow::before) {
+  border-top-color: var(--vc-ui-tooltip-border);
+}
+
+body :where(.cm-tooltip-arrow::after) {
+  border-top-color: var(--vc-ui-tooltip-bg);
+}
+
+body :where(.lucide, svg[data-lucide]) {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--vc-ui-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: var(--vc-ui-scrollbar-size);
+  height: var(--vc-ui-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: var(--vc-ui-scrollbar-thumb);
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--vc-ui-scrollbar-thumb-hover);
+  background-clip: content-box;
+}
+
+.modern-scrollbar {
+  overflow: auto;
+
+  // WebKit scrollbar styling
+  &::-webkit-scrollbar {
+    width: var(--vc-ui-scrollbar-size);
+    height: var(--vc-ui-scrollbar-size);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    // Use CSS variables for colors
+    background-color: var(--vc-ui-scrollbar-thumb);
+    border-radius: 9999px; // pill shape
+    border: 2px solid transparent; // for padding-like effect
+    background-clip: content-box;
+    transition: background-color var(--vc-ui-transition-hover); // Add transition
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    // Use CSS variable for hover color
+    background-color: var(--vc-ui-scrollbar-thumb-hover);
+  }
+
+  // Firefox support
+  scrollbar-width: thin;
+  // Use CSS variables for Firefox colors
+  scrollbar-color: var(--vc-ui-scrollbar-thumb-hover) transparent; // Use hover color for thumb for consistency
+}
+
+.modern-scrollbar-invert {
+  &::-webkit-scrollbar-thumb {
+    // Override with a contrasting color, e.g., primary text color with transparency
+    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 70%);
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    // Darker/more opaque version on hover
+    background-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%);
+  }
+
+  // Firefox support for inverted colors
+  scrollbar-color: color-mix(in srgb, var(--bolt-elements-textPrimary), transparent 50%) transparent;
+}
+
+.bolt-responsive-ide {
+  min-height: 100dvh;
+  color-scheme: light dark;
+}
+
+.bolt-responsive-ide-mobile {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.bolt-mobile-tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  display: none;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+  min-height: calc(58px + env(safe-area-inset-bottom, 0px));
+  padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px))
+    max(6px, env(safe-area-inset-left, 0px));
+  border-top: 1px solid var(--bolt-elements-borderColor);
+  background: color-mix(in srgb, var(--bolt-elements-bg-depth-2), transparent 4%);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+.bolt-mobile-tabbar button {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: var(--vc-ui-radius-button);
+  color: var(--bolt-elements-textTertiary);
+  font-size: var(--vc-type-label-size);
+  line-height: var(--vc-type-line-height);
+  touch-action: manipulation;
+}
+
+.bolt-mobile-tabbar button span:first-child {
+  font-size: 18px;
+}
+
+.bolt-mobile-tabbar button[aria-current='page'] {
+  background: var(--bolt-elements-bg-depth-3);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-mobile-tabbar .bolt-mobile-theme-switch {
+  min-height: 44px;
+  justify-content: center;
+}
+
+.bolt-connection-status {
+  position: fixed;
+  top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);
+  left: 50%;
+  z-index: 1000;
+  max-width: min(92vw, 560px);
+  transform: translateX(-50%);
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 999px;
+  background: var(--bolt-elements-bg-depth-2);
+  color: var(--bolt-elements-textSecondary);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0;
+  padding: 8px 12px;
+  pointer-events: none;
+  transition: opacity var(--vc-ui-transition-hover);
+}
+
+.bolt-connection-status[data-online='false'] {
+  opacity: 1;
+}
+
+.vc-touch-symbol-toolbar {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  border-bottom: 1px solid var(--bolt-elements-borderColor);
+  background: var(--bolt-elements-bg-depth-2);
+  padding: 6px;
+  scrollbar-width: none;
+}
+
+.vc-touch-symbol-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.vc-touch-symbol-toolbar button {
+  min-width: 36px;
+  min-height: 34px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 7px;
+  background: var(--bolt-elements-bg-depth-1);
+  color: var(--bolt-elements-textPrimary);
+  font-family: var(--vc-font-code);
+  font-size: var(--vc-type-code-size);
+  font-variant-ligatures: contextual common-ligatures;
+  font-feature-settings:
+    'liga' 1,
+    'calt' 1;
+  touch-action: manipulation;
+}
+
+.bolt-project-ide-shell {
+  min-height: 0;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-interface);
+  font-size: var(--vc-type-interface-size);
+  line-height: var(--vc-type-line-height);
+}
+
+.bolt-project-ide-shell
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']),
+.bolt-project-agent-panel
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']) {
+  font-size: var(--vc-type-interface-size) !important;
+  line-height: var(--vc-type-line-height) !important;
+  letter-spacing: 0 !important;
+}
+
+.bolt-project-ide-shell :where(h1, h2):not([class*='i-']),
+.bolt-project-agent-panel :where(h1, h2):not([class*='i-']) {
+  font-size: var(--vc-type-heading-size) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+.bolt-project-ide-shell :where(h3, h4, h5, h6):not([class*='i-']),
+.bolt-project-agent-panel :where(h3, h4, h5, h6):not([class*='i-']) {
+  font-size: var(--vc-type-heading-compact-size) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+.bolt-project-ide-shell :where(code, pre, kbd, samp, .font-mono, [class*='font-mono']):not([class*='i-']),
+.bolt-project-agent-panel :where(code, pre, kbd, samp, .font-mono, [class*='font-mono']):not([class*='i-']) {
+  font-size: var(--vc-type-code-size) !important;
+  line-height: 1.45 !important;
+}
+
+.bolt-project-ide-shell :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
+.bolt-project-agent-panel :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+  font-size: var(--vc-type-label-size) !important;
+}
+
+.bolt-project-topbar {
+  border-color: var(--vc-ide-border-subtle) !important;
+  background: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+  gap: 8px;
+}
+
+.bolt-project-topbar :where(a, button, summary) {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-topbar :where(a, button, summary):hover {
+  background: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-topbar :where([role='dialog'], details > div) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+  box-shadow: var(--vc-ui-shadow-xl) !important;
+}
+
+.bolt-project-topbar :where(strong, [class*='text-[#F5F9FC]'], [class*='text-[#f5f9fc]']) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-topbar :where([class*='text-[#C2C8CC]'], [class*='text-[#c2c8cc]']) {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-topbar :where([class*='text-[#6E7681]'], [class*='text-[#6e7681]']) {
+  color: var(--vc-ide-text-muted) !important;
+}
+
+.bolt-project-topbar-left,
+.bolt-project-topbar-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-topbar-actions {
+  flex-shrink: 0;
+}
+
+.bolt-project-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.bolt-project-topbar-brand span:first-child {
+  color: var(--vc-ide-accent);
+}
+
+.bolt-project-name-trigger {
+  display: inline-flex;
+  max-width: min(24vw, 220px);
+  height: 30px;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 0 7px;
+  color: var(--vc-ide-text-primary) !important;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.bolt-project-topbar-icon-button,
+.bolt-project-topbar-outline-button,
+.bolt-project-run-button,
+.bolt-project-publish-button,
+.bolt-project-runtime-status {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.bolt-project-topbar-icon-button {
+  width: 30px;
+  color: var(--vc-ide-text-muted) !important;
+}
+
+.bolt-project-topbar-icon-button.is-active {
+  border: 1px solid var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-topbar-outline-button {
+  border: 1px solid var(--vc-ide-border-visible);
+  padding: 0 10px;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-runtime-status {
+  padding: 0 8px;
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-run-button {
+  border: 0;
+  background: hsl(142deg 72% 38%);
+  color: white !important;
+  padding: 0 12px;
+}
+
+.bolt-project-run-button:hover {
+  background: hsl(142deg 72% 34%) !important;
+  transform: translateY(-1px);
+}
+
+.bolt-project-run-button.is-running {
+  background: #f85149;
+}
+
+.bolt-project-run-button.is-running:hover {
+  background: #d83b35 !important;
+}
+
+.bolt-project-publish-button {
+  background: linear-gradient(135deg, #7b61ff 0%, #0099ff 100%);
+  color: white !important;
+  padding: 0 12px;
+}
+
+.bolt-project-publish-button:hover {
+  background: linear-gradient(135deg, #866fff 0%, #0aa2ff 100%) !important;
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.bolt-project-ide-shell .bolt-responsive-ide {
+  height: 100%;
+  min-height: 0;
+}
+
+.bolt-project-ide-panels {
+  --project-agent-width: 420px;
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-panel {
+  --chat-max-width: min(100%, 34rem);
+  width: 100%;
+  container-type: inline-size;
+}
+
+.bolt-project-agent-panel .max-w-chat {
+  max-width: min(100%, var(--chat-max-width));
+}
+
+.bolt-project-agent-panel textarea {
+  min-width: 0;
+}
+
+.bolt-project-agent-panel [data-radix-scroll-area-viewport],
+.bolt-project-agent-panel .modern-scrollbar {
+  scrollbar-width: thin;
+}
+
+.bolt-project-agent-suggestions {
+  display: flex;
+  max-width: min(100%, var(--chat-max-width));
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 2px 2px;
+  scrollbar-width: none;
+}
+
+.bolt-project-agent-suggestions button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 6px 12px;
+  white-space: nowrap;
+}
+
+.bolt-project-agent-suggestions button > span:first-child {
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.bolt-project-agent-suggestions button > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-agent-suggestions button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-action-card {
+  display: grid;
+  max-width: min(100%, var(--chat-max-width));
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-agent-action-card > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bolt-project-agent-action-card > div > span:first-child {
+  width: 18px;
+  color: var(--vc-ide-accent-warning);
+}
+
+.bolt-project-agent-action-card strong,
+.bolt-project-agent-action-card small {
+  display: block;
+}
+
+.bolt-project-agent-action-card strong {
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-agent-action-card small {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-agent-action-card button {
+  justify-self: start;
+  height: 28px;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  background: #0e1525;
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.bolt-project-agent-action-card button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-chatbox {
+  min-height: 80px;
+  border-color: var(--vc-ide-border-visible) !important;
+  border-radius: 12px !important;
+  background: var(--vc-ide-bg-card) !important;
+  padding: 8px !important;
+  box-shadow: none !important;
+}
+
+.bolt-project-chatbox textarea {
+  min-height: 76px;
+  padding: 8px 44px 8px 8px !important;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px !important;
+}
+
+.bolt-project-chatbox textarea::placeholder {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-chatbox > div {
+  border-color: var(--vc-ide-border-visible) !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+}
+
+.bolt-project-chatbox:focus-within {
+  border-color: #0099ff !important;
+}
+
+.bolt-project-ide-panel {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #0e1525;
+}
+
+.bolt-project-ide-panel-header {
+  display: flex;
+  min-height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  color: #c2c8cc;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+}
+
+.bolt-project-ide-tab {
+  min-height: 28px;
+  border-radius: 4px;
+  color: #6e7681;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.bolt-project-ide-tab:hover,
+.bolt-project-ide-tab[aria-current='page'] {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-ide-icon-button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #6e7681;
+}
+
+.bolt-project-ide-icon-button:hover {
+  background: #1a2030;
+  color: #f5f9fc;
+}
+
+.bolt-project-agent-shell {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  z-index: 35;
+  width: var(--project-agent-width);
+  height: calc(100vh - 44px);
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-workspace-shell {
+  position: absolute;
+  top: 44px;
+  right: var(--project-right-panel-width, 0px);
+  left: var(--project-agent-width);
+  width: auto;
+  height: calc(100vh - 44px);
+  padding-bottom: 23px;
+  box-sizing: border-box;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  background: var(--vc-ide-bg-app);
+}
+
+.bolt-project-workspace-shell > .bolt-project-ide-panel {
+  width: 100%;
+  flex: 1 1 auto;
+}
+
+.bolt-project-right-panel-shell {
+  position: fixed;
+  top: 44px;
+  right: 0;
+  z-index: 38;
+  display: flex;
+  width: var(--project-right-panel-width, 240px);
+  min-width: 180px;
+  max-width: 300px;
+  height: calc(100vh - 44px);
+  box-sizing: border-box;
+  flex-direction: column;
+  border-left: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  box-shadow: -12px 0 32px rgb(0 4 20 / 0.35);
+}
+
+.bolt-project-right-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -2px;
+  z-index: 2;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-right-resize-handle:hover,
+.bolt-project-right-resize-handle:active {
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-project-right-panel-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-right-files-header {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 10px 0 12px;
+}
+
+.bolt-project-right-files-header > span:first-child {
+  color: var(--vc-ide-accent-warning);
+  font-size: 14px;
+}
+
+.bolt-project-agent-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  z-index: 4;
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-agent-resize-handle:hover,
+.bolt-project-agent-resize-handle:active {
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-project-agent-header {
+  display: flex;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  padding: 10px 12px;
+}
+
+.bolt-project-agent-avatar {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
+  color: white;
+}
+
+.bolt-project-agent-title {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-agent-mode {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  padding: 2px;
+}
+
+.bolt-project-agent-mode button {
+  height: 20px;
+  border-radius: 999px;
+  padding: 0 8px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.bolt-project-agent-mode button[aria-pressed='true'] {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-tabbar,
+.bolt-project-right-tabs {
+  display: flex;
+  height: 34px;
+  min-height: 34px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-tabs {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.bolt-project-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.bolt-project-tab,
+.bolt-project-right-tab {
+  display: inline-flex;
+  min-width: 92px;
+  max-width: 168px;
+  align-items: center;
+  gap: 6px;
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 9px;
+  position: relative;
+  transition:
+    background 100ms ease-out,
+    border-color 150ms ease-out,
+    box-shadow 150ms ease-out,
+    opacity 150ms ease-out,
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+}
+
+.bolt-project-tab-main {
+  display: inline-flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+}
+
+.bolt-project-tab-main > span:first-child {
+  flex-shrink: 0;
+  color: currentColor;
+  font-size: 14px;
+}
+
+.bolt-project-tab[data-pinned='true'] {
+  min-width: 36px;
+  max-width: 36px;
+  justify-content: center;
+  padding: 0;
+}
+
+.bolt-project-tab[data-pinned='true'] .bolt-project-tab-main {
+  justify-content: center;
+}
+
+.bolt-project-tab[data-pinned='true'] .bolt-project-tab-main > span:nth-child(2),
+.bolt-project-tab[data-pinned='true'] .bolt-project-tab-close,
+.bolt-project-tab[data-pinned='true'] .bolt-project-tab-save {
+  display: none;
+}
+
+.bolt-project-right-tab {
+  min-width: auto;
+  padding: 0 10px;
+}
+
+.bolt-project-tab[aria-selected='true'],
+.bolt-project-right-tab[aria-current='page'] {
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03);
+}
+
+.bolt-project-tab[aria-selected='true'] .bolt-project-tab-main > span:first-child,
+.bolt-project-right-tab[aria-current='page'] .bolt-project-tab-main > span:first-child {
+  color: var(--vc-ide-accent);
+}
+
+.bolt-project-tab[aria-selected='true']::after,
+.bolt-project-right-tab[aria-current='page']::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--vc-ide-accent);
+  content: '';
+}
+
+.bolt-project-tab:hover,
+.bolt-project-right-tab:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-tab[draggable='true'] {
+  cursor: grab;
+}
+
+.bolt-project-tab[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.bolt-project-tab-main > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-tab-close,
+.bolt-project-tab-save {
+  margin-left: auto;
+  color: var(--vc-ide-text-muted);
+  opacity: 0;
+  transition: opacity 100ms ease-out;
+}
+
+.bolt-project-tab:hover .bolt-project-tab-close,
+.bolt-project-tab-save {
+  opacity: 1;
+}
+
+.bolt-project-tab-save {
+  color: var(--vc-ide-accent);
+}
+
+.bolt-project-tab-action {
+  display: inline-flex;
+  width: 30px;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  border-radius: 0;
+  color: var(--vc-ide-text-muted);
+  margin-right: 0;
+  transition:
+    background 100ms ease-out,
+    color 100ms ease-out;
+}
+
+.bolt-project-tab-action:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-add-tab-action {
+  width: auto;
+  gap: 5px;
+  border-left: 1px solid var(--vc-ide-border-subtle);
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.bolt-project-add-tab-action span:nth-child(2) {
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bolt-project-add-tab-action span:last-child {
+  font-size: 10px;
+  transition: transform 120ms ease-out;
+}
+
+.bolt-project-add-tab-action[aria-expanded='true'] span:last-child {
+  transform: rotate(180deg);
+}
+
+.bolt-project-tool-popover {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bolt-project-tool-popover summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.bolt-project-tool-menu {
+  position: fixed;
+  z-index: 120;
+  display: flex;
+  width: 384px;
+  max-height: 480px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-xl);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+}
+
+.bolt-project-tool-menu-header {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  padding: 10px;
+}
+
+.bolt-project-tool-menu-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 6px;
+}
+
+.bolt-project-tool-footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.bolt-project-tool-search {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+  padding: 0 10px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-tool-search input {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.bolt-project-tool-search input::placeholder {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-tool-section {
+  padding: 9px 8px 5px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
+.bolt-project-tool-group + .bolt-project-tool-group {
+  margin-top: 4px;
+}
+
+.bolt-project-tool-item {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  gap: 12px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  transition:
+    background 120ms ease-out,
+    box-shadow 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.bolt-project-tool-item:hover {
+  background: var(--vc-ide-bg-hover);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-border-visible), transparent 35%);
+}
+
+.bolt-project-tool-menu .bolt-project-tool-item:hover {
+  background-color: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-tool-menu .bolt-project-tool-item:hover strong {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-tool-menu .bolt-project-tool-item:hover small {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-tool-item strong,
+.bolt-project-tool-item small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-tool-item strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.bolt-project-tool-item small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-tool-item em {
+  margin-left: auto;
+  border-radius: 999px;
+  background: rgb(63 185 80 / 0.15);
+  color: #3fb950;
+  font-size: 10px;
+  font-style: normal;
+  padding: 2px 6px;
+}
+
+.bolt-project-tool-item-chevron {
+  margin-left: auto;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  opacity: 0;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.bolt-project-tool-item:hover .bolt-project-tool-item-chevron {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.bolt-project-tool-empty {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 34px 12px;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.bolt-project-tool-empty > span {
+  color: var(--vc-ide-text-muted);
+  font-size: 28px;
+  opacity: 0.35;
+}
+
+.bolt-project-tool-empty strong {
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-project-tool-empty small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-runtime-badge {
+  align-self: center;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  color: #6e7681;
+  font-size: 11px;
+  margin-right: 8px;
+  padding: 2px 8px;
+}
+
+.bolt-project-welcome {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.bolt-project-welcome-logo {
+  display: inline-flex;
+  width: 64px;
+  height: 64px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  color: white;
+  font-size: 32px;
+  opacity: 0.75;
+}
+
+.bolt-project-welcome h2 {
+  margin-top: 16px;
+  color: #f5f9fc;
+  font-size: var(--vc-type-heading-size);
+  font-weight: 600;
+  line-height: var(--vc-type-line-height);
+}
+
+.bolt-project-welcome p {
+  margin-top: 6px;
+  color: #6e7681;
+  font-size: 13px;
+}
+
+.bolt-project-welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 200px));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.bolt-project-welcome-card {
+  display: grid;
+  min-height: 92px;
+  justify-items: start;
+  border: 1px solid #2b3245;
+  border-radius: var(--vc-ui-radius-card);
+  background: #1a2030;
+  padding: 12px;
+  text-align: left;
+}
+
+.bolt-project-welcome-card:hover {
+  background: #2b3245;
+}
+
+.bolt-project-welcome-card strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-welcome-card small,
+.bolt-project-welcome-recents {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-welcome-recents {
+  display: grid;
+  width: min(420px, 100%);
+  gap: 6px;
+  margin-top: 22px;
+  text-align: left;
+}
+
+.bolt-project-welcome-recents button {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: #c2c8cc;
+}
+
+.bolt-project-welcome-recents button:hover {
+  background: #1a2030;
+}
+
+.bolt-project-service-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-network-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-network-grid {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.bolt-project-network-grid > div {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #2b3245;
+  border-radius: var(--vc-ui-radius-card);
+  background: #0e1525;
+  padding: 12px;
+}
+
+.bolt-project-network-grid strong {
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bolt-project-network-grid button,
+.bolt-project-network-grid p {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 8px;
+  border-radius: 6px;
+  color: #c2c8cc;
+  font-size: 12px;
+  margin: 0;
+  padding: 8px;
+  text-align: left;
+}
+
+.bolt-project-network-grid button:hover {
+  background: #1a2030;
+}
+
+.bolt-project-network-grid small {
+  grid-column: 2;
+  overflow: hidden;
+  color: #6e7681;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-files-tool {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-files-header {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #1a2030;
+  padding: 0 8px;
+}
+
+.bolt-project-files-count {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: #6e7681;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-files-search {
+  display: flex;
+  min-height: 42px;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid #1a2030;
+  padding: 6px 8px;
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-files-search input {
+  height: 26px;
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 5px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  outline: none;
+  padding: 0 8px;
+}
+
+.bolt-project-files-search input:focus {
+  border-color: #0079f2;
+}
+
+.bolt-project-files-header button,
+.bolt-project-editor-toolbar button,
+.bolt-project-webview-toolbar button,
+.bolt-project-console-header button,
+.bolt-project-secret-row button {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 0 6px;
+}
+
+.bolt-project-files-header button:hover,
+.bolt-project-editor-toolbar button:hover,
+.bolt-project-webview-toolbar button:hover,
+.bolt-project-console-header button:hover,
+.bolt-project-secret-row button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-webview-toolbar {
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.bolt-project-webview-toolbar .flex.items-center {
+  gap: 2px;
+}
+
+.bolt-project-webview-toolbar button {
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+}
+
+.bolt-project-webview-toolbar button span,
+.bolt-project-webview-toolbar button [class*='i-ph:'] {
+  width: 13px;
+  height: 13px;
+  font-size: 13px;
+}
+
+.bolt-project-files-header [class*='i-ph:'] {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+.bolt-project-file-tree {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-project-file-tree button {
+  min-height: 24px;
+  border-width: 0 0 0 2px;
+  border-left-color: transparent;
+  border-radius: 0;
+}
+
+.bolt-project-file-tree button:hover {
+  background: #2b3245;
+}
+
+.bolt-project-file-tree .bolt-project-file-selected {
+  border-left-color: #f26207;
+  background: #2b3245;
+}
+
+.bolt-project-file-tree [class*='i-ph:'] {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+.bolt-project-editor-tool,
+.bolt-project-webview-tool,
+.bolt-project-console-tool {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  background: #0a0f1c;
+}
+
+.bolt-project-editor-toolbar,
+.bolt-project-webview-toolbar,
+.bolt-project-console-header {
+  display: flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  padding: 0 8px;
+}
+
+.bolt-project-editor-toolbar span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #c2c8cc;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-editor-adapter,
+.bolt-project-webview-frame {
+  flex: 1;
+  min-height: 0;
+}
+
+.bolt-project-webview-frame {
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  padding: 12px;
+  background:
+    linear-gradient(90deg, rgba(43, 50, 69, 0.26) 1px, transparent 1px),
+    linear-gradient(rgba(43, 50, 69, 0.22) 1px, transparent 1px), #0a0f1c;
+  background-size: 24px 24px;
+}
+
+.bolt-project-webview-viewport {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #1a2030;
+  border-radius: 6px;
+  background: #0e1525;
+  box-shadow: 0 12px 32px rgba(0, 4, 20, 0.6);
+  transition:
+    width 200ms cubic-bezier(0.2, 0, 0, 1),
+    max-width 200ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.bolt-project-webview-frame[data-preview-device='tablet'] .bolt-project-webview-viewport {
+  width: min(768px, 100%);
+}
+
+.bolt-project-webview-frame[data-preview-device='mobile'] .bolt-project-webview-viewport {
+  width: min(390px, 100%);
+}
+
+.bolt-project-webview-frame[data-preview-device='custom'] .bolt-project-webview-viewport {
+  width: min(520px, 100%);
+}
+
+.bolt-project-webview-toolbar input {
+  height: 24px;
+  min-width: 0;
+  flex: 1;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 4px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.bolt-project-webview-toolbar select,
+.bolt-project-console-header select {
+  height: 24px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 4px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  color-scheme: inherit;
+  font-size: 12px;
+}
+
+.bolt-project-webview-toolbar select option,
+.bolt-project-console-header select option {
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-preview-addressbar {
+  min-width: 160px;
+}
+
+.bolt-preview-window-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  width: min(320px, calc(100vw - 24px));
+  max-height: min(520px, calc(100vh - 96px));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-menu button {
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0;
+  padding: 0;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-menu button span,
+.bolt-project-webview-toolbar .bolt-preview-window-menu button [class*='i-ph:'] {
+  width: auto;
+  height: auto;
+  font-size: inherit;
+}
+
+.bolt-preview-window-menu-header {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  padding: 10px 12px 9px;
+}
+
+.bolt-preview-window-menu-header div {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-preview-window-menu-header strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-preview-window-menu-header span {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-preview-window-menu-header > span {
+  width: 17px;
+  height: 17px;
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-window-menu-section {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
+  padding: 8px 10px;
+}
+
+.bolt-preview-window-menu-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-menu-actions button {
+  display: grid !important;
+  min-height: 58px !important;
+  place-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-subtle) !important;
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+  padding: 8px !important;
+  text-align: center;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-menu-actions button:hover {
+  border-color: var(--vc-ide-border-visible) !important;
+  background: var(--vc-ide-bg-hover) !important;
+}
+
+.bolt-preview-window-menu-actions button > span {
+  width: 17px !important;
+  height: 17px !important;
+  color: var(--vc-ide-accent-action);
+  font-size: 17px !important;
+}
+
+.bolt-preview-window-menu-actions button strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bolt-preview-window-menu-action,
+.bolt-preview-window-menu-toggle,
+.bolt-preview-window-size {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-preview-window-menu-action {
+  min-height: 34px !important;
+  justify-content: space-between;
+  padding: 0 10px !important;
+  text-align: left;
+}
+
+.bolt-preview-window-menu-action:hover,
+.bolt-preview-window-size:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-preview-window-menu-action > span:last-child {
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 auto;
+}
+
+.bolt-preview-window-menu-toggle {
+  min-height: 32px;
+  gap: 12px;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 0 10px !important;
+}
+
+.bolt-preview-window-menu-toggle > span:first-child {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.bolt-preview-window-menu-toggle:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-preview-window-menu-toggle[aria-pressed='true'] {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-preview-window-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  min-width: 34px;
+  flex: 0 0 34px;
+  height: 18px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-menu-toggle .bolt-preview-window-switch {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 18px !important;
+}
+
+.bolt-preview-window-menu-toggle[aria-pressed='true'] .bolt-preview-window-switch {
+  border-color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-window-switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 4 20 / 0.25);
+  transition: transform 160ms ease-out;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-switch span {
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 0 !important;
+}
+
+.bolt-preview-window-menu-toggle[aria-pressed='true'] .bolt-preview-window-switch span {
+  transform: translateX(16px);
+}
+
+.bolt-preview-window-menu-sizes {
+  display: grid;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 4px 6px 8px;
+}
+
+.bolt-preview-window-menu-label {
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  padding: 7px 12px;
+  text-transform: uppercase;
+}
+
+.bolt-preview-window-size {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  gap: 10px;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: stretch !important;
+  justify-items: start;
+  padding: 7px 10px !important;
+  text-align: left;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-window-size {
+  display: grid !important;
+}
+
+.bolt-preview-window-size > span:first-child,
+.bolt-preview-window-size > span:last-child {
+  width: 16px !important;
+  height: 16px !important;
+  align-self: center;
+  color: var(--vc-ide-text-muted);
+  font-size: 16px !important;
+}
+
+.bolt-preview-window-size:hover > span:first-child,
+.bolt-preview-window-size > span:last-child {
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-window-size div {
+  display: grid;
+  justify-items: start;
+  min-width: 0;
+  gap: 2px;
+  text-align: left;
+}
+
+.bolt-preview-window-size strong,
+.bolt-preview-window-size small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-preview-window-size strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bolt-preview-window-size small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-preview-logs-panel {
+  display: flex;
+  min-height: 180px;
+  max-height: 42%;
+  flex-direction: column;
+  border-top: 1px solid #1a2030;
+  background: #0a0f1c;
+  color: #c2c8cc;
+}
+
+.bolt-preview-logs-panel header {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  padding: 0 8px;
+}
+
+.bolt-preview-logs-panel [role='tablist'] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-preview-logs-panel button {
+  display: inline-flex;
+  height: 24px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #c2c8cc;
+  font-size: 11px;
+  padding: 0 8px;
+}
+
+.bolt-preview-logs-panel button:hover,
+.bolt-preview-logs-panel button[aria-selected='true'] {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-preview-logs-panel pre {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  color: #3fb950;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+.bolt-project-console-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #0a0f1c;
+  color: #3fb950;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 12px;
+}
+
+.bolt-project-console-tool-split {
+  display: grid;
+  grid-template-rows: 36px minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.bolt-project-console-tool-split .bolt-project-console-body + .bolt-project-console-body {
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-preview-splash,
+.bolt-preview-empty-state {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(0, 153, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 86% 20%, rgba(123, 97, 255, 0.14), transparent 30%),
+    var(--bolt-elements-background-depth-1, #0a0f1c);
+  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  padding: 24px;
+}
+
+.bolt-preview-not-running {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 18%, rgb(248 81 73 / 0.14), transparent 30%),
+    radial-gradient(circle at 18% 88%, rgb(0 153 255 / 0.14), transparent 30%),
+    var(--bolt-elements-background-depth-1, #0a0f1c);
+  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  padding: 24px;
+}
+
+.bolt-preview-not-running-card {
+  display: flex;
+  width: min(480px, 100%);
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bolt-elements-background-depth-2, #0e1525) 94%, transparent);
+  box-shadow: 0 24px 64px rgb(0 4 20 / 0.58);
+  padding: 34px 28px 28px;
+  text-align: center;
+}
+
+.bolt-preview-not-running-orbit {
+  position: relative;
+  display: grid;
+  width: 104px;
+  height: 104px;
+  place-items: center;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgb(248 81 73 / 0.12), transparent), var(--bolt-elements-background-depth-1, #0a0f1c);
+  margin-bottom: 24px;
+}
+
+.bolt-preview-not-running-orbit > span {
+  position: absolute;
+  border: 1px solid rgb(248 81 73 / 0.32);
+  border-radius: 999px;
+  inset: 10px;
+}
+
+.bolt-preview-not-running-orbit > span:nth-child(2) {
+  border-color: rgb(0 153 255 / 0.24);
+  inset: 22px;
+  transform: rotate(28deg);
+}
+
+.bolt-preview-not-running-orbit > span:nth-child(3) {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  background: #f85149;
+  box-shadow: 0 0 22px rgb(248 81 73 / 0.78);
+  inset: auto 18px 18px auto;
+}
+
+.bolt-preview-not-running-orbit > svg {
+  width: 34px;
+  height: 34px;
+  color: #f85149;
+  stroke-width: 1.8;
+}
+
+.bolt-preview-not-running-copy span {
+  display: inline-flex;
+  border: 1px solid rgb(248 81 73 / 0.24);
+  border-radius: 999px;
+  background: rgb(248 81 73 / 0.1);
+  color: #f85149;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+
+.bolt-preview-not-running-copy h3 {
+  margin: 14px 0 0;
+  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.bolt-preview-not-running-copy p {
+  max-width: 360px;
+  margin: 12px auto 0;
+  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.bolt-preview-not-running-log {
+  width: min(420px, 100%);
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--vc-font-code);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 14px auto 0;
+  padding: 10px;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.bolt-preview-not-running-run {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #7b61ff, #0099ff);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 24px;
+  padding: 0 16px;
+  transition:
+    filter 150ms ease-out,
+    transform 150ms ease-out,
+    opacity 150ms ease-out;
+}
+
+.bolt-preview-not-running-run:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.bolt-preview-not-running-run:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.bolt-preview-not-running-run svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
+}
+
+.bolt-preview-splash-shell {
+  width: min(560px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bolt-elements-background-depth-2, #0e1525) 94%, transparent);
+  box-shadow: 0 24px 64px rgba(0, 4, 20, 0.55);
+  backdrop-filter: blur(16px);
+}
+
+.bolt-preview-splash-chrome {
+  display: flex;
+  height: 38px;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 1px solid var(--bolt-elements-borderColor, #1a2030);
+  background: var(--bolt-elements-background-depth-3, #111827);
+  padding: 0 12px;
+}
+
+.bolt-preview-splash-chrome span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.bolt-preview-splash-chrome span:nth-child(1) {
+  background: #f85149;
+}
+
+.bolt-preview-splash-chrome span:nth-child(2) {
+  background: #d29922;
+}
+
+.bolt-preview-splash-chrome span:nth-child(3) {
+  background: #3fb950;
+}
+
+.bolt-preview-splash-chrome div {
+  height: 18px;
+  flex: 1;
+  border: 1px solid var(--bolt-elements-borderColor, #1a2030);
+  border-radius: 999px;
+  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  margin-left: 10px;
+}
+
+.bolt-preview-splash-slide {
+  min-height: 340px;
+  display: grid;
+  place-items: center;
+  animation: bolt-preview-slide-in 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 36px 28px 24px;
+}
+
+.bolt-preview-splash-content {
+  display: flex;
+  width: min(420px, 100%);
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bolt-preview-splash-icon {
+  display: grid;
+  width: 74px;
+  height: 74px;
+  place-items: center;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 18px;
+  margin-bottom: 22px;
+}
+
+.bolt-preview-splash-icon svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 1.7;
+}
+
+.bolt-preview-splash-content h3 {
+  margin: 0;
+  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.bolt-preview-splash-content p {
+  max-width: 390px;
+  margin: 12px 0 0;
+  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.bolt-preview-splash-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.bolt-preview-splash-stats div {
+  min-width: 92px;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 10px;
+  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  padding: 12px 14px;
+}
+
+.bolt-preview-splash-stats strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.bolt-preview-splash-stats span {
+  display: block;
+  margin-top: 6px;
+  color: var(--bolt-elements-textTertiary, #6e7681);
+  font-size: 11px;
+}
+
+.bolt-preview-splash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+  width: min(320px, 100%);
+}
+
+.bolt-preview-splash-grid div,
+.bolt-preview-splash-tips div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border-radius: 10px;
+  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  padding: 11px 12px;
+  text-align: left;
+}
+
+.bolt-preview-splash-grid svg,
+.bolt-preview-splash-tips svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  stroke-width: 1.7;
+}
+
+.bolt-preview-splash-grid span,
+.bolt-preview-splash-tips span {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bolt-preview-splash-tips {
+  display: grid;
+  gap: 8px;
+  width: min(380px, 100%);
+  margin-top: 22px;
+}
+
+.bolt-preview-splash-tips div {
+  opacity: 0.68;
+  transform: scale(0.98);
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out,
+    background 180ms ease-out;
+}
+
+.bolt-preview-splash-tips div.active {
+  background: color-mix(in srgb, var(--bolt-elements-item-contentAccent, #0099ff) 12%, transparent);
+  opacity: 1;
+  transform: scale(1);
+}
+
+.bolt-preview-splash-task {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid var(--bolt-elements-borderColor, #1a2030);
+  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  font-size: 12px;
+  padding: 9px 18px;
+  text-align: center;
+}
+
+.bolt-preview-splash-progress {
+  height: 2px;
+  overflow: hidden;
+  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+}
+
+.bolt-preview-splash-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: 999px;
+  animation: bolt-preview-progress 1.8s ease-in-out infinite;
+}
+
+.bolt-preview-splash-footer {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 18px;
+}
+
+.bolt-preview-splash-footer p {
+  margin: 0;
+  color: var(--bolt-elements-textTertiary, #6e7681);
+  font-size: 11px;
+}
+
+.bolt-preview-splash-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bolt-preview-splash-dots button {
+  width: 7px;
+  height: 7px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bolt-elements-borderColor, #2b3245);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 150ms ease-out,
+    transform 150ms ease-out,
+    width 150ms ease-out;
+}
+
+.bolt-preview-splash-dots button.active {
+  width: 18px;
+  background: var(--bolt-elements-item-contentAccent, #0099ff);
+}
+
+@keyframes bolt-preview-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bolt-preview-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(260%);
+  }
+}
+
+.bolt-preview-empty-card {
+  display: flex;
+  max-width: 360px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: #0e1525;
+  box-shadow: 0 12px 32px rgba(0, 4, 20, 0.6);
+  padding: 24px;
+  text-align: center;
+}
+
+.bolt-preview-empty-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #2b3245;
+  border-radius: 8px;
+  background: #1a2030;
+  color: #0099ff;
+  font-size: 18px;
+}
+
+.bolt-preview-empty-card h3 {
+  margin: 0;
+  color: #f5f9fc;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bolt-preview-empty-card p,
+.bolt-preview-empty-card small {
+  margin: 0;
+  color: #c2c8cc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-preview-empty-card small {
+  color: #6e7681;
+}
+
+.bolt-preview-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.bolt-preview-empty-actions button {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #2b3245;
+  border-radius: 4px;
+  background: #1a2030;
+  color: #f5f9fc;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 10px;
+  transition:
+    background 150ms ease-out,
+    border-color 150ms ease-out;
+}
+
+.bolt-preview-empty-actions button:hover:not(:disabled) {
+  background: #2b3245;
+}
+
+.bolt-preview-empty-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.bolt-project-database-tool,
+.bolt-project-git-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+
+.bolt-project-managed-panel {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.bolt-project-monitoring-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.bolt-project-panel-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bolt-project-panel-toolbar label {
+  display: grid;
+  min-width: 180px;
+  flex: 1;
+  gap: 6px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.bolt-project-panel-toolbar input {
+  height: 32px;
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 0 10px;
+}
+
+.bolt-project-panel-toolbar button,
+.bolt-project-object-grid button,
+.bolt-project-package-list button,
+.bolt-project-extension-catalog button {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-panel-toolbar button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.bolt-project-panel-toolbar button.selected,
+.bolt-project-object-grid button.selected,
+.bolt-project-extension-catalog button.selected {
+  border-color: var(--vc-ide-accent-action);
+  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
+}
+
+.bolt-project-object-grid,
+.bolt-project-package-list,
+.bolt-project-extension-catalog,
+.bolt-project-env-list,
+.bolt-project-metric-grid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bolt-project-object-grid,
+.bolt-project-extension-catalog {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.bolt-project-object-grid button,
+.bolt-project-package-list button,
+.bolt-project-extension-catalog button {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  text-align: left;
+}
+
+.bolt-project-object-grid button:hover,
+.bolt-project-package-list button:hover,
+.bolt-project-extension-catalog button:hover,
+.bolt-project-panel-toolbar button:hover:not(:disabled) {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-object-grid strong,
+.bolt-project-package-list strong,
+.bolt-project-extension-catalog strong,
+.bolt-project-metric-grid strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-object-grid span,
+.bolt-project-package-list span,
+.bolt-project-extension-catalog span,
+.bolt-project-metric-grid span,
+.bolt-project-metric-grid small {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-object-grid em,
+.bolt-project-extension-catalog em {
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  padding: 3px 7px;
+}
+
+.bolt-project-package-list button.pending {
+  border-color: #d29922;
+}
+
+.bolt-project-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bolt-project-metric-grid article {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-metric-grid strong {
+  display: block;
+  margin: 6px 0;
+  font-size: 24px;
+}
+
+.bolt-project-env-row {
+  display: grid;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(120px, 1fr) minmax(120px, 0.8fr) auto auto auto;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.bolt-project-env-row strong,
+.bolt-project-env-row span,
+.bolt-project-env-row small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-env-row strong {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-env-row button {
+  min-height: 28px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 5px;
+  color: var(--vc-ide-text-primary);
+  padding: 0 8px;
+}
+
+.bolt-project-env-row form {
+  margin: 0;
+}
+
+.bolt-project-deploy-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.bolt-project-database-tool aside,
+.bolt-project-git-tool section,
+.bolt-project-deploy-history {
+  min-height: 0;
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-secondary);
+  padding: 12px;
+}
+
+.bolt-project-database-tool aside strong,
+.bolt-project-git-tool h3 {
+  display: block;
+  margin: 0 0 10px;
+  color: #f5f9fc;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-database-tool summary {
+  cursor: pointer;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.bolt-project-database-tool aside button {
+  display: block;
+  width: 100%;
+  border-radius: 4px;
+  color: #6e7681;
+  font-size: 12px;
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.bolt-project-tool-tabs {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+}
+
+.bolt-project-tool-tabs button {
+  height: 32px;
+  border-right: 1px solid #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+.bolt-project-tool-tabs button[aria-current='page'] {
+  background: #1a2030;
+  color: #f5f9fc;
+  box-shadow: inset 0 -2px 0 #f26207;
+}
+
+.bolt-project-sql-editor,
+.bolt-project-inline-form {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #1a2030;
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.bolt-project-sql-editor textarea,
+.bolt-project-git-tool textarea {
+  min-height: 120px;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0a0f1c;
+  color: #f5f9fc;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 10px;
+}
+
+.bolt-project-secrets-tool {
+  display: grid;
+  gap: 12px;
+}
+
+.bolt-project-secret-list {
+  display: grid;
+  overflow: hidden;
+  border: 1px solid #2b3245;
+  border-radius: 6px;
+  background: #0e1525;
+}
+
+.bolt-project-secret-row,
+.bolt-project-git-file {
+  display: grid;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #1a2030;
+  color: #c2c8cc;
+  font-size: 12px;
+  grid-template-columns: minmax(120px, 1fr) minmax(80px, 120px) repeat(4, auto);
+  padding: 0 12px;
+}
+
+.bolt-project-secret-row strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-secret-row span {
+  min-width: 0;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-git-file {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bolt-project-git-file em {
+  color: #d29922;
+  font-style: normal;
+}
+
+.bolt-project-empty-panel {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  padding: 12px;
+}
+
+.bolt-project-collaboration-tool {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 12px;
+}
+
+.bolt-project-collaboration-card {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+  box-shadow: var(--vc-ui-shadow-md);
+  padding: 12px;
+}
+
+.bolt-project-collaboration-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bolt-project-collaboration-header h3 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-project-collaboration-header p,
+.bolt-project-collaboration-comment p {
+  margin: 3px 0 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-project-collaboration-live {
+  border: 1px solid rgb(63 185 80 / 0.35);
+  border-radius: 999px;
+  background: rgb(63 185 80 / 0.1);
+  color: var(--vc-ide-accent-success);
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.bolt-project-collaboration-users,
+.bolt-project-collaboration-list,
+.bolt-project-collaboration-form {
+  display: grid;
+  gap: 8px;
+}
+
+.bolt-project-collaboration-user,
+.bolt-project-collaboration-row,
+.bolt-project-collaboration-comment {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 8px;
+}
+
+.bolt-project-collaboration-user {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.bolt-project-collaboration-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.bolt-project-collaboration-avatar {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--vc-ide-bg-panel);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bolt-project-collaboration-user strong,
+.bolt-project-collaboration-row span,
+.bolt-project-collaboration-comment strong {
+  display: block;
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-collaboration-user small,
+.bolt-project-collaboration-comment small {
+  display: block;
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-collaboration-user em,
+.bolt-project-collaboration-row strong {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  padding: 2px 7px;
+}
+
+.bolt-project-collaboration-form select,
+.bolt-project-collaboration-form input {
+  min-height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.bolt-project-collaboration-form select option {
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-collaboration-form input::placeholder {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-collaboration-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .bolt-project-collaboration-tool,
+  .bolt-project-collaboration-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bolt-project-deploy-summary {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.bolt-project-deploy-summary div,
+.bolt-project-deploy-card,
+.bolt-project-deploy-wizard {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-deploy-summary div {
+  padding: 10px;
+}
+
+.bolt-project-deploy-summary span,
+.bolt-project-deploy-card span,
+.bolt-project-deploy-wizard p,
+.bolt-project-deploy-wizard label {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-deploy-summary strong,
+.bolt-project-deploy-card strong,
+.bolt-project-deploy-wizard h3 {
+  display: block;
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-deploy-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.bolt-project-deploy-card header {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bolt-project-deploy-card em {
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(210, 153, 34, 0.14);
+  color: var(--vc-ide-accent-warning);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 22px;
+  padding: 0 8px;
+}
+
+.bolt-project-deploy-card em[data-status='READY'] {
+  background: rgba(63, 185, 80, 0.14);
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-deploy-card em[data-status='FAILED'],
+.bolt-project-deploy-card em[data-status='CANCELED'] {
+  background: rgba(248, 81, 73, 0.14);
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-deploy-card pre {
+  max-height: 160px;
+  overflow: auto;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-secondary);
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  padding: 10px;
+}
+
+.bolt-project-deploy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bolt-project-deploy-actions a {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  padding: 0 12px;
+}
+
+.bolt-project-deploy-actions a:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-deploy-wizard {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
+}
+
+.bolt-project-deploy-wizard select,
+.bolt-project-deploy-wizard input,
+.bolt-project-deploy-wizard textarea {
+  width: 100%;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  margin-top: 6px;
+  padding: 8px 10px;
+}
+
+.bolt-project-deploy-wizard select option {
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-deploy-wizard input::placeholder,
+.bolt-project-deploy-wizard textarea::placeholder {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-deploy-wizard textarea {
+  min-height: 96px;
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bolt-project-deploy-wizard .bolt-project-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-deploy-wizard .bolt-project-checkbox-row input {
+  width: auto;
+  margin: 0;
+}
+
+.bolt-project-main-stack {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bolt-project-main-panes {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100% - var(--project-terminal-bottom-height, 0px));
+  transition: height var(--vc-animation-split-panel);
+}
+
+.bolt-project-pane-split {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+}
+
+.bolt-project-pane-split[data-direction='horizontal'] {
+  grid-template-columns: minmax(260px, 1fr) 1px minmax(260px, 1fr);
+}
+
+.bolt-project-pane-split-divider {
+  background: var(--vc-ide-border-subtle);
+}
+
+.bolt-project-bottom-terminal-shell {
+  position: relative;
+  flex: 0 0 var(--project-terminal-height);
+  min-height: 100px;
+  max-height: 600px;
+  height: var(--project-terminal-height);
+  transition:
+    flex-basis var(--vc-animation-split-panel),
+    height var(--vc-animation-split-panel);
+}
+
+.bolt-project-bottom-terminal-frame {
+  height: 100%;
+  min-height: 0;
+}
+
+.bolt-project-terminal-resize-handle {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  left: 0;
+  z-index: 5;
+  height: 4px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 150ms ease-out;
+}
+
+.bolt-project-terminal-resize-handle:hover,
+.bolt-project-terminal-resize-handle:active {
+  background: rgb(0 153 255 / 0.5);
+}
+
+.bolt-project-pane-leaf {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0a0f1c;
+}
+
+.bolt-project-pane-leaf[data-active='true'] {
+  box-shadow: inset 0 0 0 1px rgb(0 153 255 / 0.18);
+}
+
+.bolt-project-pane-leaf[data-drop-target='true'] {
+  box-shadow:
+    inset 0 0 0 2px rgb(0 153 255 / 0.72),
+    inset 0 0 0 999px rgb(0 153 255 / 0.08);
+  transform: scale(0.996);
+}
+
+.bolt-project-pane-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.bolt-project-tab-actions-menu {
+  position: fixed;
+  z-index: 80;
+  display: grid;
+  min-width: 180px;
+  gap: 2px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 2%);
+  box-shadow: var(--vc-ui-shadow-xl);
+  backdrop-filter: var(--vc-ui-overlay-blur);
+  padding: 6px;
+}
+
+.bolt-project-tab-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 32px;
+}
+
+.bolt-project-tab-actions-menu button {
+  height: 30px;
+  border-radius: 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  padding: 0 8px;
+  text-align: left;
+}
+
+.bolt-project-tab-actions-menu button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-bottom-terminal {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  border-top: 1px solid #1a2030;
+  background: #0a0f1c;
+}
+
+.bolt-project-bottom-terminal-tabs {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid #1a2030;
+  background: #0e1525;
+  padding: 0 6px;
+}
+
+.bolt-project-bottom-terminal-tabs button {
+  height: 24px;
+  border-radius: 4px;
+  color: #c2c8cc;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.bolt-project-bottom-terminal-tabs button:hover,
+.bolt-project-bottom-terminal-tabs button[aria-current='page'] {
+  background: #2b3245;
+  color: #f5f9fc;
+}
+
+.bolt-project-conversation-history {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  left: 8px;
+  z-index: 30;
+  display: flex;
+  max-height: min(620px, calc(100vh - 72px));
+  min-height: 260px;
+  flex-direction: column;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 2%);
+  box-shadow: var(--vc-ui-shadow-xl);
+  overflow: hidden;
+}
+
+.bolt-project-conversation-history-head {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  padding: 10px 12px;
+}
+
+.bolt-project-conversation-history-head > div {
+  display: grid;
+  gap: 1px;
+}
+
+.bolt-project-conversation-history-head strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-conversation-history-head span {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-conversation-history-list {
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.bolt-project-history-checkpoint {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-history-checkpoint-main {
+  display: grid;
+  gap: 4px;
+}
+
+.bolt-project-history-checkpoint-main strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bolt-project-history-checkpoint-main span {
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.bolt-project-history-checkpoint-main small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-history-checkpoint-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bolt-project-history-checkpoint-actions button {
+  min-width: 0;
+  height: 28px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.bolt-project-history-checkpoint-actions button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-history-checkpoint-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.bolt-project-history-empty {
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: 8px;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+.bolt-project-chat-jump-highlight {
+  animation: vc-chat-jump-highlight 1600ms ease-out both;
+}
+
+@keyframes vc-chat-jump-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgb(0 153 255 / 0);
+  }
+
+  20% {
+    box-shadow: 0 0 0 3px rgb(0 153 255 / 0.35);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgb(0 153 255 / 0);
+  }
+}
+
+.bolt-project-rollback-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--vc-ui-overlay-bg), rgb(0 0 0 / 0.18));
+  padding: 20px;
+}
+
+.bolt-project-rollback-dialog {
+  display: flex;
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 12px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+.bolt-project-rollback-body {
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.bolt-project-rollback-body h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.bolt-project-rollback-body h3 {
+  font-size: 14px;
+  margin: 4px 0;
+}
+
+.bolt-project-rollback-body p {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  margin: 0;
+}
+
+.bolt-project-rollback-body small,
+.bolt-project-rollback-body em {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-style: normal;
+}
+
+.bolt-project-rollback-label {
+  display: block;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.bolt-project-rollback-screenshot {
+  display: grid;
+  min-height: 150px;
+  place-items: center;
+  gap: 4px;
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  text-align: center;
+}
+
+.bolt-project-rollback-screenshot > span {
+  color: var(--vc-ide-text-muted);
+  font-size: 26px;
+}
+
+.bolt-project-rollback-impact {
+  display: grid;
+  gap: 4px;
+}
+
+.bolt-project-rollback-impact strong {
+  font-size: 12px;
+}
+
+.bolt-project-rollback-impact p + strong {
+  margin-top: 8px;
+}
+
+.bolt-project-rollback-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-rollback-option input {
+  margin-top: 2px;
+}
+
+.bolt-project-rollback-option span {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-rollback-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-rollback-dialog footer button {
+  height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+.bolt-project-rollback-dialog footer button:last-child {
+  border-color: transparent;
+  background: var(--vc-ide-accent-action);
+  color: white;
+}
+
+.bolt-project-rollback-dialog footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.bolt-project-command-palette {
+  position: fixed;
+  top: 120px;
+  left: 50%;
+  z-index: 90;
+  display: grid;
+  width: 600px;
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 1px solid #2b3245;
+  border-radius: 12px;
+  background: #1a2030;
+  box-shadow: var(--vc-ui-shadow-xl);
+}
+
+.bolt-project-command-palette input {
+  height: 52px;
+  border-bottom: 1px solid #2b3245;
+  background: transparent;
+  color: #f5f9fc;
+  font-size: var(--vc-type-interface-size);
+  outline: none;
+  padding: 0 16px;
+}
+
+.bolt-project-command-palette button {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  text-align: left;
+}
+
+.bolt-project-command-palette button:hover,
+.bolt-project-command-palette button[aria-current='page'] {
+  background: #2b3245;
+}
+
+.bolt-project-command-section {
+  padding: 8px 16px 4px;
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
+.bolt-project-command-palette strong,
+.bolt-project-command-palette small {
+  display: block;
+}
+
+.bolt-project-command-palette strong {
+  color: #f5f9fc;
+  font-size: 13px;
+}
+
+.bolt-project-command-palette small,
+.bolt-project-command-palette kbd,
+.bolt-project-command-palette footer {
+  color: #6e7681;
+  font-size: 11px;
+}
+
+.bolt-project-command-palette footer {
+  border-top: 1px solid #2b3245;
+  padding: 8px 14px;
+}
+
+.bolt-project-statusbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--project-agent-width, 420px);
+  z-index: 40;
+  display: flex;
+  height: 23px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #1a2030;
+  background: #0e1525;
+  color: #c2c8cc;
+  font-size: 10px;
+  line-height: 1;
+  padding: 0 12px;
+}
+
+.bolt-project-statusbar div,
+.bolt-project-statusbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bolt-project-statusbar button {
+  height: 23px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.bolt-project-statusbar [class*='i-ph:'] {
+  width: 11px;
+  height: 11px;
+  font-size: 11px;
+  line-height: 11px;
+}
+
+.bolt-project-statusbar button:hover {
+  color: #f5f9fc;
+}
+
+.bolt-project-statusbar-theme {
+  height: 19px !important;
+  min-width: 19px !important;
+  padding: 0 !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-ide-panels,
+    .bolt-project-agent-shell,
+    .bolt-project-workspace-shell,
+    .bolt-project-main-stack,
+    .bolt-project-main-panes,
+    .bolt-project-pane-leaf,
+    .bolt-project-service-panel,
+    .bolt-project-network-panel,
+    .bolt-project-editor-tool,
+    .bolt-project-webview-tool,
+    .bolt-project-console-tool,
+    .bolt-project-webview-frame,
+    .bolt-project-file-tree,
+    .bolt-project-files-tool,
+    .bolt-project-bottom-terminal,
+    .bolt-project-bottom-terminal-frame,
+    .bolt-project-command-palette
+  ) {
+  background-color: var(--vc-ide-bg-app) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-ide-panel,
+    .bolt-project-agent-header,
+    .bolt-project-tabbar,
+    .bolt-project-right-tabs,
+    .bolt-project-ide-panel-header,
+    .bolt-project-files-header,
+    .bolt-project-editor-toolbar,
+    .bolt-project-webview-toolbar,
+    .bolt-project-console-header,
+    .bolt-preview-logs-panel header,
+    .bolt-project-bottom-terminal-tabs,
+    .bolt-project-statusbar,
+    .bolt-project-right-files-header
+  ) {
+  border-color: var(--vc-ide-border-subtle) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-tab[aria-selected='true'],
+    .bolt-project-right-tab[aria-current='page'],
+    .bolt-project-webview-viewport,
+    .bolt-project-network-grid > div,
+    .bolt-project-welcome-card,
+    .bolt-project-action-card,
+    .bolt-project-history-checkpoint,
+    .bolt-project-rollback-option,
+    .bolt-project-tool-menu,
+    .bolt-project-tab-actions-menu,
+    .bolt-project-command-palette button,
+    .bolt-project-statusbar button:hover
+  ) {
+  background-color: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-tab:hover,
+    .bolt-project-right-tab:hover,
+    .bolt-project-ide-icon-button:hover,
+    .bolt-project-tab-action:hover,
+    .bolt-project-webview-toolbar button:hover,
+    .bolt-project-files-header button:hover,
+    .bolt-project-editor-toolbar button:hover,
+    .bolt-project-console-header button:hover,
+    .bolt-project-bottom-terminal-tabs button:hover,
+    .bolt-project-bottom-terminal-tabs button[aria-current='page'],
+    .bolt-project-agent-mode button[aria-pressed='true']
+  ) {
+  background-color: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-tab,
+    .bolt-project-right-tab,
+    .bolt-project-editor-toolbar span,
+    .bolt-project-webview-toolbar input,
+    .bolt-project-webview-toolbar select,
+    .bolt-project-console-header select,
+    .bolt-project-statusbar,
+    .bolt-project-statusbar button,
+    .bolt-project-file-tree,
+    .bolt-project-network-grid button,
+    .bolt-project-network-grid p
+  ) {
+  border-color: var(--vc-ide-border-subtle) !important;
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-ide-shell :where(.bolt-project-right-panel-content, .bolt-project-files-tool, .bolt-project-file-tree) {
+  background-color: var(--vc-ide-bg-panel) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-webview-toolbar input,
+    .bolt-project-webview-toolbar select,
+    .bolt-project-webview-toolbar select option,
+    .bolt-project-console-header select,
+    .bolt-project-console-header select option
+  ) {
+  background-color: var(--vc-ide-bg-card) !important;
+  border-color: var(--vc-ide-border-visible) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-service-panel,
+    .bolt-project-network-panel,
+    .bolt-project-pane-leaf,
+    .bolt-project-bottom-terminal,
+    .bolt-project-console-tool
+  ) {
+  background: var(--vc-ide-bg-app) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell :where(.bolt-project-right-panel-content, .bolt-project-files-tool, .bolt-project-file-tree) {
+  background: var(--vc-ide-bg-panel) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-agent-shell {
+  background: var(--vc-ide-bg-panel) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-ide-panel-header,
+    .bolt-project-files-header,
+    .bolt-project-tool-tabs,
+    .bolt-project-bottom-terminal-tabs,
+    .bolt-project-console-header,
+    .bolt-project-statusbar
+  ) {
+  border-color: var(--vc-ide-border-subtle) !important;
+  background: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-agent-action-card,
+    .bolt-project-welcome-card,
+    .bolt-project-network-grid > div,
+    .bolt-preview-empty-card,
+    .bolt-preview-empty-icon,
+    .bolt-preview-empty-actions button,
+    .bolt-project-integrations-sidebar section,
+    .bolt-project-integrations-grid article,
+    .bolt-project-integrations-list article,
+    .bolt-project-integrations-streams,
+    .bolt-project-integration-config,
+    .bolt-project-sql-editor,
+    .bolt-project-inline-form,
+    .bolt-project-secret-list,
+    .bolt-project-secret-row,
+    .bolt-project-git-file,
+    .bolt-project-tab-actions-menu,
+    .bolt-project-command-palette,
+    .bolt-project-command-palette button,
+    .bolt-project-history-checkpoint,
+    .bolt-project-rollback-option
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background: var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-agent-action-card button,
+    .bolt-project-database-tool aside button,
+    .bolt-project-tool-tabs button[aria-current='page'],
+    .bolt-project-tab-actions-menu button:hover,
+    .bolt-project-command-palette button:hover,
+    .bolt-project-command-palette button[aria-current='page'],
+    .bolt-project-bottom-terminal-tabs button:hover,
+    .bolt-project-bottom-terminal-tabs button[aria-current='page'],
+    .bolt-project-welcome-card:hover,
+    .bolt-project-welcome-recents button:hover,
+    .bolt-project-network-grid button:hover,
+    .bolt-preview-empty-actions button:hover:not(:disabled)
+  ) {
+  background: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-sql-editor textarea,
+    .bolt-project-git-tool textarea,
+    .bolt-project-deploy-wizard select,
+    .bolt-project-deploy-wizard input,
+    .bolt-project-deploy-wizard textarea,
+    .bolt-project-collaboration-form select,
+    .bolt-project-collaboration-form input,
+    .bolt-project-integrations-tool input,
+    .bolt-project-integrations-tool select,
+    .bolt-project-inline-form input,
+    .bolt-project-command-palette input
+  ) {
+  border-color: var(--vc-ide-border-visible) !important;
+  background: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-agent-action-card strong,
+    .bolt-project-welcome h2,
+    .bolt-project-welcome-card strong,
+    .bolt-project-network-grid strong,
+    .bolt-preview-empty-card h3,
+    .bolt-project-database-tool aside strong,
+    .bolt-project-git-tool h3,
+    .bolt-project-secret-row strong,
+    .bolt-project-command-palette strong
+  ) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-agent-action-card small,
+    .bolt-project-welcome p,
+    .bolt-project-welcome-card small,
+    .bolt-project-welcome-recents,
+    .bolt-project-network-grid small,
+    .bolt-preview-empty-card small,
+    .bolt-project-command-section,
+    .bolt-project-command-palette small,
+    .bolt-project-command-palette kbd,
+    .bolt-project-command-palette footer,
+    .bolt-project-runtime-badge
+  ) {
+  color: var(--vc-ide-text-muted) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-ide-tab,
+    .bolt-project-ide-icon-button,
+    .bolt-project-network-grid button,
+    .bolt-project-network-grid p,
+    .bolt-project-database-tool summary,
+    .bolt-project-tool-tabs button,
+    .bolt-project-secret-row,
+    .bolt-project-git-file,
+    .bolt-project-bottom-terminal-tabs button,
+    .bolt-project-statusbar,
+    .bolt-project-statusbar button
+  ) {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-ide-shell :where(strong, h1, h2, h3, h4, h5, h6, .bolt-project-agent-title) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell :where(small, em, .bolt-project-files-count, .bolt-project-tab-close) {
+  color: var(--vc-ide-text-muted) !important;
+}
+
+.bolt-project-terminal-hub {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--vc-ide-surface-0);
+  padding: 14px;
+}
+
+.bolt-project-settings-hub {
+  display: grid;
+  gap: 16px;
+  color: var(--bolt-elements-textPrimary);
+
+  header,
+  nav,
+  .bolt-project-settings-card {
+    border: 1px solid var(--bolt-elements-borderColor);
+    background: var(--bolt-elements-background-depth-2);
+    border-radius: 12px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 4px 0 0;
+      max-width: 720px;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    a {
+      display: inline-flex;
+      min-height: 36px;
+      align-items: center;
+      justify-content: center;
+      white-space: nowrap;
+      border-radius: 8px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--bolt-elements-textPrimary);
+    }
+  }
+
+  nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px;
+
+    button {
+      min-height: 36px;
+      white-space: nowrap;
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 12px;
+    }
+
+    button:hover,
+    button[aria-current='page'] {
+      background: var(--bolt-elements-background-depth-3);
+      color: var(--bolt-elements-textPrimary);
+    }
+  }
+
+  .bolt-project-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .bolt-project-settings-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+
+    h4 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    p,
+    small {
+      color: var(--bolt-elements-textSecondary);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    input,
+    select {
+      min-height: 38px;
+      width: 100%;
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 8px;
+      background: var(--bolt-elements-background-depth-1);
+      padding: 0 10px;
+      color: var(--bolt-elements-textPrimary);
+      font-size: 12px;
+    }
+
+    a,
+    button {
+      min-height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      padding: 0 10px;
+      color: var(--bolt-elements-textPrimary);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    button:hover,
+    a:hover {
+      background: var(--bolt-elements-background-depth-3);
+    }
+
+    &.danger {
+      border-color: rgba(248, 81, 73, 0.45);
+    }
+  }
+
+  .bolt-project-settings-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    > span {
+      display: flex;
+      width: 56px;
+      height: 56px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #0079f2, #7c65cb);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    strong,
+    small {
+      display: block;
+    }
+  }
+
+  .bolt-project-settings-list {
+    display: grid;
+    gap: 8px;
+
+    form {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    span {
+      min-width: 0;
+    }
+
+    strong,
+    small {
+      display: block;
+    }
+  }
+
+  .bolt-project-settings-provider-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    article {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    form {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    input[name='provider'],
+    input[name='intent'] {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .bolt-project-settings-hub {
+    header,
+    .bolt-project-settings-grid,
+    .bolt-project-settings-provider-grid {
+      grid-template-columns: 1fr;
+    }
+
+    header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .bolt-project-settings-list form,
+    .bolt-project-settings-provider-grid form {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+  }
+}
+
+.bolt-terminal-hub-head,
+.bolt-terminal-hub-head > div:last-child,
+.bolt-terminal-section-head,
+.bolt-terminal-tabs,
+.bolt-terminal-live-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.bolt-terminal-hub-head {
+  justify-content: space-between;
+}
+
+.bolt-terminal-hub-head h3,
+.bolt-terminal-sidebar h4,
+.bolt-terminal-card strong,
+.bolt-terminal-live-toolbar strong {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bolt-terminal-hub-head p {
+  margin: 4px 0 0;
+  max-width: 760px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-terminal-hub-head button,
+.bolt-terminal-section-head button,
+.bolt-terminal-tabs button,
+.bolt-terminal-env-list article > button,
+.bolt-terminal-port-grid a {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 0 11px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.bolt-terminal-hub-grid {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.bolt-terminal-sidebar,
+.bolt-terminal-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bolt-terminal-sidebar section,
+.bolt-terminal-card,
+.bolt-terminal-live-card {
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 12px;
+}
+
+.bolt-terminal-sidebar section {
+  display: grid;
+  gap: 8px;
+}
+
+.bolt-terminal-file-tree {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.bolt-terminal-file-node {
+  display: flex;
+  width: 100%;
+  min-height: 30px;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  text-align: left;
+}
+
+.bolt-terminal-file-node:hover,
+.bolt-terminal-tabs button:hover,
+.bolt-terminal-tabs button[aria-current='page'] {
+  background: var(--vc-ide-surface-2);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-terminal-tabs {
+  flex-wrap: wrap;
+}
+
+.bolt-terminal-tabs button[aria-current='page'] {
+  border-color: var(--vc-ide-accent, #3fb950);
+}
+
+.bolt-terminal-live-card {
+  display: flex;
+  min-height: 520px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.bolt-terminal-live-toolbar {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--vc-ide-border);
+  padding: 10px 12px;
+}
+
+.bolt-terminal-live-card .react-resizable-handle,
+.bolt-terminal-live-card .PanelGroup,
+.bolt-terminal-live-card [data-panel-group] {
+  min-height: 0;
+  flex: 1;
+}
+
+.bolt-terminal-card {
+  display: grid;
+  gap: 12px;
+}
+
+.bolt-terminal-section-head {
+  justify-content: space-between;
+}
+
+.bolt-terminal-section-head small,
+.bolt-terminal-sidebar small,
+.bolt-terminal-script-grid p,
+.bolt-terminal-env-list small,
+.bolt-terminal-ssh-list small,
+.bolt-terminal-process-list small,
+.bolt-terminal-port-grid small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-terminal-compact-form,
+.bolt-terminal-env-form,
+.bolt-terminal-script-editor {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-2);
+  padding: 10px;
+}
+
+.bolt-terminal-env-form {
+  grid-template-columns: minmax(140px, 1fr) minmax(160px, 1fr) 150px auto;
+}
+
+.bolt-terminal-compact-form textarea,
+.bolt-terminal-script-editor textarea,
+.bolt-terminal-env-form select,
+.bolt-terminal-script-editor input,
+.bolt-terminal-compact-form input {
+  min-height: 40px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 8px 10px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-terminal-compact-form textarea,
+.bolt-terminal-script-editor textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.bolt-terminal-env-list,
+.bolt-terminal-ssh-list,
+.bolt-terminal-process-list,
+.bolt-terminal-runs {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.bolt-terminal-env-list article,
+.bolt-terminal-ssh-list article,
+.bolt-terminal-process-list article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-2);
+  padding: 10px;
+}
+
+.bolt-terminal-env-list article > div,
+.bolt-terminal-ssh-list article > div,
+.bolt-terminal-process-list article > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bolt-terminal-env-list strong,
+.bolt-terminal-env-list small,
+.bolt-terminal-ssh-list strong,
+.bolt-terminal-ssh-list small,
+.bolt-terminal-process-list strong,
+.bolt-terminal-process-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-terminal-script-grid,
+.bolt-terminal-port-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.bolt-terminal-script-grid article {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-2);
+  padding: 12px;
+}
+
+.bolt-terminal-script-grid article > div {
+  min-width: 0;
+}
+
+.bolt-terminal-script-grid code {
+  display: block;
+  overflow: hidden;
+  margin-top: 8px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-terminal-runs details {
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-2);
+  padding: 8px;
+}
+
+.bolt-terminal-runs summary {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  gap: 10px;
+}
+
+.bolt-terminal-runs span[data-status='succeeded'] {
+  color: var(--vc-success, #3fb950);
+}
+
+.bolt-terminal-runs span[data-status='failed'],
+.terminal-error,
+.terminal-error-text {
+  color: var(--vc-danger, #f85149) !important;
+}
+
+.terminal-message {
+  color: var(--vc-success, #3fb950) !important;
+}
+
+.bolt-terminal-runs pre {
+  max-height: 280px;
+  overflow: auto;
+  margin: 8px 0 0;
+  border-radius: 8px;
+  background: var(--vc-ide-surface-0);
+  padding: 10px;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+.bolt-terminal-port-grid a {
+  min-height: 64px;
+  flex-direction: column;
+}
+
+@media (max-width: 980px) {
+  .bolt-terminal-hub-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bolt-terminal-env-form,
+  .bolt-terminal-env-list article,
+  .bolt-terminal-ssh-list article,
+  .bolt-terminal-process-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .bolt-terminal-hub-head,
+  .bolt-terminal-hub-head > div:last-child,
+  .bolt-terminal-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-terminal-live-card {
+    min-height: 440px;
+  }
+}
+
+.bolt-project-workflows-tool {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bolt-project-workflows-head,
+.bolt-project-workflows-toolbar,
+.bolt-project-workflow-card header,
+.bolt-project-workflow-card footer,
+.bolt-project-workflow-subhead,
+.bolt-project-workflow-task-actions,
+.bolt-project-workflow-add-task {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.bolt-project-workflows-head {
+  justify-content: space-between;
+}
+
+.bolt-project-workflows-head h3,
+.bolt-project-workflows-section h4,
+.bolt-project-workflow-card strong,
+.bolt-project-workflow-subhead strong,
+.bolt-project-workflow-runs strong {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bolt-project-workflows-head p {
+  margin: 4px 0 0;
+  max-width: 720px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-workflows-head > button,
+.bolt-project-workflows-toolbar a,
+.bolt-project-workflow-card header button,
+.bolt-project-workflow-add-task button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 0 12px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.bolt-project-workflows-toolbar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.bolt-project-workflows-toolbar label {
+  display: flex;
+  min-width: min(100%, 320px);
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 0 10px;
+}
+
+.bolt-project-workflows-toolbar input,
+.bolt-project-workflow-create input,
+.bolt-project-workflow-create select,
+.bolt-project-workflow-form input,
+.bolt-project-workflow-form select,
+.bolt-project-workflow-task-form input,
+.bolt-project-workflow-task-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 0 10px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-project-workflows-toolbar input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.bolt-project-workflow-create,
+.bolt-project-workflow-form,
+.bolt-project-workflow-task-form {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.bolt-project-workflow-create {
+  grid-template-columns: minmax(180px, 1fr) 150px minmax(180px, 1fr) auto;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 12px;
+}
+
+.bolt-project-workflows-section {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.bolt-project-workflow-card {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-1);
+  padding: 12px;
+}
+
+.bolt-project-workflow-card header {
+  justify-content: space-between;
+}
+
+.bolt-project-workflow-card header > button {
+  min-width: 0;
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.bolt-project-workflow-card header > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bolt-project-workflow-card em,
+.bolt-project-workflow-runs span[data-status] {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--vc-ide-surface-2);
+  padding: 0 8px;
+  font-size: 11px;
+  font-style: normal;
+}
+
+.bolt-project-workflow-card em[data-kind='run-button'],
+.bolt-project-workflow-runs span[data-status='succeeded'] {
+  color: var(--vc-success, #3fb950);
+}
+
+.bolt-project-workflow-card em[data-status='failed'],
+.bolt-project-workflow-runs span[data-status='failed'] {
+  color: var(--vc-danger, #f85149);
+}
+
+.bolt-project-workflow-details,
+.bolt-project-workflow-task-list,
+.bolt-project-workflow-runs {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.bolt-project-workflow-form {
+  grid-template-columns: minmax(180px, 1fr) 150px auto;
+}
+
+.bolt-project-workflow-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+.bolt-project-workflow-task {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border-top: 1px solid var(--vc-ide-border);
+  padding-top: 10px;
+}
+
+.bolt-project-workflow-task > div:first-child {
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-workflow-task small,
+.bolt-project-workflow-card > small,
+.bolt-project-workflow-subhead span {
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-workflow-task-form {
+  grid-template-columns: 140px minmax(180px, 1fr) 170px auto;
+}
+
+.bolt-project-workflow-add-task {
+  flex-wrap: wrap;
+}
+
+.bolt-project-workflow-card footer {
+  justify-content: space-between;
+  border-top: 1px solid var(--vc-ide-border);
+  padding-top: 10px;
+}
+
+.bolt-project-workflow-runs details {
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 8px;
+  background: var(--vc-ide-surface-2);
+  padding: 8px;
+}
+
+.bolt-project-workflow-runs summary {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bolt-project-workflow-runs pre {
+  max-height: 260px;
+  overflow: auto;
+  margin: 8px 0 0;
+  border-radius: 8px;
+  background: var(--vc-ide-surface-0);
+  padding: 10px;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 860px) {
+  .bolt-project-workflows-head,
+  .bolt-project-workflow-card header,
+  .bolt-project-workflow-card footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-project-workflow-create,
+  .bolt-project-workflow-form,
+  .bolt-project-workflow-task-form {
+    grid-template-columns: 1fr;
+  }
+
+  .bolt-project-workflow-task-actions,
+  .bolt-project-workflow-add-task {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-project-workflow-task-actions form,
+  .bolt-project-workflow-add-task form {
+    width: 100%;
+  }
+
+  .bolt-project-workflow-task-actions button,
+  .bolt-project-workflow-add-task button {
+    width: 100%;
+  }
+}
+
+.bolt-project-integrations-tool {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bolt-project-integrations-head,
+.bolt-project-integrations-section-head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bolt-project-integrations-head h3,
+.bolt-project-integrations-section-head strong {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.bolt-project-integrations-head p,
+.bolt-project-integrations-section-head small {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-integrations-actions,
+.bolt-project-integrations-tabs {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bolt-project-integrations-actions button,
+.bolt-project-integrations-tabs button,
+.bolt-project-integrations-section-head button,
+.bolt-project-integration-config > button,
+.bolt-project-integrations-list article > button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.bolt-project-integrations-tabs button[aria-current='page'],
+.bolt-project-integrations-actions button:hover,
+.bolt-project-integrations-tabs button:hover,
+.bolt-project-integrations-section-head button:hover,
+.bolt-project-integration-config > button:hover,
+.bolt-project-integrations-list article > button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-integrations-layout {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+}
+
+.bolt-project-integrations-sidebar,
+.bolt-project-integrations-main {
+  min-width: 0;
+}
+
+.bolt-project-integrations-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.bolt-project-integrations-sidebar section {
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.bolt-project-integrations-sidebar h4 {
+  margin: 0 0 8px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.bolt-project-integrations-sidebar button,
+.bolt-project-integrations-connected-list button {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  color: var(--vc-ide-text-secondary);
+  padding: 0 8px;
+  text-align: left;
+}
+
+.bolt-project-integrations-sidebar button:hover,
+.bolt-project-integrations-sidebar button[aria-current='page'],
+.bolt-project-integrations-connected-list button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-integrations-sidebar button span:nth-child(2),
+.bolt-project-integrations-connected-list button span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-integrations-sidebar em {
+  color: var(--vc-ide-text-muted);
+  font-style: normal;
+}
+
+.bolt-project-integrations-connected-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.bolt-project-integrations-connected-list i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--vc-ide-text-muted);
+}
+
+.bolt-project-integrations-connected-list i[data-status='active'],
+.bolt-project-integrations-grid em[data-status='active'] {
+  background: rgb(63 185 80 / 0.16);
+  color: #3fb950;
+}
+
+.bolt-project-integrations-connected-list i[data-status='error'],
+.bolt-project-integrations-grid em[data-status='error'] {
+  background: rgb(248 81 73 / 0.16);
+  color: #f85149;
+}
+
+.bolt-project-integrations-connected-list i[data-status='syncing'],
+.bolt-project-integrations-grid em[data-status='syncing'] {
+  background: rgb(0 153 255 / 0.16);
+  color: #0099ff;
+}
+
+.bolt-project-integrations-main {
+  display: grid;
+  gap: 14px;
+}
+
+.bolt-project-integrations-tabs {
+  align-items: center;
+}
+
+.bolt-project-integrations-tabs label {
+  display: flex;
+  min-width: min(100%, 240px);
+  flex: 1 1 240px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  padding: 0 10px;
+}
+
+.bolt-project-integrations-tabs input,
+.bolt-project-integrations-form input,
+.bolt-project-integrations-form select,
+.bolt-project-integration-config input {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  outline: 0;
+}
+
+.bolt-project-integrations-grid {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bolt-project-integrations-grid article,
+.bolt-project-integrations-list article,
+.bolt-project-integration-config,
+.bolt-project-integrations-streams {
+  min-width: 0;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+}
+
+.bolt-project-integrations-grid article {
+  display: flex;
+  min-height: 150px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.bolt-project-integrations-grid article > div,
+.bolt-project-integrations-list article {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bolt-project-integrations-grid article > div > span,
+.bolt-project-integrations-list article > span,
+.bolt-project-integration-config > div > span {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-size: 20px;
+}
+
+.bolt-project-integrations-grid article p,
+.bolt-project-integrations-list small,
+.bolt-project-integration-config small {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-integrations-grid article footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  margin-top: 12px;
+  padding-top: 10px;
+}
+
+.bolt-project-integrations-grid article footer button {
+  min-height: 32px;
+  border-radius: 6px;
+  background: var(--bolt-elements-button-primary-background);
+  color: var(--bolt-elements-button-primary-text);
+  padding: 0 10px;
+}
+
+.bolt-project-integrations-grid em {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  font-style: normal;
+  padding: 3px 7px;
+}
+
+.bolt-project-integrations-list,
+.bolt-project-integrations-list.compact {
+  display: grid;
+  gap: 10px;
+}
+
+.bolt-project-integrations-list article {
+  align-items: center;
+  padding: 12px;
+}
+
+.bolt-project-integrations-list article > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.bolt-project-integrations-list article strong,
+.bolt-project-integrations-list article small,
+.bolt-project-integrations-grid article strong,
+.bolt-project-integrations-grid article p {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-integrations-form,
+.bolt-project-integration-config form {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.bolt-project-integrations-form {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.bolt-project-integration-config {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.bolt-project-integration-config > div:first-child {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.bolt-project-integrations-streams {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+@media (max-width: 1100px) {
+  .bolt-project-integrations-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .bolt-project-integrations-head,
+  .bolt-project-integrations-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-project-integrations-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-project-integrations-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-project-integrations-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-project-integrations-list article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.bolt-project-ide-shell button:focus-visible,
+.bolt-project-ide-shell a:focus-visible,
+.bolt-project-ide-shell summary:focus-visible,
+.bolt-project-ide-shell input:focus-visible,
+.bolt-project-ide-shell textarea:focus-visible {
+  outline: 2px solid #0099ff;
+  outline-offset: 2px;
+}
+
+.bolt-project-ide-shell
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']),
+.bolt-project-agent-panel
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']),
+.bolt-project-chatbox
+  :where(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong):not([class*='i-']) {
+  font-size: var(--vc-type-interface-size) !important;
+  line-height: var(--vc-type-line-height) !important;
+}
+
+.bolt-project-ide-shell :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
+.bolt-project-agent-panel :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
+.bolt-project-chatbox :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+  font-size: var(--vc-type-label-size) !important;
+}
+
+.bolt-project-ide-shell :where(h1, h2):not([class*='i-']),
+.bolt-project-agent-panel :where(h1, h2):not([class*='i-']),
+.bolt-project-chatbox :where(h1, h2):not([class*='i-']) {
+  font-size: var(--vc-type-heading-size) !important;
+}
+
+.bolt-project-ide-shell :where(h3, h4, h5, h6):not([class*='i-']),
+.bolt-project-agent-panel :where(h3, h4, h5, h6):not([class*='i-']),
+.bolt-project-chatbox :where(h3, h4, h5, h6):not([class*='i-']) {
+  font-size: var(--vc-type-heading-compact-size) !important;
+}
+
+@media (max-width: 767px) {
+  .bolt-mobile-tabbar {
+    display: grid;
+  }
+
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  .bolt-responsive-ide-mobile [data-chat-visible] {
+    min-height: 100dvh;
+  }
+
+  .bolt-workbench-mobile {
+    --workbench-inner-width: 100vw;
+  }
+
+  .bolt-responsive-ide-mobile .Toastify__toast-container {
+    right: 8px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    left: 8px;
+    width: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .bolt-mobile-tabbar {
+    min-height: calc(52px + env(safe-area-inset-bottom, 0px));
+    padding-top: 4px;
+  }
+
+  .bolt-mobile-tabbar button {
+    min-height: 40px;
+  }
+
+  .bolt-mobile-tabbar button span:last-child {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+  .bolt-mobile-tabbar {
+    display: grid;
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    max-width: 720px;
+    margin: 0 auto;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: var(--vc-ui-radius-popover);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  :root {
+    --workbench-width: min(62vw, 760px);
+  }
+
+  .bolt-project-ide-panels {
+    padding: 8px;
+  }
+
+  .bolt-project-agent-panel {
+    --chat-max-width: min(100%, 30rem);
+  }
+
+  .bolt-project-agent-panel [class*='px-6'] {
+    padding-right: 0.875rem;
+    padding-left: 0.875rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --workbench-width: min(58vw, 980px);
+  }
+}
+
+@media (min-width: 1440px) {
+  .bolt-project-agent-panel {
+    --chat-max-width: min(100%, 38rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: var(--vc-accessibility-reduced-motion-duration) !important;
+  }
+}

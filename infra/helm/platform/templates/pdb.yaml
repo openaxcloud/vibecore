@@ -1,0 +1,18 @@
+{{- range $name, $svc := .Values.services }}
+{{- if and $svc.enabled (gt ($svc.replicas | default 1 | int) 1) }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "vibecore-platform.fullname" $ }}-{{ kebabcase $name }}
+  labels:
+    app.kubernetes.io/name: {{ kebabcase $name }}
+    app.kubernetes.io/part-of: vibecore
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ kebabcase $name }}
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+{{- end }}
+{{- end }}

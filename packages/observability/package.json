@@ -1,0 +1,12 @@
+{
+  "name": "@vibecore/observability",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts",
+    "test": "pnpm run typecheck",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts",
+    "lint": "pnpm run typecheck"
+  }
+}

@@ -1,0 +1,422 @@
+import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
+import { AiGateway, type AiChatRequest, type AiMessage } from './gateway.js';
+
+export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
+
+export interface AgentRunRole {
+  id: AgentRoleId;
+  title: string;
+  responsibility: string;
+  output: string;
+}
+
+export interface AgentRunRequest {
+  mode: 'parallel-subagents';
+  roles: AgentRunRole[];
+  messages: AiMessage[];
+  organizationId?: string;
+  plan?: AiChatRequest['plan'];
+  provider?: AiChatRequest['provider'];
+  model?: string;
+  maxTokens?: number;
+}
+
+export interface AgentRunResult {
+  roleId: AgentRoleId;
+  status: 'complete' | 'partial' | 'failed';
+  summary: string;
+  files?: string[];
+  risks?: string[];
+  verification?: string[];
+}
+
+export interface AgentRunResponse {
+  runId: string;
+  status: 'complete' | 'partial' | 'failed';
+  results: AgentRunResult[];
+}
+
+const roleIds = new Set<AgentRoleId>(['architect', 'frontend', 'backend', 'devops', 'qa']);
+const maxAgentRoles = roleIds.size;
+const maxAgentMessages = 30;
+const maxAgentInputCharacters = 200_000;
+const defaultAgentMaxTokens = 1400;
+const maxAgentMaxTokens = 4000;
+
+export function positiveIntegerOrDefault(value: number | undefined, fallback: number, minimum = 1): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(minimum, Math.floor(value));
+}
+
+export interface AgentRunRateLimitDecision {
+  allowed: boolean;
+  remaining: number;
+  resetAt: number;
+}
+
+export interface AgentRunRateLimiter {
+  backend: 'memory' | 'redis';
+  check(key: string): AgentRunRateLimitDecision | Promise<AgentRunRateLimitDecision>;
+  clear?(): void | Promise<void>;
+  close?(): void | Promise<void>;
+}
+
+export interface RedisRateLimitClient {
+  eval(script: string, numberOfKeys: number, key: string, limit: string, windowMs: string): Promise<[number, number]>;
+  disconnect?(): void;
+  quit?(): Promise<unknown>;
+}
+
+export function createAgentRunRateLimiter(input?: {
+  limit?: number;
+  windowMs?: number;
+  now?: () => number;
+}): AgentRunRateLimiter {
+  const limit = positiveIntegerOrDefault(input?.limit, 30);
+  const windowMs = positiveIntegerOrDefault(input?.windowMs, 60_000, 1_000);
+  const now = input?.now ?? Date.now;
+  const buckets = new Map<string, { count: number; resetAt: number }>();
+
+  return {
+    backend: 'memory',
+    check(key: string): AgentRunRateLimitDecision {
+      const timestamp = now();
+      const bucket = buckets.get(key);
+
+      if (!bucket || timestamp >= bucket.resetAt) {
+        const resetAt = timestamp + windowMs;
+        buckets.set(key, { count: 1, resetAt });
+
+        return { allowed: true, remaining: limit - 1, resetAt };
+      }
+
+      if (bucket.count >= limit) {
+        return { allowed: false, remaining: 0, resetAt: bucket.resetAt };
+      }
+
+      bucket.count += 1;
+
+      return { allowed: true, remaining: limit - bucket.count, resetAt: bucket.resetAt };
+    },
+    clear() {
+      buckets.clear();
+    },
+  };
+}
+
+const redisRateLimitScript = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[2])
+end
+local ttl = redis.call('PTTL', KEYS[1])
+if ttl < 0 then
+  redis.call('PEXPIRE', KEYS[1], ARGV[2])
+  ttl = tonumber(ARGV[2])
+end
+return { current, ttl }
+`;
+
+function stableRateLimitKey(prefix: string, key: string): string {
+  const digest = createHash('sha256').update(key).digest('hex');
+  return `${prefix}:agent-runs:${digest}`;
+}
+
+export function createRedisAgentRunRateLimiter(input: {
+  redis: RedisRateLimitClient;
+  limit?: number;
+  windowMs?: number;
+  now?: () => number;
+  prefix?: string;
+}): AgentRunRateLimiter {
+  const limit = positiveIntegerOrDefault(input.limit, 30);
+  const windowMs = positiveIntegerOrDefault(input.windowMs, 60_000, 1_000);
+  const now = input.now ?? Date.now;
+  const prefix = input.prefix?.trim() || 'vibecore';
+
+  return {
+    backend: 'redis',
+    async check(key: string): Promise<AgentRunRateLimitDecision> {
+      const [count, ttl] = await input.redis.eval(
+        redisRateLimitScript,
+        1,
+        stableRateLimitKey(prefix, key),
+        String(limit),
+        String(windowMs),
+      );
+      const resetAt = now() + Math.max(1, ttl);
+
+      return {
+        allowed: count <= limit,
+        remaining: Math.max(0, limit - count),
+        resetAt,
+      };
+    },
+    async close() {
+      if (input.redis.quit) {
+        try {
+          await input.redis.quit();
+          return;
+        } catch {
+          input.redis.disconnect?.();
+          return;
+        }
+      }
+
+      input.redis.disconnect?.();
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function safeTokenEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  if (leftBuffer.byteLength !== rightBuffer.byteLength) {
+    return false;
+  }
+
+  return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+export function authorizeAgentRun(input: { authorizationHeader?: string | string[]; expectedToken?: string }): boolean {
+  const expectedToken = input.expectedToken?.trim();
+
+  if (!expectedToken) {
+    return true;
+  }
+
+  const authorizationHeader = Array.isArray(input.authorizationHeader)
+    ? input.authorizationHeader[0]
+    : input.authorizationHeader;
+  const providedToken = authorizationHeader?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+
+  return Boolean(providedToken && safeTokenEqual(providedToken, expectedToken));
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const values = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  return values.length ? values : undefined;
+}
+
+function validateRole(value: unknown): AgentRunRole | undefined {
+  if (!isRecord(value) || !roleIds.has(value.id as AgentRoleId)) {
+    return undefined;
+  }
+
+  if (
+    typeof value.title !== 'string' ||
+    typeof value.responsibility !== 'string' ||
+    typeof value.output !== 'string' ||
+    !value.title.trim() ||
+    !value.responsibility.trim() ||
+    !value.output.trim()
+  ) {
+    return undefined;
+  }
+
+  return {
+    id: value.id as AgentRoleId,
+    title: value.title,
+    responsibility: value.responsibility,
+    output: value.output,
+  };
+}
+
+function validateMessage(value: unknown): AiMessage | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  if (!['system', 'user', 'assistant', 'tool'].includes(String(value.role)) || typeof value.content !== 'string') {
+    return undefined;
+  }
+
+  return { role: value.role as AiMessage['role'], content: value.content };
+}
+
+export function parseAgentRunRequest(value: unknown): AgentRunRequest {
+  if (!isRecord(value)) {
+    throw Object.assign(new Error('Request body must be an object.'), { statusCode: 400 });
+  }
+
+  if (value.mode !== 'parallel-subagents') {
+    throw Object.assign(new Error('mode must be parallel-subagents.'), { statusCode: 400 });
+  }
+
+  const roles = Array.isArray(value.roles)
+    ? value.roles.map(validateRole).filter((role): role is AgentRunRole => Boolean(role))
+    : [];
+  const messages = Array.isArray(value.messages)
+    ? value.messages.map(validateMessage).filter((message): message is AiMessage => Boolean(message))
+    : [];
+
+  if (!roles.length) {
+    throw Object.assign(new Error('roles must include at least one supported agent role.'), { statusCode: 400 });
+  }
+
+  if (roles.length > maxAgentRoles) {
+    throw Object.assign(new Error(`roles cannot include more than ${maxAgentRoles} entries.`), { statusCode: 400 });
+  }
+
+  if (new Set(roles.map((role) => role.id)).size !== roles.length) {
+    throw Object.assign(new Error('roles must not contain duplicate role ids.'), { statusCode: 400 });
+  }
+
+  if (!messages.length) {
+    throw Object.assign(new Error('messages must include at least one chat message.'), { statusCode: 400 });
+  }
+
+  if (messages.length > maxAgentMessages) {
+    throw Object.assign(new Error(`messages cannot include more than ${maxAgentMessages} entries.`), {
+      statusCode: 400,
+    });
+  }
+
+  const inputCharacters = messages.reduce((total, message) => total + message.content.length, 0);
+
+  if (inputCharacters > maxAgentInputCharacters) {
+    throw Object.assign(new Error(`messages cannot exceed ${maxAgentInputCharacters} characters.`), {
+      statusCode: 400,
+    });
+  }
+
+  const maxTokens =
+    typeof value.maxTokens === 'number' && Number.isFinite(value.maxTokens)
+      ? Math.min(maxAgentMaxTokens, positiveIntegerOrDefault(value.maxTokens, defaultAgentMaxTokens))
+      : undefined;
+
+  return {
+    mode: 'parallel-subagents',
+    roles,
+    messages,
+    organizationId: typeof value.organizationId === 'string' ? value.organizationId : undefined,
+    plan: typeof value.plan === 'string' ? (value.plan as AgentRunRequest['plan']) : undefined,
+    provider: typeof value.provider === 'string' ? (value.provider as AgentRunRequest['provider']) : undefined,
+    model: typeof value.model === 'string' ? value.model : undefined,
+    maxTokens,
+  };
+}
+
+function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole): AiMessage[] {
+  return [
+    {
+      role: 'system',
+      content: [
+        `You are the ${role.title} sub-agent for E-Code.`,
+        `Responsibility: ${role.responsibility}`,
+        `Expected output: ${role.output}`,
+        'Analyze only your lane, but make your result directly integrable by the final coding agent.',
+        'Do not invent completed files. Only list files when your lane specifically requires creating or changing them.',
+        'Return strict JSON with this shape: {"summary":"string","files":["path"],"risks":["risk"],"verification":["check"]}.',
+      ].join('\n'),
+    },
+    ...request.messages,
+  ];
+}
+
+function parseJsonObject(content: string): Record<string, unknown> | undefined {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]?.trim();
+  const candidate = fenced ?? trimmed;
+
+  try {
+    const parsed = JSON.parse(candidate);
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+
+    if (start === -1 || end <= start) {
+      return undefined;
+    }
+
+    try {
+      const parsed = JSON.parse(candidate.slice(start, end + 1));
+      return isRecord(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+function normalizeAgentOutput(roleId: AgentRoleId, content: string): AgentRunResult {
+  const parsed = parseJsonObject(content);
+
+  if (!parsed || typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
+    return {
+      roleId,
+      status: 'partial',
+      summary: content.trim() || 'Agent returned an empty response.',
+    };
+  }
+
+  return {
+    roleId,
+    status: 'complete',
+    summary: parsed.summary,
+    files: stringArray(parsed.files),
+    risks: stringArray(parsed.risks),
+    verification: stringArray(parsed.verification),
+  };
+}
+
+function aggregateStatus(results: AgentRunResult[]): AgentRunResponse['status'] {
+  if (results.every((result) => result.status === 'complete')) {
+    return 'complete';
+  }
+
+  if (results.every((result) => result.status === 'failed')) {
+    return 'failed';
+  }
+
+  return 'partial';
+}
+
+export async function executeAgentRun(input: {
+  gateway: AiGateway;
+  request: AgentRunRequest;
+}): Promise<AgentRunResponse> {
+  const runId = randomUUID();
+  const results = await Promise.all(
+    input.request.roles.map(async (role): Promise<AgentRunResult> => {
+      try {
+        const completion = await input.gateway.complete({
+          organizationId: input.request.organizationId,
+          plan: input.request.plan ?? 'free',
+          provider: input.request.provider,
+          model: input.request.model,
+          messages: buildRoleMessages(input.request, role),
+          maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
+        });
+
+        return normalizeAgentOutput(role.id, completion.content);
+      } catch (error) {
+        return {
+          roleId: role.id,
+          status: 'failed',
+          summary: error instanceof Error ? error.message : 'Agent execution failed.',
+        };
+      }
+    }),
+  );
+
+  return {
+    runId,
+    status: aggregateStatus(results),
+    results,
+  };
+}

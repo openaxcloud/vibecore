@@ -1,0 +1,165 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: vibecore-workspace-security-baseline
+  annotations:
+    policies.kyverno.io/title: VibeCore Workspace Security Baseline
+    policies.kyverno.io/category: Security
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-workspace-labels
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace pods must carry org, project, and workspace labels for audit and isolation.
+        pattern:
+          metadata:
+            labels:
+              vibecore.ai/org-id: "?*"
+              vibecore.ai/project-id: "?*"
+              vibecore.ai/workspace-id: "?*"
+
+    - name: require-gvisor-runtime
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace pods must use runtimeClassName gvisor.
+        pattern:
+          spec:
+            runtimeClassName: gvisor
+
+    - name: block-privileged-workspace-pods
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace pods cannot use privileged, host namespace, hostPath, or privilege escalation settings.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.hostNetwork || false }}"
+                operator: Equals
+                value: true
+              - key: "{{ request.object.spec.hostPID || false }}"
+                operator: Equals
+                value: true
+              - key: "{{ request.object.spec.hostIPC || false }}"
+                operator: Equals
+                value: true
+              - key: "{{ request.object.spec.volumes[?hostPath] | length(@) }}"
+                operator: GreaterThan
+                value: 0
+              - key: "{{ request.object.spec.containers[?securityContext.privileged == `true`] | length(@) }}"
+                operator: GreaterThan
+                value: 0
+              - key: "{{ request.object.spec.containers[?securityContext.allowPrivilegeEscalation == `true`] | length(@) }}"
+                operator: GreaterThan
+                value: 0
+
+    - name: require-non-root-seccomp-and-drop-all
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace containers must run non-root, use RuntimeDefault seccomp, and drop all Linux capabilities.
+        foreach:
+          - list: request.object.spec.containers
+            pattern:
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                seccompProfile:
+                  type: RuntimeDefault
+
+    - name: require-resource-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace containers must define CPU and memory requests and limits.
+        foreach:
+          - list: request.object.spec.containers
+            pattern:
+              resources:
+                requests:
+                  cpu: "?*"
+                  memory: "?*"
+                limits:
+                  cpu: "?*"
+                  memory: "?*"
+
+    - name: block-latest-tags
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Production workspace images must be pinned and cannot use the latest tag.
+        foreach:
+          - list: request.object.spec.containers
+            deny:
+              conditions:
+                any:
+                  - key: "{{ element.image }}"
+                    operator: Matches
+                    value: ".*:latest$"
+
+    - name: require-health-probes
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              selector:
+                matchLabels:
+                  app.kubernetes.io/name: vibecore-workspace
+      validate:
+        message: Workspace containers must expose readiness and liveness probes.
+        foreach:
+          - list: request.object.spec.containers
+            pattern:
+              readinessProbe:
+                httpGet:
+                  path: "?*"
+                  port: "*"
+              livenessProbe:
+                httpGet:
+                  path: "?*"
+                  port: "*"

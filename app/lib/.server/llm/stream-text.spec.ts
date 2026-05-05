@@ -1,0 +1,17 @@
+import { describe, expect, it } from 'vitest';
+import { applyContextOptimizedHistoryWindow } from './stream-text';
+
+describe('applyContextOptimizedHistoryWindow', () => {
+  it('keeps the full recent conversation when no slice is needed', () => {
+    const messages = ['first user request', 'assistant response', 'follow-up request'];
+
+    expect(applyContextOptimizedHistoryWindow(messages, 0)).toEqual(messages);
+    expect(applyContextOptimizedHistoryWindow(messages)).toEqual(messages);
+  });
+
+  it('keeps the requested recent history window when the conversation is long', () => {
+    const messages = ['m1', 'm2', 'm3', 'm4', 'm5'];
+
+    expect(applyContextOptimizedHistoryWindow(messages, 2)).toEqual(['m3', 'm4', 'm5']);
+  });
+});

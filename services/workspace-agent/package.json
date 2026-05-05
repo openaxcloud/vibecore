@@ -1,0 +1,25 @@
+{
+  "name": "@vibecore/workspace-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts",
+    "test": "vitest --run",
+    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts",
+    "lint": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts"
+  },
+  "dependencies": {
+    "@fastify/websocket": "^11.2.0",
+    "@vibecore/observability": "workspace:*",
+    "@vibecore/security": "workspace:*",
+    "@vibecore/workspace-sdk": "workspace:*",
+    "fastify": "^5.8.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "vitest": "^2.1.7"
+  }
+}

@@ -1,0 +1,224 @@
+import { json } from '@remix-run/cloudflare';
+import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { withSecurity } from '~/lib/security';
+import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
+
+const githubHeaders = (token: string) => ({
+  Accept: 'application/vnd.github.v3+json',
+  Authorization: `Bearer ${token}`,
+  'User-Agent': 'bolt.diy-app',
+});
+
+async function githubJson<T>(token: string, path: string): Promise<T> {
+  const response = await fetch(`https://api.github.com${path}`, { headers: githubHeaders(token) });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
+  const items: T[] = [];
+  let page = 1;
+
+  while (true) {
+    const separator = path.includes('?') ? '&' : '?';
+    const pageItems = await githubJson<T[]>(token, `${path}${separator}per_page=100&page=${page}`);
+    items.push(...pageItems);
+
+    if (pageItems.length < 100) {
+      return items;
+    }
+
+    page += 1;
+  }
+}
+
+async function githubCount(token: string, path: string): Promise<number> {
+  const separator = path.includes('?') ? '&' : '?';
+  const response = await fetch(`https://api.github.com${path}${separator}per_page=1`, {
+    headers: githubHeaders(token),
+  });
+
+  if (!response.ok) {
+    return 0;
+  }
+
+  const linkHeader = response.headers.get('Link');
+  const lastPage = linkHeader?.match(/page=(\d+)>; rel="last"/)?.[1];
+
+  if (lastPage) {
+    return parseInt(lastPage, 10);
+  }
+
+  const data = await response.json();
+
+  return Array.isArray(data) ? data.length : 0;
+}
+
+async function githubStatsLoader({ request, context }: { request: Request; context: any }) {
+  try {
+    // Get API keys from cookies (server-side only)
+    const cookieHeader = request.headers.get('Cookie');
+    const apiKeys = getApiKeysFromCookie(cookieHeader);
+
+    // Try to get GitHub token from various sources
+    const githubToken =
+      apiKeys.GITHUB_API_KEY ||
+      apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
+      context?.cloudflare?.env?.GITHUB_TOKEN ||
+      context?.cloudflare?.env?.VITE_GITHUB_ACCESS_TOKEN ||
+      process.env.GITHUB_TOKEN ||
+      process.env.VITE_GITHUB_ACCESS_TOKEN;
+
+    if (!githubToken) {
+      return json({ error: 'GitHub token not found' }, { status: 401 });
+    }
+
+    const userResponse = await fetch('https://api.github.com/user', { headers: githubHeaders(githubToken) });
+
+    if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        return json({ error: 'Invalid GitHub token' }, { status: 401 });
+      }
+
+      throw new Error(`GitHub API error: ${userResponse.status}`);
+    }
+
+    const user = (await userResponse.json()) as GitHubUserResponse;
+
+    const allRepos = await githubPaginated<any>(
+      githubToken,
+      '/user/repos?sort=updated&affiliation=owner,organization_member',
+    );
+
+    const [organizationsResult, recentActivityResult, gistsResult] = await Promise.allSettled([
+      githubPaginated<any>(githubToken, '/user/orgs'),
+      githubJson<any[]>(githubToken, `/users/${encodeURIComponent(user.login)}/events?per_page=10`),
+      githubPaginated<any>(githubToken, '/gists'),
+    ]);
+
+    const repoMetrics = await Promise.allSettled(
+      allRepos.map(async (repo) => ({
+        fullName: repo.full_name,
+        branches: await githubCount(githubToken, `/repos/${repo.full_name}/branches`),
+        contributors: await githubCount(githubToken, `/repos/${repo.full_name}/contributors`),
+        issues: await githubCount(githubToken, `/repos/${repo.full_name}/issues?state=all`),
+        pullRequests: await githubCount(githubToken, `/repos/${repo.full_name}/pulls?state=all`),
+      })),
+    );
+
+    const metricsByRepo = new Map(
+      repoMetrics
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map((result) => [result.value.fullName, result.value]),
+    );
+
+    // Calculate comprehensive stats
+    const now = new Date();
+    const publicRepos = allRepos.filter((repo) => !repo.private).length;
+    const privateRepos = allRepos.filter((repo) => repo.private).length;
+
+    // Language statistics
+    const languageStats = new Map<string, number>();
+    const languageBytes = new Map<string, number>();
+    allRepos.forEach((repo) => {
+      if (repo.language) {
+        languageStats.set(repo.language, (languageStats.get(repo.language) || 0) + 1);
+        languageBytes.set(repo.language, (languageBytes.get(repo.language) || 0) + (repo.size || 0));
+      }
+    });
+
+    // Activity stats
+    const totalStars = allRepos.reduce((sum, repo) => sum + (repo.stargazers_count || 0), 0);
+    const totalForks = allRepos.reduce((sum, repo) => sum + (repo.forks_count || 0), 0);
+
+    const gists = gistsResult.status === 'fulfilled' ? gistsResult.value : [];
+    const totalBranches = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.branches ?? 0), 0);
+    const totalContributors = allRepos.reduce(
+      (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.contributors ?? 0),
+      0,
+    );
+    const totalIssues = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.issues ?? 0), 0);
+    const totalPullRequests = allRepos.reduce(
+      (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.pullRequests ?? 0),
+      0,
+    );
+
+    const stats: GitHubStats = {
+      repos: allRepos.map((repo) => ({
+        id: repo.id,
+        name: repo.name,
+        full_name: repo.full_name,
+        html_url: repo.html_url,
+        clone_url: repo.clone_url || '',
+        description: repo.description,
+        private: repo.private,
+        language: repo.language,
+        updated_at: repo.updated_at,
+        stargazers_count: repo.stargazers_count || 0,
+        forks_count: repo.forks_count || 0,
+        watchers_count: repo.watchers_count || 0,
+        topics: repo.topics || [],
+        fork: repo.fork || false,
+        archived: repo.archived || false,
+        size: repo.size || 0,
+        default_branch: repo.default_branch || 'main',
+        languages_url: repo.languages_url || '',
+      })),
+      organizations: organizationsResult.status === 'fulfilled' ? organizationsResult.value : [],
+      recentActivity:
+        recentActivityResult.status === 'fulfilled'
+          ? recentActivityResult.value.slice(0, 10).map((event) => ({
+              id: event.id,
+              type: event.type,
+              repo: { name: event.repo.name, url: event.repo.url },
+              created_at: event.created_at,
+              payload: event.payload || {},
+            }))
+          : [],
+      languages: Object.fromEntries(languageStats.entries()),
+      totalGists: gists.length || user.public_gists || 0,
+      publicRepos,
+      privateRepos,
+      stars: totalStars,
+      forks: totalForks,
+      totalStars,
+      totalForks,
+      followers: user.followers || 0,
+      publicGists: user.public_gists || 0,
+      privateGists: Math.max(0, gists.filter((gist) => gist.public === false).length),
+      lastUpdated: now.toISOString(),
+      totalBranches,
+      totalContributors,
+      totalIssues,
+      totalPullRequests,
+      mostUsedLanguages: [...languageBytes.entries()]
+        .map(([language, bytes]) => ({
+          language,
+          bytes,
+          repos: languageStats.get(language) ?? 0,
+        }))
+        .sort((a, b) => b.bytes - a.bytes)
+        .slice(0, 20),
+    };
+
+    return json(stats);
+  } catch (error) {
+    console.error('Error fetching GitHub stats:', error);
+    return json(
+      {
+        error: 'Failed to fetch GitHub statistics',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
+  }
+}
+
+export const loader = withSecurity(githubStatsLoader, {
+  rateLimit: true,
+  allowedMethods: ['GET'],
+});
