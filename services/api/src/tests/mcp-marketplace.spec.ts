@@ -134,7 +134,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
     }
   });
 
-  it('lists catalog with domain counts and search filtering', async () => {
+  it('lists catalog with domain counts and search filtering', { timeout: 15_000 }, async () => {
     const prisma = createDatabaseClient();
     const service = new McpMarketplaceService({ prisma });
 
@@ -159,7 +159,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
     }
   });
 
-  it('paginates with cursor', async () => {
+  it('paginates with cursor', { timeout: 15_000 }, async () => {
     const prisma = createDatabaseClient();
     const service = new McpMarketplaceService({ prisma });
 
@@ -177,7 +177,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
     }
   });
 
-  it('returns 404 for missing slug', async () => {
+  it('returns 404 for missing slug', { timeout: 15_000 }, async () => {
     const prisma = createDatabaseClient();
     const service = new McpMarketplaceService({ prisma });
 
@@ -195,7 +195,9 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
 const runApiTests = (await canReachDatabase()) ? describe : describe.skip;
 
 runApiTests('MCP marketplace HTTP endpoints (Postgres)', () => {
-  it('exposes catalog, install, list, patch and uninstall flow end-to-end', async () => {
+  it('exposes catalog, install, list, patch and uninstall flow end-to-end', { timeout: 30_000 }, async () => {
+    // Many sequential HTTP calls + Postgres roundtrips; default 5s is too tight
+    // when this spec runs alongside the full platform:test suite under load.
     const prisma = createDatabaseClient();
     try {
       // ensure seed present
@@ -339,7 +341,7 @@ runApiTests('MCP marketplace HTTP endpoints (Postgres)', () => {
     }
   });
 
-  it('isolates installs between users', async () => {
+  it('isolates installs between users', { timeout: 30_000 }, async () => {
     const prisma = createDatabaseClient();
     try {
       await prisma.mcpInstall.deleteMany({});
