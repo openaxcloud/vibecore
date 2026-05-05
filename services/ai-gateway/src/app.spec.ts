@@ -33,7 +33,7 @@ function fakeGateway() {
 
 describe('AI gateway app', () => {
   it('serves health checks', async () => {
-    const app = await buildAiGatewayApp({ gateway: fakeGateway(), logger: false, env: {} });
+    const app = await buildAiGatewayApp({ gateway: fakeGateway(), logger: false, env: {}, agentRunPersistence: null });
     const response = await app.inject({ method: 'GET', url: '/health' });
 
     expect(response.statusCode).toBe(200);
@@ -47,6 +47,7 @@ describe('AI gateway app', () => {
       gateway: fakeGateway(),
       logger: false,
       env: { ECODE_SUBAGENT_EXECUTOR_TOKEN: 'secret' },
+      agentRunPersistence: null,
     });
     const response = await app.inject({ method: 'POST', url: '/v1/agent-runs', payload: validPayload });
 
@@ -61,6 +62,7 @@ describe('AI gateway app', () => {
       gateway: fakeGateway(),
       logger: false,
       env: { ECODE_SUBAGENT_EXECUTOR_TOKEN: 'secret', ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '5' },
+      agentRunPersistence: null,
     });
     const response = await app.inject({
       method: 'POST',
@@ -86,6 +88,7 @@ describe('AI gateway app', () => {
       gateway: fakeGateway(),
       logger: false,
       env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '1' },
+      agentRunPersistence: null,
     });
 
     const first = await app.inject({ method: 'POST', url: '/v1/agent-runs', payload: validPayload });
@@ -108,6 +111,7 @@ describe('AI gateway app', () => {
       logger: false,
       env: { ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE: '9' },
       agentRunRateLimiter: limiter,
+      agentRunPersistence: null,
     });
     const response = await app.inject({ method: 'POST', url: '/v1/agent-runs', payload: validPayload });
 
@@ -120,7 +124,7 @@ describe('AI gateway app', () => {
   });
 
   it('rejects invalid agent-run payloads before provider execution', async () => {
-    const app = await buildAiGatewayApp({ gateway: fakeGateway(), logger: false, env: {} });
+    const app = await buildAiGatewayApp({ gateway: fakeGateway(), logger: false, env: {}, agentRunPersistence: null });
     const response = await app.inject({
       method: 'POST',
       url: '/v1/agent-runs',
