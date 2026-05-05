@@ -59,6 +59,12 @@ import {
 } from './store.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
+  AgentMemoryConfigurationError,
+  AgentMemoryService,
+  createPostgresAgentMemoryService,
+  type AgentMemoryScope,
+} from './agent-memory.js';
+import {
   GitCliProvider,
   LocalProjectStorage,
   type GitProvider,
@@ -93,6 +99,7 @@ declare module 'fastify' {
 
 export interface ApiAppOptions {
   store?: ApiStore;
+  agentMemory?: AgentMemoryService;
   projectStorage?: ProjectStorage;
   gitProvider?: GitProvider;
   emailProvider?: EmailProvider;
@@ -109,6 +116,18 @@ function createDefaultStore() {
   }
 
   throw new Error('DATABASE_URL is required. The API does not start with an in-memory store.');
+}
+
+function createDefaultAgentMemory(store: ApiStore) {
+  if (!process.env.DATABASE_URL || !process.env.OPENAI_API_KEY) {
+    return undefined;
+  }
+
+  if (store instanceof PrismaApiStore) {
+    return createPostgresAgentMemoryService(store.prisma);
+  }
+
+  return undefined;
 }
 
 const allPermissionKeys = new Set(Object.values(rolePermissions).flat() as PermissionKey[]);
@@ -189,6 +208,40 @@ const projectSettingsSchema = z.object({
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
+const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
+const agentMemoryWriteSchema = z.object({
+  scope: agentMemoryScopeSchema.default('user'),
+  content: z.string().min(1).max(12000),
+  summary: z.string().min(1).max(1000).optional(),
+  organizationId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  sessionId: z.string().min(1).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  importance: z.number().min(0).max(1).optional(),
+  source: z.string().min(1).max(120).default('manual'),
+  force: z.boolean().optional(),
+  expiresAt: z.string().datetime().optional(),
+});
+const agentMemorySearchSchema = z.object({
+  query: z.string().min(1).max(12000),
+  organizationId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  sessionId: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(30).optional(),
+  scopes: z.array(agentMemoryScopeSchema).optional(),
+});
+const agentMemoryPatchSchema = z.object({
+  content: z.string().min(1).max(12000),
+  summary: z.string().min(1).max(1000).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  importance: z.number().min(0).max(1).optional(),
+});
+const agentMemoryListQuerySchema = z.object({
+  organizationId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+const agentMemoryParams = z.object({ memoryId: z.string().min(1) });
 
 function ideStateRecord(value: unknown): Record<string, any> {
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : {};
@@ -919,6 +972,46 @@ async function requireAnyOrgPermission(request: any, store: ApiStore, permission
   throw Object.assign(new Error(`Missing permission: ${permission}`), { statusCode: 403, code: 'RBAC_FORBIDDEN' });
 }
 
+function requireAgentMemoryService(agentMemory?: AgentMemoryService) {
+  if (!agentMemory) {
+    throw new AgentMemoryConfigurationError(
+      'Agent memory requires PostgreSQL pgvector plus OPENAI_API_KEY for real embeddings.',
+    );
+  }
+
+  return agentMemory;
+}
+
+async function authorizeAgentMemoryScope(
+  request: any,
+  store: ApiStore,
+  input: { scope?: AgentMemoryScope; organizationId?: string; projectId?: string },
+  permission: PermissionKey,
+) {
+  if (!request.currentUser) {
+    throw Object.assign(new Error('Unauthorized'), { statusCode: 401, code: 'AUTH_REQUIRED' });
+  }
+
+  if (input.projectId) {
+    const project = await requireProject(request, store, input.projectId, permission);
+    return { organizationId: project.organizationId, projectId: project.id };
+  }
+
+  if (input.organizationId) {
+    await requireOrg(request, store, input.organizationId, permission);
+    return { organizationId: input.organizationId };
+  }
+
+  if (input.scope === 'organization' || input.scope === 'project') {
+    throw Object.assign(new Error(`${input.scope} memory requires an organizationId or projectId`), {
+      statusCode: 400,
+      code: 'AGENT_MEMORY_SCOPE_INVALID',
+    });
+  }
+
+  return {};
+}
+
 async function requireRecentAdminReauth(request: FastifyRequest, ttlSeconds = 300) {
   if (!hasRecentReauth(request.currentSession?.lastReauthAt, ttlSeconds)) {
     throw Object.assign(new Error('Recent administrator re-authentication required'), {
@@ -1255,7 +1348,7 @@ function verifySamlXmlSignature(xml: string, certificate: string): boolean {
       publicCert: pemFromCertificate(certificate),
       idMode: 'wssecurity',
     });
-    verifier.loadSignature(signatureNode as unknown as Node);
+    verifier.loadSignature(signatureNode as any);
     return verifier.checkSignature(xml);
   } catch {
     return false;
@@ -3168,6 +3261,7 @@ async function seedBillingPlans(store: ApiStore) {
 
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
+  const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const emailProvider = options.emailProvider ?? createEmailProvider();
@@ -3338,7 +3432,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(statusCode).send({
-      error: statusCode >= 500 ? error.publicMessage ?? 'Internal server error' : error.message,
+      error: statusCode >= 500 ? (error.publicMessage ?? 'Internal server error') : error.message,
       code: (error as Error & { code?: string }).code ?? 'API_ERROR',
     });
   });
@@ -3887,6 +3981,135 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .send({ error: 'IP address is not allowed for this organization', code: 'IP_ALLOWLIST_BLOCKED' });
       }
     }
+  });
+
+  app.get('/agent-memory', async (request) => {
+    const query = parse(agentMemoryListQuerySchema, request.query);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, query, 'projects:read');
+
+    return {
+      memories: await service.list({
+        userId: request.currentUser!.id,
+        organizationId: authorized.organizationId,
+        projectId: authorized.projectId,
+        limit: query.limit,
+      }),
+    };
+  });
+
+  app.post('/agent-memory', async (request, reply) => {
+    const body = parse(agentMemoryWriteSchema, request.body);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:write');
+    const result = await service.remember({
+      userId: request.currentUser!.id,
+      organizationId: authorized.organizationId ?? body.organizationId,
+      projectId: authorized.projectId ?? body.projectId,
+      sessionId: body.sessionId,
+      scope: body.projectId ? 'project' : body.organizationId ? 'organization' : (body.scope ?? 'user'),
+      content: body.content,
+      summary: body.summary,
+      metadata: body.metadata,
+      importance: body.importance,
+      source: body.source ?? 'manual',
+      force: body.force,
+      expiresAt: body.expiresAt,
+    });
+
+    if (result.memory) {
+      await audit(request, store, {
+        organizationId: result.memory.organizationId,
+        action: result.updated ? 'agent_memory.update' : 'agent_memory.create',
+        resourceType: 'agentMemory',
+        resourceId: result.memory.id,
+        metadata: { scope: result.memory.scope, source: result.memory.source },
+      });
+    }
+
+    return reply.code(result.memory ? (result.updated ? 200 : 201) : 202).send(result);
+  });
+
+  app.post('/agent-memory/search', async (request) => {
+    const body = parse(agentMemorySearchSchema, request.body);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:read');
+
+    return {
+      memories: await service.search({
+        userId: request.currentUser!.id,
+        organizationId: authorized.organizationId ?? body.organizationId,
+        projectId: authorized.projectId ?? body.projectId,
+        sessionId: body.sessionId,
+        query: body.query,
+        limit: body.limit,
+        scopes: body.scopes,
+      }),
+    };
+  });
+
+  app.post('/agent-memory/context', async (request) => {
+    const body = parse(agentMemorySearchSchema, request.body);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:read');
+
+    return await service.retrieveMemoryForAgentContext({
+      userId: request.currentUser!.id,
+      organizationId: authorized.organizationId ?? body.organizationId,
+      projectId: authorized.projectId ?? body.projectId,
+      sessionId: body.sessionId,
+      query: body.query,
+      limit: body.limit,
+      scopes: body.scopes,
+    });
+  });
+
+  app.delete('/agent-memory/:memoryId', async (request, reply) => {
+    const { memoryId } = parse(agentMemoryParams, request.params);
+    const service = requireAgentMemoryService(agentMemory);
+    const archived = await service.archive({ id: memoryId, userId: request.currentUser!.id });
+
+    if (!archived) {
+      return reply.code(404).send({ error: 'Memory not found', code: 'AGENT_MEMORY_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: archived.organizationId,
+      action: 'agent_memory.delete',
+      resourceType: 'agentMemory',
+      resourceId: archived.id,
+      metadata: { scope: archived.scope, source: archived.source },
+    });
+
+    return { memory: archived };
+  });
+
+  app.patch('/agent-memory/:memoryId', async (request, reply) => {
+    const { memoryId } = parse(agentMemoryParams, request.params);
+    const body = parse(agentMemoryPatchSchema, request.body);
+    const service = requireAgentMemoryService(agentMemory);
+    const memory = await service.replace({
+      id: memoryId,
+      userId: request.currentUser!.id,
+      content: body.content,
+      summary: body.summary,
+      metadata: body.metadata,
+      importance: body.importance,
+    });
+
+    if (!memory) {
+      return reply.code(404).send({ error: 'Memory not found', code: 'AGENT_MEMORY_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: memory.organizationId,
+      action: 'agent_memory.correct',
+      resourceType: 'agentMemory',
+      resourceId: memory.id,
+      metadata: { scope: memory.scope, source: memory.source },
+    });
+
+    return { memory };
   });
 
   const managerRequest = async <T = unknown>(path: string, init: RequestInit = {}) => {

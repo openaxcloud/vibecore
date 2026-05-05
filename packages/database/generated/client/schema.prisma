@@ -68,6 +68,7 @@ model User {
   collaborationPresence   CollaborationPresence[]
   collaborationComments   CollaborationComment[]
   collaborationShareLinks ProjectShareLink[]
+  agentMemories           AgentMemory[]
 }
 
 model Account {
@@ -127,6 +128,7 @@ model Organization {
   customRoles        CustomRole[]
   siemWebhooks       SiemWebhook[]
   projectTemplates   ProjectTemplate[]
+  agentMemories      AgentMemory[]
 }
 
 model OrganizationMember {
@@ -215,9 +217,40 @@ model Project {
   collaborationPresence CollaborationPresence[]
   collaborationComments CollaborationComment[]
   shareLinks            ProjectShareLink[]
+  agentMemories         AgentMemory[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+model AgentMemory {
+  id                  String                @id @default(cuid())
+  userId              String
+  organizationId      String?
+  projectId           String?
+  sessionId           String?
+  scope               String
+  content             String
+  summary             String
+  embedding           Unsupported("vector")
+  embeddingModel      String
+  embeddingDimensions Int                   @default(1536)
+  metadata            Json                  @default("{}")
+  importance          Float                 @default(0.5)
+  source              String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  lastUsedAt          DateTime?
+  expiresAt           DateTime?
+  archivedAt          DateTime?
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization        Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project             Project?              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scope, updatedAt])
+  @@index([organizationId, updatedAt])
+  @@index([projectId, updatedAt])
+  @@index([sessionId, updatedAt])
 }
 
 model ProjectIdeState {

@@ -216,6 +216,27 @@ exports.Prisma.ProjectScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AgentMemoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  sessionId: 'sessionId',
+  scope: 'scope',
+  content: 'content',
+  summary: 'summary',
+  embeddingModel: 'embeddingModel',
+  embeddingDimensions: 'embeddingDimensions',
+  metadata: 'metadata',
+  importance: 'importance',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lastUsedAt: 'lastUsedAt',
+  expiresAt: 'expiresAt',
+  archivedAt: 'archivedAt'
+};
+
 exports.Prisma.ProjectIdeStateScalarFieldEnum = {
   projectId: 'projectId',
   state: 'state',
@@ -754,6 +775,7 @@ exports.Prisma.ModelName = {
   Permission: 'Permission',
   RolePermission: 'RolePermission',
   Project: 'Project',
+  AgentMemory: 'AgentMemory',
   ProjectIdeState: 'ProjectIdeState',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',

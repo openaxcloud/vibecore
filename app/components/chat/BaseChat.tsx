@@ -5227,6 +5227,10 @@ function ProjectSettingsPanel({
     gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
   });
   const [settingsTab, setSettingsTab] = useState('project');
+  const [memoryDraft, setMemoryDraft] = useState('');
+  const [memoryError, setMemoryError] = useState<string>();
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const [memories, setMemories] = useState<any[]>([]);
   const accountUser = data.account?.user ?? {};
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
@@ -5267,6 +5271,98 @@ function ProjectSettingsPanel({
     return (event: any) => setDraft((current) => ({ ...current, [key]: event.target.value }));
   }
 
+  const loadMemories = useCallback(async () => {
+    if (!settings.id) {
+      return;
+    }
+
+    setMemoryLoading(true);
+    setMemoryError(undefined);
+
+    try {
+      const response = await fetch(`/api/agent-memory?projectId=${encodeURIComponent(settings.id)}&limit=30`, {
+        headers: { accept: 'application/json' },
+      });
+      const payload = (await response.json()) as { memories?: any[]; error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to load agent memory');
+      }
+
+      setMemories(payload.memories ?? []);
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to load agent memory');
+    } finally {
+      setMemoryLoading(false);
+    }
+  }, [settings.id]);
+
+  useEffect(() => {
+    if (settingsTab === 'memory') {
+      void loadMemories();
+    }
+  }, [loadMemories, settingsTab]);
+
+  async function saveMemory(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!memoryDraft.trim()) {
+      return;
+    }
+
+    setMemoryLoading(true);
+    setMemoryError(undefined);
+
+    try {
+      const response = await fetch('/api/agent-memory', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          scope: 'project',
+          projectId: settings.id,
+          content: memoryDraft,
+          source: 'manual',
+          force: true,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to save memory');
+      }
+
+      setMemoryDraft('');
+      await loadMemories();
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to save memory');
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
+  async function deleteMemory(memoryId: string) {
+    setMemoryLoading(true);
+    setMemoryError(undefined);
+
+    try {
+      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
+        method: 'DELETE',
+        headers: { accept: 'application/json' },
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to delete memory');
+      }
+
+      await loadMemories();
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to delete memory');
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
   return (
     <div className="bolt-project-settings-hub" data-testid="settings-hub-panel">
       <header>
@@ -5286,6 +5382,7 @@ function ProjectSettingsPanel({
           ['security', 'Security'],
           ['usage', 'Usage'],
           ['ai', 'AI'],
+          ['memory', 'Memory'],
           ['preferences', 'Preferences'],
         ].map(([id, label]) => (
           <button
@@ -5502,6 +5599,66 @@ function ProjectSettingsPanel({
             })}
           </div>
         </section>
+      )}
+
+      {settingsTab === 'memory' && (
+        <div className="bolt-project-settings-grid">
+          <form onSubmit={saveMemory} className="bolt-project-settings-card">
+            <h4>Persistent Agent Memory</h4>
+            <p>
+              Project-scoped memories are embedded with the configured backend provider and retrieved before future IDE
+              agent runs.
+            </p>
+            <label>
+              New memory
+              <textarea
+                value={memoryDraft}
+                onChange={(event) => setMemoryDraft(event.target.value)}
+                placeholder="Example: Always push to main after validation checks pass."
+                rows={5}
+              />
+            </label>
+            <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>Save memory</PanelButton>
+            {memoryError ? (
+              <div className="bolt-project-settings-memory-error" role="alert">
+                <span>{memoryError}</span>
+                <button type="button" onClick={() => void loadMemories()} disabled={memoryLoading}>
+                  Retry
+                </button>
+              </div>
+            ) : null}
+          </form>
+
+          <section className="bolt-project-settings-card">
+            <h4>Stored Memories</h4>
+            {memoryLoading && !memories.length ? (
+              <div className="bolt-project-memory-skeleton" role="status">
+                <span />
+                <span />
+                <span />
+              </div>
+            ) : memories.length ? (
+              <div className="bolt-project-settings-list">
+                {memories.map((memory) => (
+                  <article key={memory.id} className="bolt-project-memory-row">
+                    <span>
+                      <strong>{memory.summary}</strong>
+                      <small>
+                        {memory.scope} - importance {Math.round((memory.importance ?? 0) * 100)}% -{' '}
+                        {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
+                      </small>
+                    </span>
+                    <button type="button" onClick={() => void deleteMemory(memory.id)} disabled={memoryLoading}>
+                      Delete
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="bolt-project-empty-panel">No persistent memories stored for this project yet.</div>
+            )}
+          </section>
+        </div>
       )}
 
       {settingsTab === 'preferences' && (

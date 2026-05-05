@@ -30,6 +30,15 @@ export type ContextAnnotation =
         risks?: string[];
         verification?: string[];
       }>;
+    }
+  | {
+      type: 'agentMemory';
+      memories: Array<{
+        id: string;
+        scope: string;
+        summary: string;
+        score?: number;
+      }>;
     };
 
 export type ProgressAnnotation = {

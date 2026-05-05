@@ -4993,7 +4993,8 @@ body :where(.lucide, svg[data-lucide]) {
     }
 
     input,
-    select {
+    select,
+    textarea {
       min-height: 38px;
       width: 100%;
       border: 1px solid var(--bolt-elements-borderColor);
@@ -5002,6 +5003,13 @@ body :where(.lucide, svg[data-lucide]) {
       padding: 0 10px;
       color: var(--bolt-elements-textPrimary);
       font-size: 12px;
+    }
+
+    textarea {
+      min-height: 112px;
+      padding: 10px;
+      resize: vertical;
+      line-height: 1.45;
     }
 
     a,
@@ -5095,6 +5103,62 @@ body :where(.lucide, svg[data-lucide]) {
     input[name='intent'] {
       display: none;
     }
+  }
+
+  .bolt-project-settings-memory-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 10px;
+    color: #fecaca;
+    font-size: 12px;
+  }
+
+  .bolt-project-memory-skeleton {
+    display: grid;
+    gap: 10px;
+
+    span {
+      min-height: 54px;
+      border-radius: 8px;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0.11),
+        rgba(255, 255, 255, 0.04)
+      );
+      background-size: 220% 100%;
+      animation: boltMemorySkeleton 1.2s ease-in-out infinite;
+    }
+  }
+
+  .bolt-project-memory-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 10px;
+    background: var(--bolt-elements-background-depth-2);
+    padding: 10px;
+
+    strong {
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
+@keyframes boltMemorySkeleton {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
   }
 }
 

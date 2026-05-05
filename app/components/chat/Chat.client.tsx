@@ -289,6 +289,7 @@ export const ChatImpl = memo(
         promptId,
         contextOptimization: contextOptimizationEnabled,
         chatMode,
+        projectId,
         designScheme,
         supabase: {
           isConnected: supabaseConn.isConnected,

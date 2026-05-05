@@ -15,6 +15,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import type { DesignScheme } from '~/types/design-scheme';
 import { MCPService } from '~/lib/services/mcpService';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import { apiRequest } from '~/lib/enterprise-api.server';
 import {
   AgentExecutorError,
   areParallelSubagentsAvailable,
@@ -48,6 +49,72 @@ function parseCookies(cookieHeader: string): Record<string, string> {
   return cookies;
 }
 
+function latestUserText(messages: Messages) {
+  return messages
+    .filter((message) => message.role === 'user')
+    .map((message) => message.content)
+    .filter(Boolean)
+    .slice(-1)[0];
+}
+
+async function retrieveAgentMemoryContext(request: Request, input: { messages: Messages; projectId?: string }) {
+  const query = latestUserText(input.messages);
+
+  if (!query) {
+    return undefined;
+  }
+
+  try {
+    const payload = await apiRequest<{
+      context: string;
+      memories: Array<{ id: string; summary: string; scope: string; score?: number }>;
+    }>(request, '/agent-memory/context', {
+      method: 'POST',
+      body: JSON.stringify({
+        query,
+        projectId: input.projectId,
+        scopes: input.projectId ? ['project', 'organization', 'user', 'session'] : ['user', 'session'],
+        limit: 8,
+      }),
+    });
+
+    return payload.context ? payload : undefined;
+  } catch (error) {
+    logger.warn('Agent memory retrieval skipped', error);
+    return undefined;
+  }
+}
+
+async function persistAgentMemoryCandidate(
+  request: Request,
+  input: { messages: Messages; assistantText: string; projectId?: string },
+) {
+  const userText = latestUserText(input.messages);
+
+  if (!userText) {
+    return;
+  }
+
+  try {
+    await apiRequest(request, '/agent-memory', {
+      method: 'POST',
+      body: JSON.stringify({
+        scope: input.projectId ? 'project' : 'user',
+        projectId: input.projectId,
+        content: userText,
+        summary: userText,
+        source: 'chat',
+        metadata: {
+          assistantExcerpt: input.assistantText.slice(0, 800),
+          capturedAt: new Date().toISOString(),
+        },
+      }),
+    });
+  } catch (error) {
+    logger.warn('Agent memory write skipped', error);
+  }
+}
+
 async function chatAction({ context, request }: ActionFunctionArgs) {
   let clientDisconnected = false;
   const streamRecovery = new StreamRecoveryManager({
@@ -67,11 +134,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     request.signal.addEventListener('abort', abortHandler, { once: true });
   }
 
-  const { messages, files, promptId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
+  const { messages, files, promptId, projectId, contextOptimization, supabase, chatMode, designScheme, maxLLMSteps } =
     await request.json<{
       messages: Messages;
       files: any;
       promptId?: string;
+      projectId?: string;
       contextOptimization: boolean;
       chatMode: 'discuss' | 'build';
       designScheme?: DesignScheme;
@@ -119,6 +187,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let messageSliceId = 0;
 
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+        const agentMemory = await retrieveAgentMemoryContext(request, { messages: processedMessages, projectId });
+
+        if (agentMemory?.memories.length) {
+          dataStream.writeMessageAnnotation({
+            type: 'agentMemory',
+            memories: agentMemory.memories.map((memory) => ({
+              id: memory.id,
+              scope: memory.scope,
+              summary: memory.summary,
+              score: memory.score,
+            })),
+          } as ContextAnnotation);
+        }
+
         let orchestrationPlan = buildAgentOrchestrationPlan({
           messages: processedMessages,
           chatMode,
@@ -334,6 +416,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 message: 'Response Generated',
               } satisfies ProgressAnnotation);
               await new Promise((resolve) => setTimeout(resolve, 0));
+              await persistAgentMemoryCandidate(request, {
+                messages: processedMessages,
+                assistantText: content,
+                projectId,
+              });
 
               // stream.close();
               return;
@@ -373,6 +460,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               abortSignal: request.signal,
               agentOrchestrationPlan: orchestrationPlan,
               agentOrchestrationContext,
+              agentMemoryContext: agentMemory?.context,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -405,6 +493,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId,
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
+          agentMemoryContext: agentMemory?.context,
         });
 
         result.mergeIntoDataStream(dataStream);

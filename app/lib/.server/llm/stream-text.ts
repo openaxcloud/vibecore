@@ -90,6 +90,7 @@ export async function streamText(props: {
   abortSignal?: AbortSignal;
   agentOrchestrationPlan?: AgentOrchestrationPlan;
   agentOrchestrationContext?: string;
+  agentMemoryContext?: string;
 }) {
   const {
     messages,
@@ -107,6 +108,7 @@ export async function streamText(props: {
     abortSignal,
     agentOrchestrationPlan,
     agentOrchestrationContext,
+    agentMemoryContext,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -209,6 +211,12 @@ ${orchestrationPrompt}`;
     systemPrompt = `${systemPrompt}
 
 ${agentOrchestrationContext}`;
+  }
+
+  if (agentMemoryContext) {
+    systemPrompt = `${systemPrompt}
+
+${agentMemoryContext}`;
   }
 
   if (chatMode === 'build' && contextFiles && contextOptimization) {
