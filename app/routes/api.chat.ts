@@ -18,6 +18,7 @@ import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import {
   AgentExecutorError,
   areParallelSubagentsAvailable,
+  buildAgentExecutionAnnotation,
   buildAgentOrchestrationPlan,
   createAgentExecutionContext,
   executeAgentOrchestration,
@@ -157,33 +158,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 messages: processedMessages,
               });
               agentOrchestrationContext = createAgentExecutionContext(execution);
-              dataStream.writeMessageAnnotation({
-                type: 'agentExecution',
-                runId: execution.runId,
-                status: execution.status,
-                results: execution.results,
-                ...(execution.consensus
-                  ? {
-                      consensus: {
-                        algorithm: execution.consensus.algorithm,
-                        outcome: execution.consensus.outcome,
-                        threshold: execution.consensus.threshold,
-                        agreementScore: execution.consensus.agreementScore,
-                        rounds: execution.consensus.rounds,
-                        durationMs: execution.consensus.durationMs,
-                        claimVotes: execution.consensus.claimVotes.map((vote) => ({
-                          claim: vote.claim,
-                          type: vote.type,
-                          supporters: vote.supporters,
-                          dissenters: vote.dissenters,
-                          agreementRatio: vote.agreementRatio,
-                          decision: vote.decision,
-                        })),
-                        conflicts: execution.consensus.conflicts,
-                      },
-                    }
-                  : {}),
-              } satisfies ContextAnnotation);
+              dataStream.writeMessageAnnotation(buildAgentExecutionAnnotation(execution) satisfies ContextAnnotation);
             } catch (error) {
               const message =
                 error instanceof AgentExecutorError

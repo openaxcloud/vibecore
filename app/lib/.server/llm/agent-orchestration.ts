@@ -67,6 +67,61 @@ export type AgentExecutionResponse = {
   consensus?: AgentConsensusOutput;
 };
 
+export type AgentExecutionAnnotation = {
+  type: 'agentExecution';
+  runId: string;
+  status: 'complete' | 'partial' | 'failed';
+  results: AgentExecutionResult[];
+  consensus?: {
+    algorithm: AgentConsensusOutput['algorithm'];
+    outcome: AgentConsensusOutput['outcome'];
+    threshold: number;
+    agreementScore: number;
+    rounds: number;
+    durationMs: number;
+    claimVotes: Array<{
+      claim: string;
+      type: 'risk' | 'verification' | 'file';
+      supporters: AgentRoleId[];
+      dissenters: AgentRoleId[];
+      agreementRatio: number;
+      decision: 'accepted' | 'rejected' | 'inconclusive';
+    }>;
+    conflicts: AgentConsensusOutput['conflicts'];
+  };
+};
+
+export function buildAgentExecutionAnnotation(execution: AgentExecutionResponse): AgentExecutionAnnotation {
+  const annotation: AgentExecutionAnnotation = {
+    type: 'agentExecution',
+    runId: execution.runId,
+    status: execution.status,
+    results: execution.results,
+  };
+
+  if (execution.consensus) {
+    annotation.consensus = {
+      algorithm: execution.consensus.algorithm,
+      outcome: execution.consensus.outcome,
+      threshold: execution.consensus.threshold,
+      agreementScore: execution.consensus.agreementScore,
+      rounds: execution.consensus.rounds,
+      durationMs: execution.consensus.durationMs,
+      claimVotes: execution.consensus.claimVotes.map((vote) => ({
+        claim: vote.claim,
+        type: vote.type,
+        supporters: vote.supporters,
+        dissenters: vote.dissenters,
+        agreementRatio: vote.agreementRatio,
+        decision: vote.decision,
+      })),
+      conflicts: execution.consensus.conflicts,
+    };
+  }
+
+  return annotation;
+}
+
 export class AgentExecutorError extends Error {
   constructor(
     message: string,

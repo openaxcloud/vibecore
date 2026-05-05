@@ -156,6 +156,115 @@ describe('E-Code agent orchestration', () => {
     ).rejects.toMatchObject({ code: 'invalid-response' } satisfies Partial<AgentExecutorError>);
   });
 
+  it('parses and forwards consensus payload from the executor response', async () => {
+    const plan = buildAgentOrchestrationPlan({
+      chatMode: 'build',
+      messages: [{ role: 'user', content: 'Build a full-stack app with backend APIs, auth, deploy and tests.' }],
+      subagentsAvailable: true,
+    });
+
+    const fetchImpl = async () =>
+      new Response(
+        JSON.stringify({
+          runId: 'run_consensus_e2e',
+          status: 'partial',
+          results: [
+            { roleId: 'architect', status: 'complete', summary: 'A.' },
+            { roleId: 'devops', status: 'failed', summary: 'devops timeout' },
+          ],
+          consensus: {
+            algorithm: 'QUORUM',
+            outcome: 'PARTIAL',
+            threshold: 0.66,
+            agreementScore: 0.5,
+            rounds: 1,
+            durationMs: 7,
+            claimVotes: [
+              {
+                claim: 'Service mesh adds latency',
+                type: 'risk',
+                supporters: ['architect'],
+                dissenters: [],
+                agreementRatio: 1,
+                decision: 'accepted',
+              },
+            ],
+            conflicts: [
+              {
+                type: 'role-failure',
+                description: '1 sub-agent role(s) failed: devops',
+                involvedRoles: ['devops'],
+                severity: 'medium',
+              },
+            ],
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+
+    const response = await executeAgentOrchestration({
+      env: { ECODE_SUBAGENT_EXECUTOR_URL: 'https://agents.example.com' },
+      plan,
+      messages: [{ role: 'user', content: 'Build it.' }],
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    expect(response.consensus).toBeDefined();
+    expect(response.consensus!.algorithm).toBe('QUORUM');
+    expect(response.consensus!.outcome).toBe('PARTIAL');
+    expect(response.consensus!.claimVotes).toHaveLength(1);
+    expect(response.consensus!.conflicts[0]!.type).toBe('role-failure');
+    expect(response.consensus!.conflicts[0]!.involvedRoles).toEqual(['devops']);
+  });
+
+  it('buildAgentExecutionAnnotation maps consensus into the streamable annotation shape', async () => {
+    const { buildAgentExecutionAnnotation } = await import('./agent-orchestration');
+    const annotation = buildAgentExecutionAnnotation({
+      runId: 'run_anno',
+      status: 'complete',
+      results: [{ roleId: 'architect', status: 'complete', summary: 'a' }],
+      consensus: {
+        algorithm: 'WEIGHTED_PLURALITY',
+        outcome: 'ACCEPTED',
+        threshold: 0.66,
+        agreementScore: 0.9,
+        rounds: 1,
+        durationMs: 12,
+        claimVotes: [
+          {
+            claim: 'A risk',
+            type: 'risk',
+            supporters: ['architect', 'qa'],
+            dissenters: ['frontend'],
+            agreementRatio: 0.7,
+            decision: 'accepted',
+          },
+        ],
+        conflicts: [],
+      },
+    });
+
+    expect(annotation.type).toBe('agentExecution');
+    expect(annotation.runId).toBe('run_anno');
+    expect(annotation.consensus).toBeDefined();
+    expect(annotation.consensus!.algorithm).toBe('WEIGHTED_PLURALITY');
+    expect(annotation.consensus!.outcome).toBe('ACCEPTED');
+    expect(annotation.consensus!.claimVotes[0]!.supporters).toEqual(['architect', 'qa']);
+
+    // abstainers must not leak through (executor returns it but annotation drops it).
+    expect((annotation.consensus!.claimVotes[0] as Record<string, unknown>).abstainers).toBeUndefined();
+  });
+
+  it('buildAgentExecutionAnnotation skips consensus field when absent', async () => {
+    const { buildAgentExecutionAnnotation } = await import('./agent-orchestration');
+    const annotation = buildAgentExecutionAnnotation({
+      runId: 'run_no_consensus',
+      status: 'complete',
+      results: [{ roleId: 'architect', status: 'complete', summary: 'a' }],
+    });
+    expect(annotation.consensus).toBeUndefined();
+  });
+
   it('formats sub-agent execution results for system prompt injection', () => {
     const context = createAgentExecutionContext({
       runId: 'run_abc',
