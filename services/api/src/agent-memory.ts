@@ -50,6 +50,15 @@ export interface AgentMemoryWriteInput {
   expiresAt?: string;
 }
 
+export interface AgentMemoryPreference {
+  userId: string;
+  organizationId?: string;
+  projectId?: string;
+  enabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AgentMemoryEmbeddingProvider {
   readonly model: string;
   readonly dimensions: number;
@@ -83,6 +92,17 @@ export interface AgentMemoryRepository {
     limit?: number;
   }): Promise<AgentMemoryRecord[]>;
   archive(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
+  getPreference(input: {
+    userId: string;
+    organizationId?: string;
+    projectId?: string;
+  }): Promise<AgentMemoryPreference | undefined>;
+  setPreference(input: {
+    userId: string;
+    organizationId?: string;
+    projectId?: string;
+    enabled: boolean;
+  }): Promise<AgentMemoryPreference>;
 }
 
 export class AgentMemoryConfigurationError extends Error {
@@ -205,6 +225,17 @@ function rowToMemory(row: Record<string, any>): AgentMemoryRecord {
     expiresAt: iso(row.expiresAt),
     archivedAt: iso(row.archivedAt),
     score: typeof distance === 'number' ? Math.max(0, 1 - distance) : undefined,
+  };
+}
+
+function rowToPreference(row: Record<string, any>): AgentMemoryPreference {
+  return {
+    userId: row.userId,
+    organizationId: row.organizationId ?? undefined,
+    projectId: row.projectId ?? undefined,
+    enabled: Boolean(row.enabled),
+    createdAt: iso(row.createdAt),
+    updatedAt: iso(row.updatedAt),
   };
 }
 
@@ -356,6 +387,57 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     );
 
     return rows[0] ? rowToMemory(rows[0]) : undefined;
+  }
+
+  async getPreference(input: { userId: string; organizationId?: string; projectId?: string }) {
+    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+      `SELECT "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"
+       FROM "AgentMemoryPreference"
+       WHERE "userId" = $1
+         AND (($2::text IS NULL AND "organizationId" IS NULL) OR "organizationId" = $2)
+         AND (($3::text IS NULL AND "projectId" IS NULL) OR "projectId" = $3)
+       LIMIT 1`,
+      input.userId,
+      input.organizationId ?? null,
+      input.projectId ?? null,
+    );
+
+    return rows[0] ? rowToPreference(rows[0]) : undefined;
+  }
+
+  async setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
+    const existing = await this.getPreference(input);
+
+    if (existing) {
+      const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+        `UPDATE "AgentMemoryPreference"
+         SET "enabled" = $4, "updatedAt" = CURRENT_TIMESTAMP
+         WHERE "userId" = $1
+           AND (($2::text IS NULL AND "organizationId" IS NULL) OR "organizationId" = $2)
+           AND (($3::text IS NULL AND "projectId" IS NULL) OR "projectId" = $3)
+         RETURNING "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"`,
+        input.userId,
+        input.organizationId ?? null,
+        input.projectId ?? null,
+        input.enabled,
+      );
+
+      return rowToPreference(rows[0]);
+    }
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
+      `INSERT INTO "AgentMemoryPreference"
+       ("id", "userId", "organizationId", "projectId", "enabled")
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"`,
+      randomUUID(),
+      input.userId,
+      input.organizationId ?? null,
+      input.projectId ?? null,
+      input.enabled,
+    );
+
+    return rowToPreference(rows[0]);
   }
 }
 
@@ -567,6 +649,21 @@ export class AgentMemoryService {
 
   archive(input: { id: string; userId: string }) {
     return this.repository.archive(input);
+  }
+
+  async getPreference(input: { userId: string; organizationId?: string; projectId?: string }) {
+    return (
+      (await this.repository.getPreference(input)) ?? {
+        userId: input.userId,
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        enabled: true,
+      }
+    );
+  }
+
+  setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
+    return this.repository.setPreference(input);
   }
 }
 

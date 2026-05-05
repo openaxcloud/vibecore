@@ -5150,6 +5150,51 @@ body :where(.lucide, svg[data-lucide]) {
       overflow-wrap: anywhere;
     }
   }
+
+  .bolt-project-memory-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 8px;
+    background: var(--bolt-elements-background-depth-2);
+    padding: 10px;
+
+    input {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+    }
+
+    span,
+    strong,
+    small {
+      display: block;
+    }
+  }
+
+  .bolt-project-memory-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+
+  .bolt-project-memory-edit {
+    display: grid;
+    width: 100%;
+    gap: 8px;
+
+    textarea {
+      width: 100%;
+      resize: vertical;
+    }
+
+    div {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+  }
 }
 
 @keyframes boltMemorySkeleton {

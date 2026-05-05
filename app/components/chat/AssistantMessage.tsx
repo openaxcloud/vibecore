@@ -97,6 +97,9 @@ export const AssistantMessage = memo(
     const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
+    const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
+      | Extract<ContextAnnotation, { type: 'agentMemory' }>
+      | undefined;
 
     const usage: {
       completionTokens: number;
@@ -113,9 +116,33 @@ export const AssistantMessage = memo(
       <div className="bolt-assistant-message overflow-hidden w-full">
         <>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
-            {(codeContext || chatSummary || agentOrchestration || agentExecution) && (
+            {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory) && (
               <Popover side="right" align="start" trigger={<div className="i-ph:info" />}>
                 <div className="max-w-chat">
+                  {agentMemory && (
+                    <div className="agent-memory flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
+                      <div>
+                        <h2 className="text-sm font-medium text-bolt-elements-textPrimary">Agent memory</h2>
+                        <p className="text-xs text-bolt-elements-textSecondary mt-1">
+                          {agentMemory.memories.length} persistent memories used for this response
+                        </p>
+                      </div>
+                      <div className="grid gap-2">
+                        {agentMemory.memories.map((memory) => (
+                          <div
+                            key={memory.id}
+                            className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2"
+                          >
+                            <div className="text-xs font-medium text-bolt-elements-textPrimary">{memory.summary}</div>
+                            <div className="text-xs text-bolt-elements-textSecondary mt-1">
+                              {memory.scope}
+                              {typeof memory.score === 'number' ? ` · ${Math.round(memory.score * 100)}% match` : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {agentExecution && (
                     <div className="agent-execution flex flex-col gap-3 p-4 border border-bolt-elements-borderColor rounded-md mb-3">
                       <div>
@@ -199,11 +226,18 @@ export const AssistantMessage = memo(
               </Popover>
             )}
             <div className="flex w-full items-center justify-between">
-              {usage && (
-                <div>
-                  Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {agentMemory && (
+                  <span className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1 text-xs text-bolt-elements-textSecondary">
+                    Memory used: {agentMemory.memories.length}
+                  </span>
+                )}
+                {usage && (
+                  <span>
+                    Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+                  </span>
+                )}
+              </div>
               {(onRewind || onFork) && messageId && (
                 <div className="flex gap-1.5 flex-col lg:flex-row ml-auto">
                   {onRewind && (

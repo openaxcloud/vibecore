@@ -69,6 +69,11 @@ export type Project = $Result.DefaultSelection<Prisma.$ProjectPayload>
  */
 export type AgentMemory = $Result.DefaultSelection<Prisma.$AgentMemoryPayload>
 /**
+ * Model AgentMemoryPreference
+ *
+ */
+export type AgentMemoryPreference = $Result.DefaultSelection<Prisma.$AgentMemoryPreferencePayload>
+/**
  * Model ProjectIdeState
  *
  */
@@ -712,6 +717,16 @@ export class PrismaClient<
     * ```
     */
   get agentMemory(): Prisma.AgentMemoryDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentMemoryPreference`: Exposes CRUD operations for the **AgentMemoryPreference** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentMemoryPreferences
+    * const agentMemoryPreferences = await prisma.agentMemoryPreference.findMany()
+    * ```
+    */
+  get agentMemoryPreference(): Prisma.AgentMemoryPreferenceDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectIdeState`: Exposes CRUD operations for the **ProjectIdeState** model.
@@ -1667,6 +1682,7 @@ export namespace Prisma {
     RolePermission: 'RolePermission',
     Project: 'Project',
     AgentMemory: 'AgentMemory',
+    AgentMemoryPreference: 'AgentMemoryPreference',
     ProjectIdeState: 'ProjectIdeState',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
@@ -1733,7 +1749,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2532,6 +2548,80 @@ export namespace Prisma {
           count: {
             args: Prisma.AgentMemoryCountArgs<ExtArgs>
             result: $Utils.Optional<AgentMemoryCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentMemoryPreference: {
+        payload: Prisma.$AgentMemoryPreferencePayload<ExtArgs>
+        fields: Prisma.AgentMemoryPreferenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentMemoryPreferenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentMemoryPreferenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          findFirst: {
+            args: Prisma.AgentMemoryPreferenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentMemoryPreferenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          findMany: {
+            args: Prisma.AgentMemoryPreferenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>[]
+          }
+          create: {
+            args: Prisma.AgentMemoryPreferenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          createMany: {
+            args: Prisma.AgentMemoryPreferenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentMemoryPreferenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>[]
+          }
+          delete: {
+            args: Prisma.AgentMemoryPreferenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          update: {
+            args: Prisma.AgentMemoryPreferenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentMemoryPreferenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentMemoryPreferenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentMemoryPreferenceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentMemoryPreferenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentMemoryPreferencePayload>
+          }
+          aggregate: {
+            args: Prisma.AgentMemoryPreferenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentMemoryPreference>
+          }
+          groupBy: {
+            args: Prisma.AgentMemoryPreferenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentMemoryPreferenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentMemoryPreferenceCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentMemoryPreferenceCountAggregateOutputType> | number
           }
         }
       }
@@ -6428,6 +6518,7 @@ export namespace Prisma {
     rolePermission?: RolePermissionOmit
     project?: ProjectOmit
     agentMemory?: AgentMemoryOmit
+    agentMemoryPreference?: AgentMemoryPreferenceOmit
     projectIdeState?: ProjectIdeStateOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
@@ -6579,6 +6670,7 @@ export namespace Prisma {
     collaborationComments: number
     collaborationShareLinks: number
     agentMemories: number
+    agentMemoryPreferences: number
     mcpInstalls: number
     agentRuns: number
   }
@@ -6604,6 +6696,7 @@ export namespace Prisma {
     collaborationComments?: boolean | UserCountOutputTypeCountCollaborationCommentsArgs
     collaborationShareLinks?: boolean | UserCountOutputTypeCountCollaborationShareLinksArgs
     agentMemories?: boolean | UserCountOutputTypeCountAgentMemoriesArgs
+    agentMemoryPreferences?: boolean | UserCountOutputTypeCountAgentMemoryPreferencesArgs
     mcpInstalls?: boolean | UserCountOutputTypeCountMcpInstallsArgs
     agentRuns?: boolean | UserCountOutputTypeCountAgentRunsArgs
   }
@@ -6762,6 +6855,13 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
+  export type UserCountOutputTypeCountAgentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentMemoryPreferenceWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
   export type UserCountOutputTypeCountMcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: McpInstallWhereInput
   }
@@ -6800,6 +6900,7 @@ export namespace Prisma {
     siemWebhooks: number
     projectTemplates: number
     agentMemories: number
+    agentMemoryPreferences: number
     mcpInstalls: number
     agentRuns: number
   }
@@ -6826,6 +6927,7 @@ export namespace Prisma {
     siemWebhooks?: boolean | OrganizationCountOutputTypeCountSiemWebhooksArgs
     projectTemplates?: boolean | OrganizationCountOutputTypeCountProjectTemplatesArgs
     agentMemories?: boolean | OrganizationCountOutputTypeCountAgentMemoriesArgs
+    agentMemoryPreferences?: boolean | OrganizationCountOutputTypeCountAgentMemoryPreferencesArgs
     mcpInstalls?: boolean | OrganizationCountOutputTypeCountMcpInstallsArgs
     agentRuns?: boolean | OrganizationCountOutputTypeCountAgentRunsArgs
   }
@@ -6991,6 +7093,13 @@ export namespace Prisma {
   /**
    * OrganizationCountOutputType without action
    */
+  export type OrganizationCountOutputTypeCountAgentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentMemoryPreferenceWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
   export type OrganizationCountOutputTypeCountMcpInstallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: McpInstallWhereInput
   }
@@ -7103,6 +7212,7 @@ export namespace Prisma {
     collaborationComments: number
     shareLinks: number
     agentMemories: number
+    agentMemoryPreferences: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7121,6 +7231,7 @@ export namespace Prisma {
     collaborationComments?: boolean | ProjectCountOutputTypeCountCollaborationCommentsArgs
     shareLinks?: boolean | ProjectCountOutputTypeCountShareLinksArgs
     agentMemories?: boolean | ProjectCountOutputTypeCountAgentMemoriesArgs
+    agentMemoryPreferences?: boolean | ProjectCountOutputTypeCountAgentMemoryPreferencesArgs
   }
 
   // Custom InputTypes
@@ -7237,6 +7348,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountAgentMemoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentMemoryWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountAgentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentMemoryPreferenceWhereInput
   }
 
 
@@ -7703,6 +7821,7 @@ export namespace Prisma {
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -7769,6 +7888,7 @@ export namespace Prisma {
     collaborationComments?: boolean | User$collaborationCommentsArgs<ExtArgs>
     collaborationShareLinks?: boolean | User$collaborationShareLinksArgs<ExtArgs>
     agentMemories?: boolean | User$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -7799,6 +7919,7 @@ export namespace Prisma {
       collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
       collaborationShareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
+      agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
       agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
     }
@@ -8227,6 +8348,7 @@ export namespace Prisma {
     collaborationComments<T extends User$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     collaborationShareLinks<T extends User$collaborationShareLinksArgs<ExtArgs> = {}>(args?: Subset<T, User$collaborationShareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends User$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentMemoryPreferences<T extends User$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends User$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRuns<T extends User$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -9138,6 +9260,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryScalarFieldEnum | AgentMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * User.agentMemoryPreferences
+   */
+  export type User$agentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    where?: AgentMemoryPreferenceWhereInput
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
   }
 
   /**
@@ -11598,6 +11744,7 @@ export namespace Prisma {
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | Organization$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
@@ -11652,6 +11799,7 @@ export namespace Prisma {
     siemWebhooks?: boolean | Organization$siemWebhooksArgs<ExtArgs>
     projectTemplates?: boolean | Organization$projectTemplatesArgs<ExtArgs>
     agentMemories?: boolean | Organization$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | Organization$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
@@ -11685,6 +11833,7 @@ export namespace Prisma {
       siemWebhooks: Prisma.$SiemWebhookPayload<ExtArgs>[]
       projectTemplates: Prisma.$ProjectTemplatePayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
+      agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
       agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
     }
@@ -12111,6 +12260,7 @@ export namespace Prisma {
     siemWebhooks<T extends Organization$siemWebhooksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$siemWebhooksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SiemWebhookPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectTemplates<T extends Organization$projectTemplatesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$projectTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends Organization$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentMemoryPreferences<T extends Organization$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends Organization$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRuns<T extends Organization$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -13079,6 +13229,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryScalarFieldEnum | AgentMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.agentMemoryPreferences
+   */
+  export type Organization$agentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    where?: AgentMemoryPreferenceWhereInput
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
   }
 
   /**
@@ -18781,6 +18955,7 @@ export namespace Prisma {
     collaborationComments?: boolean | Project$collaborationCommentsArgs<ExtArgs>
     shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -18853,6 +19028,7 @@ export namespace Prisma {
     collaborationComments?: boolean | Project$collaborationCommentsArgs<ExtArgs>
     shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
+    agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -18882,6 +19058,7 @@ export namespace Prisma {
       collaborationComments: Prisma.$CollaborationCommentPayload<ExtArgs>[]
       shareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
+      agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -19308,6 +19485,7 @@ export namespace Prisma {
     collaborationComments<T extends Project$collaborationCommentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$collaborationCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CollaborationCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     shareLinks<T extends Project$shareLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$shareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends Project$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentMemoryPreferences<T extends Project$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -20127,6 +20305,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryScalarFieldEnum | AgentMemoryScalarFieldEnum[]
+  }
+
+  /**
+   * Project.agentMemoryPreferences
+   */
+  export type Project$agentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    where?: AgentMemoryPreferenceWhereInput
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
   }
 
   /**
@@ -21280,6 +21482,1149 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: AgentMemoryInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentMemoryPreference
+   */
+
+  export type AggregateAgentMemoryPreference = {
+    _count: AgentMemoryPreferenceCountAggregateOutputType | null
+    _min: AgentMemoryPreferenceMinAggregateOutputType | null
+    _max: AgentMemoryPreferenceMaxAggregateOutputType | null
+  }
+
+  export type AgentMemoryPreferenceMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    organizationId: string | null
+    projectId: string | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentMemoryPreferenceMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    organizationId: string | null
+    projectId: string | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentMemoryPreferenceCountAggregateOutputType = {
+    id: number
+    userId: number
+    organizationId: number
+    projectId: number
+    enabled: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AgentMemoryPreferenceMinAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentMemoryPreferenceMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentMemoryPreferenceCountAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    projectId?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AgentMemoryPreferenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentMemoryPreference to aggregate.
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentMemoryPreferences to fetch.
+     */
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentMemoryPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentMemoryPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned AgentMemoryPreferences
+    **/
+    _count?: true | AgentMemoryPreferenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentMemoryPreferenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentMemoryPreferenceMaxAggregateInputType
+  }
+
+  export type GetAgentMemoryPreferenceAggregateType<T extends AgentMemoryPreferenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentMemoryPreference]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentMemoryPreference[P]>
+      : GetScalarType<T[P], AggregateAgentMemoryPreference[P]>
+  }
+
+
+
+
+  export type AgentMemoryPreferenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentMemoryPreferenceWhereInput
+    orderBy?: AgentMemoryPreferenceOrderByWithAggregationInput | AgentMemoryPreferenceOrderByWithAggregationInput[]
+    by: AgentMemoryPreferenceScalarFieldEnum[] | AgentMemoryPreferenceScalarFieldEnum
+    having?: AgentMemoryPreferenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentMemoryPreferenceCountAggregateInputType | true
+    _min?: AgentMemoryPreferenceMinAggregateInputType
+    _max?: AgentMemoryPreferenceMaxAggregateInputType
+  }
+
+  export type AgentMemoryPreferenceGroupByOutputType = {
+    id: string
+    userId: string
+    organizationId: string | null
+    projectId: string | null
+    enabled: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: AgentMemoryPreferenceCountAggregateOutputType | null
+    _min: AgentMemoryPreferenceMinAggregateOutputType | null
+    _max: AgentMemoryPreferenceMaxAggregateOutputType | null
+  }
+
+  type GetAgentMemoryPreferenceGroupByPayload<T extends AgentMemoryPreferenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentMemoryPreferenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentMemoryPreferenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentMemoryPreferenceGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentMemoryPreferenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentMemoryPreferenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }, ExtArgs["result"]["agentMemoryPreference"]>
+
+  export type AgentMemoryPreferenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }, ExtArgs["result"]["agentMemoryPreference"]>
+
+  export type AgentMemoryPreferenceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }, ExtArgs["result"]["agentMemoryPreference"]>
+
+  export type AgentMemoryPreferenceSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AgentMemoryPreferenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "organizationId" | "projectId" | "enabled" | "createdAt" | "updatedAt", ExtArgs["result"]["agentMemoryPreference"]>
+  export type AgentMemoryPreferenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }
+  export type AgentMemoryPreferenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }
+  export type AgentMemoryPreferenceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | AgentMemoryPreference$organizationArgs<ExtArgs>
+    project?: boolean | AgentMemoryPreference$projectArgs<ExtArgs>
+  }
+
+  export type $AgentMemoryPreferencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentMemoryPreference"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      organization: Prisma.$OrganizationPayload<ExtArgs> | null
+      project: Prisma.$ProjectPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      organizationId: string | null
+      projectId: string | null
+      enabled: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["agentMemoryPreference"]>
+    composites: {}
+  }
+
+  type AgentMemoryPreferenceGetPayload<S extends boolean | null | undefined | AgentMemoryPreferenceDefaultArgs> = $Result.GetResult<Prisma.$AgentMemoryPreferencePayload, S>
+
+  type AgentMemoryPreferenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentMemoryPreferenceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentMemoryPreferenceCountAggregateInputType | true
+    }
+
+  export interface AgentMemoryPreferenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentMemoryPreference'], meta: { name: 'AgentMemoryPreference' } }
+    /**
+     * Find zero or one AgentMemoryPreference that matches the filter.
+     * @param {AgentMemoryPreferenceFindUniqueArgs} args - Arguments to find a AgentMemoryPreference
+     * @example
+     * // Get one AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentMemoryPreferenceFindUniqueArgs>(args: SelectSubset<T, AgentMemoryPreferenceFindUniqueArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentMemoryPreference that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentMemoryPreferenceFindUniqueOrThrowArgs} args - Arguments to find a AgentMemoryPreference
+     * @example
+     * // Get one AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentMemoryPreferenceFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentMemoryPreferenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentMemoryPreference that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceFindFirstArgs} args - Arguments to find a AgentMemoryPreference
+     * @example
+     * // Get one AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentMemoryPreferenceFindFirstArgs>(args?: SelectSubset<T, AgentMemoryPreferenceFindFirstArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentMemoryPreference that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceFindFirstOrThrowArgs} args - Arguments to find a AgentMemoryPreference
+     * @example
+     * // Get one AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentMemoryPreferenceFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentMemoryPreferenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentMemoryPreferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentMemoryPreferences
+     * const agentMemoryPreferences = await prisma.agentMemoryPreference.findMany()
+     *
+     * // Get first 10 AgentMemoryPreferences
+     * const agentMemoryPreferences = await prisma.agentMemoryPreference.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const agentMemoryPreferenceWithIdOnly = await prisma.agentMemoryPreference.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends AgentMemoryPreferenceFindManyArgs>(args?: SelectSubset<T, AgentMemoryPreferenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentMemoryPreference.
+     * @param {AgentMemoryPreferenceCreateArgs} args - Arguments to create a AgentMemoryPreference.
+     * @example
+     * // Create one AgentMemoryPreference
+     * const AgentMemoryPreference = await prisma.agentMemoryPreference.create({
+     *   data: {
+     *     // ... data to create a AgentMemoryPreference
+     *   }
+     * })
+     *
+     */
+    create<T extends AgentMemoryPreferenceCreateArgs>(args: SelectSubset<T, AgentMemoryPreferenceCreateArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentMemoryPreferences.
+     * @param {AgentMemoryPreferenceCreateManyArgs} args - Arguments to create many AgentMemoryPreferences.
+     * @example
+     * // Create many AgentMemoryPreferences
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends AgentMemoryPreferenceCreateManyArgs>(args?: SelectSubset<T, AgentMemoryPreferenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentMemoryPreferences and returns the data saved in the database.
+     * @param {AgentMemoryPreferenceCreateManyAndReturnArgs} args - Arguments to create many AgentMemoryPreferences.
+     * @example
+     * // Create many AgentMemoryPreferences
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many AgentMemoryPreferences and only return the `id`
+     * const agentMemoryPreferenceWithIdOnly = await prisma.agentMemoryPreference.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends AgentMemoryPreferenceCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentMemoryPreferenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentMemoryPreference.
+     * @param {AgentMemoryPreferenceDeleteArgs} args - Arguments to delete one AgentMemoryPreference.
+     * @example
+     * // Delete one AgentMemoryPreference
+     * const AgentMemoryPreference = await prisma.agentMemoryPreference.delete({
+     *   where: {
+     *     // ... filter to delete one AgentMemoryPreference
+     *   }
+     * })
+     *
+     */
+    delete<T extends AgentMemoryPreferenceDeleteArgs>(args: SelectSubset<T, AgentMemoryPreferenceDeleteArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentMemoryPreference.
+     * @param {AgentMemoryPreferenceUpdateArgs} args - Arguments to update one AgentMemoryPreference.
+     * @example
+     * // Update one AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends AgentMemoryPreferenceUpdateArgs>(args: SelectSubset<T, AgentMemoryPreferenceUpdateArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentMemoryPreferences.
+     * @param {AgentMemoryPreferenceDeleteManyArgs} args - Arguments to filter AgentMemoryPreferences to delete.
+     * @example
+     * // Delete a few AgentMemoryPreferences
+     * const { count } = await prisma.agentMemoryPreference.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends AgentMemoryPreferenceDeleteManyArgs>(args?: SelectSubset<T, AgentMemoryPreferenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentMemoryPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentMemoryPreferences
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends AgentMemoryPreferenceUpdateManyArgs>(args: SelectSubset<T, AgentMemoryPreferenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentMemoryPreferences and returns the data updated in the database.
+     * @param {AgentMemoryPreferenceUpdateManyAndReturnArgs} args - Arguments to update many AgentMemoryPreferences.
+     * @example
+     * // Update many AgentMemoryPreferences
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more AgentMemoryPreferences and only return the `id`
+     * const agentMemoryPreferenceWithIdOnly = await prisma.agentMemoryPreference.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends AgentMemoryPreferenceUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentMemoryPreferenceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentMemoryPreference.
+     * @param {AgentMemoryPreferenceUpsertArgs} args - Arguments to update or create a AgentMemoryPreference.
+     * @example
+     * // Update or create a AgentMemoryPreference
+     * const agentMemoryPreference = await prisma.agentMemoryPreference.upsert({
+     *   create: {
+     *     // ... data to create a AgentMemoryPreference
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentMemoryPreference we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentMemoryPreferenceUpsertArgs>(args: SelectSubset<T, AgentMemoryPreferenceUpsertArgs<ExtArgs>>): Prisma__AgentMemoryPreferenceClient<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentMemoryPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceCountArgs} args - Arguments to filter AgentMemoryPreferences to count.
+     * @example
+     * // Count the number of AgentMemoryPreferences
+     * const count = await prisma.agentMemoryPreference.count({
+     *   where: {
+     *     // ... the filter for the AgentMemoryPreferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentMemoryPreferenceCountArgs>(
+      args?: Subset<T, AgentMemoryPreferenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentMemoryPreferenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentMemoryPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentMemoryPreferenceAggregateArgs>(args: Subset<T, AgentMemoryPreferenceAggregateArgs>): Prisma.PrismaPromise<GetAgentMemoryPreferenceAggregateType<T>>
+
+    /**
+     * Group by AgentMemoryPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentMemoryPreferenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends AgentMemoryPreferenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentMemoryPreferenceGroupByArgs['orderBy'] }
+        : { orderBy?: AgentMemoryPreferenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentMemoryPreferenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentMemoryPreferenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentMemoryPreference model
+   */
+  readonly fields: AgentMemoryPreferenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentMemoryPreference.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentMemoryPreferenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    organization<T extends AgentMemoryPreference$organizationArgs<ExtArgs> = {}>(args?: Subset<T, AgentMemoryPreference$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    project<T extends AgentMemoryPreference$projectArgs<ExtArgs> = {}>(args?: Subset<T, AgentMemoryPreference$projectArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentMemoryPreference model
+   */
+  interface AgentMemoryPreferenceFieldRefs {
+    readonly id: FieldRef<"AgentMemoryPreference", 'String'>
+    readonly userId: FieldRef<"AgentMemoryPreference", 'String'>
+    readonly organizationId: FieldRef<"AgentMemoryPreference", 'String'>
+    readonly projectId: FieldRef<"AgentMemoryPreference", 'String'>
+    readonly enabled: FieldRef<"AgentMemoryPreference", 'Boolean'>
+    readonly createdAt: FieldRef<"AgentMemoryPreference", 'DateTime'>
+    readonly updatedAt: FieldRef<"AgentMemoryPreference", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * AgentMemoryPreference findUnique
+   */
+  export type AgentMemoryPreferenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentMemoryPreference to fetch.
+     */
+    where: AgentMemoryPreferenceWhereUniqueInput
+  }
+
+  /**
+   * AgentMemoryPreference findUniqueOrThrow
+   */
+  export type AgentMemoryPreferenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentMemoryPreference to fetch.
+     */
+    where: AgentMemoryPreferenceWhereUniqueInput
+  }
+
+  /**
+   * AgentMemoryPreference findFirst
+   */
+  export type AgentMemoryPreferenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentMemoryPreference to fetch.
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentMemoryPreferences to fetch.
+     */
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentMemoryPreferences.
+     */
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentMemoryPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentMemoryPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentMemoryPreferences.
+     */
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * AgentMemoryPreference findFirstOrThrow
+   */
+  export type AgentMemoryPreferenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentMemoryPreference to fetch.
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentMemoryPreferences to fetch.
+     */
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AgentMemoryPreferences.
+     */
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentMemoryPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentMemoryPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentMemoryPreferences.
+     */
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * AgentMemoryPreference findMany
+   */
+  export type AgentMemoryPreferenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentMemoryPreferences to fetch.
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AgentMemoryPreferences to fetch.
+     */
+    orderBy?: AgentMemoryPreferenceOrderByWithRelationInput | AgentMemoryPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing AgentMemoryPreferences.
+     */
+    cursor?: AgentMemoryPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AgentMemoryPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AgentMemoryPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AgentMemoryPreferences.
+     */
+    distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * AgentMemoryPreference create
+   */
+  export type AgentMemoryPreferenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentMemoryPreference.
+     */
+    data: XOR<AgentMemoryPreferenceCreateInput, AgentMemoryPreferenceUncheckedCreateInput>
+  }
+
+  /**
+   * AgentMemoryPreference createMany
+   */
+  export type AgentMemoryPreferenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentMemoryPreferences.
+     */
+    data: AgentMemoryPreferenceCreateManyInput | AgentMemoryPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentMemoryPreference createManyAndReturn
+   */
+  export type AgentMemoryPreferenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentMemoryPreferences.
+     */
+    data: AgentMemoryPreferenceCreateManyInput | AgentMemoryPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentMemoryPreference update
+   */
+  export type AgentMemoryPreferenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentMemoryPreference.
+     */
+    data: XOR<AgentMemoryPreferenceUpdateInput, AgentMemoryPreferenceUncheckedUpdateInput>
+    /**
+     * Choose, which AgentMemoryPreference to update.
+     */
+    where: AgentMemoryPreferenceWhereUniqueInput
+  }
+
+  /**
+   * AgentMemoryPreference updateMany
+   */
+  export type AgentMemoryPreferenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentMemoryPreferences.
+     */
+    data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentMemoryPreferences to update
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * Limit how many AgentMemoryPreferences to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentMemoryPreference updateManyAndReturn
+   */
+  export type AgentMemoryPreferenceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentMemoryPreferences.
+     */
+    data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentMemoryPreferences to update
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * Limit how many AgentMemoryPreferences to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentMemoryPreference upsert
+   */
+  export type AgentMemoryPreferenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentMemoryPreference to update in case it exists.
+     */
+    where: AgentMemoryPreferenceWhereUniqueInput
+    /**
+     * In case the AgentMemoryPreference found by the `where` argument doesn't exist, create a new AgentMemoryPreference with this data.
+     */
+    create: XOR<AgentMemoryPreferenceCreateInput, AgentMemoryPreferenceUncheckedCreateInput>
+    /**
+     * In case the AgentMemoryPreference was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentMemoryPreferenceUpdateInput, AgentMemoryPreferenceUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentMemoryPreference delete
+   */
+  export type AgentMemoryPreferenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter which AgentMemoryPreference to delete.
+     */
+    where: AgentMemoryPreferenceWhereUniqueInput
+  }
+
+  /**
+   * AgentMemoryPreference deleteMany
+   */
+  export type AgentMemoryPreferenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentMemoryPreferences to delete
+     */
+    where?: AgentMemoryPreferenceWhereInput
+    /**
+     * Limit how many AgentMemoryPreferences to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentMemoryPreference.organization
+   */
+  export type AgentMemoryPreference$organizationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Organization
+     */
+    select?: OrganizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Organization
+     */
+    omit?: OrganizationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationInclude<ExtArgs> | null
+    where?: OrganizationWhereInput
+  }
+
+  /**
+   * AgentMemoryPreference.project
+   */
+  export type AgentMemoryPreference$projectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Project
+     */
+    select?: ProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Project
+     */
+    omit?: ProjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectInclude<ExtArgs> | null
+    where?: ProjectWhereInput
+  }
+
+  /**
+   * AgentMemoryPreference without action
+   */
+  export type AgentMemoryPreferenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentMemoryPreference
+     */
+    select?: AgentMemoryPreferenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentMemoryPreference
+     */
+    omit?: AgentMemoryPreferenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentMemoryPreferenceInclude<ExtArgs> | null
   }
 
 
@@ -78528,6 +79873,19 @@ export namespace Prisma {
   export type AgentMemoryScalarFieldEnum = (typeof AgentMemoryScalarFieldEnum)[keyof typeof AgentMemoryScalarFieldEnum]
 
 
+  export const AgentMemoryPreferenceScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    organizationId: 'organizationId',
+    projectId: 'projectId',
+    enabled: 'enabled',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AgentMemoryPreferenceScalarFieldEnum = (typeof AgentMemoryPreferenceScalarFieldEnum)[keyof typeof AgentMemoryPreferenceScalarFieldEnum]
+
+
   export const ProjectIdeStateScalarFieldEnum: {
     projectId: 'projectId',
     state: 'state',
@@ -79533,6 +80891,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
   }
@@ -79568,6 +80927,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
     collaborationShareLinks?: ProjectShareLinkOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
+    agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
     agentRuns?: AgentRunOrderByRelationAggregateInput
   }
@@ -79606,6 +80966,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     collaborationShareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
   }, "id" | "email">
@@ -79815,6 +81176,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
   }
@@ -79848,6 +81210,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookOrderByRelationAggregateInput
     projectTemplates?: ProjectTemplateOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
+    agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
     agentRuns?: AgentRunOrderByRelationAggregateInput
   }
@@ -79884,6 +81247,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookListRelationFilter
     projectTemplates?: ProjectTemplateListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
   }, "id" | "slug">
@@ -80224,6 +81588,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     shareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -80257,6 +81622,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentOrderByRelationAggregateInput
     shareLinks?: ProjectShareLinkOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
+    agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -80294,6 +81660,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentListRelationFilter
     shareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
+    agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -80460,6 +81827,77 @@ export namespace Prisma {
     lastUsedAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
     archivedAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
+  }
+
+  export type AgentMemoryPreferenceWhereInput = {
+    AND?: AgentMemoryPreferenceWhereInput | AgentMemoryPreferenceWhereInput[]
+    OR?: AgentMemoryPreferenceWhereInput[]
+    NOT?: AgentMemoryPreferenceWhereInput | AgentMemoryPreferenceWhereInput[]
+    id?: StringFilter<"AgentMemoryPreference"> | string
+    userId?: StringFilter<"AgentMemoryPreference"> | string
+    organizationId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    projectId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    enabled?: BoolFilter<"AgentMemoryPreference"> | boolean
+    createdAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+    project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+  }
+
+  export type AgentMemoryPreferenceOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    organization?: OrganizationOrderByWithRelationInput
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type AgentMemoryPreferenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentMemoryPreferenceWhereInput | AgentMemoryPreferenceWhereInput[]
+    OR?: AgentMemoryPreferenceWhereInput[]
+    NOT?: AgentMemoryPreferenceWhereInput | AgentMemoryPreferenceWhereInput[]
+    userId?: StringFilter<"AgentMemoryPreference"> | string
+    organizationId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    projectId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    enabled?: BoolFilter<"AgentMemoryPreference"> | boolean
+    createdAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+    project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+  }, "id">
+
+  export type AgentMemoryPreferenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AgentMemoryPreferenceCountOrderByAggregateInput
+    _max?: AgentMemoryPreferenceMaxOrderByAggregateInput
+    _min?: AgentMemoryPreferenceMinOrderByAggregateInput
+  }
+
+  export type AgentMemoryPreferenceScalarWhereWithAggregatesInput = {
+    AND?: AgentMemoryPreferenceScalarWhereWithAggregatesInput | AgentMemoryPreferenceScalarWhereWithAggregatesInput[]
+    OR?: AgentMemoryPreferenceScalarWhereWithAggregatesInput[]
+    NOT?: AgentMemoryPreferenceScalarWhereWithAggregatesInput | AgentMemoryPreferenceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentMemoryPreference"> | string
+    userId?: StringWithAggregatesFilter<"AgentMemoryPreference"> | string
+    organizationId?: StringNullableWithAggregatesFilter<"AgentMemoryPreference"> | string | null
+    projectId?: StringNullableWithAggregatesFilter<"AgentMemoryPreference"> | string | null
+    enabled?: BoolWithAggregatesFilter<"AgentMemoryPreference"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"AgentMemoryPreference"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AgentMemoryPreference"> | Date | string
   }
 
   export type ProjectIdeStateWhereInput = {
@@ -84101,6 +85539,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -84136,6 +85575,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -84171,6 +85611,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -84206,6 +85647,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -84430,6 +85872,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -84463,6 +85906,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -84496,6 +85940,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -84529,6 +85974,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -84856,6 +86302,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -84888,6 +86335,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -84920,6 +86368,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -84952,6 +86401,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -85080,6 +86530,73 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentMemoryPreferenceCreateInput = {
+    id?: string
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutAgentMemoryPreferencesInput
+    organization?: OrganizationCreateNestedOneWithoutAgentMemoryPreferencesInput
+    project?: ProjectCreateNestedOneWithoutAgentMemoryPreferencesInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutAgentMemoryPreferencesNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentMemoryPreferencesNestedInput
+    project?: ProjectUpdateOneWithoutAgentMemoryPreferencesNestedInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateManyInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectIdeStateCreateInput = {
@@ -89053,6 +90570,12 @@ export namespace Prisma {
     none?: AgentMemoryWhereInput
   }
 
+  export type AgentMemoryPreferenceListRelationFilter = {
+    every?: AgentMemoryPreferenceWhereInput
+    some?: AgentMemoryPreferenceWhereInput
+    none?: AgentMemoryPreferenceWhereInput
+  }
+
   export type McpInstallListRelationFilter = {
     every?: McpInstallWhereInput
     some?: McpInstallWhereInput
@@ -89147,6 +90670,10 @@ export namespace Prisma {
   }
 
   export type AgentMemoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentMemoryPreferenceOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -89985,6 +91512,36 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type AgentMemoryPreferenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentMemoryPreferenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentMemoryPreferenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type ProjectScalarRelationFilter = {
@@ -92256,6 +93813,13 @@ export namespace Prisma {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
   }
 
+  export type AgentMemoryPreferenceCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput> | AgentMemoryPreferenceCreateWithoutUserInput[] | AgentMemoryPreferenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutUserInput | AgentMemoryPreferenceCreateOrConnectWithoutUserInput[]
+    createMany?: AgentMemoryPreferenceCreateManyUserInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+  }
+
   export type McpInstallCreateNestedManyWithoutUserInput = {
     create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
     connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
@@ -92405,6 +93969,13 @@ export namespace Prisma {
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutUserInput = {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput> | AgentMemoryPreferenceCreateWithoutUserInput[] | AgentMemoryPreferenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutUserInput | AgentMemoryPreferenceCreateOrConnectWithoutUserInput[]
+    createMany?: AgentMemoryPreferenceCreateManyUserInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
   }
 
   export type McpInstallUncheckedCreateNestedManyWithoutUserInput = {
@@ -92717,6 +94288,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type AgentMemoryPreferenceUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput> | AgentMemoryPreferenceCreateWithoutUserInput[] | AgentMemoryPreferenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutUserInput | AgentMemoryPreferenceCreateOrConnectWithoutUserInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentMemoryPreferenceCreateManyUserInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutUserInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutUserInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+  }
+
   export type McpInstallUpdateManyWithoutUserNestedInput = {
     create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
     connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
@@ -93021,6 +94606,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput> | AgentMemoryPreferenceCreateWithoutUserInput[] | AgentMemoryPreferenceUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutUserInput | AgentMemoryPreferenceCreateOrConnectWithoutUserInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AgentMemoryPreferenceCreateManyUserInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutUserInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutUserInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+  }
+
   export type McpInstallUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<McpInstallCreateWithoutUserInput, McpInstallUncheckedCreateWithoutUserInput> | McpInstallCreateWithoutUserInput[] | McpInstallUncheckedCreateWithoutUserInput[]
     connectOrCreate?: McpInstallCreateOrConnectWithoutUserInput | McpInstallCreateOrConnectWithoutUserInput[]
@@ -93233,6 +94832,13 @@ export namespace Prisma {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
   }
 
+  export type AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput> | AgentMemoryPreferenceCreateWithoutOrganizationInput[] | AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput | AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput[]
+    createMany?: AgentMemoryPreferenceCreateManyOrganizationInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+  }
+
   export type McpInstallCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<McpInstallCreateWithoutOrganizationInput, McpInstallUncheckedCreateWithoutOrganizationInput> | McpInstallCreateWithoutOrganizationInput[] | McpInstallUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: McpInstallCreateOrConnectWithoutOrganizationInput | McpInstallCreateOrConnectWithoutOrganizationInput[]
@@ -93401,6 +95007,13 @@ export namespace Prisma {
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput = {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput> | AgentMemoryPreferenceCreateWithoutOrganizationInput[] | AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput | AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput[]
+    createMany?: AgentMemoryPreferenceCreateManyOrganizationInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
   }
 
   export type McpInstallUncheckedCreateNestedManyWithoutOrganizationInput = {
@@ -93725,6 +95338,20 @@ export namespace Prisma {
     update?: AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput | AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: AgentMemoryUpdateManyWithWhereWithoutOrganizationInput | AgentMemoryUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
+  }
+
+  export type AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput> | AgentMemoryPreferenceCreateWithoutOrganizationInput[] | AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput | AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutOrganizationInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: AgentMemoryPreferenceCreateManyOrganizationInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutOrganizationInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutOrganizationInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
   }
 
   export type McpInstallUpdateManyWithoutOrganizationNestedInput = {
@@ -94063,6 +95690,20 @@ export namespace Prisma {
     update?: AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput | AgentMemoryUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: AgentMemoryUpdateManyWithWhereWithoutOrganizationInput | AgentMemoryUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput> | AgentMemoryPreferenceCreateWithoutOrganizationInput[] | AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput | AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutOrganizationInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: AgentMemoryPreferenceCreateManyOrganizationInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutOrganizationInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutOrganizationInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
   }
 
   export type McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput = {
@@ -94473,6 +96114,13 @@ export namespace Prisma {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
   }
 
+  export type AgentMemoryPreferenceCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput> | AgentMemoryPreferenceCreateWithoutProjectInput[] | AgentMemoryPreferenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutProjectInput | AgentMemoryPreferenceCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentMemoryPreferenceCreateManyProjectInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -94579,6 +96227,13 @@ export namespace Prisma {
 
   export type AgentMemoryUncheckedCreateNestedManyWithoutProjectInput = {
     connect?: AgentMemoryWhereUniqueInput | AgentMemoryWhereUniqueInput[]
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput> | AgentMemoryPreferenceCreateWithoutProjectInput[] | AgentMemoryPreferenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutProjectInput | AgentMemoryPreferenceCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentMemoryPreferenceCreateManyProjectInputEnvelope
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -94805,6 +96460,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput> | AgentMemoryPreferenceCreateWithoutProjectInput[] | AgentMemoryPreferenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutProjectInput | AgentMemoryPreferenceCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutProjectInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentMemoryPreferenceCreateManyProjectInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutProjectInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutProjectInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -95021,6 +96690,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryScalarWhereInput | AgentMemoryScalarWhereInput[]
   }
 
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput> | AgentMemoryPreferenceCreateWithoutProjectInput[] | AgentMemoryPreferenceUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutProjectInput | AgentMemoryPreferenceCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentMemoryPreferenceUpsertWithWhereUniqueWithoutProjectInput | AgentMemoryPreferenceUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentMemoryPreferenceCreateManyProjectInputEnvelope
+    set?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    disconnect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    delete?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+    update?: AgentMemoryPreferenceUpdateWithWhereUniqueWithoutProjectInput | AgentMemoryPreferenceUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentMemoryPreferenceUpdateManyWithWhereWithoutProjectInput | AgentMemoryPreferenceUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -95063,6 +96746,52 @@ export namespace Prisma {
     delete?: ProjectWhereInput | boolean
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAgentMemoriesInput, ProjectUpdateWithoutAgentMemoriesInput>, ProjectUncheckedUpdateWithoutAgentMemoriesInput>
+  }
+
+  export type UserCreateNestedOneWithoutAgentMemoryPreferencesInput = {
+    create?: XOR<UserCreateWithoutAgentMemoryPreferencesInput, UserUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentMemoryPreferencesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutAgentMemoryPreferencesInput = {
+    create?: XOR<OrganizationCreateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type ProjectCreateNestedOneWithoutAgentMemoryPreferencesInput = {
+    create?: XOR<ProjectCreateWithoutAgentMemoryPreferencesInput, ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutAgentMemoryPreferencesNestedInput = {
+    create?: XOR<UserCreateWithoutAgentMemoryPreferencesInput, UserUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAgentMemoryPreferencesInput
+    upsert?: UserUpsertWithoutAgentMemoryPreferencesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput, UserUpdateWithoutAgentMemoryPreferencesInput>, UserUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type OrganizationUpdateOneWithoutAgentMemoryPreferencesNestedInput = {
+    create?: XOR<OrganizationCreateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput
+    upsert?: OrganizationUpsertWithoutAgentMemoryPreferencesInput
+    disconnect?: OrganizationWhereInput | boolean
+    delete?: OrganizationWhereInput | boolean
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput, OrganizationUpdateWithoutAgentMemoryPreferencesInput>, OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type ProjectUpdateOneWithoutAgentMemoryPreferencesNestedInput = {
+    create?: XOR<ProjectCreateWithoutAgentMemoryPreferencesInput, ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput
+    upsert?: ProjectUpsertWithoutAgentMemoryPreferencesInput
+    disconnect?: ProjectWhereInput | boolean
+    delete?: ProjectWhereInput | boolean
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput, ProjectUpdateWithoutAgentMemoryPreferencesInput>, ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput>
   }
 
   export type ProjectCreateNestedOneWithoutIdeStateInput = {
@@ -97514,6 +99243,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AgentMemoryPreferenceCreateWithoutUserInput = {
+    id?: string
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization?: OrganizationCreateNestedOneWithoutAgentMemoryPreferencesInput
+    project?: ProjectCreateNestedOneWithoutAgentMemoryPreferencesInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateWithoutUserInput = {
+    id?: string
+    organizationId?: string | null
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateOrConnectWithoutUserInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    create: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentMemoryPreferenceCreateManyUserInputEnvelope = {
+    data: AgentMemoryPreferenceCreateManyUserInput | AgentMemoryPreferenceCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type McpInstallCreateWithoutUserInput = {
     id?: string
     alias: string
@@ -98176,6 +99933,35 @@ export namespace Prisma {
     archivedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
   }
 
+  export type AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    update: XOR<AgentMemoryPreferenceUpdateWithoutUserInput, AgentMemoryPreferenceUncheckedUpdateWithoutUserInput>
+    create: XOR<AgentMemoryPreferenceCreateWithoutUserInput, AgentMemoryPreferenceUncheckedCreateWithoutUserInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateWithWhereUniqueWithoutUserInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    data: XOR<AgentMemoryPreferenceUpdateWithoutUserInput, AgentMemoryPreferenceUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateManyWithWhereWithoutUserInput = {
+    where: AgentMemoryPreferenceScalarWhereInput
+    data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type AgentMemoryPreferenceScalarWhereInput = {
+    AND?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+    OR?: AgentMemoryPreferenceScalarWhereInput[]
+    NOT?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
+    id?: StringFilter<"AgentMemoryPreference"> | string
+    userId?: StringFilter<"AgentMemoryPreference"> | string
+    organizationId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    projectId?: StringNullableFilter<"AgentMemoryPreference"> | string | null
+    enabled?: BoolFilter<"AgentMemoryPreference"> | boolean
+    createdAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentMemoryPreference"> | Date | string
+  }
+
   export type McpInstallUpsertWithWhereUniqueWithoutUserInput = {
     where: McpInstallWhereUniqueInput
     update: XOR<McpInstallUpdateWithoutUserInput, McpInstallUncheckedUpdateWithoutUserInput>
@@ -98271,6 +100057,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -98305,6 +100092,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -98355,6 +100143,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -98389,6 +100178,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -98423,6 +100213,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -98457,6 +100248,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -98507,6 +100299,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -98541,6 +100334,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -98628,6 +100422,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -98659,6 +100454,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -99204,6 +101000,34 @@ export namespace Prisma {
 
   export type ProjectTemplateCreateManyOrganizationInputEnvelope = {
     data: ProjectTemplateCreateManyOrganizationInput | ProjectTemplateCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AgentMemoryPreferenceCreateWithoutOrganizationInput = {
+    id?: string
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutAgentMemoryPreferencesInput
+    project?: ProjectCreateNestedOneWithoutAgentMemoryPreferencesInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    userId: string
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateOrConnectWithoutOrganizationInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    create: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type AgentMemoryPreferenceCreateManyOrganizationInputEnvelope = {
+    data: AgentMemoryPreferenceCreateManyOrganizationInput | AgentMemoryPreferenceCreateManyOrganizationInput[]
     skipDuplicates?: boolean
   }
 
@@ -99885,6 +101709,22 @@ export namespace Prisma {
     data: XOR<AgentMemoryUpdateManyMutationInput, AgentMemoryUncheckedUpdateManyWithoutOrganizationInput>
   }
 
+  export type AgentMemoryPreferenceUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    update: XOR<AgentMemoryPreferenceUpdateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<AgentMemoryPreferenceCreateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    data: XOR<AgentMemoryPreferenceUpdateWithoutOrganizationInput, AgentMemoryPreferenceUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateManyWithWhereWithoutOrganizationInput = {
+    where: AgentMemoryPreferenceScalarWhereInput
+    data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type McpInstallUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: McpInstallWhereUniqueInput
     update: XOR<McpInstallUpdateWithoutOrganizationInput, McpInstallUncheckedUpdateWithoutOrganizationInput>
@@ -99945,6 +101785,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -99977,6 +101818,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -100016,6 +101858,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -100050,6 +101893,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -100121,6 +101965,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -100153,6 +101998,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -100198,6 +102044,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -100232,6 +102079,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -100293,6 +102141,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -100325,6 +102174,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -100396,6 +102246,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -100428,6 +102279,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -100743,6 +102595,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -100775,6 +102628,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -101239,6 +103093,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AgentMemoryPreferenceCreateWithoutProjectInput = {
+    id?: string
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutAgentMemoryPreferencesInput
+    organization?: OrganizationCreateNestedOneWithoutAgentMemoryPreferencesInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedCreateWithoutProjectInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateOrConnectWithoutProjectInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    create: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentMemoryPreferenceCreateManyProjectInputEnvelope = {
+    data: AgentMemoryPreferenceCreateManyProjectInput | AgentMemoryPreferenceCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -101278,6 +103160,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -101310,6 +103193,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -101666,6 +103550,22 @@ export namespace Prisma {
     data: XOR<AgentMemoryUpdateManyMutationInput, AgentMemoryUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type AgentMemoryPreferenceUpsertWithWhereUniqueWithoutProjectInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    update: XOR<AgentMemoryPreferenceUpdateWithoutProjectInput, AgentMemoryPreferenceUncheckedUpdateWithoutProjectInput>
+    create: XOR<AgentMemoryPreferenceCreateWithoutProjectInput, AgentMemoryPreferenceUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateWithWhereUniqueWithoutProjectInput = {
+    where: AgentMemoryPreferenceWhereUniqueInput
+    data: XOR<AgentMemoryPreferenceUpdateWithoutProjectInput, AgentMemoryPreferenceUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type AgentMemoryPreferenceUpdateManyWithWhereWithoutProjectInput = {
+    where: AgentMemoryPreferenceScalarWhereInput
+    data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -101696,6 +103596,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -101730,6 +103631,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -101780,6 +103682,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -101814,6 +103717,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -101846,6 +103750,7 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -101878,6 +103783,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -101926,6 +103832,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -101958,6 +103865,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -101991,6 +103899,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -102022,6 +103931,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -102069,6 +103979,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -102100,6 +104011,455 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAgentMemoryPreferencesInput, UserUncheckedCreateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type OrganizationCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type ProjectCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutAgentMemoryPreferencesInput, ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type UserUpsertWithoutAgentMemoryPreferencesInput = {
+    update: XOR<UserUpdateWithoutAgentMemoryPreferencesInput, UserUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+    create: XOR<UserCreateWithoutAgentMemoryPreferencesInput, UserUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAgentMemoryPreferencesInput, UserUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type UserUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
+    update: XOR<OrganizationUpdateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+    create: XOR<OrganizationCreateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutAgentMemoryPreferencesInput, OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type OrganizationUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type ProjectUpsertWithoutAgentMemoryPreferencesInput = {
+    update: XOR<ProjectUpdateWithoutAgentMemoryPreferencesInput, ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+    create: XOR<ProjectCreateWithoutAgentMemoryPreferencesInput, ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutAgentMemoryPreferencesInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutAgentMemoryPreferencesInput, ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput>
+  }
+
+  export type ProjectUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -102131,6 +104491,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -102162,6 +104523,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -102199,6 +104561,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -102233,6 +104596,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -102282,6 +104646,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -102313,6 +104678,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -102356,6 +104722,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -102390,6 +104757,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -102423,6 +104791,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -102454,6 +104823,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -102501,6 +104871,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -102532,6 +104903,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -102563,6 +104935,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -102594,6 +104967,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -102641,6 +105015,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -102672,6 +105047,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -102703,6 +105079,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -102734,6 +105111,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -102781,6 +105159,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -102812,6 +105191,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -102843,6 +105223,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -102874,6 +105255,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -102911,6 +105293,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -102945,6 +105328,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -102994,6 +105378,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -103025,6 +105410,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -103068,6 +105454,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -103102,6 +105489,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -103135,6 +105523,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -103166,6 +105555,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -103203,6 +105593,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -103237,6 +105628,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -103286,6 +105678,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -103317,6 +105710,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -103360,6 +105754,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -103394,6 +105789,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -103427,6 +105823,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -103458,6 +105855,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -103495,6 +105893,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -103529,6 +105928,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -103578,6 +105978,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -103609,6 +106010,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -103652,6 +106054,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -103686,6 +106089,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -103719,6 +106123,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -103750,6 +106155,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -103787,6 +106193,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -103821,6 +106228,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -103870,6 +106278,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -103901,6 +106310,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -103944,6 +106354,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -103978,6 +106389,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -104011,6 +106423,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -104042,6 +106455,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -104079,6 +106493,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -104113,6 +106528,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -104162,6 +106578,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -104193,6 +106610,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -104236,6 +106654,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -104270,6 +106689,7 @@ export namespace Prisma {
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -104303,6 +106723,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -104334,6 +106755,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -104369,6 +106791,7 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -104401,6 +106824,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -104450,6 +106874,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -104481,6 +106906,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -104522,6 +106948,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -104554,6 +106981,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -104587,6 +107015,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -104618,6 +107047,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -104747,6 +107177,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -104778,6 +107209,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -105009,6 +107441,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -105040,6 +107473,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -105116,6 +107550,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -105147,6 +107582,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -105213,6 +107649,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -105244,6 +107681,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -105281,6 +107719,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -105315,6 +107754,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -105364,6 +107804,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -105395,6 +107836,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -105438,6 +107880,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -105472,6 +107915,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -105505,6 +107949,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -105536,6 +107981,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -105598,6 +108044,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -105629,6 +108076,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -105756,6 +108204,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -105788,6 +108237,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -105827,6 +108277,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -105861,6 +108312,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -105909,6 +108361,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -105941,6 +108394,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -105986,6 +108440,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -106020,6 +108475,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -106054,6 +108510,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -106088,6 +108545,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -106138,6 +108596,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -106172,6 +108631,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -106204,6 +108664,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -106236,6 +108697,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -106284,6 +108746,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -106316,6 +108779,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -106348,6 +108812,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -106380,6 +108845,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -106453,6 +108919,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -106485,6 +108952,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -106600,6 +109068,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -106632,6 +109101,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -106680,6 +109150,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -106712,6 +109183,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -106744,6 +109216,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -106776,6 +109249,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -106824,6 +109298,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -106856,6 +109331,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -106888,6 +109364,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -106920,6 +109397,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -106968,6 +109446,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -107000,6 +109479,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -107032,6 +109512,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -107064,6 +109545,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -107112,6 +109594,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -107144,6 +109627,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -107177,6 +109661,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -107208,6 +109693,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -107245,6 +109731,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -107279,6 +109766,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -107356,6 +109844,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -107387,6 +109876,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -107430,6 +109920,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -107464,6 +109955,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -107785,6 +110277,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -107817,6 +110310,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -107865,6 +110359,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -107897,6 +110392,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -107929,6 +110425,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -107961,6 +110458,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -108009,6 +110507,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -108041,6 +110540,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -108073,6 +110573,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -108105,6 +110606,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -108144,6 +110646,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -108178,6 +110681,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -108226,6 +110730,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -108258,6 +110763,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -108303,6 +110809,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -108337,6 +110844,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -108369,6 +110877,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -108401,6 +110910,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -108449,6 +110959,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -108481,6 +110992,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -108515,6 +111027,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -108549,6 +111062,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -108599,6 +111113,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -108633,6 +111148,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -108667,6 +111183,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -108701,6 +111218,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -108751,6 +111269,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -108785,6 +111304,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -108819,6 +111339,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -108853,6 +111374,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -108903,6 +111425,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -108937,6 +111460,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -108969,6 +111493,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109001,6 +111526,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109049,6 +111575,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109081,6 +111608,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109113,6 +111641,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109145,6 +111674,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109193,6 +111723,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109225,6 +111756,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109257,6 +111789,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109289,6 +111822,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109337,6 +111871,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109369,6 +111904,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109401,6 +111937,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109433,6 +111970,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109481,6 +112019,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109513,6 +112052,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109545,6 +112085,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109577,6 +112118,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109625,6 +112167,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109657,6 +112200,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109689,6 +112233,7 @@ export namespace Prisma {
     customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109721,6 +112266,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109769,6 +112315,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -109801,6 +112348,7 @@ export namespace Prisma {
     customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -109833,6 +112381,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
@@ -109865,6 +112414,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
@@ -109904,6 +112454,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -109938,6 +112489,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -109986,6 +112538,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
@@ -110018,6 +112571,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
@@ -110063,6 +112617,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -110097,6 +112652,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -110131,6 +112687,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
@@ -110165,6 +112722,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
@@ -110215,6 +112773,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
@@ -110249,6 +112808,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -110379,6 +112939,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
   }
 
@@ -110413,6 +112974,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -110450,6 +113012,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
   }
 
@@ -110482,6 +113045,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -110585,6 +113149,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
   }
 
@@ -110619,6 +113184,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
@@ -110662,6 +113228,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -110694,6 +113261,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -110799,6 +113367,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
   }
 
@@ -110833,6 +113402,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
     collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
   }
 
@@ -110870,6 +113440,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
   }
 
@@ -110902,6 +113473,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
     projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
@@ -111025,6 +113597,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
   }
 
@@ -111059,6 +113632,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
     collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
   }
 
@@ -111102,6 +113676,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -111134,6 +113709,7 @@ export namespace Prisma {
     siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
     projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
@@ -111469,6 +114045,15 @@ export namespace Prisma {
     expiresAt: Date | string
     revokedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateManyUserInput = {
+    id?: string
+    organizationId?: string | null
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type McpInstallCreateManyUserInput = {
@@ -112080,6 +114665,33 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type AgentMemoryPreferenceUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneWithoutAgentMemoryPreferencesNestedInput
+    project?: ProjectUpdateOneWithoutAgentMemoryPreferencesNestedInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type McpInstallUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     alias?: StringFieldUpdateOperationsInput | string
@@ -112353,6 +114965,15 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type AgentMemoryPreferenceCreateManyOrganizationInput = {
+    id?: string
+    userId: string
+    projectId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type McpInstallCreateManyOrganizationInput = {
     id?: string
     catalogEntryId: string
@@ -112458,6 +115079,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -112489,6 +115111,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -113052,6 +115675,33 @@ export namespace Prisma {
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
+  export type AgentMemoryPreferenceUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutAgentMemoryPreferencesNestedInput
+    project?: ProjectUpdateOneWithoutAgentMemoryPreferencesNestedInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type McpInstallUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     alias?: StringFieldUpdateOperationsInput | string
@@ -113372,6 +116022,15 @@ export namespace Prisma {
     createdByUserId?: string | null
     revokedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type AgentMemoryPreferenceCreateManyProjectInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
@@ -113869,6 +116528,33 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentMemoryPreferenceUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutAgentMemoryPreferencesNestedInput
+    organization?: OrganizationUpdateOneWithoutAgentMemoryPreferencesNestedInput
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkspaceSessionCreateManyWorkspaceInput = {

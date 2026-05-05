@@ -241,6 +241,15 @@ const agentMemoryListQuerySchema = z.object({
   projectId: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
+const agentMemoryPreferenceQuerySchema = z.object({
+  organizationId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+});
+const agentMemoryPreferencePatchSchema = z.object({
+  organizationId: z.string().min(1).optional(),
+  projectId: z.string().min(1).optional(),
+  enabled: z.boolean(),
+});
 const agentMemoryParams = z.object({ memoryId: z.string().min(1) });
 
 function ideStateRecord(value: unknown): Record<string, any> {
@@ -3996,6 +4005,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         limit: query.limit,
       }),
     };
+  });
+
+  app.get('/agent-memory/preferences', async (request) => {
+    const query = parse(agentMemoryPreferenceQuerySchema, request.query);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, query, 'projects:read');
+
+    return {
+      preference: await service.getPreference({
+        userId: request.currentUser!.id,
+        organizationId: authorized.organizationId ?? query.organizationId,
+        projectId: authorized.projectId ?? query.projectId,
+      }),
+    };
+  });
+
+  app.patch('/agent-memory/preferences', async (request) => {
+    const body = parse(agentMemoryPreferencePatchSchema, request.body);
+    const service = requireAgentMemoryService(agentMemory);
+    const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:write');
+    const preference = await service.setPreference({
+      userId: request.currentUser!.id,
+      organizationId: authorized.organizationId ?? body.organizationId,
+      projectId: authorized.projectId ?? body.projectId,
+      enabled: body.enabled,
+    });
+
+    await audit(request, store, {
+      organizationId: preference.organizationId,
+      action: 'agent_memory.preference_update',
+      resourceType: 'agentMemoryPreference',
+      resourceId: preference.projectId ?? preference.organizationId ?? preference.userId,
+      metadata: { enabled: preference.enabled },
+    });
+
+    return { preference };
   });
 
   app.post('/agent-memory', async (request, reply) => {

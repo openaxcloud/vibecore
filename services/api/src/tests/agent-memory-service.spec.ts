@@ -33,6 +33,7 @@ function cosine(a: number[], b: number[]) {
 
 class MemoryRepository implements AgentMemoryRepository {
   readonly records = new Map<string, AgentMemoryRecord & { embedding: number[] }>();
+  readonly preferences = new Map<string, any>();
 
   async create(
     input: AgentMemoryWriteInput & {
@@ -134,6 +135,22 @@ class MemoryRepository implements AgentMemoryRepository {
 
     return { ...memory, archivedAt: new Date().toISOString() };
   }
+
+  async getPreference(input: { userId: string; organizationId?: string; projectId?: string }) {
+    return this.preferences.get(`${input.userId}:${input.organizationId ?? ''}:${input.projectId ?? ''}`);
+  }
+
+  async setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
+    const now = new Date().toISOString();
+    const preference = {
+      ...input,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.preferences.set(`${input.userId}:${input.organizationId ?? ''}:${input.projectId ?? ''}`, preference);
+
+    return preference;
+  }
 }
 
 describe('agent memory service', () => {
@@ -199,5 +216,23 @@ describe('agent memory service', () => {
     });
 
     expect(context.memories).toHaveLength(0);
+  });
+
+  it('persists enabled state for project memory preferences', async () => {
+    const service = new AgentMemoryService(new MemoryRepository(), new DeterministicEmbeddingProvider());
+    await service.setPreference({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      enabled: false,
+    });
+
+    const preference = await service.getPreference({
+      userId: 'user-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
+    });
+
+    expect(preference.enabled).toBe(false);
   });
 });

@@ -14,6 +14,10 @@ VibeCore agent memory is a persistent, per-user long-term context system for IDE
 
 The migration `0010_agent_memory_pgvector` enables `pgvector`, creates the table, and creates the HNSW index.
 
+Memory enablement is stored in `AgentMemoryPreference`, scoped by `userId` plus optional `organizationId` or
+`projectId`. The migration `0012_agent_memory_preferences` adds scoped uniqueness so one user has one effective
+preference per project, organization or global scope.
+
 ## Embeddings
 
 Production embeddings require:
@@ -32,6 +36,8 @@ If these are not configured, memory endpoints return `AGENT_MEMORY_UNCONFIGURED`
 - `POST /agent-memory/context`: retrieves reranked context for agent prompt injection.
 - `PATCH /agent-memory/:memoryId`: corrects a memory owned by the current user.
 - `DELETE /agent-memory/:memoryId`: archives a memory owned by the current user.
+- `GET /agent-memory/preferences`: reads whether memory is enabled for a scope.
+- `PATCH /agent-memory/preferences`: enables or disables retrieval and automatic capture for a scope.
 
 Browser IDE calls go through Remix proxy routes under `/api/agent-memory`.
 
@@ -41,12 +47,13 @@ Browser IDE calls go through Remix proxy routes under `/api/agent-memory`.
 - Project and organization scopes require existing project/org authorization.
 - Secret-like content is rejected before embedding or storage.
 - Create, correction and delete actions are written to audit logs.
-- Users can view and delete project memories from the IDE Settings > Memory tab.
+- Users can view, edit, delete and disable project memories from the IDE Settings > Memory tab.
 
 ## Agent Context
 
-The chat route retrieves memories before each authenticated IDE generation and injects only the selected summaries into
-the LLM system context. Memory annotations are emitted on the stream so the UI can show which memories were used.
+The chat route checks the persisted memory preference, retrieves memories before each authenticated IDE generation, and
+injects only the selected summaries into the LLM system context. Memory annotations are emitted on the stream and shown
+on assistant messages so the UI can display which memories were used.
 
 After a response finishes, the route submits the latest user message as a memory candidate. The backend stores it only
 when the pipeline detects durable preferences, decisions, constraints or explicit remember requests.

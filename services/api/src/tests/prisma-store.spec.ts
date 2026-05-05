@@ -6,6 +6,23 @@ import { PrismaApiStore } from '../prisma-store.js';
 import type { GitProvider } from '../project-storage.js';
 import { hashPassword, hashRecoveryCode } from '@vibecore/auth';
 
+async function canReachDatabase() {
+  if (!process.env.DATABASE_URL) {
+    return false;
+  }
+
+  const prisma = createDatabaseClient();
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 class TestEmailProvider implements EmailProvider {
   async send() {}
 }
@@ -40,22 +57,36 @@ class TestGitProvider implements GitProvider {
   }
 }
 
-const runPrismaTests = process.env.DATABASE_URL ? describe : describe.skip;
+const runPrismaTests = (await canReachDatabase()) ? describe : describe.skip;
 
 runPrismaTests('PrismaApiStore integration', () => {
   it('persists auth, organizations, projects and audit logs in PostgreSQL', async () => {
     const prisma = createDatabaseClient();
-    const app = await buildApiApp({ store: new PrismaApiStore(prisma), gitProvider: new TestGitProvider(), emailProvider: new TestEmailProvider() });
+    const app = await buildApiApp({
+      store: new PrismaApiStore(prisma),
+      gitProvider: new TestGitProvider(),
+      emailProvider: new TestEmailProvider(),
+    });
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const alpha = await app.inject({
       method: 'POST',
       url: '/auth/register',
-      payload: { email: `alpha-${suffix}@example.com`, password: 'password123', name: 'Alpha', organizationName: `Alpha ${suffix}` },
+      payload: {
+        email: `alpha-${suffix}@example.com`,
+        password: 'password123',
+        name: 'Alpha',
+        organizationName: `Alpha ${suffix}`,
+      },
     });
     const beta = await app.inject({
       method: 'POST',
       url: '/auth/register',
-      payload: { email: `beta-${suffix}@example.com`, password: 'password123', name: 'Beta', organizationName: `Beta ${suffix}` },
+      payload: {
+        email: `beta-${suffix}@example.com`,
+        password: 'password123',
+        name: 'Beta',
+        organizationName: `Beta ${suffix}`,
+      },
     });
 
     expect(alpha.statusCode).toBe(201);
@@ -100,13 +131,28 @@ runPrismaTests('PrismaApiStore integration', () => {
         email: `persistent-${suffix}@example.com`,
         passwordHash: await hashPassword('password123'),
       });
-      const organization = await storeA.createOrganization({ name: `Persistent Org ${suffix}`, slug: `persistent-org-${suffix}`, ownerUserId: user.id });
-      const project = await storeA.createProject({ organizationId: organization.id, name: 'Persistent Project', slug: `persistent-project-${suffix}` });
+      const organization = await storeA.createOrganization({
+        name: `Persistent Org ${suffix}`,
+        slug: `persistent-org-${suffix}`,
+        ownerUserId: user.id,
+      });
+      const project = await storeA.createProject({
+        organizationId: organization.id,
+        name: 'Persistent Project',
+        slug: `persistent-project-${suffix}`,
+      });
       const sessionToken = `session-${suffix}`;
       await storeA.createSession({ userId: user.id, token: sessionToken, expiresAt: new Date(Date.now() + 60_000) });
       await storeA.upsertProjectEnvVar({ projectId: project.id, key: 'PUBLIC_URL', value: 'https://example.com' });
       await storeA.upsertProjectSecret({ projectId: project.id, key: 'API_KEY', valueEncrypted: 'ciphertext' });
-      await storeA.createSnapshot({ projectId: project.id, kind: 'manual', manifest: { files: ['README.md'] }, storageKey: `snapshots/${suffix}.zip`, byteLength: 42, createdByUserId: user.id });
+      await storeA.createSnapshot({
+        projectId: project.id,
+        kind: 'manual',
+        manifest: { files: ['README.md'] },
+        storageKey: `snapshots/${suffix}.zip`,
+        byteLength: 42,
+        createdByUserId: user.id,
+      });
       await storeA.createOrganizationInvite({
         organizationId: organization.id,
         email: `invite-${suffix}@example.com`,
@@ -115,7 +161,13 @@ runPrismaTests('PrismaApiStore integration', () => {
         expiresAt: new Date(Date.now() + 60_000),
       });
       await storeA.setRecoveryCodes(user.id, [hashRecoveryCode('11111111')]);
-      await storeA.recordAudit({ organizationId: organization.id, actorUserId: user.id, action: 'integration.persist', resourceType: 'project', resourceId: project.id });
+      await storeA.recordAudit({
+        organizationId: organization.id,
+        actorUserId: user.id,
+        action: 'integration.persist',
+        resourceType: 'project',
+        resourceId: project.id,
+      });
 
       expect(await storeB.findUserByEmail(`persistent-${suffix}@example.com`)).toMatchObject({ id: user.id });
       expect(await storeB.findSessionByToken(sessionToken)).toMatchObject({ userId: user.id });
@@ -128,7 +180,9 @@ runPrismaTests('PrismaApiStore integration', () => {
       expect(await storeB.consumeOrganizationInvite(`invite-token-${suffix}`, user.id)).toBeUndefined();
       expect(await storeB.consumeRecoveryCode(user.id, hashRecoveryCode('11111111'))).toBe(true);
       expect(await storeB.consumeRecoveryCode(user.id, hashRecoveryCode('11111111'))).toBe(false);
-      expect((await storeB.listAuditLogs(organization.id)).some((event) => event.action === 'integration.persist')).toBe(true);
+      expect(
+        (await storeB.listAuditLogs(organization.id)).some((event) => event.action === 'integration.persist'),
+      ).toBe(true);
     } finally {
       await prismaA.$disconnect();
       await prismaB.$disconnect();
@@ -151,8 +205,16 @@ runPrismaTests('PrismaApiStore integration', () => {
         ownerUserId: user.id,
       });
 
-      const first = await store.createProject({ organizationId: organization.id, name: 'Customer Portal', slug: 'customer-portal' });
-      const second = await store.createProject({ organizationId: organization.id, name: 'Customer Portal', slug: 'customer-portal' });
+      const first = await store.createProject({
+        organizationId: organization.id,
+        name: 'Customer Portal',
+        slug: 'customer-portal',
+      });
+      const second = await store.createProject({
+        organizationId: organization.id,
+        name: 'Customer Portal',
+        slug: 'customer-portal',
+      });
       const third = await store.createProject({ organizationId: organization.id, name: '!!!', slug: '!!!' });
 
       expect(first.slug).toBe('customer-portal');

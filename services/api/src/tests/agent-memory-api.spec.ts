@@ -24,6 +24,7 @@ class TestEmbeddingProvider implements AgentMemoryEmbeddingProvider {
 
 class TestMemoryRepository implements AgentMemoryRepository {
   readonly rows: any[] = [];
+  readonly preferences = new Map<string, any>();
 
   async create(input: any) {
     const row = {
@@ -71,6 +72,21 @@ class TestMemoryRepository implements AgentMemoryRepository {
     }
 
     return this.rows.splice(index, 1)[0];
+  }
+
+  async getPreference(input: { userId: string; organizationId?: string; projectId?: string }) {
+    return this.preferences.get(`${input.userId}:${input.organizationId ?? ''}:${input.projectId ?? ''}`);
+  }
+
+  async setPreference(input: { userId: string; organizationId?: string; projectId?: string; enabled: boolean }) {
+    const preference = {
+      ...input,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.preferences.set(`${input.userId}:${input.organizationId ?? ''}:${input.projectId ?? ''}`, preference);
+
+    return preference;
   }
 }
 
@@ -164,5 +180,27 @@ describe('agent memory API', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json().code).toBe('AGENT_MEMORY_SECRET_DETECTED');
+  });
+
+  it('persists project memory preferences through authenticated API', async () => {
+    const { app, token, project } = await setup();
+    const update = await app.inject({
+      method: 'PATCH',
+      url: '/agent-memory/preferences',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { projectId: project.id, enabled: false },
+    });
+
+    expect(update.statusCode).toBe(200);
+    expect(update.json().preference.enabled).toBe(false);
+
+    const read = await app.inject({
+      method: 'GET',
+      url: `/agent-memory/preferences?projectId=${project.id}`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(read.statusCode).toBe(200);
+    expect(read.json().preference.enabled).toBe(false);
   });
 });

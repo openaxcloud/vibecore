@@ -5231,6 +5231,9 @@ function ProjectSettingsPanel({
   const [memoryError, setMemoryError] = useState<string>();
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [memories, setMemories] = useState<any[]>([]);
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [memoryEditId, setMemoryEditId] = useState<string>();
+  const [memoryEditDraft, setMemoryEditDraft] = useState('');
   const accountUser = data.account?.user ?? {};
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
@@ -5283,13 +5286,28 @@ function ProjectSettingsPanel({
       const response = await fetch(`/api/agent-memory?projectId=${encodeURIComponent(settings.id)}&limit=30`, {
         headers: { accept: 'application/json' },
       });
+      const preferenceResponse = await fetch(
+        `/api/agent-memory/preferences?projectId=${encodeURIComponent(settings.id)}`,
+        {
+          headers: { accept: 'application/json' },
+        },
+      );
       const payload = (await response.json()) as { memories?: any[]; error?: string };
+      const preferencePayload = (await preferenceResponse.json().catch(() => ({}))) as {
+        preference?: { enabled?: boolean };
+        error?: string;
+      };
 
       if (!response.ok) {
         throw new Error(payload.error ?? 'Unable to load agent memory');
       }
 
+      if (!preferenceResponse.ok) {
+        throw new Error(preferencePayload.error ?? 'Unable to load agent memory preference');
+      }
+
       setMemories(payload.memories ?? []);
+      setMemoryEnabled(preferencePayload.preference?.enabled !== false);
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to load agent memory');
     } finally {
@@ -5358,6 +5376,68 @@ function ProjectSettingsPanel({
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to delete memory');
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
+  async function toggleMemoryEnabled(enabled: boolean) {
+    setMemoryLoading(true);
+    setMemoryError(undefined);
+
+    try {
+      const response = await fetch('/api/agent-memory/preferences', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ projectId: settings.id, enabled }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        preference?: { enabled?: boolean };
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to update agent memory preference');
+      }
+
+      setMemoryEnabled(payload.preference?.enabled !== false);
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to update agent memory preference');
+    } finally {
+      setMemoryLoading(false);
+    }
+  }
+
+  function startEditMemory(memory: any) {
+    setMemoryEditId(memory.id);
+    setMemoryEditDraft(memory.content ?? memory.summary ?? '');
+  }
+
+  async function saveEditedMemory(memoryId: string) {
+    if (!memoryEditDraft.trim()) {
+      return;
+    }
+
+    setMemoryLoading(true);
+    setMemoryError(undefined);
+
+    try {
+      const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ content: memoryEditDraft }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to update memory');
+      }
+
+      setMemoryEditId(undefined);
+      setMemoryEditDraft('');
+      await loadMemories();
+    } catch (error) {
+      setMemoryError(error instanceof Error ? error.message : 'Unable to update memory');
     } finally {
       setMemoryLoading(false);
     }
@@ -5609,6 +5689,22 @@ function ProjectSettingsPanel({
               Project-scoped memories are embedded with the configured backend provider and retrieved before future IDE
               agent runs.
             </p>
+            <label className="bolt-project-memory-toggle">
+              <input
+                type="checkbox"
+                checked={memoryEnabled}
+                onChange={(event) => void toggleMemoryEnabled(event.target.checked)}
+                disabled={memoryLoading}
+              />
+              <span>
+                <strong>Use memory in future agent responses</strong>
+                <small>
+                  {memoryEnabled
+                    ? 'Retrieval and automatic capture are enabled.'
+                    : 'Stored memories stay visible but are not injected.'}
+                </small>
+              </span>
+            </label>
             <label>
               New memory
               <textarea
@@ -5641,16 +5737,52 @@ function ProjectSettingsPanel({
               <div className="bolt-project-settings-list">
                 {memories.map((memory) => (
                   <article key={memory.id} className="bolt-project-memory-row">
-                    <span>
-                      <strong>{memory.summary}</strong>
-                      <small>
-                        {memory.scope} - importance {Math.round((memory.importance ?? 0) * 100)}% -{' '}
-                        {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
-                      </small>
-                    </span>
-                    <button type="button" onClick={() => void deleteMemory(memory.id)} disabled={memoryLoading}>
-                      Delete
-                    </button>
+                    {memoryEditId === memory.id ? (
+                      <div className="bolt-project-memory-edit">
+                        <textarea
+                          value={memoryEditDraft}
+                          onChange={(event) => setMemoryEditDraft(event.target.value)}
+                          rows={4}
+                        />
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => void saveEditedMemory(memory.id)}
+                            disabled={memoryLoading || !memoryEditDraft.trim()}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMemoryEditId(undefined);
+                              setMemoryEditDraft('');
+                            }}
+                            disabled={memoryLoading}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <span>
+                          <strong>{memory.summary}</strong>
+                          <small>
+                            {memory.scope} - importance {Math.round((memory.importance ?? 0) * 100)}% -{' '}
+                            {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
+                          </small>
+                        </span>
+                        <div className="bolt-project-memory-actions">
+                          <button type="button" onClick={() => startEditMemory(memory)} disabled={memoryLoading}>
+                            Edit
+                          </button>
+                          <button type="button" onClick={() => void deleteMemory(memory.id)} disabled={memoryLoading}>
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </article>
                 ))}
               </div>
