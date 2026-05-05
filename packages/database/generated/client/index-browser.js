@@ -228,13 +228,17 @@ exports.Prisma.AgentMemoryScalarFieldEnum = {
   embeddingModel: 'embeddingModel',
   embeddingDimensions: 'embeddingDimensions',
   metadata: 'metadata',
+  memoryType: 'memoryType',
+  tags: 'tags',
+  references: 'references',
   importance: 'importance',
   source: 'source',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   lastUsedAt: 'lastUsedAt',
   expiresAt: 'expiresAt',
-  archivedAt: 'archivedAt'
+  archivedAt: 'archivedAt',
+  accessCount: 'accessCount'
 };
 
 exports.Prisma.AgentMemoryPreferenceScalarFieldEnum = {

@@ -20365,11 +20365,13 @@ export namespace Prisma {
   export type AgentMemoryAvgAggregateOutputType = {
     embeddingDimensions: number | null
     importance: number | null
+    accessCount: number | null
   }
 
   export type AgentMemorySumAggregateOutputType = {
     embeddingDimensions: number | null
     importance: number | null
+    accessCount: number | null
   }
 
   export type AgentMemoryMinAggregateOutputType = {
@@ -20383,6 +20385,7 @@ export namespace Prisma {
     summary: string | null
     embeddingModel: string | null
     embeddingDimensions: number | null
+    memoryType: string | null
     importance: number | null
     source: string | null
     createdAt: Date | null
@@ -20390,6 +20393,7 @@ export namespace Prisma {
     lastUsedAt: Date | null
     expiresAt: Date | null
     archivedAt: Date | null
+    accessCount: number | null
   }
 
   export type AgentMemoryMaxAggregateOutputType = {
@@ -20403,6 +20407,7 @@ export namespace Prisma {
     summary: string | null
     embeddingModel: string | null
     embeddingDimensions: number | null
+    memoryType: string | null
     importance: number | null
     source: string | null
     createdAt: Date | null
@@ -20410,6 +20415,7 @@ export namespace Prisma {
     lastUsedAt: Date | null
     expiresAt: Date | null
     archivedAt: Date | null
+    accessCount: number | null
   }
 
   export type AgentMemoryCountAggregateOutputType = {
@@ -20424,6 +20430,9 @@ export namespace Prisma {
     embeddingModel: number
     embeddingDimensions: number
     metadata: number
+    memoryType: number
+    tags: number
+    references: number
     importance: number
     source: number
     createdAt: number
@@ -20431,6 +20440,7 @@ export namespace Prisma {
     lastUsedAt: number
     expiresAt: number
     archivedAt: number
+    accessCount: number
     _all: number
   }
 
@@ -20438,11 +20448,13 @@ export namespace Prisma {
   export type AgentMemoryAvgAggregateInputType = {
     embeddingDimensions?: true
     importance?: true
+    accessCount?: true
   }
 
   export type AgentMemorySumAggregateInputType = {
     embeddingDimensions?: true
     importance?: true
+    accessCount?: true
   }
 
   export type AgentMemoryMinAggregateInputType = {
@@ -20456,6 +20468,7 @@ export namespace Prisma {
     summary?: true
     embeddingModel?: true
     embeddingDimensions?: true
+    memoryType?: true
     importance?: true
     source?: true
     createdAt?: true
@@ -20463,6 +20476,7 @@ export namespace Prisma {
     lastUsedAt?: true
     expiresAt?: true
     archivedAt?: true
+    accessCount?: true
   }
 
   export type AgentMemoryMaxAggregateInputType = {
@@ -20476,6 +20490,7 @@ export namespace Prisma {
     summary?: true
     embeddingModel?: true
     embeddingDimensions?: true
+    memoryType?: true
     importance?: true
     source?: true
     createdAt?: true
@@ -20483,6 +20498,7 @@ export namespace Prisma {
     lastUsedAt?: true
     expiresAt?: true
     archivedAt?: true
+    accessCount?: true
   }
 
   export type AgentMemoryCountAggregateInputType = {
@@ -20497,6 +20513,9 @@ export namespace Prisma {
     embeddingModel?: true
     embeddingDimensions?: true
     metadata?: true
+    memoryType?: true
+    tags?: true
+    references?: true
     importance?: true
     source?: true
     createdAt?: true
@@ -20504,6 +20523,7 @@ export namespace Prisma {
     lastUsedAt?: true
     expiresAt?: true
     archivedAt?: true
+    accessCount?: true
     _all?: true
   }
 
@@ -20605,6 +20625,9 @@ export namespace Prisma {
     embeddingModel: string
     embeddingDimensions: number
     metadata: JsonValue
+    memoryType: string
+    tags: string[]
+    references: string[]
     importance: number
     source: string
     createdAt: Date
@@ -20612,6 +20635,7 @@ export namespace Prisma {
     lastUsedAt: Date | null
     expiresAt: Date | null
     archivedAt: Date | null
+    accessCount: number
     _count: AgentMemoryCountAggregateOutputType | null
     _avg: AgentMemoryAvgAggregateOutputType | null
     _sum: AgentMemorySumAggregateOutputType | null
@@ -20645,6 +20669,9 @@ export namespace Prisma {
     embeddingModel?: boolean
     embeddingDimensions?: boolean
     metadata?: boolean
+    memoryType?: boolean
+    tags?: boolean
+    references?: boolean
     importance?: boolean
     source?: boolean
     createdAt?: boolean
@@ -20652,6 +20679,7 @@ export namespace Prisma {
     lastUsedAt?: boolean
     expiresAt?: boolean
     archivedAt?: boolean
+    accessCount?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     organization?: boolean | AgentMemory$organizationArgs<ExtArgs>
     project?: boolean | AgentMemory$projectArgs<ExtArgs>
@@ -20670,6 +20698,9 @@ export namespace Prisma {
     embeddingModel?: boolean
     embeddingDimensions?: boolean
     metadata?: boolean
+    memoryType?: boolean
+    tags?: boolean
+    references?: boolean
     importance?: boolean
     source?: boolean
     createdAt?: boolean
@@ -20677,6 +20708,7 @@ export namespace Prisma {
     lastUsedAt?: boolean
     expiresAt?: boolean
     archivedAt?: boolean
+    accessCount?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     organization?: boolean | AgentMemory$organizationArgs<ExtArgs>
     project?: boolean | AgentMemory$projectArgs<ExtArgs>
@@ -20694,6 +20726,9 @@ export namespace Prisma {
     embeddingModel?: boolean
     embeddingDimensions?: boolean
     metadata?: boolean
+    memoryType?: boolean
+    tags?: boolean
+    references?: boolean
     importance?: boolean
     source?: boolean
     createdAt?: boolean
@@ -20701,9 +20736,10 @@ export namespace Prisma {
     lastUsedAt?: boolean
     expiresAt?: boolean
     archivedAt?: boolean
+    accessCount?: boolean
   }
 
-  export type AgentMemoryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "organizationId" | "projectId" | "sessionId" | "scope" | "content" | "summary" | "embeddingModel" | "embeddingDimensions" | "metadata" | "importance" | "source" | "createdAt" | "updatedAt" | "lastUsedAt" | "expiresAt" | "archivedAt", ExtArgs["result"]["agentMemory"]>
+  export type AgentMemoryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "organizationId" | "projectId" | "sessionId" | "scope" | "content" | "summary" | "embeddingModel" | "embeddingDimensions" | "metadata" | "memoryType" | "tags" | "references" | "importance" | "source" | "createdAt" | "updatedAt" | "lastUsedAt" | "expiresAt" | "archivedAt" | "accessCount", ExtArgs["result"]["agentMemory"]>
   export type AgentMemoryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
     organization?: boolean | AgentMemory$organizationArgs<ExtArgs>
@@ -20734,6 +20770,9 @@ export namespace Prisma {
       embeddingModel: string
       embeddingDimensions: number
       metadata: Prisma.JsonValue
+      memoryType: string
+      tags: string[]
+      references: string[]
       importance: number
       source: string
       createdAt: Date
@@ -20741,6 +20780,7 @@ export namespace Prisma {
       lastUsedAt: Date | null
       expiresAt: Date | null
       archivedAt: Date | null
+      accessCount: number
     }, ExtArgs["result"]["agentMemory"]>
     composites: {}
   }
@@ -21107,6 +21147,9 @@ export namespace Prisma {
     readonly embeddingModel: FieldRef<"AgentMemory", 'String'>
     readonly embeddingDimensions: FieldRef<"AgentMemory", 'Int'>
     readonly metadata: FieldRef<"AgentMemory", 'Json'>
+    readonly memoryType: FieldRef<"AgentMemory", 'String'>
+    readonly tags: FieldRef<"AgentMemory", 'String[]'>
+    readonly references: FieldRef<"AgentMemory", 'String[]'>
     readonly importance: FieldRef<"AgentMemory", 'Float'>
     readonly source: FieldRef<"AgentMemory", 'String'>
     readonly createdAt: FieldRef<"AgentMemory", 'DateTime'>
@@ -21114,6 +21157,7 @@ export namespace Prisma {
     readonly lastUsedAt: FieldRef<"AgentMemory", 'DateTime'>
     readonly expiresAt: FieldRef<"AgentMemory", 'DateTime'>
     readonly archivedAt: FieldRef<"AgentMemory", 'DateTime'>
+    readonly accessCount: FieldRef<"AgentMemory", 'Int'>
   }
 
 
@@ -79861,13 +79905,17 @@ export namespace Prisma {
     embeddingModel: 'embeddingModel',
     embeddingDimensions: 'embeddingDimensions',
     metadata: 'metadata',
+    memoryType: 'memoryType',
+    tags: 'tags',
+    references: 'references',
     importance: 'importance',
     source: 'source',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     lastUsedAt: 'lastUsedAt',
     expiresAt: 'expiresAt',
-    archivedAt: 'archivedAt'
+    archivedAt: 'archivedAt',
+    accessCount: 'accessCount'
   };
 
   export type AgentMemoryScalarFieldEnum = (typeof AgentMemoryScalarFieldEnum)[keyof typeof AgentMemoryScalarFieldEnum]
@@ -81716,6 +81764,9 @@ export namespace Prisma {
     embeddingModel?: StringFilter<"AgentMemory"> | string
     embeddingDimensions?: IntFilter<"AgentMemory"> | number
     metadata?: JsonFilter<"AgentMemory">
+    memoryType?: StringFilter<"AgentMemory"> | string
+    tags?: StringNullableListFilter<"AgentMemory">
+    references?: StringNullableListFilter<"AgentMemory">
     importance?: FloatFilter<"AgentMemory"> | number
     source?: StringFilter<"AgentMemory"> | string
     createdAt?: DateTimeFilter<"AgentMemory"> | Date | string
@@ -81723,6 +81774,7 @@ export namespace Prisma {
     lastUsedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     archivedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
+    accessCount?: IntFilter<"AgentMemory"> | number
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
     project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
@@ -81740,6 +81792,9 @@ export namespace Prisma {
     embeddingModel?: SortOrder
     embeddingDimensions?: SortOrder
     metadata?: SortOrder
+    memoryType?: SortOrder
+    tags?: SortOrder
+    references?: SortOrder
     importance?: SortOrder
     source?: SortOrder
     createdAt?: SortOrder
@@ -81747,6 +81802,7 @@ export namespace Prisma {
     lastUsedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     archivedAt?: SortOrderInput | SortOrder
+    accessCount?: SortOrder
     user?: UserOrderByWithRelationInput
     organization?: OrganizationOrderByWithRelationInput
     project?: ProjectOrderByWithRelationInput
@@ -81767,6 +81823,9 @@ export namespace Prisma {
     embeddingModel?: StringFilter<"AgentMemory"> | string
     embeddingDimensions?: IntFilter<"AgentMemory"> | number
     metadata?: JsonFilter<"AgentMemory">
+    memoryType?: StringFilter<"AgentMemory"> | string
+    tags?: StringNullableListFilter<"AgentMemory">
+    references?: StringNullableListFilter<"AgentMemory">
     importance?: FloatFilter<"AgentMemory"> | number
     source?: StringFilter<"AgentMemory"> | string
     createdAt?: DateTimeFilter<"AgentMemory"> | Date | string
@@ -81774,6 +81833,7 @@ export namespace Prisma {
     lastUsedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     archivedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
+    accessCount?: IntFilter<"AgentMemory"> | number
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
     project?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
@@ -81791,6 +81851,9 @@ export namespace Prisma {
     embeddingModel?: SortOrder
     embeddingDimensions?: SortOrder
     metadata?: SortOrder
+    memoryType?: SortOrder
+    tags?: SortOrder
+    references?: SortOrder
     importance?: SortOrder
     source?: SortOrder
     createdAt?: SortOrder
@@ -81798,6 +81861,7 @@ export namespace Prisma {
     lastUsedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     archivedAt?: SortOrderInput | SortOrder
+    accessCount?: SortOrder
     _count?: AgentMemoryCountOrderByAggregateInput
     _avg?: AgentMemoryAvgOrderByAggregateInput
     _max?: AgentMemoryMaxOrderByAggregateInput
@@ -81820,6 +81884,9 @@ export namespace Prisma {
     embeddingModel?: StringWithAggregatesFilter<"AgentMemory"> | string
     embeddingDimensions?: IntWithAggregatesFilter<"AgentMemory"> | number
     metadata?: JsonWithAggregatesFilter<"AgentMemory">
+    memoryType?: StringWithAggregatesFilter<"AgentMemory"> | string
+    tags?: StringNullableListFilter<"AgentMemory">
+    references?: StringNullableListFilter<"AgentMemory">
     importance?: FloatWithAggregatesFilter<"AgentMemory"> | number
     source?: StringWithAggregatesFilter<"AgentMemory"> | string
     createdAt?: DateTimeWithAggregatesFilter<"AgentMemory"> | Date | string
@@ -81827,6 +81894,7 @@ export namespace Prisma {
     lastUsedAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
     archivedAt?: DateTimeNullableWithAggregatesFilter<"AgentMemory"> | Date | string | null
+    accessCount?: IntWithAggregatesFilter<"AgentMemory"> | number
   }
 
   export type AgentMemoryPreferenceWhereInput = {
@@ -86460,6 +86528,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -86467,6 +86538,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
     user?: UserUpdateOneRequiredWithoutAgentMemoriesNestedInput
     organization?: OrganizationUpdateOneWithoutAgentMemoriesNestedInput
     project?: ProjectUpdateOneWithoutAgentMemoriesNestedInput
@@ -86484,6 +86556,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -86491,6 +86566,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryUpdateManyMutationInput = {
@@ -86502,6 +86578,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -86509,6 +86588,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryUncheckedUpdateManyInput = {
@@ -86523,6 +86603,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -86530,6 +86613,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryPreferenceCreateInput = {
@@ -91364,6 +91448,14 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
   export type FloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -91397,6 +91489,9 @@ export namespace Prisma {
     embeddingModel?: SortOrder
     embeddingDimensions?: SortOrder
     metadata?: SortOrder
+    memoryType?: SortOrder
+    tags?: SortOrder
+    references?: SortOrder
     importance?: SortOrder
     source?: SortOrder
     createdAt?: SortOrder
@@ -91404,11 +91499,13 @@ export namespace Prisma {
     lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     archivedAt?: SortOrder
+    accessCount?: SortOrder
   }
 
   export type AgentMemoryAvgOrderByAggregateInput = {
     embeddingDimensions?: SortOrder
     importance?: SortOrder
+    accessCount?: SortOrder
   }
 
   export type AgentMemoryMaxOrderByAggregateInput = {
@@ -91422,6 +91519,7 @@ export namespace Prisma {
     summary?: SortOrder
     embeddingModel?: SortOrder
     embeddingDimensions?: SortOrder
+    memoryType?: SortOrder
     importance?: SortOrder
     source?: SortOrder
     createdAt?: SortOrder
@@ -91429,6 +91527,7 @@ export namespace Prisma {
     lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     archivedAt?: SortOrder
+    accessCount?: SortOrder
   }
 
   export type AgentMemoryMinOrderByAggregateInput = {
@@ -91442,6 +91541,7 @@ export namespace Prisma {
     summary?: SortOrder
     embeddingModel?: SortOrder
     embeddingDimensions?: SortOrder
+    memoryType?: SortOrder
     importance?: SortOrder
     source?: SortOrder
     createdAt?: SortOrder
@@ -91449,11 +91549,13 @@ export namespace Prisma {
     lastUsedAt?: SortOrder
     expiresAt?: SortOrder
     archivedAt?: SortOrder
+    accessCount?: SortOrder
   }
 
   export type AgentMemorySumOrderByAggregateInput = {
     embeddingDimensions?: SortOrder
     importance?: SortOrder
+    accessCount?: SortOrder
   }
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
@@ -93036,14 +93138,6 @@ export namespace Prisma {
     codeHash?: SortOrder
     usedAt?: SortOrder
     createdAt?: SortOrder
-  }
-
-  export type StringNullableListFilter<$PrismaModel = never> = {
-    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    has?: string | StringFieldRefInput<$PrismaModel> | null
-    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
-    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
-    isEmpty?: boolean
   }
 
   export type EnterpriseOrganizationSettingsCountOrderByAggregateInput = {
@@ -96712,6 +96806,16 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type AgentMemoryUpdatetagsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type AgentMemoryUpdatereferencesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
   export type FloatFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -99924,6 +100028,9 @@ export namespace Prisma {
     embeddingModel?: StringFilter<"AgentMemory"> | string
     embeddingDimensions?: IntFilter<"AgentMemory"> | number
     metadata?: JsonFilter<"AgentMemory">
+    memoryType?: StringFilter<"AgentMemory"> | string
+    tags?: StringNullableListFilter<"AgentMemory">
+    references?: StringNullableListFilter<"AgentMemory">
     importance?: FloatFilter<"AgentMemory"> | number
     source?: StringFilter<"AgentMemory"> | string
     createdAt?: DateTimeFilter<"AgentMemory"> | Date | string
@@ -99931,6 +100038,7 @@ export namespace Prisma {
     lastUsedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
     archivedAt?: DateTimeNullableFilter<"AgentMemory"> | Date | string | null
+    accessCount?: IntFilter<"AgentMemory"> | number
   }
 
   export type AgentMemoryPreferenceUpsertWithWhereUniqueWithoutUserInput = {
@@ -114614,6 +114722,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -114621,6 +114732,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
     organization?: OrganizationUpdateOneWithoutAgentMemoriesNestedInput
     project?: ProjectUpdateOneWithoutAgentMemoriesNestedInput
   }
@@ -114636,6 +114748,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -114643,6 +114758,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryUncheckedUpdateManyWithoutUserInput = {
@@ -114656,6 +114772,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -114663,6 +114782,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryPreferenceUpdateWithoutUserInput = {
@@ -115624,6 +115744,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115631,6 +115754,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
     user?: UserUpdateOneRequiredWithoutAgentMemoriesNestedInput
     project?: ProjectUpdateOneWithoutAgentMemoriesNestedInput
   }
@@ -115646,6 +115770,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115653,6 +115780,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryUncheckedUpdateManyWithoutOrganizationInput = {
@@ -115666,6 +115794,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -115673,6 +115804,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryPreferenceUpdateWithoutOrganizationInput = {
@@ -116479,6 +116611,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -116486,6 +116621,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
     user?: UserUpdateOneRequiredWithoutAgentMemoriesNestedInput
     organization?: OrganizationUpdateOneWithoutAgentMemoriesNestedInput
   }
@@ -116501,6 +116637,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -116508,6 +116647,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryUncheckedUpdateManyWithoutProjectInput = {
@@ -116521,6 +116661,9 @@ export namespace Prisma {
     embeddingModel?: StringFieldUpdateOperationsInput | string
     embeddingDimensions?: IntFieldUpdateOperationsInput | number
     metadata?: JsonNullValueInput | InputJsonValue
+    memoryType?: StringFieldUpdateOperationsInput | string
+    tags?: AgentMemoryUpdatetagsInput | string[]
+    references?: AgentMemoryUpdatereferencesInput | string[]
     importance?: FloatFieldUpdateOperationsInput | number
     source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -116528,6 +116671,7 @@ export namespace Prisma {
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    accessCount?: IntFieldUpdateOperationsInput | number
   }
 
   export type AgentMemoryPreferenceUpdateWithoutProjectInput = {

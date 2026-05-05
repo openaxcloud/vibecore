@@ -243,6 +243,9 @@ model AgentMemory {
   embeddingModel      String
   embeddingDimensions Int                   @default(1536)
   metadata            Json                  @default("{}")
+  memoryType          String                @default("semantic")
+  tags                String[]              @default([])
+  references          String[]              @default([])
   importance          Float                 @default(0.5)
   source              String
   createdAt           DateTime              @default(now())
@@ -250,11 +253,13 @@ model AgentMemory {
   lastUsedAt          DateTime?
   expiresAt           DateTime?
   archivedAt          DateTime?
+  accessCount         Int                   @default(0)
   user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization        Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project             Project?              @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope, updatedAt])
+  @@index([memoryType, updatedAt])
   @@index([organizationId, updatedAt])
   @@index([projectId, updatedAt])
   @@index([sessionId, updatedAt])
