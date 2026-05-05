@@ -65,6 +65,17 @@ import {
   type AgentMemoryScope,
 } from './agent-memory.js';
 import {
+  McpMarketplaceService,
+  McpMarketplaceError,
+  catalogParamsSchema,
+  catalogQuerySchema,
+  installInputSchema,
+  installListQuerySchema,
+  installParamsSchema,
+  installPatchSchema,
+  createDefaultMcpMarketplaceService,
+} from './mcp-marketplace.js';
+import {
   GitCliProvider,
   LocalProjectStorage,
   type GitProvider,
@@ -100,6 +111,7 @@ declare module 'fastify' {
 export interface ApiAppOptions {
   store?: ApiStore;
   agentMemory?: AgentMemoryService;
+  mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
   gitProvider?: GitProvider;
   emailProvider?: EmailProvider;
@@ -979,6 +991,25 @@ async function requireAnyOrgPermission(request: any, store: ApiStore, permission
   }
 
   throw Object.assign(new Error(`Missing permission: ${permission}`), { statusCode: 403, code: 'RBAC_FORBIDDEN' });
+}
+
+function requireMcpMarketplaceService(mcpMarketplace?: McpMarketplaceService) {
+  if (!mcpMarketplace) {
+    throw Object.assign(new Error('MCP marketplace service is unavailable in this environment'), {
+      statusCode: 503,
+      code: 'MCP_MARKETPLACE_UNAVAILABLE',
+    });
+  }
+
+  return mcpMarketplace;
+}
+
+function mapMcpMarketplaceError(error: unknown): { statusCode: number; payload: { error: string; code: string } } | null {
+  if (error instanceof McpMarketplaceError) {
+    return { statusCode: error.statusCode, payload: { error: error.message, code: error.code } };
+  }
+
+  return null;
 }
 
 function requireAgentMemoryService(agentMemory?: AgentMemoryService) {
@@ -3271,6 +3302,9 @@ async function seedBillingPlans(store: ApiStore) {
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
+  const mcpMarketplace =
+    options.mcpMarketplace ??
+    (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const emailProvider = options.emailProvider ?? createEmailProvider();
@@ -4127,6 +4161,159 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { memory: archived };
+  });
+
+  app.get('/mcp/catalog', async (request, reply) => {
+    const query = parse(catalogQuerySchema, request.query);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      return await service.listCatalog({
+        domain: query.domain,
+        search: query.search,
+        featured: typeof query.featured === 'boolean' ? query.featured : undefined,
+        verified: typeof query.verified === 'boolean' ? query.verified : undefined,
+        limit: query.limit ?? 50,
+        cursor: query.cursor,
+      });
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+      throw error;
+    }
+  });
+
+  app.get('/mcp/catalog/domains', async (_request, _reply) => {
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+    return { domains: await service.listDomains() };
+  });
+
+  app.get('/mcp/catalog/:slug', async (request, reply) => {
+    const { slug } = parse(catalogParamsSchema, request.params);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      return { entry: await service.getCatalogEntry(slug) };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+      throw error;
+    }
+  });
+
+  app.get('/mcp/installs', async (request) => {
+    const query = parse(installListQuerySchema, request.query);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    if (query.organizationId) {
+      await requireOrg(request, store, query.organizationId, 'projects:read');
+    }
+
+    return {
+      installs: await service.listInstalls({
+        userId: request.currentUser!.id,
+        organizationId: query.organizationId,
+      }),
+    };
+  });
+
+  app.post('/mcp/installs', async (request, reply) => {
+    const body = parse(installInputSchema, request.body);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    if (body.organizationId) {
+      await requireOrg(request, store, body.organizationId, 'projects:write');
+    }
+
+    try {
+      const install = await service.install({
+        userId: request.currentUser!.id,
+        catalogEntrySlug: body.catalogEntrySlug,
+        alias: body.alias,
+        config: body.config,
+        organizationId: body.organizationId,
+      });
+
+      await audit(request, store, {
+        organizationId: install.organizationId ?? undefined,
+        action: 'mcp_marketplace.install',
+        resourceType: 'mcpInstall',
+        resourceId: install.id,
+        metadata: { slug: install.catalogEntry.slug, alias: install.alias },
+      });
+
+      return reply.code(201).send({ install });
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+      throw error;
+    }
+  });
+
+  app.patch('/mcp/installs/:installId', async (request, reply) => {
+    const { installId } = parse(installParamsSchema, request.params);
+    const patch = parse(installPatchSchema, request.body);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const install = await service.updateInstall({
+        id: installId,
+        userId: request.currentUser!.id,
+        patch,
+      });
+
+      await audit(request, store, {
+        organizationId: install.organizationId ?? undefined,
+        action: 'mcp_marketplace.update',
+        resourceType: 'mcpInstall',
+        resourceId: install.id,
+        metadata: {
+          slug: install.catalogEntry.slug,
+          alias: install.alias,
+          enabled: install.enabled,
+          configChanged: patch.config !== undefined,
+        },
+      });
+
+      return { install };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+      throw error;
+    }
+  });
+
+  app.delete('/mcp/installs/:installId', async (request, reply) => {
+    const { installId } = parse(installParamsSchema, request.params);
+    const service = requireMcpMarketplaceService(mcpMarketplace);
+
+    try {
+      const removed = await service.uninstall({ id: installId, userId: request.currentUser!.id });
+
+      await audit(request, store, {
+        organizationId: removed.organizationId ?? undefined,
+        action: 'mcp_marketplace.uninstall',
+        resourceType: 'mcpInstall',
+        resourceId: removed.id,
+        metadata: { alias: removed.alias },
+      });
+
+      return { install: removed };
+    } catch (error) {
+      const mapped = mapMcpMarketplaceError(error);
+      if (mapped) {
+        return reply.code(mapped.statusCode).send(mapped.payload);
+      }
+      throw error;
+    }
   });
 
   app.patch('/agent-memory/:memoryId', async (request, reply) => {

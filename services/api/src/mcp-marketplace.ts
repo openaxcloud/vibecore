@@ -1,0 +1,557 @@
+import { z } from 'zod';
+import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
+
+export const MCP_DOMAINS = [
+  'AI_AGENTS',
+  'CODE_EXECUTION',
+  'DATABASES',
+  'DEVOPS',
+  'DEVELOPER_TOOLS',
+  'COMMUNICATION',
+  'PRODUCTIVITY',
+  'KNOWLEDGE',
+  'WEB_BROWSING',
+  'SEARCH',
+  'CLOUD',
+  'SECURITY',
+  'FILESYSTEM',
+  'VERSION_CONTROL',
+  'MONITORING',
+  'OTHER',
+] as const;
+
+export const MCP_TRANSPORTS = ['STDIO', 'SSE', 'STREAMABLE_HTTP'] as const;
+
+export type McpDomainKey = (typeof MCP_DOMAINS)[number];
+export type McpTransportKey = (typeof MCP_TRANSPORTS)[number];
+
+export interface CatalogEntryView {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  domain: McpDomainKey;
+  tags: string[];
+  author: string;
+  homepageUrl: string | null;
+  iconUrl: string | null;
+  version: string;
+  transport: McpTransportKey;
+  configTemplate: Record<string, unknown>;
+  configSchema: Record<string, unknown>;
+  installCount: number;
+  featured: boolean;
+  verified: boolean;
+  publishedAt: string;
+  updatedAt: string;
+}
+
+export interface InstallView {
+  id: string;
+  alias: string;
+  enabled: boolean;
+  configJson: Record<string, unknown>;
+  catalogEntry: CatalogEntryView;
+  installedAt: string;
+  updatedAt: string;
+  organizationId: string | null;
+}
+
+export interface CatalogPage {
+  items: CatalogEntryView[];
+  nextCursor: string | null;
+}
+
+export interface DomainCount {
+  domain: McpDomainKey;
+  count: number;
+}
+
+const aliasPattern = /^[a-z0-9][a-z0-9-_]*$/i;
+
+const booleanQueryParam = z.preprocess((value) => {
+  if (typeof value === 'boolean') return value;
+  if (value === 'true' || value === '1') return true;
+  if (value === 'false' || value === '0') return false;
+  return undefined;
+}, z.boolean().optional());
+
+export const catalogQuerySchema = z.object({
+  domain: z.enum(MCP_DOMAINS).optional(),
+  search: z.string().min(1).max(120).optional(),
+  featured: booleanQueryParam,
+  verified: booleanQueryParam,
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().min(1).max(100).optional(),
+});
+
+export const catalogParamsSchema = z.object({
+  slug: z.string().min(1).max(100),
+});
+
+export const installInputSchema = z.object({
+  catalogEntrySlug: z.string().min(1).max(100),
+  alias: z.string().min(1).max(64).regex(aliasPattern, {
+    message: 'alias must be alphanumeric, dash, or underscore',
+  }),
+  config: z.record(z.unknown()),
+  organizationId: z.string().min(1).optional(),
+});
+
+export const installParamsSchema = z.object({ installId: z.string().min(1).max(64) });
+
+export const installPatchSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    alias: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(aliasPattern, { message: 'alias must be alphanumeric, dash, or underscore' })
+      .optional(),
+    config: z.record(z.unknown()).optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, { message: 'patch must include at least one field' });
+
+export const installListQuerySchema = z.object({
+  organizationId: z.string().min(1).max(64).optional(),
+});
+
+export class McpMarketplaceError extends Error {
+  readonly statusCode: number;
+  readonly code: string;
+
+  constructor(message: string, statusCode: number, code: string) {
+    super(message);
+    this.name = 'McpMarketplaceError';
+    this.statusCode = statusCode;
+    this.code = code;
+  }
+}
+
+interface JsonSchemaProperty {
+  type?: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+  format?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  enum?: unknown[];
+  default?: unknown;
+  pattern?: string;
+}
+
+interface JsonSchema {
+  type?: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean;
+}
+
+export function validateConfigAgainstSchema(value: unknown, rawSchema: unknown): string[] {
+  const errors: string[] = [];
+  const schema = (rawSchema ?? {}) as JsonSchema;
+
+  if (schema.type && schema.type !== 'object') {
+    errors.push(`top-level schema type must be 'object', got '${schema.type}'`);
+    return errors;
+  }
+
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    errors.push('config must be a JSON object');
+    return errors;
+  }
+
+  const cfg = value as Record<string, unknown>;
+  const properties = schema.properties ?? {};
+  const required = schema.required ?? [];
+
+  for (const key of required) {
+    const present = cfg[key];
+    if (present === undefined || present === null || present === '') {
+      errors.push(`missing required field: '${key}'`);
+    }
+  }
+
+  for (const [key, raw] of Object.entries(cfg)) {
+    const propSchema = properties[key];
+    if (!propSchema) {
+      if (schema.additionalProperties === false) {
+        errors.push(`unknown field: '${key}'`);
+      }
+      continue;
+    }
+
+    if (propSchema.type) {
+      if (propSchema.type === 'string' && typeof raw !== 'string') {
+        errors.push(`'${key}' must be a string`);
+        continue;
+      }
+      if (propSchema.type === 'integer' && (!Number.isInteger(raw) || typeof raw !== 'number')) {
+        errors.push(`'${key}' must be an integer`);
+        continue;
+      }
+      if (propSchema.type === 'number' && typeof raw !== 'number') {
+        errors.push(`'${key}' must be a number`);
+        continue;
+      }
+      if (propSchema.type === 'boolean' && typeof raw !== 'boolean') {
+        errors.push(`'${key}' must be a boolean`);
+        continue;
+      }
+    }
+
+    if (propSchema.type === 'string' && typeof raw === 'string') {
+      if (typeof propSchema.minLength === 'number' && raw.length < propSchema.minLength) {
+        errors.push(`'${key}' must be at least ${propSchema.minLength} characters`);
+      }
+      if (typeof propSchema.maxLength === 'number' && raw.length > propSchema.maxLength) {
+        errors.push(`'${key}' must be at most ${propSchema.maxLength} characters`);
+      }
+      if (propSchema.pattern) {
+        try {
+          const re = new RegExp(propSchema.pattern);
+          if (!re.test(raw)) {
+            errors.push(`'${key}' does not match required pattern`);
+          }
+        } catch {
+          // Invalid pattern — ignore (schema author error, not our problem at runtime)
+        }
+      }
+      if (propSchema.format === 'uri') {
+        try {
+          new URL(raw);
+        } catch {
+          errors.push(`'${key}' must be a valid URI`);
+        }
+      }
+    }
+
+    if (
+      typeof raw === 'number' &&
+      (propSchema.type === 'number' || propSchema.type === 'integer')
+    ) {
+      if (typeof propSchema.minimum === 'number' && raw < propSchema.minimum) {
+        errors.push(`'${key}' must be >= ${propSchema.minimum}`);
+      }
+      if (typeof propSchema.maximum === 'number' && raw > propSchema.maximum) {
+        errors.push(`'${key}' must be <= ${propSchema.maximum}`);
+      }
+    }
+
+    if (Array.isArray(propSchema.enum) && !propSchema.enum.includes(raw)) {
+      errors.push(`'${key}' must be one of: ${propSchema.enum.map((v) => JSON.stringify(v)).join(', ')}`);
+    }
+  }
+
+  return errors;
+}
+
+export interface CatalogFilter {
+  domain?: McpDomainKey;
+  search?: string;
+  featured?: boolean;
+  verified?: boolean;
+  limit: number;
+  cursor?: string;
+}
+
+export interface InstallInput {
+  userId: string;
+  catalogEntrySlug: string;
+  alias: string;
+  config: Record<string, unknown>;
+  organizationId?: string;
+}
+
+export interface InstallPatch {
+  id: string;
+  userId: string;
+  patch: { enabled?: boolean; alias?: string; config?: Record<string, unknown> };
+}
+
+export interface McpMarketplaceServiceDeps {
+  prisma: DatabaseClient;
+}
+
+export class McpMarketplaceService {
+  constructor(private readonly deps: McpMarketplaceServiceDeps) {}
+
+  async listDomains(): Promise<DomainCount[]> {
+    const counts = await this.deps.prisma.mcpCatalogEntry.groupBy({
+      by: ['domain'],
+      _count: { _all: true },
+      orderBy: { domain: 'asc' },
+    });
+
+    return counts.map((row) => ({ domain: row.domain as McpDomainKey, count: row._count._all }));
+  }
+
+  async listCatalog(filter: CatalogFilter): Promise<CatalogPage> {
+    const where: Record<string, unknown> = {};
+
+    if (filter.domain) where.domain = filter.domain;
+    if (filter.featured !== undefined) where.featured = filter.featured;
+    if (filter.verified !== undefined) where.verified = filter.verified;
+
+    if (filter.search) {
+      where.OR = [
+        { slug: { contains: filter.search, mode: 'insensitive' } },
+        { name: { contains: filter.search, mode: 'insensitive' } },
+        { description: { contains: filter.search, mode: 'insensitive' } },
+        { tags: { has: filter.search.toLowerCase() } },
+      ];
+    }
+
+    const entries = await this.deps.prisma.mcpCatalogEntry.findMany({
+      where,
+      orderBy: [
+        { featured: 'desc' },
+        { verified: 'desc' },
+        { installCount: 'desc' },
+        { name: 'asc' },
+      ],
+      take: filter.limit + 1,
+      ...(filter.cursor ? { cursor: { id: filter.cursor }, skip: 1 } : {}),
+    });
+
+    const hasMore = entries.length > filter.limit;
+    const items = entries.slice(0, filter.limit).map((entry) => this.toEntryView(entry));
+
+    return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
+  }
+
+  async getCatalogEntry(slug: string): Promise<CatalogEntryView> {
+    const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({ where: { slug } });
+
+    if (!entry) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    return this.toEntryView(entry);
+  }
+
+  async install(input: InstallInput): Promise<InstallView> {
+    const entry = await this.deps.prisma.mcpCatalogEntry.findUnique({
+      where: { slug: input.catalogEntrySlug },
+    });
+
+    if (!entry) {
+      throw new McpMarketplaceError('Catalog entry not found', 404, 'MCP_CATALOG_NOT_FOUND');
+    }
+
+    const validationErrors = validateConfigAgainstSchema(input.config, entry.configSchema);
+
+    if (validationErrors.length > 0) {
+      throw new McpMarketplaceError(
+        `Invalid MCP config: ${validationErrors.join('; ')}`,
+        400,
+        'MCP_CONFIG_INVALID',
+      );
+    }
+
+    const conflict = await this.deps.prisma.mcpInstall.findUnique({
+      where: { userId_alias: { userId: input.userId, alias: input.alias } },
+    });
+
+    if (conflict) {
+      throw new McpMarketplaceError(
+        `Alias '${input.alias}' is already in use`,
+        409,
+        'MCP_ALIAS_CONFLICT',
+      );
+    }
+
+    const install = await this.deps.prisma.$transaction(async (tx) => {
+      const created = await tx.mcpInstall.create({
+        data: {
+          catalogEntryId: entry.id,
+          userId: input.userId,
+          organizationId: input.organizationId,
+          alias: input.alias,
+          configJson: input.config as never,
+          enabled: true,
+        },
+        include: { catalogEntry: true },
+      });
+
+      await tx.mcpCatalogEntry.update({
+        where: { id: entry.id },
+        data: { installCount: { increment: 1 } },
+      });
+
+      return created;
+    });
+
+    return this.toInstallView(install);
+  }
+
+  async listInstalls(input: { userId: string; organizationId?: string }): Promise<InstallView[]> {
+    const installs = await this.deps.prisma.mcpInstall.findMany({
+      where: {
+        userId: input.userId,
+        ...(input.organizationId !== undefined ? { organizationId: input.organizationId } : {}),
+      },
+      orderBy: { installedAt: 'desc' },
+      include: { catalogEntry: true },
+    });
+
+    return installs.map((install) => this.toInstallView(install));
+  }
+
+  async getInstall(input: { id: string; userId: string }): Promise<InstallView> {
+    const install = await this.deps.prisma.mcpInstall.findFirst({
+      where: { id: input.id, userId: input.userId },
+      include: { catalogEntry: true },
+    });
+
+    if (!install) {
+      throw new McpMarketplaceError('Install not found', 404, 'MCP_INSTALL_NOT_FOUND');
+    }
+
+    return this.toInstallView(install);
+  }
+
+  async updateInstall(input: InstallPatch): Promise<InstallView> {
+    const install = await this.deps.prisma.mcpInstall.findFirst({
+      where: { id: input.id, userId: input.userId },
+      include: { catalogEntry: true },
+    });
+
+    if (!install) {
+      throw new McpMarketplaceError('Install not found', 404, 'MCP_INSTALL_NOT_FOUND');
+    }
+
+    if (input.patch.alias && input.patch.alias !== install.alias) {
+      const conflict = await this.deps.prisma.mcpInstall.findUnique({
+        where: { userId_alias: { userId: input.userId, alias: input.patch.alias } },
+      });
+
+      if (conflict) {
+        throw new McpMarketplaceError(
+          `Alias '${input.patch.alias}' is already in use`,
+          409,
+          'MCP_ALIAS_CONFLICT',
+        );
+      }
+    }
+
+    if (input.patch.config !== undefined) {
+      const validationErrors = validateConfigAgainstSchema(
+        input.patch.config,
+        install.catalogEntry.configSchema,
+      );
+
+      if (validationErrors.length > 0) {
+        throw new McpMarketplaceError(
+          `Invalid MCP config: ${validationErrors.join('; ')}`,
+          400,
+          'MCP_CONFIG_INVALID',
+        );
+      }
+    }
+
+    const updated = await this.deps.prisma.mcpInstall.update({
+      where: { id: install.id },
+      data: {
+        ...(input.patch.enabled !== undefined ? { enabled: input.patch.enabled } : {}),
+        ...(input.patch.alias !== undefined ? { alias: input.patch.alias } : {}),
+        ...(input.patch.config !== undefined ? { configJson: input.patch.config as never } : {}),
+      },
+      include: { catalogEntry: true },
+    });
+
+    return this.toInstallView(updated);
+  }
+
+  async uninstall(input: { id: string; userId: string }): Promise<{
+    id: string;
+    alias: string;
+    organizationId: string | null;
+  }> {
+    const install = await this.deps.prisma.mcpInstall.findFirst({
+      where: { id: input.id, userId: input.userId },
+      select: { id: true, catalogEntryId: true, alias: true, organizationId: true },
+    });
+
+    if (!install) {
+      throw new McpMarketplaceError('Install not found', 404, 'MCP_INSTALL_NOT_FOUND');
+    }
+
+    await this.deps.prisma.$transaction(async (tx) => {
+      await tx.mcpInstall.delete({ where: { id: install.id } });
+      await tx.mcpCatalogEntry.update({
+        where: { id: install.catalogEntryId },
+        data: { installCount: { decrement: 1 } },
+      });
+    });
+
+    return { id: install.id, alias: install.alias, organizationId: install.organizationId };
+  }
+
+  private toEntryView = (entry: {
+    id: string;
+    slug: string;
+    name: string;
+    description: string;
+    domain: string;
+    tags: string[];
+    author: string;
+    homepageUrl: string | null;
+    iconUrl: string | null;
+    version: string;
+    transport: string;
+    configTemplate: unknown;
+    configSchema: unknown;
+    installCount: number;
+    featured: boolean;
+    verified: boolean;
+    publishedAt: Date;
+    updatedAt: Date;
+  }): CatalogEntryView => ({
+    id: entry.id,
+    slug: entry.slug,
+    name: entry.name,
+    description: entry.description,
+    domain: entry.domain as McpDomainKey,
+    tags: entry.tags,
+    author: entry.author,
+    homepageUrl: entry.homepageUrl,
+    iconUrl: entry.iconUrl,
+    version: entry.version,
+    transport: entry.transport as McpTransportKey,
+    configTemplate: (entry.configTemplate ?? {}) as Record<string, unknown>,
+    configSchema: (entry.configSchema ?? {}) as Record<string, unknown>,
+    installCount: entry.installCount,
+    featured: entry.featured,
+    verified: entry.verified,
+    publishedAt: entry.publishedAt.toISOString(),
+    updatedAt: entry.updatedAt.toISOString(),
+  });
+
+  private toInstallView = (install: {
+    id: string;
+    alias: string;
+    enabled: boolean;
+    configJson: unknown;
+    organizationId: string | null;
+    installedAt: Date;
+    updatedAt: Date;
+    catalogEntry: Parameters<McpMarketplaceService['toEntryView']>[0];
+  }): InstallView => ({
+    id: install.id,
+    alias: install.alias,
+    enabled: install.enabled,
+    configJson: (install.configJson ?? {}) as Record<string, unknown>,
+    catalogEntry: this.toEntryView(install.catalogEntry),
+    installedAt: install.installedAt.toISOString(),
+    updatedAt: install.updatedAt.toISOString(),
+    organizationId: install.organizationId,
+  });
+}
+
+export function createDefaultMcpMarketplaceService(
+  prisma: DatabaseClient = createDatabaseClient(),
+): McpMarketplaceService {
+  return new McpMarketplaceService({ prisma });
+}
