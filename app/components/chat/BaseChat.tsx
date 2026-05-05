@@ -5228,12 +5228,16 @@ function ProjectSettingsPanel({
   });
   const [settingsTab, setSettingsTab] = useState('project');
   const [memoryDraft, setMemoryDraft] = useState('');
+  const [memoryType, setMemoryType] = useState('semantic');
+  const [memoryTags, setMemoryTags] = useState('');
   const [memoryError, setMemoryError] = useState<string>();
   const [memoryLoading, setMemoryLoading] = useState(false);
   const [memories, setMemories] = useState<any[]>([]);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [memoryEditId, setMemoryEditId] = useState<string>();
   const [memoryEditDraft, setMemoryEditDraft] = useState('');
+  const [memoryEditType, setMemoryEditType] = useState('semantic');
+  const [memoryEditTags, setMemoryEditTags] = useState('');
   const accountUser = data.account?.user ?? {};
   const sessions = data.sessions?.sessions ?? [];
   const state = data.settingsState ?? {};
@@ -5272,6 +5276,17 @@ function ProjectSettingsPanel({
 
   function updateDraft(key: keyof typeof draft) {
     return (event: any) => setDraft((current) => ({ ...current, [key]: event.target.value }));
+  }
+
+  function parseMemoryTags(value: string) {
+    return [
+      ...new Set(
+        value
+          .split(',')
+          .map((tag) => tag.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+    ].slice(0, 20);
   }
 
   const loadMemories = useCallback(async () => {
@@ -5339,6 +5354,8 @@ function ProjectSettingsPanel({
           scope: 'project',
           projectId: settings.id,
           content: memoryDraft,
+          memoryType,
+          tags: parseMemoryTags(memoryTags),
           source: 'manual',
           force: true,
         }),
@@ -5350,6 +5367,7 @@ function ProjectSettingsPanel({
       }
 
       setMemoryDraft('');
+      setMemoryTags('');
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to save memory');
@@ -5411,6 +5429,8 @@ function ProjectSettingsPanel({
   function startEditMemory(memory: any) {
     setMemoryEditId(memory.id);
     setMemoryEditDraft(memory.content ?? memory.summary ?? '');
+    setMemoryEditType(memory.memoryType ?? 'semantic');
+    setMemoryEditTags(Array.isArray(memory.tags) ? memory.tags.join(', ') : '');
   }
 
   async function saveEditedMemory(memoryId: string) {
@@ -5425,7 +5445,11 @@ function ProjectSettingsPanel({
       const response = await fetch(`/api/agent-memory/${encodeURIComponent(memoryId)}`, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ content: memoryEditDraft }),
+        body: JSON.stringify({
+          content: memoryEditDraft,
+          memoryType: memoryEditType,
+          tags: parseMemoryTags(memoryEditTags),
+        }),
       });
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
@@ -5435,6 +5459,7 @@ function ProjectSettingsPanel({
 
       setMemoryEditId(undefined);
       setMemoryEditDraft('');
+      setMemoryEditTags('');
       await loadMemories();
     } catch (error) {
       setMemoryError(error instanceof Error ? error.message : 'Unable to update memory');
@@ -5714,6 +5739,26 @@ function ProjectSettingsPanel({
                 rows={5}
               />
             </label>
+            <div className="bolt-project-memory-fields">
+              <label>
+                Type
+                <select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}>
+                  <option value="semantic">Semantic</option>
+                  <option value="procedural">Procedural</option>
+                  <option value="episodic">Episodic</option>
+                  <option value="working">Working</option>
+                  <option value="cache">Cache</option>
+                </select>
+              </label>
+              <label>
+                Tags
+                <input
+                  value={memoryTags}
+                  onChange={(event) => setMemoryTags(event.target.value)}
+                  placeholder="validation, workflow"
+                />
+              </label>
+            </div>
             <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>Save memory</PanelButton>
             {memoryError ? (
               <div className="bolt-project-settings-memory-error" role="alert">
@@ -5744,6 +5789,26 @@ function ProjectSettingsPanel({
                           onChange={(event) => setMemoryEditDraft(event.target.value)}
                           rows={4}
                         />
+                        <div className="bolt-project-memory-fields">
+                          <label>
+                            Type
+                            <select value={memoryEditType} onChange={(event) => setMemoryEditType(event.target.value)}>
+                              <option value="semantic">Semantic</option>
+                              <option value="procedural">Procedural</option>
+                              <option value="episodic">Episodic</option>
+                              <option value="working">Working</option>
+                              <option value="cache">Cache</option>
+                            </select>
+                          </label>
+                          <label>
+                            Tags
+                            <input
+                              value={memoryEditTags}
+                              onChange={(event) => setMemoryEditTags(event.target.value)}
+                              placeholder="validation, workflow"
+                            />
+                          </label>
+                        </div>
                         <div>
                           <button
                             type="button"
@@ -5757,6 +5822,7 @@ function ProjectSettingsPanel({
                             onClick={() => {
                               setMemoryEditId(undefined);
                               setMemoryEditDraft('');
+                              setMemoryEditTags('');
                             }}
                             disabled={memoryLoading}
                           >
@@ -5769,9 +5835,17 @@ function ProjectSettingsPanel({
                         <span>
                           <strong>{memory.summary}</strong>
                           <small>
-                            {memory.scope} - importance {Math.round((memory.importance ?? 0) * 100)}% -{' '}
+                            {memory.scope} - {memory.memoryType ?? 'semantic'} - importance{' '}
+                            {Math.round((memory.importance ?? 0) * 100)}% - used {memory.accessCount ?? 0}x -{' '}
                             {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
                           </small>
+                          {Array.isArray(memory.tags) && memory.tags.length ? (
+                            <span className="bolt-project-memory-tags">
+                              {memory.tags.map((tag: string) => (
+                                <em key={tag}>{tag}</em>
+                              ))}
+                            </span>
+                          ) : null}
                         </span>
                         <div className="bolt-project-memory-actions">
                           <button type="button" onClick={() => startEditMemory(memory)} disabled={memoryLoading}>

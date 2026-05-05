@@ -24,7 +24,7 @@ export interface AiGatewayAppOptions {
   agentRunPersistence?: AgentRunPersistence | null;
 }
 
-export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
+export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   const env = options.env ?? process.env;
   const app = Fastify({ logger: options.logger ?? true });
   const gateway = options.gateway ?? new AiGateway();
@@ -55,7 +55,7 @@ export function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   const agentRunPersistence =
     options.agentRunPersistence === null
       ? undefined
-      : (options.agentRunPersistence ?? createDefaultAgentRunPersistence());
+      : (options.agentRunPersistence ?? (await createDefaultAgentRunPersistence()));
 
   app.addHook('onClose', async () => {
     await agentRunRateLimiter.close?.();

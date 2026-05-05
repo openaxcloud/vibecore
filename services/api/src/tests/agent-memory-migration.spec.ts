@@ -32,4 +32,19 @@ describe('agent memory migration', () => {
     expect(sql).toContain('"enabled" BOOLEAN NOT NULL DEFAULT true');
     expect(sql).toContain('AgentMemoryPreference_user_project_key');
   });
+
+  it('adds typed memory metadata and tag indexes', () => {
+    const sql = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        '../../../../packages/database/prisma/migrations/0013_agent_memory_ruflo_metadata/migration.sql',
+      ),
+      'utf8',
+    );
+
+    expect(sql).toContain('"memoryType" TEXT NOT NULL DEFAULT');
+    expect(sql).toContain('"tags" TEXT[] NOT NULL');
+    expect(sql).toContain('"accessCount" INTEGER NOT NULL DEFAULT 0');
+    expect(sql).toContain('USING GIN ("tags")');
+  });
 });

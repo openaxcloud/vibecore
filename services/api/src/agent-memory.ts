@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { DatabaseClient } from '@vibecore/database';
 
 export type AgentMemoryScope = 'user' | 'organization' | 'project' | 'session';
+export type AgentMemoryType = 'episodic' | 'semantic' | 'procedural' | 'working' | 'cache';
 
 export interface AgentMemoryRecord {
   id: string;
@@ -13,6 +14,9 @@ export interface AgentMemoryRecord {
   content: string;
   summary: string;
   metadata: Record<string, unknown>;
+  memoryType: AgentMemoryType;
+  tags: string[];
+  references: string[];
   importance: number;
   source: string;
   embeddingModel: string;
@@ -22,6 +26,7 @@ export interface AgentMemoryRecord {
   lastUsedAt?: string;
   expiresAt?: string;
   archivedAt?: string;
+  accessCount: number;
   score?: number;
 }
 
@@ -33,6 +38,8 @@ export interface AgentMemorySearchInput {
   query: string;
   limit?: number;
   scopes?: AgentMemoryScope[];
+  memoryTypes?: AgentMemoryType[];
+  tags?: string[];
 }
 
 export interface AgentMemoryWriteInput {
@@ -44,6 +51,9 @@ export interface AgentMemoryWriteInput {
   content: string;
   summary?: string;
   metadata?: Record<string, unknown>;
+  memoryType?: AgentMemoryType;
+  tags?: string[];
+  references?: string[];
   importance?: number;
   source: string;
   force?: boolean;
@@ -73,6 +83,9 @@ export interface AgentMemoryRepository {
       embedding: number[];
       embeddingModel: string;
       embeddingDimensions: number;
+      memoryType: AgentMemoryType;
+      tags: string[];
+      references: string[];
     },
   ): Promise<AgentMemoryRecord>;
   get(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
@@ -82,6 +95,9 @@ export interface AgentMemoryRepository {
     summary: string;
     embedding: number[];
     metadata: Record<string, unknown>;
+    memoryType: AgentMemoryType;
+    tags: string[];
+    references: string[];
     importance: number;
   }): Promise<AgentMemoryRecord>;
   search(input: AgentMemorySearchInput & { embedding: number[] }): Promise<AgentMemoryRecord[]>;
@@ -215,6 +231,11 @@ function rowToMemory(row: Record<string, any>): AgentMemoryRecord {
     content: row.content,
     summary: row.summary,
     metadata: (row.metadata ?? {}) as Record<string, unknown>,
+    memoryType: (row.memoryType ?? 'semantic') as AgentMemoryType,
+    tags: Array.isArray(row.tags) ? row.tags.filter((tag: unknown) => typeof tag === 'string') : [],
+    references: Array.isArray(row.references)
+      ? row.references.filter((reference: unknown) => typeof reference === 'string')
+      : [],
     importance: Number(row.importance ?? 0.5),
     source: row.source,
     embeddingModel: row.embeddingModel,
@@ -224,6 +245,7 @@ function rowToMemory(row: Record<string, any>): AgentMemoryRecord {
     lastUsedAt: iso(row.lastUsedAt),
     expiresAt: iso(row.expiresAt),
     archivedAt: iso(row.archivedAt),
+    accessCount: Number(row.accessCount ?? 0),
     score: typeof distance === 'number' ? Math.max(0, 1 - distance) : undefined,
   };
 }
@@ -250,6 +272,36 @@ function vectorLiteral(vector: number[]) {
   return `[${vector.map((value) => Number(value).toFixed(8)).join(',')}]`;
 }
 
+function normalizeStringList(values?: string[]) {
+  return [...new Set((values ?? []).map((value) => value.trim().toLowerCase()).filter(Boolean))].slice(0, 20);
+}
+
+function normalizeReferences(values?: string[]) {
+  return [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))].slice(0, 20);
+}
+
+function normalizeMemoryType(value?: AgentMemoryType): AgentMemoryType {
+  return value ?? 'semantic';
+}
+
+function inferMemoryType(content: string): AgentMemoryType {
+  const normalized = content.toLowerCase();
+
+  if (/workflow|procedure|runbook|step|étape|etape|commande|script|how to|process/.test(normalized)) {
+    return 'procedural';
+  }
+
+  if (/session|temporary|temporaire|scratch|working|actuel|courant/.test(normalized)) {
+    return 'working';
+  }
+
+  if (/incident|error|erreur|bug|resolved|fixed|corrig[ée]|failure|panne/.test(normalized)) {
+    return 'episodic';
+  }
+
+  return 'semantic';
+}
+
 export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
   constructor(readonly prisma: DatabaseClient) {}
 
@@ -260,13 +312,16 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       embedding: number[];
       embeddingModel: string;
       embeddingDimensions: number;
+      memoryType: AgentMemoryType;
+      tags: string[];
+      references: string[];
     },
   ) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `INSERT INTO "AgentMemory"
-       ("id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "embedding", "embeddingModel", "embeddingDimensions", "metadata", "importance", "source", "expiresAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::vector, $10, $11, $12::jsonb, $13, $14, $15)
-       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt"`,
+       ("id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "embedding", "embeddingModel", "embeddingDimensions", "metadata", "memoryType", "tags", "references", "importance", "source", "expiresAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::vector, $10, $11, $12::jsonb, $13, $14::text[], $15::text[], $16, $17, $18)
+       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
       input.id,
       input.userId,
       input.organizationId ?? null,
@@ -279,6 +334,9 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
       input.embeddingModel,
       input.embeddingDimensions,
       JSON.stringify(input.metadata ?? {}),
+      input.memoryType,
+      input.tags,
+      input.references,
       input.importance ?? 0.5,
       input.source,
       input.expiresAt ? new Date(input.expiresAt) : null,
@@ -293,18 +351,24 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     summary: string;
     embedding: number[];
     metadata: Record<string, unknown>;
+    memoryType: AgentMemoryType;
+    tags: string[];
+    references: string[];
     importance: number;
   }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `UPDATE "AgentMemory"
-       SET "content" = $2, "summary" = $3, "embedding" = $4::vector, "metadata" = $5::jsonb, "importance" = $6, "lastUsedAt" = CURRENT_TIMESTAMP
+       SET "content" = $2, "summary" = $3, "embedding" = $4::vector, "metadata" = $5::jsonb, "memoryType" = $6, "tags" = $7::text[], "references" = $8::text[], "importance" = $9, "lastUsedAt" = CURRENT_TIMESTAMP
        WHERE "id" = $1
-       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt"`,
+       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
       input.id,
       input.content,
       input.summary,
       vectorLiteral(input.embedding),
       JSON.stringify(input.metadata),
+      input.memoryType,
+      input.tags,
+      input.references,
       input.importance,
     );
 
@@ -313,7 +377,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
 
   async get(input: { id: string; userId: string }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
-      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt"
+      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"
        FROM "AgentMemory"
        WHERE "id" = $1 AND "userId" = $2 AND "archivedAt" IS NULL
        LIMIT 1`,
@@ -326,8 +390,10 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
 
   async search(input: AgentMemorySearchInput & { embedding: number[] }) {
     const scopes = input.scopes?.length ? input.scopes : ['user', 'organization', 'project', 'session'];
+    const memoryTypes = input.memoryTypes?.length ? input.memoryTypes : undefined;
+    const tags = normalizeStringList(input.tags);
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
-      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt",
+      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount",
               ("embedding" <=> $1::vector) AS distance
        FROM "AgentMemory"
        WHERE "userId" = $2
@@ -337,22 +403,30 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
          AND ("organizationId" IS NULL OR "organizationId" = $4)
          AND ("projectId" IS NULL OR "projectId" = $5)
          AND ("sessionId" IS NULL OR "sessionId" = $6)
-       ORDER BY ("embedding" <=> $1::vector) ASC, "importance" DESC, "updatedAt" DESC
-       LIMIT $7`,
+         AND ($7::text[] IS NULL OR "memoryType" = ANY($7::text[]))
+         AND ($8::text[] IS NULL OR "tags" @> $8::text[])
+       ORDER BY ("embedding" <=> $1::vector) ASC, "importance" DESC, "accessCount" DESC, "updatedAt" DESC
+       LIMIT $9`,
       vectorLiteral(input.embedding),
       input.userId,
       scopes,
       input.organizationId ?? null,
       input.projectId ?? null,
       input.sessionId ?? null,
+      memoryTypes ?? null,
+      tags.length ? tags : null,
       Math.min(Math.max(input.limit ?? 8, 1), 30),
     );
 
     if (rows.length) {
       await this.prisma.$executeRawUnsafe(
-        `UPDATE "AgentMemory" SET "lastUsedAt" = CURRENT_TIMESTAMP WHERE "id" = ANY($1::text[])`,
+        `UPDATE "AgentMemory" SET "lastUsedAt" = CURRENT_TIMESTAMP, "accessCount" = "accessCount" + 1 WHERE "id" = ANY($1::text[])`,
         rows.map((row) => row.id),
       );
+      rows.forEach((row) => {
+        row.accessCount = Number(row.accessCount ?? 0) + 1;
+        row.lastUsedAt = new Date().toISOString();
+      });
     }
 
     return rows.map(rowToMemory);
@@ -360,7 +434,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
 
   async list(input: { userId: string; organizationId?: string; projectId?: string; limit?: number }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
-      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt"
+      `SELECT "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"
        FROM "AgentMemory"
        WHERE "userId" = $1
          AND "archivedAt" IS NULL
@@ -381,7 +455,7 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
   async archive(input: { id: string; userId: string }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `UPDATE "AgentMemory" SET "archivedAt" = CURRENT_TIMESTAMP WHERE "id" = $1 AND "userId" = $2 AND "archivedAt" IS NULL
-       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt"`,
+       RETURNING "id", "userId", "organizationId", "projectId", "sessionId", "scope", "content", "summary", "metadata", "memoryType", "tags", "references", "importance", "source", "embeddingModel", "embeddingDimensions", "createdAt", "updatedAt", "lastUsedAt", "expiresAt", "archivedAt", "accessCount"`,
       input.id,
       input.userId,
     );
@@ -536,6 +610,9 @@ export class AgentMemoryService {
     }
 
     const summary = input.summary?.trim() || summarizeMemory(content);
+    const memoryType = normalizeMemoryType(input.memoryType ?? inferMemoryType(content));
+    const tags = normalizeStringList(input.tags);
+    const references = normalizeReferences(input.references);
     const embedding = await this.embeddings.embed(`${summary}\n\n${content}`);
     const similar = await this.repository.search({
       userId: input.userId,
@@ -545,6 +622,8 @@ export class AgentMemoryService {
       query: content,
       embedding,
       scopes: [input.scope],
+      memoryTypes: [memoryType],
+      tags: tags.length ? tags : undefined,
       limit: 1,
     });
     const duplicate = similar.find((memory) => (memory.score ?? 0) >= 0.92);
@@ -553,6 +632,7 @@ export class AgentMemoryService {
       ...(input.metadata ?? {}),
       deduplicatedAt: duplicate ? new Date().toISOString() : undefined,
     };
+    const mergedReferences = normalizeReferences([...(duplicate?.references ?? []), ...references]);
     const importance = scoreImportance(content, input.importance ?? duplicate?.importance);
 
     if (duplicate) {
@@ -563,6 +643,9 @@ export class AgentMemoryService {
           summary,
           embedding,
           metadata,
+          memoryType,
+          tags,
+          references: mergedReferences,
           importance,
         }),
         updated: true,
@@ -578,6 +661,9 @@ export class AgentMemoryService {
         embedding,
         embeddingModel: this.embeddings.model,
         embeddingDimensions: this.embeddings.dimensions,
+        memoryType,
+        tags,
+        references,
         metadata,
         importance,
       }),
@@ -591,6 +677,9 @@ export class AgentMemoryService {
     content: string;
     summary?: string;
     metadata?: Record<string, unknown>;
+    memoryType?: AgentMemoryType;
+    tags?: string[];
+    references?: string[];
     importance?: number;
   }) {
     const existing = await this.repository.get({ id: input.id, userId: input.userId });
@@ -603,6 +692,9 @@ export class AgentMemoryService {
     assertNoMemorySecrets(content);
     const summary = input.summary?.trim() || summarizeMemory(content);
     const embedding = await this.embeddings.embed(`${summary}\n\n${content}`);
+    const memoryType = normalizeMemoryType(input.memoryType ?? existing.memoryType);
+    const tags = input.tags ? normalizeStringList(input.tags) : existing.tags;
+    const references = input.references ? normalizeReferences(input.references) : existing.references;
 
     return await this.repository.update({
       id: existing.id,
@@ -610,6 +702,9 @@ export class AgentMemoryService {
       summary,
       embedding,
       metadata: { ...existing.metadata, ...(input.metadata ?? {}), correctedAt: new Date().toISOString() },
+      memoryType,
+      tags,
+      references,
       importance: scoreImportance(content, input.importance ?? existing.importance),
     });
   }
@@ -636,7 +731,7 @@ export class AgentMemoryService {
             'Persistent agent memory retrieved for this authenticated user. Use it only when relevant and never expose memory IDs unless asked.',
             ...selected.map(
               (memory, index) =>
-                `${index + 1}. [${memory.scope}; score=${(memory.score ?? 0).toFixed(2)}] ${memory.summary}`,
+                `${index + 1}. [${memory.scope}/${memory.memoryType}; score=${(memory.score ?? 0).toFixed(2)}; tags=${memory.tags.join(',') || 'none'}] ${memory.summary}`,
             ),
           ].join('\n')
         : '',

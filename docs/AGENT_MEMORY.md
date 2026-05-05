@@ -11,8 +11,11 @@ VibeCore agent memory is a persistent, per-user long-term context system for IDE
 - Vector column: `embedding vector(1536)`
 - Index: `AgentMemory_embedding_hnsw` using `hnsw` and `vector_cosine_ops`
 - Embedding model metadata: `embeddingModel`, `embeddingDimensions`
+- Ruflo-inspired metadata: `memoryType`, `tags`, `references`, `accessCount`
 
 The migration `0010_agent_memory_pgvector` enables `pgvector`, creates the table, and creates the HNSW index.
+The migration `0013_agent_memory_ruflo_metadata` adds typed memory taxonomy, tag filtering and usage counters while
+keeping pgvector/HNSW as the only production vector store.
 
 Memory enablement is stored in `AgentMemoryPreference`, scoped by `userId` plus optional `organizationId` or
 `projectId`. The migration `0012_agent_memory_preferences` adds scoped uniqueness so one user has one effective
@@ -30,9 +33,10 @@ If these are not configured, memory endpoints return `AGENT_MEMORY_UNCONFIGURED`
 
 ## API
 
-- `POST /agent-memory`: writes a memory after secret scanning and memory-worthiness checks.
+- `POST /agent-memory`: writes a memory after secret scanning and memory-worthiness checks; accepts optional
+  `memoryType`, `tags` and `references`.
 - `GET /agent-memory`: lists visible memories for the authenticated user and optional project/org filter.
-- `POST /agent-memory/search`: vector search over visible memories.
+- `POST /agent-memory/search`: vector search over visible memories with optional scope, type and tag filters.
 - `POST /agent-memory/context`: retrieves reranked context for agent prompt injection.
 - `PATCH /agent-memory/:memoryId`: corrects a memory owned by the current user.
 - `DELETE /agent-memory/:memoryId`: archives a memory owned by the current user.
@@ -52,8 +56,9 @@ Browser IDE calls go through Remix proxy routes under `/api/agent-memory`.
 ## Agent Context
 
 The chat route checks the persisted memory preference, retrieves memories before each authenticated IDE generation, and
-injects only the selected summaries into the LLM system context. Memory annotations are emitted on the stream and shown
-on assistant messages so the UI can display which memories were used.
+injects only the selected summaries into the LLM system context. Retrieval increments `accessCount`, updates
+`lastUsedAt`, and emits annotations with scope, type, tags and match score so the UI can display which memories were
+used.
 
 After a response finishes, the route submits the latest user message as a memory candidate. The backend stores it only
 when the pipeline detects durable preferences, decisions, constraints or explicit remember requests.

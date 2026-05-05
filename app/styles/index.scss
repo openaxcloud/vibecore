@@ -5151,6 +5151,37 @@ body :where(.lucide, svg[data-lucide]) {
     }
   }
 
+  .bolt-project-memory-fields {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.4fr) minmax(180px, 1fr);
+    gap: 10px;
+
+    label {
+      min-width: 0;
+    }
+
+    select,
+    input {
+      width: 100%;
+    }
+  }
+
+  .bolt-project-memory-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+
+    em {
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 6px;
+      padding: 2px 6px;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 11px;
+      font-style: normal;
+    }
+  }
+
   .bolt-project-memory-toggle {
     display: flex;
     align-items: center;
@@ -5189,7 +5220,7 @@ body :where(.lucide, svg[data-lucide]) {
       resize: vertical;
     }
 
-    div {
+    > div:not(.bolt-project-memory-fields) {
       display: flex;
       gap: 8px;
       justify-content: flex-end;
@@ -5221,7 +5252,8 @@ body :where(.lucide, svg[data-lucide]) {
     }
 
     .bolt-project-settings-list form,
-    .bolt-project-settings-provider-grid form {
+    .bolt-project-settings-provider-grid form,
+    .bolt-project-memory-fields {
       grid-template-columns: 1fr;
       align-items: stretch;
     }

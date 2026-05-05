@@ -119,25 +119,27 @@ test.describe('MCP marketplace UI', () => {
   test('renders catalog cards in the MCP settings tab', async ({ page }) => {
     await registerAndAuthenticate(page);
 
-    await page.goto(`${appBaseUrl}/`);
-    await expect(page).toHaveURL(/\//, { timeout: 15_000 });
+    // /settings/mcp opens the control panel via ClientOnly, with the MCP tab
+    // pre-selected.
+    await page.goto(`${appBaseUrl}/settings/mcp`, { waitUntil: 'domcontentloaded' });
 
-    // Open the settings control panel via keyboard shortcut or settings button.
-    // The settings panel is a slide-in; we drive it directly to the MCP tab via
-    // URL fragment if supported, otherwise click through.
-    const settingsButton = page.getByRole('button', { name: /settings/i }).first();
-    if (await settingsButton.isVisible().catch(() => false)) {
-      await settingsButton.click();
-    }
+    // Wait for client hydration. The Settings page renders ControlPanel inside
+    // ClientOnly so we wait for any element produced by the panel itself.
+    const marketplaceTab = page.getByRole('tab', { name: /marketplace/i });
+    await marketplaceTab.waitFor({ state: 'visible', timeout: 30_000 });
+    await expect(marketplaceTab).toHaveAttribute('aria-selected', 'true');
 
-    const mcpTab = page.getByRole('button', { name: /mcp/i }).first();
-    if (await mcpTab.isVisible().catch(() => false)) {
-      await mcpTab.click();
-    }
+    // Wait for the marketplace section heading rendered by McpMarketplace.
+    const marketplaceHeading = page.locator('#catalog-heading');
+    await expect(marketplaceHeading).toBeVisible({ timeout: 30_000 });
 
-    // The Marketplace sub-tab should be the default. Verify at least one
-    // catalog card or domain chip is rendered.
-    const marketplaceHeading = page.getByText(/marketplace/i).first();
-    await expect(marketplaceHeading).toBeVisible({ timeout: 15_000 });
+    // At least the seeded "Filesystem" entry should appear in the catalog.
+    const filesystemCard = page.getByRole('article').filter({ hasText: 'Filesystem' }).first();
+    await expect(filesystemCard).toBeVisible({ timeout: 30_000 });
+
+    // Switch to Configuration sub-tab and verify the JSON editor renders.
+    const configTab = page.getByRole('tab', { name: /configuration/i });
+    await configTab.click();
+    await expect(page.getByText(/MCP Servers Configured/i)).toBeVisible({ timeout: 10_000 });
   });
 });

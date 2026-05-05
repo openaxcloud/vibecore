@@ -30,6 +30,10 @@ class TestMemoryRepository implements AgentMemoryRepository {
     const row = {
       ...input,
       metadata: input.metadata ?? {},
+      memoryType: input.memoryType ?? 'semantic',
+      tags: input.tags ?? [],
+      references: input.references ?? [],
+      accessCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -53,6 +57,8 @@ class TestMemoryRepository implements AgentMemoryRepository {
     return this.rows
       .filter((row) => row.userId === input.userId)
       .filter((row) => !input.projectId || row.projectId === input.projectId || !row.projectId)
+      .filter((row) => !input.memoryTypes?.length || input.memoryTypes.includes(row.memoryType))
+      .filter((row) => !input.tags?.length || input.tags.every((tag: string) => row.tags.includes(tag)))
       .map((row) => ({ ...row, score: 0.95 }))
       .slice(0, input.limit ?? 8);
   }
@@ -129,6 +135,8 @@ describe('agent memory API', () => {
         projectId: project.id,
         scope: 'project',
         content: 'Remember that this IDE project always validates before pushing to main.',
+        memoryType: 'procedural',
+        tags: ['validation', 'workflow'],
         source: 'manual',
         force: true,
       },
@@ -141,10 +149,16 @@ describe('agent memory API', () => {
       method: 'POST',
       url: '/agent-memory/context',
       headers: { authorization: `Bearer ${token}` },
-      payload: { projectId: project.id, query: 'How do we finish IDE tasks?' },
+      payload: {
+        projectId: project.id,
+        query: 'How do we finish IDE tasks?',
+        memoryTypes: ['procedural'],
+        tags: ['validation'],
+      },
     });
     expect(context.statusCode).toBe(200);
     expect(context.json().context).toContain('validates before pushing');
+    expect(context.json().memories[0].memoryType).toBe('procedural');
 
     const patch = await app.inject({
       method: 'PATCH',

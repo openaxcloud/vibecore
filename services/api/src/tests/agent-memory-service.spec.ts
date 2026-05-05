@@ -7,6 +7,7 @@ import {
   type AgentMemoryRecord,
   type AgentMemoryRepository,
   type AgentMemorySearchInput,
+  type AgentMemoryType,
   type AgentMemoryWriteInput,
 } from '../agent-memory.js';
 
@@ -55,12 +56,16 @@ class MemoryRepository implements AgentMemoryRepository {
       content: input.content,
       summary: input.summary,
       metadata: input.metadata ?? {},
+      memoryType: input.memoryType ?? 'semantic',
+      tags: input.tags ?? [],
+      references: input.references ?? [],
       importance: input.importance ?? 0.5,
       source: input.source,
       embeddingModel: input.embeddingModel,
       embeddingDimensions: input.embeddingDimensions,
       createdAt: now,
       updatedAt: now,
+      accessCount: 0,
       embedding: input.embedding,
     };
     this.records.set(memory.id, memory);
@@ -80,6 +85,9 @@ class MemoryRepository implements AgentMemoryRepository {
     summary: string;
     embedding: number[];
     metadata: Record<string, unknown>;
+    memoryType: AgentMemoryType;
+    tags: string[];
+    references: string[];
     importance: number;
   }) {
     const current = this.records.get(input.id);
@@ -94,6 +102,9 @@ class MemoryRepository implements AgentMemoryRepository {
       summary: input.summary,
       embedding: input.embedding,
       metadata: input.metadata,
+      memoryType: input.memoryType,
+      tags: input.tags,
+      references: input.references,
       importance: input.importance,
       updatedAt: new Date().toISOString(),
       lastUsedAt: new Date().toISOString(),
@@ -111,6 +122,8 @@ class MemoryRepository implements AgentMemoryRepository {
       )
       .filter((memory) => !input.projectId || !memory.projectId || memory.projectId === input.projectId)
       .filter((memory) => !input.scopes?.length || input.scopes.includes(memory.scope))
+      .filter((memory) => !input.memoryTypes?.length || input.memoryTypes.includes(memory.memoryType))
+      .filter((memory) => !input.tags?.length || input.tags.every((tag) => memory.tags.includes(tag)))
       .map((memory) => ({ ...memory, score: cosine(input.embedding, memory.embedding) }))
       .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
       .slice(0, input.limit ?? 8);
@@ -234,5 +247,31 @@ describe('agent memory service', () => {
     });
 
     expect(preference.enabled).toBe(false);
+  });
+
+  it('classifies memories and filters by tags without replacing pgvector storage', async () => {
+    const repository = new MemoryRepository();
+    const service = new AgentMemoryService(repository, new DeterministicEmbeddingProvider());
+    await service.remember({
+      userId: 'user-1',
+      projectId: 'project-1',
+      scope: 'project',
+      content: 'Workflow: run typecheck, lint and tests before every push.',
+      source: 'manual',
+      tags: ['Validation', 'Workflow'],
+      force: true,
+    });
+
+    const result = await service.retrieveMemoryForAgentContext({
+      userId: 'user-1',
+      projectId: 'project-1',
+      query: 'What validation workflow should I use?',
+      memoryTypes: ['procedural'],
+      tags: ['validation'],
+    });
+
+    expect(result.memories).toHaveLength(1);
+    expect(result.memories[0].memoryType).toBe('procedural');
+    expect(result.memories[0].tags).toContain('validation');
   });
 });

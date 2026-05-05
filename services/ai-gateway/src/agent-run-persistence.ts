@@ -93,14 +93,11 @@ export class PrismaAgentRunPersistence implements AgentRunPersistence {
   }
 }
 
-export function createDefaultAgentRunPersistence(): AgentRunPersistence | undefined {
+export async function createDefaultAgentRunPersistence(): Promise<AgentRunPersistence | undefined> {
   if (!process.env.DATABASE_URL) {
     return undefined;
   }
 
-  // Lazy-load to keep ai-gateway runnable without @vibecore/database resolved
-  // when DATABASE_URL is unset (e.g., in light-weight unit tests).
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { createDatabaseClient } = require('@vibecore/database') as typeof import('@vibecore/database');
+  const { createDatabaseClient } = await import('@vibecore/database');
   return new PrismaAgentRunPersistence(createDatabaseClient());
 }

@@ -63,6 +63,7 @@ import {
   AgentMemoryService,
   createPostgresAgentMemoryService,
   type AgentMemoryScope,
+  type AgentMemoryType,
 } from './agent-memory.js';
 import {
   McpMarketplaceService,
@@ -221,10 +222,14 @@ const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
 const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
+const agentMemoryTypeSchema = z.enum(['episodic', 'semantic', 'procedural', 'working', 'cache']);
 const agentMemoryWriteSchema = z.object({
   scope: agentMemoryScopeSchema.default('user'),
   content: z.string().min(1).max(12000),
   summary: z.string().min(1).max(1000).optional(),
+  memoryType: agentMemoryTypeSchema.optional(),
+  tags: z.array(z.string().min(1).max(80)).max(20).optional(),
+  references: z.array(z.string().min(1).max(500)).max(20).optional(),
   organizationId: z.string().min(1).optional(),
   projectId: z.string().min(1).optional(),
   sessionId: z.string().min(1).optional(),
@@ -241,10 +246,15 @@ const agentMemorySearchSchema = z.object({
   sessionId: z.string().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(30).optional(),
   scopes: z.array(agentMemoryScopeSchema).optional(),
+  memoryTypes: z.array(agentMemoryTypeSchema).optional(),
+  tags: z.array(z.string().min(1).max(80)).max(20).optional(),
 });
 const agentMemoryPatchSchema = z.object({
   content: z.string().min(1).max(12000),
   summary: z.string().min(1).max(1000).optional(),
+  memoryType: agentMemoryTypeSchema.optional(),
+  tags: z.array(z.string().min(1).max(80)).max(20).optional(),
+  references: z.array(z.string().min(1).max(500)).max(20).optional(),
   metadata: z.record(z.unknown()).optional(),
   importance: z.number().min(0).max(1).optional(),
 });
@@ -4089,6 +4099,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       scope: body.projectId ? 'project' : body.organizationId ? 'organization' : (body.scope ?? 'user'),
       content: body.content,
       summary: body.summary,
+      memoryType: body.memoryType as AgentMemoryType | undefined,
+      tags: body.tags,
+      references: body.references,
       metadata: body.metadata,
       importance: body.importance,
       source: body.source ?? 'manual',
@@ -4123,6 +4136,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         query: body.query,
         limit: body.limit,
         scopes: body.scopes,
+        memoryTypes: body.memoryTypes as AgentMemoryType[] | undefined,
+        tags: body.tags,
       }),
     };
   });
@@ -4140,6 +4155,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       query: body.query,
       limit: body.limit,
       scopes: body.scopes,
+      memoryTypes: body.memoryTypes as AgentMemoryType[] | undefined,
+      tags: body.tags,
     });
   });
 
@@ -4325,6 +4342,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       userId: request.currentUser!.id,
       content: body.content,
       summary: body.summary,
+      memoryType: body.memoryType as AgentMemoryType | undefined,
+      tags: body.tags,
+      references: body.references,
       metadata: body.metadata,
       importance: body.importance,
     });

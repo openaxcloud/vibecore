@@ -7,7 +7,15 @@ const logger = createScopedLogger('agent-memory');
 
 export interface AgentMemoryContextPayload {
   context: string;
-  memories: Array<{ id: string; summary: string; scope: string; score?: number }>;
+  memories: Array<{
+    id: string;
+    summary: string;
+    scope: string;
+    memoryType?: string;
+    tags?: string[];
+    accessCount?: number;
+    score?: number;
+  }>;
 }
 
 export function latestUserText(messages: Messages) {
@@ -24,6 +32,9 @@ export function agentMemoryAnnotation(memories: AgentMemoryContextPayload['memor
     memories: memories.map((memory) => ({
       id: memory.id,
       scope: memory.scope,
+      memoryType: memory.memoryType,
+      tags: memory.tags,
+      accessCount: memory.accessCount,
       summary: memory.summary,
       score: memory.score,
     })),
@@ -91,6 +102,8 @@ export async function persistAgentMemoryCandidate(
         projectId: input.projectId,
         content: userText,
         summary: userText,
+        memoryType: input.projectId ? 'procedural' : 'semantic',
+        tags: input.projectId ? ['project'] : ['user'],
         source: 'chat',
         metadata: {
           assistantExcerpt: input.assistantText.slice(0, 800),
