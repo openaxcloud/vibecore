@@ -62,3 +62,10 @@ used.
 
 After a response finishes, the route submits the latest user message as a memory candidate. The backend stores it only
 when the pipeline detects durable preferences, decisions, constraints or explicit remember requests.
+
+## Validation
+
+- `pnpm run test:agent-memory:pgvector` starts a real `pgvector/pgvector:pg16` PostgreSQL container, creates a HNSW
+  index, verifies the query plan uses that index, and checks cosine nearest-neighbor results.
+- `pnpm vitest run services/api/src/tests/agent-memory-service.spec.ts services/api/src/tests/agent-memory-api.spec.ts services/api/src/tests/agent-memory-migration.spec.ts app/lib/.server/llm/agent-memory.spec.ts`
+  validates the memory service, API isolation, migration shape and agent context client.

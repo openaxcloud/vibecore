@@ -119,12 +119,16 @@ test.describe('MCP marketplace UI', () => {
   test('renders catalog cards in the MCP settings tab', async ({ page }) => {
     await registerAndAuthenticate(page);
 
-    // /settings/mcp opens the control panel via ClientOnly, with the MCP tab
-    // pre-selected.
-    await page.goto(`${appBaseUrl}/settings/mcp`, { waitUntil: 'domcontentloaded' });
+    // /settings opens the control panel grid; we click the MCP Servers tile
+    // to navigate into the MCP tab content.
+    await page.goto(`${appBaseUrl}/settings`, { waitUntil: 'domcontentloaded' });
 
-    // Wait for client hydration. The Settings page renders ControlPanel inside
-    // ClientOnly so we wait for any element produced by the panel itself.
+    // Wait for the panel grid to hydrate, then click the MCP Servers tile.
+    const mcpTile = page.locator('text=MCP Servers').first();
+    await mcpTile.waitFor({ state: 'visible', timeout: 30_000 });
+    await mcpTile.click();
+
+    // The Marketplace sub-tab is the default view inside McpTab.
     const marketplaceTab = page.getByRole('tab', { name: /marketplace/i });
     await marketplaceTab.waitFor({ state: 'visible', timeout: 30_000 });
     await expect(marketplaceTab).toHaveAttribute('aria-selected', 'true');
@@ -140,6 +144,9 @@ test.describe('MCP marketplace UI', () => {
     // Switch to Configuration sub-tab and verify the JSON editor renders.
     const configTab = page.getByRole('tab', { name: /configuration/i });
     await configTab.click();
-    await expect(page.getByText(/MCP Servers Configured/i)).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.getByRole('heading', { name: 'MCP Servers Configured', level: 2 }),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByLabel(/Configuration JSON/i)).toBeVisible({ timeout: 5_000 });
   });
 });

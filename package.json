@@ -60,6 +60,7 @@
     "dev:api": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; API_HOST=${API_HOST:-127.0.0.1} pnpm --filter @vibecore/api dev'",
     "dev:all": "concurrently -n web,api -c blue,green \"pnpm run dev:web\" \"pnpm run dev:api\"",
     "test": "vitest --run",
+    "test:agent-memory:pgvector": "node scripts/run-agent-memory-pgvector-test.mjs",
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",
