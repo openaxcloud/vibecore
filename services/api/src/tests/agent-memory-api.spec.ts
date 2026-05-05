@@ -234,6 +234,55 @@ describe('agent memory API', () => {
     expect(response.json().export.memories.some((memory: any) => memory.userId === 'other-user')).toBe(false);
   });
 
+  it('includes authenticated agent memories in the account data export', async () => {
+    const { app, token, project, repository } = await setup();
+    const create = await app.inject({
+      method: 'POST',
+      url: '/agent-memory',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        projectId: project.id,
+        scope: 'project',
+        content: 'Remember that account export includes persistent agent memories.',
+        memoryType: 'semantic',
+        source: 'manual',
+        force: true,
+      },
+    });
+    expect(create.statusCode).toBe(201);
+
+    repository.rows.push({
+      id: 'other-user-account-export-memory',
+      userId: 'other-user',
+      projectId: project.id,
+      scope: 'project',
+      content: 'Other user memory must not be in account export.',
+      summary: 'Other user memory must not be in account export.',
+      metadata: {},
+      memoryType: 'semantic',
+      tags: [],
+      references: [],
+      importance: 0.5,
+      source: 'manual',
+      embeddingModel: 'test',
+      embeddingDimensions: 1536,
+      accessCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/auth/export',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().agentMemories).toHaveLength(1);
+    expect(response.json().agentMemories[0].content).toContain('account export includes persistent agent memories');
+    expect(response.json().agentMemories.some((memory: any) => memory.userId === 'other-user')).toBe(false);
+  });
+
   it('rejects secret-like content through the API', async () => {
     const { app, token, project } = await setup();
     const response = await app.inject({

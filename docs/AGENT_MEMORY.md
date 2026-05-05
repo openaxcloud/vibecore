@@ -37,6 +37,8 @@ If these are not configured, memory endpoints return `AGENT_MEMORY_UNCONFIGURED`
   `memoryType`, `tags` and `references`.
 - `GET /agent-memory`: lists visible memories for the authenticated user and optional project/org filter.
 - `GET /agent-memory/export`: exports visible, non-archived memories as audited JSON for the authenticated user.
+- `GET /auth/export`: includes the authenticated user's agent memories in the account data export when the memory
+  service is configured.
 - `POST /agent-memory/search`: vector search over visible memories with optional scope, type and tag filters.
 - `POST /agent-memory/context`: retrieves reranked context for agent prompt injection.
 - `PATCH /agent-memory/:memoryId`: corrects a memory owned by the current user.
@@ -53,6 +55,8 @@ Browser IDE calls go through Remix proxy routes under `/api/agent-memory`.
 - Secret-like content is rejected before embedding or storage.
 - Create, correction and delete actions are written to audit logs.
 - Memory exports are written to audit logs and are filtered by the same user/org/project authorization as retrieval.
+- Account data exports include only the authenticated user's agent memories; other users' memories are excluded by the
+  repository filter.
 - Users can view, edit, delete and disable project memories from the IDE Settings > Memory tab.
 
 ## Agent Context

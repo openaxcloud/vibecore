@@ -5546,6 +5546,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return { organization, projects, usage, aiCosts };
       }),
     );
+    const agentMemories = agentMemory ? await agentMemory.export({ userId: user.id }) : [];
+
     await audit(request, store, { action: 'auth.data_export', resourceType: 'user', resourceId: user.id });
 
     return {
@@ -5559,6 +5561,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
       sessions: await store.listSessions(user.id),
       organizations: organizationExports,
+      agentMemories,
     };
   });
 
