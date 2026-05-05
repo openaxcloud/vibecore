@@ -162,6 +162,27 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 runId: execution.runId,
                 status: execution.status,
                 results: execution.results,
+                ...(execution.consensus
+                  ? {
+                      consensus: {
+                        algorithm: execution.consensus.algorithm,
+                        outcome: execution.consensus.outcome,
+                        threshold: execution.consensus.threshold,
+                        agreementScore: execution.consensus.agreementScore,
+                        rounds: execution.consensus.rounds,
+                        durationMs: execution.consensus.durationMs,
+                        claimVotes: execution.consensus.claimVotes.map((vote) => ({
+                          claim: vote.claim,
+                          type: vote.type,
+                          supporters: vote.supporters,
+                          dissenters: vote.dissenters,
+                          agreementRatio: vote.agreementRatio,
+                          decision: vote.decision,
+                        })),
+                        conflicts: execution.consensus.conflicts,
+                      },
+                    }
+                  : {}),
               } satisfies ContextAnnotation);
             } catch (error) {
               const message =

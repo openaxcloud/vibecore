@@ -29,10 +29,42 @@ export type AgentExecutionResult = {
   verification?: string[];
 };
 
+export type AgentConsensusOutput = {
+  algorithm: 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
+  outcome: 'ACCEPTED' | 'REJECTED' | 'PARTIAL' | 'ABSTAINED';
+  threshold: number;
+  agreementScore: number;
+  rounds: number;
+  durationMs: number;
+  claimVotes: Array<{
+    claim: string;
+    type: 'risk' | 'verification' | 'file';
+    supporters: AgentRoleId[];
+    dissenters: AgentRoleId[];
+    abstainers?: AgentRoleId[];
+    agreementRatio: number;
+    decision: 'accepted' | 'rejected' | 'inconclusive';
+  }>;
+  conflicts: Array<{
+    type: 'file-overlap' | 'risk-disagreement' | 'verification-gap' | 'role-failure';
+    description: string;
+    involvedRoles: AgentRoleId[];
+    severity: 'low' | 'medium' | 'high';
+  }>;
+  consolidated?: {
+    summary: string;
+    acceptedRisks: string[];
+    acceptedVerification: string[];
+    acceptedFiles: string[];
+    rejectedClaims: Array<{ claim: string; type: 'risk' | 'verification' | 'file' }>;
+  };
+};
+
 export type AgentExecutionResponse = {
   runId: string;
   status: 'complete' | 'partial' | 'failed';
   results: AgentExecutionResult[];
+  consensus?: AgentConsensusOutput;
 };
 
 export class AgentExecutorError extends Error {

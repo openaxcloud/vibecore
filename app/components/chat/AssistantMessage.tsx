@@ -136,8 +136,22 @@ export const AssistantMessage = memo(
                             <div className="text-xs font-medium text-bolt-elements-textPrimary">{memory.summary}</div>
                             <div className="text-xs text-bolt-elements-textSecondary mt-1">
                               {memory.scope}
+                              {memory.memoryType ? ` · ${memory.memoryType}` : ''}
                               {typeof memory.score === 'number' ? ` · ${Math.round(memory.score * 100)}% match` : ''}
+                              {typeof memory.accessCount === 'number' ? ` · used ${memory.accessCount}x` : ''}
                             </div>
+                            {memory.tags?.length ? (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {memory.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[10px] text-bolt-elements-textSecondary"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                         ))}
                       </div>
@@ -164,6 +178,95 @@ export const AssistantMessage = memo(
                           </div>
                         ))}
                       </div>
+                      {agentExecution.consensus && (
+                        <div className="agent-consensus mt-3 pt-3 border-t border-bolt-elements-borderColor">
+                          <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                            <h3 className="text-xs font-medium text-bolt-elements-textPrimary">
+                              Consensus · {agentExecution.consensus.algorithm.toLowerCase().replace('_', ' ')}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={
+                                  agentExecution.consensus.outcome === 'ACCEPTED'
+                                    ? 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    : agentExecution.consensus.outcome === 'REJECTED'
+                                      ? 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 dark:text-red-400'
+                                      : 'text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                }
+                              >
+                                {agentExecution.consensus.outcome}
+                              </span>
+                              <span className="text-[10px] text-bolt-elements-textTertiary">
+                                {Math.round(agentExecution.consensus.agreementScore * 100)}% agreement ·{' '}
+                                {agentExecution.consensus.rounds} round
+                                {agentExecution.consensus.rounds === 1 ? '' : 's'}
+                              </span>
+                            </div>
+                          </div>
+                          {agentExecution.consensus.claimVotes.length > 0 && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
+                                {agentExecution.consensus.claimVotes.length} claim
+                                {agentExecution.consensus.claimVotes.length === 1 ? '' : 's'} voted
+                              </summary>
+                              <ul className="mt-2 space-y-1 pl-3">
+                                {agentExecution.consensus.claimVotes.map((vote, idx) => (
+                                  <li
+                                    key={`${vote.type}-${idx}`}
+                                    className="text-[11px] text-bolt-elements-textSecondary"
+                                  >
+                                    <span
+                                      className={
+                                        vote.decision === 'accepted'
+                                          ? 'inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 align-middle'
+                                          : vote.decision === 'rejected'
+                                            ? 'inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 align-middle'
+                                            : 'inline-block w-1.5 h-1.5 rounded-full bg-zinc-400 mr-1.5 align-middle'
+                                      }
+                                      aria-label={vote.decision}
+                                    />
+                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                      [{vote.type}]
+                                    </span>{' '}
+                                    {vote.claim}{' '}
+                                    <span className="text-[10px] text-bolt-elements-textTertiary">
+                                      ({vote.supporters.length}/{vote.supporters.length + vote.dissenters.length})
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                          {agentExecution.consensus.conflicts.length > 0 && (
+                            <details className="text-xs mt-2">
+                              <summary className="cursor-pointer text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
+                                {agentExecution.consensus.conflicts.length} conflict
+                                {agentExecution.consensus.conflicts.length === 1 ? '' : 's'} detected
+                              </summary>
+                              <ul className="mt-2 space-y-1 pl-3">
+                                {agentExecution.consensus.conflicts.map((conflict, idx) => (
+                                  <li key={`conflict-${idx}`} className="text-[11px] text-bolt-elements-textSecondary">
+                                    <span
+                                      className={
+                                        conflict.severity === 'high'
+                                          ? 'inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5 align-middle'
+                                          : conflict.severity === 'medium'
+                                            ? 'inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 align-middle'
+                                            : 'inline-block w-1.5 h-1.5 rounded-full bg-zinc-400 mr-1.5 align-middle'
+                                      }
+                                      aria-label={`severity ${conflict.severity}`}
+                                    />
+                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                      [{conflict.type}]
+                                    </span>{' '}
+                                    {conflict.description}
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   {agentOrchestration && (

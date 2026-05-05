@@ -30,12 +30,37 @@ export type ContextAnnotation =
         risks?: string[];
         verification?: string[];
       }>;
+      consensus?: {
+        algorithm: 'QUORUM' | 'BYZANTINE_PBFT' | 'WEIGHTED_PLURALITY';
+        outcome: 'ACCEPTED' | 'REJECTED' | 'PARTIAL' | 'ABSTAINED';
+        threshold: number;
+        agreementScore: number;
+        rounds: number;
+        durationMs: number;
+        claimVotes: Array<{
+          claim: string;
+          type: 'risk' | 'verification' | 'file';
+          supporters: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
+          dissenters: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
+          agreementRatio: number;
+          decision: 'accepted' | 'rejected' | 'inconclusive';
+        }>;
+        conflicts: Array<{
+          type: 'file-overlap' | 'risk-disagreement' | 'verification-gap' | 'role-failure';
+          description: string;
+          involvedRoles: Array<'architect' | 'frontend' | 'backend' | 'devops' | 'qa'>;
+          severity: 'low' | 'medium' | 'high';
+        }>;
+      };
     }
   | {
       type: 'agentMemory';
       memories: Array<{
         id: string;
         scope: string;
+        memoryType?: string;
+        tags?: string[];
+        accessCount?: number;
         summary: string;
         score?: number;
       }>;
