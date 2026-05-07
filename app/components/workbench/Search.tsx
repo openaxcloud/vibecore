@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { debounce } from '~/utils/debounce';
 
 interface DisplayMatch {
@@ -163,6 +163,7 @@ export function Search() {
                     const previewStart = isStart ? 0 : match.matchCharStart - contextChars;
                     const previewText = match.previewText.slice(previewStart);
                     const matchStart = isStart ? match.matchCharStart : contextChars;
+
                     const matchEnd = isStart
                       ? match.matchCharEnd
                       : contextChars + (match.matchCharEnd - match.matchCharStart);

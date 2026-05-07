@@ -1,10 +1,10 @@
-import { BaseProvider } from '~/lib/modules/llm/base-provider';
-import type { IProviderSetting } from '~/types/model';
-import type { LanguageModelV1 } from 'ai';
-import type { ModelInfo } from '~/lib/modules/llm/types';
 import { createOpenAI } from '@ai-sdk/openai';
 import { hmac } from '@noble/hashes/hmac';
 import { sha256 } from '@noble/hashes/sha256';
+import type { LanguageModelV1 } from 'ai';
+import { BaseProvider } from '~/lib/modules/llm/base-provider';
+import type { ModelInfo } from '~/lib/modules/llm/types';
+import type { IProviderSetting } from '~/types/model';
 
 export default class ZaiProvider extends BaseProvider {
   name = 'Z.ai';
@@ -126,6 +126,7 @@ export default class ZaiProvider extends BaseProvider {
       }
 
       const now = Date.now();
+
       const payload = {
         apiKey: id,
         exp: now + 3600 * 1000,
@@ -136,6 +137,7 @@ export default class ZaiProvider extends BaseProvider {
 
       const base64Url = (value: object | Uint8Array) => {
         const bytes = value instanceof Uint8Array ? value : new TextEncoder().encode(JSON.stringify(value));
+
         let binary = '';
 
         for (const byte of bytes) {
@@ -144,7 +146,9 @@ export default class ZaiProvider extends BaseProvider {
 
         return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
       };
+
       const signingInput = `${base64Url(header)}.${base64Url(payload)}`;
+
       const signature = base64Url(
         hmac(sha256, new TextEncoder().encode(secret), new TextEncoder().encode(signingInput)),
       );
@@ -189,6 +193,7 @@ export default class ZaiProvider extends BaseProvider {
     }
 
     const token = this._generateToken(apiKey);
+
     const zaiClient = createOpenAI({
       baseURL: baseUrl,
       apiKey: token,

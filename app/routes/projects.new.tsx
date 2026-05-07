@@ -1,6 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
-import { useMemo, useState } from 'react';
 import {
   BarChart3,
   Code2,
@@ -28,8 +27,9 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { AppShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
-import type { ModelInfo } from '~/lib/modules/llm/types';
+import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
   apiRequest,
   firstOrganization,
@@ -38,7 +38,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
+import type { ModelInfo } from '~/lib/modules/llm/types';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
@@ -336,6 +336,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganization(request);
+
   const body = formObject(await request.formData()) as {
     name?: string;
     prompt?: string;
@@ -343,9 +344,12 @@ export async function action({ request }: EnterpriseActionArgs) {
     model?: string;
     provider?: string;
   };
+
   const prompt = body.prompt?.trim();
+
   const artifactCategory =
     artifactCategories.find((category) => category.id === body.artifactType) ?? artifactCategories[0];
+
   const selected = modelForProvider(body.provider, body.model);
   const selectedProvider = selected.provider?.name ?? DEFAULT_PROVIDER.name;
   const selectedModel = selected.model?.name ?? DEFAULT_MODEL;
@@ -423,11 +427,13 @@ export default function NewProjectPage() {
 
   const activeCategory =
     artifactCategories.find((category) => category.id === selectedCategory) ?? artifactCategories[0];
+
   const activeProvider = providerForName(selectedProvider);
   const activeModels = activeProvider?.staticModels ?? [];
   const activeModel = activeModels.find((model) => model.name === selectedModel) ?? activeModels[0] ?? fallbackModel;
   const ActiveProviderIcon = providerIconByName[activeProvider?.name ?? ''] ?? Sparkles;
   const ActiveCategoryIcon = activeCategory.icon;
+
   const examplePrompts = useMemo(() => {
     const prompts = activeCategory.prompts;
     const offset = promptSeed % prompts.length;

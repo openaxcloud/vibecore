@@ -109,6 +109,7 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
 
   if (event.type === 'comment.create' && event.comment) {
     const commentEvent = event as Extract<CollaborationEvent, { type: 'comment.create' }>;
+
     const comments = snapshot.comments.some((comment) => comment.id === commentEvent.comment.id)
       ? snapshot.comments.map((comment) => (comment.id === commentEvent.comment.id ? commentEvent.comment : comment))
       : [...snapshot.comments, commentEvent.comment];

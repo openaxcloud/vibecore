@@ -27,6 +27,7 @@ export let webcontainerRuntimeAdapter = createBrowserWebContainerRuntime({
 
 if (!import.meta.env.SSR) {
   const inspectorScript = fetch('/inspector-script.js').then((response) => response.text());
+
   const runtime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,
     workdirName: WORK_DIR_NAME,

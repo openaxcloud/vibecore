@@ -13,6 +13,7 @@ import {
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganization(request);
+
   const result = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
     request,
     `/orgs/${organization.id}/roles`,

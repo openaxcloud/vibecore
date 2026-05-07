@@ -4,6 +4,7 @@ import { createSecurityHeaders } from './security';
 describe('createSecurityHeaders', () => {
   it('does not allow inline or eval scripts in CSP', () => {
     const csp = createSecurityHeaders()['Content-Security-Policy'];
+
     const scriptSrc = csp
       .split(';')
       .map((directive) => directive.trim())

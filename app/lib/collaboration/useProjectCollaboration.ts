@@ -19,6 +19,7 @@ export function useProjectCollaboration({
 
     return new ProjectCollaborationClient({ projectId });
   }, [enabled, projectId]);
+
   const [snapshot, setSnapshot] = useState<CollaborationSnapshot | undefined>(() => client?.snapshot);
 
   useEffect(() => {

@@ -70,6 +70,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   if (intent === 'duplicate' || intent === 'fork') {
     const suffix = intent === 'fork' ? 'Fork' : 'Copy';
+
     const duplicated = await apiRequest(request, `/projects/${projectId}/duplicate`, {
       method: 'POST',
       body: JSON.stringify({ name: body.name || `${body.projectName || 'Project'} ${suffix}` }),

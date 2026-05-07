@@ -13,6 +13,7 @@ import {
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const url = new URL(request.url);
+
   const organization = url.searchParams.get('orgId')
     ? { id: url.searchParams.get('orgId')! }
     : await firstOrganization(request);
@@ -21,7 +22,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     request,
     `/orgs/${organization.id}/roles`,
   );
+
   let canManageInvitations = true;
+
   let invitationsResult: {
     invitations: Array<{ id: string; email: string; roleKey: string; acceptedAt?: string; expiresAt: string }>;
   } = { invitations: [] };

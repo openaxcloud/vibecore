@@ -1,25 +1,26 @@
+/* eslint-disable import/order */
 import React from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { classNames } from '~/utils/classNames';
-import { PROVIDER_LIST } from '~/utils/constants';
-import { ModelSelector } from '~/components/chat/ModelSelector';
-import { APIKeyManager } from './APIKeyManager';
-import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
-import FilePreview from './FilePreview';
-import { ScreenshotStateManager } from './ScreenshotStateManager';
-import { SendButton } from './SendButton.client';
-import { IconButton } from '~/components/ui/IconButton';
 import { toast } from 'react-toastify';
+import { ClientOnly } from 'remix-utils/client-only';
+import { APIKeyManager } from './APIKeyManager';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
-import { SupabaseConnection } from './SupabaseConnection';
-import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import styles from './BaseChat.module.scss';
+import FilePreview from './FilePreview';
 import type { ProviderInfo } from '~/types/model';
-import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { McpTools } from './MCPTools';
+import { ScreenshotStateManager } from './ScreenshotStateManager';
+import { SendButton } from './SendButton.client';
+import { SupabaseConnection } from './SupabaseConnection';
 import { WebSearch } from './WebSearch.client';
+import { ModelSelector } from '~/components/chat/ModelSelector';
+import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
+import { IconButton } from '~/components/ui/IconButton';
+import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import { classNames } from '~/utils/classNames';
+import { PROVIDER_LIST } from '~/utils/constants';
 
 interface ChatBoxProps {
   isModelSettingsCollapsed: boolean;

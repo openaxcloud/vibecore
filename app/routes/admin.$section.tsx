@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { Link, useLoaderData } from '@remix-run/react';
-import type React from 'react';
 import { AlertTriangle, BarChart3, CheckCircle2, Database, ShieldCheck } from 'lucide-react';
+import type React from 'react';
 import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
@@ -229,6 +229,7 @@ function OverviewPanel({ payload }: { payload: Record<string, JsonValue> }) {
   const counts = asRecord(payload.counts);
   const cost = asRecord(payload.cost);
   const health = asRecord(payload.health);
+
   const countCards = Object.entries(counts).map(([key, value]) => ({
     label: labelize(key),
     value: String(value ?? 0),

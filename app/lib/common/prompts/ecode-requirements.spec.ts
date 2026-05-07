@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import optimizedPrompt from './optimized';
 import { ECODE_AGENT_REQUIREMENTS, ECODE_PROJECT_REQUIREMENT_LINES } from './ecode-requirements';
 import { getFineTunedPrompt } from './new-prompt';
+import optimizedPrompt from './optimized';
 import { getSystemPrompt } from './prompts';
 
 const requiredPhrases = [

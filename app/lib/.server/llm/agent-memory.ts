@@ -1,6 +1,6 @@
+import type { Messages } from './stream-text';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ContextAnnotation } from '~/types/context';
-import type { Messages } from './stream-text';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('agent-memory');
@@ -44,6 +44,7 @@ export function agentMemoryAnnotation(memories: AgentMemoryContextPayload['memor
 export async function isAgentMemoryEnabled(request: Request, input: { projectId?: string }) {
   try {
     const query = input.projectId ? `?projectId=${encodeURIComponent(input.projectId)}` : '';
+
     const payload = await apiRequest<{ preference?: { enabled?: boolean } }>(
       request,
       `/agent-memory/preferences${query}`,

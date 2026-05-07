@@ -111,6 +111,7 @@ const memoryCache = new Map<string, ProjectIdeMemory>();
 const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
+
 let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
 
@@ -157,6 +158,7 @@ function mergeMessages(existing: Message[] | undefined, incoming: Message[] | un
 
 function mergeProjectIdeMemory(existing: ProjectIdeMemory, patch: ProjectIdeMemory): ProjectIdeMemory {
   const clearMessages = patch.chat?.clearMessages;
+
   const mergedChat = patch.chat
     ? {
         ...existing.chat,

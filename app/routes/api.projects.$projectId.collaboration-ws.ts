@@ -17,6 +17,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const url = new URL(request.url);
   const sessionId = url.searchParams.get('sessionId') ?? undefined;
+
   const ticketPath = `/projects/${params.projectId}/collaboration/ws-ticket${
     sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''
   }`;
@@ -26,6 +27,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     expiresInSeconds: number;
     websocketPath: string;
   }>(request, ticketPath);
+
   const websocketUrl = new URL(`${apiWebSocketOrigin()}${ticket.websocketPath}`);
   websocketUrl.searchParams.set('ticket', ticket.ticket);
   websocketUrl.searchParams.set('sessionId', ticket.sessionId);

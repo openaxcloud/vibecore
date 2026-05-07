@@ -20,6 +20,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export default function UsagePage() {
   const data = useLoaderData<typeof loader>();
+
   const used = (key: string) =>
     data.quotaUsage?.[key] ??
     data.usage.filter((event) => event.type === key).reduce((sum, event) => sum + event.quantity, 0);

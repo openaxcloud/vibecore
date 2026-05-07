@@ -70,7 +70,9 @@ describe('E-Code agent orchestration', () => {
       messages: [{ role: 'user', content: 'Build a full-stack app with backend APIs, auth, deploy and tests.' }],
       subagentsAvailable: true,
     });
+
     const calls: Array<{ url: string; init: RequestInit }> = [];
+
     const fetchImpl = async (url: string | URL | Request, init?: RequestInit) => {
       calls.push({ url: String(url), init: init ?? {} });
 
@@ -111,7 +113,9 @@ describe('E-Code agent orchestration', () => {
       messages: [{ role: 'user', content: 'Build a full-stack app with backend APIs, auth, deploy and tests.' }],
       subagentsAvailable: true,
     });
+
     const calls: Array<{ init: RequestInit }> = [];
+
     const fetchImpl = async (_url: string | URL | Request, init?: RequestInit) => {
       calls.push({ init: init ?? {} });
 
@@ -219,6 +223,7 @@ describe('E-Code agent orchestration', () => {
 
   it('buildAgentExecutionAnnotation maps consensus into the streamable annotation shape', async () => {
     const { buildAgentExecutionAnnotation } = await import('./agent-orchestration');
+
     const annotation = buildAgentExecutionAnnotation({
       runId: 'run_anno',
       status: 'complete',
@@ -257,6 +262,7 @@ describe('E-Code agent orchestration', () => {
 
   it('buildAgentExecutionAnnotation skips consensus field when absent', async () => {
     const { buildAgentExecutionAnnotation } = await import('./agent-orchestration');
+
     const annotation = buildAgentExecutionAnnotation({
       runId: 'run_no_consensus',
       status: 'complete',

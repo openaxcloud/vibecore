@@ -51,6 +51,7 @@ export default function MfaSetupPage() {
   const actionData = useActionData<typeof action>() as
     | { status?: string; error?: string; secret?: string; otpauthUrl?: string }
     | undefined;
+
   const navigation = useNavigation();
   const submittingIntent = navigation.formData?.get('intent');
   const isGenerating = navigation.state === 'submitting' && submittingIntent === 'setup';

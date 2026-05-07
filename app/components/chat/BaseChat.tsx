@@ -2,31 +2,34 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import type { JSONValue, Message } from 'ai';
-import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ClientOnly } from 'remix-utils/client-only';
-import { PanelGroup } from 'react-resizable-panels';
+/* eslint-disable import/order */
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
+import type { JSONValue, Message } from 'ai';
+import Cookies from 'js-cookie';
+import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PanelGroup } from 'react-resizable-panels';
+import { ClientOnly } from 'remix-utils/client-only';
+import { getApiKeysFromCookies } from './APIKeyManager';
+import styles from './BaseChat.module.scss';
+import ChatAlert from './ChatAlert';
+import GitCloneButton from './GitCloneButton';
+import { Messages } from './Messages.client';
+import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
+import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { Preview } from '~/components/workbench/Preview';
 import { FileTree } from '~/components/workbench/FileTree';
+import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
-import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileMap } from '~/lib/stores/files';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { themeStore } from '~/lib/stores/theme';
+import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
-import { Messages } from './Messages.client';
-import { getApiKeysFromCookies } from './APIKeyManager';
-import Cookies from 'js-cookie';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import styles from './BaseChat.module.scss';
-import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
-import GitCloneButton from './GitCloneButton';
-import type { ProviderInfo } from '~/types/model';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
@@ -36,8 +39,6 @@ import {
   DEFAULT_DEPLOY_OUTPUT_DIRECTORY,
   detectFrameworkFromDeployConfig,
 } from '~/components/deploy/deployUtils';
-import ChatAlert from './ChatAlert';
-import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { useProjectCollaboration } from '~/lib/collaboration/useProjectCollaboration';
 
@@ -62,6 +63,7 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
+
 const IDE_MANAGEMENT_PANELS = [
   'overview',
   'database',
@@ -83,8 +85,10 @@ const IDE_MANAGEMENT_PANELS = [
   'snapshots',
   'settings',
 ] as const;
+
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
+
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
   database: 'SQL browser',
@@ -296,6 +300,7 @@ function timeAgo(value?: string) {
   }
 
   const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+
   const units: Array<[number, string]> = [
     [60 * 60 * 24 * 365, 'year'],
     [60 * 60 * 24 * 30, 'month'],
@@ -355,16 +360,20 @@ function buildProjectAgentSuggestions(input: {
     activePanel,
     chatStarted,
   } = input;
+
   const filePaths = projectFileNames(files);
   const changedFiles = backendState.git?.changedFiles?.length ?? 0;
+
   const recentText = messages
     .slice(-6)
     .map((message) => String(message.content ?? ''))
     .join(' ')
     .toLowerCase();
+
   const lastUserText = [...messages].reverse().find((message) => message.role === 'user')?.content;
   const recentLogs = workspaceLogs.slice(-40).join('\n').toLowerCase();
   const previewRunning = (runtimeState.ports ?? []).some((port) => port.ready !== false);
+
   const hasPackageJson = hasProjectFile(
     files,
     (filePath) => filePath.endsWith('/package.json') || filePath === 'package.json',
@@ -380,13 +389,17 @@ function buildProjectAgentSuggestions(input: {
   const hasDbFiles = hasProjectFile(files, (filePath) =>
     /(schema\.prisma|supabase|drizzle|migrations|tenders\.json|database|db\.)/i.test(filePath),
   );
+
   const hasUiFiles = hasProjectFile(files, (filePath) => /\.(tsx|jsx|css|scss)$/.test(filePath));
+
   const hasApiFiles = hasProjectFile(files, (filePath) =>
     /(api|server|route|routes|controller|handler)/i.test(filePath),
   );
+
   const selectedLabel = selectedFile ? selectedFile.split('/').slice(-2).join('/') : undefined;
 
   const suggestions: ProjectAgentSuggestion[] = [];
+
   const add = (suggestion: ProjectAgentSuggestion) => {
     if (!suggestions.some((item) => item.id === suggestion.id || item.prompt === suggestion.prompt)) {
       suggestions.push(suggestion);
@@ -817,9 +830,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
+
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
       'chat',
     );
+
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
@@ -860,16 +875,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
+
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
     >([]);
+
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
     const [rollbackDatabase, setRollbackDatabase] = useState(false);
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
+
     const [cursorPositions, setCursorPositions] = useState<
       Record<string, { line: number; column: number; offset?: number }>
     >({});
+
     const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
     const [recentTabIds, setRecentTabIds] = useState<string[]>([]);
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
@@ -887,7 +906,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () => Object.keys(projectFiles).filter((filePath) => projectFiles[filePath]?.type === 'file'),
       [projectFiles],
     );
+
     const recentProjectFiles = useMemo(() => projectFilePaths.slice(0, 5), [projectFilePaths]);
+
     const backendLockedItems = useMemo(
       () =>
         Object.entries(projectFiles)
@@ -898,7 +919,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           })),
       [projectFiles],
     );
+
     const backendDeletedPaths = useMemo(() => workbenchStore.getDeletedPaths(), [projectFiles]);
+
     const projectRuntimeState = useMemo<ProjectIdeBackendState>(() => {
       if (!runtimePreviews.length) {
         return projectBackendState;
@@ -939,11 +962,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           updatedAt: undefined,
         },
       ].filter((conversation) => conversation.messages.length);
+
       const checkpoints: ProjectConversationCheckpoint[] = [];
+
       let checkpointNumber = 0;
 
       conversationSources.forEach((conversation) => {
         let lastUserMessage: Message | undefined;
+
         const assistantCheckpointsBeforeConversation = checkpoints.length;
 
         conversation.messages.forEach((message, index) => {
@@ -982,8 +1008,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (checkpoints.length === assistantCheckpointsBeforeConversation && conversation.messages.length) {
           const lastMessage = conversation.messages[conversation.messages.length - 1];
           const firstUserMessage = conversation.messages.find((message) => message.role === 'user');
+
           const createdAt =
             messageCreatedAt(lastMessage) ?? messageCreatedAt(firstUserMessage) ?? conversation.updatedAt;
+
           const snapshot = projectSnapshots[checkpointNumber] ?? projectSnapshots[projectSnapshots.length - 1];
 
           checkpoints.push({
@@ -1125,6 +1153,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       let cancelled = false;
+
       const safeProjectId = projectId;
 
       async function loadProjectHistory() {
@@ -1322,6 +1351,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       let attempts = 0;
+
       const interval = window.setInterval(() => {
         attempts += 1;
 
@@ -1909,6 +1939,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const panels: Array<typeof mobilePanel> = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'];
+
       const onKeyDown = (event: KeyboardEvent) => {
         const index = Number(event.key) - 1;
 
@@ -2432,6 +2463,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setPaneTree((currentTree) =>
         updateLeaf(currentTree, paneId, (leaf) => {
           const targetIndex = tabId ? leaf.tabs.findIndex((tab) => tab.id === tabId) : -1;
+
           const tabs = leaf.tabs.filter((tab, index) => {
             if (tab.pinned) {
               return true;
@@ -2447,6 +2479,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             return targetIndex < 0 || index <= targetIndex;
           });
+
           const safeTabs = tabs;
           const activeTabId = safeTabs.some((tab) => tab.id === leaf.activeTabId) ? leaf.activeTabId : safeTabs[0]?.id;
 
@@ -2508,6 +2541,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const sourceLeaf = findLeaf(paneTree, sourcePaneId);
         const targetLeaf = findLeaf(paneTree, targetPaneId);
         const sourceTab = sourceLeaf?.tabs.find((tab) => tab.id === sourceTabId);
+
         const targetTab =
           targetLeaf?.tabs.find((tab) => tab.id === targetTabId) ??
           targetLeaf?.tabs.find((tab) => tab.id === targetLeaf.activeTabId) ??
@@ -2538,6 +2572,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [paneTree, setSearchParams],
     );
+
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
@@ -2568,6 +2603,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     workbenchStore.setCurrentDocumentContent(update.value);
 
                     const filePath = currentDocument.filePath;
+
                     let line = 1;
                     let lastLineStart = 0;
 
@@ -2666,6 +2702,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const renderPaneLeaf = useCallback(
       (leaf: IdePaneLeaf) => {
         const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
+
         const canAcceptPaneDrop = (event: React.DragEvent) =>
           Array.from(event.dataTransfer.types).includes('application/x-vibecore-tab-id');
         const activatePaneDrop = (event: React.DragEvent) => {
@@ -3434,13 +3471,16 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const selectedFile = useStore(workbenchStore.selectedFile);
+
   const collaborationRealtime = useProjectCollaboration({
     projectId,
     enabled: panel === 'collaborators' && Boolean(projectId),
     filePath: selectedFile,
     mode: 'editing',
   });
+
   const title = panelTitle(panel);
+
   const rendersEmptyStateActions =
     panel === 'deployments' ||
     panel === 'env' ||
@@ -3545,6 +3585,7 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
         method: 'POST',
         body: new FormData(form),
       });
+
       const result = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
@@ -3726,6 +3767,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         headers: { accept: 'application/json' },
       });
+
       const result = (await response.json()) as any;
 
       if (!response.ok) {
@@ -3765,6 +3807,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
         method: 'POST',
         body: new FormData(form),
       });
+
       const result = (await response.json().catch(() => ({}))) as any;
 
       if (!response.ok) {
@@ -3823,6 +3866,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       `/api/projects/${projectId}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(key)}`,
       { headers: { accept: 'application/json' } },
     );
+
     const result = (await response.json()) as any;
 
     if (!response.ok || result.status === 'error') {
@@ -4245,6 +4289,7 @@ function ProjectFilesTool({
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const fileCount = Object.values(files ?? {}).filter((entry: any) => entry?.type === 'file').length;
+
   const filteredFiles = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
 
@@ -4369,6 +4414,7 @@ function IdeTabBar({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ left: 0, top: 44 });
   const [toolQuery, setToolQuery] = useState('');
+
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
     ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF', 'Workspace'],
     ['editor', 'Code', 'Code editor', 'i-ph:code', '#0099FF', 'Workspace'],
@@ -4395,7 +4441,9 @@ function IdeTabBar({
     ['domains', 'Domains', 'Custom domains', 'i-ph:globe', '#0099FF', 'Delivery'],
     ['settings', 'Settings', 'Project settings', 'i-ph:gear', '#C2C8CC', 'Configuration'],
   ];
+
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
+
   const filteredRecentFiles = recentFiles
     .filter((filePath) => !normalizedToolQuery || filePath.toLowerCase().includes(normalizedToolQuery))
     .slice(0, 5);
@@ -4861,6 +4909,7 @@ function ProjectIdePanelContent({
   if (panel === 'deployments') {
     const deployments = data.deployments ?? [];
     const latestDeployment = deployments[0];
+
     const inferredFramework = detectFrameworkFromDeployConfig({
       buildCommand: latestDeployment?.buildCommand,
       outputDirectory: latestDeployment?.outputDirectory,
@@ -4994,6 +5043,7 @@ function ProjectIdePanelContent({
     const terminalPermissions = data.terminalPermissions ?? {};
     const aiConversation = data.aiConversation ?? { shared: false, mode: 'comment' };
     const realtime = data.realtime ?? { status: 'idle' };
+
     const realtimeLabel =
       realtime.status === 'connected'
         ? 'Live'
@@ -5236,6 +5286,7 @@ function ProjectSettingsPanel({
     gitRepositoryUrl: settings.gitRepositoryUrl ?? '',
     gitDefaultBranch: settings.gitDefaultBranch ?? 'main',
   });
+
   const [settingsTab, setSettingsTab] = useState('project');
   const [memoryDraft, setMemoryDraft] = useState('');
   const [memoryType, setMemoryType] = useState('semantic');
@@ -5256,6 +5307,7 @@ function ProjectSettingsPanel({
   const secrets = data.secrets ?? [];
   const billing = data.billing ?? {};
   const aiUsage = data.aiUsage?.usage ?? [];
+
   const providers = [
     ['openai', 'OpenAI', 'OPENAI_API_KEY'],
     ['anthropic', 'Anthropic', 'ANTHROPIC_API_KEY'],
@@ -5317,7 +5369,9 @@ function ProjectSettingsPanel({
           headers: { accept: 'application/json' },
         },
       );
+
       const payload = (await response.json()) as { memories?: any[]; error?: string };
+
       const preferencePayload = (await preferenceResponse.json().catch(() => ({}))) as {
         preference?: { enabled?: boolean };
         error?: string;
@@ -5370,6 +5424,7 @@ function ProjectSettingsPanel({
           force: true,
         }),
       });
+
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
@@ -5395,6 +5450,7 @@ function ProjectSettingsPanel({
         method: 'DELETE',
         headers: { accept: 'application/json' },
       });
+
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
@@ -5461,6 +5517,7 @@ function ProjectSettingsPanel({
           tags: parseMemoryTags(memoryEditTags),
         }),
       });
+
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
@@ -5951,6 +6008,7 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
   const exportCount = (data.recentActivity ?? []).filter((event: any) => event.action === 'project.export_zip').length;
   const [prefix, setPrefix] = useState('');
   const files = (data.files ?? []) as Array<{ path?: string; sizeBytes?: number; updatedAt?: string }>;
+
   const objects: Array<{ key: string; size: string; status: string }> = files
     .filter((file: any) => String(file.path ?? '').startsWith(prefix))
     .slice(0, 24)
@@ -5959,6 +6017,7 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
       size: typeof file.sizeBytes === 'number' ? `${Math.ceil(file.sizeBytes / 1024)} KB` : 'unknown size',
       status: file.updatedAt ? new Date(file.updatedAt).toLocaleString() : 'stored',
     }));
+
   const [selectedObject, setSelectedObject] = useState('');
 
   return (
@@ -6027,6 +6086,7 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
 function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const [query, setQuery] = useState('');
   const storedPlan = (data.envVars ?? []).find((item: any) => item.key === 'PACKAGE_INSTALL_PLAN')?.value;
+
   const [pendingPackages, setPendingPackages] = useState<string[]>(
     typeof storedPlan === 'string'
       ? storedPlan
@@ -6035,6 +6095,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           .filter(Boolean)
       : [],
   );
+
   const packageFiles = (data.files ?? []).filter((file: any) => String(file.path ?? '').endsWith('package.json'));
   const visiblePackages = pendingPackages.filter((pkg) => pkg.toLowerCase().includes(query.toLowerCase()));
 
@@ -6116,6 +6177,7 @@ function ProjectMonitoringPanel({
   const deployments = data.deployments ?? [];
   const activityCount = data.recentActivity?.length ?? 0;
   const workspaceStatus = data.workspace?.status ?? 'inactive';
+
   const metrics = [
     ['Workspace', workspaceStatus, data.workspace?.runtimeMode ?? 'No runtime session'],
     ['Deployments', String(deployments.length), deployments[0]?.status ?? 'No deployment'],
@@ -6170,6 +6232,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
   const deploymentInstalled = (data.deployments ?? [])
     .filter((deployment: any) => String(deployment.provider ?? '').startsWith('extension:'))
     .map((deployment: any) => deployment.provider.replace('extension:', ''));
+
   const installed = Array.from(new Set([...envInstalled, ...deploymentInstalled]));
   const [selected, setSelected] = useState(installed[0] ?? '');
 
@@ -6216,6 +6279,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
 
 function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const state = data.workflowsState ?? {};
+
   const workflows = (state.workflows ?? []).slice().sort((left: any, right: any) => {
     if (left.isGenerated !== right.isGenerated) {
       return left.isGenerated ? -1 : 1;
@@ -6223,6 +6287,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
 
     return String(left.name ?? '').localeCompare(String(right.name ?? ''));
   });
+
   const runs = state.runs ?? [];
   const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -6538,6 +6603,7 @@ function ProjectIntegrationsPanel({ data, onSubmit, busy }: { data: any; onSubmi
   const [showWebhookForm, setShowWebhookForm] = useState(false);
   const [showApiKeyForm, setShowApiKeyForm] = useState(false);
   const [showStreamForm, setShowStreamForm] = useState(false);
+
   const catalog = INTEGRATION_CATALOG.map(([id, name, description, itemCategory, icon]) => ({
     id,
     name,
@@ -6546,12 +6612,15 @@ function ProjectIntegrationsPanel({ data, onSubmit, busy }: { data: any; onSubmi
     icon,
     ...(integrationState[id] ?? {}),
   }));
+
   const connected = catalog.filter((item) => item.connected);
+
   const filtered = catalog.filter(
     (item) =>
       (category === 'all' || item.category === category) &&
       `${item.name} ${item.description}`.toLowerCase().includes(query.toLowerCase()),
   );
+
   const selected = catalog.find((item) => item.id === selectedIntegrationId) ?? null;
   const secretKeys = new Set(secrets.map((secret: any) => secret.key));
 
@@ -6908,6 +6977,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<{ key: string; value?: string } | null>(null);
   const [message, setMessage] = useState('');
+
   const filtered = envVars.filter((item: any) =>
     [item.key, item.value, item.updatedAt].join(' ').toLowerCase().includes(query.toLowerCase()),
   );
@@ -6988,6 +7058,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
 function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const [activeTab, setActiveTab] = useState<'connection' | 'env' | 'activity'>('connection');
   const databaseVars = (data.envVars ?? []).filter((item: any) => /DATABASE|POSTGRES|SQL/i.test(item.key));
+
   const tableRows = databaseVars.length
     ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
     : [['Database status', 'No database connection configured for this project']];
@@ -7042,6 +7113,7 @@ function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: a
 function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {
   const [cleared, setCleared] = useState(false);
   const [split, setSplit] = useState(false);
+
   const lines = cleared
     ? []
     : [
@@ -7130,6 +7202,7 @@ function ProjectSecretsPanel({
       )}`,
       { headers: { accept: 'application/json' } },
     );
+
     const result = (await response.json()) as any;
     const value = result?.data?.secret?.value;
 

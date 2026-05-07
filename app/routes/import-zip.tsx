@@ -17,6 +17,7 @@ type Project = { id: string };
 
 function base64FromArrayBuffer(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
+
   let binary = '';
 
   for (let index = 0; index < bytes.byteLength; index += 0x8000) {

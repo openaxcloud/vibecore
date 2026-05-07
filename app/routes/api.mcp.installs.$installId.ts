@@ -11,6 +11,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   if (method === 'PATCH') {
     const body = await request.text();
+
     const payload = await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, {
       method: 'PATCH',
       body,

@@ -1,10 +1,10 @@
 import { atom, map } from 'nanostores';
-import { PROVIDER_LIST } from '~/utils/constants';
-import type { IProviderConfig } from '~/types/model';
-import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
-import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
-import { toggleTheme } from './theme';
 import { create } from 'zustand';
+import { toggleTheme } from './theme';
+import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
+import type { TabVisibilityConfig, TabWindowConfig, UserTabConfig } from '~/components/@settings/core/types';
+import type { IProviderConfig } from '~/types/model';
+import { PROVIDER_LIST } from '~/utils/constants';
 
 export interface Shortcut {
   key: string;
@@ -351,6 +351,7 @@ const getInitialTabConfiguration = (): TabWindowConfig => {
     const savedUserTabs = parsed.userTabs.filter(
       (tab: TabVisibilityConfig): tab is UserTabConfig => tab.window === 'user',
     );
+
     const savedUserTabMap = new Map<string, UserTabConfig>(savedUserTabs.map((tab: UserTabConfig) => [tab.id, tab]));
 
     return {

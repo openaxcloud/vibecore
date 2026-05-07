@@ -1,6 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '@nanostores/react';
-import { toast } from 'react-toastify';
 import {
   Cloud,
   Database,
@@ -19,15 +17,17 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { IconButton } from '~/components/ui/IconButton';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import type { ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
-import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
-import type { ElementInfo } from './Inspector';
-import type { FileMap } from '~/lib/stores/files';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import type { FileMap } from '~/lib/stores/files';
+import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 type ResizeSide = 'left' | 'right' | null;
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom';
@@ -186,6 +186,7 @@ function buildStaticPreviewHtml(files: FileMap) {
 
   let inlinedAnyModule = false;
   let canInlineModules = true;
+
   const html = indexHtml.replace(
     /<script\b([^>]*\btype=["']module["'][^>]*)\bsrc=["']([^"']+)["']([^>]*)><\/script>/gi,
     (match, beforeSrc: string, sourcePath: string, afterSrc: string) => {
@@ -294,11 +295,13 @@ export const Preview = memo(
     const workspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
     const files = useStore(workbenchStore.files);
+
     const normalizedActivePreviewIndex = previews[activePreviewIndex]
       ? activePreviewIndex
       : previews.length > 0
         ? 0
         : -1;
+
     const activePreview = normalizedActivePreviewIndex >= 0 ? previews[normalizedActivePreviewIndex] : undefined;
     const [displayPath, setDisplayPath] = useState('/');
     const [addressInput, setAddressInput] = useState('/');
@@ -335,12 +338,14 @@ export const Preview = memo(
     const [logsOpen, setLogsOpen] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const workspaceReady = !projectId || (!workspaceLoading && Boolean(workspaceStatus));
+
     const previewableFilesSignature = Object.keys(files)
       .filter((filePath) =>
         /(^|\/)(package\.json|index\.html|src\/App\.(tsx|ts|jsx|js)|app\/page\.(tsx|ts|jsx|js))$/.test(filePath),
       )
       .sort()
       .join('|');
+
     const staticPreviewHtml = buildStaticPreviewHtml(files);
     const lastPreviewableFilesSignature = useRef(previewableFilesSignature);
 
@@ -523,6 +528,7 @@ export const Preview = memo(
       }
 
       let tick = 0;
+
       const interval = window.setInterval(() => {
         tick += 1;
         void workbenchStore.refreshRuntimePorts().catch(() => undefined);
@@ -908,6 +914,7 @@ export const Preview = memo(
           // Create the HTML content for the frame
           const frameColor = getFrameColor();
           const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+
           const framePadding =
             size.frameType === 'mobile'
               ? isLandscape

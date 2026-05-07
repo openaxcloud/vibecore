@@ -1,9 +1,7 @@
+import { useStore } from '@nanostores/react';
 import { type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
-import { ClientOnly } from 'remix-utils/client-only';
 import { Link } from '@remix-run/react';
-import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
-import { useStore } from '@nanostores/react';
 import {
   Bell,
   ChevronDown,
@@ -21,6 +19,8 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
@@ -54,6 +54,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   try {
     const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
+
     const [collaboratorsResult, dashboardResult] = await Promise.all([
       apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
         request,
@@ -133,6 +134,7 @@ function IdeProjectTopBar({
   const [filesPanelOpen, setFilesPanelOpen] = useState(true);
   const previewRunning = previews.length > 0;
   const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
+
   const statusLabel =
     state === 'building'
       ? 'Building...'
@@ -468,6 +470,7 @@ function ProjectMenuAction({
           }
 
           const response = await fetch(action, { method: 'POST', body: form, credentials: 'include' });
+
           const result = (await response.json().catch(() => ({}))) as {
             project?: { project?: { id?: string }; id?: string };
           };

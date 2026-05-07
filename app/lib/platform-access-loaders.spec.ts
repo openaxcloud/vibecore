@@ -72,6 +72,7 @@ describe('platform access loaders', () => {
       params: {},
       context: {} as never,
     });
+
     const payload = await response.json();
 
     expect(payload.canManageInvitations).toBe(false);

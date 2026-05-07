@@ -12,6 +12,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   }
 
   const body = method === 'PATCH' ? await request.text() : undefined;
+
   const payload = await apiRequest(request, `/agent-memory/${encodeURIComponent(params.memoryId)}`, {
     method,
     ...(body ? { body } : {}),

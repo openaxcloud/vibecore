@@ -28,6 +28,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     apiRequest<{ project: Project }>(request, `/projects/${projectId}`),
     firstOrganization(request),
   ]);
+
   const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
 
   return json({ project: projectResult.project, organization, domains: domains.domains });

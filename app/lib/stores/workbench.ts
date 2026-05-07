@@ -1,25 +1,26 @@
-import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
+/* eslint-disable import/order */
+import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
-import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
-import { ActionRunner } from '~/lib/runtime/action-runner';
-import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
-import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
-import type { ITerminal } from '~/types/terminal';
-import { unreachable } from '~/utils/unreachable';
+import fileSaver from 'file-saver';
+import Cookies from 'js-cookie';
+import JSZip from 'jszip';
+import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
-import JSZip from 'jszip';
-import fileSaver from 'file-saver';
-import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
-import { GitLabApiService } from '~/lib/services/gitlabApiService';
+import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { description } from '~/lib/persistence';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import { ActionRunner } from '~/lib/runtime/action-runner';
+import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
+import { unreachable } from '~/utils/unreachable';
+import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { WORK_DIR } from '~/utils/constants';
 import { extractRelativePath } from '~/utils/diff';
-import { description } from '~/lib/persistence';
-import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -49,6 +50,7 @@ export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 const WORKSPACE_LOG_LIMIT = 500;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
+
 const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
   '.git',
   '.next',
@@ -61,9 +63,11 @@ const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
   'node_modules',
   'out',
 ]);
+
 const PROJECT_STORAGE_SYNC_EXCLUDED_FILES = new Set(['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', '.DS_Store']);
 const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
+
 const IMPORT_TO_RUNTIME_DEPENDENCY: Record<string, string> = {
   '@hookform/resolvers': '@hookform/resolvers',
   '@radix-ui/react-accordion': '@radix-ui/react-accordion',
@@ -128,6 +132,7 @@ function workspaceLogLines(event: CommandEvent | string) {
 
 function inferRuntimeDependenciesFromImports(files: Record<string, string>) {
   const dependencies = new Set<string>();
+
   const importPatterns = [
     /\bimport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
     /\bexport\s+(?:type\s+)?(?:[\s\S]*?\s+from\s+)?['"]([^'"]+)['"]/g,
@@ -342,6 +347,7 @@ export class WorkbenchStore {
 
   async stopPreviewServer() {
     const processes = await this.#runtime.listProcesses().catch(() => []);
+
     const previewProcesses = processes.filter((process) => {
       const command = [process.command, ...(process.args ?? [])].join(' ').toLowerCase();
 
@@ -413,6 +419,7 @@ export class WorkbenchStore {
           dependencies?: Record<string, string>;
           devDependencies?: Record<string, string>;
         };
+
         const scripts = pkg.scripts ?? {};
         const cwd = this.#runtimeCwdForPackageJson(packageJsonEntry[0]);
         const setupCommands = await this.#previewSetupCommands(packageJsonEntry[0], pkg, forceInstall);
@@ -488,9 +495,11 @@ export class WorkbenchStore {
   #packageJsonCwd(packageJsonPath: string) {
     const normalizedPath = packageJsonPath.replaceAll('\\', '/').replace(/^\/+/, '');
     const workdirPrefix = `${WORK_DIR.replace(/^\/+/, '')}/`;
+
     const relativePath = normalizedPath.startsWith(workdirPrefix)
       ? normalizedPath.slice(workdirPrefix.length)
       : normalizedPath;
+
     const directory = relativePath.replace(/\/?package\.json$/, '');
 
     return directory && directory !== relativePath ? directory : undefined;
@@ -916,6 +925,7 @@ export class WorkbenchStore {
 
         if (isCurrentFile) {
           const files = this.files.get();
+
           let nextFile: string | undefined = undefined;
 
           for (const [path, dirent] of Object.entries(files)) {
@@ -959,6 +969,7 @@ export class WorkbenchStore {
 
         if (isInCurrentFolder) {
           const files = this.files.get();
+
           let nextFile: string | undefined = undefined;
 
           for (const [path, dirent] of Object.entries(files)) {
@@ -1177,6 +1188,7 @@ export class WorkbenchStore {
       excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
       excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
     });
+
     const requiredDependencies = inferRuntimeDependenciesFromImports(files);
 
     if (!requiredDependencies.size) {
@@ -1184,16 +1196,21 @@ export class WorkbenchStore {
     }
 
     const packageJsonPath = packageJsonFilePath.replace(/^\/+/, '');
+
     const packageJson = JSON.parse(packageJsonFile.content) as {
       dependencies?: Record<string, string>;
       devDependencies?: Record<string, string>;
     };
+
     const dependencies = { ...(packageJson.dependencies ?? {}) };
     const devDependencies = packageJson.devDependencies ?? {};
+
     const missing = [...requiredDependencies].filter(
       (dependency) => !dependencies[dependency] && !devDependencies[dependency],
     );
+
     let changed = missing.length > 0;
+
     const normalizedDependencies = { ...dependencies };
 
     for (const dependency of new Set([...Object.keys(normalizedDependencies), ...requiredDependencies])) {
@@ -1240,7 +1257,9 @@ export class WorkbenchStore {
         excludeDirectory: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES.has(name),
         excludeFile: (name) => PROJECT_STORAGE_SYNC_EXCLUDED_FILES.has(name),
       });
+
       const zip = new JSZip();
+
       let fileCount = 0;
       let totalBytes = 0;
 
@@ -1369,6 +1388,7 @@ export class WorkbenchStore {
       if (dirent?.type === 'file' && !dirent.isBinary) {
         const relativePath = extractRelativePath(filePath);
         const pathSegments = relativePath.split('/');
+
         let currentHandle = targetHandle;
 
         for (let i = 0; i < pathSegments.length - 1; i++) {
@@ -1533,6 +1553,7 @@ export class WorkbenchStore {
               repo: repo.name,
               ref: `heads/${repo.default_branch || 'main'}`, // Handle dynamic branch
             });
+
             const latestCommitSha = ref.object.sha;
 
             // Create a new tree

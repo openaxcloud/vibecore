@@ -2,8 +2,8 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { Activity, FileCode2, GitBranch, MonitorPlay, Rocket } from 'lucide-react';
 import { ActivityList, ProjectShell, StatGrid } from '~/components/dashboard/SaaSLayout';
-import { projectPageLoader, type ProjectRecord } from '~/lib/project-route.server';
 import type { EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectPageLoader, type ProjectRecord } from '~/lib/project-route.server';
 
 type DashboardData = {
   project: ProjectRecord;

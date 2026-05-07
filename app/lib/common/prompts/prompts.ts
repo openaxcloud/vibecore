@@ -1,8 +1,8 @@
+import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
 import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
 import { stripIndents } from '~/utils/stripIndent';
-import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
 
 export const getSystemPrompt = (
   cwd: string = WORK_DIR,

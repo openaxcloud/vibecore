@@ -1,8 +1,8 @@
 import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
-import type { ITerminal } from '~/types/terminal';
-import { withResolvers } from './promises';
 import { atom } from 'nanostores';
+import { withResolvers } from './promises';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
+import type { ITerminal } from '~/types/terminal';
 
 export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITerminal) {
   const session = await runtime.openTerminal({
@@ -15,6 +15,7 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
   });
 
   const jshReady = withResolvers<void>();
+
   let isInteractive = false;
 
   void (async () => {

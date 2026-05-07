@@ -46,6 +46,7 @@ const getDiskInfo = (): DiskInfo[] => {
   try {
     // Different commands for different operating systems
     const platform = process.platform;
+
     let disks: DiskInfo[] = [];
 
     if (platform === 'darwin') {

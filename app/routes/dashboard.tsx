@@ -57,6 +57,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`),
     optionalBillingRequest(request, organization.id),
   ]);
+
   const { billing, billingAccessLimited } = billingResult;
 
   return {

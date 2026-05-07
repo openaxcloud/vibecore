@@ -1,5 +1,3 @@
-import { useEffect, useState } from 'react';
-import type React from 'react';
 import { Form, Link, NavLink } from '@remix-run/react';
 import {
   Activity,
@@ -36,6 +34,9 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import type React from 'react';
+import type { IconType } from 'react-icons';
 import {
   SiAnthropic,
   SiExpo,
@@ -53,7 +54,6 @@ import {
   SiTypescript,
   SiVite,
 } from 'react-icons/si';
-import type { IconType } from 'react-icons';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { classNames } from '~/utils/classNames';

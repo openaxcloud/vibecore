@@ -4,6 +4,7 @@ import { createServer, type Server } from 'node:http';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
+import WebSocket from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';

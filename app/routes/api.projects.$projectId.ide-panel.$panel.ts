@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   apiRequest,
   clearSessionCookie,
@@ -7,7 +8,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { randomUUID } from 'node:crypto';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
@@ -59,6 +59,7 @@ function panelEnvelope<T>(panel: string, project: unknown, data: T): IdePanelEnv
 function panelEnvelopeError(panel: string, project: unknown, error: unknown): IdePanelEnvelope<null> {
   const message = error instanceof Error ? error.message : 'Failed to load panel data';
   const status = (error as { status?: number } | undefined)?.status;
+
   const code =
     status === 401
       ? 'PANEL_AUTH'
@@ -69,6 +70,7 @@ function panelEnvelopeError(panel: string, project: unknown, error: unknown): Id
           : status && status >= 500
             ? 'PANEL_BACKEND_UNAVAILABLE'
             : 'PANEL_REQUEST_FAILED';
+
   const retryable = !status || status >= 500 || status === 408 || status === 429;
 
   return {
@@ -146,6 +148,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
     try {
       const key = url.searchParams.get('key') ?? '';
+
       const data = await apiRequest(
         request,
         `/projects/${projectId}/secrets?reveal=true&key=${encodeURIComponent(key)}`,
@@ -232,7 +235,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, '/ai/usage').catch((error) => ({ error: panelErrorMessage(error), usage: [] })),
         apiRequest(request, '/orgs').catch((error) => ({ error: panelErrorMessage(error), organizations: [] })),
       ]);
+
       const orgs = (organizations as any)?.organizations ?? [];
+
       const billing = orgs[0]?.id
         ? await apiRequest(request, `/orgs/${orgs[0].id}/billing`).catch((error) => ({
             error: panelErrorMessage(error),
@@ -265,7 +270,9 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/secrets`),
         apiRequest(request, `/projects/${projectId}/activity`),
       ]);
+
       const workspaceId = dashboard?.workspace?.id ?? projectId;
+
       const [runtimeStatus, runtimeFiles, runtimeProcesses, runtimePorts] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
           error: panelErrorMessage(error),
@@ -576,10 +583,12 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     });
   } else if (panel === 'extensions') {
     const requestedExtension = (body.extension ?? '').trim();
+
     const existingExtensions = (body.installedExtensions ?? '')
       .split(',')
       .map((extension) => extension.trim())
       .filter(Boolean);
+
     const extensions = Array.from(new Set([...existingExtensions, requestedExtension].filter(Boolean)));
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
@@ -628,6 +637,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       };
     } else if (intent === 'create-webhook') {
       const id = randomUUID();
+
       const events = (body.events ?? 'all')
         .split(',')
         .map((event) => event.trim())
@@ -659,6 +669,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       const id = randomUUID();
       const prefix = body.environment === 'production' ? 'ek_live_' : body.environment === 'ci' ? 'ek_ci_' : 'ek_test_';
       const token = `${prefix}${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+
       const expiresAt =
         body.expiration && body.expiration !== 'never'
           ? new Date(Date.now() + Number(body.expiration) * 24 * 60 * 60 * 1000).toISOString()
@@ -960,6 +971,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         `${shellQuote(`${connection.username}@${connection.host}`)}`,
         shellQuote('echo vibecore-ssh-connected'),
       ].join(' ');
+
       const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
@@ -1343,6 +1355,7 @@ async function runWorkflowTasks(
     finishedAt: undefined as string | undefined,
     logs: [] as Array<{ level: string; message: string; timestamp: string }>,
   };
+
   const tasks = normalizeWorkflowTasks(workflow.tasks ?? []);
 
   if (!workflow.enabled) {

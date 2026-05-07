@@ -1,21 +1,15 @@
+/* eslint-disable import/order */
+import { Popover, Transition } from '@headlessui/react';
 import { useStore } from '@nanostores/react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { useResponsiveLayout } from '@vibecore/editor';
+import { diffLines, type Change } from 'diff';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
 import { memo, useCallback, useEffect, useState, useMemo } from 'react';
 import { toast } from 'react-toastify';
-import { Popover, Transition } from '@headlessui/react';
-import { diffLines, type Change } from 'diff';
-import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
-import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
-import {
-  type OnChangeCallback as OnEditorChange,
-  type OnScrollCallback as OnEditorScroll,
-} from '~/components/editor/codemirror/CodeMirrorEditor';
-import { IconButton } from '~/components/ui/IconButton';
-import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
-import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
@@ -27,10 +21,17 @@ import { usePreviewStore } from '~/lib/stores/previews';
 import { chatStore } from '~/lib/stores/chat';
 import type { ElementInfo } from './Inspector';
 import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
+import {
+  type OnChangeCallback as OnEditorChange,
+  type OnScrollCallback as OnEditorScroll,
+} from '~/components/editor/codemirror/CodeMirrorEditor';
+import { IconButton } from '~/components/ui/IconButton';
+import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import { useChatHistory } from '~/lib/persistence';
 import { streamingState } from '~/lib/stores/streaming';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useResponsiveLayout } from '@vibecore/editor';
+import type { FileHistory } from '~/types/actions';
+import { classNames } from '~/utils/classNames';
+import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -194,6 +195,7 @@ const FileModifiedDropdown = memo(
                                         }
 
                                         const normalizedOriginal = history.originalContent.replace(/\r\n/g, '\n');
+
                                         const normalizedCurrent =
                                           history.versions[history.versions.length - 1]?.content.replace(
                                             /\r\n/g,

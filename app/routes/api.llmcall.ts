@@ -1,8 +1,5 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { streamText } from '~/lib/.server/llm/stream-text';
-import type { IProviderSetting, ProviderInfo } from '~/types/model';
 import { generateText } from 'ai';
-import { PROVIDER_LIST } from '~/utils/constants';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -10,9 +7,12 @@ import {
   temperatureOptionsForModel,
 } from '~/lib/.server/llm/constants';
 import { removeUnsupportedModelSettings } from '~/lib/.server/llm/model-compat';
+import { streamText } from '~/lib/.server/llm/stream-text';
+import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
-import { getApiKeysFromCookie, getProviderSettingsFromCookie } from '~/lib/api/cookies';
+import type { IProviderSetting, ProviderInfo } from '~/types/model';
+import { PROVIDER_LIST } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 
 export async function action(args: ActionFunctionArgs) {
@@ -158,6 +158,7 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
   } else {
     try {
       const models = await getModelList({ apiKeys, providerSettings, serverEnv: context.cloudflare?.env as any });
+
       let modelDetails = models.find((m: ModelInfo) => m.name === model);
 
       if (!modelDetails) {

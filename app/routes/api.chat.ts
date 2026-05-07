@@ -1,20 +1,11 @@
+/* eslint-disable import/order */
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import { createDataStream, generateId } from 'ai';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
-import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
-import SwitchableStream from '~/lib/.server/llm/switchable-stream';
-import type { IProviderSetting } from '~/types/model';
-import { createScopedLogger } from '~/utils/logger';
-import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
-import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
-import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
-import { WORK_DIR } from '~/utils/constants';
-import { createSummary } from '~/lib/.server/llm/create-summary';
-import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
-import type { DesignScheme } from '~/types/design-scheme';
-import { MCPService } from '~/lib/services/mcpService';
-import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import {
+  agentMemoryAnnotation,
+  persistAgentMemoryCandidate,
+  retrieveMemoryForAgentContext,
+} from '~/lib/.server/llm/agent-memory';
 import {
   AgentExecutorError,
   areParallelSubagentsAvailable,
@@ -23,11 +14,21 @@ import {
   createAgentExecutionContext,
   executeAgentOrchestration,
 } from '~/lib/.server/llm/agent-orchestration';
-import {
-  agentMemoryAnnotation,
-  persistAgentMemoryCandidate,
-  retrieveMemoryForAgentContext,
-} from '~/lib/.server/llm/agent-memory';
+import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { createSummary } from '~/lib/.server/llm/create-summary';
+import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
+import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
+import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import SwitchableStream from '~/lib/.server/llm/switchable-stream';
+import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { MCPService } from '~/lib/services/mcpService';
+import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
+import { classifyStreamError, streamErrorCodeMessages } from '~/types/context';
+import type { DesignScheme } from '~/types/design-scheme';
+import type { IProviderSetting } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+import { WORK_DIR } from '~/utils/constants';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -56,6 +57,7 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
   let clientDisconnected = false;
+
   const streamRecovery = new StreamRecoveryManager({
     timeout: 45000,
     maxRetries: 2,
@@ -95,6 +97,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
+
   const providerSettings: Record<string, IProviderSetting> = JSON.parse(
     parseCookies(cookieHeader || '').providers || '{}',
   );
@@ -106,7 +109,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     promptTokens: 0,
     totalTokens: 0,
   };
+
   const encoder: TextEncoder = new TextEncoder();
+
   let progressCounter: number = 1;
 
   try {
@@ -121,6 +126,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         streamRecovery.startMonitoring();
 
         const filePaths = getFilePaths(files || {});
+
         let filteredFiles: FileMap | undefined = undefined;
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
@@ -139,6 +145,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
           ),
         });
+
         let agentOrchestrationContext: string | undefined;
 
         if (orchestrationPlan.enabled) {

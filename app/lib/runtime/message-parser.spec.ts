@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
 import { EnhancedStreamingMessageParser } from './enhanced-message-parser';
+import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
 
 interface ExpectedResult {
   output: string;
@@ -40,7 +40,9 @@ describe('StreamingMessageParser', () => {
         onActionOpen: vi.fn(),
         onActionClose: vi.fn(),
       };
+
       const parser = new StreamingMessageParser({ callbacks });
+
       const input = `<boltArtifact title="Workspace.tsx" id="artifact_1" type="bundled"><boltAction type="file" filePath="src/components/Editor/Workspace.tsx">
 <span className="text-purple-400">export default function</span> <span className="text-yellow-400">App</span>() &#123;<br/>
 &nbsp;&nbsp;<span className="text-purple-400">return</span> (<br/>
@@ -275,6 +277,7 @@ describe('EnhancedStreamingMessageParser', () => {
       onActionOpen: any;
       onActionClose: any;
     };
+
     let parser: EnhancedStreamingMessageParser;
 
     beforeEach(() => {
@@ -687,6 +690,7 @@ export { Button } from './Button';
       it('should handle incremental parsing correctly', () => {
         // Parse incrementally (simulating streaming)
         const chunks = ['Create config.js:\n\n\`\`\`javascript\n', "const config = { api: 'test' };\n\`\`\`"];
+
         let fullInput = '';
 
         for (const chunk of chunks) {

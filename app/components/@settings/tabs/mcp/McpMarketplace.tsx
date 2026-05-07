@@ -163,6 +163,7 @@ export default function McpMarketplace() {
   }, [loadAll]);
 
   const installedSlugs = useMemo(() => new Set(installs.map((i) => i.catalogEntry.slug)), [installs]);
+
   const domainCountBySlug = useMemo(() => {
     const map = new Map<McpDomain, number>();
 
@@ -506,6 +507,7 @@ function InstallDialog({ entry, onClose, onInstalled }: InstallDialogProps) {
   const required = new Set(schema.required ?? []);
 
   const [alias, setAlias] = useState(slugify(entry.slug));
+
   const [values, setValues] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
 
@@ -515,6 +517,7 @@ function InstallDialog({ entry, onClose, onInstalled }: InstallDialogProps) {
 
     return initial;
   });
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

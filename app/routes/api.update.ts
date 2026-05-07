@@ -1,5 +1,5 @@
-import { json, type ActionFunction, type LoaderFunction } from '@remix-run/cloudflare';
 import { execFile } from 'node:child_process';
+import { json, type ActionFunction, type LoaderFunction } from '@remix-run/cloudflare';
 
 type UpdateStage = 'fetch' | 'pull' | 'install' | 'build' | 'complete';
 
@@ -70,6 +70,7 @@ async function collectUpdateDetails(branch: string) {
     : [];
 
   const numstat = updateReady ? await git(['diff', '--numstat', 'HEAD', `upstream/${branch}`]) : '';
+
   const totals = numstat.split('\n').reduce(
     (acc, line) => {
       const [additions, deletions] = line.split('\t');
@@ -84,7 +85,9 @@ async function collectUpdateDetails(branch: string) {
   const commitMessages = updateReady
     ? (await git(['log', '--oneline', `HEAD..upstream/${branch}`])).split('\n').filter(Boolean)
     : [];
+
   const repo = await git(['config', '--get', 'remote.upstream.url']).catch(() => '');
+
   const compareUrl = repo.includes('github.com')
     ? repo
         .replace(/^git@github.com:/, 'https://github.com/')
@@ -144,6 +147,7 @@ export const action: ActionFunction = async ({ request }) => {
 
   const stream = new TransformStream<Uint8Array, Uint8Array>();
   const writer = stream.writable.getWriter();
+
   const controller = {
     enqueue: (chunk: Uint8Array) => writer.write(chunk),
   } as unknown as TransformStreamDefaultController<Uint8Array>;

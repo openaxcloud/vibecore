@@ -21,6 +21,7 @@ async function githubJson<T>(token: string, path: string): Promise<T> {
 
 async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
   const items: T[] = [];
+
   let page = 1;
 
   while (true) {
@@ -38,6 +39,7 @@ async function githubPaginated<T>(token: string, path: string): Promise<T[]> {
 
 async function githubCount(token: string, path: string): Promise<number> {
   const separator = path.includes('?') ? '&' : '?';
+
   const response = await fetch(`https://api.github.com${path}${separator}per_page=1`, {
     headers: githubHeaders(token),
   });
@@ -137,11 +139,14 @@ async function githubStatsLoader({ request, context }: { request: Request; conte
 
     const gists = gistsResult.status === 'fulfilled' ? gistsResult.value : [];
     const totalBranches = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.branches ?? 0), 0);
+
     const totalContributors = allRepos.reduce(
       (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.contributors ?? 0),
       0,
     );
+
     const totalIssues = allRepos.reduce((sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.issues ?? 0), 0);
+
     const totalPullRequests = allRepos.reduce(
       (sum, repo) => sum + (metricsByRepo.get(repo.full_name)?.pullRequests ?? 0),
       0,

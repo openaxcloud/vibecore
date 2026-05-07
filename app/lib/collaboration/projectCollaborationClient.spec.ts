@@ -50,12 +50,14 @@ describe('ProjectCollaborationClient', () => {
 
   it('connects with a short-lived ticket and applies realtime collaboration events', async () => {
     const fetchImpl = fetchTicket();
+
     const client = new ProjectCollaborationClient({
       projectId: 'project-1',
       fetchImpl,
       WebSocketImpl: FakeWebSocket,
       sessionId: 'session-1',
     });
+
     const snapshots: string[] = [];
     client.subscribe((snapshot) =>
       snapshots.push(`${snapshot.status}:${snapshot.presence.length}:${snapshot.comments.length}`),

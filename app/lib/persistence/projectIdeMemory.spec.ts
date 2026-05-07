@@ -8,6 +8,7 @@ import {
 
 function installLocalStorage() {
   const store = new Map<string, string>();
+
   const localStorageMock = {
     getItem: vi.fn((key: string) => store.get(key) ?? null),
     setItem: vi.fn((key: string, value: string) => {
@@ -153,6 +154,7 @@ describe('project IDE memory persistence', () => {
 
   it('persists project chat messages in insertion order and can clear the active conversation', async () => {
     const projectId = 'project-chat-order';
+
     const messages = [
       { id: 'u1', role: 'user' as const, content: 'First user request' },
       { id: 'a1', role: 'assistant' as const, content: 'First assistant response' },

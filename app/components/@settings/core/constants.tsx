@@ -1,4 +1,3 @@
-import type { TabType } from './types';
 import {
   User,
   Settings,
@@ -16,6 +15,7 @@ import {
   ClipboardList,
   Activity,
 } from 'lucide-react';
+import type { TabType } from './types';
 
 // GitLab icon component
 const GitLabIcon = () => (

@@ -5,6 +5,7 @@ const oauthStateCookie = 'vc_oauth_state';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
+
   const result = await apiRequest<{ authorizationUrl?: string | null; ready?: boolean }>(
     request,
     `/auth/oauth/${provider}/start`,

@@ -8,6 +8,7 @@ export function apiBaseUrl() {
 
 export function readSessionToken(request: Request) {
   const cookie = request.headers.get('cookie') ?? '';
+
   const match = cookie
     .split(';')
     .map((part) => part.trim())
@@ -83,6 +84,7 @@ export async function firstOrganization(request: Request) {
     request,
     '/orgs',
   );
+
   const organization = result.organizations[0];
 
   if (!organization) {

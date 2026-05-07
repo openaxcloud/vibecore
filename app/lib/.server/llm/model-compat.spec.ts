@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { LanguageModelV1 } from 'ai';
+import { describe, expect, it } from 'vitest';
 import { removeUnsupportedModelSettings } from './model-compat';
 
 function captureModel(calls: unknown[]): LanguageModelV1 {

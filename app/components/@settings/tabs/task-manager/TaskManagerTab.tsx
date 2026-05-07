@@ -14,6 +14,7 @@ const formatBytes = (bytes: number) => {
 
 export default function TaskManagerTab() {
   const [refreshKey, setRefreshKey] = useState(0);
+
   const items = useMemo(() => {
     return Object.keys(localStorage)
       .sort()

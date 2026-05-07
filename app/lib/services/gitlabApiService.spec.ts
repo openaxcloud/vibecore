@@ -22,6 +22,7 @@ describe('GitLabApiService', () => {
         following: 0,
       }),
     );
+
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.stubGlobal('fetch', fetchMock);
 

@@ -10,6 +10,7 @@ import {
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
+
   const result = await apiRequest<{ token: string }>(request, '/auth/register', {
     method: 'POST',
     body: JSON.stringify(body),

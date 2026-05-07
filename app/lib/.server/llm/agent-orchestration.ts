@@ -243,6 +243,7 @@ export function areParallelSubagentsAvailable(env?: AgentOrchestrationEnv): bool
     typeof process !== 'undefined'
       ? (process.env as Record<string, string | undefined>)
       : ({} as Record<string, string | undefined>);
+
   const flag = env?.ECODE_PARALLEL_SUBAGENTS_ENABLED ?? processEnv.ECODE_PARALLEL_SUBAGENTS_ENABLED;
   const endpoint = env?.ECODE_SUBAGENT_EXECUTOR_URL ?? processEnv.ECODE_SUBAGENT_EXECUTOR_URL;
 

@@ -40,6 +40,7 @@ export default function UpdateTab() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+
       let buffer = '';
       let lastProgress: UpdateProgress | null = null;
 

@@ -1,11 +1,6 @@
+import { Buffer } from 'node:buffer';
 import type { FileChange, FileNode, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { map, type MapStore } from 'nanostores';
-import { Buffer } from 'node:buffer';
-import { path } from '~/utils/path';
-import { WORK_DIR } from '~/utils/constants';
-import { computeFileModifications } from '~/utils/diff';
-import { createScopedLogger } from '~/utils/logger';
-import { unreachable } from '~/utils/unreachable';
 import {
   addLockedFile,
   removeLockedFile,
@@ -18,7 +13,12 @@ import {
   migrateLegacyLocks,
   clearCache,
 } from '~/lib/persistence/lockedFiles';
+import { WORK_DIR } from '~/utils/constants';
+import { computeFileModifications } from '~/utils/diff';
 import { getCurrentChatId } from '~/utils/fileLocks';
+import { createScopedLogger } from '~/utils/logger';
+import { path } from '~/utils/path';
+import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('FilesStore');
 
@@ -136,6 +136,7 @@ export class FilesStore {
   async reloadFromRuntime(rootPath = '.') {
     const nodes = await this.#runtime.listFiles(rootPath);
     const nextFiles: FileMap = {};
+
     let fileCount = 0;
 
     const visit = (node: FileNode) => {

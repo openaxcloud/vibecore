@@ -31,6 +31,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function AuditLogsPage() {
   const { orgId } = useLoaderData<typeof loader>();
+
   const actionData = useActionData<typeof action>() as
     | { status?: string; error?: string; exportPreview?: string }
     | undefined;

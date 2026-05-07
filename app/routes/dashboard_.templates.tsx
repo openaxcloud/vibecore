@@ -29,6 +29,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 
   const slug = `${selectedTemplate.id}-${Date.now().toString(36)}`;
+
   const result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/from-template`, {
     method: 'POST',
     body: JSON.stringify({

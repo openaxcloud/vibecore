@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { classNames } from '~/utils/classNames';
+import type { UserProfile } from '~/components/@settings/core/types';
 import { Switch } from '~/components/ui/Switch';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import type { UserProfile } from '~/components/@settings/core/types';
+import { classNames } from '~/utils/classNames';
 import { isMac } from '~/utils/os';
 
 // Helper to get modifier key symbols/text
@@ -23,6 +23,7 @@ const getModifierSymbol = (modifier: string): string => {
 
 export default function SettingsTab() {
   const [currentTimezone, setCurrentTimezone] = useState('');
+
   const [settings, setSettings] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('bolt_user_profile');
     return saved
@@ -121,6 +122,7 @@ export default function SettingsTab() {
 
                 // Update localStorage immediately
                 const existingProfile = JSON.parse(localStorage.getItem('bolt_user_profile') || '{}');
+
                 const updatedProfile = {
                   ...existingProfile,
                   notifications: checked,

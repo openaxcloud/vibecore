@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
-import { useMemo, useState } from 'react';
 import { Grid2X2, List, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { AppShell, ProjectGrid, LinkButton, StatusPill, type ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
@@ -19,6 +19,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   const result = await apiRequest<{ projects: ApiProject[] }>(request, `/orgs/${organization.id}/projects`);
+
   const projects = result.projects.map((project) => ({
     id: project.id,
     name: project.name,
@@ -36,6 +37,7 @@ export default function ProjectsPage() {
   const { projects } = useLoaderData<typeof loader>();
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+
   const filteredProjects = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 

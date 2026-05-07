@@ -1,5 +1,5 @@
-import type { PromptOptions } from '~/lib/common/prompt-library';
 import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
+import type { PromptOptions } from '~/lib/common/prompt-library';
 
 export default (options: PromptOptions) => {
   const { cwd, allowedHtmlElements, supabase } = options;

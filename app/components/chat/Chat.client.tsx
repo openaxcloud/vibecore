@@ -1,34 +1,35 @@
-import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
+/* eslint-disable import/order */
 import { useChat } from '@ai-sdk/react';
+import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
+import { useStore } from '@nanostores/react';
+import { useSearchParams } from '@remix-run/react';
+import type { Message } from 'ai';
 import { useAnimate } from 'framer-motion';
+import Cookies from 'js-cookie';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { BaseChat } from './BaseChat';
+import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
+import { useSettings } from '~/lib/hooks/useSettings';
 import { description, useChatHistory } from '~/lib/persistence';
+import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { chatStore } from '~/lib/stores/chat';
+import { logStore } from '~/lib/stores/logs';
+import { useMCPStore } from '~/lib/stores/mcp';
+import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROMPT_COOKIE_KEY, PROVIDER_LIST } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { BaseChat } from './BaseChat';
-import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
-import { useSettings } from '~/lib/hooks/useSettings';
 import type { ProviderInfo } from '~/types/model';
-import { useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTemplate';
-import { logStore } from '~/lib/stores/logs';
-import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
-import type { ElementInfo } from '~/components/workbench/Inspector';
-import type { TextUIPart, FileUIPart, Attachment } from '@ai-sdk/ui-utils';
-import { useMCPStore } from '~/lib/stores/mcp';
 import type { LlmErrorAlertType } from '~/types/actions';
-import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 
 const logger = createScopedLogger('Chat');
 const MAX_PROJECT_ARCHIVED_CONVERSATIONS = 24;
@@ -193,13 +194,16 @@ export const ChatImpl = memo(
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
     const supabaseConn = useStore(supabaseConnection);
+
     const selectedProject = supabaseConn.stats?.projects?.find(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
+
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
     const [llmErrorAlert, setLlmErrorAlert] = useState<LlmErrorAlertType | undefined>(undefined);
     const initialSelectionRef = useRef(projectIdeMode ? initialProjectModelSelection() : null);
+
     const [model, setModel] = useState(() => {
       if (initialSelectionRef.current?.model) {
         return initialSelectionRef.current.model;
@@ -222,6 +226,7 @@ export const ChatImpl = memo(
         providerForSavedModel ||
         DEFAULT_PROVIDER) as ProviderInfo;
     });
+
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
     const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
@@ -341,6 +346,7 @@ export const ChatImpl = memo(
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+
     const submittedProjectPromptRef = useRef<string | undefined>(undefined);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
@@ -925,6 +931,7 @@ export const ChatImpl = memo(
 
                 const now = new Date().toISOString();
                 const firstUserMessage = currentMessages.find((message) => message.role === 'user');
+
                 const conversationId =
                   typeof crypto !== 'undefined' && 'randomUUID' in crypto
                     ? crypto.randomUUID()

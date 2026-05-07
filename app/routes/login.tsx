@@ -93,9 +93,11 @@ export async function action({ request }: EnterpriseActionArgs) {
 
 export default function LoginPage() {
   const actionData = useActionData<typeof action>();
+
   const loginActionData = actionData as
     | { error?: string; mfaRequired?: boolean; email?: string; rememberMe?: boolean }
     | undefined;
+
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
   const [showPassword, setShowPassword] = useState(false);

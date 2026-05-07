@@ -1,20 +1,19 @@
+/* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useFetchers, useNavigation } from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
-import { themeStore } from './lib/stores/theme';
-import { stripIndents } from './utils/stripIndent';
-import { createHead } from 'remix-island';
+import { installEditorPwaServiceWorker } from '@vibecore/editor';
+import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { ClientOnly } from 'remix-utils/client-only';
 import { cssTransition, ToastContainer } from 'react-toastify';
-import { installEditorPwaServiceWorker } from '@vibecore/editor';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
-import xtermStyles from '@xterm/xterm/css/xterm.css?url';
+import { createHead } from 'remix-island';
+import { ClientOnly } from 'remix-utils/client-only';
 
 import 'virtual:uno.css';
 
@@ -141,6 +140,7 @@ function GlobalRouteLoader() {
   const navigation = useNavigation();
   const fetchers = useFetchers();
   const [visible, setVisible] = useState(false);
+
   const loading =
     navigation.state !== 'idle' ||
     fetchers.some((fetcher) => fetcher.state === 'loading' || fetcher.state === 'submitting');
@@ -174,6 +174,8 @@ function GlobalRouteLoader() {
 }
 
 import { logStore } from './lib/stores/logs';
+import { themeStore } from './lib/stores/theme';
+import { stripIndents } from './utils/stripIndent';
 
 export default function App() {
   const theme = useStore(themeStore);

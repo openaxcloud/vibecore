@@ -25,6 +25,7 @@ export const loader: LoaderFunction = async ({ context }) => {
     for (const provider of llmManager.getAllProviders()) {
       const providerName = provider.name;
       const providerInstance = llmManager.getProvider(providerName);
+
       let isConfigured = false;
       let configMethod: 'environment' | 'none' = 'none';
 
@@ -64,6 +65,7 @@ export const loader: LoaderFunction = async ({ context }) => {
         // For providers that might need API keys as well (check this separately, not as fallback)
         if (config.apiTokenKey && !isConfigured) {
           const apiTokenEnvVar = config.apiTokenKey;
+
           const envApiToken =
             (context?.cloudflare?.env as Record<string, any>)?.[apiTokenEnvVar] ||
             process.env[apiTokenEnvVar] ||

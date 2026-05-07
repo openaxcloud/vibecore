@@ -1,28 +1,30 @@
-import { lazy, Suspense, useState, useEffect, useMemo, type ReactNode } from 'react';
 import { useStore } from '@nanostores/react';
 import * as RadixDialog from '@radix-ui/react-dialog';
-import { classNames } from '~/utils/classNames';
+import { lazy, Suspense, useState, useEffect, useMemo, type ReactNode } from 'react';
+import { AvatarDropdown } from './AvatarDropdown';
+import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
+import type { TabType } from './types';
 import { TabTile } from '~/components/@settings/shared/components/TabTile';
+import BackgroundRays from '~/components/ui/BackgroundRays';
+import { DialogTitle } from '~/components/ui/Dialog';
+import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { useFeatures } from '~/lib/hooks/useFeatures';
 import { useNotifications } from '~/lib/hooks/useNotifications';
-import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
 import { tabConfigurationStore, resetTabConfiguration } from '~/lib/stores/settings';
-import type { TabType } from './types';
-import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants';
-import { DialogTitle } from '~/components/ui/Dialog';
-import { AvatarDropdown } from './AvatarDropdown';
-import BackgroundRays from '~/components/ui/BackgroundRays';
+import { classNames } from '~/utils/classNames';
 
 const ProfileTab = lazy(() => import('~/components/@settings/tabs/profile/ProfileTab'));
 const SettingsTab = lazy(() => import('~/components/@settings/tabs/settings/SettingsTab'));
 const NotificationsTab = lazy(() => import('~/components/@settings/tabs/notifications/NotificationsTab'));
 const FeaturesTab = lazy(() => import('~/components/@settings/tabs/features/FeaturesTab'));
+
 const DataTab = lazy(() =>
   import('~/components/@settings/tabs/data/DataTab').then((module) => ({ default: module.DataTab })),
 );
 const EventLogsTab = lazy(() =>
   import('~/components/@settings/tabs/event-logs/EventLogsTab').then((module) => ({ default: module.EventLogsTab })),
 );
+
 const GitHubTab = lazy(() => import('~/components/@settings/tabs/github/GitHubTab'));
 const GitLabTab = lazy(() => import('~/components/@settings/tabs/gitlab/GitLabTab'));
 const SupabaseTab = lazy(() => import('~/components/@settings/tabs/supabase/SupabaseTab'));

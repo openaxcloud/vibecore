@@ -1,6 +1,6 @@
+import { KeyRound, Monitor, Wifi } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
-import { KeyRound, Monitor, Wifi } from 'lucide-react';
 
 interface DesktopSettingsState {
   proxy: { mode?: string; server?: string };
@@ -14,6 +14,7 @@ export default function DesktopSettingsRoute() {
     trayEnabled: false,
     devicePolicy: { managed: false, source: 'local-defaults' },
   });
+
   const [authState, setAuthState] = useState<{ encryptionAvailable?: boolean; hasToken?: boolean }>({});
   const [status, setStatus] = useState('Desktop bridge not detected.');
 

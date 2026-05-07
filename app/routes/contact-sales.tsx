@@ -8,6 +8,7 @@ export const meta: MetaFunction = () => [{ title: 'Contact sales - VibeCore' }];
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
+
   const response = await fetch(`${apiBaseUrl()}/contact-sales`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', accept: 'application/json' },

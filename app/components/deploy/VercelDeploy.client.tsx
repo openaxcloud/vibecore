@@ -1,13 +1,13 @@
-import { toast } from 'react-toastify';
 import { useStore } from '@nanostores/react';
+import { useState } from 'react';
+import { toast } from 'react-toastify';
+import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
+import { chatId } from '~/lib/persistence/useChatHistory';
+import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
+import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/runtime-files';
 import { vercelConnection } from '~/lib/stores/vercel';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
-import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/runtime-files';
-import { useState } from 'react';
-import type { ActionCallbackData } from '~/lib/runtime/message-parser';
-import { chatId } from '~/lib/persistence/useChatHistory';
-import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
 
 export function useVercelDeploy() {
   const [isDeploying, setIsDeploying] = useState(false);
@@ -49,6 +49,7 @@ export function useVercelDeploy() {
       deployArtifact.runner.handleDeployAction('building', 'running', { source: 'vercel' });
 
       const actionId = 'build-' + Date.now();
+
       const actionData: ActionCallbackData = {
         messageId: 'vercel build',
         artifactId: artifact.id,
