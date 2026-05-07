@@ -40,6 +40,13 @@ tmp/
 .wrangler
 _worker.bundle
 
+# Terraform local state, plans, and secret variable files
+**/.terraform/
+**/terraform.tfvars
+**/terraform.tfvars.json
+**/*.tfplan
+**/plan.out
+
 Modelfile
 modelfiles
 
