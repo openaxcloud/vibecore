@@ -1551,22 +1551,22 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-shell {
   position: fixed;
-  top: 44px;
+  top: 36px;
   left: 0;
   z-index: 35;
   width: var(--project-agent-width);
-  height: calc(100vh - 44px);
+  height: calc(100vh - 36px);
   border-right: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
 }
 
 .bolt-project-workspace-shell {
   position: absolute;
-  top: 44px;
+  top: 36px;
   right: var(--project-right-panel-width, 0px);
   left: var(--project-agent-width);
   width: auto;
-  height: calc(100vh - 44px);
+  height: calc(100vh - 36px);
   padding-bottom: 23px;
   box-sizing: border-box;
   display: flex;
@@ -1582,14 +1582,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-right-panel-shell {
   position: fixed;
-  top: 44px;
+  top: 36px;
   right: 0;
   z-index: 38;
   display: flex;
   width: var(--project-right-panel-width, 240px);
   min-width: 180px;
   max-width: 300px;
-  height: calc(100vh - 44px);
+  height: calc(100vh - 36px);
   box-sizing: border-box;
   flex-direction: column;
   border-left: 1px solid var(--vc-ide-border-subtle);
@@ -1713,8 +1713,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tabbar,
 .bolt-project-right-tabs {
   display: flex;
-  height: 34px;
-  min-height: 34px;
+  height: 36px;
+  min-height: 36px;
   align-items: stretch;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
@@ -1859,12 +1859,12 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   align-self: center;
-  border-radius: 0;
+  border-radius: 4px;
   color: var(--vc-ide-text-muted);
   margin-right: 0;
   transition:
-    background 100ms ease-out,
-    color 100ms ease-out;
+    background 150ms ease-out,
+    color 150ms ease-out;
 }
 
 .bolt-project-tab-action:hover {
@@ -1909,8 +1909,9 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   z-index: 120;
   display: flex;
-  width: 384px;
+  width: 320px;
   max-height: 480px;
+  box-sizing: border-box;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--vc-ide-border-visible);
@@ -1918,6 +1919,9 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-card);
   box-shadow: var(--vc-ui-shadow-xl);
   backdrop-filter: var(--vc-ui-overlay-blur);
+  padding: 8px;
+  animation: none !important;
+  transform: none !important;
 }
 
 .bolt-project-tool-menu-header {

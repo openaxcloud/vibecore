@@ -96,7 +96,7 @@ export default function ProjectIdeRoute() {
           collaborators={collaborators}
           notifications={notifications}
         />
-        <main className="h-dvh pt-11">
+        <main className="h-dvh pt-9">
           <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
             {() => (
               <PanelBoundary title="Bolt IDE">
@@ -157,7 +157,7 @@ function IdeProjectTopBar({
   }, []);
 
   return (
-    <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-11 w-screen items-center justify-between border-b px-2 text-[12px]">
+    <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b px-2 text-[12px]">
       <div className="bolt-project-topbar-left">
         <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="VibeCore dashboard">
           <Home className="h-4 w-4" aria-hidden />

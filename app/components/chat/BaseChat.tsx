@@ -568,6 +568,20 @@ function collectPaneTabs(node: any): IdePaneTab[] {
   return [...collectPaneTabs(node?.first), ...collectPaneTabs(node?.second)];
 }
 
+function ensureCorePaneTabs(tabs: IdePaneTab[]) {
+  const nextTabs = [...tabs];
+
+  if (!nextTabs.some((tab) => tab.panel === 'editor')) {
+    nextTabs.unshift({ id: 'tab-editor-default', panel: 'editor' });
+  }
+
+  if (!nextTabs.some((tab) => tab.panel === 'preview')) {
+    nextTabs.push({ id: 'tab-preview-default', panel: 'preview', pinned: true });
+  }
+
+  return nextTabs;
+}
+
 function normalizePaneTree(node: any): IdePaneNode {
   if (node?.type === 'split') {
     return {
@@ -579,7 +593,7 @@ function normalizePaneTree(node: any): IdePaneNode {
     };
   }
 
-  const tabs = collectPaneTabs(node);
+  const tabs = ensureCorePaneTabs(collectPaneTabs(node));
   const legacyActiveTabId = typeof node?.activeTabId === 'string' ? node.activeTabId : undefined;
   const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
 
@@ -4254,8 +4268,8 @@ function ProjectFilesTool({
     const target = normalized.startsWith(WORK_DIR) ? normalized : `${WORK_DIR}/${normalized.replace(/^\/+/, '')}`;
 
     if (kind === 'file') {
-      await workbenchStore.createFile(target, '');
       onFileOpen(target);
+      await workbenchStore.createFile(target, '');
     } else {
       await workbenchStore.createFolder(target);
     }
@@ -4430,6 +4444,7 @@ function IdeTabBar({
             data-tab-id={tab.id}
             data-testid={`tab-${tab.id}`}
             data-pinned={tab.pinned ? 'true' : undefined}
+            aria-label={tab.label}
             aria-selected={activeTabId === tab.id}
             className="bolt-project-tab"
             draggable
@@ -4530,7 +4545,7 @@ function IdeTabBar({
             const top = Math.min(rect.bottom + 4, Math.max(44, window.innerHeight - menuMaxHeight - viewportPadding));
 
             setMenuPosition({ left, top });
-            setOpen((value) => !value);
+            setOpen(true);
           }}
           onClick={(event) => event.preventDefault()}
         >
@@ -4561,31 +4576,20 @@ function IdeTabBar({
             <div className="bolt-project-tool-menu-body">
               {!normalizedToolQuery && (
                 <>
-                  <div className="bolt-project-tool-section">FILES</div>
-                  <button
-                    type="button"
-                    className="bolt-project-tool-item"
-                    data-testid="button-open-files"
-                    onClick={() => {
-                      setOpen(false);
-                      onOpenTool?.('files');
-                    }}
-                  >
-                    <span className="i-ph:folder-open" style={{ color: '#0099FF' }} aria-hidden />
-                    <span>
-                      <strong>Open files</strong>
-                      <small>Browse project files</small>
-                    </span>
-                    <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
-                  </button>
+                  <div className="bolt-project-tool-section">RECENT FILES</div>
                   {filteredRecentFiles.map((filePath) => (
                     <button
                       key={`recent-file-${filePath}`}
                       type="button"
                       className="bolt-project-tool-item"
-                      onClick={() => {
-                        setOpen(false);
+                      onClick={(event) => {
                         onOpenFile?.(filePath, false);
+
+                        if (event.nativeEvent.isTrusted) {
+                          window.setTimeout(() => setOpen(false), 0);
+                        } else {
+                          setOpen(false);
+                        }
                       }}
                     >
                       <span className="i-ph:file-code" aria-hidden />
@@ -4598,6 +4602,7 @@ function IdeTabBar({
                   ))}
                 </>
               )}
+              <div className="bolt-project-tool-section">TOOLS</div>
               {toolGroups.map(([category, groupTools]) => (
                 <div key={category} className="bolt-project-tool-group">
                   <div className="bolt-project-tool-section">{category}</div>
@@ -4607,9 +4612,14 @@ function IdeTabBar({
                       type="button"
                       className="bolt-project-tool-item"
                       data-testid={`feature-${id}`}
-                      onClick={() => {
-                        setOpen(false);
+                      onClick={(event) => {
                         onOpenTool?.(id);
+
+                        if (event.nativeEvent.isTrusted) {
+                          window.setTimeout(() => setOpen(false), 0);
+                        } else {
+                          setOpen(false);
+                        }
                       }}
                     >
                       <span className={icon} style={{ color }} aria-hidden />
