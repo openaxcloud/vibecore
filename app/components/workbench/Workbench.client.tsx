@@ -393,8 +393,11 @@ export const Workbench = memo(
       }
     }, []);
 
-    const activeWorkbenchView: WorkbenchViewType =
-      useMobileWorkbench && mobilePanel === 'preview' ? 'preview' : selectedView;
+    const activeWorkbenchView: WorkbenchViewType = useMobileWorkbench
+      ? mobilePanel === 'preview'
+        ? 'preview'
+        : 'code'
+      : selectedView;
 
     return (
       chatStarted && (
