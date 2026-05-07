@@ -49,6 +49,7 @@ jobs:
         run: pnpm run lint
 
       - name: Run tests
+        timeout-minutes: 15
         run: pnpm run test
 
       - name: Upload test coverage
@@ -72,12 +73,14 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Validate Docker production build
+        timeout-minutes: 12
         run: |
           echo "🐳 Testing Docker production target..."
           docker build --target bolt-ai-production . --no-cache --progress=plain
           echo "✅ Production target builds successfully"
 
       - name: Validate Docker development build
+        timeout-minutes: 8
         run: |
           echo "🐳 Testing Docker development target..."
           docker build --target development . --no-cache --progress=plain

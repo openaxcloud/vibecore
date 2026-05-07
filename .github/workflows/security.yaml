@@ -39,6 +39,7 @@ jobs:
         uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
+        timeout-minutes: 30
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{matrix.language}}"
@@ -118,4 +119,3 @@ jobs:
         with:
           name: trivy-secrets-results
           path: trivy-secrets-results.sarif
-

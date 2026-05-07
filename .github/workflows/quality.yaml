@@ -32,6 +32,7 @@ jobs:
           pnpm dedupe --check || echo "✅ Duplicate dependency check completed"
 
       - name: Check bundle size
+        timeout-minutes: 15
         run: |
           pnpm run build
           echo "Bundle analysis completed (bundlesize tool requires configuration)"
@@ -82,17 +83,24 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start development server
+        timeout-minutes: 5
         run: |
-          pnpm run build
-          pnpm run start &
-          sleep 15
+          VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-accessibility.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/vibecore-accessibility.log
+          exit 1
         env:
           CI: true
 
       - name: Run accessibility tests with axe
         run: |
           echo "Running accessibility tests..."
-          npx @axe-core/cli http://localhost:5173 --exit || echo "Accessibility tests completed with findings"
+          npx @axe-core/cli http://127.0.0.1:5173 --exit || echo "Accessibility tests completed with findings"
         continue-on-error: true
 
   performance-audit:
@@ -108,15 +116,22 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start server for Lighthouse
+        timeout-minutes: 5
         run: |
-          pnpm run build
-          pnpm run start &
-          sleep 20
+          VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-lighthouse.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/vibecore-lighthouse.log
+          exit 1
 
       - name: Run Lighthouse audit
         run: |
           echo "Running Lighthouse performance audit..."
-          npx lighthouse http://localhost:5173 --output-path=./lighthouse-report.html --output=html --chrome-flags="--headless --no-sandbox" || echo "Lighthouse audit completed"
+          npx lighthouse http://127.0.0.1:5173 --output-path=./lighthouse-report.html --output=html --chrome-flags="--headless --no-sandbox" || echo "Lighthouse audit completed"
         continue-on-error: true
 
       - name: Upload Lighthouse report

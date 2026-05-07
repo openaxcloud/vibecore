@@ -87,12 +87,15 @@ jobs:
           pnpm --filter @vibecore/ai-gateway test
 
       - name: Build web
+        timeout-minutes: 20
         run: pnpm run build
 
       - name: Build admin
+        timeout-minutes: 10
         run: pnpm --filter @vibecore/admin build
 
       - name: Build services
+        timeout-minutes: 15
         run: pnpm --filter './services/**' build
 
       - name: Security checks
