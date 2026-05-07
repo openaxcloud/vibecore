@@ -204,7 +204,9 @@ export const EditorPanel = memo(
       if (mobilePanel === 'files') {
         return (
           <PanelBoundary title="Files">
-            <div className="h-full">{fileTabs}</div>
+            <div className="h-full" data-testid="mobile-files-panel">
+              {fileTabs}
+            </div>
           </PanelBoundary>
         );
       }

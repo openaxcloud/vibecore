@@ -1022,7 +1022,7 @@ async function auditResponsiveViewports(projectId, token) {
         await assertMobilePanel(page, 'Chat', (activePage) =>
           activePage.locator('[data-testid="ide-agent-panel"]').first(),
         );
-        await assertMobilePanel(page, 'Files', (activePage) => activePage.getByText('Search').first());
+        await assertMobilePanel(page, 'Files', (activePage) => activePage.getByTestId('mobile-files-panel').first());
         await assertMobilePanel(page, 'Editor', (activePage) =>
           activePage.locator('[data-testid="responsive-code-editor"]').first(),
         );

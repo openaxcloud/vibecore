@@ -429,6 +429,16 @@ export class WorkbenchStore {
         if (scripts.dev) {
           const devScript = scripts.dev.toLowerCase();
 
+          if (devScript.includes('vite') && this.#isSimpleViteDevScript(scripts.dev)) {
+            return {
+              command: 'npx',
+              args: ['--yes', 'vite', ...this.#viteDevArgsFromScript(scripts.dev)],
+              label: 'npx vite',
+              cwd,
+              setupCommands,
+            };
+          }
+
           if (devScript.includes('vite') && (!dependencies.vite || shouldRunViteWithoutInstall)) {
             return {
               command: 'npx',
@@ -558,6 +568,31 @@ export class WorkbenchStore {
     const candidates = new Set([relativePath, `${WORK_DIR}/${relativePath}`, `${normalizedWorkDir}/${relativePath}`]);
 
     return Array.from(candidates).some((candidate) => Boolean(files[candidate]));
+  }
+
+  #isSimpleViteDevScript(script: string) {
+    const trimmed = script.trim();
+
+    if (!trimmed || /[;&|<>$`]/.test(trimmed)) {
+      return false;
+    }
+
+    const tokens = trimmed.split(/\s+/);
+    const viteIndex = tokens.findIndex((token) => token === 'vite' || token.endsWith('/vite'));
+
+    return (
+      viteIndex >= 0 &&
+      tokens.slice(0, viteIndex).every((token) => token === 'npx' || token === 'pnpm' || token === 'exec')
+    );
+  }
+
+  #viteDevArgsFromScript(script: string) {
+    const tokens = script.trim().split(/\s+/);
+    const viteIndex = tokens.findIndex((token) => token === 'vite' || token.endsWith('/vite'));
+    const args = viteIndex >= 0 ? tokens.slice(viteIndex + 1) : [];
+    const hasHost = args.some((arg) => arg === '--host' || arg.startsWith('--host=') || arg === '-h');
+
+    return hasHost ? args : [...args, '--host', '0.0.0.0'];
   }
 
   #packageDirectoryFileContent(packageJsonPath: string, fileName: string) {
