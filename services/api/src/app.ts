@@ -965,6 +965,125 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
   return { root, collaboration, documents };
 }
 
+function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array<{ path: string; content: string }> {
+  const root = ideStateObject(state);
+  const chat =
+    root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
+      ? (root.chat as Record<string, unknown>)
+      : {};
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+  const files = new Map<string, string>();
+
+  for (const message of messages) {
+    const content = persistedIdeMessageContent(message);
+
+    if (!content) {
+      continue;
+    }
+
+    for (const file of boltFileActionsFromContent(content)) {
+      files.set(file.path, file.content);
+    }
+  }
+
+  return [...files.entries()].map(([path, content]) => ({ path, content }));
+}
+
+function persistedIdeMessageContent(message: unknown) {
+  if (!message || typeof message !== 'object' || Array.isArray(message)) {
+    return '';
+  }
+
+  const record = message as Record<string, unknown>;
+
+  if (typeof record.content === 'string') {
+    return record.content;
+  }
+
+  if (!Array.isArray(record.parts)) {
+    return '';
+  }
+
+  return record.parts
+    .map((part) => {
+      if (!part || typeof part !== 'object' || Array.isArray(part)) {
+        return '';
+      }
+
+      const text = (part as Record<string, unknown>).text;
+      return typeof text === 'string' ? text : '';
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function boltFileActionsFromContent(content: string) {
+  const files: Array<{ path: string; content: string }> = [];
+  const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = actionPattern.exec(content))) {
+    const attributes = boltActionAttributes(match[1]);
+
+    if (attributes.type !== 'file' || !attributes.filePath) {
+      continue;
+    }
+
+    const normalizedPath = normalizeProjectPath(attributes.filePath);
+
+    if (!normalizedPath) {
+      continue;
+    }
+
+    files.push({ path: normalizedPath, content: match[2].replace(/^\n/, '').replace(/\n$/, '') });
+  }
+
+  return files;
+}
+
+function boltActionAttributes(source: string) {
+  const attributes: Record<string, string> = {};
+  const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = attributePattern.exec(source))) {
+    attributes[match[1]] = decodeHtmlAttribute(match[3]);
+  }
+
+  return attributes;
+}
+
+function decodeHtmlAttribute(value: string) {
+  return value
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#34;', '"')
+    .replaceAll('&apos;', "'")
+    .replaceAll('&#39;', "'")
+    .replaceAll('&amp;', '&')
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>');
+}
+
+async function ensureProjectStorageFromIdeState(
+  store: ApiStore,
+  projectStorage: ProjectStorage,
+  projectId: string,
+): Promise<ProjectFile[]> {
+  const existingFiles = await projectStorage.listFiles(projectId);
+
+  if (existingFiles.length > 0) {
+    return existingFiles;
+  }
+
+  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+
+  if (!recoveredFiles.length) {
+    return existingFiles;
+  }
+
+  return projectStorage.writeFiles(projectId, recoveredFiles);
+}
+
 async function requireWorkspace(
   request: any,
   store: ApiStore,
@@ -6497,9 +6616,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
 
     return {
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(files),
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
   });
@@ -6537,6 +6657,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.exportZip(project.id);
     await store.recordProjectActivity({
       projectId: project.id,

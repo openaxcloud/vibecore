@@ -6,7 +6,7 @@ import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
-import type { GitProvider } from '../project-storage.js';
+import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
 class TestEmailProvider implements EmailProvider {
@@ -73,6 +73,105 @@ class TestGitProvider implements GitProvider {
 
   async createPullRequest() {
     return { url: `https://github.example/pull/${Date.now()}`, number: 1 };
+  }
+}
+
+class MemoryProjectStorage implements ProjectStorage {
+  readonly files = new Map<string, Map<string, string>>();
+  readonly objects = new Map<string, Buffer>();
+
+  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+    const projectFiles = this.files.get(projectId) ?? new Map<string, string>();
+
+    for (const file of files) {
+      projectFiles.set(file.path, file.content);
+    }
+
+    this.files.set(projectId, projectFiles);
+
+    return this.listFiles(projectId);
+  }
+
+  async listFiles(projectId: string) {
+    const projectFiles = this.files.get(projectId) ?? new Map<string, string>();
+    const updatedAt = new Date().toISOString();
+
+    return [...projectFiles.entries()].map(([path, content]) => ({ path, content, updatedAt }));
+  }
+
+  async exportZip(projectId: string) {
+    const zip = new JSZip();
+
+    for (const file of await this.listFiles(projectId)) {
+      zip.file(file.path, file.content);
+    }
+
+    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    const storageKey = `exports/${projectId}/${Date.now()}.zip`;
+    this.objects.set(storageKey, content);
+
+    return {
+      storageKey,
+      byteLength: content.byteLength,
+      base64: content.toString('base64'),
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
+    const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
+    const files: Array<{ path: string; content: string }> = [];
+
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (!entry.dir) {
+        files.push({ path, content: await entry.async('string') });
+      }
+    }
+
+    if (options.replaceExisting) {
+      this.files.delete(projectId);
+    }
+
+    return this.writeFiles(projectId, files);
+  }
+
+  async createSnapshot(input: { projectId: string; files: ProjectFile[] }): Promise<StoredArchive> {
+    const zip = new JSZip();
+
+    for (const file of input.files) {
+      zip.file(file.path, file.content);
+    }
+
+    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    const storageKey = `snapshots/${input.projectId}/${Date.now()}.zip`;
+    this.objects.set(storageKey, content);
+
+    return { storageKey, byteLength: content.byteLength, createdAt: new Date().toISOString() };
+  }
+
+  async getSnapshotFiles(storageKey: string) {
+    const content = this.objects.get(storageKey);
+
+    if (!content) {
+      return [];
+    }
+
+    const zip = await JSZip.loadAsync(content);
+    const files: ProjectFile[] = [];
+
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (!entry.dir) {
+        files.push({ path, content: await entry.async('string'), updatedAt: new Date().toISOString() });
+      }
+    }
+
+    return files;
+  }
+
+  async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }) {
+    this.files.delete(input.projectId);
+
+    return this.writeFiles(input.projectId, input.files);
   }
 }
 
@@ -2152,6 +2251,70 @@ describe('SaaS API', () => {
     expect(appSource).toContain('onClick={simulateSync}');
     expect(appSource).not.toContain(prompt);
     expect(appSource).not.toContain('VibeCore project');
+
+    await app.close();
+  });
+
+  it('recovers generated project files from persisted IDE chat state when storage is empty', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'ide-recovery@example.com', organizationName: 'IDE Recovery Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Recovered Preview App' },
+    });
+    expect(project.statusCode).toBe(201);
+    const projectId = project.json().project.id;
+    projectStorage.files.delete(projectId);
+
+    const saveIdeState = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        state: {
+          chat: {
+            messages: [
+              {
+                id: 'assistant-generated-files',
+                role: 'assistant',
+                content: `<boltArtifact id="preview-app" title="Preview App">
+<boltAction type="file" filePath="package.json">
+{"scripts":{"dev":"vite"},"dependencies":{"@vitejs/plugin-react":"^4.2.1","vite":"^5.1.4","typescript":"^5.4.2","react":"^18.3.1","react-dom":"^18.3.1"}}
+</boltAction>
+<boltAction type="file" filePath="index.html">
+<div id="root"></div><script type="module" src="/src/main.tsx"></script>
+</boltAction>
+<boltAction type="file" filePath="src/main.tsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered preview</main>);
+</boltAction>
+</boltArtifact>`,
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(saveIdeState.statusCode).toBe(200);
+    expect(await projectStorage.listFiles(projectId)).toEqual([]);
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const zip = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    await expect(zip.file('src/main.tsx')!.async('string')).resolves.toContain('Recovered preview');
+    expect((await projectStorage.listFiles(projectId)).map((file) => file.path)).toEqual(
+      expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx']),
+    );
 
     await app.close();
   });
