@@ -15,10 +15,11 @@ export default defineConfig((config) => {
   const devHost = process.env.VITE_DEV_HOST;
   const devPort = Number(process.env.VITE_DEV_PORT ?? 5173);
   const strictDevPort = process.env.VITE_STRICT_PORT === 'true';
+  const nodeEnv = config.mode === 'production' ? 'production' : 'development';
 
   return {
     define: {
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? nodeEnv),
     },
     server: {
       host: devHost,
@@ -123,6 +124,7 @@ export default defineConfig((config) => {
       },
     },
     resolve: {
+      dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
       alias: {
         buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
       },

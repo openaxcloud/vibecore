@@ -1,10 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
-const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+let appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const outFile = process.env.IDE_PANEL_AUDIT_OUT ?? 'tmp/ide-panel-audit.json';
+const explicitApiBaseUrl = Boolean(process.env.SAAS_API_URL || process.env.API_BASE_URL);
+const explicitAppBaseUrl = Boolean(process.env.PLAYWRIGHT_BASE_URL);
+const spawnedProcesses = [];
 
 const backendPanels = [
   'overview',
@@ -28,6 +32,220 @@ const backendPanels = [
 ];
 
 const workspacePanels = ['editor', 'files', 'search', 'locks', 'preview', 'terminal', ...backendPanels];
+
+function pnpmCommand() {
+  return process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+}
+
+function localUrlPort(url) {
+  try {
+    const parsed = new URL(url);
+
+    if (!['127.0.0.1', 'localhost'].includes(parsed.hostname)) {
+      return null;
+    }
+
+    return parsed.port;
+  } catch {
+    return null;
+  }
+}
+
+function collectChildOutput(child, label) {
+  const lines = [];
+  const collect = (stream, prefix) => {
+    stream?.on('data', (chunk) => {
+      const text = chunk.toString();
+      text
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .forEach((line) => {
+          lines.push(`[${label}:${prefix}] ${line}`);
+
+          if (lines.length > 80) {
+            lines.shift();
+          }
+        });
+    });
+  };
+
+  collect(child.stdout, 'stdout');
+  collect(child.stderr, 'stderr');
+
+  return lines;
+}
+
+function spawnLocalService(label, scriptName, extraEnv = {}) {
+  const child = spawn(pnpmCommand(), ['run', scriptName], {
+    cwd: process.cwd(),
+    env: { ...process.env, ...extraEnv },
+    detached: process.platform !== 'win32',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const logs = collectChildOutput(child, label);
+  spawnedProcesses.push({ child, label, logs });
+
+  child.once('exit', (code, signal) => {
+    if (code !== 0 && signal !== 'SIGTERM') {
+      logs.push(`[${label}:exit] code=${code ?? 'null'} signal=${signal ?? 'null'}`);
+    }
+  });
+
+  return { child, logs };
+}
+
+function killChildTree(child, signal) {
+  try {
+    if (process.platform === 'win32') {
+      child.kill(signal);
+    } else {
+      process.kill(-child.pid, signal);
+    }
+  } catch (error) {
+    if (error?.code !== 'ESRCH') {
+      throw error;
+    }
+  }
+}
+
+async function isReachable(url) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 2_000);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal, headers: { accept: 'application/json,text/html' } });
+    return response.status < 500;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function waitForReachable(url, label, logs, timeoutMs = 60_000) {
+  const startedAt = Date.now();
+  let lastError = '';
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (await isReachable(url)) {
+      return;
+    }
+
+    const childExited = spawnedProcesses.find((processInfo) => processInfo.label === label)?.child.exitCode !== null;
+
+    if (childExited) {
+      lastError = `${label} exited before ${url} became reachable.`;
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  const logTail = logs?.length ? `\nRecent ${label} output:\n${logs.slice(-30).join('\n')}` : '';
+  throw new Error(`${lastError || `${label} did not become reachable at ${url}.`}${logTail}`);
+}
+
+function viteLocalUrlFromLogs(logs) {
+  for (const line of logs.slice().reverse()) {
+    const match = line.match(/Local:\s+(http:\/\/[^\s/]+(?::\d+)?\/?)/);
+
+    if (match) {
+      return match[1].replace(/\/$/, '');
+    }
+  }
+
+  return null;
+}
+
+async function waitForWebReachable(initialUrl, logs) {
+  const startedAt = Date.now();
+  let targetUrl = initialUrl;
+
+  while (Date.now() - startedAt < 90_000) {
+    const advertisedUrl = viteLocalUrlFromLogs(logs);
+
+    if (advertisedUrl) {
+      targetUrl = advertisedUrl;
+    }
+
+    if (await isReachable(targetUrl)) {
+      appBaseUrl = targetUrl;
+      return;
+    }
+
+    const childExited = spawnedProcesses.find((processInfo) => processInfo.label === 'web')?.child.exitCode !== null;
+
+    if (childExited) {
+      break;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+
+  const logTail = logs?.length ? `\nRecent web output:\n${logs.slice(-30).join('\n')}` : '';
+  throw new Error(`web did not become reachable at ${targetUrl}.${logTail}`);
+}
+
+async function ensureLocalServices() {
+  const apiHealthUrl = `${apiBaseUrl}/synthetic/health`;
+  const appHealthUrl = appBaseUrl;
+
+  if (!(await isReachable(apiHealthUrl))) {
+    const apiPort = localUrlPort(apiBaseUrl);
+
+    if (explicitApiBaseUrl || apiPort === null) {
+      throw new Error(
+        `API audit endpoint is not reachable at ${apiHealthUrl}. Start the API or set SAAS_API_URL/API_BASE_URL to a reachable local service.`,
+      );
+    }
+
+    const { logs } = spawnLocalService('api', 'dev:api', {
+      API_HOST: new URL(apiBaseUrl).hostname,
+      API_PORT: apiPort || '3001',
+    });
+    await waitForReachable(apiHealthUrl, 'api', logs);
+  }
+
+  if (!(await isReachable(appHealthUrl))) {
+    const appPort = localUrlPort(appBaseUrl);
+
+    if (explicitAppBaseUrl || appPort === null) {
+      throw new Error(
+        `IDE app is not reachable at ${appHealthUrl}. Start the web app or set PLAYWRIGHT_BASE_URL to a reachable local service.`,
+      );
+    }
+
+    const { logs } = spawnLocalService('web', 'dev:web', {
+      HOST: new URL(appBaseUrl).hostname,
+      PORT: appPort || '5173',
+    });
+    await waitForWebReachable(appHealthUrl, logs);
+  }
+}
+
+async function stopSpawnedProcesses() {
+  await Promise.all(
+    spawnedProcesses.map(
+      ({ child }) =>
+        new Promise((resolve) => {
+          if (child.exitCode !== null || child.signalCode !== null) {
+            resolve();
+            return;
+          }
+
+          child.once('exit', resolve);
+
+          killChildTree(child, 'SIGTERM');
+
+          setTimeout(() => {
+            if (child.exitCode === null && child.signalCode === null) {
+              killChildTree(child, 'SIGKILL');
+            }
+          }, 5_000).unref();
+        }),
+    ),
+  );
+}
 
 async function http(url, options = {}) {
   const response = await fetch(url, options);
@@ -111,10 +329,16 @@ async function auditBackendPanels(projectId, cookie) {
     ['object-storage', form({ key: 'OBJECT_STORAGE_BUCKET', value: 'audit-bucket' })],
     ['packages', form({ packages: 'zod react-router-dom' })],
     ['extensions', form({ extension: 'prettier' })],
-    ['integrations', form({ intent: 'connect', integrationId: 'slack', organization: 'audit', apiToken: 'slack-token' })],
+    [
+      'integrations',
+      form({ intent: 'connect', integrationId: 'slack', organization: 'audit', apiToken: 'slack-token' }),
+    ],
     ['workflows', form({ intent: 'create-workflow', name: 'Panel Audit Workflow', executionMode: 'sequential' })],
     ['collaborators', form({ intent: 'comment', filePath: 'src/App.tsx', line: '1', body: 'Panel audit comment' })],
-    ['settings', form({ name: 'IDE Panel Audit App Updated', description: 'Panel audit update', gitDefaultBranch: 'main' })],
+    [
+      'settings',
+      form({ name: 'IDE Panel Audit App Updated', description: 'Panel audit update', gitDefaultBranch: 'main' }),
+    ],
   ];
 
   for (const [panel, body] of safeActions) {
@@ -164,9 +388,9 @@ async function auditPanelRender(projectId, token) {
       }
     });
 
-    await page.context().addCookies([
-      { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
-    ]);
+    await page
+      .context()
+      .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
 
     await page.goto(`${appBaseUrl}/projects/${projectId}/ide${panel === 'editor' ? '' : `?panel=${panel}`}`, {
       waitUntil: 'domcontentloaded',
@@ -249,9 +473,9 @@ async function auditCriticalUiInteractions(projectId, token) {
       });
     });
 
-    await page.context().addCookies([
-      { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
-    ]);
+    await page
+      .context()
+      .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
 
     try {
       await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
@@ -312,7 +536,10 @@ async function auditCriticalUiInteractions(projectId, token) {
       await page.getByRole('button', { name: 'New variable' }).click();
       await page.getByPlaceholder('VITE_API_URL').fill(key);
       await page.locator('input[name="value"]').fill('ui-enabled');
-      await Promise.all([waitForPanelResponse(page, 'env', 'POST'), page.getByRole('button', { name: 'Save variable' }).click()]);
+      await Promise.all([
+        waitForPanelResponse(page, 'env', 'POST'),
+        page.getByRole('button', { name: 'Save variable' }).click(),
+      ]);
       await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
       await page.getByText('ui-enabled').waitFor({ state: 'visible', timeout: 10_000 });
     },
@@ -326,7 +553,10 @@ async function auditCriticalUiInteractions(projectId, token) {
       const value = `secret-ui-${Date.now()}`;
       await page.getByPlaceholder('STRIPE_SECRET_KEY').fill(key);
       await page.getByPlaceholder('Secret value').fill(value);
-      await Promise.all([waitForPanelResponse(page, 'secrets', 'POST'), page.getByRole('button', { name: '+ New secret' }).click()]);
+      await Promise.all([
+        waitForPanelResponse(page, 'secrets', 'POST'),
+        page.getByRole('button', { name: '+ New secret' }).click(),
+      ]);
       await page.getByText(key).waitFor({ state: 'visible', timeout: 10_000 });
       page.once('dialog', (dialog) => void dialog.accept());
       await page.getByRole('button', { name: `Reveal ${key}` }).click();
@@ -452,7 +682,10 @@ async function auditCriticalUiInteractions(projectId, token) {
       ]);
       await page.getByRole('button', { name: /Connected \(/ }).click();
       await page.getByText('Notion').first().waitFor({ state: 'visible', timeout: 10_000 });
-      await page.locator('.bolt-project-integrations-tabs').getByRole('button', { name: /Webhooks/ }).click();
+      await page
+        .locator('.bolt-project-integrations-tabs')
+        .getByRole('button', { name: /Webhooks/ })
+        .click();
       await page.getByRole('button', { name: 'Create Webhook' }).click();
       await page.getByPlaceholder('Deployment Notifications').fill(`Integration Audit Webhook ${Date.now()}`);
       await page.getByPlaceholder('https://example.com/webhook').fill('https://example.com/integrations-audit');
@@ -529,7 +762,10 @@ async function auditCriticalUiInteractions(projectId, token) {
         waitForPanelResponse(page, 'collaborators', 'POST'),
         page.getByRole('button', { name: 'Create expiring link' }).click(),
       ]);
-      await page.getByText(/Expires/i).first().waitFor({ state: 'visible', timeout: 10_000 });
+      await page
+        .getByText(/Expires/i)
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
       await Promise.all([
         waitForPanelResponse(page, 'collaborators', 'POST'),
         page.getByRole('button', { name: 'Enable shared AI' }).click(),
@@ -573,9 +809,9 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       }
     });
 
-    await page.context().addCookies([
-      { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
-    ]);
+    await page
+      .context()
+      .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
 
     try {
       await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
@@ -647,7 +883,10 @@ async function auditWorkspaceUiInteractions(projectId, token) {
       await page.getByLabel('Collapse all files').click();
       page.once('dialog', (dialog) => void dialog.accept(fileName));
       await page.getByLabel('New file').click();
-      await page.locator('[data-testid="responsive-code-editor"]').first().waitFor({ state: 'visible', timeout: 15_000 });
+      await page
+        .locator('[data-testid="responsive-code-editor"]')
+        .first()
+        .waitFor({ state: 'visible', timeout: 15_000 });
       await page.getByText(fileName).first().waitFor({ state: 'visible', timeout: 15_000 });
     },
     'create_refresh_and_collapse_file_tree',
@@ -770,9 +1009,9 @@ async function auditResponsiveViewports(projectId, token) {
       }
     });
 
-    await page.context().addCookies([
-      { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
-    ]);
+    await page
+      .context()
+      .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
 
     try {
       await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
@@ -780,7 +1019,9 @@ async function auditResponsiveViewports(projectId, token) {
 
       if (viewport.mode === 'mobile') {
         await page.locator('.bolt-mobile-tabbar').waitFor({ state: 'visible', timeout: 15_000 });
-        await assertMobilePanel(page, 'Chat', (activePage) => activePage.locator('[data-testid="ide-agent-panel"]').first());
+        await assertMobilePanel(page, 'Chat', (activePage) =>
+          activePage.locator('[data-testid="ide-agent-panel"]').first(),
+        );
         await assertMobilePanel(page, 'Files', (activePage) => activePage.getByText('Search').first());
         await assertMobilePanel(page, 'Editor', (activePage) =>
           activePage.locator('[data-testid="responsive-code-editor"]').first(),
@@ -860,67 +1101,100 @@ function networkEvidence(results) {
   };
 }
 
-const auth = await registerAuditUser();
-const project = await createAuditProject(auth.token, auth.organization.id);
-const cookie = `vc_session=${auth.token}`;
-const endpointResults = await auditBackendPanels(project.id, cookie);
-const renderAudit = await auditPanelRender(project.id, auth.token);
-const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token);
-const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token);
-const responsiveAudit = await auditResponsiveViewports(project.id, auth.token);
-const pageErrors = [
-  ...renderAudit.errors,
-  ...interactionAudit.errors,
-  ...workspaceInteractionAudit.errors,
-  ...responsiveAudit.errors,
-].slice(0, 100);
-const browserErrorResults = pageErrors.map((error, index) => ({
-  kind: 'page_error',
-  panel: 'browser',
-  ok: false,
-  index,
-  error,
-}));
-const results = [
-  ...endpointResults,
-  ...renderAudit.results,
-  ...interactionAudit.results,
-  ...workspaceInteractionAudit.results,
-  ...responsiveAudit.results,
-  ...browserErrorResults,
-];
-const output = {
-  generatedAt: new Date().toISOString(),
-  appBaseUrl,
-  apiBaseUrl,
-  projectId: project.id,
-  summary: summarize(results),
-  groupCounts: countByKind(results),
-  networkEvidence: networkEvidence(results),
-  results,
-  pageErrors,
-};
+async function runAuditPass() {
+  const auth = await registerAuditUser();
+  const project = await createAuditProject(auth.token, auth.organization.id);
+  const cookie = `vc_session=${auth.token}`;
+  const endpointResults = await auditBackendPanels(project.id, cookie);
+  const renderAudit = await auditPanelRender(project.id, auth.token);
+  const interactionAudit = await auditCriticalUiInteractions(project.id, auth.token);
+  const workspaceInteractionAudit = await auditWorkspaceUiInteractions(project.id, auth.token);
+  const responsiveAudit = await auditResponsiveViewports(project.id, auth.token);
+  const pageErrors = [
+    ...renderAudit.errors,
+    ...interactionAudit.errors,
+    ...workspaceInteractionAudit.errors,
+    ...responsiveAudit.errors,
+  ].slice(0, 100);
+  const browserErrorResults = pageErrors.map((error, index) => ({
+    kind: 'page_error',
+    panel: 'browser',
+    ok: false,
+    index,
+    error,
+  }));
+  const results = [
+    ...endpointResults,
+    ...renderAudit.results,
+    ...interactionAudit.results,
+    ...workspaceInteractionAudit.results,
+    ...responsiveAudit.results,
+    ...browserErrorResults,
+  ];
 
-fs.mkdirSync(path.dirname(outFile), { recursive: true });
-fs.writeFileSync(outFile, JSON.stringify(output, null, 2));
+  return {
+    generatedAt: new Date().toISOString(),
+    appBaseUrl,
+    apiBaseUrl,
+    projectId: project.id,
+    summary: summarize(results),
+    groupCounts: countByKind(results),
+    networkEvidence: networkEvidence(results),
+    results,
+    pageErrors,
+  };
+}
 
-console.log(JSON.stringify(output.summary, null, 2));
-console.log(`projectId=${project.id}`);
-console.log(`report=${outFile}`);
+function hasTransientViteOptimizerFailure(output) {
+  if (explicitAppBaseUrl || output.summary.failed === 0) {
+    return false;
+  }
 
-if (output.summary.failed > 0) {
-  console.log(
-    JSON.stringify(
-      results.filter(
-        (result) =>
-          result.ok === false ||
-          result.rendered === false ||
-          result.applicationError === true ||
-          result.expectedGuard === false,
-      ),
-      null,
-      2,
+  return output.pageErrors.some((error) =>
+    /Invalid hook call|Failed to fetch dynamically imported module|optimized dependencies changed|Outdated Optimize Dep/i.test(
+      error,
     ),
   );
-  process.exitCode = 1;
+}
+
+function writeAuditReport(output) {
+  fs.mkdirSync(path.dirname(outFile), { recursive: true });
+  fs.writeFileSync(outFile, JSON.stringify(output, null, 2));
+
+  console.log(JSON.stringify(output.summary, null, 2));
+  console.log(`projectId=${output.projectId}`);
+  console.log(`report=${outFile}`);
+
+  if (output.summary.failed > 0) {
+    console.log(
+      JSON.stringify(
+        output.results.filter(
+          (result) =>
+            result.ok === false ||
+            result.rendered === false ||
+            result.applicationError === true ||
+            result.expectedGuard === false,
+        ),
+        null,
+        2,
+      ),
+    );
+    process.exitCode = 1;
+  }
+}
+
+try {
+  await ensureLocalServices();
+
+  let output = await runAuditPass();
+
+  if (hasTransientViteOptimizerFailure(output)) {
+    console.warn('Detected transient Vite dependency optimizer errors; retrying audit once after cache stabilization.');
+    await new Promise((resolve) => setTimeout(resolve, 2_500));
+    output = await runAuditPass();
+  }
+
+  writeAuditReport(output);
+} finally {
+  await stopSpawnedProcesses();
 }
