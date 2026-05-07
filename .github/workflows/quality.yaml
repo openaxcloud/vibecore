@@ -83,10 +83,10 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start development server
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-accessibility.log 2>&1 &
-          for attempt in {1..90}; do
+          for attempt in {1..180}; do
             if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
               exit 0
             fi
@@ -116,10 +116,10 @@ jobs:
         uses: ./.github/actions/setup-and-build
 
       - name: Start server for Lighthouse
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-lighthouse.log 2>&1 &
-          for attempt in {1..90}; do
+          for attempt in {1..180}; do
             if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
               exit 0
             fi
