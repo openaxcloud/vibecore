@@ -86,8 +86,8 @@ jobs:
         timeout-minutes: 5
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-accessibility.log 2>&1 &
-          for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:5173 >/dev/null; then
+          for attempt in {1..90}; do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
@@ -119,8 +119,8 @@ jobs:
         timeout-minutes: 5
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-lighthouse.log 2>&1 &
-          for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:5173 >/dev/null; then
+          for attempt in {1..90}; do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
