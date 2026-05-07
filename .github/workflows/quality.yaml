@@ -87,7 +87,7 @@ jobs:
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-accessibility.log 2>&1 &
           for attempt in {1..180}; do
-            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
+            if curl -fsS http://localhost:5173 >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
@@ -100,7 +100,7 @@ jobs:
       - name: Run accessibility tests with axe
         run: |
           echo "Running accessibility tests..."
-          npx @axe-core/cli http://127.0.0.1:5173 --exit || echo "Accessibility tests completed with findings"
+          npx @axe-core/cli http://localhost:5173 --exit || echo "Accessibility tests completed with findings"
         continue-on-error: true
 
   performance-audit:
@@ -120,7 +120,7 @@ jobs:
         run: |
           VITE_STRICT_PORT=true pnpm run dev:web > /tmp/vibecore-lighthouse.log 2>&1 &
           for attempt in {1..180}; do
-            if curl -fsS http://127.0.0.1:5173 >/dev/null 2>&1; then
+            if curl -fsS http://localhost:5173 >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
@@ -131,7 +131,7 @@ jobs:
       - name: Run Lighthouse audit
         run: |
           echo "Running Lighthouse performance audit..."
-          npx lighthouse http://127.0.0.1:5173 --output-path=./lighthouse-report.html --output=html --chrome-flags="--headless --no-sandbox" || echo "Lighthouse audit completed"
+          npx lighthouse http://localhost:5173 --output-path=./lighthouse-report.html --output=html --chrome-flags="--headless --no-sandbox" || echo "Lighthouse audit completed"
         continue-on-error: true
 
       - name: Upload Lighthouse report
