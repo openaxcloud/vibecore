@@ -983,6 +983,17 @@ describe('SaaS API', () => {
       email: 'abuse-customer@example.com',
       organizationName: 'Abuse Customer Org',
     });
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/setup',
+      headers: { authorization: `Bearer ${admin.token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/auth/mfa/verify',
+      headers: { authorization: `Bearer ${admin.token}` },
+      payload: { code: createTotpCode(setup.json().secret) },
+    });
 
     const staleSession = await app.inject({
       method: 'POST',
