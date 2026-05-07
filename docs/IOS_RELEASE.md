@@ -29,6 +29,8 @@ Check the same environment without writing files:
 pnpm mobile:release-assets:check
 ```
 
+`pnpm mobile:validate:release` also accepts the same release asset environment variables and validates those values in memory. Use this for CI gates that must verify real production values before deciding whether to write generated association files.
+
 ## Build Flow
 
 1. Install dependencies: `pnpm install --frozen-lockfile`.

@@ -163,7 +163,7 @@ if (!Array.isArray(appleAssociation.applinks?.details)) {
 }
 
 if (releaseMode) {
-  validateReleaseMobileAssets({ assetLinks, appleAssociation, appLinkHost, entitlements });
+  validateReleaseMobileAssets(releaseAssetsFromEnvironment() ?? { assetLinks, appleAssociation, appLinkHost, entitlements });
 }
 
 const rootPackage = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -209,4 +209,80 @@ function validateReleaseMobileAssets({ assetLinks, appleAssociation, appLinkHost
       throw new Error(`Invalid Apple appID in apple-app-site-association: ${appId}`);
     }
   }
+}
+
+function releaseAssetsFromEnvironment() {
+  const providedNames = [
+    'MOBILE_APP_LINK_HOST',
+    'MOBILE_IOS_ASSOCIATED_DOMAIN_HOST',
+    'MOBILE_IOS_APP_IDS',
+    'MOBILE_ANDROID_PACKAGE_NAME',
+    'MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS',
+    'MOBILE_IOS_APS_ENVIRONMENT',
+  ].filter((name) => process.env[name]?.trim());
+
+  if (providedNames.length === 0) {
+    return undefined;
+  }
+
+  const appLinkHost = requiredEnv('MOBILE_APP_LINK_HOST');
+  const iosAssociatedDomainHost = process.env.MOBILE_IOS_ASSOCIATED_DOMAIN_HOST?.trim() || appLinkHost;
+  const iosAppIds = envList('MOBILE_IOS_APP_IDS');
+  const androidPackageName = process.env.MOBILE_ANDROID_PACKAGE_NAME?.trim() || 'app.vibecore.mobile';
+  const androidFingerprints = envList('MOBILE_ANDROID_SHA256_CERT_FINGERPRINTS');
+  const apsEnvironment = process.env.MOBILE_IOS_APS_ENVIRONMENT?.trim() || 'production';
+
+  if (!['development', 'production'].includes(apsEnvironment)) {
+    throw new Error('MOBILE_IOS_APS_ENVIRONMENT must be development or production.');
+  }
+
+  return {
+    appLinkHost,
+    assetLinks: [
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace: 'android_app',
+          package_name: androidPackageName,
+          sha256_cert_fingerprints: androidFingerprints,
+        },
+      },
+    ],
+    appleAssociation: {
+      applinks: {
+        apps: [],
+        details: [
+          {
+            appIDs: iosAppIds,
+            components: [
+              { '/': '/projects/*' },
+              { '/': '/invitations/*' },
+            ],
+          },
+        ],
+      },
+    },
+    entitlements: `<plist><dict><key>aps-environment</key><string>${apsEnvironment}</string><key>com.apple.developer.associated-domains</key><array><string>applinks:${iosAssociatedDomainHost}</string></array></dict></plist>`,
+  };
+}
+
+function requiredEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} is required for release mobile validation when release asset environment variables are provided.`);
+  }
+  return value;
+}
+
+function envList(name) {
+  const values = requiredEnv(name)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (values.length === 0) {
+    throw new Error(`${name} must contain at least one value.`);
+  }
+
+  return values;
 }

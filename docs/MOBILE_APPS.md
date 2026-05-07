@@ -59,7 +59,7 @@ Local checks:
 - `pnpm mobile:sync`
 - `pnpm mobile:validate`
 - `pnpm mobile:build:android` when Android SDK/JDK are available.
-- `pnpm mobile:validate:release` before any store/TestFlight candidate; it is expected to fail until production app-link hosts, Apple app IDs, and Android release certificate fingerprints are configured.
+- `pnpm mobile:validate:release` before any store/TestFlight candidate; it is expected to fail until production app-link hosts, Apple app IDs, and Android release certificate fingerprints are configured. For local/CI dry-runs, provide the release asset variables in the environment to validate the real values without writing generated files.
 - `pnpm mobile:release-assets:check` validates the release asset environment without writing files.
 
 CI:
