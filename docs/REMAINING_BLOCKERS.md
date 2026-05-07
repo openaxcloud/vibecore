@@ -1,6 +1,6 @@
 # Remaining Blockers
 
-Date: 2026-05-04
+Date: 2026-05-07
 
 This file lists blockers that remain after the strict repo-local audit. Items here are not optional for paid production launch.
 
@@ -22,7 +22,7 @@ This file lists blockers that remain after the strict repo-local audit. Items he
 
 3. **Production configuration is incomplete.**
    - Current result: `pnpm run production:validate` fails on OAuth, OIDC, SAML, email, SIEM, production `DATABASE_URL`/`REDIS_URL`, Stripe secrets/catalog, runtime HTTPS URLs, monitoring/incident response and SOC2/rotation evidence.
-   - Latest local confirmation: strict validation still fails for missing real provider credentials and production URLs; `pnpm run production:validate:self-test` passes.
+   - Latest local confirmation: strict validation still fails for missing real provider credentials and production URLs after commit `a3fbbca`; repo-local `platform:verify`, full Playwright E2E, and IDE panel audit pass.
    - Next action: populate real staging/prod secret sets and rerun validation.
 
 4. **Stripe live test-mode flow is unverified.**

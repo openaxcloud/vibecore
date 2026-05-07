@@ -1,10 +1,10 @@
 # Production Readiness Review
 
-Date: 2026-05-04
+Date: 2026-05-07
 
 Scope: strict final review for private beta, paid users, 1,000 users, and 10,000 users across the 34 requested platform areas.
 
-Reviewed commit: `3cbc1d2` plus the current uncommitted readiness, runtime, mobile, CI/CD, and 403-access fixes in this workspace.
+Reviewed commit: `a3fbbca`.
 
 ## Verdict
 
@@ -47,15 +47,15 @@ Passed:
 - `pnpm run ide:panel-audit` -> 81 passed, 0 failed
 - `pnpm run ide:panel-audit:validate`
 - `pnpm run typecheck`
-- `pnpm run test` -> 255 tests passed after the runtime 502 and admin abuse-event regressions were added
+- `pnpm run test` -> 314 passed, 1 skipped
 - `pnpm run lint`
 - `pnpm run build`
 - `pnpm run readiness:validate`
-- `pnpm run platform:verify` -> mock scan, admin dangerous-action validation, readiness docs validation, lint, 255 tests, typecheck, client/SSR build, and infra validation passed
+- `pnpm run platform:verify` -> mock scan, admin dangerous-action validation, readiness docs validation, lint, 314 tests, typecheck, client/SSR build, and infra validation passed
 - `pnpm run platform:no-mocks`
 - `pnpm run admin:dangerous-actions:validate` -> 21 admin mutations validated for re-auth and AdminAuditLog
-- `pnpm exec vitest --run services/api/src/tests/api.spec.ts` -> 52 API tests passed, including platform-admin MFA/re-auth/audit and manual abuse-event re-auth/audit
-- `pnpm exec playwright test tests/e2e/admin-typography.spec.ts tests/e2e/ui-details.spec.ts --project=chromium --workers=1` -> 13 passed
+- `pnpm exec vitest --run services/api/src/tests/api.spec.ts` -> 54 API tests passed, including platform-admin MFA/re-auth/audit and manual abuse-event re-auth/audit
+- `pnpm run test:e2e` -> 127 passed, 17 breakpoint-specific skips across chromium, tablet, and mobile, including preview runtime and AI-created project startup coverage
 
 Failed, and therefore blocking:
 

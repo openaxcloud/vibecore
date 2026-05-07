@@ -1,6 +1,6 @@
 # Go-Live Checklist
 
-Date: 2026-05-04
+Date: 2026-05-07
 
 This checklist is conservative. A box is checked only when the current repo or this review has direct evidence. Production launch stays blocked until every required live gate has a linked run, dashboard, log query, or signed-off artifact.
 
@@ -21,15 +21,15 @@ This checklist is conservative. A box is checked only when the current repo or t
 - [x] `pnpm run desktop:test`
 - [x] `pnpm run ide:panel-audit`
 - [x] `pnpm run ide:panel-audit:validate`
-- [x] `pnpm exec playwright test tests/e2e --project=chromium --reporter=line` passed: 42 passed, 2 mobile-only skipped.
-- [x] `pnpm exec playwright test tests/e2e --project=tablet --reporter=line` passed: 42 passed, 2 mobile-only skipped.
-- [x] `pnpm exec playwright test tests/e2e --project=mobile --reporter=line` passed: 31 passed, 13 desktop/tablet-only skipped.
+- [x] `pnpm run test:e2e` passed: 127 passed, 17 breakpoint-specific skips across chromium, tablet, and mobile.
 - [x] `pnpm run platform:verify`
 
 ## Blocking Production Gates
 
 - [ ] `pnpm run production:validate` passes with real production/staging secrets.
   - Latest local result: fails because production OAuth/OIDC/SAML, transactional email, SIEM, database/Redis, Stripe secrets/catalog, runtime HTTPS URLs, monitoring/incident response, and SOC2/rotation owner values are missing or placeholder.
+- [x] Preview runtime local E2E passes for imported project content, package-script Vite apps, template-created projects, and AI-created projects.
+- [x] IDE panel audit passes for all workspace/service panels: 81/81.
 - [ ] `VITE_RUNTIME_MODE=remote-kubernetes`.
 - [ ] `VITE_RUNTIME_API_BASE_URL` and `WORKSPACE_MANAGER_URL` use HTTPS and point to the deployed runtime.
 - [ ] `pnpm run runtime:validate:api-kubernetes` passes. Current result: fails during preflight because `http://127.0.0.1:3010/health` is not reachable; workspace-manager is not running or not exposed.

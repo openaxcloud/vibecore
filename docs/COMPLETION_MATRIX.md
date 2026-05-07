@@ -1,8 +1,8 @@
 # Completion Matrix
 
-Date: 2026-05-04
+Date: 2026-05-07
 
-Reviewed commit: `3cbc1d2` plus the current uncommitted readiness, runtime, mobile, CI/CD, and 403-access fixes in this workspace.
+Reviewed commit: `a3fbbca`.
 
 Status definitions:
 
@@ -12,13 +12,14 @@ Status definitions:
 
 This matrix is intentionally strict. A feature with good source coverage is still `partial` when the remaining risk depends on a real staging or production environment.
 
-Latest repo-local validation on 2026-05-04:
+Latest repo-local validation on 2026-05-07:
 
 - `pnpm run platform:verify`: passed.
-- `pnpm exec playwright test tests/e2e --project=chromium --reporter=line`: passed, 42 passed and 2 mobile-only skipped.
-- `pnpm exec playwright test tests/e2e --project=tablet --reporter=line`: passed, 42 passed and 2 mobile-only skipped.
-- `pnpm exec playwright test tests/e2e --project=mobile --reporter=line`: passed, 31 passed and 13 desktop/tablet-only skipped.
+- `pnpm run test:e2e`: passed, 127 passed and 17 breakpoint-specific skips across chromium, tablet, and mobile.
+- Preview runtime E2E passed for imported app content, package-script Vite apps, template-created apps, and AI-created projects using the default model across the tested profiles.
 - `pnpm run ide:panel-audit && pnpm run ide:panel-audit:validate`: passed, 81/81 panels.
+- `pnpm run typecheck`: passed.
+- `pnpm run lint`: passed.
 - `pnpm run mobile:validate`: passed.
 - `pnpm run mobile:build:web`: passed.
 - `pnpm run desktop:test`: passed.
