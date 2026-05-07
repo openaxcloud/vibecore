@@ -1,5 +1,5 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
-import type { CommandEvent, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
+import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
@@ -41,6 +41,7 @@ type PreviewCommand = {
   args: string[];
   label: string;
   cwd?: string;
+  setupCommands?: PreviewCommand[];
 };
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
@@ -293,7 +294,7 @@ export class WorkbenchStore {
       return 'existing preview server';
     }
 
-    const command = this.#detectPreviewCommand();
+    const command = await this.#detectPreviewCommand(dependenciesChanged);
     this.toggleTerminal(true);
 
     this.#previewStartPromise = Promise.resolve(command.label);
@@ -301,23 +302,25 @@ export class WorkbenchStore {
 
     void (async () => {
       try {
-        this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
+        for (const setupCommand of command.setupCommands ?? []) {
+          this.appendWorkspaceLog(
+            `Preparing preview with ${setupCommand.label}${setupCommand.cwd ? ` in ${setupCommand.cwd}` : ''}`,
+          );
 
-        for await (const event of this.#runtime.streamCommand({
-          command: command.command,
-          args: command.args,
-          cwd: command.cwd,
-        })) {
-          this.appendWorkspaceLog(event);
+          const setupExitCode = await this.#streamWorkspaceCommand(setupCommand, {
+            exitMessage: 'Preview setup command exited with code',
+          });
 
-          if (event.type === 'stdout' || event.type === 'stderr') {
-            await this.refreshRuntimePorts().catch(() => undefined);
-          }
-
-          if (event.type === 'exit' && event.exitCode && event.exitCode !== 0) {
-            this.appendWorkspaceLog(`Preview command exited with code ${event.exitCode}`);
+          if (setupExitCode !== 0) {
+            return;
           }
         }
+
+        this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
+        await this.#streamWorkspaceCommand(command, {
+          exitMessage: 'Preview command exited with code',
+          refreshPortsOnOutput: true,
+        });
       } catch (error) {
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
       } finally {
@@ -369,7 +372,37 @@ export class WorkbenchStore {
     return this.startPreviewServer();
   }
 
-  #detectPreviewCommand(): PreviewCommand {
+  async #streamWorkspaceCommand(
+    command: CommandRequest & { label: string },
+    options: { exitMessage: string; refreshPortsOnOutput?: boolean },
+  ) {
+    let exitCode = 0;
+
+    for await (const event of this.#runtime.streamCommand({
+      command: command.command,
+      args: command.args,
+      cwd: command.cwd,
+      env: command.env,
+    })) {
+      this.appendWorkspaceLog(event);
+
+      if (options.refreshPortsOnOutput && (event.type === 'stdout' || event.type === 'stderr')) {
+        await this.refreshRuntimePorts().catch(() => undefined);
+      }
+
+      if (event.type === 'exit') {
+        exitCode = event.exitCode ?? 0;
+
+        if (exitCode !== 0) {
+          this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
+        }
+      }
+    }
+
+    return exitCode;
+  }
+
+  async #detectPreviewCommand(forceInstall: boolean): Promise<PreviewCommand> {
     const packageJsonEntry = this.#findPackageJsonEntry();
 
     if (packageJsonEntry?.[1]?.type === 'file' && packageJsonEntry[1].content) {
@@ -382,8 +415,7 @@ export class WorkbenchStore {
         };
         const scripts = pkg.scripts ?? {};
         const cwd = this.#runtimeCwdForPackageJson(packageJsonEntry[0]);
-        const installCommand = this.#installCommandForPackage(packageJsonEntry[0], pkg);
-        const installGuardCommand = this.#installGuardCommand(installCommand);
+        const setupCommands = await this.#previewSetupCommands(packageJsonEntry[0], pkg, forceInstall);
         const dependencies = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
         const shouldRunViteWithoutInstall = this.#canRunViteWithoutDependencyInstall(packageJsonEntry[0], dependencies);
 
@@ -401,25 +433,27 @@ export class WorkbenchStore {
 
           const hostArgs =
             devScript.includes('--host') || devScript.includes(' -h ') || devScript.includes(' --hostname ')
-              ? ''
+              ? []
               : devScript.includes('next')
-                ? ' -- -H 0.0.0.0'
-                : ' -- --host 0.0.0.0';
+                ? ['--', '-H', '0.0.0.0']
+                : ['--', '--host', '0.0.0.0'];
 
           return {
-            command: 'sh',
-            args: ['-lc', `${installGuardCommand}; npm run dev${hostArgs}`],
+            command: 'npm',
+            args: ['run', 'dev', ...hostArgs],
             label: 'npm run dev',
             cwd,
+            setupCommands,
           };
         }
 
         if (scripts.start) {
           return {
-            command: 'sh',
-            args: ['-lc', `${installGuardCommand}; npm run start`],
+            command: 'npm',
+            args: ['run', 'start'],
             label: 'npm run start',
             cwd,
+            setupCommands,
           };
         }
       } catch (error) {
@@ -466,24 +500,45 @@ export class WorkbenchStore {
     return this.#packageJsonCwd(packageJsonPath);
   }
 
-  #installCommandForPackage(packageJsonPath: string, pkg: { packageManager?: string }) {
+  #installCommandForPackage(packageJsonPath: string, pkg: { packageManager?: string }): PreviewCommand {
+    const cwd = this.#runtimeCwdForPackageJson(packageJsonPath);
     const packageManager = pkg.packageManager?.toLowerCase() ?? '';
     const hasPnpmLock = this.#packageDirectoryHasFile(packageJsonPath, 'pnpm-lock.yaml');
     const hasYarnLock = this.#packageDirectoryHasFile(packageJsonPath, 'yarn.lock');
 
     if (packageManager.startsWith('pnpm') || hasPnpmLock) {
-      return 'corepack enable >/dev/null 2>&1 || true; pnpm install';
+      return { command: 'pnpm', args: ['install'], label: 'pnpm install', cwd };
     }
 
     if (packageManager.startsWith('yarn') || hasYarnLock) {
-      return 'corepack enable >/dev/null 2>&1 || true; yarn install';
+      return { command: 'yarn', args: ['install'], label: 'yarn install', cwd };
     }
 
-    return 'npm install --prefer-offline --no-audit --no-fund';
+    return {
+      command: 'npm',
+      args: ['install', '--prefer-offline', '--no-audit', '--no-fund'],
+      label: 'npm install',
+      cwd,
+    };
   }
 
-  #installGuardCommand(installCommand: string) {
-    return `if [ ! -d node_modules ] || [ package.json -nt node_modules ]; then ${installCommand}; fi`;
+  async #previewSetupCommands(packageJsonPath: string, pkg: { packageManager?: string }, forceInstall: boolean) {
+    if (!forceInstall && (await this.#packageDirectoryHasRuntimeDirectory(packageJsonPath, 'node_modules'))) {
+      return [];
+    }
+
+    return [this.#installCommandForPackage(packageJsonPath, pkg)];
+  }
+
+  async #packageDirectoryHasRuntimeDirectory(packageJsonPath: string, directoryName: string) {
+    try {
+      const cwd = this.#runtimeCwdForPackageJson(packageJsonPath) ?? '.';
+      const nodes = await this.#runtime.listFiles(cwd);
+
+      return nodes.some((node) => node.type === 'directory' && node.name === directoryName);
+    } catch {
+      return false;
+    }
   }
 
   #packageDirectoryHasFile(packageJsonPath: string, fileName: string) {
