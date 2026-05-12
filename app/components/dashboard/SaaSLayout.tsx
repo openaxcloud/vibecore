@@ -6,6 +6,7 @@ import {
   Boxes,
   Braces,
   Building2,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Command,
@@ -16,6 +17,7 @@ import {
   GitBranch,
   Github,
   Globe2,
+  Instagram,
   KeyRound,
   Layers,
   LifeBuoy,
@@ -32,6 +34,7 @@ import {
   Terminal,
   Upload,
   Users,
+  Youtube,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -73,11 +76,11 @@ type TemplateCard = {
 };
 
 export const publicNav = [
-  { label: 'Pricing', to: '/pricing' },
-  { label: 'Docs', to: '/docs' },
+  { label: 'Product', to: '/#product' },
+  { label: 'Solutions', to: '/#solutions' },
   { label: 'Templates', to: '/templates' },
   { label: 'Security', to: '/security' },
-  { label: 'Contact sales', to: '/contact-sales' },
+  { label: 'Pricing', to: '/pricing' },
 ];
 
 export const appNav = [
@@ -195,44 +198,214 @@ export interface ProjectCard {
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <header className="sticky top-0 z-20 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-sm font-semibold" aria-label="VibeCore home">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 shadow-sm">
-              <Sparkles className="h-4 w-4" aria-hidden />
-            </span>
-            VibeCore
+    <main className="vc-public-shell min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
+      <PublicMarketingHeader />
+      {children}
+      <PublicMarketingFooter />
+    </main>
+  );
+}
+
+function VibecoreLogo({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className="vc-logo" aria-label="VibeCore">
+      <span className="vc-logo-mark" aria-hidden>
+        <Sparkles className="h-4 w-4" />
+      </span>
+      {!compact ? <span className="vc-logo-text">VibeCore</span> : null}
+    </span>
+  );
+}
+
+function PublicMarketingHeader() {
+  const productItems = [
+    ['AI Agent', '/#builder', 'Generate, patch and ship production apps from natural language.'],
+    ['Browser IDE', '/#product', 'A preserved Bolt workbench with files, terminal, preview and deploy tools.'],
+    ['Mobile IDE', '/#mobile', 'Review, run and inspect projects from phone and tablet layouts.'],
+    ['Deployments', '/#deploy', 'Runtime-aware previews, snapshots and production release controls.'],
+  ];
+  const resourceItems = [
+    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
+    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
+    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
+    ['Status', '/status', 'Operational status and incident visibility.'],
+  ];
+
+  return (
+    <header className="vc-public-header" role="banner" aria-label="Site header">
+      <div className="vc-public-announcement">
+        <div className="vc-public-container vc-public-announcement-inner">
+          <span className="vc-badge">New</span>
+          <span>Enterprise-grade mobile IDE, runtime status and Android build validation are now live.</span>
+          <Link to="/contact-sales">Talk to an expert</Link>
+        </div>
+      </div>
+      <nav className="vc-public-nav" aria-label="Main navigation">
+        <div className="vc-public-container vc-public-nav-inner">
+          <Link to="/" className="vc-public-brand">
+            <VibecoreLogo />
           </Link>
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Public navigation">
-            {publicNav.map((item) => (
-              <NavButton key={item.to} to={item.to}>
-                {item.label}
-              </NavButton>
-            ))}
-            <NavButton to="/changelog">Changelog</NavButton>
-            <NavButton to="/status">Status</NavButton>
-          </nav>
-          <div className="flex items-center gap-2">
+          <div className="vc-public-desktop-nav" aria-label="Public navigation">
+            <MarketingMenu label="Product" items={productItems} icon={Sparkles} />
+            <MarketingMenu label="Resources" items={resourceItems} icon={BookOpen} />
+            <NavButton to="/pricing">Pricing</NavButton>
+            <NavButton to="/security">Security</NavButton>
+            <NavButton to="/contact-sales">Enterprise</NavButton>
+          </div>
+          <div className="vc-public-actions">
             <LinkButton to="/login" variant="ghost">
               Sign in
             </LinkButton>
-            <LinkButton to="/signup">Start</LinkButton>
+            <LinkButton to="/signup">Start building</LinkButton>
+            <details className="vc-public-mobile-menu">
+              <summary aria-label="Open mobile menu">
+                <Menu className="h-5 w-5" aria-hidden />
+              </summary>
+              <div className="vc-public-mobile-menu-panel">
+                {[...productItems, ...resourceItems, ['Pricing', '/pricing', 'Plans for teams and enterprises']].map(
+                  ([title, to, description]) => (
+                    <Link key={to} to={to}>
+                      <strong>{title}</strong>
+                      <span>{description}</span>
+                    </Link>
+                  ),
+                )}
+              </div>
+            </details>
           </div>
         </div>
-        <nav
-          className="mx-auto flex max-w-7xl gap-1 overflow-x-auto border-t border-bolt-elements-borderColor px-4 py-2 sm:px-6 md:hidden"
-          aria-label="Public mobile navigation"
-        >
-          {[...publicNav, { label: 'Status', to: '/status' }].map((item) => (
-            <NavButton key={item.to} to={item.to}>
-              {item.label}
-            </NavButton>
+      </nav>
+    </header>
+  );
+}
+
+function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items: string[][]; icon: Icon }) {
+  const MenuIcon = menuIcon;
+
+  return (
+    <details className="vc-marketing-menu">
+      <summary>
+        {label}
+        <ChevronRight className="h-3 w-3" aria-hidden />
+      </summary>
+      <div className="vc-marketing-menu-panel">
+        {items.map(([title, to, description]) => (
+          <Link key={to} to={to}>
+            <MenuIcon className="h-4 w-4" aria-hidden />
+            <span>
+              <strong>{title}</strong>
+              <small>{description}</small>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function PublicMarketingFooter() {
+  const footerColumns = [
+    {
+      title: 'Product',
+      links: [
+        ['AI Agent', '/#builder'],
+        ['IDE', '/#product'],
+        ['Mobile', '/#mobile'],
+        ['Deployments', '/#deploy'],
+        ['Pricing', '/pricing'],
+      ],
+    },
+    {
+      title: 'Resources',
+      links: [
+        ['Docs', '/docs'],
+        ['Templates', '/templates'],
+        ['Changelog', '/changelog'],
+        ['Status', '/status'],
+        ['Contact sales', '/contact-sales'],
+      ],
+    },
+    {
+      title: 'Company',
+      links: [
+        ['Security', '/security'],
+        ['Privacy', '/privacy'],
+        ['Terms', '/terms'],
+        ['Acceptable use', '/acceptable-use'],
+      ],
+    },
+  ];
+
+  return (
+    <footer className="vc-public-footer" role="contentinfo" aria-label="Site footer">
+      <div className="vc-public-container">
+        <div className="vc-public-footer-cta">
+          <div>
+            <span className="vc-badge">
+              <ShieldCheck className="h-3 w-3" aria-hidden />
+              Enterprise ready
+            </span>
+            <h2>The future of governed software development.</h2>
+            <p>
+              VibeCore combines Bolt IDE ergonomics, managed runtimes, auditability and production deployment controls.
+            </p>
+          </div>
+          <div className="vc-public-footer-actions">
+            <LinkButton to="/contact-sales">Talk to sales</LinkButton>
+            <LinkButton to="/signup" variant="outline">
+              Start building
+            </LinkButton>
+          </div>
+        </div>
+        <div className="vc-public-footer-grid">
+          <div className="vc-public-footer-brand">
+            <VibecoreLogo />
+            <p>Persistent projects, real runtimes and a preserved Bolt workbench for production teams.</p>
+            <div className="vc-public-trust-list">
+              <span>
+                <CheckCircle2 className="h-4 w-4" /> Audit logs
+              </span>
+              <span>
+                <Globe2 className="h-4 w-4" /> Global previews
+              </span>
+              <span>
+                <ShieldCheck className="h-4 w-4" /> Security controls
+              </span>
+            </div>
+          </div>
+          {footerColumns.map((column) => (
+            <nav key={column.title} aria-label={`${column.title} footer links`}>
+              <h3>{column.title}</h3>
+              {column.links.map(([label, to]) => (
+                <Link key={to} to={to}>
+                  {label}
+                </Link>
+              ))}
+            </nav>
           ))}
-        </nav>
-      </header>
-      {children}
-    </main>
+        </div>
+        <div className="vc-public-footer-bottom">
+          <span>© {new Date().getFullYear()} VibeCore. All rights reserved.</span>
+          <div>
+            <a href="https://github.com/openaxcloud/vibecore" target="_blank" rel="noreferrer" aria-label="GitHub">
+              <Github className="h-4 w-4" />
+            </a>
+            <a href="/docs" aria-label="Documentation">
+              <BookOpen className="h-4 w-4" />
+            </a>
+            <a href="/status" aria-label="Status">
+              <Globe2 className="h-4 w-4" />
+            </a>
+            <a href="/templates" aria-label="Templates">
+              <Youtube className="h-4 w-4" />
+            </a>
+            <a href="/contact-sales" aria-label="Contact">
+              <Instagram className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
 

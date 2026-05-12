@@ -1,129 +1,315 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Link } from '@remix-run/react';
-import { Activity, Code2, Rocket, TerminalSquare } from 'lucide-react';
-import { PublicShell, LinkButton, publicFooterLinks, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { Form, Link } from '@remix-run/react';
+import {
+  Activity,
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  Database,
+  Gauge,
+  Globe2,
+  MonitorPlay,
+  Play,
+  ShieldCheck,
+  Sparkles,
+  TerminalSquare,
+} from 'lucide-react';
+import {
+  SiDocker,
+  SiGo,
+  SiJavascript,
+  SiNodedotjs,
+  SiPostgresql,
+  SiPython,
+  SiReact,
+  SiRemix,
+  SiRust,
+  SiTypescript,
+} from 'react-icons/si';
+import { PublicShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [
-  { title: 'VibeCore - Bolt IDE for production SaaS teams' },
+  { title: 'VibeCore - Enterprise vibe coding platform' },
   {
     name: 'description',
     content:
-      'Build, run and govern Bolt workspaces with persistent projects, Kubernetes runtimes, billing and enterprise controls.',
+      'Build, run and govern production applications with AI agents, the preserved Bolt IDE, real runtimes, mobile workflows and enterprise controls.',
   },
 ];
+
+const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
+const cloudImage = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+
+const stats = [
+  ['Active workspaces', 'Real-time', 'Runtime sessions, ports and preview health.'],
+  ['Mobile ready', 'Phone + tablet', 'Responsive IDE panels validated with Playwright.'],
+  ['Governance', 'Built in', 'Snapshots, quotas, audit events and security controls.'],
+  ['Deploy flow', 'Integrated', 'Preview, logs, domains and production releases.'],
+];
+
+const features = [
+  {
+    icon: Bot,
+    title: 'AI agent that works inside the IDE',
+    text: 'Generate, edit and validate application code without replacing the preserved Bolt workspace.',
+  },
+  {
+    icon: TerminalSquare,
+    title: 'Real terminal and runtime panels',
+    text: 'Interactive shell, logs, monitoring, ports and workspace status are wired to backend runtimes.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Enterprise governance by default',
+    text: 'Role controls, audit trails, environment secrets, snapshots and security scan surfaces.',
+  },
+  {
+    icon: MonitorPlay,
+    title: 'Preview-first delivery',
+    text: 'Run dev servers, inspect live previews and keep runtime status visible across desktop and mobile.',
+  },
+  {
+    icon: Database,
+    title: 'Database and backup workflows',
+    text: 'Environment-backed database configuration plus snapshot-based backup and restore flows.',
+  },
+  {
+    icon: Globe2,
+    title: 'Ship across devices',
+    text: 'Desktop, tablet, mobile browser and Capacitor mobile builds share the same production surface.',
+  },
+];
+
+const showcases = [
+  ['SaaS control plane', 'Billing, organizations, projects, deployments and audit logs in one workspace.'],
+  ['AI product sprint', 'Turn a prompt into a typed app with frontend, backend, tests and preview.'],
+  ['Internal platform', 'Governed runtime workspaces for teams that need speed and traceability.'],
+];
+
+const languageIcons = [
+  ['TypeScript', SiTypescript, '#3178C6'],
+  ['React', SiReact, '#61DAFB'],
+  ['Remix', SiRemix, '#FFFFFF'],
+  ['Node.js', SiNodedotjs, '#5FA04E'],
+  ['Python', SiPython, '#FACC15'],
+  ['PostgreSQL', SiPostgresql, '#60A5FA'],
+  ['Docker', SiDocker, '#2496ED'],
+  ['JavaScript', SiJavascript, '#F7DF1E'],
+  ['Go', SiGo, '#00ADD8'],
+  ['Rust', SiRust, '#F97316'],
+] as const;
 
 export default function LandingPage() {
   return (
     <PublicShell>
-      <section className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:py-14">
-          <div className="relative min-h-[620px] overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-            <div className="absolute inset-x-4 bottom-4 top-36 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 sm:inset-x-8 sm:bottom-8 lg:top-28">
-              <div className="grid h-full grid-cols-[170px_1fr] md:grid-cols-[220px_1fr_300px]">
-                <aside className="border-r border-bolt-elements-borderColor p-3">
-                  {['app', 'components', 'services', 'packages', 'infra'].map((item) => (
-                    <div key={item} className="mb-2 rounded px-2 py-1.5 text-sm text-bolt-elements-textSecondary">
-                      {item}
-                    </div>
-                  ))}
-                </aside>
-                <div className="grid min-w-0 grid-rows-[44px_1fr_120px]">
-                  <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor px-3 text-sm">
-                    <Code2 className="h-4 w-4" aria-hidden />
-                    app/routes/projects.$projectId.ide.tsx
-                  </div>
-                  <div className="p-4 font-mono text-xs leading-6 text-bolt-elements-textSecondary">
-                    <p>const runtime = await adapter.startWorkspace(projectId);</p>
-                    <p>await runtime.writeFile('app/page.tsx', content);</p>
-                    <p>const preview = await runtime.getPreviewUrl(5173);</p>
-                    <p>await audit.record(toolCall);</p>
-                  </div>
-                  <div className="grid grid-cols-2 border-t border-bolt-elements-borderColor">
-                    <div className="border-r border-bolt-elements-borderColor p-3 text-sm">
-                      <TerminalSquare className="mb-2 h-4 w-4" aria-hidden />
-                      Terminal streaming
-                    </div>
-                    <div className="p-3 text-sm">
-                      <Rocket className="mb-2 h-4 w-4" aria-hidden />
-                      Preview ready
-                    </div>
-                  </div>
-                </div>
-                <aside className="hidden border-l border-bolt-elements-borderColor p-3 md:block">
-                  {['Workspace running', 'Quota checked', 'Snapshot ready', 'Deploy enabled'].map((item) => (
-                    <div
-                      key={item}
-                      className="mb-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm"
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </aside>
+      <section className="vc-home-hero" data-testid="section-hero">
+        <img src={cloudImage} alt="" className="vc-home-hero-bg" loading="eager" />
+        <div className="vc-public-container vc-home-hero-grid">
+          <div className="vc-home-hero-copy">
+            <span className="vc-badge">
+              <Sparkles className="h-3 w-3" aria-hidden />
+              Fortune 500-grade vibe coding
+            </span>
+            <h1>Build and deploy production apps from one governed AI IDE.</h1>
+            <p>
+              VibeCore wraps the Bolt editor with persistent projects, real runtimes, mobile-ready workflows, deployment
+              controls and enterprise governance so teams can ship without losing engineering discipline.
+            </p>
+            <Form method="get" action="/signup" className="vc-home-builder-form" id="builder">
+              <label htmlFor="homepage-prompt">Describe the app you want to build</label>
+              <div>
+                <input
+                  id="homepage-prompt"
+                  name="prompt"
+                  type="text"
+                  placeholder="Build a customer portal with auth, billing, admin dashboard and deployment..."
+                  data-testid="input-homepage-prompt"
+                />
+                <button type="submit" data-testid="button-homepage-build">
+                  Start building
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
               </div>
+            </Form>
+            <div className="vc-home-hero-actions">
+              <LinkButton to="/signup">Get started</LinkButton>
+              <LinkButton to="/contact-sales" variant="outline">
+                Contact sales
+              </LinkButton>
+              <Link to="#video-demo" className="vc-home-video-link">
+                <Play className="h-4 w-4" aria-hidden />
+                Watch platform flow
+              </Link>
             </div>
-            <div className="relative z-10 max-w-4xl px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-              <p className="mb-4 text-sm font-medium text-bolt-elements-textSecondary">
-                Bolt IDE, preserved for production teams
-              </p>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-normal sm:text-5xl">
-                Ship AI-built software from governed cloud workspaces.
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-bolt-elements-textSecondary">
-                VibeCore wraps the Bolt editor with persistent projects, remote runtimes, billing, quotas, audit
-                controls and enterprise identity without removing the IDE engineers already use.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <LinkButton to="/signup">Start building</LinkButton>
-                <LinkButton to="/contact-sales" variant="outline">
-                  Contact sales
-                </LinkButton>
-              </div>
+          </div>
+          <div className="vc-home-product-frame" aria-label="VibeCore IDE preview">
+            <div className="vc-home-browser-bar">
+              <span />
+              <span />
+              <span />
+              <strong>projects/acme/ide</strong>
+            </div>
+            <div className="vc-home-ide-mock">
+              <aside>
+                {['app', 'components', 'routes', 'runtime', 'deploy'].map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </aside>
+              <main>
+                <div className="vc-home-tabs">
+                  <span>Agent</span>
+                  <span>Editor</span>
+                  <span>Preview</span>
+                  <span>Terminal</span>
+                </div>
+                <pre>{`const app = await vibecore.build({
+  prompt,
+  runtime: "managed",
+  checks: ["typecheck", "tests", "preview"]
+});`}</pre>
+                <div className="vc-home-terminal">
+                  <TerminalSquare className="h-4 w-4" />
+                  <span>Runtime: Running</span>
+                  <span>Port 5173</span>
+                  <span>Preview active</span>
+                </div>
+              </main>
             </div>
           </div>
         </div>
       </section>
-      <section className="border-y border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-10 sm:px-6 md:grid-cols-4">
-          {[
-            ['Persistent projects', 'Postgres metadata plus runtime-backed workspace files.'],
-            ['Controlled AI', 'Quota checks, tool RBAC, snapshots and cost ledgers.'],
-            ['Remote runtimes', 'Kubernetes workspaces behind RuntimeAdapter.'],
-            ['Enterprise ready', 'SSO, audit, billing, SCIM and security controls.'],
-          ].map(([title, detail]) => (
-            <div key={title}>
-              <Activity className="mb-3 h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-              <h2 className="text-sm font-semibold">{title}</h2>
-              <p className="mt-2 text-sm text-bolt-elements-textSecondary">{detail}</p>
-            </div>
+
+      <section className="vc-home-stats" aria-label="Platform proof">
+        <div className="vc-public-container">
+          {stats.map(([label, value, detail]) => (
+            <article key={label}>
+              <strong>{value}</strong>
+              <span>{label}</span>
+              <p>{detail}</p>
+            </article>
           ))}
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold">Start from a production template</h2>
-            <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-              Templates open directly into the Bolt project flow.
+
+      <section className="vc-home-section" id="product" data-testid="section-product">
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Product</span>
+            <h2>Everything expected from a serious cloud IDE, wired for real delivery.</h2>
+            <p>
+              The homepage design is visual, but the product claims map to actual Vibecore surfaces: projects, runtime
+              adapters, terminal, preview, security, database, deployment and mobile validation.
             </p>
           </div>
-          <Link to="/templates" className="text-sm font-medium hover:underline">
-            View all
-          </Link>
+          <div className="vc-home-feature-grid">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <article key={feature.title} className="vc-home-card">
+                  <Icon className="h-6 w-6" aria-hidden />
+                  <h3>{feature.title}</h3>
+                  <p>{feature.text}</p>
+                </article>
+              );
+            })}
+          </div>
         </div>
-        <TemplateGallery compact />
       </section>
-      <footer className="border-t border-bolt-elements-borderColor">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-bolt-elements-textSecondary sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>VibeCore keeps the Bolt IDE intact.</span>
-          <nav className="flex flex-wrap gap-4" aria-label="Footer">
-            {publicFooterLinks.map((item) => (
-              <Link key={item.to} to={item.to} className="hover:text-bolt-elements-textPrimary">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+
+      <section className="vc-home-video" id="video-demo" data-testid="section-video-demo">
+        <div className="vc-public-container">
+          <div className="vc-home-media-card">
+            <img src={heroImage} alt="Developer workspace with code editor" loading="lazy" />
+            <div>
+              <span className="vc-badge">Live platform flow</span>
+              <h2>Prompt, inspect, run, preview, deploy.</h2>
+              <p>
+                VibeCore is optimized for the working loop: describe a change, inspect generated files, run the real
+                terminal, verify preview output and push a deployable project.
+              </p>
+              <ul>
+                {['AI code generation', 'Real terminal', 'Runtime preview', 'Deployment controls'].map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 className="h-4 w-4" aria-hidden />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
-      </footer>
+      </section>
+
+      <section className="vc-home-section" id="solutions" data-testid="section-solutions">
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Solutions</span>
+            <h2>Built for teams that need speed and accountability.</h2>
+          </div>
+          <div className="vc-home-showcase-grid">
+            {showcases.map(([title, text]) => (
+              <article key={title}>
+                <Activity className="h-5 w-5" aria-hidden />
+                <h3>{title}</h3>
+                <p>{text}</p>
+                <Link to="/contact-sales">
+                  Learn more
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="vc-home-section vc-home-templates" data-testid="section-templates">
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Templates</span>
+            <h2>Start from production-shaped stacks.</h2>
+            <p>Templates open into the existing project flow and preserve the Bolt IDE experience.</p>
+          </div>
+          <TemplateGallery compact />
+        </div>
+      </section>
+
+      <section className="vc-home-section" data-testid="section-languages">
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Stacks</span>
+            <h2>Any language, any framework, one governed workspace.</h2>
+          </div>
+          <div className="vc-home-language-grid">
+            {languageIcons.map(([name, languageIcon, color]) => {
+              const LanguageIcon = languageIcon;
+
+              return (
+                <article key={name}>
+                  <LanguageIcon className="h-8 w-8" style={{ color }} aria-hidden />
+                  <span>{name}</span>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="vc-home-cta" data-testid="section-cta">
+        <div className="vc-public-container">
+          <div>
+            <Gauge className="h-8 w-8" aria-hidden />
+            <h2>Ready to build with production constraints from day one?</h2>
+            <p>Start with AI, keep the IDE, validate the preview and move toward deployment without swapping tools.</p>
+          </div>
+          <div className="vc-home-cta-actions">
+            <LinkButton to="/signup">Start building free</LinkButton>
+            <LinkButton to="/contact-sales" variant="outline">
+              Contact sales
+            </LinkButton>
+          </div>
+        </div>
+      </section>
     </PublicShell>
   );
 }
