@@ -309,6 +309,7 @@ export const Workbench = memo(
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
+    const previewServerState = useStore(workbenchStore.previewServerState);
     const { showChat } = useStore(chatStore);
     const canHideChat = showWorkbench || !showChat;
 
@@ -373,6 +374,13 @@ export const Workbench = memo(
 
     const onFileReset = useCallback(() => {
       workbenchStore.resetCurrentDocument();
+    }, []);
+
+    const runMobilePreview = useCallback(() => {
+      workbenchStore.currentView.set('preview');
+      void workbenchStore.startPreviewServer().catch((error) => {
+        toast.error(error instanceof Error ? error.message : 'Failed to start preview');
+      });
     }, []);
 
     const handleSelectFile = useCallback((filePath: string) => {
@@ -521,12 +529,31 @@ export const Workbench = memo(
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
                   )}
                   {useMobileWorkbench && mobilePanel === 'editor' && (
-                    <button
-                      className="ml-auto rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textSecondary"
-                      onClick={() => setSelectedView(selectedView === 'diff' ? 'code' : 'diff')}
-                    >
-                      {selectedView === 'diff' ? 'Editor' : 'Review diff'}
-                    </button>
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        className="bolt-workbench-mobile-action"
+                        type="button"
+                        onClick={runMobilePreview}
+                        disabled={previewServerState.status === 'starting'}
+                      >
+                        <span
+                          className={
+                            previewServerState.status === 'starting'
+                              ? 'i-ph:arrows-clockwise animate-spin'
+                              : 'i-ph:play'
+                          }
+                          aria-hidden
+                        />
+                        <span>{previewServerState.status === 'starting' ? 'Running' : 'Run'}</span>
+                      </button>
+                      <button
+                        className="bolt-workbench-mobile-action"
+                        type="button"
+                        onClick={() => setSelectedView(selectedView === 'diff' ? 'code' : 'diff')}
+                      >
+                        {selectedView === 'diff' ? 'Editor' : 'Review'}
+                      </button>
+                    </div>
                   )}
                   <IconButton
                     icon="i-ph:x-circle"

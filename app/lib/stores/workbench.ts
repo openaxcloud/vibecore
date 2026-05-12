@@ -51,6 +51,10 @@ export type PreviewServerState = {
 };
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
+export type ProjectFilesPanelRequest = {
+  open?: boolean;
+  requestId: number;
+};
 
 const WORKSPACE_LOG_LIMIT = 500;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
@@ -209,6 +213,9 @@ export class WorkbenchStore {
   workspaceLogs: WritableAtom<string[]> = import.meta.hot?.data.workspaceLogs ?? atom<string[]>([]);
   previewServerState: WritableAtom<PreviewServerState> =
     import.meta.hot?.data.previewServerState ?? atom<PreviewServerState>({ status: 'idle' });
+  projectFilesPanelOpen: WritableAtom<boolean> = import.meta.hot?.data.projectFilesPanelOpen ?? atom(true);
+  projectFilesPanelRequest: WritableAtom<ProjectFilesPanelRequest | undefined> =
+    import.meta.hot?.data.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
   quotaWarning: WritableAtom<string | undefined> =
     import.meta.hot?.data.quotaWarning ?? atom<string | undefined>(undefined);
   billingUpgradePrompt: WritableAtom<string | undefined> =
@@ -229,6 +236,8 @@ export class WorkbenchStore {
       import.meta.hot.data.workspaceError = this.workspaceError;
       import.meta.hot.data.workspaceLogs = this.workspaceLogs;
       import.meta.hot.data.previewServerState = this.previewServerState;
+      import.meta.hot.data.projectFilesPanelOpen = this.projectFilesPanelOpen;
+      import.meta.hot.data.projectFilesPanelRequest = this.projectFilesPanelRequest;
       import.meta.hot.data.quotaWarning = this.quotaWarning;
       import.meta.hot.data.billingUpgradePrompt = this.billingUpgradePrompt;
 
@@ -242,6 +251,10 @@ export class WorkbenchStore {
         }
       }
     }
+  }
+
+  requestProjectFilesPanel(open?: boolean) {
+    this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
   }
 
   configureRuntime(runtime: RuntimeAdapter) {

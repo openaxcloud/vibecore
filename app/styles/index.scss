@@ -1109,6 +1109,33 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
 }
 
+.bolt-workbench-mobile-action {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 7px;
+  background: var(--bolt-elements-background-depth-1);
+  color: var(--bolt-elements-textSecondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 9px;
+  touch-action: manipulation;
+}
+
+.bolt-workbench-mobile-action:disabled {
+  opacity: 0.65;
+}
+
+.bolt-workbench-mobile-action [class*='i-ph:'] {
+  width: 13px;
+  height: 13px;
+  font-size: 13px;
+}
+
 .bolt-connection-status {
   position: fixed;
   top: calc(var(--header-height, 0px) + env(safe-area-inset-top, 0px) + 8px);

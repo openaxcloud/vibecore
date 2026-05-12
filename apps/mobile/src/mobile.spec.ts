@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readMobileRuntimeConfig } from './config';
-import { extractPushActionData, parseDeepLink, shouldRegisterForPush } from './native';
+import { configureOfflineState, extractPushActionData, parseDeepLink, shouldRegisterForPush } from './native';
 import { parseSessionLockState } from './session';
 import { supportsPlatformBiometrics } from './biometric';
 import { editorKindForLayout, getResponsiveLayoutState } from '@vibecore/editor';
@@ -27,9 +27,9 @@ describe('mobile native adapters', () => {
   });
 
   it('uses the mobile CodeMirror editor fallback on phones and portrait tablets', () => {
-    expect(editorKindForLayout(getResponsiveLayoutState(390, { coarsePointer: true }))).toBe('codemirror');
-    expect(editorKindForLayout(getResponsiveLayoutState(820, { coarsePointer: true }))).toBe('codemirror');
-    expect(editorKindForLayout(getResponsiveLayoutState(1024, { coarsePointer: true }))).toBe('monaco');
+    expect(editorKindForLayout(getResponsiveLayoutState(390, 844, { coarsePointer: true }))).toBe('codemirror');
+    expect(editorKindForLayout(getResponsiveLayoutState(820, 1180, { coarsePointer: true }))).toBe('codemirror');
+    expect(editorKindForLayout(getResponsiveLayoutState(1024, 768, { coarsePointer: true }))).toBe('monaco');
   });
 
   it('normalizes persisted lock state without storing secrets', () => {
@@ -74,5 +74,18 @@ describe('mobile native adapters', () => {
       projectId: 'project_123',
       route: '/projects/project_123/ide',
     });
+  });
+
+  it('dispatches mobile network change events for the embedded web runtime', () => {
+    const events: unknown[] = [];
+    const listener = (event: Event) => events.push((event as CustomEvent).detail);
+    window.addEventListener('vibecore:mobile-network-change', listener);
+
+    const cleanup = configureOfflineState();
+
+    cleanup();
+    window.removeEventListener('vibecore:mobile-network-change', listener);
+
+    expect(events).toContainEqual({ connected: navigator.onLine });
   });
 });

@@ -60,6 +60,7 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
+import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { useSearchParams } from '@remix-run/react';
 
@@ -119,6 +120,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
 };
 
 type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
+type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
 type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
 type IdePaneTab = {
   id: string;
@@ -708,6 +710,10 @@ function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
   return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
 }
 
+function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
+  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
+}
+
 function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}): IdePaneTab {
   const suffix =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -916,13 +922,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
       'chat',
     );
-    const setMobileIdePanel = useCallback((panel: (typeof MOBILE_IDE_PANELS)[number]) => {
-      setMobilePanel(panel);
+    const { state: mobileIdeLocalState, setActivePanel: persistMobilePanel } = useMobileIdePersistence(
+      projectIdeMode ? projectId : undefined,
+    );
+    const setMobileIdePanel = useCallback(
+      (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
+        setMobilePanel(panel);
+        persistMobilePanel(panel);
 
-      if (panel !== 'chat') {
-        workbenchStore.setShowWorkbench(true);
-      }
-    }, []);
+        if (panel !== 'chat') {
+          workbenchStore.setShowWorkbench(true);
+        }
+      },
+      [persistMobilePanel],
+    );
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
         const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
@@ -970,6 +983,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const quotaWarning = useStore(workbenchStore.quotaWarning);
     const billingUpgradePrompt = useStore(workbenchStore.billingUpgradePrompt);
     const previewServerState = useStore(workbenchStore.previewServerState);
+    const projectFilesPanelRequest = useStore(workbenchStore.projectFilesPanelRequest);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -1019,6 +1033,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const activeProjectPanel = searchParams.get('panel') || '';
+
+    const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
+      return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
+    }, [activeProjectPanel]);
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -1597,6 +1615,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      workbenchStore.projectFilesPanelOpen.set(rightPanelOpen);
       window.dispatchEvent(
         new CustomEvent('vibecore:project-files-panel-state', {
           detail: { open: rightPanelOpen },
@@ -1605,6 +1624,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return undefined;
     }, [projectIdeMode, rightPanelOpen]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectFilesPanelRequest) {
+        return;
+      }
+
+      setRightPanelOpen((currentOpen) => {
+        const nextOpen =
+          typeof projectFilesPanelRequest.open === 'boolean' ? projectFilesPanelRequest.open : !currentOpen;
+
+        if (nextOpen) {
+          setRightPanelMode('files');
+        }
+
+        if (!nextOpen) {
+          setSearchParams({});
+        }
+
+        return nextOpen;
+      });
+    }, [projectFilesPanelRequest, projectIdeMode, setSearchParams]);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -1864,8 +1904,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (isIdeWorkspacePanel(activeProjectPanel)) {
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
+
+        if (useMobileIde) {
+          if (activeProjectPanel === 'terminal' || activeProjectPanel === 'logs') {
+            setMobileIdePanel('terminal');
+          } else if (activeProjectPanel === 'preview') {
+            setMobileIdePanel('preview');
+          } else if (activeProjectPanel === 'files') {
+            setMobileIdePanel('files');
+          } else if (activeProjectPanel === 'editor') {
+            setMobileIdePanel('editor');
+          } else if (isIdeManagementPanel(activeProjectPanel)) {
+            setMobileIdePanel('deploy');
+          }
+        }
       }
-    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady]);
+    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -2095,6 +2149,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
+
+    useEffect(() => {
+      if (
+        !projectIdeMode ||
+        !useMobileIde ||
+        !mobileIdeLocalState.activePanel ||
+        !MOBILE_IDE_PANELS.includes(mobileIdeLocalState.activePanel as any)
+      ) {
+        return;
+      }
+
+      setMobilePanel(mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number]);
+    }, [mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
 
     useEffect(() => {
       const updateOnlineState = () => setIsOnline(navigator.onLine);
@@ -3454,10 +3521,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <>
               {agentPanel}
               {useMobileIde && mobilePanel === 'deploy' ? (
-                <PanelBoundary title="Deployments">
+                <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
                   <div className="bolt-workbench-mobile fixed top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 z-0 w-full px-2">
                     <div className="h-full overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-                      <ProjectIdeServicePanel projectId={projectId} panel="deployments" />
+                      <ProjectIdeServicePanel projectId={projectId} panel={activeMobileServicePanel} />
                     </div>
                   </div>
                 </PanelBoundary>
@@ -6811,7 +6878,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
             data-testid="search-workflows"
           />
         </label>
-        <a href="https://docs.replit.com/replit-workspace/workflows" target="_blank" rel="noreferrer">
+        <a href="/docs" target="_blank" rel="noreferrer">
           Configure workflows
           <span className="i-ph:arrow-square-out" aria-hidden />
         </a>

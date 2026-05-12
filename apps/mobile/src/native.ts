@@ -72,6 +72,7 @@ export async function configureDeepLinks(onDeepLink?: (url: URL) => void) {
     const url = parseDeepLink(event.url);
 
     if (url) {
+      window.dispatchEvent(new CustomEvent('vibecore:mobile-deep-link', { detail: { url: url.toString() } }));
       onDeepLink?.(url);
     }
   });
@@ -98,13 +99,17 @@ export async function configurePushNotifications(
   onPushAction?: (data: unknown) => void,
 ) {
   const registration = await PushNotifications.addListener('registration', (token: Token) => {
+    window.dispatchEvent(new CustomEvent('vibecore:mobile-push-token', { detail: { value: token.value } }));
     void onPushToken?.(token.value);
   });
   const registrationError = await PushNotifications.addListener('registrationError', (error) => {
+    window.dispatchEvent(new CustomEvent('vibecore:mobile-push-registration-error', { detail: error }));
     console.error('Push registration failed', error);
   });
   const action = await PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
-    onPushAction?.(extractPushActionData(event));
+    const data = extractPushActionData(event);
+    window.dispatchEvent(new CustomEvent('vibecore:mobile-push-action', { detail: data }));
+    onPushAction?.(data);
   });
 
   const permission = await PushNotifications.requestPermissions();
@@ -182,7 +187,11 @@ export async function readNativeAppInfo(): Promise<NativeAppInfo> {
 }
 
 export function configureOfflineState(onOfflineChange?: (offline: boolean) => void) {
-  const emit = () => onOfflineChange?.(!navigator.onLine);
+  const emit = () => {
+    const offline = !navigator.onLine;
+    window.dispatchEvent(new CustomEvent('vibecore:mobile-network-change', { detail: { connected: !offline } }));
+    onOfflineChange?.(offline);
+  };
   window.addEventListener('online', emit);
   window.addEventListener('offline', emit);
   emit();

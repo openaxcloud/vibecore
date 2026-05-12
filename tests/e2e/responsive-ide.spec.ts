@@ -117,6 +117,114 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
   });
 
+  test('mobile keeps runtime status above navigation without overlap', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile-only assertion');
+
+    const projectId = await createTestProject(page, 'Responsive mobile status project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+    const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
+    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.bolt-project-statusbar-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.bolt-project-statusbar-runtime')).toContainText(/Runtime:/);
+    await expect(page.locator('.bolt-project-statusbar-workspace')).toContainText(/Workspace:/);
+
+    const metrics = await page.evaluate(() => {
+      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
+      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+
+      return {
+        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(metrics.overlaps).toBe(false);
+    expect(metrics.overflowX).toBe(false);
+  });
+
+  test('mobile restores the last active IDE panel from local persistence', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile-only assertion');
+
+    const projectId = await createTestProject(page, 'Responsive mobile persistence project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
+    await expect(mobileNav).toBeVisible({ timeout: 15000 });
+    await mobileNav.getByRole('button', { name: 'Preview', exact: true }).tap();
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview', {
+      timeout: 15000,
+    });
+  });
+
+  test('mobile can deep-link to real IDE service panels', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile-only assertion');
+
+    const projectId = await createTestProject(page, 'Responsive mobile database panel project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test('short landscape mobile viewport keeps the IDE mobile shell', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile-only assertion');
+    await page.setViewportSize({ width: 932, height: 430 });
+
+    const projectId = await createTestProject(page, 'Responsive mobile landscape project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
+
+    const metrics = await page.evaluate(() => {
+      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
+      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+
+      return {
+        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(metrics.overlaps).toBe(false);
+    expect(metrics.overflowX).toBe(false);
+  });
+
+  test('tablet portrait uses the compact mobile IDE shell', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'mobile project runs touch-enabled compact assertions');
+    await page.setViewportSize({ width: 820, height: 1180 });
+
+    const projectId = await createTestProject(page, 'Responsive tablet portrait project');
+
+    await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
+      timeout: 15000,
+    });
+
+    const metrics = await page.evaluate(() => {
+      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
+      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+
+      return {
+        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(metrics.overlaps).toBe(false);
+    expect(metrics.overflowX).toBe(false);
+  });
+
   test('mobile editor accepts edits and exposes save without Monaco', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
 
@@ -145,9 +253,11 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible({ timeout: 15000 });
+    const agentPanel = page.locator('.bolt-project-agent-shell').first();
+    await expect(agentPanel).toBeVisible({ timeout: 15000 });
 
-    const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
+    const agentBox = await agentPanel.boundingBox();
+    expect(agentBox).not.toBeNull();
     expect(agentBox?.width).toBeGreaterThan(220);
     expect(agentBox?.width).toBeLessThan(460);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

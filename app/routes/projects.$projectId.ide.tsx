@@ -19,7 +19,7 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
@@ -131,7 +131,7 @@ function IdeProjectTopBar({
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [filesPanelOpen, setFilesPanelOpen] = useState(true);
+  const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const previewRunning = previews.length > 0;
   const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
 
@@ -144,20 +144,6 @@ function IdeProjectTopBar({
           ? 'Running'
           : 'Stopped';
 
-  useEffect(() => {
-    const handleFilesPanelState = (event: Event) => {
-      const nextOpen = (event as CustomEvent<{ open?: boolean }>).detail?.open;
-
-      if (typeof nextOpen === 'boolean') {
-        setFilesPanelOpen(nextOpen);
-      }
-    };
-
-    window.addEventListener('vibecore:project-files-panel-state', handleFilesPanelState);
-
-    return () => window.removeEventListener('vibecore:project-files-panel-state', handleFilesPanelState);
-  }, []);
-
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b px-2 text-[12px]">
       <div className="bolt-project-topbar-left">
@@ -165,7 +151,7 @@ function IdeProjectTopBar({
           <Home className="h-4 w-4" aria-hidden />
         </Link>
         <div className="bolt-project-topbar-brand" aria-label="Project">
-          <span>E-Code</span>
+          <span>VibeCore</span>
           <span aria-hidden>/</span>
         </div>
         <details
@@ -393,7 +379,9 @@ function IdeProjectTopBar({
           aria-pressed={filesPanelOpen}
           title={filesPanelOpen ? 'Close files' : 'Open files'}
           onClick={() => {
-            window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel'));
+            const detail = { open: !filesPanelOpen };
+            workbenchStore.requestProjectFilesPanel(detail.open);
+            window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
           }}
         >
           <Files className="h-3.5 w-3.5" aria-hidden />
