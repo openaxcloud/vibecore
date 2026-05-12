@@ -59,6 +59,7 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
+import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { useSearchParams } from '@remix-run/react';
 
@@ -88,6 +89,7 @@ const IDE_MANAGEMENT_PANELS = [
 
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
+const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
 
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
@@ -914,6 +916,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
       'chat',
     );
+    const setMobileIdePanel = useCallback((panel: (typeof MOBILE_IDE_PANELS)[number]) => {
+      setMobilePanel(panel);
+
+      if (panel !== 'chat') {
+        workbenchStore.setShowWorkbench(true);
+      }
+    }, []);
+    const goToAdjacentMobilePanel = useCallback(
+      (direction: 1 | -1) => {
+        const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
+        const nextIndex = Math.min(Math.max(currentIndex + direction, 0), MOBILE_IDE_PANELS.length - 1);
+        const nextPanel = MOBILE_IDE_PANELS[nextIndex];
+
+        if (nextPanel && nextPanel !== mobilePanel) {
+          setMobileIdePanel(nextPanel);
+        }
+      },
+      [mobilePanel, setMobileIdePanel],
+    );
+    const mobileSwipeHandlers = useSwipeGesture({
+      onSwipeLeft: () => {
+        if (useMobileIde) {
+          goToAdjacentMobilePanel(1);
+        }
+      },
+      onSwipeRight: () => {
+        if (useMobileIde) {
+          goToAdjacentMobilePanel(-1);
+        }
+      },
+      threshold: 64,
+      preventScroll: useMobileIde,
+    });
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -2078,25 +2113,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
-      const panels: Array<typeof mobilePanel> = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'];
-
       const onKeyDown = (event: KeyboardEvent) => {
         const index = Number(event.key) - 1;
 
-        if ((event.metaKey || event.ctrlKey) && index >= 0 && index < panels.length) {
+        if ((event.metaKey || event.ctrlKey) && index >= 0 && index < MOBILE_IDE_PANELS.length) {
           event.preventDefault();
-          setMobilePanel(panels[index]);
-
-          if (panels[index] !== 'chat') {
-            workbenchStore.setShowWorkbench(true);
-          }
+          setMobileIdePanel(MOBILE_IDE_PANELS[index]);
         }
       };
 
       window.addEventListener('keydown', onKeyDown);
 
       return () => window.removeEventListener('keydown', onKeyDown);
-    }, [mobilePanel, useMobileIde]);
+    }, [setMobileIdePanel, useMobileIde]);
 
     useEffect(() => {
       if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
@@ -3349,6 +3378,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
         data-chat-visible={showChat}
         data-mobile-panel={mobilePanel}
+        {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
@@ -3469,11 +3499,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               aria-label={label}
               aria-current={mobilePanel === id ? 'page' : undefined}
               onClick={() => {
-                setMobilePanel(id as typeof mobilePanel);
-
-                if (id !== 'chat') {
-                  workbenchStore.setShowWorkbench(true);
-                }
+                setMobileIdePanel(id as typeof mobilePanel);
               }}
             >
               <span className={icon} aria-hidden />
@@ -3503,8 +3529,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-workspace"
                 onClick={() => {
                   if (useMobileIde) {
-                    setMobilePanel('terminal');
-                    workbenchStore.setShowWorkbench(true);
+                    setMobileIdePanel('terminal');
 
                     return;
                   }
@@ -3535,8 +3560,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-project-statusbar-logs"
                   onClick={() => {
                     if (useMobileIde) {
-                      setMobilePanel('terminal');
-                      workbenchStore.setShowWorkbench(true);
+                      setMobileIdePanel('terminal');
 
                       return;
                     }
@@ -3560,8 +3584,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-runtime"
                 onClick={() => {
                   if (useMobileIde) {
-                    setMobilePanel('preview');
-                    workbenchStore.setShowWorkbench(true);
+                    setMobileIdePanel('preview');
 
                     return;
                   }

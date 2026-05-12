@@ -1053,41 +1053,59 @@ body :where(.lucide, svg[data-lucide]) {
   z-index: 999;
   display: none;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 2px;
+  gap: 0;
   min-height: calc(58px + env(safe-area-inset-bottom, 0px));
-  padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px))
-    max(6px, env(safe-area-inset-left, 0px));
+  padding: 0 max(4px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
+    max(4px, env(safe-area-inset-left, 0px));
   border-top: 1px solid var(--bolt-elements-borderColor);
-  background: color-mix(in srgb, var(--bolt-elements-bg-depth-2), transparent 4%);
+  background: color-mix(in srgb, var(--bolt-elements-bg-depth-2), transparent 2%);
   backdrop-filter: var(--vc-ui-overlay-blur);
 }
 
 .bolt-mobile-tabbar button {
   display: flex;
   min-width: 0;
-  min-height: 44px;
+  min-height: 56px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  border-radius: var(--vc-ui-radius-button);
+  gap: 3px;
+  border-top: 2px solid transparent;
+  border-radius: 0;
   color: var(--bolt-elements-textTertiary);
-  font-size: var(--vc-type-label-size);
+  font-size: 10px;
+  font-weight: 600;
   line-height: var(--vc-type-line-height);
   touch-action: manipulation;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+.bolt-mobile-tabbar button:active {
+  transform: scale(0.96);
 }
 
 .bolt-mobile-tabbar button span:first-child {
-  font-size: 18px;
+  font-size: 19px;
+}
+
+.bolt-mobile-tabbar button span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bolt-mobile-tabbar button[aria-current='page'] {
-  background: var(--bolt-elements-bg-depth-3);
+  border-top-color: var(--bolt-elements-item-contentAccent);
+  background: color-mix(in srgb, var(--bolt-elements-item-backgroundActive), transparent 35%);
   color: var(--bolt-elements-textPrimary);
 }
 
 .bolt-mobile-tabbar .bolt-mobile-theme-switch {
-  min-height: 44px;
+  min-height: 56px;
   justify-content: center;
 }
 
@@ -6445,6 +6463,21 @@ body :where(.lucide, svg[data-lucide]) {
     bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     left: 8px;
     width: auto;
+  }
+}
+
+@media (max-height: 499px) {
+  .bolt-mobile-tabbar {
+    display: grid;
+  }
+
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  .bolt-workbench-mobile {
+    --workbench-inner-width: 100vw;
   }
 }
 

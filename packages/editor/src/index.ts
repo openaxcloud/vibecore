@@ -13,6 +13,11 @@ import type * as MonacoTypes from 'monaco-editor';
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
 
+export const MOBILE_BREAKPOINT = 768;
+export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
+export const TABLET_MIN_WIDTH = 768;
+export const TABLET_MAX_WIDTH = 1024;
+
 export interface EditorAdapterValue {
   value: string;
   filePath?: string;
@@ -37,9 +42,12 @@ export interface EditorAdapterProps extends EditorAdapterValue {
 export interface ResponsiveLayoutState {
   breakpoint: EditorBreakpoint;
   isDesktop: boolean;
+  isTablet: boolean;
   isTabletLandscape: boolean;
   isTabletPortrait: boolean;
   isMobile: boolean;
+  isLandscape: boolean;
+  isMobileLandscape: boolean;
   prefersReducedMotion: boolean;
   hasCoarsePointer: boolean;
   safeArea: {
@@ -50,16 +58,28 @@ export interface ResponsiveLayoutState {
   };
 }
 
-const breakpointFromWidth = (width: number): EditorBreakpoint => {
-  if (width >= 1200) {
+export function detectMobileViewport(width: number, height = Number.POSITIVE_INFINITY): boolean {
+  if (width < MOBILE_BREAKPOINT) {
+    return true;
+  }
+
+  return height < MOBILE_LANDSCAPE_MAX_HEIGHT;
+}
+
+const breakpointFromViewport = (width: number, height: number): EditorBreakpoint => {
+  if (detectMobileViewport(width, height)) {
+    return 'mobile';
+  }
+
+  if (width > TABLET_MAX_WIDTH) {
     return 'desktop';
   }
 
-  if (width >= 900) {
+  if (width >= TABLET_MIN_WIDTH && width <= TABLET_MAX_WIDTH && width > height) {
     return 'tablet-landscape';
   }
 
-  if (width >= 768) {
+  if (width >= TABLET_MIN_WIDTH && width <= TABLET_MAX_WIDTH) {
     return 'tablet-portrait';
   }
 
@@ -68,18 +88,25 @@ const breakpointFromWidth = (width: number): EditorBreakpoint => {
 
 export function getResponsiveLayoutState(
   width: number,
+  heightOrOptions: number | { coarsePointer?: boolean; reducedMotion?: boolean } = Number.POSITIVE_INFINITY,
   options?: { coarsePointer?: boolean; reducedMotion?: boolean },
 ): ResponsiveLayoutState {
-  const breakpoint = breakpointFromWidth(width);
+  const height = typeof heightOrOptions === 'number' ? heightOrOptions : Number.POSITIVE_INFINITY;
+  const resolvedOptions = typeof heightOrOptions === 'number' ? options : heightOrOptions;
+  const breakpoint = breakpointFromViewport(width, height);
+  const isLandscape = width > height;
 
   return {
     breakpoint,
     isDesktop: breakpoint === 'desktop',
+    isTablet: breakpoint === 'tablet-landscape' || breakpoint === 'tablet-portrait',
     isTabletLandscape: breakpoint === 'tablet-landscape',
     isTabletPortrait: breakpoint === 'tablet-portrait',
     isMobile: breakpoint === 'mobile',
-    prefersReducedMotion: options?.reducedMotion ?? false,
-    hasCoarsePointer: options?.coarsePointer ?? false,
+    isLandscape,
+    isMobileLandscape: breakpoint === 'mobile' && isLandscape,
+    prefersReducedMotion: resolvedOptions?.reducedMotion ?? false,
+    hasCoarsePointer: resolvedOptions?.coarsePointer ?? false,
     safeArea: {
       top: 'env(safe-area-inset-top, 0px)',
       right: 'env(safe-area-inset-right, 0px)',
@@ -92,26 +119,43 @@ export function getResponsiveLayoutState(
 export function useResponsiveLayout(): ResponsiveLayoutState {
   const readState = () => {
     if (typeof window === 'undefined') {
-      return getResponsiveLayoutState(1200);
+      return getResponsiveLayoutState(1200, 900);
     }
 
-    return getResponsiveLayoutState(window.innerWidth, {
-      coarsePointer: window.matchMedia('(pointer: coarse)').matches,
-      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    });
+    return getResponsiveLayoutState(
+      window.innerWidth,
+      window.innerHeight,
+      {
+        coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      },
+    );
   };
 
   const [state, setState] = useState<ResponsiveLayoutState>(readState);
 
   useEffect(() => {
+    let resizeTimeout: ReturnType<typeof setTimeout> | undefined;
     const update = () => setState(readState());
+    const handleResize = () => {
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+
+      resizeTimeout = setTimeout(update, 100);
+    };
+
     update();
-    window.addEventListener('resize', update);
+    window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', update);
 
     return () => {
-      window.removeEventListener('resize', update);
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', update);
+
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
     };
   }, []);
 
