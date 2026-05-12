@@ -1,3 +1,74 @@
 .xterm {
-  padding: 1rem;
+  height: 100%;
+  padding: 8px 10px;
+}
+
+.xterm .xterm-viewport {
+  scrollbar-color: var(--vc-ide-border-visible, #2f3b52) transparent;
+}
+
+.bolt-terminal-tabs-shell {
+  min-width: 0;
+  min-height: 0;
+  background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
+}
+
+.bolt-terminal-tabs-bar {
+  min-height: 32px;
+  gap: 0;
+  overflow-x: auto;
+  border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  background: var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2));
+  padding: 0 6px;
+}
+
+.bolt-terminal-tab-item {
+  display: inline-flex;
+  min-width: 0;
+  height: 31px;
+  align-items: center;
+  border-right: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
+}
+
+.bolt-terminal-tab-item.is-active {
+  background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  box-shadow: inset 0 1px 0 var(--vc-ide-accent, #3fb950);
+}
+
+.bolt-terminal-tab-button,
+.bolt-terminal-tab-close {
+  display: inline-flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.bolt-terminal-tab-button {
+  min-width: 0;
+  max-width: 190px;
+  gap: 7px;
+  padding: 0 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bolt-terminal-tab-button span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bolt-terminal-tab-close {
+  width: 26px;
+  color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
+}
+
+.bolt-terminal-tab-item:hover,
+.bolt-terminal-tab-close:hover {
+  background: var(--vc-ide-bg-hover, var(--bolt-elements-terminals-buttonBackground));
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
 }

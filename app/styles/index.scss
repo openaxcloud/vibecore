@@ -4364,7 +4364,10 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-bottom-terminal-tabs button {
+  display: inline-flex;
   height: 24px;
+  align-items: center;
+  gap: 6px;
   border-radius: 4px;
   color: #c2c8cc;
   font-size: 12px;
@@ -4375,6 +4378,33 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-bottom-terminal-tabs button[aria-current='page'] {
   background: #2b3245;
   color: #f5f9fc;
+}
+
+.bolt-project-bottom-terminal-session {
+  min-width: 160px;
+  max-width: 240px;
+  height: 24px;
+  margin-left: auto;
+  border: 1px solid #252d40;
+  border-radius: 4px;
+  background: #0a0f1c;
+  padding: 0 8px;
+  color: #c2c8cc;
+  font-size: 12px;
+}
+
+.bolt-project-bottom-terminal-content {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.bolt-project-bottom-terminal-content > .panel-boundary,
+.bolt-project-bottom-terminal-content > div {
+  min-height: 0;
 }
 
 .bolt-project-conversation-history {

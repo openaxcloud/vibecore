@@ -1068,7 +1068,12 @@ test('IDE project services open as in-place panels instead of legacy project pag
   await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
   await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
   await expect(pinnedTerminal.getByLabel('Refresh runtime logs')).toBeVisible();
+  await expect(pinnedTerminal.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
   await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
+  await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="logs"]')).toBeVisible({
+    timeout: 15000,
+  });
+  await pinnedTerminal.getByRole('button', { name: 'Debug Console' }).click();
   await expect(pinnedTerminal.locator('.bolt-project-monitoring-panel')).toBeVisible({ timeout: 15000 });
   await page.getByLabel('Toggle terminal').click();
   await expect(pinnedTerminal).toBeHidden();

@@ -3983,29 +3983,31 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
 function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
   const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
-  const workspaceLogs = useStore(workbenchStore.workspaceLogs);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
+
+  const terminalTabs = [
+    ['terminal', 'Terminal', 'i-ph:terminal-window'],
+    ['output', 'Output', 'i-ph:list-bullets'],
+    ['problems', 'Problems', 'i-ph:warning-circle'],
+    ['debug', 'Debug Console', 'i-ph:bug'],
+  ] as const;
 
   return (
     <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
       <div className="bolt-project-bottom-terminal-tabs">
-        {[
-          ['terminal', 'Terminal'],
-          ['output', 'Output'],
-          ['problems', 'Problems'],
-          ['debug', 'Debug Console'],
-        ].map(([id, label]) => (
+        {terminalTabs.map(([id, label, icon]) => (
           <button
             key={id}
             type="button"
             aria-current={active === id ? 'page' : undefined}
             onClick={() => setActive(id as any)}
           >
+            <span className={icon} aria-hidden />
             {label}
           </button>
         ))}
         <select
-          className="ml-auto"
+          className="bolt-project-bottom-terminal-session"
           aria-label="Backend runtime session"
           value={backendSessionId}
           onChange={() => undefined}
@@ -4028,20 +4030,25 @@ function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onC
           ×
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="bolt-project-bottom-terminal-content">
         {active === 'terminal' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="logs" />
+          <ClientOnly fallback={<PanelLoading title="Loading terminal..." />}>
+            {() => (
+              <PanelBoundary title="Terminal">
+                <Suspense fallback={<PanelLoading title="Loading terminal..." />}>
+                  <PanelGroup direction="vertical" className="h-full">
+                    <LazyTerminalTabs panelDefaultSize={100} />
+                  </PanelGroup>
+                </Suspense>
+              </PanelBoundary>
+            )}
+          </ClientOnly>
         ) : active === 'output' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="monitoring" />
+          <ProjectIdeServicePanel projectId={projectId} panel="logs" />
         ) : active === 'problems' ? (
           <ProjectIdeServicePanel projectId={projectId} panel="activity" />
         ) : (
-          <div className="h-full bg-[#0A0F1C] p-4 font-mono text-xs text-[#C2C8CC]">
-            <div>workspace:{backendSessionId}</div>
-            <div>status:{workspaceStatus?.status ?? 'not-started'}</div>
-            <div>runtime:{workspaceStatus?.runtimeMode ?? 'unavailable'}</div>
-            <div>log-lines:{workspaceLogs.length}</div>
-          </div>
+          <ProjectIdeServicePanel projectId={projectId} panel="monitoring" />
         )}
       </div>
     </section>

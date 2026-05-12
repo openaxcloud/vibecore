@@ -90,7 +90,7 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('tab', { name: /Terminal/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
     await expect(page).toHaveURL(/panel=terminal/);
   });
 
@@ -114,7 +114,7 @@ test.describe('responsive IDE shell', () => {
     });
 
     await mobileNav.getByRole('button', { name: 'Terminal', exact: true }).tap();
-    await expect(page.getByText('Bolt Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
   });
 
   test('mobile keeps runtime status above navigation without overlap', async ({ page, isMobile }) => {
