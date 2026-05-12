@@ -46,15 +46,15 @@ export const PortDropdown = memo(
     }, [isDropdownOpen]);
 
     return (
-      <div className="relative z-port-dropdown" ref={dropdownRef}>
+      <div className="bolt-preview-port-dropdown relative z-port-dropdown" ref={dropdownRef}>
         {/* Display the active port if available, otherwise show the plug icon */}
         <button
-          className="flex items-center group-focus-within:text-bolt-elements-preview-addressBar-text bg-white group-focus-within:bg-bolt-elements-preview-addressBar-background dark:bg-bolt-elements-preview-addressBar-backgroundHover rounded-full px-2 py-1 gap-1.5"
+          className="bolt-preview-port-button flex items-center group-focus-within:text-bolt-elements-preview-addressBar-text bg-white group-focus-within:bg-bolt-elements-preview-addressBar-background dark:bg-bolt-elements-preview-addressBar-backgroundHover rounded-full px-2 py-1 gap-1.5"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
           <span className="i-ph:plug text-base"></span>
           {previews.length > 0 && activePreviewIndex >= 0 && activePreviewIndex < previews.length ? (
-            <span className="text-xs font-medium">{previews[activePreviewIndex].port}</span>
+            <span className="bolt-preview-port-label text-xs font-medium">{previews[activePreviewIndex].port}</span>
           ) : null}
         </button>
         {isDropdownOpen && (

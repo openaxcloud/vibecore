@@ -2512,6 +2512,36 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 160px;
 }
 
+.bolt-project-webview-toolbar .bolt-preview-port-dropdown {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-port-button {
+  width: auto !important;
+  min-width: 58px !important;
+  max-width: 86px;
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  gap: 6px !important;
+  padding: 0 8px !important;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-port-button span,
+.bolt-project-webview-toolbar .bolt-preview-port-button [class*='i-ph:'] {
+  flex: 0 0 auto;
+}
+
+.bolt-project-webview-toolbar .bolt-preview-port-label {
+  width: auto !important;
+  min-width: 4ch;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bolt-preview-window-menu {
   position: absolute;
   top: calc(100% + 8px);
