@@ -4612,6 +4612,16 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 12px;
 }
 
+.bolt-project-statusbar > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.bolt-project-statusbar > div:last-child {
+  flex: 0 0 auto;
+}
+
 .bolt-project-statusbar button {
   height: 23px;
   border: 0;
@@ -4629,6 +4639,40 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar button:hover {
   color: #f5f9fc;
+}
+
+.bolt-project-statusbar .bolt-project-statusbar-runtime {
+  gap: 8px;
+  min-width: 0;
+  max-width: min(42vw, 440px);
+}
+
+.bolt-project-statusbar-runtime > span:not(.bolt-project-statusbar-runtime-dot) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-statusbar-runtime-dot {
+  width: 7px;
+  height: 7px;
+  min-width: 7px;
+  border-radius: 999px;
+  background: #6e7681;
+}
+
+.bolt-project-statusbar-runtime-dot[data-state='running'] {
+  background: #3fb950;
+}
+
+.bolt-project-statusbar-runtime-dot[data-state='starting'],
+.bolt-project-statusbar-runtime-dot[data-state='booting'] {
+  background: #d29922;
+}
+
+.bolt-project-statusbar-runtime-dot[data-state='error'] {
+  background: #f85149;
 }
 
 .bolt-project-statusbar-theme {

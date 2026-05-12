@@ -234,23 +234,103 @@ type IdePaneSplit = {
 };
 type IdePaneNode = IdePaneLeaf | IdePaneSplit;
 
-function projectStatusLabel(state: ProjectIdeBackendState) {
-  const status = state.workspace?.status?.toLowerCase();
-  const previewPort = state.ports?.find((port) => port.ready !== false)?.port ?? state.ports?.[0]?.port;
+function runtimeStatusText(input: {
+  workspaceStatus?: { status?: string } | null;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+}) {
+  if (input.workspaceError) {
+    return 'Runtime: Error';
+  }
+
+  if (input.workspaceLoading) {
+    return 'Runtime: Starting';
+  }
+
+  const status = input.workspaceStatus?.status?.toLowerCase();
 
   if (status === 'running') {
-    return previewPort ? `Running on :${previewPort}` : 'Running';
+    return 'Runtime: Running';
   }
 
-  if (status === 'building' || status === 'starting' || status === 'pending') {
-    return 'Building...';
+  if (status === 'booting' || status === 'starting') {
+    return 'Runtime: Starting';
   }
 
-  if (status === 'crashed' || status === 'failed' || status === 'error') {
-    return 'Crashed';
+  if (status === 'error') {
+    return 'Runtime: Error';
   }
 
-  return 'Stopped';
+  if (status === 'stopped') {
+    return 'Runtime: Stopped';
+  }
+
+  return 'Runtime: Not started';
+}
+
+function previewPortText(input: {
+  previews: Array<{ port: number; ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  previewServerState: { status: string };
+}) {
+  const activePreview = input.previews.find((preview) => preview.ready !== false) ?? input.previews[0];
+
+  if (activePreview) {
+    return `Port :${activePreview.port}`;
+  }
+
+  if (input.workspaceError) {
+    return 'Port: unavailable';
+  }
+
+  return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Port: detecting' : 'Port: none';
+}
+
+function previewCommandFromLogs(logs: string[]) {
+  for (const log of [...logs].reverse()) {
+    const message = typeof log === 'string' ? log : '';
+    const match = message.match(/Starting preview with ([^\n]+)/i);
+
+    if (match?.[1]) {
+      return match[1].replace(/\s+in\s+.+$/i, '').trim();
+    }
+  }
+
+  return undefined;
+}
+
+function devServerStatusText(input: {
+  previews: Array<{ ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  logs: string[];
+  previewServerState: { status: string; command?: string; error?: string };
+}) {
+  const command = input.previewServerState.command ?? previewCommandFromLogs(input.logs);
+
+  if (input.previews.some((preview) => preview.ready !== false)) {
+    return command ? `Dev: active (${command})` : 'Dev: active';
+  }
+
+  if (input.workspaceError || input.previewServerState.status === 'error') {
+    return 'Dev: blocked';
+  }
+
+  if (
+    input.workspaceLoading ||
+    input.previewServerState.status === 'starting' ||
+    input.previewServerState.status === 'stopping' ||
+    command
+  ) {
+    if (input.previewServerState.status === 'stopping') {
+      return command ? `Dev: stopping (${command})` : 'Dev: stopping';
+    }
+
+    return command ? `Dev: starting (${command})` : 'Dev: starting';
+  }
+
+  return 'Dev: idle';
 }
 
 function fileTypeLabel(filePath?: string) {
@@ -848,7 +928,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
     const runtimePreviews = useStore(workbenchStore.previews);
+    const workspaceStatus = useStore(workbenchStore.workspaceStatus);
+    const workspaceLoading = useStore(workbenchStore.workspaceLoading);
+    const workspaceError = useStore(workbenchStore.workspaceError);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
+    const previewServerState = useStore(workbenchStore.previewServerState);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
@@ -941,6 +1025,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         })),
       };
     }, [projectBackendState, runtimePreviews]);
+    const runtimeStatusSummary = useMemo(
+      () =>
+        runtimeStatusText({
+          workspaceStatus,
+          workspaceLoading,
+          workspaceError,
+        }),
+      [workspaceError, workspaceLoading, workspaceStatus],
+    );
+    const runtimePortSummary = useMemo(
+      () =>
+        previewPortText({
+          previews: runtimePreviews,
+          workspaceLoading,
+          workspaceError,
+          previewServerState,
+        }),
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading],
+    );
+    const runtimeDevServerSummary = useMemo(
+      () =>
+        devServerStatusText({
+          previews: runtimePreviews,
+          workspaceLoading,
+          workspaceError,
+          logs: workspaceLogs,
+          previewServerState,
+        }),
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading, workspaceLogs],
+    );
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
         return [];
@@ -2768,11 +2882,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 onSave: tab.panel === 'editor' ? onProjectEditorSave : undefined,
                 closable: !tab.pinned,
               }))}
-              trailing={
-                activeTab?.panel === 'preview' ? (
-                  <span className="bolt-project-runtime-badge">Live runtime</span>
-                ) : undefined
-              }
               onSelect={(tabId, panel) => selectPaneTab(leaf.id, tabId, panel)}
               onClose={(tabId, panel) => {
                 const tab = leaf.tabs.find((item) => item.id === tabId);
@@ -3358,8 +3467,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span>0</span>
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
               <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
-              <button type="button" onClick={() => openWorkspacePanel('preview')}>
-                {projectStatusLabel(projectRuntimeState)}
+              <button
+                type="button"
+                className="bolt-project-statusbar-runtime"
+                onClick={() => openWorkspacePanel('preview')}
+                title="Open preview"
+              >
+                <span
+                  className="bolt-project-statusbar-runtime-dot"
+                  data-state={
+                    workspaceError
+                      ? 'error'
+                      : workspaceLoading
+                        ? 'starting'
+                        : (workspaceStatus?.status?.toLowerCase() ?? 'stopped')
+                  }
+                  aria-hidden
+                />
+                <span>{runtimeStatusSummary}</span>
+                <span>{runtimePortSummary}</span>
+                <span>{runtimeDevServerSummary}</span>
               </button>
             </div>
             <div>

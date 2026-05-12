@@ -44,6 +44,11 @@ type PreviewCommand = {
   cwd?: string;
   setupCommands?: PreviewCommand[];
 };
+export type PreviewServerState = {
+  status: 'idle' | 'starting' | 'running' | 'stopping' | 'error';
+  command?: string;
+  error?: string;
+};
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
@@ -202,6 +207,8 @@ export class WorkbenchStore {
   workspaceError: WritableAtom<string | undefined> =
     import.meta.hot?.data.workspaceError ?? atom<string | undefined>(undefined);
   workspaceLogs: WritableAtom<string[]> = import.meta.hot?.data.workspaceLogs ?? atom<string[]>([]);
+  previewServerState: WritableAtom<PreviewServerState> =
+    import.meta.hot?.data.previewServerState ?? atom<PreviewServerState>({ status: 'idle' });
   quotaWarning: WritableAtom<string | undefined> =
     import.meta.hot?.data.quotaWarning ?? atom<string | undefined>(undefined);
   billingUpgradePrompt: WritableAtom<string | undefined> =
@@ -221,6 +228,7 @@ export class WorkbenchStore {
       import.meta.hot.data.workspaceLoading = this.workspaceLoading;
       import.meta.hot.data.workspaceError = this.workspaceError;
       import.meta.hot.data.workspaceLogs = this.workspaceLogs;
+      import.meta.hot.data.previewServerState = this.previewServerState;
       import.meta.hot.data.quotaWarning = this.quotaWarning;
       import.meta.hot.data.billingUpgradePrompt = this.billingUpgradePrompt;
 
@@ -261,6 +269,11 @@ export class WorkbenchStore {
 
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
+
+    if (this.previews.get().some((preview) => preview.ready !== false)) {
+      const current = this.previewServerState.get();
+      this.previewServerState.set({ status: 'running', command: current.command });
+    }
   }
 
   async startPreviewServer() {
@@ -296,6 +309,7 @@ export class WorkbenchStore {
     if (dependenciesChanged) {
       await this.stopPreviewServer();
     } else if (this.previews.get().some((preview) => preview.ready !== false)) {
+      this.previewServerState.set({ status: 'running' });
       return 'existing preview server';
     }
 
@@ -304,6 +318,7 @@ export class WorkbenchStore {
 
     this.#previewStartPromise = Promise.resolve(command.label);
     this.#previewCommandRunning = true;
+    this.previewServerState.set({ status: 'starting', command: command.label });
 
     void (async () => {
       try {
@@ -327,10 +342,19 @@ export class WorkbenchStore {
           refreshPortsOnOutput: true,
         });
       } catch (error) {
-        this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
+        const message = error instanceof Error ? error.message : String(error);
+        this.previewServerState.set({ status: 'error', command: command.label, error: message });
+        this.appendWorkspaceLog(message);
       } finally {
         this.#previewStartPromise = undefined;
         this.#previewCommandRunning = false;
+
+        if (this.previewServerState.get().status !== 'error') {
+          this.previewServerState.set({
+            status: this.previews.get().some((preview) => preview.ready !== false) ? 'running' : 'idle',
+            command: command.label,
+          });
+        }
       }
     })();
 
@@ -346,6 +370,8 @@ export class WorkbenchStore {
   }
 
   async stopPreviewServer() {
+    this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
+
     const processes = await this.#runtime.listProcesses().catch(() => []);
 
     const previewProcesses = processes.filter((process) => {
@@ -367,6 +393,7 @@ export class WorkbenchStore {
     }
 
     await this.refreshRuntimePorts().catch(() => undefined);
+    this.previewServerState.set({ status: 'idle' });
 
     return previewProcesses.length;
   }
