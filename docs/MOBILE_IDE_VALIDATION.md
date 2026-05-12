@@ -38,7 +38,7 @@ This checklist tracks the production mobile IDE surface for Vibecore. The implem
 - `pnpm --filter @vibecore/mobile typecheck`
 - `pnpm --filter @vibecore/mobile build:web`
 - `pnpm run mobile:validate`
-- `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home pnpm --filter @vibecore/mobile sync:android`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/opt/homebrew/share/android-commandlinetools ANDROID_SDK_ROOT=/opt/homebrew/share/android-commandlinetools PATH=/opt/homebrew/share/android-commandlinetools/cmdline-tools/latest/bin:/opt/homebrew/share/android-commandlinetools/platform-tools:$PATH pnpm run mobile:build:android`
 - `pnpm run platform:no-mocks`
 - `pnpm exec vitest run packages/editor/src/index.spec.ts --reporter=dot`
 - `pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile`
@@ -53,5 +53,6 @@ This checklist tracks the production mobile IDE surface for Vibecore. The implem
 
 ## Native Build Notes
 
-- Android debug build requires a local Android SDK. In this workspace `ANDROID_HOME` and `ANDROID_SDK_ROOT` were unset, so `assembleDebug` stops after successful Capacitor sync with `SDK location not found`.
-- Gradle must run on a supported JDK. With the default Java 25, Gradle 8.14.3 fails before project evaluation; OpenJDK 21 reaches the Android SDK check.
+- Android debug build requires a local Android SDK. This workspace uses the Homebrew command line tools at `/opt/homebrew/share/android-commandlinetools`.
+- Gradle must run on a supported JDK. Use OpenJDK 21 for `mobile:build:android`; the default Java 25 is not compatible with Gradle 8.14.3.
+- The validated debug APK is produced at `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk`.
