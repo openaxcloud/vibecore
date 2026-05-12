@@ -6736,6 +6736,26 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-muted: #94a3b8;
   --vc-public-accent: #f97316;
   --vc-public-accent-2: #facc15;
+  --vc-public-link: #fed7aa;
+  --vc-public-link-hover: #ffedd5;
+  --vc-public-button-text: #111827;
+  --vc-public-header-bg: rgba(8, 11, 19, 0.86);
+  --vc-public-announcement-bg: rgba(17, 24, 39, 0.72);
+  --vc-public-menu-bg: rgba(13, 19, 34, 0.98);
+  --vc-public-card-bg: rgba(17, 24, 39, 0.72);
+  --vc-public-card-soft-bg: rgba(17, 24, 39, 0.68);
+  --vc-public-stat-bg: rgba(13, 19, 34, 0.55);
+  --vc-public-hover-bg: rgba(255, 255, 255, 0.07);
+  --vc-public-form-bg: rgba(17, 24, 39, 0.86);
+  --vc-public-grid-line: rgba(255, 255, 255, 0.035);
+  --vc-public-hero-image-opacity: 0.12;
+  --vc-public-hero-fade-start: rgba(8, 11, 19, 0.4);
+  --vc-public-shadow: rgba(0, 0, 0, 0.34);
+  --vc-public-footer-bg: #070a12;
+  --vc-public-trust-text: #cbd5e1;
+  --vc-public-code-text: #dbeafe;
+  --vc-public-active-tab: #fed7aa;
+  --vc-public-cta-text: #111827;
   position: relative;
   overflow-x: hidden;
   background:
@@ -6743,6 +6763,41 @@ body :where(.lucide, svg[data-lucide]) {
     radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.12), transparent 30rem),
     var(--vc-public-bg);
   color: var(--vc-public-text);
+}
+
+:root[data-theme='light'] .vc-public-shell {
+  --vc-public-bg: #f8fafc;
+  --vc-public-panel: #ffffff;
+  --vc-public-card: #eef4fb;
+  --vc-public-border: rgba(15, 23, 42, 0.16);
+  --vc-public-text: #0f172a;
+  --vc-public-muted: #475569;
+  --vc-public-accent: #b45309;
+  --vc-public-accent-2: #0f766e;
+  --vc-public-link: #92400e;
+  --vc-public-link-hover: #0f766e;
+  --vc-public-button-text: #ffffff;
+  --vc-public-header-bg: rgba(255, 255, 255, 0.9);
+  --vc-public-announcement-bg: rgba(241, 245, 249, 0.86);
+  --vc-public-menu-bg: rgba(255, 255, 255, 0.98);
+  --vc-public-card-bg: rgba(255, 255, 255, 0.84);
+  --vc-public-card-soft-bg: rgba(255, 255, 255, 0.78);
+  --vc-public-stat-bg: rgba(226, 232, 240, 0.58);
+  --vc-public-hover-bg: rgba(15, 23, 42, 0.06);
+  --vc-public-form-bg: rgba(255, 255, 255, 0.92);
+  --vc-public-grid-line: rgba(15, 23, 42, 0.055);
+  --vc-public-hero-image-opacity: 0.16;
+  --vc-public-hero-fade-start: rgba(248, 250, 252, 0.62);
+  --vc-public-shadow: rgba(15, 23, 42, 0.14);
+  --vc-public-footer-bg: #f1f5f9;
+  --vc-public-trust-text: #334155;
+  --vc-public-code-text: #0f172a;
+  --vc-public-active-tab: #92400e;
+  --vc-public-cta-text: #0f172a;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(180, 83, 9, 0.14), transparent 32rem),
+    radial-gradient(circle at 82% 8%, rgba(15, 118, 110, 0.1), transparent 30rem),
+    var(--vc-public-bg);
 }
 
 .vc-public-container {
@@ -6775,14 +6830,14 @@ body :where(.lucide, svg[data-lucide]) {
   top: 0;
   z-index: 60;
   border-bottom: 1px solid var(--vc-public-border);
-  background: rgba(8, 11, 19, 0.86);
+  background: var(--vc-public-header-bg);
   backdrop-filter: blur(18px);
 }
 
 .vc-public-announcement {
   display: none;
   border-bottom: 1px solid var(--vc-public-border);
-  background: rgba(17, 24, 39, 0.72);
+  background: var(--vc-public-announcement-bg);
 }
 
 .vc-public-announcement-inner {
@@ -6801,7 +6856,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #fed7aa;
+  color: var(--vc-public-link);
   font-weight: 700;
   text-decoration: none;
 }
@@ -6856,7 +6911,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-marketing-menu[open] summary,
 .vc-marketing-menu summary:hover,
 .vc-public-mobile-menu summary:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--vc-public-hover-bg);
   color: var(--vc-public-text);
 }
 
@@ -6870,8 +6925,8 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   border: 1px solid var(--vc-public-border);
   border-radius: 14px;
-  background: rgba(13, 19, 34, 0.98);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+  background: var(--vc-public-menu-bg);
+  box-shadow: 0 24px 70px var(--vc-public-shadow);
   padding: 10px;
 }
 
@@ -6888,7 +6943,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-marketing-menu-panel a:hover,
 .vc-public-mobile-menu-panel a:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--vc-public-hover-bg);
 }
 
 .vc-marketing-menu-panel strong,
@@ -6920,8 +6975,8 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: auto;
   border: 1px solid var(--vc-public-border);
   border-radius: 14px;
-  background: rgba(13, 19, 34, 0.98);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+  background: var(--vc-public-menu-bg);
+  box-shadow: 0 24px 70px var(--vc-public-shadow);
   padding: 8px;
 }
 
@@ -6934,7 +6989,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: rgba(249, 115, 22, 0.12);
   padding: 6px 10px;
-  color: #fed7aa;
+  color: var(--vc-public-link);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -6953,16 +7008,16 @@ body :where(.lucide, svg[data-lucide]) {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.12;
+  opacity: var(--vc-public-hero-image-opacity);
 }
 
 .vc-home-hero::after {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to bottom, rgba(8, 11, 19, 0.4), var(--vc-public-bg)),
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(to bottom, var(--vc-public-hero-fade-start), var(--vc-public-bg)),
+    linear-gradient(var(--vc-public-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--vc-public-grid-line) 1px, transparent 1px);
   background-size: auto, 44px 44px, 44px 44px;
   content: '';
 }
@@ -7017,7 +7072,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-home-builder-form label {
-  color: #cbd5e1;
+  color: var(--vc-public-trust-text);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -7030,9 +7085,9 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   border: 1px solid var(--vc-public-border);
   border-radius: 14px;
-  background: rgba(17, 24, 39, 0.86);
+  background: var(--vc-public-form-bg);
   padding: 8px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 70px var(--vc-public-shadow);
 }
 
 .vc-home-builder-form input {
@@ -7053,7 +7108,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 10px;
   background: linear-gradient(135deg, var(--vc-public-accent), var(--vc-public-accent-2));
-  color: #111827;
+  color: var(--vc-public-button-text);
   font-weight: 800;
 }
 
@@ -7081,8 +7136,8 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-public-footer-cta {
   border: 1px solid var(--vc-public-border);
   border-radius: 18px;
-  background: rgba(17, 24, 39, 0.72);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  background: var(--vc-public-card-bg);
+  box-shadow: 0 24px 70px var(--vc-public-shadow);
 }
 
 .vc-home-product-frame {
@@ -7095,7 +7150,7 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--vc-public-border);
-  background: rgba(15, 23, 42, 0.8);
+  background: var(--vc-public-card-soft-bg);
   padding: 0 14px;
 }
 
@@ -7138,7 +7193,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-home-tabs span,
 .vc-home-terminal span {
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--vc-public-hover-bg);
   padding: 7px 9px;
   color: var(--vc-public-muted);
   font-size: 12px;
@@ -7161,14 +7216,14 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-home-tabs span:nth-child(2) {
-  color: #fed7aa;
+  color: var(--vc-public-active-tab);
 }
 
 .vc-home-ide-mock pre {
   overflow: auto;
   margin: 0;
   padding: 24px;
-  color: #dbeafe;
+  color: var(--vc-public-code-text);
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   line-height: 1.8;
@@ -7182,7 +7237,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-home-stats {
   border-bottom: 1px solid var(--vc-public-border);
-  background: rgba(13, 19, 34, 0.55);
+  background: var(--vc-public-stat-bg);
 }
 
 .vc-home-stats .vc-public-container {
@@ -7192,7 +7247,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-home-stats article {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--vc-public-hover-bg);
   padding: 22px;
 }
 
@@ -7208,7 +7263,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-home-stats span {
   margin-top: 4px;
-  color: #fed7aa;
+  color: var(--vc-public-link);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -7304,7 +7359,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #cbd5e1;
+  color: var(--vc-public-trust-text);
 }
 
 .vc-home-showcase-grid article a {
@@ -7312,7 +7367,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-home-templates {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--vc-public-hover-bg);
 }
 
 .vc-home-language-grid {
@@ -7328,7 +7383,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 10px;
   border: 1px solid var(--vc-public-border);
   border-radius: 14px;
-  background: rgba(17, 24, 39, 0.68);
+  background: var(--vc-public-card-soft-bg);
 }
 
 .vc-home-language-grid span {
@@ -7340,7 +7395,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-home-cta {
   padding-block: 90px;
   background: linear-gradient(135deg, #ea580c, #facc15);
-  color: #111827;
+  color: var(--vc-public-cta-text);
 }
 
 .vc-home-cta .vc-public-container {
@@ -7351,7 +7406,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-home-cta h2,
 .vc-home-cta p {
-  color: #111827;
+  color: var(--vc-public-cta-text);
 }
 
 .vc-home-cta p {
@@ -7361,7 +7416,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-public-footer {
   border-top: 1px solid var(--vc-public-border);
-  background: #070a12;
+  background: var(--vc-public-footer-bg);
   padding-block: 64px 28px;
 }
 
@@ -7397,7 +7452,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #cbd5e1;
+  color: var(--vc-public-trust-text);
   font-size: 13px;
 }
 
@@ -7416,7 +7471,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-public-footer nav a:hover,
 .vc-public-footer-bottom a:hover {
-  color: #fed7aa;
+  color: var(--vc-public-link-hover);
 }
 
 .vc-public-footer-bottom {
