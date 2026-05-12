@@ -2090,16 +2090,6 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
 }
 
-.bolt-project-runtime-badge {
-  align-self: center;
-  border: 1px solid #2b3245;
-  border-radius: 4px;
-  color: #6e7681;
-  font-size: 11px;
-  margin-right: 8px;
-  padding: 2px 8px;
-}
-
 .bolt-project-welcome {
   display: flex;
   height: 100%;
@@ -4927,8 +4917,7 @@ body :where(.lucide, svg[data-lucide]) {
     .bolt-project-command-section,
     .bolt-project-command-palette small,
     .bolt-project-command-palette kbd,
-    .bolt-project-command-palette footer,
-    .bolt-project-runtime-badge
+    .bolt-project-command-palette footer
   ) {
   color: var(--vc-ide-text-muted) !important;
 }
