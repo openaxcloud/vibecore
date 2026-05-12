@@ -3243,7 +3243,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     onMouseDown={startTerminalResize}
                   />
                   <div className="bolt-project-bottom-terminal-frame">
-                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
+                    <ProjectBottomTerminal
+                      projectId={projectId}
+                      terminalHeight={terminalBottomHeight}
+                      onClose={() => setTerminalBottomOpen(false)}
+                    />
                   </div>
                 </div>
               )}
@@ -3652,6 +3656,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-runtime"
+                aria-label={
+                  workspaceError
+                    ? 'Crashed runtime'
+                    : workspaceLoading
+                      ? 'Building runtime'
+                      : workspaceStatus?.status?.toLowerCase() === 'running'
+                        ? `Running on ${runtimePortSummary}`
+                        : 'Stopped runtime'
+                }
                 onClick={() => {
                   if (useMobileIde) {
                     setMobileIdePanel('preview');
@@ -3980,10 +3993,19 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 }
 
-function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
+function ProjectBottomTerminal({
+  projectId,
+  terminalHeight,
+  onClose,
+}: {
+  projectId?: string;
+  terminalHeight: number;
+  onClose: () => void;
+}) {
   const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
+  const workspaceLabel = workspaceStatus ? `${workspaceStatus.status} workspace` : 'No backend workspace';
 
   const terminalTabs = [
     ['terminal', 'Terminal', 'i-ph:terminal-window'],
@@ -3995,40 +4017,47 @@ function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onC
   return (
     <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
       <div className="bolt-project-bottom-terminal-tabs">
-        {terminalTabs.map(([id, label, icon]) => (
-          <button
-            key={id}
-            type="button"
-            aria-current={active === id ? 'page' : undefined}
-            onClick={() => setActive(id as any)}
+        <div className="bolt-project-bottom-terminal-tabs-left" aria-label="Pinned terminal views">
+          {terminalTabs.map(([id, label, icon]) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={active === id ? 'page' : undefined}
+              onClick={() => setActive(id as any)}
+            >
+              <span className={icon} aria-hidden />
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="bolt-project-bottom-terminal-meta">
+          <span className="bolt-project-bottom-terminal-status" data-state={workspaceStatus?.status ?? 'offline'}>
+            <span aria-hidden />
+            {workspaceLabel}
+          </span>
+          <span className="bolt-project-bottom-terminal-size">{terminalHeight}px</span>
+          <select
+            className="bolt-project-bottom-terminal-session"
+            aria-label="Backend runtime session"
+            value={backendSessionId}
+            onChange={() => undefined}
           >
-            <span className={icon} aria-hidden />
-            {label}
+            <option value={backendSessionId}>{workspaceLabel}</option>
+          </select>
+          <button
+            type="button"
+            aria-label="Refresh runtime logs"
+            onClick={() => {
+              setActive('terminal');
+              void workbenchStore.refreshRuntimePorts().catch(() => undefined);
+            }}
+          >
+            <span className="i-ph:arrow-clockwise" aria-hidden />
           </button>
-        ))}
-        <select
-          className="bolt-project-bottom-terminal-session"
-          aria-label="Backend runtime session"
-          value={backendSessionId}
-          onChange={() => undefined}
-        >
-          <option value={backendSessionId}>
-            {workspaceStatus ? `${workspaceStatus.status} workspace` : 'No backend workspace'}
-          </option>
-        </select>
-        <button
-          type="button"
-          aria-label="Refresh runtime logs"
-          onClick={() => {
-            setActive('terminal');
-            void workbenchStore.refreshRuntimePorts().catch(() => undefined);
-          }}
-        >
-          ↻
-        </button>
-        <button type="button" aria-label="Close terminal panel" onClick={onClose}>
-          ×
-        </button>
+          <button type="button" aria-label="Close terminal panel" onClick={onClose}>
+            <span className="i-ph:x" aria-hidden />
+          </button>
+        </div>
       </div>
       <div className="bolt-project-bottom-terminal-content">
         {active === 'terminal' ? (

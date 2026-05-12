@@ -1,6 +1,9 @@
 .xterm {
   height: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-app, #0a0f1c), transparent 0%), transparent 72px),
+    var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
 }
 
 .xterm .xterm-viewport {
@@ -10,31 +13,76 @@
 .bolt-terminal-tabs-shell {
   min-width: 0;
   min-height: 0;
+  border-top: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
   background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
 }
 
 .bolt-terminal-tabs-bar {
-  min-height: 32px;
-  gap: 0;
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
   overflow-x: auto;
   border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  background: var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2));
-  padding: 0 6px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel, #0e1525), white 3%), var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2)));
+  padding: 0 8px;
+}
+
+.bolt-terminal-tabs-strip,
+.bolt-terminal-actions,
+.bolt-terminal-runtime-meta {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.bolt-terminal-tabs-strip {
+  flex: 1 1 220px;
+  overflow-x: auto;
+}
+
+.bolt-terminal-actions {
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.bolt-terminal-runtime-meta {
+  flex: 0 0 auto;
+  gap: 7px;
+  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-3));
+  padding: 3px 9px;
+  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
+  font-size: 11px;
+  line-height: 1;
+}
+
+.bolt-terminal-runtime-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-success, #3fb950);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-success, #3fb950), transparent 78%);
 }
 
 .bolt-terminal-tab-item {
   display: inline-flex;
   min-width: 0;
-  height: 31px;
+  height: 30px;
   align-items: center;
-  border-right: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+  border: 1px solid transparent;
+  border-radius: 6px 6px 0 0;
   color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
 }
 
 .bolt-terminal-tab-item.is-active {
   background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
   color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
-  box-shadow: inset 0 1px 0 var(--vc-ide-accent, #3fb950);
+  border-color: var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-bottom-color: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
+  box-shadow: inset 0 2px 0 var(--vc-ide-accent-action, #0099ff);
 }
 
 .bolt-terminal-tab-button,
@@ -46,13 +94,16 @@
   border: 0;
   background: transparent;
   color: inherit;
+  transition:
+    background-color var(--vc-ui-transition-hover, 150ms ease-out),
+    color var(--vc-ui-transition-hover, 150ms ease-out);
 }
 
 .bolt-terminal-tab-button {
   min-width: 0;
   max-width: 190px;
   gap: 7px;
-  padding: 0 10px;
+  padding: 0 11px;
   font-size: 12px;
   white-space: nowrap;
 }
@@ -63,7 +114,7 @@
 }
 
 .bolt-terminal-tab-close {
-  width: 26px;
+  width: 28px;
   color: var(--vc-ide-text-muted, var(--bolt-elements-textTertiary));
 }
 
@@ -71,4 +122,26 @@
 .bolt-terminal-tab-close:hover {
   background: var(--vc-ide-bg-hover, var(--bolt-elements-terminals-buttonBackground));
   color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+}
+
+.bolt-terminal-tabs-shell :where(button):focus-visible,
+.bolt-terminal-viewport-frame:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action, #0099ff), transparent 26%);
+  outline-offset: -2px;
+}
+
+.bolt-terminal-viewport-frame {
+  min-width: 0;
+  min-height: 0;
+  background: var(--vc-ide-bg-app, var(--bolt-elements-terminals-background));
+}
+
+@media (max-width: 900px) {
+  .bolt-terminal-runtime-meta {
+    display: none;
+  }
+
+  .bolt-terminal-tab-button {
+    max-width: 220px;
+  }
 }

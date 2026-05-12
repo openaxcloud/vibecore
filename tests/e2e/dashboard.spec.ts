@@ -1049,6 +1049,10 @@ test('IDE project services open as in-place panels instead of legacy project pag
     const tabbar = element.querySelector('.bolt-project-bottom-terminal-tabs')!;
     const tabbarRect = tabbar.getBoundingClientRect();
     const tabbarStyle = window.getComputedStyle(tabbar);
+    const status = element.querySelector('.bolt-project-bottom-terminal-status');
+    const terminalMeta = element.querySelector('.bolt-project-bottom-terminal-meta');
+    const activeTab = element.querySelector('.bolt-project-bottom-terminal-tabs button[aria-current="page"]');
+    const activeTabStyle = activeTab ? window.getComputedStyle(activeTab) : null;
 
     return {
       height: rect.height,
@@ -1056,18 +1060,25 @@ test('IDE project services open as in-place panels instead of legacy project pag
       background: style.backgroundColor,
       tabbarHeight: tabbarRect.height,
       tabbarBackground: tabbarStyle.backgroundColor,
+      hasStatus: Boolean(status),
+      hasTerminalMeta: Boolean(terminalMeta),
+      activeTabBorder: activeTabStyle?.borderTopColor,
     };
   });
   expect(terminalMetrics.height).toBe(240);
   expect(terminalMetrics.borderTop).toBe('rgb(26, 32, 48)');
   expect(terminalMetrics.background).toBe('rgb(10, 15, 28)');
-  expect(terminalMetrics.tabbarHeight).toBe(32);
+  expect(terminalMetrics.tabbarHeight).toBe(38);
   expect(terminalMetrics.tabbarBackground).toBe('rgb(14, 21, 37)');
+  expect(terminalMetrics.hasStatus).toBe(true);
+  expect(terminalMetrics.hasTerminalMeta).toBe(true);
+  expect(terminalMetrics.activeTabBorder).toBe('rgb(43, 50, 69)');
   await expect(pinnedTerminal.getByRole('button', { name: 'Terminal', exact: true })).toBeVisible();
   await expect(pinnedTerminal.getByRole('button', { name: 'Output' })).toBeVisible();
   await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
   await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
   await expect(pinnedTerminal.getByLabel('Refresh runtime logs')).toBeVisible();
+  await expect(pinnedTerminal.locator('.bolt-project-bottom-terminal-size')).toHaveText('240px');
   await expect(pinnedTerminal.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
   await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
   await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="logs"]')).toBeVisible({
