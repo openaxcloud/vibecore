@@ -17,12 +17,29 @@ This checklist tracks the production mobile IDE surface for Vibecore. The implem
 - Terminal: real `TerminalTabs` and runtime panel state.
 - Preview: real preview server state through `workbenchStore.previews` and `previewServerState`.
 - Deploy/tools: real `ProjectIdeServicePanel`; deep links such as `?panel=database` load the existing authenticated IDE panel API.
+- Database: real project env/snapshot APIs. `DATABASE_URL` writes use `/projects/:id/env-vars`; database backups use `/projects/:id/snapshots`.
+- Security: real IDE panel API backed by project env state and runtime workspace commands. Scans call `npm audit --json` and a source secret scan through `/api/runtime/workspaces/:workspaceId/commands`.
+- Native shell: Capacitor runtime dispatches deep link, push token/action, network and crash events into the embedded web runtime.
+
+## Component Mapping
+
+- `MobileSecurityPanel`: mapped to `ProjectSecurityPanel` inside `BaseChat.tsx`, rendered through `ProjectIdeServicePanel` and `/api/projects/:projectId/ide-panel/security`.
+- `MobileDatabasePanel`: mapped to `ProjectDatabasePanel`, including connection, environment, activity and backup tabs.
+- `ReplitMobileShell`: mapped to the existing runtime `TerminalTabs` and terminal service panel; mobile routes use the same workspace backend.
+- `MobileEditorTabs`: mapped to the bottom `MOBILE_IDE_PANELS` navigation and compact workbench shell.
+- `MobileHeader` and `MobileNavigation`: mapped to the project top bar plus compact IDE tab bar/status bar.
+- `use-mobile`, `use-mobile-gestures`, persistence hooks: mapped to `@vibecore/editor` responsive layout, `useMobileGestures`, and `useMobileIdePersistence`.
 
 ## Validation Commands
 
 - `pnpm exec tsc --noEmit --pretty false`
 - `pnpm run lint`
 - `pnpm --filter @vibecore/mobile test`
+- `pnpm --filter @vibecore/mobile typecheck`
+- `pnpm --filter @vibecore/mobile build:web`
+- `pnpm run mobile:validate`
+- `JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home pnpm --filter @vibecore/mobile sync:android`
+- `pnpm run platform:no-mocks`
 - `pnpm exec vitest run packages/editor/src/index.spec.ts --reporter=dot`
 - `pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile`
 - `pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=tablet --project=chromium`
@@ -33,3 +50,8 @@ This checklist tracks the production mobile IDE surface for Vibecore. The implem
 - Do not copy E-Code/Replit component names, routes, or mock endpoints into Vibecore.
 - Do not replace the existing Bolt IDE.
 - Do not introduce simulated backend data for mobile-only panels.
+
+## Native Build Notes
+
+- Android debug build requires a local Android SDK. In this workspace `ANDROID_HOME` and `ANDROID_SDK_ROOT` were unset, so `assembleDebug` stops after successful Capacitor sync with `SDK location not found`.
+- Gradle must run on a supported JDK. With the default Java 25, Gradle 8.14.3 fails before project evaluation; OpenJDK 21 reaches the Android SDK check.

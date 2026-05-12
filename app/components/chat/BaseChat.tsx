@@ -76,6 +76,7 @@ const IDE_MANAGEMENT_PANELS = [
   'integrations',
   'workflows',
   'deployments',
+  'security',
   'env',
   'secrets',
   'git',
@@ -102,6 +103,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   integrations: 'Connected services',
   workflows: 'Task automation',
   deployments: 'Publish your app',
+  security: 'Security scanner',
   env: 'Environment variables',
   secrets: 'Environment variables',
   git: 'Version control',
@@ -3321,6 +3323,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['integrations', 'Integrations', 'Connected services', ''],
             ['workflows', 'Workflows', 'Task automation', ''],
             ['deployments', 'Deployments', 'Publish your app', ''],
+            ['security', 'Security', 'Security scanner', ''],
             ['monitoring', 'Monitoring', 'App metrics', ''],
             ['extensions', 'Extensions', 'Marketplace', ''],
             ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
@@ -4747,6 +4750,7 @@ function IdeTabBar({
     ['integrations', 'Integrations', 'Connected services', 'i-ph:plugs-connected', '#3FB950', 'Project'],
     ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', '#3FB950', 'Project'],
     ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', '#7B61FF', 'Delivery'],
+    ['security', 'Security', 'Security scanner', 'i-ph:shield-check', '#F85149', 'Security'],
     ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', '#0099FF', 'Delivery'],
     ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', '#C2C8CC', 'Project'],
     ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', '#7B61FF', 'Project'],
@@ -5182,6 +5186,10 @@ function ProjectIdePanelContent({
 
   if (panel === 'workflows') {
     return <ProjectWorkflowsPanel data={data} onSubmit={onSubmit} busy={busy} />;
+  }
+
+  if (panel === 'security') {
+    return <ProjectSecurityPanel data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'logs') {
@@ -7370,8 +7378,9 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
 }
 
 function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const [activeTab, setActiveTab] = useState<'connection' | 'env' | 'activity'>('connection');
+  const [activeTab, setActiveTab] = useState<'connection' | 'env' | 'activity' | 'backups'>('connection');
   const databaseVars = (data.envVars ?? []).filter((item: any) => /DATABASE|POSTGRES|SQL/i.test(item.key));
+  const databaseBackups = (data.snapshots ?? []).filter((snapshot: any) => snapshot.kind === 'database-backup');
 
   const tableRows = databaseVars.length
     ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
@@ -7389,6 +7398,7 @@ function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: a
             ['connection', 'Connection'],
             ['env', 'Environment'],
             ['activity', 'Activity'],
+            ['backups', 'Backups'],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -7408,7 +7418,7 @@ function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           </form>
         ) : activeTab === 'env' ? (
           <PanelRows rows={tableRows} empty="Database metadata is not configured for this project." />
-        ) : (
+        ) : activeTab === 'activity' ? (
           <PanelRows
             rows={(data.recentActivity ?? [])
               .filter((event: any) => String(event.action ?? '').includes('env'))
@@ -7418,8 +7428,150 @@ function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: a
               ])}
             empty="No backend database activity recorded yet."
           />
+        ) : (
+          <div className="grid gap-3">
+            <form onSubmit={onSubmit} className="bolt-project-inline-form">
+              <input name="intent" value="create-backup" type="hidden" />
+              <PanelInput name="label" placeholder="Manual database backup" />
+              <PanelButton disabled={busy}>Create backup</PanelButton>
+            </form>
+            <PanelRows
+              rows={databaseBackups.map((snapshot: any) => [
+                snapshot.label ?? snapshot.id,
+                snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'Database backup snapshot',
+              ])}
+              empty="No database backups yet."
+            />
+            {databaseBackups.map((snapshot: any) => (
+              <form key={snapshot.id} onSubmit={onSubmit}>
+                <input name="intent" value="restore-backup" type="hidden" />
+                <input name="snapshotId" value={snapshot.id} type="hidden" />
+                <PanelButton disabled={busy} variant="outline">
+                  Restore {snapshot.label ?? snapshot.id}
+                </PanelButton>
+              </form>
+            ))}
+          </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+  const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings'>('active');
+  const state = data.securityState ?? {};
+  const settings = state.settings ?? {};
+  const scans = state.scans ?? [];
+  const vulnerabilities = state.vulnerabilities ?? [];
+
+  const visibleVulnerabilities = vulnerabilities.filter((item: any) =>
+    activeTab === 'hidden' ? item.hidden : !item.hidden,
+  );
+
+  const latestScan = scans[0];
+
+  const severityRows = ['critical', 'high', 'moderate', 'low', 'info'].map((severity) => [
+    severity,
+    `${vulnerabilities.filter((item: any) => item.severity === severity && !item.hidden).length} active`,
+  ]);
+
+  return (
+    <div className="bolt-project-security-tool">
+      <section className="bolt-project-security-summary">
+        <div>
+          <h3>Security and privacy scanner</h3>
+          <p>Runs against the active workspace runtime and stores scan history in project backend state.</p>
+        </div>
+        <form onSubmit={onSubmit}>
+          <input name="intent" value="scan" type="hidden" />
+          <PanelButton disabled={busy}>{busy ? 'Scanning...' : 'Run scan'}</PanelButton>
+        </form>
+      </section>
+
+      <div className="bolt-project-security-grid">
+        <aside>
+          <strong>Latest scan</strong>
+          <PanelRows
+            rows={[
+              ['Status', latestScan?.status ?? 'No scan yet'],
+              ['Scanner', latestScan?.scanner ?? 'workspace-runtime'],
+              ['Summary', latestScan?.summary ?? 'Run a scan to populate security findings'],
+            ]}
+          />
+          <strong>Severity</strong>
+          <PanelRows rows={severityRows} />
+        </aside>
+
+        <main>
+          <div className="bolt-project-tool-tabs">
+            {[
+              ['active', 'Active'],
+              ['hidden', 'Hidden'],
+              ['settings', 'Settings'],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={activeTab === id ? 'page' : undefined}
+                onClick={() => setActiveTab(id as any)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'settings' ? (
+            <form onSubmit={onSubmit} className="bolt-project-security-settings">
+              <input name="intent" value="settings" type="hidden" />
+              {[
+                ['dependencyAuditEnabled', 'Dependency audit', settings.dependencyAuditEnabled !== false],
+                ['secretScanEnabled', 'Secret scan', settings.secretScanEnabled !== false],
+                ['privacyDetectionEnabled', 'Privacy detection', settings.privacyDetectionEnabled !== false],
+              ].map(([name, label, enabled]) => (
+                <label key={String(name)}>
+                  <span>{label}</span>
+                  <select name={String(name)} defaultValue={enabled ? 'true' : 'false'}>
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                  </select>
+                </label>
+              ))}
+              <PanelButton disabled={busy}>Save scanner settings</PanelButton>
+            </form>
+          ) : (
+            <div className="bolt-project-vulnerability-list">
+              {visibleVulnerabilities.length ? (
+                visibleVulnerabilities.map((vulnerability: any) => (
+                  <article key={vulnerability.id} className="bolt-project-vulnerability-card">
+                    <div>
+                      <span data-severity={vulnerability.severity}>{vulnerability.severity}</span>
+                      <strong>{vulnerability.title}</strong>
+                      <p>{vulnerability.details || vulnerability.recommendation || vulnerability.source}</p>
+                    </div>
+                    <form onSubmit={onSubmit}>
+                      <input
+                        name="intent"
+                        value={activeTab === 'hidden' ? 'unhide-vulnerability' : 'hide-vulnerability'}
+                        type="hidden"
+                      />
+                      <input name="vulnerabilityId" value={vulnerability.id} type="hidden" />
+                      <PanelButton disabled={busy} variant="outline">
+                        {activeTab === 'hidden' ? 'Restore' : 'Hide'}
+                      </PanelButton>
+                    </form>
+                  </article>
+                ))
+              ) : (
+                <PanelRows
+                  rows={[]}
+                  empty={activeTab === 'hidden' ? 'No hidden vulnerabilities.' : 'No active vulnerabilities.'}
+                />
+              )}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
@@ -7750,6 +7902,7 @@ function panelTitle(panel: string) {
     locks: 'Locks',
     overview: 'Overview',
     deployments: 'Deploy',
+    security: 'Security',
     env: 'Environment variables',
     secrets: 'Secrets',
     git: 'Git',
@@ -7784,6 +7937,7 @@ function panelIcon(panel: string) {
     locks: 'i-ph:lock',
     overview: 'i-ph:gauge',
     deployments: 'i-ph:rocket-launch',
+    security: 'i-ph:shield-check',
     env: 'i-ph:brackets-curly',
     secrets: 'i-ph:lock',
     git: 'i-ph:git-branch',

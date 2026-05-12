@@ -1,6 +1,16 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it } from 'vitest';
 import { readMobileRuntimeConfig } from './config';
-import { configureOfflineState, extractPushActionData, parseDeepLink, shouldRegisterForPush } from './native';
+import {
+  configureOfflineState,
+  dispatchMobileDeepLink,
+  dispatchMobilePushAction,
+  dispatchMobilePushToken,
+  extractPushActionData,
+  parseDeepLink,
+  shouldRegisterForPush,
+} from './native';
 import { parseSessionLockState } from './session';
 import { supportsPlatformBiometrics } from './biometric';
 import { editorKindForLayout, getResponsiveLayoutState } from '@vibecore/editor';
@@ -87,5 +97,28 @@ describe('mobile native adapters', () => {
     window.removeEventListener('vibecore:mobile-network-change', listener);
 
     expect(events).toContainEqual({ connected: navigator.onLine });
+  });
+
+  it('dispatches native deep link and push events to the embedded web runtime', () => {
+    const events: Array<[string, unknown]> = [];
+    const deepLink = (event: Event) => events.push(['deep-link', (event as CustomEvent).detail]);
+    const pushToken = (event: Event) => events.push(['push-token', (event as CustomEvent).detail]);
+    const pushAction = (event: Event) => events.push(['push-action', (event as CustomEvent).detail]);
+
+    window.addEventListener('vibecore:mobile-deep-link', deepLink);
+    window.addEventListener('vibecore:mobile-push-token', pushToken);
+    window.addEventListener('vibecore:mobile-push-action', pushAction);
+
+    dispatchMobileDeepLink(new URL('vibecore://projects/project_123/ide?panel=security'));
+    dispatchMobilePushToken('push-token-123');
+    dispatchMobilePushAction({ route: '/projects/project_123/ide?panel=security' });
+
+    window.removeEventListener('vibecore:mobile-deep-link', deepLink);
+    window.removeEventListener('vibecore:mobile-push-token', pushToken);
+    window.removeEventListener('vibecore:mobile-push-action', pushAction);
+
+    expect(events).toContainEqual(['deep-link', { url: 'vibecore://projects/project_123/ide?panel=security' }]);
+    expect(events).toContainEqual(['push-token', { value: 'push-token-123' }]);
+    expect(events).toContainEqual(['push-action', { route: '/projects/project_123/ide?panel=security' }]);
   });
 });

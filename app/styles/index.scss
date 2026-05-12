@@ -3462,6 +3462,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-database-tool,
+.bolt-project-security-tool,
 .bolt-project-git-tool {
   display: grid;
   min-height: 0;
@@ -3657,6 +3658,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-database-tool aside,
+.bolt-project-security-grid aside,
 .bolt-project-git-tool section,
 .bolt-project-deploy-history {
   min-height: 0;
@@ -3666,6 +3668,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-database-tool aside strong,
+.bolt-project-security-grid aside strong,
 .bolt-project-git-tool h3 {
   display: block;
   margin: 0 0 10px;
@@ -3714,7 +3717,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-sql-editor,
-.bolt-project-inline-form {
+.bolt-project-inline-form,
+.bolt-project-security-settings {
   display: grid;
   gap: 8px;
   border: 1px solid #2b3245;
@@ -3722,6 +3726,106 @@ body :where(.lucide, svg[data-lucide]) {
   background: #1a2030;
   margin: 12px 0;
   padding: 12px;
+}
+
+.bolt-project-security-tool {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.bolt-project-security-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-security-summary h3 {
+  margin: 0 0 4px;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+}
+
+.bolt-project-security-summary p {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-security-grid {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.bolt-project-security-settings label {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-security-settings select {
+  height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 0 8px;
+}
+
+.bolt-project-vulnerability-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.bolt-project-vulnerability-card {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-vulnerability-card span {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+
+.bolt-project-vulnerability-card span[data-severity='critical'],
+.bolt-project-vulnerability-card span[data-severity='high'] {
+  background: rgba(248, 81, 73, 0.16);
+  color: #ff7b72;
+}
+
+.bolt-project-vulnerability-card strong {
+  display: block;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-vulnerability-card p {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  margin: 4px 0 0;
 }
 
 .bolt-project-sql-editor textarea,

@@ -17,6 +17,7 @@ export type ProjectIdeWorkspacePanel =
   | 'integrations'
   | 'workflows'
   | 'deployments'
+  | 'security'
   | 'env'
   | 'secrets'
   | 'git'

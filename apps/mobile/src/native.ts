@@ -72,7 +72,7 @@ export async function configureDeepLinks(onDeepLink?: (url: URL) => void) {
     const url = parseDeepLink(event.url);
 
     if (url) {
-      window.dispatchEvent(new CustomEvent('vibecore:mobile-deep-link', { detail: { url: url.toString() } }));
+      dispatchMobileDeepLink(url);
       onDeepLink?.(url);
     }
   });
@@ -99,7 +99,7 @@ export async function configurePushNotifications(
   onPushAction?: (data: unknown) => void,
 ) {
   const registration = await PushNotifications.addListener('registration', (token: Token) => {
-    window.dispatchEvent(new CustomEvent('vibecore:mobile-push-token', { detail: { value: token.value } }));
+    dispatchMobilePushToken(token.value);
     void onPushToken?.(token.value);
   });
   const registrationError = await PushNotifications.addListener('registrationError', (error) => {
@@ -108,7 +108,7 @@ export async function configurePushNotifications(
   });
   const action = await PushNotifications.addListener('pushNotificationActionPerformed', (event) => {
     const data = extractPushActionData(event);
-    window.dispatchEvent(new CustomEvent('vibecore:mobile-push-action', { detail: data }));
+    dispatchMobilePushAction(data);
     onPushAction?.(data);
   });
 
@@ -189,7 +189,7 @@ export async function readNativeAppInfo(): Promise<NativeAppInfo> {
 export function configureOfflineState(onOfflineChange?: (offline: boolean) => void) {
   const emit = () => {
     const offline = !navigator.onLine;
-    window.dispatchEvent(new CustomEvent('vibecore:mobile-network-change', { detail: { connected: !offline } }));
+    dispatchMobileNetworkChange(!offline);
     onOfflineChange?.(offline);
   };
   window.addEventListener('online', emit);
@@ -200,6 +200,22 @@ export function configureOfflineState(onOfflineChange?: (offline: boolean) => vo
     window.removeEventListener('online', emit);
     window.removeEventListener('offline', emit);
   };
+}
+
+export function dispatchMobileDeepLink(url: URL) {
+  window.dispatchEvent(new CustomEvent('vibecore:mobile-deep-link', { detail: { url: url.toString() } }));
+}
+
+export function dispatchMobilePushToken(value: string) {
+  window.dispatchEvent(new CustomEvent('vibecore:mobile-push-token', { detail: { value } }));
+}
+
+export function dispatchMobilePushAction(data: unknown) {
+  window.dispatchEvent(new CustomEvent('vibecore:mobile-push-action', { detail: data }));
+}
+
+export function dispatchMobileNetworkChange(connected: boolean) {
+  window.dispatchEvent(new CustomEvent('vibecore:mobile-network-change', { detail: { connected } }));
 }
 
 export function configureCrashReporting(onCrashReport?: (error: unknown, context?: Record<string, unknown>) => void) {

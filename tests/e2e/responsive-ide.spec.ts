@@ -172,6 +172,16 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
       timeout: 15000,
     });
+    await expect(page.getByRole('button', { name: 'Backups' })).toBeVisible();
+
+    await page.goto(`/projects/${projectId}/ide?panel=security`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
+      timeout: 15000,
+    });
+    const securityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="security"]').first();
+    await expect(securityPanel).toBeVisible({ timeout: 15000 });
+    await expect(securityPanel.getByRole('button', { name: 'Run scan' })).toBeVisible();
+    await expect(securityPanel.getByRole('button', { name: 'Settings' })).toBeVisible();
   });
 
   test('short landscape mobile viewport keeps the IDE mobile shell', async ({ page, isMobile }) => {

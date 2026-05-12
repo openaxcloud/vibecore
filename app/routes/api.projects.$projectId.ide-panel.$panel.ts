@@ -95,6 +95,7 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   extensions: (projectId) => `/projects/${projectId}/dashboard`,
   integrations: (projectId) => `/projects/${projectId}/env-vars`,
   workflows: (projectId) => `/projects/${projectId}/env-vars`,
+  security: (projectId) => `/projects/${projectId}/activity`,
   terminal: (projectId) => `/projects/${projectId}/dashboard`,
   deployments: (projectId) => `/projects/${projectId}/deployments`,
   env: (projectId) => `/projects/${projectId}/env-vars`,
@@ -162,10 +163,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (['database', 'object-storage', 'packages', 'monitoring', 'extensions'].includes(panel)) {
     try {
-      const [dashboard, envVars, deployments] = await Promise.all([
+      const [dashboard, envVars, deployments, snapshots] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/deployments`),
+        panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
       ]);
 
       return json(
@@ -173,6 +175,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(dashboard as any),
           ...(envVars as any),
           ...(deployments as any),
+          ...(snapshots as any),
         }),
       );
     } catch (error) {
@@ -217,6 +220,27 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(envVars as any),
           ...(activity as any),
           workflowsState: readWorkflowsState(envVars),
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
+  if (panel === 'security') {
+    try {
+      const [dashboard, envVars, activity] = await Promise.all([
+        apiRequest<any>(request, `/projects/${projectId}/dashboard`),
+        apiRequest(request, `/projects/${projectId}/env-vars`),
+        apiRequest(request, `/projects/${projectId}/activity`),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(dashboard as any),
+          ...(envVars as any),
+          ...(activity as any),
+          securityState: readSecurityState(envVars),
         }),
       );
     } catch (error) {
@@ -563,10 +587,23 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'database') {
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
-    });
+    if (intent === 'create-backup') {
+      await apiRequest(request, `/projects/${projectId}/snapshots`, {
+        method: 'POST',
+        body: JSON.stringify({
+          label: body.label || `Database backup ${new Date().toISOString()}`,
+          kind: 'database-backup',
+          manifest: { scope: 'database', source: 'mobile-ide' },
+        }),
+      });
+    } else if (intent === 'restore-backup') {
+      await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+    } else {
+      await apiRequest(request, `/projects/${projectId}/env-vars`, {
+        method: 'PUT',
+        body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
+      });
+    }
   } else if (panel === 'object-storage') {
     if (intent === 'export') {
       await apiRequest(request, `/projects/${projectId}/export/zip`);
@@ -880,6 +917,65 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
       body: JSON.stringify({ key: WORKFLOWS_STATE_ENV_KEY, value: JSON.stringify(normalizeWorkflowsState(state)) }),
+    });
+  } else if (panel === 'security') {
+    const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
+    const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
+    const state = readSecurityState(envVars);
+    const now = new Date().toISOString();
+
+    if (intent === 'settings') {
+      state.settings = {
+        ...state.settings,
+        privacyDetectionEnabled: body.privacyDetectionEnabled === 'true',
+        dependencyAuditEnabled: body.dependencyAuditEnabled !== 'false',
+        secretScanEnabled: body.secretScanEnabled !== 'false',
+      };
+    } else if (intent === 'hide-vulnerability' || intent === 'unhide-vulnerability') {
+      state.vulnerabilities = state.vulnerabilities.map((vulnerability: any) =>
+        vulnerability.id === body.vulnerabilityId
+          ? { ...vulnerability, hidden: intent === 'hide-vulnerability', updatedAt: now }
+          : vulnerability,
+      );
+    } else if (intent === 'scan') {
+      const workspaceId = dashboard?.workspace?.id ?? projectId;
+
+      const auditCommand = state.settings.dependencyAuditEnabled
+        ? 'npm audit --json || true'
+        : 'node -e "console.log(\\"{}\\")"';
+
+      const auditRun = await runTerminalCommand(request, workspaceId, auditCommand, 'Security dependency audit', now);
+      const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now);
+
+      if (state.settings.secretScanEnabled) {
+        const secretRun = await runTerminalCommand(
+          request,
+          workspaceId,
+          "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
+          'Security secret scan',
+          now,
+        );
+        findings.push(...vulnerabilitiesFromSecretScan(secretRun.output, now));
+      }
+
+      const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
+      state.vulnerabilities = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
+      state.scans.unshift({
+        id: randomUUID(),
+        scanType: 'full',
+        scanner: 'workspace-runtime',
+        status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
+        startedAt: now,
+        completedAt: new Date().toISOString(),
+        summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
+        exitCode: auditRun.exitCode,
+      });
+      state.scans = state.scans.slice(0, 20);
+    }
+
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: 'PUT',
+      body: JSON.stringify({ key: SECURITY_STATE_ENV_KEY, value: JSON.stringify(normalizeSecurityState(state)) }),
     });
   } else if (panel === 'terminal') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
@@ -1257,6 +1353,119 @@ async function runTerminalCommand(
 }
 
 const WORKFLOWS_STATE_ENV_KEY = 'VIBECORE_WORKFLOWS_STATE';
+
+const SECURITY_STATE_ENV_KEY = 'VIBECORE_SECURITY_STATE';
+
+function defaultSecurityState() {
+  return {
+    settings: {
+      privacyDetectionEnabled: true,
+      dependencyAuditEnabled: true,
+      secretScanEnabled: true,
+    },
+    scans: [],
+    vulnerabilities: [],
+  };
+}
+
+function readSecurityState(envVarsResponse: unknown) {
+  const envVars = (envVarsResponse as any)?.envVars ?? [];
+  const raw = envVars.find((item: any) => item.key === SECURITY_STATE_ENV_KEY)?.value;
+
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return defaultSecurityState();
+  }
+
+  try {
+    return normalizeSecurityState(JSON.parse(raw));
+  } catch {
+    return defaultSecurityState();
+  }
+}
+
+function normalizeSecurityState(input: any) {
+  const fallback = defaultSecurityState();
+
+  return {
+    settings: {
+      privacyDetectionEnabled: input?.settings?.privacyDetectionEnabled !== false,
+      dependencyAuditEnabled: input?.settings?.dependencyAuditEnabled !== false,
+      secretScanEnabled: input?.settings?.secretScanEnabled !== false,
+    },
+    scans: Array.isArray(input?.scans) ? input.scans.slice(0, 20) : fallback.scans,
+    vulnerabilities: Array.isArray(input?.vulnerabilities)
+      ? input.vulnerabilities.map((vulnerability: any) => ({
+          id: String(vulnerability.id || randomUUID()),
+          packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
+          title: String(vulnerability.title || vulnerability.packageName || 'Security finding'),
+          severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
+            ? vulnerability.severity
+            : 'info',
+          status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
+          hidden: Boolean(vulnerability.hidden),
+          source: String(vulnerability.source || 'workspace-runtime'),
+          details: String(vulnerability.details || ''),
+          recommendation: vulnerability.recommendation ? String(vulnerability.recommendation) : undefined,
+          createdAt: vulnerability.createdAt,
+          updatedAt: vulnerability.updatedAt,
+        }))
+      : fallback.vulnerabilities,
+  };
+}
+
+function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
+  try {
+    const parsed = JSON.parse(output || '{}');
+
+    const vulnerabilities =
+      parsed?.vulnerabilities && typeof parsed.vulnerabilities === 'object' ? parsed.vulnerabilities : {};
+
+    return Object.entries(vulnerabilities).map(([name, value]: [string, any]) => ({
+      id: `npm:${name}`,
+      packageName: name,
+      title: `${name} dependency advisory`,
+      severity: normalizeSeverity(value?.severity),
+      status: 'open',
+      hidden: false,
+      source: 'npm-audit',
+      details: `${value?.via?.length ?? 0} advisory path(s), ${value?.effects?.length ?? 0} effect(s).`,
+      recommendation: value?.fixAvailable
+        ? 'Run the package manager update recommended by npm audit.'
+        : 'Review advisory and pin a safe dependency version.',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function vulnerabilitiesFromSecretScan(output: string, timestamp: string) {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 50)
+    .map((line, index) => ({
+      id: `secret:${index}:${line.slice(0, 80)}`,
+      packageName: 'workspace',
+      title: 'Potential secret in source file',
+      severity: 'high',
+      status: 'open',
+      hidden: false,
+      source: 'secret-scan',
+      details: line.replace(/=.*/, '=***'),
+      recommendation: 'Move credentials into project secrets and rotate exposed values.',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+}
+
+function normalizeSeverity(value: unknown) {
+  const severity = String(value ?? 'info').toLowerCase();
+
+  return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
+}
 
 function defaultWorkflowsState() {
   return {
