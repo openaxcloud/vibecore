@@ -932,6 +932,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
     const workspaceError = useStore(workbenchStore.workspaceError);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
+    const quotaWarning = useStore(workbenchStore.quotaWarning);
+    const billingUpgradePrompt = useStore(workbenchStore.billingUpgradePrompt);
     const previewServerState = useStore(workbenchStore.previewServerState);
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
@@ -1054,6 +1056,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           previewServerState,
         }),
       [previewServerState, runtimePreviews, workspaceError, workspaceLoading, workspaceLogs],
+    );
+    const workspaceStatusLabel = useMemo(() => {
+      if (workspaceError) {
+        return 'Error';
+      }
+
+      if (workspaceLoading) {
+        return 'Starting';
+      }
+
+      return workspaceStatus?.status ?? 'Not started';
+    }, [workspaceError, workspaceLoading, workspaceStatus]);
+    const workspaceStatusTitle = useMemo(
+      () =>
+        [
+          `Workspace: ${workspaceStatusLabel}`,
+          workspaceError,
+          quotaWarning,
+          billingUpgradePrompt,
+          workspaceLogs.length > 0 ? `${workspaceLogs.length} log lines` : undefined,
+        ]
+          .filter(Boolean)
+          .join(' | '),
+      [billingUpgradePrompt, quotaWarning, workspaceError, workspaceLogs.length, workspaceStatusLabel],
     );
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
@@ -3467,6 +3493,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span>0</span>
               <span className="i-ph:warning text-[#D29922]" aria-hidden />
               <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
+              <button
+                type="button"
+                className="bolt-project-statusbar-workspace"
+                onClick={() => setTerminalBottomOpen(true)}
+                title={workspaceStatusTitle}
+              >
+                <span
+                  className="bolt-project-statusbar-runtime-dot"
+                  data-state={
+                    workspaceError
+                      ? 'error'
+                      : workspaceLoading
+                        ? 'starting'
+                        : (workspaceStatus?.status?.toLowerCase() ?? 'stopped')
+                  }
+                  aria-hidden
+                />
+                <span>Workspace: {workspaceStatusLabel}</span>
+                {quotaWarning ? <span>{quotaWarning}</span> : null}
+                {billingUpgradePrompt ? <span>{billingUpgradePrompt}</span> : null}
+                {workspaceError ? <span>{workspaceError}</span> : null}
+              </button>
+              {workspaceLogs.length > 0 ? (
+                <button
+                  type="button"
+                  className="bolt-project-statusbar-logs"
+                  onClick={() => setTerminalBottomOpen((value) => !value)}
+                  title={terminalBottomOpen ? 'Hide workspace logs' : 'Show workspace logs'}
+                >
+                  <span className="i-ph:list-magnifying-glass" aria-hidden />
+                  <span>{terminalBottomOpen ? 'Hide logs' : 'Show logs'}</span>
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="bolt-project-statusbar-runtime"

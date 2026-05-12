@@ -4631,13 +4631,28 @@ body :where(.lucide, svg[data-lucide]) {
   color: #f5f9fc;
 }
 
-.bolt-project-statusbar .bolt-project-statusbar-runtime {
+.bolt-project-statusbar .bolt-project-statusbar-runtime,
+.bolt-project-statusbar .bolt-project-statusbar-workspace,
+.bolt-project-statusbar .bolt-project-statusbar-logs {
   gap: 8px;
   min-width: 0;
+}
+
+.bolt-project-statusbar .bolt-project-statusbar-runtime {
   max-width: min(42vw, 440px);
 }
 
-.bolt-project-statusbar-runtime > span:not(.bolt-project-statusbar-runtime-dot) {
+.bolt-project-statusbar .bolt-project-statusbar-workspace {
+  max-width: min(30vw, 320px);
+}
+
+.bolt-project-statusbar .bolt-project-statusbar-logs {
+  flex: 0 0 auto;
+}
+
+.bolt-project-statusbar-runtime > span:not(.bolt-project-statusbar-runtime-dot),
+.bolt-project-statusbar-workspace > span:not(.bolt-project-statusbar-runtime-dot),
+.bolt-project-statusbar-logs > span:not([class*='i-ph:']) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
