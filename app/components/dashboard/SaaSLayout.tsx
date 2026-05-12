@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import { Form, Link, NavLink } from '@remix-run/react';
 import {
   Activity,
@@ -59,6 +60,7 @@ import {
 } from 'react-icons/si';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
+import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 
 type Icon = LucideIcon;
@@ -253,6 +255,7 @@ function PublicMarketingHeader() {
             <NavButton to="/contact-sales">Enterprise</NavButton>
           </div>
           <div className="vc-public-actions">
+            <PublicThemeToggle />
             <LinkButton to="/login" variant="ghost">
               Sign in
             </LinkButton>
@@ -276,6 +279,31 @@ function PublicMarketingHeader() {
         </div>
       </nav>
     </header>
+  );
+}
+
+function PublicThemeToggle() {
+  const theme = useStore(themeStore);
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+
+  return (
+    <button
+      type="button"
+      className="vc-public-theme-switch"
+      title="Switch light/dark theme"
+      aria-label={`Switch to ${nextTheme} theme`}
+      data-testid="public-theme-toggle"
+      onClick={toggleTheme}
+    >
+      <span
+        className={
+          theme === 'dark'
+            ? 'i-ph:sun-dim-duotone vc-public-theme-switch-icon'
+            : 'i-ph:moon-stars-duotone vc-public-theme-switch-icon'
+        }
+        aria-hidden
+      />
+    </button>
   );
 }
 

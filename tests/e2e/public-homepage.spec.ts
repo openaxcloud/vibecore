@@ -37,6 +37,7 @@ test.describe('public homepage', () => {
 
     await expect(page.getByRole('banner', { name: 'Site header' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'VibeCore' }).first()).toBeVisible();
+    await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Start building' }).first()).toBeVisible();
     await expect(page.getByTestId('section-hero')).toBeVisible();
     await expect(page.getByRole('heading', { name: /Build and deploy production apps/i })).toBeVisible();
@@ -84,6 +85,7 @@ test.describe('public homepage', () => {
 
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await expect(page.getByRole('banner', { name: 'Site header' })).toBeVisible();
+      await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
       await expect(page.getByRole('link', { name: 'Start building' }).first()).toBeVisible();
       await expect(page.getByTestId('button-homepage-build')).toBeVisible();
 
@@ -150,5 +152,61 @@ test.describe('public homepage', () => {
         expect(snapshot.builderButton.color).toBe('rgb(17, 24, 39)');
       }
     }
+  });
+
+  test('lets users switch between polished dark and light public themes', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'mobile navigation coverage stays separate');
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('.vc-public-shell')).toBeVisible();
+    await expect(page.getByTestId('public-theme-toggle')).toBeVisible();
+    await expect(page.locator('.vc-home-product-frame')).toBeVisible();
+
+    const readThemeSnapshot = async () =>
+      page.evaluate(() => {
+        const shell = document.querySelector<HTMLElement>('.vc-public-shell')!;
+        const themeButton = document.querySelector<HTMLElement>('[data-testid="public-theme-toggle"]')!;
+        const heroCard = document.querySelector<HTMLElement>('.vc-home-product-frame')!;
+        const style = window.getComputedStyle(shell);
+        const buttonStyle = window.getComputedStyle(themeButton);
+        const cardStyle = window.getComputedStyle(heroCard);
+
+        return {
+          htmlTheme: document.documentElement.getAttribute('data-theme'),
+          storedTheme: localStorage.getItem('bolt_theme'),
+          publicText: style.getPropertyValue('--vc-public-text').trim(),
+          publicBackground: style.getPropertyValue('--vc-public-bg').trim(),
+          themeButtonColor: buttonStyle.color,
+          themeButtonBackground: buttonStyle.backgroundColor,
+          cardBackground: cardStyle.backgroundColor,
+          cardBorder: cardStyle.borderColor,
+        };
+      });
+
+    const darkSnapshot = await readThemeSnapshot();
+    expect(darkSnapshot).toMatchObject({
+      htmlTheme: 'dark',
+      publicText: '#f8fafc',
+      publicBackground: '#080b13',
+    });
+
+    await page.getByTestId('public-theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    const lightSnapshot = await readThemeSnapshot();
+    expect(lightSnapshot).toMatchObject({
+      htmlTheme: 'light',
+      storedTheme: 'light',
+      publicText: '#0f172a',
+      publicBackground: '#f8fafc',
+    });
+    expect(contrastRatio(lightSnapshot.themeButtonColor, lightSnapshot.themeButtonBackground)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+
+    await page.getByTestId('public-theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect.poll(async () => (await readThemeSnapshot()).storedTheme).toBe('dark');
   });
 });

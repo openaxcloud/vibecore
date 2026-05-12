@@ -6742,10 +6742,12 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-header-bg: rgba(8, 11, 19, 0.86);
   --vc-public-announcement-bg: rgba(17, 24, 39, 0.72);
   --vc-public-menu-bg: rgba(13, 19, 34, 0.98);
+  --vc-public-control-bg: #111827;
   --vc-public-card-bg: rgba(17, 24, 39, 0.72);
   --vc-public-card-soft-bg: rgba(17, 24, 39, 0.68);
   --vc-public-stat-bg: rgba(13, 19, 34, 0.55);
   --vc-public-hover-bg: rgba(255, 255, 255, 0.07);
+  --vc-public-hover-strong-bg: rgba(255, 255, 255, 0.11);
   --vc-public-form-bg: rgba(17, 24, 39, 0.86);
   --vc-public-grid-line: rgba(255, 255, 255, 0.035);
   --vc-public-hero-image-opacity: 0.12;
@@ -6756,6 +6758,9 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-code-text: #dbeafe;
   --vc-public-active-tab: #fed7aa;
   --vc-public-cta-text: #111827;
+  --vc-public-focus-ring: rgba(251, 146, 60, 0.42);
+  --vc-public-card-hover-border: rgba(251, 146, 60, 0.46);
+  --vc-public-card-hover-shadow: rgba(249, 115, 22, 0.22);
   position: relative;
   overflow-x: hidden;
   background:
@@ -6780,10 +6785,12 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-header-bg: rgba(255, 255, 255, 0.9);
   --vc-public-announcement-bg: rgba(241, 245, 249, 0.86);
   --vc-public-menu-bg: rgba(255, 255, 255, 0.98);
+  --vc-public-control-bg: #ffffff;
   --vc-public-card-bg: rgba(255, 255, 255, 0.84);
   --vc-public-card-soft-bg: rgba(255, 255, 255, 0.78);
   --vc-public-stat-bg: rgba(226, 232, 240, 0.58);
   --vc-public-hover-bg: rgba(15, 23, 42, 0.06);
+  --vc-public-hover-strong-bg: rgba(15, 23, 42, 0.09);
   --vc-public-form-bg: rgba(255, 255, 255, 0.92);
   --vc-public-grid-line: rgba(15, 23, 42, 0.055);
   --vc-public-hero-image-opacity: 0.16;
@@ -6794,6 +6801,9 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-code-text: #0f172a;
   --vc-public-active-tab: #92400e;
   --vc-public-cta-text: #0f172a;
+  --vc-public-focus-ring: rgba(15, 118, 110, 0.28);
+  --vc-public-card-hover-border: rgba(15, 118, 110, 0.32);
+  --vc-public-card-hover-shadow: rgba(15, 23, 42, 0.16);
   background:
     radial-gradient(circle at 18% 10%, rgba(180, 83, 9, 0.14), transparent 32rem),
     radial-gradient(circle at 82% 8%, rgba(15, 118, 110, 0.1), transparent 30rem),
@@ -6823,6 +6833,11 @@ body :where(.lucide, svg[data-lucide]) {
   background: linear-gradient(135deg, var(--vc-public-accent), var(--vc-public-accent-2));
   color: #111827;
   box-shadow: 0 14px 35px rgba(249, 115, 22, 0.28);
+}
+
+.vc-public-shell :where(a, button, summary, input):focus-visible {
+  outline: 2px solid var(--vc-public-focus-ring);
+  outline-offset: 3px;
 }
 
 .vc-public-header {
@@ -6881,6 +6896,27 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
 }
 
+.vc-public-theme-switch {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 999px;
+  background: var(--vc-public-control-bg);
+  color: var(--vc-public-text);
+}
+
+.vc-public-theme-switch:hover {
+  border-color: var(--vc-public-card-hover-border);
+  background: var(--vc-public-control-bg);
+}
+
+.vc-public-theme-switch-icon {
+  color: currentColor;
+}
+
 .vc-public-desktop-nav {
   display: none;
 }
@@ -6901,6 +6937,10 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 13px;
   color: var(--vc-public-muted);
   font-size: 13px;
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover);
 }
 
 .vc-marketing-menu summary::-webkit-details-marker,
@@ -6913,6 +6953,10 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-public-mobile-menu summary:hover {
   background: var(--vc-public-hover-bg);
   color: var(--vc-public-text);
+}
+
+.vc-marketing-menu[open] summary svg {
+  transform: rotate(90deg);
 }
 
 .vc-marketing-menu-panel {
@@ -6939,11 +6983,16 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 12px;
   color: var(--vc-public-text);
   text-decoration: none;
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover);
 }
 
 .vc-marketing-menu-panel a:hover,
 .vc-public-mobile-menu-panel a:hover {
   background: var(--vc-public-hover-bg);
+  transform: translateY(-1px);
 }
 
 .vc-marketing-menu-panel strong,
@@ -7088,6 +7137,17 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-public-form-bg);
   padding: 8px;
   box-shadow: 0 24px 70px var(--vc-public-shadow);
+  transition:
+    border-color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover),
+    background-color var(--vc-ui-transition-hover);
+}
+
+.vc-home-builder-form > div:focus-within {
+  border-color: var(--vc-public-card-hover-border);
+  box-shadow:
+    0 0 0 4px var(--vc-public-focus-ring),
+    0 24px 70px var(--vc-public-shadow);
 }
 
 .vc-home-builder-form input {
@@ -7110,6 +7170,20 @@ body :where(.lucide, svg[data-lucide]) {
   background: linear-gradient(135deg, var(--vc-public-accent), var(--vc-public-accent-2));
   color: var(--vc-public-button-text);
   font-weight: 800;
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.22);
+  transition:
+    filter var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+.vc-home-builder-form button:hover,
+.vc-home-cta .vc-home-cta-actions a:first-child:hover,
+.vc-public-footer-actions a:first-child:hover,
+.vc-public-actions a:last-of-type:hover {
+  filter: saturate(1.08) brightness(1.04);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(249, 115, 22, 0.28);
 }
 
 .vc-home-builder-form button {
@@ -7138,6 +7212,21 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 18px;
   background: var(--vc-public-card-bg);
   box-shadow: 0 24px 70px var(--vc-public-shadow);
+  transition:
+    border-color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover),
+    transform var(--vc-ui-transition-hover),
+    background-color var(--vc-ui-transition-hover);
+}
+
+.vc-home-product-frame:hover,
+.vc-home-media-card:hover,
+.vc-home-card:hover,
+.vc-home-showcase-grid article:hover,
+.vc-public-footer-cta:hover {
+  border-color: var(--vc-public-card-hover-border);
+  box-shadow: 0 28px 80px var(--vc-public-card-hover-shadow);
+  transform: translateY(-2px);
 }
 
 .vc-home-product-frame {
@@ -7394,7 +7483,9 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-home-cta {
   padding-block: 90px;
-  background: linear-gradient(135deg, #ea580c, #facc15);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 34%),
+    linear-gradient(135deg, #ea580c, #facc15);
   color: var(--vc-public-cta-text);
 }
 
