@@ -3481,8 +3481,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </button>
           ))}
         </nav>
-        {projectIdeMode && !useMobileIde && (
-          <footer className="bolt-project-statusbar" aria-label="IDE status">
+        {projectIdeMode && (
+          <footer
+            className={classNames('bolt-project-statusbar', {
+              'bolt-project-statusbar-mobile': useMobileIde,
+            })}
+            aria-label="IDE status"
+          >
             <div>
               <span className="i-ph:git-branch" aria-hidden />
               <span>{projectBackendState.git?.branch ?? 'main'}</span>
@@ -3496,7 +3501,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-workspace"
-                onClick={() => setTerminalBottomOpen(true)}
+                onClick={() => {
+                  if (useMobileIde) {
+                    setMobilePanel('terminal');
+                    workbenchStore.setShowWorkbench(true);
+
+                    return;
+                  }
+
+                  setTerminalBottomOpen(true);
+                }}
                 title={workspaceStatusTitle}
               >
                 <span
@@ -3519,17 +3533,41 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   className="bolt-project-statusbar-logs"
-                  onClick={() => setTerminalBottomOpen((value) => !value)}
-                  title={terminalBottomOpen ? 'Hide workspace logs' : 'Show workspace logs'}
+                  onClick={() => {
+                    if (useMobileIde) {
+                      setMobilePanel('terminal');
+                      workbenchStore.setShowWorkbench(true);
+
+                      return;
+                    }
+
+                    setTerminalBottomOpen((value) => !value);
+                  }}
+                  title={
+                    useMobileIde
+                      ? 'Show workspace logs'
+                      : terminalBottomOpen
+                        ? 'Hide workspace logs'
+                        : 'Show workspace logs'
+                  }
                 >
                   <span className="i-ph:list-magnifying-glass" aria-hidden />
-                  <span>{terminalBottomOpen ? 'Hide logs' : 'Show logs'}</span>
+                  <span>{!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Show logs'}</span>
                 </button>
               ) : null}
               <button
                 type="button"
                 className="bolt-project-statusbar-runtime"
-                onClick={() => openWorkspacePanel('preview')}
+                onClick={() => {
+                  if (useMobileIde) {
+                    setMobilePanel('preview');
+                    workbenchStore.setShowWorkbench(true);
+
+                    return;
+                  }
+
+                  openWorkspacePanel('preview');
+                }}
                 title="Open preview"
               >
                 <span
