@@ -514,7 +514,7 @@ export function AppShell({
               type="button"
               onClick={toggleSidebar}
               className={classNames(
-                'flex h-9 w-full items-center rounded-md border border-bolt-elements-borderColor text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                'group relative flex h-9 w-full items-center rounded-md border border-bolt-elements-borderColor text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
                 sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3',
               )}
               aria-label={sidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
@@ -526,6 +526,11 @@ export function AppShell({
               ) : (
                 <ChevronLeft className="h-4 w-4" aria-hidden />
               )}
+              {sidebarCollapsed ? (
+                <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block">
+                  Expand menu
+                </span>
+              ) : null}
             </button>
           </nav>
         </aside>
@@ -1016,19 +1021,23 @@ export function SignOutButton({
   compact?: boolean;
   iconOnly?: boolean;
 }) {
+  const collapsedLabel =
+    'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block';
+
   return (
-    <Form method="post" action="/logout">
+    <Form method="post" action="/logout" className={iconOnly ? 'relative' : undefined}>
       <button
         type="submit"
         className={classNames(
-          'inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
+          'group inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
           className,
         )}
         aria-label="Sign out"
         title={iconOnly ? 'Sign out' : undefined}
       >
-        <LogOut className="h-4 w-4" aria-hidden />
+        <LogOut className={classNames('shrink-0', iconOnly ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
         {iconOnly ? null : !compact ? <span>Sign out</span> : <span className="hidden sm:inline">Sign out</span>}
+        {iconOnly ? <span className={collapsedLabel}>Sign out</span> : null}
       </button>
     </Form>
   );
@@ -1051,18 +1060,23 @@ function NavGroup({
             to={item.to}
             className={({ isActive }) =>
               classNames(
-                'flex h-9 items-center rounded-md text-sm transition-colors',
-                collapsed ? 'justify-center px-0' : 'gap-2 px-3',
+                'group relative flex items-center rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
+                collapsed ? 'h-10 w-10 justify-center px-0' : 'h-9 gap-2 px-3',
                 isActive
-                  ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                  : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+                  ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary shadow-sm'
+                  : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
               )
             }
             aria-label={collapsed ? item.label : undefined}
             title={collapsed ? item.label : undefined}
           >
-            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+            <Icon className={classNames('shrink-0', collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
             {!collapsed ? <span className="truncate">{item.label}</span> : null}
+            {collapsed ? (
+              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block">
+                {item.label}
+              </span>
+            ) : null}
           </NavLink>
         );
       })}
