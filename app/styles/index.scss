@@ -1257,6 +1257,8 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-panel) !important;
   color: var(--vc-ide-text-primary) !important;
   gap: 8px;
+  padding-top: 3px;
+  padding-bottom: 2px;
 }
 
 .bolt-project-topbar :where(a, button, summary) {
