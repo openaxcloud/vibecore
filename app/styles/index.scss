@@ -1499,9 +1499,18 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-accent);
 }
 
+.bolt-project-name-shell {
+  display: inline-flex;
+  min-width: 0;
+  max-width: min(34vw, 360px);
+  align-items: center;
+  gap: 2px;
+}
+
 .bolt-project-name-trigger {
   display: inline-flex;
-  max-width: min(24vw, 220px);
+  min-width: 0;
+  max-width: min(30vw, 320px);
   height: 30px;
   cursor: pointer;
   list-style: none;
@@ -1512,6 +1521,71 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary) !important;
   font-size: 12px;
   font-weight: 650;
+}
+
+.bolt-project-inline-rename-button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted) !important;
+  opacity: 0.72;
+  transition:
+    background 120ms ease-out,
+    color 120ms ease-out,
+    opacity 120ms ease-out;
+}
+
+.bolt-project-name-shell:hover .bolt-project-inline-rename-button,
+.bolt-project-inline-rename-button:focus-visible {
+  color: var(--vc-ide-text-primary) !important;
+  opacity: 1;
+}
+
+.bolt-project-rename-form {
+  display: inline-flex;
+  min-width: min(32vw, 260px);
+  max-width: min(42vw, 420px);
+  height: 30px;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-rename-input {
+  min-width: 120px;
+  height: 28px;
+  flex: 1;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+  padding: 0 8px;
+  font-size: 12px !important;
+  font-weight: 650;
+}
+
+.bolt-project-rename-input:focus {
+  border-color: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 76%);
+}
+
+.bolt-project-rename-save {
+  height: 28px;
+  border-radius: 7px;
+  background: var(--vc-ide-accent-action);
+  color: white !important;
+  padding: 0 9px;
+  font-size: 11px !important;
+  font-weight: 750;
+}
+
+.bolt-project-rename-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .bolt-project-topbar-icon-button,
