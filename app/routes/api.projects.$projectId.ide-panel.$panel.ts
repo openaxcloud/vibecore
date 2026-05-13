@@ -90,7 +90,7 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   overview: (projectId) => `/projects/${projectId}/dashboard`,
   database: (projectId) => `/projects/${projectId}/dashboard`,
   'object-storage': (projectId) => `/projects/${projectId}/dashboard`,
-  packages: (projectId) => `/projects/${projectId}/dashboard`,
+  packages: (projectId) => `/projects/${projectId}/packages`,
   monitoring: (projectId) => `/projects/${projectId}/dashboard`,
   extensions: (projectId) => `/projects/${projectId}/dashboard`,
   integrations: (projectId) => `/projects/${projectId}/env-vars`,
@@ -161,7 +161,26 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
-  if (['database', 'object-storage', 'packages', 'monitoring', 'extensions'].includes(panel)) {
+  if (panel === 'packages') {
+    try {
+      const [packages, envVars] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/packages`),
+        apiRequest(request, `/projects/${projectId}/env-vars`),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(packages as any),
+          envVars: (envVars as any)?.envVars ?? [],
+          packagesState: readPackagesState(envVars),
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
+  if (['database', 'object-storage', 'monitoring', 'extensions'].includes(panel)) {
     try {
       const [dashboard, envVars, deployments, snapshots] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/dashboard`),
@@ -614,9 +633,38 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'packages') {
+    const [packages, envVars] = await Promise.all([
+      apiRequest<any>(request, `/projects/${projectId}/packages`),
+      apiRequest(request, `/projects/${projectId}/env-vars`),
+    ]);
+
+    const packageManager = normalizePackageManager(body.packageManager || packages.packageManager);
+    const packageNames = parsePackageList(body.packages ?? '');
+    const workspaceId = packages?.workspace?.id ?? projectId;
+    const state = readPackagesState(envVars);
+    const now = new Date().toISOString();
+
+    const command = packagePanelCommand({
+      intent,
+      packageManager,
+      packages: packageNames,
+      dev: body.devDependency === 'true',
+    });
+
+    const run = await runTerminalCommand(request, workspaceId, command, packageRunName(intent, packageManager), now);
+    state.runs.unshift({
+      ...run,
+      output: run.output ? run.output.slice(-4000) : '',
+      intent,
+      packageManager,
+      packages: packageNames,
+      devDependency: body.devDependency === 'true',
+    });
+    state.runs = state.runs.slice(0, 12);
+
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({ key: 'PACKAGE_INSTALL_PLAN', value: body.packages ?? '' }),
+      body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
   } else if (panel === 'extensions') {
     const requestedExtension = (body.extension ?? '').trim();
@@ -1250,6 +1298,145 @@ function integrationSecretKey(integrationId: string) {
 }
 
 const TERMINAL_STATE_ENV_KEY = 'VIBECORE_TERMINAL_STATE';
+const PACKAGES_STATE_ENV_KEY = 'VIBECORE_PACKAGES_STATE';
+
+type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
+
+function defaultPackagesState() {
+  return {
+    runs: [],
+  };
+}
+
+function readPackagesState(envVarsResponse: unknown) {
+  const envVars = (envVarsResponse as any)?.envVars ?? [];
+  const raw = envVars.find((item: any) => item.key === PACKAGES_STATE_ENV_KEY)?.value;
+
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return defaultPackagesState();
+  }
+
+  try {
+    return normalizePackagesState(JSON.parse(raw));
+  } catch {
+    return defaultPackagesState();
+  }
+}
+
+function normalizePackagesState(input: any) {
+  return {
+    runs: Array.isArray(input?.runs) ? input.runs.slice(0, 12) : [],
+  };
+}
+
+function normalizePackageManager(value: string): ProjectPackageManager {
+  const normalized = value.toLowerCase();
+
+  if (normalized === 'pnpm' || normalized === 'yarn' || normalized === 'bun' || normalized === 'npm') {
+    return normalized;
+  }
+
+  return 'npm';
+}
+
+function parsePackageList(value: string) {
+  return value
+    .split(/[\n, ]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+function packageRunName(intent: string, packageManager: ProjectPackageManager) {
+  if (intent === 'audit') {
+    return `${packageManager} security audit`;
+  }
+
+  if (intent === 'outdated') {
+    return `${packageManager} outdated check`;
+  }
+
+  if (intent === 'install-package') {
+    return `${packageManager} add package`;
+  }
+
+  return `${packageManager} install`;
+}
+
+function packagePanelCommand(input: {
+  intent: string;
+  packageManager: ProjectPackageManager;
+  packages: string[];
+  dev: boolean;
+}) {
+  const quotedPackages = input.packages.map(shellQuote).join(' ');
+
+  if (input.intent === 'audit') {
+    if (input.packageManager === 'pnpm') {
+      return 'pnpm audit --json || true';
+    }
+
+    if (input.packageManager === 'yarn') {
+      return 'yarn npm audit --json || yarn audit --json || true';
+    }
+
+    if (input.packageManager === 'bun') {
+      return 'bun audit || true';
+    }
+
+    return 'npm audit --json || true';
+  }
+
+  if (input.intent === 'outdated') {
+    if (input.packageManager === 'pnpm') {
+      return 'pnpm outdated --format json || true';
+    }
+
+    if (input.packageManager === 'yarn') {
+      return 'yarn outdated --json || true';
+    }
+
+    if (input.packageManager === 'bun') {
+      return 'bun outdated || true';
+    }
+
+    return 'npm outdated --json || true';
+  }
+
+  if (input.intent === 'install-package') {
+    if (!input.packages.length) {
+      throw json({ error: 'At least one package is required' }, { status: 400 });
+    }
+
+    if (input.packageManager === 'pnpm') {
+      return `pnpm add ${input.dev ? '-D ' : ''}${quotedPackages}`;
+    }
+
+    if (input.packageManager === 'yarn') {
+      return `yarn add ${input.dev ? '-D ' : ''}${quotedPackages}`;
+    }
+
+    if (input.packageManager === 'bun') {
+      return `bun add ${input.dev ? '-d ' : ''}${quotedPackages}`;
+    }
+
+    return `npm install ${input.dev ? '--save-dev ' : ''}${quotedPackages}`;
+  }
+
+  if (input.packageManager === 'pnpm') {
+    return 'pnpm install';
+  }
+
+  if (input.packageManager === 'yarn') {
+    return 'yarn install';
+  }
+
+  if (input.packageManager === 'bun') {
+    return 'bun install';
+  }
+
+  return 'npm install';
+}
 
 function defaultTerminalState() {
   return {

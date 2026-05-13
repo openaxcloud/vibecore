@@ -2354,6 +2354,67 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('indexes package manifests generated in IDE state even when project storage already has files', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, {
+      email: 'package-index@example.com',
+      organizationName: 'Package Index Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Package Index App' },
+    });
+    const projectId = project.json().project.id;
+    await projectStorage.writeFiles(projectId, [{ path: 'README.md', content: '# Existing project\n' }]);
+
+    const saveIdeState = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        state: {
+          chat: {
+            messages: [
+              {
+                id: 'assistant-package-manifest',
+                role: 'assistant',
+                content: `<boltArtifact id="package-app" title="Package App">
+<boltAction type="file" filePath="package.json">
+{"name":"package-index-app","packageManager":"pnpm@9.14.4","dependencies":{"vite":"^5.4.21"},"devDependencies":{"typescript":"^5.7.2"}}
+</boltAction>
+</boltArtifact>`,
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(saveIdeState.statusCode).toBe(200);
+
+    const packages = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/packages`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(packages.statusCode).toBe(200);
+    expect(packages.json().packageManager).toBe('pnpm');
+    expect(packages.json().manifests).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: 'package.json', name: 'package-index-app' })]),
+    );
+    expect(packages.json().dependencies).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'vite', version: '^5.4.21' })]),
+    );
+    expect(packages.json().files.map((file: { path: string }) => file.path)).toEqual(
+      expect.arrayContaining(['README.md', 'package.json']),
+    );
+
+    await app.close();
+  });
+
   it('deploys projects through static, Vercel and Cloud Run providers with redacted logs', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

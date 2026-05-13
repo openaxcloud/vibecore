@@ -1094,6 +1094,34 @@ async function ensureProjectStorageFromIdeState(
   return projectStorage.writeFiles(projectId, recoveredFiles);
 }
 
+async function listProjectFilesIncludingIdeState(
+  store: ApiStore,
+  projectStorage: ProjectStorage,
+  projectId: string,
+): Promise<ProjectFile[]> {
+  const existingFiles = await projectStorage.listFiles(projectId);
+  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+
+  if (!recoveredFiles.length) {
+    return existingFiles;
+  }
+
+  const existingPaths = new Set(existingFiles.map((file) => file.path));
+  const missingFiles = recoveredFiles.filter((file) => !existingPaths.has(file.path));
+  const mergedFiles = new Map<string, ProjectFile>(existingFiles.map((file) => [file.path, file]));
+  const recoveredAt = new Date().toISOString();
+
+  for (const file of recoveredFiles) {
+    mergedFiles.set(file.path, { ...file, updatedAt: recoveredAt });
+  }
+
+  if (missingFiles.length) {
+    await projectStorage.writeFiles(projectId, missingFiles);
+  }
+
+  return [...mergedFiles.values()];
+}
+
 async function requireWorkspace(
   request: any,
   store: ApiStore,
@@ -1980,6 +2008,141 @@ function renderProjectHomepagePreviewSvg(input: {
 
 function publicFiles(files: ProjectFile[]) {
   return files.map(({ path, updatedAt, content }) => ({ path, updatedAt, sizeBytes: Buffer.byteLength(content) }));
+}
+
+type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
+
+interface ProjectPackageDependency {
+  name: string;
+  version: string;
+  scope: 'dependencies' | 'devDependencies' | 'peerDependencies' | 'optionalDependencies';
+  manifestPath: string;
+}
+
+interface ProjectPackageManifest {
+  path: string;
+  name: string;
+  version: string;
+  packageManager?: string;
+  scripts: Record<string, string>;
+  dependencyCount: number;
+  devDependencyCount: number;
+}
+
+const packageManifestSections = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+] as const;
+
+const packageLockFiles = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb'];
+
+function safeJsonObject(value: string): Record<string, any> | null {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function packageManagerFromValue(value?: string): ProjectPackageManager | undefined {
+  const normalized = value?.toLowerCase() ?? '';
+
+  if (normalized.startsWith('pnpm') || normalized.includes('/pnpm@')) return 'pnpm';
+  if (normalized.startsWith('yarn') || normalized.includes('/yarn@')) return 'yarn';
+  if (normalized.startsWith('bun') || normalized.includes('/bun@')) return 'bun';
+  if (normalized.startsWith('npm') || normalized.includes('/npm@')) return 'npm';
+
+  return undefined;
+}
+
+function detectPackageManager(files: ProjectFile[], manifests: ProjectPackageManifest[]): ProjectPackageManager {
+  const paths = new Set(files.map((file) => file.path.split('/').pop()));
+
+  if (paths.has('pnpm-lock.yaml')) return 'pnpm';
+  if (paths.has('yarn.lock')) return 'yarn';
+  if (paths.has('bun.lock') || paths.has('bun.lockb')) return 'bun';
+  if (paths.has('package-lock.json')) return 'npm';
+
+  for (const manifest of manifests) {
+    const manager = packageManagerFromValue(manifest.packageManager);
+
+    if (manager) {
+      return manager;
+    }
+  }
+
+  return 'npm';
+}
+
+function summarizeProjectPackages(files: ProjectFile[]) {
+  const packageFiles = files.filter(
+    (file) =>
+      file.path.endsWith('package.json') && !file.path.includes('node_modules/') && !file.path.includes('.vite/'),
+  );
+
+  const manifests: ProjectPackageManifest[] = [];
+  const dependencies: ProjectPackageDependency[] = [];
+
+  for (const file of packageFiles) {
+    const parsed = safeJsonObject(file.content);
+
+    if (!parsed) {
+      continue;
+    }
+
+    const manifestDependencies: ProjectPackageDependency[] = [];
+
+    for (const section of packageManifestSections) {
+      const record = parsed[section];
+
+      if (!record || typeof record !== 'object' || Array.isArray(record)) {
+        continue;
+      }
+
+      for (const [name, version] of Object.entries(record)) {
+        manifestDependencies.push({
+          name,
+          version: String(version),
+          scope: section,
+          manifestPath: file.path,
+        });
+      }
+    }
+
+    dependencies.push(...manifestDependencies);
+    manifests.push({
+      path: file.path,
+      name: typeof parsed.name === 'string' ? parsed.name : file.path,
+      version: typeof parsed.version === 'string' ? parsed.version : '0.0.0',
+      packageManager: typeof parsed.packageManager === 'string' ? parsed.packageManager : undefined,
+      scripts:
+        parsed.scripts && typeof parsed.scripts === 'object' && !Array.isArray(parsed.scripts)
+          ? Object.fromEntries(Object.entries(parsed.scripts).map(([name, script]) => [name, String(script)]))
+          : {},
+      dependencyCount:
+        parsed.dependencies && typeof parsed.dependencies === 'object' && !Array.isArray(parsed.dependencies)
+          ? Object.keys(parsed.dependencies).length
+          : 0,
+      devDependencyCount:
+        parsed.devDependencies && typeof parsed.devDependencies === 'object' && !Array.isArray(parsed.devDependencies)
+          ? Object.keys(parsed.devDependencies).length
+          : 0,
+    });
+  }
+
+  const lockfiles = files
+    .filter((file) => packageLockFiles.includes(file.path.split('/').pop() ?? ''))
+    .map((file) => ({ path: file.path, sizeBytes: Buffer.byteLength(file.content), updatedAt: file.updatedAt }));
+
+  return {
+    packageManager: detectPackageManager(files, manifests),
+    manifests,
+    dependencies: dependencies.sort((left, right) => left.name.localeCompare(right.name)),
+    lockfiles,
+  };
 }
 
 interface AgentNode {
@@ -5576,13 +5739,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     return {
       project,
       workspace: (await store.listWorkspaces(project.id))[0] ?? null,
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+    };
+  });
+  app.get('/projects/:projectId/packages', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const workspace = (await store.listWorkspaces(project.id))[0] ?? null;
+    const storageFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const filesByPath = new Map(storageFiles.map((file) => [file.path, file]));
+
+    if (workspace) {
+      try {
+        const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree');
+        const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
+          const basename = file.path.split('/').pop() ?? '';
+          return (
+            (basename === 'package.json' || packageLockFiles.includes(basename)) &&
+            !file.path.includes('node_modules/') &&
+            !file.path.includes('.vite/')
+          );
+        });
+
+        for (const file of runtimePackageFiles) {
+          const basename = file.path.split('/').pop() ?? '';
+          filesByPath.set(file.path, {
+            path: file.path,
+            content: basename === 'bun.lockb' ? '' : await agentFileContent(workspace.id, file.path),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // The project storage summary remains authoritative when the runtime is not reachable.
+      }
+    }
+
+    const files = [...filesByPath.values()];
+
+    return {
+      project,
+      workspace,
+      files: publicFiles(files),
+      git: await gitProvider.status(project.id),
+      recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+      ...summarizeProjectPackages(files),
     };
   });
   app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
@@ -5688,7 +5899,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     return {
       files: publicFiles(files),

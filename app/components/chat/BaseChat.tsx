@@ -7057,81 +7057,207 @@ function ProjectObjectStoragePanel({ data, onSubmit, busy }: { data: any; onSubm
 
 function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
   const [query, setQuery] = useState('');
-  const storedPlan = (data.envVars ?? []).find((item: any) => item.key === 'PACKAGE_INSTALL_PLAN')?.value;
-
-  const [pendingPackages, setPendingPackages] = useState<string[]>(
-    typeof storedPlan === 'string'
-      ? storedPlan
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean)
-      : [],
-  );
-
+  const detectedPackageManager = data.packageManager || 'npm';
+  const [packageManager, setPackageManager] = useState(detectedPackageManager);
+  const [packageInput, setPackageInput] = useState('');
+  const [installAsDevDependency, setInstallAsDevDependency] = useState(false);
+  const manifests = data.manifests ?? [];
+  const dependencies = data.dependencies ?? [];
+  const lockfiles = data.lockfiles ?? [];
+  const runs = data.packagesState?.runs ?? [];
   const packageFiles = (data.files ?? []).filter((file: any) => String(file.path ?? '').endsWith('package.json'));
-  const visiblePackages = pendingPackages.filter((pkg) => pkg.toLowerCase().includes(query.toLowerCase()));
 
-  function addPackage() {
-    const value = query.trim();
+  const visibleDependencies = dependencies.filter((dependency: any) => {
+    const haystack =
+      `${dependency.name} ${dependency.version} ${dependency.scope} ${dependency.manifestPath}`.toLowerCase();
+    return haystack.includes(query.toLowerCase());
+  });
 
-    if (!value || pendingPackages.includes(value)) {
-      return;
-    }
+  useEffect(() => {
+    setPackageManager(detectedPackageManager);
+  }, [detectedPackageManager]);
 
-    setPendingPackages((current) => [...current, value]);
-    setQuery('');
-  }
+  const managerOptions = ['npm', 'pnpm', 'yarn', 'bun'];
 
   return (
-    <div className="bolt-project-managed-panel">
-      <section>
-        <div className="bolt-project-panel-toolbar">
-          <label>
-            Search packages
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="lucide-react" />
-          </label>
-          <button type="button" onClick={addPackage} disabled={!query.trim()}>
-            Add to plan
-          </button>
+    <div className="bolt-project-packages-panel">
+      <section className="bolt-project-packages-hero">
+        <div>
+          <span>Package intelligence</span>
+          <h3>{manifests.length ? `${dependencies.length} dependencies detected` : 'No package manifest detected'}</h3>
+          <p>
+            Vibecore reads package manifests and lockfiles directly from the project/runtime, then runs install, audit,
+            and outdated checks against the real workspace terminal.
+          </p>
         </div>
-        <div className="bolt-project-package-list">
-          {visiblePackages.map((pkg) => (
-            <button
-              key={pkg}
-              type="button"
-              className="pending"
-              onClick={() => setPendingPackages((items) => items.filter((item) => item !== pkg))}
-            >
-              <strong>{pkg}</strong>
-              <span>planned - click to remove</span>
-            </button>
-          ))}
-          {!visiblePackages.length && (
-            <div className="bolt-project-empty-panel">
-              {pendingPackages.length
-                ? 'No planned package matches this search.'
-                : 'No backend package plan saved yet.'}
-            </div>
-          )}
+        <form onSubmit={onSubmit}>
+          <input name="intent" value="install-all" type="hidden" />
+          <input name="packageManager" value={packageManager} type="hidden" />
+          <PanelButton disabled={busy || !manifests.length}>Install from lockfile</PanelButton>
+        </form>
+      </section>
+
+      <section className="bolt-project-package-manager-card">
+        <div className="bolt-project-package-manager-header">
+          <div>
+            <strong>{packageManager}</strong>
+            <span>{lockfiles.length ? `${lockfiles.length} lockfile(s) detected` : 'No lockfile detected yet'}</span>
+          </div>
+          <div className="bolt-project-package-manager-options" role="group" aria-label="Package manager">
+            {managerOptions.map((manager) => (
+              <button
+                key={manager}
+                type="button"
+                className={manager === packageManager ? 'selected' : undefined}
+                onClick={() => setPackageManager(manager)}
+              >
+                {manager}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="bolt-project-package-stat-grid">
+          <article>
+            <span>Manifests</span>
+            <strong>{manifests.length}</strong>
+            <small>
+              {packageFiles.length ? packageFiles.map((file: any) => file.path).join(', ') : 'No package.json'}
+            </small>
+          </article>
+          <article>
+            <span>Indexed files</span>
+            <strong>{data.files?.length ?? 0}</strong>
+            <small>Project storage plus runtime package files</small>
+          </article>
+          <article>
+            <span>Runtime</span>
+            <strong>{data.workspace?.status ?? 'unknown'}</strong>
+            <small>{data.workspace?.runtimeMode ?? 'Workspace command runner'}</small>
+          </article>
+          <article>
+            <span>Lockfiles</span>
+            <strong>{lockfiles.length}</strong>
+            <small>
+              {lockfiles.length ? lockfiles.map((file: any) => file.path).join(', ') : 'Install will create one'}
+            </small>
+          </article>
         </div>
       </section>
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
-        <input name="intent" value="save-plan" type="hidden" />
-        <input name="packages" value={pendingPackages.join(',')} type="hidden" />
-        <PanelRows
-          rows={[
-            [
-              'Package manifests',
-              packageFiles.length
-                ? packageFiles.map((file: any) => file.path).join(', ')
-                : 'No package.json found in backend project files',
-            ],
-            ['Files indexed', String(data.files?.length ?? 0)],
-            ['Planned installs', pendingPackages.length ? pendingPackages.join(', ') : 'No pending package changes'],
-          ]}
-        />
-        <PanelButton disabled={busy || pendingPackages.length === 0}>Save install plan</PanelButton>
-      </form>
+
+      <section className="bolt-project-package-actions">
+        <form onSubmit={onSubmit} className="bolt-project-package-install-form">
+          <input name="intent" value="install-package" type="hidden" />
+          <input name="packageManager" value={packageManager} type="hidden" />
+          <input name="packages" value={packageInput} type="hidden" />
+          <input name="devDependency" value={installAsDevDependency ? 'true' : 'false'} type="hidden" />
+          <label>
+            Add package
+            <input
+              value={packageInput}
+              onChange={(event) => setPackageInput(event.target.value)}
+              placeholder="@scope/name, react-query, vite@latest"
+              autoComplete="off"
+            />
+          </label>
+          <label className="bolt-project-package-checkbox">
+            <input
+              type="checkbox"
+              checked={installAsDevDependency}
+              onChange={(event) => setInstallAsDevDependency(event.target.checked)}
+            />
+            Dev dependency
+          </label>
+          <PanelButton disabled={busy || !packageInput.trim()}>Install package</PanelButton>
+        </form>
+        <div className="bolt-project-package-command-row">
+          <form onSubmit={onSubmit}>
+            <input name="intent" value="audit" type="hidden" />
+            <input name="packageManager" value={packageManager} type="hidden" />
+            <PanelButton variant="outline" disabled={busy || !manifests.length}>
+              Run security audit
+            </PanelButton>
+          </form>
+          <form onSubmit={onSubmit}>
+            <input name="intent" value="outdated" type="hidden" />
+            <input name="packageManager" value={packageManager} type="hidden" />
+            <PanelButton variant="outline" disabled={busy || !manifests.length}>
+              Check outdated
+            </PanelButton>
+          </form>
+        </div>
+      </section>
+
+      <section className="bolt-project-package-content">
+        <div>
+          <div className="bolt-project-panel-toolbar">
+            <label>
+              Filter installed packages
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search name, version, manifest, scope"
+              />
+            </label>
+          </div>
+          <div className="bolt-project-package-list">
+            {visibleDependencies.map((dependency: any) => (
+              <a
+                key={`${dependency.manifestPath}:${dependency.scope}:${dependency.name}`}
+                href={`https://www.npmjs.com/package/${encodeURIComponent(dependency.name)}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <strong>{dependency.name}</strong>
+                <span>{dependency.version}</span>
+                <em>{dependency.scope}</em>
+                <small>{dependency.manifestPath}</small>
+              </a>
+            ))}
+            {!visibleDependencies.length && (
+              <div className="bolt-project-empty-panel">
+                {dependencies.length
+                  ? 'No installed package matches this filter.'
+                  : 'No dependencies found in package.json.'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="bolt-project-package-sidebar">
+          <div>
+            <h4>Manifests</h4>
+            {manifests.length ? (
+              manifests.map((manifest: any) => (
+                <article key={manifest.path}>
+                  <strong>{manifest.name}</strong>
+                  <span>{manifest.path}</span>
+                  <small>
+                    {manifest.dependencyCount} prod / {manifest.devDependencyCount} dev
+                  </small>
+                </article>
+              ))
+            ) : (
+              <p>No package.json has been indexed for this workspace.</p>
+            )}
+          </div>
+          <div>
+            <h4>Runtime checks</h4>
+            {runs.length ? (
+              runs.map((run: any) => (
+                <article key={run.id}>
+                  <strong>{run.name}</strong>
+                  <span>
+                    {run.status} · exit {run.exitCode ?? 0}
+                  </span>
+                  <small>{run.finishedAt ? new Date(run.finishedAt).toLocaleString() : run.script}</small>
+                </article>
+              ))
+            ) : (
+              <p>Run audit or outdated to capture real package manager output from the workspace.</p>
+            )}
+          </div>
+        </aside>
+      </section>
     </div>
   );
 }

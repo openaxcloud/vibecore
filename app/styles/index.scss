@@ -4613,6 +4613,273 @@ body :where(.lucide, svg[data-lucide]) {
   border-color: var(--vc-ide-accent-warning);
 }
 
+.bolt-project-packages-panel {
+  display: grid;
+  gap: 14px;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-packages-hero,
+.bolt-project-package-manager-card,
+.bolt-project-package-actions,
+.bolt-project-package-sidebar > div {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-packages-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action) 13%, transparent), transparent 44%),
+    var(--vc-ide-bg-panel);
+}
+
+.bolt-project-packages-hero span,
+.bolt-project-package-stat-grid span {
+  display: block;
+  color: var(--vc-ide-accent-action);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bolt-project-packages-hero h3 {
+  margin: 5px 0 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 18px;
+  font-weight: 760;
+}
+
+.bolt-project-packages-hero p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-project-package-manager-card,
+.bolt-project-package-actions {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.bolt-project-package-manager-header,
+.bolt-project-package-install-form,
+.bolt-project-package-command-row {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bolt-project-package-manager-header strong {
+  display: block;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  text-transform: uppercase;
+}
+
+.bolt-project-package-manager-header span,
+.bolt-project-package-sidebar p {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-package-manager-options,
+.bolt-project-package-command-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bolt-project-package-manager-options button {
+  min-height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bolt-project-package-manager-options button.selected {
+  border-color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-ide-bg-card));
+  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
+}
+
+.bolt-project-package-stat-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bolt-project-package-stat-grid article,
+.bolt-project-package-list a,
+.bolt-project-package-sidebar article {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-package-stat-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.bolt-project-package-stat-grid small {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-package-install-form {
+  flex-wrap: wrap;
+}
+
+.bolt-project-package-install-form label {
+  display: grid;
+  min-width: 260px;
+  flex: 1;
+  gap: 6px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.bolt-project-package-install-form input:not([type]),
+.bolt-project-package-install-form input[type='text'] {
+  height: 36px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  padding: 0 10px;
+}
+
+.bolt-project-package-install-form .bolt-project-package-checkbox {
+  display: flex;
+  min-width: 150px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-package-content {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.bolt-project-package-list a {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+  grid-template-columns: minmax(150px, 1fr) minmax(90px, auto) auto;
+  color: inherit;
+  text-decoration: none;
+}
+
+.bolt-project-package-list a:hover {
+  border-color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-package-list em {
+  width: fit-content;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, var(--vc-ide-bg-hover));
+  color: var(--vc-ide-accent-action);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+
+.bolt-project-package-list small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-package-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.bolt-project-package-sidebar > div {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.bolt-project-package-sidebar h4 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bolt-project-package-sidebar article {
+  display: grid;
+  gap: 4px;
+}
+
+.bolt-project-package-sidebar article strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-project-package-sidebar article span,
+.bolt-project-package-sidebar article small {
+  overflow: hidden;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .bolt-project-packages-hero,
+  .bolt-project-package-manager-header,
+  .bolt-project-package-install-form,
+  .bolt-project-package-command-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-project-package-stat-grid,
+  .bolt-project-package-content {
+    grid-template-columns: 1fr;
+  }
+}
+
 .bolt-project-metric-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
