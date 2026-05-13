@@ -35,6 +35,7 @@ export interface EditorAdapterProps extends EditorAdapterValue {
   autoFocus?: boolean;
   largeFile?: boolean;
   minimapEnabled?: boolean;
+  projectFiles?: Record<string, string>;
   className?: string;
   onChange?: (change: EditorChange) => void;
   onSave?: () => void;
@@ -174,7 +175,11 @@ export function editorKindForLayout(
   return 'codemirror';
 }
 
-function languageForPath(filePath?: string, fallback?: string) {
+const WORKSPACE_SYMBOL_EXTENSIONS = /\.(tsx|ts|jsx|js|mjs|cjs|css|scss|html|json|md|mdx|py|go|rs|java|c|cc|cpp|h|hpp|cs)$/i;
+const MAX_WORKSPACE_INDEX_FILES = 250;
+const MAX_WORKSPACE_INDEX_FILE_BYTES = 500_000;
+
+export function languageForPath(filePath?: string, fallback?: string) {
   if (fallback) {
     return fallback;
   }
@@ -201,9 +206,427 @@ function languageForPath(filePath?: string, fallback?: string) {
       return 'css';
     case 'html':
       return 'html';
+    case 'py':
+      return 'python';
+    case 'go':
+      return 'go';
+    case 'rs':
+      return 'rust';
+    case 'java':
+      return 'java';
+    case 'c':
+    case 'h':
+      return 'c';
+    case 'cc':
+    case 'cpp':
+    case 'hpp':
+      return 'cpp';
+    case 'cs':
+      return 'csharp';
     default:
       return 'plaintext';
   }
+}
+
+export interface WorkspaceSymbol {
+  name: string;
+  kind: 'class' | 'function' | 'variable' | 'component' | 'selector';
+  filePath: string;
+  line: number;
+  column: number;
+}
+
+export function isWorkspaceSemanticFile(filePath: string, contents: string) {
+  return WORKSPACE_SYMBOL_EXTENSIONS.test(filePath) && contents.length <= MAX_WORKSPACE_INDEX_FILE_BYTES;
+}
+
+export function extractWorkspaceSymbols(filePath: string, contents: string): WorkspaceSymbol[] {
+  if (!isWorkspaceSemanticFile(filePath, contents)) {
+    return [];
+  }
+
+  const symbols: WorkspaceSymbol[] = [];
+  const seen = new Set<string>();
+  const patterns: Array<{ regex: RegExp; kind: WorkspaceSymbol['kind']; group?: number }> = [
+    { regex: /\bexport\s+default\s+function\s+([A-Za-z_$][\w$]*)/g, kind: 'function' },
+    { regex: /\bexport\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g, kind: 'function' },
+    { regex: /\b(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g, kind: 'function' },
+    { regex: /\bexport\s+class\s+([A-Za-z_$][\w$]*)/g, kind: 'class' },
+    { regex: /\bclass\s+([A-Za-z_$][\w$]*)/g, kind: 'class' },
+    { regex: /\bexport\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g, kind: 'variable' },
+    { regex: /\b(?:const|let|var)\s+([A-Z][\w$]*)\s*=\s*(?:memo\(|forwardRef\(|\([^)]*\)\s*=>|function\b)/g, kind: 'component' },
+    { regex: /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g, kind: 'variable' },
+    { regex: /^\s*([.#][A-Za-z_-][\w-]*)\s*[{,]/gm, kind: 'selector' },
+  ];
+
+  const lineStarts = [0];
+
+  for (let index = 0; index < contents.length; index++) {
+    if (contents.charCodeAt(index) === 10) {
+      lineStarts.push(index + 1);
+    }
+  }
+
+  const positionAt = (offset: number) => {
+    let low = 0;
+    let high = lineStarts.length - 1;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+
+      if (lineStarts[mid] <= offset) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const lineIndex = Math.max(0, high);
+
+    return {
+      line: lineIndex + 1,
+      column: offset - lineStarts[lineIndex] + 1,
+    };
+  };
+
+  for (const pattern of patterns) {
+    pattern.regex.lastIndex = 0;
+
+    for (const match of contents.matchAll(pattern.regex)) {
+      const name = match[pattern.group ?? 1];
+      const matchIndex = match.index ?? 0;
+      const nameOffset = contents.indexOf(name, matchIndex);
+
+      if (!name || nameOffset < 0) {
+        continue;
+      }
+
+      const key = `${name}:${nameOffset}`;
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      symbols.push({ name, kind: pattern.kind, filePath, ...positionAt(nameOffset) });
+    }
+  }
+
+  return symbols;
+}
+
+function normalizeWorkspaceFilePath(filePath: string) {
+  return filePath.replace(/^\/+/, '');
+}
+
+function modelUriForPath(monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'), filePath: string) {
+  return monaco.Uri.parse(`file:///${normalizeWorkspaceFilePath(filePath)}`);
+}
+
+function getWorkspaceIndex(projectFiles: Record<string, string> | undefined, currentFilePath?: string, currentValue?: string) {
+  const entries = Object.entries(projectFiles ?? {})
+    .filter(([filePath, contents]) => isWorkspaceSemanticFile(filePath, contents))
+    .slice(0, MAX_WORKSPACE_INDEX_FILES);
+
+  if (currentFilePath && typeof currentValue === 'string' && isWorkspaceSemanticFile(currentFilePath, currentValue)) {
+    const existingIndex = entries.findIndex(([filePath]) => filePath === currentFilePath);
+
+    if (existingIndex >= 0) {
+      entries[existingIndex] = [currentFilePath, currentValue];
+    } else if (entries.length < MAX_WORKSPACE_INDEX_FILES) {
+      entries.unshift([currentFilePath, currentValue]);
+    }
+  }
+
+  const symbols = entries.flatMap(([filePath, contents]) => extractWorkspaceSymbols(filePath, contents));
+
+  return { entries, symbols };
+}
+
+function findWordMatches(contents: string, word: string) {
+  const matches: Array<{ start: number; end: number }> = [];
+  const regex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+
+  for (const match of contents.matchAll(regex)) {
+    const start = match.index ?? 0;
+    matches.push({ start, end: start + word.length });
+  }
+
+  return matches;
+}
+
+function installWorkspaceSemanticProviders(
+  monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'),
+  sources: {
+    getCurrentValue: () => string;
+    getCurrentFilePath: () => string | undefined;
+    getProjectFiles: () => Record<string, string> | undefined;
+    onOpenFile: (filePath: string) => void;
+  },
+) {
+  const languageIds = ['typescript', 'javascript', 'css', 'html', 'json', 'markdown', 'python', 'go', 'rust', 'java', 'c', 'cpp', 'csharp'];
+
+  const getIndex = () =>
+    getWorkspaceIndex(sources.getProjectFiles(), sources.getCurrentFilePath(), sources.getCurrentValue());
+
+  const ensureModel = (filePath: string, contents: string) => {
+    const uri = modelUriForPath(monaco, filePath);
+    const existing = monaco.editor.getModel(uri);
+
+    if (existing) {
+      if (existing.getValue() !== contents) {
+        existing.setValue(contents);
+      }
+
+      monaco.editor.setModelLanguage(existing, languageForPath(filePath));
+      return existing;
+    }
+
+    return monaco.editor.createModel(contents, languageForPath(filePath), uri);
+  };
+
+  const symbolKind = (kind: WorkspaceSymbol['kind']) => {
+    switch (kind) {
+      case 'class':
+        return monaco.languages.CompletionItemKind.Class;
+      case 'function':
+        return monaco.languages.CompletionItemKind.Function;
+      case 'component':
+        return monaco.languages.CompletionItemKind.Module;
+      case 'selector':
+        return monaco.languages.CompletionItemKind.Property;
+      case 'variable':
+      default:
+        return monaco.languages.CompletionItemKind.Variable;
+    }
+  };
+
+  const asRange = (model: MonacoTypes.editor.ITextModel, start: number, end: number) => {
+    const startPosition = model.getPositionAt(start);
+    const endPosition = model.getPositionAt(end);
+
+    return new monaco.Range(startPosition.lineNumber, startPosition.column, endPosition.lineNumber, endPosition.column);
+  };
+
+  const rangeForSymbol = (model: MonacoTypes.editor.ITextModel, symbol: WorkspaceSymbol) =>
+    new monaco.Range(
+      symbol.line,
+      symbol.column,
+      symbol.line,
+      Math.min(symbol.column + symbol.name.length, model.getLineMaxColumn(symbol.line)),
+    );
+
+  return [
+    monaco.languages.registerCompletionItemProvider(languageIds, {
+      triggerCharacters: ['.', '/', '@', '#', '<'],
+      provideCompletionItems(model, position) {
+        const word = model.getWordUntilPosition(position);
+        const range = new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn);
+        const { symbols } = getIndex();
+        const seen = new Set<string>();
+        const suggestions: MonacoTypes.languages.CompletionItem[] = [];
+
+        for (const symbol of symbols) {
+          if (seen.has(symbol.name)) {
+            continue;
+          }
+
+          seen.add(symbol.name);
+          suggestions.push({
+            label: symbol.name,
+            kind: symbolKind(symbol.kind),
+            insertText: symbol.name,
+            range,
+            detail: `${symbol.kind} - ${normalizeWorkspaceFilePath(symbol.filePath)}:${symbol.line}`,
+            sortText: `0_${symbol.name}`,
+          });
+        }
+
+        suggestions.push(
+          {
+            label: 'React component',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: [
+              'export function ${1:ComponentName}() {',
+              '  return (',
+              '    <div className="${2:container}">',
+              '      ${3:Content}',
+              '    </div>',
+              '  );',
+              '}',
+            ].join('\n'),
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            range,
+            detail: 'Vibecore snippet',
+            sortText: '1_react_component',
+          },
+          {
+            label: 'async function',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: ['async function ${1:name}(${2:input}) {', '  ${3:return input;}', '}'].join('\n'),
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            range,
+            detail: 'Vibecore snippet',
+            sortText: '1_async_function',
+          },
+        );
+
+        return { suggestions };
+      },
+    }),
+    monaco.languages.registerDefinitionProvider(languageIds, {
+      provideDefinition(model, position) {
+        const word = model.getWordAtPosition(position);
+
+        if (!word) {
+          return undefined;
+        }
+
+        const { entries, symbols } = getIndex();
+        const definitions = symbols.filter((symbol) => symbol.name === word.word);
+        const locations: MonacoTypes.languages.Location[] = [];
+
+        for (const symbol of definitions) {
+          const contents = entries.find(([filePath]) => filePath === symbol.filePath)?.[1];
+
+          if (!contents) {
+            continue;
+          }
+
+          const targetModel = ensureModel(symbol.filePath, contents);
+
+          locations.push({
+            uri: targetModel.uri,
+            range: rangeForSymbol(targetModel, symbol),
+          });
+        }
+
+        return locations;
+      },
+    }),
+    monaco.languages.registerReferenceProvider(languageIds, {
+      provideReferences(model, position) {
+        const word = model.getWordAtPosition(position);
+
+        if (!word) {
+          return [];
+        }
+
+        const { entries } = getIndex();
+
+        return entries.flatMap(([filePath, contents]) => {
+          const targetModel = ensureModel(filePath, contents);
+
+          return findWordMatches(contents, word.word).map((match) => ({
+            uri: targetModel.uri,
+            range: asRange(targetModel, match.start, match.end),
+          }));
+        });
+      },
+    }),
+    monaco.languages.registerRenameProvider(languageIds, {
+      resolveRenameLocation(model: MonacoTypes.editor.ITextModel, position: MonacoTypes.Position) {
+        const word = model.getWordAtPosition(position);
+
+        if (!word) {
+          return {
+            range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+            text: '',
+            rejectReason: 'No symbol selected',
+          };
+        }
+
+        return {
+          range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+          text: word.word,
+        };
+      },
+      provideRenameEdits(model, position, newName) {
+        const word = model.getWordAtPosition(position);
+
+        if (!word || !/^[A-Za-z_$][\w$]*$/.test(newName)) {
+          return {
+            edits: [],
+            rejectReason: 'Use a valid identifier name.',
+          };
+        }
+
+        const { entries } = getIndex();
+
+        return {
+          edits: entries.flatMap(([filePath, contents]) => {
+            const targetModel = ensureModel(filePath, contents);
+
+            return findWordMatches(contents, word.word).map((match) => ({
+              resource: targetModel.uri,
+              textEdit: { range: asRange(targetModel, match.start, match.end), text: newName },
+              versionId: targetModel.getVersionId(),
+            }));
+          }),
+        };
+      },
+    }),
+    monaco.languages.registerDocumentSymbolProvider(languageIds, {
+      provideDocumentSymbols(model) {
+        return extractWorkspaceSymbols(model.uri.path, model.getValue()).map((symbol) => ({
+          name: symbol.name,
+          detail: symbol.kind,
+          tags: [],
+          kind:
+            symbol.kind === 'class'
+              ? monaco.languages.SymbolKind.Class
+              : symbol.kind === 'function'
+                ? monaco.languages.SymbolKind.Function
+                : symbol.kind === 'component'
+                  ? monaco.languages.SymbolKind.Module
+                  : symbol.kind === 'selector'
+                    ? monaco.languages.SymbolKind.Property
+                    : monaco.languages.SymbolKind.Variable,
+          range: rangeForSymbol(model, symbol),
+          selectionRange: rangeForSymbol(model, symbol),
+        }));
+      },
+    }),
+    monaco.languages.registerCodeLensProvider(languageIds, {
+      provideCodeLenses(model) {
+        const lenses = extractWorkspaceSymbols(model.uri.path, model.getValue())
+          .filter((symbol) => symbol.kind === 'function' || symbol.kind === 'class' || symbol.kind === 'component')
+          .slice(0, 40)
+          .flatMap((symbol) => {
+            const range = rangeForSymbol(model, symbol);
+
+            return [
+              {
+                range,
+                id: `${symbol.name}:refs`,
+                command: {
+                  id: 'editor.action.goToReferences',
+                  title: 'Find references',
+                  arguments: [model.uri, { lineNumber: symbol.line, column: symbol.column }],
+                },
+              },
+              {
+                range,
+                id: `${symbol.name}:open`,
+                command: {
+                  id: 'vibecore.openIndexedFile',
+                  title: normalizeWorkspaceFilePath(model.uri.path),
+                  arguments: [model.uri.path],
+                },
+              },
+            ];
+          });
+
+        return { lenses, dispose: () => undefined };
+      },
+      resolveCodeLens(_model, codeLens) {
+        return codeLens;
+      },
+    }),
+    monaco.editor.registerCommand('vibecore.openIndexedFile', (_accessor, targetPath: string) => {
+      sources.onOpenFile(targetPath.replace(/^\/+/, ''));
+    }),
+  ];
 }
 
 export function DesktopCodeEditor({
@@ -213,6 +636,7 @@ export function DesktopCodeEditor({
   readOnly,
   largeFile,
   minimapEnabled = true,
+  projectFiles,
   theme = 'dark',
   autoFocus,
   className,
@@ -224,10 +648,17 @@ export function DesktopCodeEditor({
   const monacoRef = useRef<typeof import('monaco-editor/esm/vs/editor/editor.api') | null>(null);
   const onChangeRef = useRef(onChange);
   const onSaveRef = useRef(onSave);
+  const valueRef = useRef(value);
+  const filePathRef = useRef(filePath);
+  const projectFilesRef = useRef(projectFiles);
+  const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     onChangeRef.current = onChange;
     onSaveRef.current = onSave;
+    valueRef.current = value;
+    filePathRef.current = filePath;
+    projectFilesRef.current = projectFiles;
   });
 
   useEffect(() => {
@@ -243,6 +674,12 @@ export function DesktopCodeEditor({
       }
 
       monacoRef.current = monaco;
+      const currentModel = monaco.editor.createModel(
+        value,
+        languageForPath(filePath, language),
+        modelUriForPath(monaco, filePath ?? 'untitled'),
+      );
+
       monaco.editor.defineTheme('vibecore-vs-dark', {
         base: 'vs-dark',
         inherit: true,
@@ -274,8 +711,7 @@ export function DesktopCodeEditor({
       });
 
       const editor = monaco.editor.create(containerRef.current, {
-        value,
-        language: languageForPath(filePath, language),
+        model: currentModel,
         readOnly,
         automaticLayout: true,
         minimap: { enabled: !largeFile && minimapEnabled },
@@ -286,12 +722,36 @@ export function DesktopCodeEditor({
         wordWrap: largeFile ? 'off' : 'on',
         scrollBeyondLastLine: false,
         largeFileOptimizations: true,
+        inlineSuggest: { enabled: !largeFile },
+        suggest: { preview: !largeFile, showInlineDetails: true, snippetsPreventQuickSuggestions: false },
+        quickSuggestions: !largeFile,
+        suggestOnTriggerCharacters: !largeFile,
+        parameterHints: { enabled: !largeFile },
+        codeLens: !largeFile,
+        inlayHints: { enabled: largeFile ? 'off' : 'on' },
+        stickyScroll: { enabled: !largeFile },
         renderWhitespace: largeFile ? 'none' : 'selection',
         occurrencesHighlight: largeFile ? 'off' : 'singleFile',
         selectionHighlight: !largeFile,
         folding: !largeFile,
         renderLineHighlight: largeFile ? 'none' : 'line',
-        guides: { indentation: true, highlightActiveIndentation: true },
+        glyphMargin: !largeFile,
+        bracketPairColorization: { enabled: !largeFile },
+        guides: {
+          indentation: true,
+          highlightActiveIndentation: true,
+          bracketPairs: !largeFile,
+          bracketPairsHorizontal: !largeFile,
+        },
+        lightbulb: {
+          enabled: !largeFile ? monaco.editor.ShowLightbulbIconMode.On : monaco.editor.ShowLightbulbIconMode.Off,
+        },
+        gotoLocation: {
+          multipleDefinitions: 'peek',
+          multipleReferences: 'peek',
+          multipleImplementations: 'peek',
+          multipleDeclarations: 'peek',
+        },
         roundedSelection: false,
         overviewRulerBorder: false,
         theme: theme === 'dark' ? 'vibecore-vs-dark' : 'vs',
@@ -305,6 +765,39 @@ export function DesktopCodeEditor({
       editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
         onSaveRef.current?.();
       });
+      editor.addAction({
+        id: 'vibecore.rename-symbol',
+        label: 'Rename Symbol',
+        keybindings: [monaco.KeyCode.F2],
+        run: (activeEditor) => activeEditor.getAction('editor.action.rename')?.run(),
+      });
+      editor.addAction({
+        id: 'vibecore.find-references',
+        label: 'Find References',
+        keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
+        run: (activeEditor) => activeEditor.getAction('editor.action.goToReferences')?.run(),
+      });
+      editor.addAction({
+        id: 'vibecore.go-to-definition',
+        label: 'Go to Definition',
+        keybindings: [monaco.KeyCode.F12],
+        run: (activeEditor) => activeEditor.getAction('editor.action.revealDefinition')?.run(),
+      });
+      editor.addAction({
+        id: 'vibecore.refactor',
+        label: 'Refactor...',
+        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR],
+        run: (activeEditor) => activeEditor.getAction('editor.action.refactor')?.run(),
+      });
+
+      const providerDisposables = installWorkspaceSemanticProviders(monaco, {
+        getCurrentValue: () => valueRef.current,
+        getCurrentFilePath: () => filePathRef.current,
+        getProjectFiles: () => projectFilesRef.current,
+        onOpenFile: (targetFilePath) => {
+          window.dispatchEvent(new CustomEvent('vibecore:open-editor-file', { detail: { filePath: targetFilePath } }));
+        },
+      });
 
       if (autoFocus) {
         editor.focus();
@@ -312,6 +805,8 @@ export function DesktopCodeEditor({
 
       editor.onDidDispose(() => {
         disposable.dispose();
+        providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
+        currentModel.dispose();
       });
     });
 
@@ -320,18 +815,41 @@ export function DesktopCodeEditor({
 
       editorRef.current?.dispose();
       editorRef.current = null;
+
+      for (const uriString of ownedWorkspaceModelsRef.current) {
+        monacoRef.current?.editor.getModel(monacoRef.current.Uri.parse(uriString))?.dispose();
+      }
+
+      ownedWorkspaceModelsRef.current.clear();
     };
   }, []);
 
   useEffect(() => {
     const editor = editorRef.current;
+    const monaco = monacoRef.current;
 
     if (!editor) {
       return;
     }
 
-    if (editor.getValue() !== value) {
-      editor.setValue(value);
+    if (monaco && filePath) {
+      const uri = modelUriForPath(monaco, filePath);
+      const activeModel = editor.getModel();
+      let targetModel = monaco.editor.getModel(uri);
+
+      if (!targetModel) {
+        targetModel = monaco.editor.createModel(value, languageForPath(filePath, language), uri);
+      }
+
+      if (activeModel?.uri.toString() !== targetModel.uri.toString()) {
+        editor.setModel(targetModel);
+      }
+    }
+
+    const model = editor.getModel();
+
+    if (model && model.getValue() !== value) {
+      model.setValue(value);
     }
 
     editor.updateOptions({
@@ -339,23 +857,97 @@ export function DesktopCodeEditor({
       minimap: { enabled: !largeFile && minimapEnabled },
       wordWrap: largeFile ? 'off' : 'on',
       fontLigatures: !largeFile,
+      inlineSuggest: { enabled: !largeFile },
+      quickSuggestions: !largeFile,
+      suggestOnTriggerCharacters: !largeFile,
+      parameterHints: { enabled: !largeFile },
+      codeLens: !largeFile,
+      inlayHints: { enabled: largeFile ? 'off' : 'on' },
+      stickyScroll: { enabled: !largeFile },
       occurrencesHighlight: largeFile ? 'off' : 'singleFile',
       selectionHighlight: !largeFile,
       folding: !largeFile,
       renderLineHighlight: largeFile ? 'none' : 'line',
+      glyphMargin: !largeFile,
+      bracketPairColorization: { enabled: !largeFile },
+      guides: {
+        indentation: true,
+        highlightActiveIndentation: true,
+        bracketPairs: !largeFile,
+        bracketPairsHorizontal: !largeFile,
+      },
     });
-
-    const model = editor.getModel();
-    const monaco = monacoRef.current;
 
     if (model && monaco) {
       monaco.editor.setModelLanguage(model, languageForPath(filePath, language));
+
+      const { entries } = getWorkspaceIndex(projectFiles, filePath, value);
+      const nextOwnedModelUris = new Set<string>();
+
+      for (const [workspaceFilePath, contents] of entries) {
+        if (workspaceFilePath === filePath) {
+          continue;
+        }
+
+        const uri = modelUriForPath(monaco, workspaceFilePath);
+        const existingModel = monaco.editor.getModel(uri);
+
+        if (existingModel) {
+          if (existingModel.getValue() !== contents) {
+            existingModel.setValue(contents);
+          }
+
+          monaco.editor.setModelLanguage(existingModel, languageForPath(workspaceFilePath));
+        } else {
+          monaco.editor.createModel(contents, languageForPath(workspaceFilePath), uri);
+        }
+
+        nextOwnedModelUris.add(uri.toString());
+      }
+
+      for (const uriString of ownedWorkspaceModelsRef.current) {
+        if (!nextOwnedModelUris.has(uriString)) {
+          monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
+        }
+      }
+
+      ownedWorkspaceModelsRef.current = nextOwnedModelUris;
     }
-  }, [filePath, language, largeFile, minimapEnabled, readOnly, value]);
+  }, [filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
 
   useEffect(() => {
     monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vs');
   }, [theme]);
+
+  useEffect(() => {
+    const runEditorCommand = (event: Event) => {
+      const editor = editorRef.current;
+      const command = (event as CustomEvent<{ command?: string }>).detail?.command;
+
+      if (!editor || !command) {
+        return;
+      }
+
+      const actionIdByCommand: Record<string, string> = {
+        goToDefinition: 'editor.action.revealDefinition',
+        findReferences: 'editor.action.goToReferences',
+        renameSymbol: 'editor.action.rename',
+        refactor: 'editor.action.refactor',
+        quickFix: 'editor.action.quickFix',
+        inlineSuggest: 'editor.action.inlineSuggest.trigger',
+      };
+
+      const actionId = actionIdByCommand[command];
+
+      if (actionId) {
+        void editor.getAction(actionId)?.run();
+      }
+    };
+
+    window.addEventListener('vibecore:editor-command', runEditorCommand);
+
+    return () => window.removeEventListener('vibecore:editor-command', runEditorCommand);
+  }, []);
 
   return createElement('div', { ref: containerRef, className, 'data-editor-kind': 'monaco' });
 }

@@ -1205,6 +1205,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const recentProjectFiles = useMemo(() => projectFilePaths.slice(0, 5), [projectFilePaths]);
 
+    const editorProjectFiles = useMemo(
+      () =>
+        Object.fromEntries(
+          Object.entries(projectFiles).flatMap(([filePath, file]) =>
+            file?.type === 'file' && !file.isBinary ? [[filePath, file.content]] : [],
+          ),
+        ),
+      [projectFiles],
+    );
+
     const backendLockedItems = useMemo(
       () =>
         Object.entries(projectFiles)
@@ -2049,6 +2059,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [openWorkspacePanel],
     );
+
+    useEffect(() => {
+      const handleOpenEditorFile = (event: Event) => {
+        const filePath = (event as CustomEvent<{ filePath?: string }>).detail?.filePath;
+
+        if (!filePath) {
+          return;
+        }
+
+        const exactPath = projectFiles[filePath]
+          ? filePath
+          : Object.keys(projectFiles).find((path) => path.endsWith(filePath));
+
+        if (exactPath) {
+          openProjectFile(exactPath, { preview: false });
+        }
+      };
+
+      window.addEventListener('vibecore:open-editor-file', handleOpenEditorFile);
+
+      return () => window.removeEventListener('vibecore:open-editor-file', handleOpenEditorFile);
+    }, [openProjectFile, projectFiles]);
+
+    const runProjectEditorCommand = useCallback((command: string) => {
+      window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
+    }, []);
 
     const openIdeTool = useCallback(
       (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
@@ -3161,6 +3197,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button type="button" onClick={() => workbenchStore.resetCurrentDocument()} disabled={!currentDocument}>
                   Format
                 </button>
+                <button
+                  type="button"
+                  onClick={() => runProjectEditorCommand('goToDefinition')}
+                  disabled={!currentDocument}
+                  title="Go to definition"
+                >
+                  Definition
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runProjectEditorCommand('findReferences')}
+                  disabled={!currentDocument}
+                  title="Find references"
+                >
+                  References
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runProjectEditorCommand('renameSymbol')}
+                  disabled={!currentDocument}
+                  title="Rename symbol"
+                >
+                  Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runProjectEditorCommand('refactor')}
+                  disabled={!currentDocument}
+                  title="Open refactor menu"
+                >
+                  Refactor
+                </button>
                 <button type="button" onClick={onProjectEditorSave} disabled={!currentDocument}>
                   Save
                 </button>
@@ -3172,6 +3240,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   filePath={currentDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
                   minimapEnabled={editorMinimapEnabled}
+                  projectFiles={editorProjectFiles}
                   onSave={onProjectEditorSave}
                   onChange={(update) => {
                     workbenchStore.setCurrentDocumentContent(update.value);
@@ -3260,6 +3329,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [
         currentDocument,
+        editorMinimapEnabled,
+        editorProjectFiles,
         onProjectEditorSave,
         openIdeTool,
         openProjectFile,
@@ -3267,6 +3338,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         projectFiles,
         projectId,
         recentProjectFiles,
+        runProjectEditorCommand,
         selectedFile,
         setSelectedElement,
         theme,

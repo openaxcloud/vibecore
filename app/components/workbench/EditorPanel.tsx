@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { EditorAdapter, TouchSymbolToolbar, useResponsiveLayout } from '@vibecore/editor';
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
@@ -84,6 +84,43 @@ export const EditorPanel = memo(
     const isLargeFile = Boolean(
       editorDocument && !editorDocument.isBinary && editorDocument.value.length > LARGE_FILE_BYTES,
     );
+    const editorProjectFiles = useMemo(() => {
+      return Object.fromEntries(
+        Object.entries(files ?? {})
+          .filter((entry): entry is [string, NonNullable<FileMap[string]> & { type: 'file'; content: string }] => {
+            const [, file] = entry;
+
+            return file?.type === 'file' && !file.isBinary;
+          })
+          .map(([filePath, file]) => [filePath, file.content]),
+      );
+    }, [files]);
+
+    useEffect(() => {
+      const handleOpenEditorFile = (event: Event) => {
+        const filePath = (event as CustomEvent<{ filePath?: string }>).detail?.filePath;
+
+        if (!filePath) {
+          return;
+        }
+
+        const exactPath = files?.[filePath]
+          ? filePath
+          : Object.keys(files ?? {}).find((path) => path.endsWith(filePath));
+
+        if (exactPath) {
+          onFileSelect?.(exactPath);
+        }
+      };
+
+      window.addEventListener('vibecore:open-editor-file', handleOpenEditorFile);
+
+      return () => window.removeEventListener('vibecore:open-editor-file', handleOpenEditorFile);
+    }, [files, onFileSelect]);
+
+    const runEditorCommand = (command: string) => {
+      window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
+    };
 
     const fileTabs = (
       <Tabs.Root defaultValue="files" className="flex flex-col h-full">
@@ -132,18 +169,40 @@ export const EditorPanel = memo(
           {activeFileSegments?.length && (
             <div className="flex items-center flex-1 text-sm">
               <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
-              {activeFileUnsaved && (
-                <div className="flex gap-1 ml-auto -mr-1.5">
-                  <PanelHeaderButton onClick={onFileSave}>
-                    <div className="i-ph:floppy-disk-duotone" />
-                    Save
-                  </PanelHeaderButton>
-                  <PanelHeaderButton onClick={onFileReset}>
-                    <div className="i-ph:clock-counter-clockwise-duotone" />
-                    Reset
-                  </PanelHeaderButton>
-                </div>
-              )}
+              <div className="flex gap-1 ml-auto -mr-1.5">
+                {!useMobilePanelLayout && (
+                  <>
+                    <PanelHeaderButton onClick={() => runEditorCommand('goToDefinition')}>
+                      <div className="i-ph:crosshair-simple-duotone" />
+                      Definition
+                    </PanelHeaderButton>
+                    <PanelHeaderButton onClick={() => runEditorCommand('findReferences')}>
+                      <div className="i-ph:list-magnifying-glass-duotone" />
+                      References
+                    </PanelHeaderButton>
+                    <PanelHeaderButton onClick={() => runEditorCommand('renameSymbol')}>
+                      <div className="i-ph:textbox-duotone" />
+                      Rename
+                    </PanelHeaderButton>
+                    <PanelHeaderButton onClick={() => runEditorCommand('refactor')}>
+                      <div className="i-ph:magic-wand-duotone" />
+                      Refactor
+                    </PanelHeaderButton>
+                  </>
+                )}
+                {activeFileUnsaved && (
+                  <>
+                    <PanelHeaderButton onClick={onFileSave}>
+                      <div className="i-ph:floppy-disk-duotone" />
+                      Save
+                    </PanelHeaderButton>
+                    <PanelHeaderButton onClick={onFileReset}>
+                      <div className="i-ph:clock-counter-clockwise-duotone" />
+                      Reset
+                    </PanelHeaderButton>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </PanelHeader>
@@ -169,6 +228,7 @@ export const EditorPanel = memo(
               theme={theme === 'dark' ? 'dark' : 'light'}
               autoFocus={!isMobile() && !useMobilePanelLayout}
               largeFile={isLargeFile}
+              projectFiles={editorProjectFiles}
               onSave={onFileSave}
               onChange={(update) => {
                 onEditorChange?.({ content: update.value, selection: undefined as any });
