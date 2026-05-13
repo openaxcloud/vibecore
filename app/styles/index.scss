@@ -876,6 +876,114 @@ body
   background: var(--vc-ide-border-subtle);
 }
 
+.bolt-mermaid-block {
+  margin: 12px 0;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  overflow: hidden;
+}
+
+.bolt-mermaid-block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  font-size: 11px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-mermaid-block-label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bolt-mermaid-block-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-mermaid-block-copy:hover,
+.bolt-mermaid-block-copy:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-mermaid-block-canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  min-height: 80px;
+  overflow-x: auto;
+}
+
+.bolt-mermaid-block-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.bolt-mermaid-block-status {
+  font-size: 12px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-mermaid-block-error {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error) 10%, transparent);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bolt-mermaid-block-error p {
+  margin: 0;
+}
+
+.bolt-mermaid-block-error pre {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--vc-ide-bg-app);
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bolt-assistant-message .katex,
+.bolt-user-message .katex,
+.MarkdownContent .katex {
+  font-size: 1.05em;
+  color: inherit;
+}
+
+.bolt-assistant-message .katex-display,
+.bolt-user-message .katex-display,
+.MarkdownContent .katex-display {
+  margin: 10px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .bolt-project-agent-panel .bolt-user-message-bubble {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%) !important;
   background-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-card) 88%) !important;

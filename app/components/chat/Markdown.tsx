@@ -1,3 +1,4 @@
+import 'katex/dist/katex.min.css';
 import type { Message } from 'ai';
 import { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -5,6 +6,7 @@ import type { BundledLanguage } from 'shiki';
 import { Artifact, openArtifactInWorkbench } from './Artifact';
 import { CodeBlock } from './CodeBlock';
 import styles from './Markdown.module.scss';
+import { MermaidBlock } from './MermaidBlock';
 import ThoughtBox from './ThoughtBox';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
@@ -108,10 +110,16 @@ export const Markdown = memo(
             firstChild.tagName === 'code' &&
             firstChild.children[0].type === 'text'
           ) {
-            const { className, ...rest } = firstChild.properties;
+            const { className, ...codeProps } = firstChild.properties;
             const [, language = 'plaintext'] = /language-(\w+)/.exec(String(className) || '') ?? [];
 
-            return <CodeBlock code={firstChild.children[0].value} language={language as BundledLanguage} {...rest} />;
+            if (language === 'mermaid') {
+              return <MermaidBlock code={firstChild.children[0].value} />;
+            }
+
+            return (
+              <CodeBlock code={firstChild.children[0].value} language={language as BundledLanguage} {...codeProps} />
+            );
           }
 
           return <pre {...rest}>{children}</pre>;
