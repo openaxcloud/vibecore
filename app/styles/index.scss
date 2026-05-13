@@ -1482,6 +1482,78 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-topbar-actions {
   flex-shrink: 0;
+  gap: 6px;
+}
+
+.bolt-project-action-group {
+  position: relative;
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-action-group + .bolt-project-action-group {
+  margin-left: 5px;
+  padding-left: 10px;
+}
+
+.bolt-project-action-group + .bolt-project-action-group::before {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+  content: '';
+}
+
+.bolt-project-action-group--primary {
+  gap: 6px;
+}
+
+.bolt-project-action-group--primary::after {
+  position: absolute;
+  inset: 2px -5px;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 94%);
+  content: '';
+}
+
+.bolt-project-collaborator-stack {
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 2px;
+}
+
+.bolt-project-collaborator-avatar,
+.bolt-project-collaborator-overflow {
+  display: inline-flex;
+  height: 21px;
+  min-width: 21px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--vc-ide-bg-panel);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  font-size: 10px !important;
+  font-weight: 750;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--vc-ide-text-primary), transparent 92%);
+}
+
+.bolt-project-collaborator-avatar + .bolt-project-collaborator-avatar,
+.bolt-project-collaborator-avatar + .bolt-project-collaborator-overflow {
+  margin-left: -5px;
+}
+
+.bolt-project-collaborator-overflow {
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  padding: 0 5px;
+  font-size: 9px !important;
 }
 
 .bolt-project-topbar-brand {
@@ -1613,6 +1685,12 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-muted) !important;
 }
 
+.bolt-project-topbar-icon-button:hover,
+.bolt-project-topbar-icon-button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary) !important;
+}
+
 .bolt-project-topbar-icon-button.is-active {
   border: 1px solid var(--vc-ide-border-visible);
   background: var(--vc-ide-bg-hover);
@@ -1694,6 +1772,31 @@ body :where(.lucide, svg[data-lucide]) {
   ) !important;
   filter: brightness(1.08);
   transform: translateY(-1px);
+}
+
+.bolt-project-user-menu-trigger {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary) !important;
+  transition:
+    background 120ms ease-out,
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.bolt-project-user-menu-trigger:hover,
+.bolt-project-user-menu-trigger:focus-visible {
+  border-color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-bg-hover);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
 }
 
 .bolt-project-ide-shell .bolt-responsive-ide {

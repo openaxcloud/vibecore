@@ -414,173 +414,182 @@ function IdeProjectTopBar({
       </div>
       <div aria-hidden className="flex-1" />
       <div className="bolt-project-topbar-actions">
-        <Link to="/support" className="bolt-project-topbar-icon-button" aria-label="Help">
-          <CircleHelp className="h-3.5 w-3.5" aria-hidden />
-        </Link>
-        <div className="relative">
+        <div className="bolt-project-action-group bolt-project-action-group--utility" aria-label="Support and alerts">
+          <Link to="/support" className="bolt-project-topbar-icon-button" aria-label="Help" title="Help">
+            <CircleHelp className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+          <div className="relative">
+            <button
+              type="button"
+              className="bolt-project-topbar-icon-button relative"
+              aria-label="Notifications"
+              aria-expanded={notificationsOpen}
+              title="Notifications"
+              onClick={() => setNotificationsOpen((value) => !value)}
+            >
+              <Bell className="h-3.5 w-3.5" aria-hidden />
+              {notificationItems.length > 0 && (
+                <span
+                  className="bolt-project-notification-dot"
+                  data-urgent={actionableNotificationCount > 0 ? 'true' : 'false'}
+                  aria-hidden
+                />
+              )}
+            </button>
+            {notificationsOpen && (
+              <div
+                className="bolt-project-notification-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-3"
+                role="dialog"
+                aria-label="Project notifications"
+              >
+                <div className="bolt-project-notification-header">
+                  <div>
+                    <strong>IDE notifications</strong>
+                    <span>Project activity and live workspace signals</span>
+                  </div>
+                  <span className="bolt-project-notification-count">
+                    {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
+                  </span>
+                </div>
+                {notificationItems.length ? (
+                  <div className="bolt-project-notification-list">
+                    {notificationItems.slice(0, 10).map((notification) => {
+                      const Icon = notificationIcon(notification.kind);
+                      return (
+                        <Link
+                          key={notification.id}
+                          to={notification.href}
+                          className="bolt-project-notification-item"
+                          data-kind={notification.kind}
+                          onClick={() => setNotificationsOpen(false)}
+                        >
+                          <span className="bolt-project-notification-icon" aria-hidden>
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="bolt-project-notification-title">{notification.title}</span>
+                            <span className="bolt-project-notification-detail">{notification.detail}</span>
+                            <span className="bolt-project-notification-meta">
+                              <span>{notification.source}</span>
+                              <span aria-hidden>•</span>
+                              <span>{notification.timeLabel}</span>
+                            </span>
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bolt-project-notification-empty">
+                    <CheckCircle2 className="h-4 w-4" aria-hidden />
+                    <span>No IDE events recorded yet.</span>
+                    <small>Runtime, preview and backend project activity will appear here automatically.</small>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="bolt-project-action-group bolt-project-action-group--collaboration" aria-label="Collaboration">
+          <div className="bolt-project-collaborator-stack" aria-label="Collaborators">
+            {(collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }])
+              .slice(0, 3)
+              .map((collaborator) => (
+                <span
+                  key={collaborator.id ?? collaborator.userId}
+                  title={`${collaborator.userId ?? 'User'} (${collaborator.roleKey ?? 'member'})`}
+                  className="bolt-project-collaborator-avatar"
+                >
+                  {(collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
+                </span>
+              ))}
+            {collaborators.length > 3 && (
+              <span className="bolt-project-collaborator-overflow">+{collaborators.length - 3}</span>
+            )}
+          </div>
+          <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-topbar-outline-button">
+            <Share2 className="h-3 w-3" aria-hidden />
+            Share
+          </Link>
+        </div>
+        <div className="bolt-project-action-group bolt-project-action-group--primary" aria-label="Run and publish">
           <button
             type="button"
-            className="bolt-project-topbar-icon-button relative"
-            aria-label="Notifications"
-            aria-expanded={notificationsOpen}
-            onClick={() => setNotificationsOpen((value) => !value)}
+            data-testid="button-run-stop"
+            className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
+            onClick={() => {
+              if (previewRunning) {
+                void workbenchStore.stopPreviewServer().catch(() => undefined);
+
+                return;
+              }
+
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }),
+              );
+            }}
           >
-            <Bell className="h-3.5 w-3.5" aria-hidden />
-            {notificationItems.length > 0 && (
-              <span
-                className="bolt-project-notification-dot"
-                data-urgent={actionableNotificationCount > 0 ? 'true' : 'false'}
-                aria-hidden
-              />
+            {previewRunning ? (
+              <>
+                <Square className="h-3 w-3 fill-current" aria-hidden />
+                <span>Stop</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3 w-3 fill-current" aria-hidden />
+                <span>Run</span>
+              </>
             )}
           </button>
-          {notificationsOpen && (
-            <div
-              className="bolt-project-notification-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-3"
-              role="dialog"
-              aria-label="Project notifications"
-            >
-              <div className="bolt-project-notification-header">
-                <div>
-                  <strong>IDE notifications</strong>
-                  <span>Project activity and live workspace signals</span>
-                </div>
-                <span className="bolt-project-notification-count">
-                  {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
-                </span>
-              </div>
-              {notificationItems.length ? (
-                <div className="bolt-project-notification-list">
-                  {notificationItems.slice(0, 10).map((notification) => {
-                    const Icon = notificationIcon(notification.kind);
-                    return (
-                      <Link
-                        key={notification.id}
-                        to={notification.href}
-                        className="bolt-project-notification-item"
-                        data-kind={notification.kind}
-                        onClick={() => setNotificationsOpen(false)}
-                      >
-                        <span className="bolt-project-notification-icon" aria-hidden>
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="bolt-project-notification-title">{notification.title}</span>
-                          <span className="bolt-project-notification-detail">{notification.detail}</span>
-                          <span className="bolt-project-notification-meta">
-                            <span>{notification.source}</span>
-                            <span aria-hidden>•</span>
-                            <span>{notification.timeLabel}</span>
-                          </span>
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="bolt-project-notification-empty">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden />
-                  <span>No IDE events recorded yet.</span>
-                  <small>Runtime, preview and backend project activity will appear here automatically.</small>
-                </div>
-              )}
-            </div>
-          )}
+          <Link to={`/projects/${projectId}/ide?panel=deployments`} className="bolt-project-publish-button">
+            <Rocket className="h-3 w-3" aria-hidden />
+            Publish
+          </Link>
         </div>
-        <div className="flex items-center -space-x-1" aria-label="Collaborators">
-          {(collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }])
-            .slice(0, 3)
-            .map((collaborator) => (
-              <span
-                key={collaborator.id ?? collaborator.userId}
-                title={`${collaborator.userId ?? 'User'} (${collaborator.roleKey ?? 'member'})`}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[var(--vc-ide-bg-panel)] bg-[var(--vc-ide-bg-hover)] text-[10px] font-semibold text-[var(--vc-ide-text-primary)]"
-              >
-                {(collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
-              </span>
-            ))}
-          {collaborators.length > 3 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border-[1.5px] border-[var(--vc-ide-bg-panel)] bg-[var(--vc-ide-bg-card)] px-1 text-[9px] font-semibold text-[var(--vc-ide-text-secondary)]">
-              +{collaborators.length - 3}
-            </span>
-          )}
-        </div>
-        <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-topbar-outline-button">
-          <Share2 className="h-3 w-3" aria-hidden />
-          Share
-        </Link>
-        <button
-          type="button"
-          data-testid="button-run-stop"
-          className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
-          onClick={() => {
-            if (previewRunning) {
-              void workbenchStore.stopPreviewServer().catch(() => undefined);
-
-              return;
-            }
-
-            window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'preview' } }));
-          }}
+        <div
+          className="bolt-project-action-group bolt-project-action-group--workspace"
+          aria-label="Workspace and account"
         >
-          {previewRunning ? (
-            <>
-              <Square className="h-3 w-3 fill-current" aria-hidden />
-              <span>Stop</span>
-            </>
-          ) : (
-            <>
-              <Play className="h-3 w-3 fill-current" aria-hidden />
-              <span>Run</span>
-            </>
-          )}
-        </button>
-        <Link to={`/projects/${projectId}/ide?panel=deployments`} className="bolt-project-publish-button">
-          <Rocket className="h-3 w-3" aria-hidden />
-          Publish
-        </Link>
-        <details
-          className="relative"
-          open={userMenuOpen}
-          onToggle={(event) => setUserMenuOpen(event.currentTarget.open)}
-        >
-          <summary
-            className="inline-flex h-[22px] w-[22px] cursor-pointer list-none items-center justify-center rounded-full bg-[var(--vc-ide-bg-hover)] text-[var(--vc-ide-text-primary)] hover:ring-1 hover:ring-[var(--vc-ide-accent-action)]"
-            aria-label="User menu"
+          <button
+            type="button"
+            data-testid="ide-files-panel-toggle"
+            className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
+            aria-label={filesPanelOpen ? 'Close right panel' : 'Open right panel'}
+            aria-pressed={filesPanelOpen}
+            title={filesPanelOpen ? 'Close files' : 'Open files'}
+            onClick={() => {
+              const detail = { open: !filesPanelOpen };
+              workbenchStore.requestProjectFilesPanel(detail.open);
+              window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
+            }}
           >
-            <User className="h-3.5 w-3.5" aria-hidden />
-          </summary>
-          {userMenuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
-              <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
-              <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
-              <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
-              <form method="post" action="/logout">
-                <button
-                  type="submit"
-                  className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
-                >
-                  Sign out
-                </button>
-              </form>
-            </div>
-          )}
-        </details>
-        <button
-          type="button"
-          data-testid="ide-files-panel-toggle"
-          className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
-          aria-label={filesPanelOpen ? 'Close right panel' : 'Open right panel'}
-          aria-pressed={filesPanelOpen}
-          title={filesPanelOpen ? 'Close files' : 'Open files'}
-          onClick={() => {
-            const detail = { open: !filesPanelOpen };
-            workbenchStore.requestProjectFilesPanel(detail.open);
-            window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
-          }}
-        >
-          <Files className="h-3.5 w-3.5" aria-hidden />
-        </button>
+            <Files className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <details
+            className="relative"
+            open={userMenuOpen}
+            onToggle={(event) => setUserMenuOpen(event.currentTarget.open)}
+          >
+            <summary className="bolt-project-user-menu-trigger" aria-label="User menu" title="User menu">
+              <User className="h-3.5 w-3.5" aria-hidden />
+            </summary>
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
+                <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
+                <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
+                <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
+                <form method="post" action="/logout">
+                  <button
+                    type="submit"
+                    className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            )}
+          </details>
+        </div>
       </div>
     </header>
   );
