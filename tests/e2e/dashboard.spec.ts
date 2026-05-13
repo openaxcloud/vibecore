@@ -100,6 +100,8 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await page.goto('/projects/new');
   await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
   await expect(page.getByLabel('AI prompt')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Production path selected' })).toBeVisible();
+  await expect(page.getByText('Live backend flow')).toBeVisible();
   await expect(page.getByRole('link', { name: /Import GitHub/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Import zip/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Browse templates/ })).toHaveAttribute('href', '/dashboard/templates');
@@ -154,6 +156,12 @@ test('project creation light theme uses light containers and readable image prev
   expect(themeProbe.composer.backgroundLuminance).toBeGreaterThan(0.92);
   expect(themeProbe.templatePreview.backgroundLuminance).toBeGreaterThan(0.92);
   expect(themeProbe.title.colorLuminance).toBeLessThan(0.18);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+
+  const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(mobileOverflow).toBeLessThanOrEqual(2);
 });
 
 test('project creation syncs AI providers and models from settings', async ({ page }) => {
@@ -200,7 +208,9 @@ test('project creation syncs AI providers and models from settings', async ({ pa
         providers: [
           {
             name: 'Anthropic',
-            staticModels: [{ name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 }],
+            staticModels: [
+              { name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 },
+            ],
           },
           {
             name: 'OpenAI',

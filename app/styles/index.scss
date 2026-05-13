@@ -7612,7 +7612,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 :root {
-  --vc-create-bg: var(--vc-ide-bg-panel);
+  --vc-create-bg: color-mix(in srgb, var(--vc-ide-bg-panel) 88%, var(--vc-ide-accent-action) 12%);
   --vc-create-card: var(--vc-ide-bg-card);
   --vc-create-card-strong: var(--vc-ide-bg-app);
   --vc-create-hover: var(--vc-ide-bg-hover);
@@ -7624,44 +7624,68 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-create-shadow: var(--vc-ui-shadow-lg);
   --vc-create-glow:
     radial-gradient(
-      ellipse at top,
-      color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent) 0%,
-      color-mix(in srgb, var(--vc-ide-accent-ai-start) 10%, transparent) 38%,
-      transparent 72%
-    );
-  --vc-create-primary-gradient: linear-gradient(
-    135deg,
-    var(--vc-ide-accent-ai-start),
-    var(--vc-ide-accent-action)
-  );
+      circle at 14% 8%,
+      color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent) 0 18%,
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 86% 10%,
+      color-mix(in srgb, var(--vc-ide-accent-ai-start) 16%, transparent) 0 16%,
+      transparent 35%
+    ),
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action) 8%, transparent), transparent 42%);
+  --vc-create-primary-gradient: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-action));
 }
 
 :root[data-theme='light'] {
+  --vc-create-bg: #f9fbff;
   --vc-create-card: #f8fafc;
   --vc-create-card-strong: #ffffff;
-  --vc-create-shadow: 0 18px 44px rgb(15 23 42 / 0.1);
+  --vc-create-shadow: 0 22px 52px rgb(15 23 42 / 0.1);
+  --vc-create-glow:
+    radial-gradient(circle at 12% 8%, rgb(14 165 233 / 0.16) 0 18%, transparent 38%),
+    radial-gradient(circle at 82% 14%, rgb(245 158 11 / 0.14) 0 16%, transparent 36%),
+    linear-gradient(135deg, rgb(255 255 255 / 0.8), rgb(248 250 252 / 0.92));
 }
 
 :root[data-theme='light'] .vc-create-page {
+  --vc-create-bg: #f9fbff;
   --vc-create-card: #f8fafc;
   --vc-create-card-strong: #ffffff;
-  --vc-create-shadow: 0 18px 44px rgb(15 23 42 / 0.1);
+  --vc-create-shadow: 0 22px 52px rgb(15 23 42 / 0.1);
 }
 
 .vc-create-hero,
 .vc-create-panel {
   border: 1px solid var(--vc-create-border);
   border-radius: var(--vc-ui-radius-modal);
-  background: var(--vc-create-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-create-card-strong) 4%, transparent), transparent),
+    var(--vc-create-bg);
   box-shadow: var(--vc-create-shadow);
 }
 
 .vc-create-hero {
+  position: relative;
   overflow: hidden;
+}
+
+.vc-create-hero::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--vc-create-border) 36%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--vc-create-border) 36%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+  opacity: 0.32;
+  content: '';
 }
 
 .vc-create-hero-inner {
   position: relative;
+  z-index: 1;
   padding: 32px 20px;
 }
 
@@ -7676,15 +7700,19 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-create-icon {
   display: flex;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--vc-create-border-strong);
-  border-radius: var(--vc-ui-radius-card);
-  background: var(--vc-create-card);
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 42%, var(--vc-create-border-strong));
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent), transparent),
+    var(--vc-create-card-strong);
   color: var(--vc-ide-accent-action);
-  box-shadow: var(--vc-ui-shadow-md);
+  box-shadow:
+    0 18px 36px color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
 }
 
 .vc-create-label {
@@ -7722,9 +7750,19 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-create-composer {
   overflow: visible;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-create-card-strong) 88%, transparent), var(--vc-create-card)),
+    var(--vc-create-card);
   transition:
     border-color var(--vc-ui-transition-hover),
     box-shadow var(--vc-ui-transition-hover);
+}
+
+.vc-create-composer-header {
+  border-color: var(--vc-create-border-strong);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--vc-ide-accent-action) 8%, transparent), transparent 54%),
+    color-mix(in srgb, var(--vc-create-card-strong) 82%, transparent);
 }
 
 .vc-create-composer:focus-within {
@@ -7747,6 +7785,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-create-pill,
+.vc-create-confidence,
 .vc-create-chip,
 .vc-create-example,
 .vc-template-provider-logo,
@@ -7757,6 +7796,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-create-pill.is-accent,
+.vc-create-confidence,
 .vc-create-chip[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 56%, transparent);
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-create-card-strong));
@@ -7789,12 +7829,11 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 10px;
   border: 1px solid var(--vc-create-border-strong);
   border-radius: var(--vc-ui-radius-card);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--vc-create-card-strong) 94%, var(--vc-ide-accent-action) 6%),
-      var(--vc-create-card-strong)
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--vc-create-card-strong) 94%, var(--vc-ide-accent-action) 6%),
+    var(--vc-create-card-strong)
+  );
   color: var(--vc-create-text);
   padding: 8px 10px;
   text-align: left;
@@ -7928,11 +7967,110 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-create-submit {
   background: var(--vc-create-primary-gradient);
   color: white;
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--vc-ide-accent-action) 22%, transparent);
+  box-shadow:
+    0 16px 32px color-mix(in srgb, var(--vc-ide-accent-action) 26%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.22);
 }
 
 .vc-create-submit:hover {
   filter: saturate(1.06) brightness(1.04);
+}
+
+.vc-create-readiness-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--vc-create-border-strong);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--vc-create-card-strong) 92%, var(--vc-ide-accent-action) 8%),
+      var(--vc-create-card-strong)
+    ),
+    var(--vc-create-card-strong);
+  color: var(--vc-create-text);
+  padding: 14px;
+  box-shadow: var(--vc-create-shadow);
+}
+
+.vc-create-readiness-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vc-create-readiness-icon {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 40%, var(--vc-create-border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-create-card));
+  color: var(--vc-ide-accent-action);
+}
+
+.vc-create-status-dot {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-success);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--vc-ide-accent-success) 14%, transparent);
+}
+
+.vc-create-readiness-model {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 24%, var(--vc-create-border));
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent),
+      transparent 42%
+    ),
+    var(--vc-create-card);
+  padding: 14px;
+}
+
+.vc-create-readiness-model strong {
+  color: var(--vc-create-text);
+}
+
+.vc-create-readiness-model span:last-child {
+  color: var(--vc-create-muted);
+}
+
+.vc-create-readiness-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--vc-create-border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-create-card) 72%, transparent);
+  color: var(--vc-create-muted);
+  padding: 10px;
+}
+
+.vc-create-readiness-row svg {
+  color: var(--vc-ide-accent-action);
+}
+
+.vc-create-readiness-row strong {
+  color: var(--vc-create-text);
+  font-weight: 650;
+}
+
+.vc-create-readiness-footer {
+  border-top: 1px solid var(--vc-create-border);
+  color: var(--vc-create-secondary);
+  padding-top: 12px;
+  font-size: 11px;
+  line-height: 1.55;
 }
 
 .vc-project-preview,
