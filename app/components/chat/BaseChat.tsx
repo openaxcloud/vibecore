@@ -3239,6 +3239,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     projectId={projectId}
                     previewDevice={previewDevice}
                     onPreviewDeviceChange={setPreviewDevice}
+                    onOpenSourceFile={(filePath) => openProjectFile(filePath, { preview: false })}
                     onOpenLogsRight={() => {
                       setRightPanelMode('preview-logs');
                       setRightPanelOpen(true);

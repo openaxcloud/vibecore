@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
-import type { ElementInfo } from './Inspector';
+import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { IconButton } from '~/components/ui/IconButton';
@@ -32,6 +32,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 type ResizeSide = 'left' | 'right' | null;
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom';
 type PreviewLogTab = 'webview' | 'server';
+type PreviewDevToolsTab = 'console' | 'network' | 'elements';
 type SplashLayout = 'icon-hero' | 'two-column' | 'tips-carousel' | 'stat-highlight' | 'icon-grid';
 
 interface SplashSlide {
@@ -51,6 +52,7 @@ interface PreviewProps {
   previewDevice?: PreviewDevice;
   onPreviewDeviceChange?: (device: PreviewDevice) => void;
   onOpenLogsRight?: () => void;
+  onOpenSourceFile?: (filePath: string) => void;
 }
 
 interface WindowSize {
@@ -282,6 +284,7 @@ export const Preview = memo(
     previewDevice = 'desktop',
     onPreviewDeviceChange,
     onOpenLogsRight,
+    onOpenSourceFile,
   }: PreviewProps) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -337,6 +340,16 @@ export const Preview = memo(
     const [previewRunFailed, setPreviewRunFailed] = useState(false);
     const [logsOpen, setLogsOpen] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
+    const [devToolsOpen, setDevToolsOpen] = useState(false);
+    const [activeDevToolsTab, setActiveDevToolsTab] = useState<PreviewDevToolsTab>('console');
+    const [previewConsoleEvents, setPreviewConsoleEvents] = useState<Array<{ level: string; message: string }>>([]);
+
+    const [previewNetworkEvents, setPreviewNetworkEvents] = useState<
+      Array<{ method: string; url: string; status: string; source: string }>
+    >([]);
+
+    const [selectedPreviewElement, setSelectedPreviewElement] = useState<ElementInfo | null>(null);
+
     const workspaceReady = !projectId || (!workspaceLoading && Boolean(workspaceStatus));
 
     const previewableFilesSignature = Object.keys(files)
@@ -348,6 +361,78 @@ export const Preview = memo(
 
     const staticPreviewHtml = buildStaticPreviewHtml(files);
     const lastPreviewableFilesSignature = useRef(previewableFilesSignature);
+
+    const visiblePreviewUrl =
+      iframeUrl ??
+      (activePreview ? `${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}` : '');
+
+    const copyPreviewUrl = useCallback(async () => {
+      if (!visiblePreviewUrl) {
+        return;
+      }
+
+      await navigator.clipboard?.writeText(visiblePreviewUrl);
+      toast.success('Preview URL copied');
+    }, [visiblePreviewUrl]);
+
+    const resolveSourceFileForElement = useCallback(
+      (element: ElementInfo | null) => {
+        if (!element) {
+          return undefined;
+        }
+
+        const sourceFiles = Object.keys(files).filter(
+          (filePath) =>
+            !filePath.includes('/node_modules/') && /\.(tsx|ts|jsx|js|html|css|scss)$/i.test(filePath.split('?')[0]),
+        );
+
+        const terms = [
+          element.id,
+          element.className,
+          ...element.className.split(/\s+/),
+          element.textContent?.trim().slice(0, 80),
+          element.tagName?.toLowerCase(),
+        ].filter((term): term is string => Boolean(term && term.trim().length > 1));
+
+        let bestMatch: { filePath: string; score: number } | undefined;
+
+        for (const filePath of sourceFiles) {
+          const file = files[filePath];
+          const contents = file?.type === 'file' ? (file.content ?? '') : '';
+
+          let score = 0;
+
+          if (/src\/App\.(tsx|ts|jsx|js)$/i.test(filePath) || /index\.html$/i.test(filePath)) {
+            score += 2;
+          }
+
+          for (const term of terms) {
+            if (contents.includes(term)) {
+              score += term.length > 12 ? 4 : 2;
+            }
+          }
+
+          if (!bestMatch || score > bestMatch.score) {
+            bestMatch = { filePath, score };
+          }
+        }
+
+        return bestMatch && bestMatch.score > 0 ? bestMatch.filePath : sourceFiles[0];
+      },
+      [files],
+    );
+
+    const openSelectedElementSource = useCallback(() => {
+      const filePath = resolveSourceFileForElement(selectedPreviewElement);
+
+      if (!filePath) {
+        toast.info('No matching source file found for this element.');
+        return;
+      }
+
+      onOpenSourceFile?.(filePath);
+      toast.info(`Opened ${filePath.replace(/^\/?/, '')}`);
+    }, [onOpenSourceFile, resolveSourceFileForElement, selectedPreviewElement]);
 
     useEffect(() => {
       setPreviewRunFailed(false);
@@ -427,6 +512,17 @@ export const Preview = memo(
       setIframeUrl(baseUrl);
       setDisplayPath('/');
       setAddressInput(baseUrl);
+      setPreviewNetworkEvents((events) =>
+        [
+          {
+            method: 'GET',
+            url: baseUrl,
+            status: activePreview.ready === false ? 'detecting' : 'ready',
+            source: `port:${activePreview.port}`,
+          },
+          ...events,
+        ].slice(0, 80),
+      );
     }, [activePreview]);
 
     useEffect(() => {
@@ -611,6 +707,17 @@ export const Preview = memo(
         setIframeUrl(`${activePreview.baseUrl}${targetPath}`);
         setDisplayPath(targetPath);
         setAddressInput(`${activePreview.baseUrl}${targetPath}`);
+        setPreviewNetworkEvents((events) =>
+          [
+            {
+              method: 'GET',
+              url: `${activePreview.baseUrl}${targetPath}`,
+              status: 'navigated',
+              source: 'address-bar',
+            },
+            ...events,
+          ].slice(0, 80),
+        );
       }
 
       inputRef.current?.blur();
@@ -1130,20 +1237,63 @@ export const Preview = memo(
         } else if (event.data.type === 'INSPECTOR_CLICK') {
           const element = event.data.elementInfo;
 
-          navigator.clipboard.writeText(element.displayText).then(() => {
-            setSelectedElement?.(element);
+          setSelectedElement?.(element);
+          setSelectedPreviewElement(element);
+          setDevToolsOpen(true);
+          setActiveDevToolsTab('elements');
+
+          void navigator.clipboard?.writeText(element.displayText).catch(() => {
+            // Selection must keep working even when the browser blocks clipboard access.
           });
         } else if (event.data.type === 'PREVIEW_ERROR') {
           const filename = event.data.filename ? ` (${event.data.filename}:${event.data.lineno ?? '?'})` : '';
-          workbenchStore.appendWorkspaceLog(`Preview error: ${event.data.message ?? 'unknown'}${filename}`);
+          const message = `Preview error: ${event.data.message ?? 'unknown'}${filename}`;
+          setPreviewConsoleEvents((events) =>
+            [
+              {
+                level: 'error',
+                message,
+              },
+              ...events,
+            ].slice(0, 120),
+          );
+          workbenchStore.appendWorkspaceLog(message);
 
           if (event.data.stack) {
+            setPreviewConsoleEvents((events) =>
+              [
+                {
+                  level: 'trace',
+                  message: String(event.data.stack),
+                },
+                ...events,
+              ].slice(0, 120),
+            );
             workbenchStore.appendWorkspaceLog(String(event.data.stack));
           }
         } else if (event.data.type === 'PREVIEW_UNHANDLED_REJECTION') {
-          workbenchStore.appendWorkspaceLog(`Preview unhandled rejection: ${event.data.message ?? 'unknown'}`);
+          const message = `Preview unhandled rejection: ${event.data.message ?? 'unknown'}`;
+          setPreviewConsoleEvents((events) =>
+            [
+              {
+                level: 'error',
+                message,
+              },
+              ...events,
+            ].slice(0, 120),
+          );
+          workbenchStore.appendWorkspaceLog(message);
 
           if (event.data.stack) {
+            setPreviewConsoleEvents((events) =>
+              [
+                {
+                  level: 'trace',
+                  message: String(event.data.stack),
+                },
+                ...events,
+              ].slice(0, 120),
+            );
             workbenchStore.appendWorkspaceLog(String(event.data.stack));
           }
         }
@@ -1157,6 +1307,8 @@ export const Preview = memo(
     const toggleInspectorMode = () => {
       const newInspectorMode = !isInspectorMode;
       setIsInspectorMode(newInspectorMode);
+      setDevToolsOpen(true);
+      setActiveDevToolsTab('elements');
 
       if (iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
@@ -1168,6 +1320,29 @@ export const Preview = memo(
         );
       }
     };
+
+    const recordPreviewLoad = useCallback(
+      (url?: string) => {
+        const targetUrl = url ?? iframeRef.current?.src ?? visiblePreviewUrl;
+
+        if (!targetUrl || targetUrl === 'about:blank') {
+          return;
+        }
+
+        setPreviewNetworkEvents((events) =>
+          [
+            {
+              method: 'GET',
+              url: targetUrl,
+              status: 'loaded',
+              source: 'iframe',
+            },
+            ...events,
+          ].slice(0, 80),
+        );
+      },
+      [visiblePreviewUrl],
+    );
 
     return (
       <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
@@ -1213,6 +1388,17 @@ export const Preview = memo(
               }}
               disabled={!activePreview}
             />
+            <button
+              type="button"
+              className="bolt-preview-toolbar-button"
+              disabled={!visiblePreviewUrl}
+              onClick={() => void copyPreviewUrl()}
+              title="Copy preview URL"
+              aria-label="Copy preview URL"
+            >
+              <span className="i-ph:copy" aria-hidden />
+              <span>Copy</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-1">
@@ -1256,19 +1442,50 @@ export const Preview = memo(
               className={
                 isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
               }
-              title={isInspectorMode ? 'Disable Element Inspector' : 'Enable Element Inspector'}
+              title={isInspectorMode ? 'Disable inspect to code' : 'Enable inspect to code'}
             />
+            <button
+              type="button"
+              className="bolt-preview-toolbar-button"
+              aria-pressed={devToolsOpen}
+              onClick={() => {
+                setDevToolsOpen((open) => !open);
+                setActiveDevToolsTab('console');
+              }}
+              title="Open integrated preview DevTools"
+            >
+              <span className="i-ph:wrench" aria-hidden />
+              <span>DevTools</span>
+            </button>
+            <button
+              type="button"
+              className="bolt-preview-toolbar-button"
+              disabled={!selectedPreviewElement}
+              onClick={openSelectedElementSource}
+              title={
+                selectedPreviewElement
+                  ? 'Open the source file that most likely renders the selected element'
+                  : 'Enable inspect to code, then click an element in the preview'
+              }
+            >
+              <span className="i-ph:code" aria-hidden />
+              <span>Inspect to code</span>
+            </button>
             <IconButton
               icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
               onClick={toggleFullscreen}
               title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
             />
-            <IconButton
-              icon="i-ph:arrow-square-out"
+            <button
+              type="button"
+              className="bolt-preview-toolbar-button"
               onClick={openInNewTab}
               disabled={!activePreview}
               title="Open in browser"
-            />
+            >
+              <span className="i-ph:arrow-square-out" aria-hidden />
+              <span>Open</span>
+            </button>
             <IconButton
               icon="i-ph:terminal-window"
               onClick={() => {
@@ -1401,6 +1618,7 @@ export const Preview = memo(
                     srcDoc={staticPreviewHtml}
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                     allow="cross-origin-isolated"
+                    onLoad={() => recordPreviewLoad('static-preview')}
                   />
                 ) : isDeviceModeOn && showDeviceFrameInPreview ? (
                   <div
@@ -1481,6 +1699,7 @@ export const Preview = memo(
                         src={iframeUrl}
                         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                         allow="cross-origin-isolated"
+                        onLoad={() => recordPreviewLoad(iframeUrl)}
                       />
                     </div>
                   </div>
@@ -1492,8 +1711,19 @@ export const Preview = memo(
                     src={iframeUrl}
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
                     allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                    onLoad={() => recordPreviewLoad(iframeUrl)}
                   />
                 )}
+                <Inspector
+                  isActive={isInspectorMode}
+                  iframeRef={iframeRef}
+                  onElementSelect={(element) => {
+                    setSelectedElement?.(element);
+                    setSelectedPreviewElement(element);
+                    setDevToolsOpen(true);
+                    setActiveDevToolsTab('elements');
+                  }}
+                />
                 <ScreenshotSelector
                   isSelectionMode={isSelectionMode}
                   setIsSelectionMode={setIsSelectionMode}
@@ -1607,6 +1837,89 @@ export const Preview = memo(
                   : ['No server logs yet. Start the dev server to stream logs here.']
               ).join('\n')}
             </pre>
+          </section>
+        )}
+        {devToolsOpen && (
+          <section className="bolt-preview-devtools-panel" aria-label="Preview DevTools">
+            <header>
+              <div role="tablist" aria-label="Preview DevTools tabs">
+                {(['console', 'network', 'elements'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeDevToolsTab === tab}
+                    onClick={() => setActiveDevToolsTab(tab)}
+                  >
+                    {tab === 'console' ? 'Console' : tab === 'network' ? 'Network' : 'Elements'}
+                  </button>
+                ))}
+              </div>
+              <div>
+                <button type="button" onClick={() => setPreviewConsoleEvents([])}>
+                  Clear
+                </button>
+                <button type="button" aria-label="Close Preview DevTools" onClick={() => setDevToolsOpen(false)}>
+                  <span className="i-ph:x" aria-hidden />
+                </button>
+              </div>
+            </header>
+            {activeDevToolsTab === 'console' && (
+              <div className="bolt-preview-devtools-body" role="log" aria-live="polite">
+                {previewConsoleEvents.length ? (
+                  previewConsoleEvents.map((event, index) => (
+                    <div key={`${event.level}-${index}`} data-level={event.level}>
+                      <strong>{event.level}</strong>
+                      <span>{event.message}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p>No preview console errors captured. Runtime logs remain available in the Logs panel.</p>
+                )}
+              </div>
+            )}
+            {activeDevToolsTab === 'network' && (
+              <div className="bolt-preview-devtools-body">
+                {previewNetworkEvents.length ? (
+                  previewNetworkEvents.map((event, index) => (
+                    <div key={`${event.url}-${index}`} data-level={event.status === 'ready' ? 'info' : 'trace'}>
+                      <strong>{event.method}</strong>
+                      <span title={event.url}>{event.url}</span>
+                      <em>{event.status}</em>
+                      <small>{event.source}</small>
+                    </div>
+                  ))
+                ) : (
+                  <p>No preview navigations captured yet.</p>
+                )}
+              </div>
+            )}
+            {activeDevToolsTab === 'elements' && (
+              <div className="bolt-preview-devtools-body">
+                {selectedPreviewElement ? (
+                  <>
+                    <div data-level="info">
+                      <strong>{selectedPreviewElement.tagName.toLowerCase()}</strong>
+                      <span>
+                        {selectedPreviewElement.id ? `#${selectedPreviewElement.id}` : ''}
+                        {selectedPreviewElement.className
+                          ? `.${selectedPreviewElement.className.split(/\s+/).filter(Boolean).join('.')}`
+                          : ''}
+                      </span>
+                    </div>
+                    <div data-level="trace">
+                      <strong>Text</strong>
+                      <span>{selectedPreviewElement.textContent?.trim() || 'No text content'}</span>
+                    </div>
+                    <button type="button" className="bolt-preview-devtools-primary" onClick={openSelectedElementSource}>
+                      Open matching source file
+                    </button>
+                  </>
+                ) : (
+                  <p>Enable Inspect to code, then click an element in the preview.</p>
+                )}
+              </div>
+            )}
           </section>
         )}
       </div>
