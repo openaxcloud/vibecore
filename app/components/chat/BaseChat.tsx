@@ -174,6 +174,8 @@ type ProjectSnapshot = {
   id: string;
   label?: string;
   kind?: string;
+  manifest?: unknown;
+  createdByUserId?: string;
   createdAt?: string;
   byteLength?: number;
 };
@@ -525,6 +527,104 @@ function timeAgo(value?: string) {
   }
 
   return 'just now';
+}
+
+function formatBytes(bytes?: number) {
+  if (!Number.isFinite(bytes) || !bytes || bytes <= 0) {
+    return '0 KB';
+  }
+
+  const units = ['B', 'KB', 'MB', 'GB'];
+
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${value >= 10 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function snapshotFiles(snapshot: ProjectSnapshot): Array<{ path: string; sizeBytes?: number; updatedAt?: string }> {
+  const manifest = snapshot.manifest as { files?: unknown } | undefined;
+
+  if (!Array.isArray(manifest?.files)) {
+    return [];
+  }
+
+  return manifest.files
+    .map((file) => {
+      const entry = file as { path?: unknown; sizeBytes?: unknown; updatedAt?: unknown };
+
+      if (typeof entry.path !== 'string' || !entry.path.trim()) {
+        return null;
+      }
+
+      return {
+        path: entry.path,
+        sizeBytes: typeof entry.sizeBytes === 'number' ? entry.sizeBytes : undefined,
+        updatedAt: typeof entry.updatedAt === 'string' ? entry.updatedAt : undefined,
+      };
+    })
+    .filter(Boolean) as Array<{ path: string; sizeBytes?: number; updatedAt?: string }>;
+}
+
+function snapshotAuthor(snapshot: ProjectSnapshot) {
+  if (snapshot.kind === 'before-ai-change' || /ai|agent/i.test(snapshot.label ?? '')) {
+    return 'Agent';
+  }
+
+  if (snapshot.kind === 'automatic') {
+    return 'System';
+  }
+
+  return 'Manual';
+}
+
+function snapshotKindLabel(snapshot: ProjectSnapshot) {
+  if (snapshot.kind === 'before-ai-change') {
+    return 'Before AI change';
+  }
+
+  if (snapshot.kind === 'automatic') {
+    return 'Automatic';
+  }
+
+  return 'Manual';
+}
+
+function snapshotDiffSummary(current: ProjectSnapshot, previous?: ProjectSnapshot) {
+  const currentFiles = snapshotFiles(current);
+  const previousFiles = snapshotFiles(previous ?? ({} as ProjectSnapshot));
+  const previousByPath = new Map(previousFiles.map((file) => [file.path, file]));
+  const currentByPath = new Map(currentFiles.map((file) => [file.path, file]));
+  const added: string[] = [];
+  const changed: string[] = [];
+  const removed: string[] = [];
+
+  for (const file of currentFiles) {
+    const previousFile = previousByPath.get(file.path);
+
+    if (!previousFile) {
+      added.push(file.path);
+    } else if (previousFile.sizeBytes !== file.sizeBytes || previousFile.updatedAt !== file.updatedAt) {
+      changed.push(file.path);
+    }
+  }
+
+  for (const file of previousFiles) {
+    if (!currentByPath.has(file.path)) {
+      removed.push(file.path);
+    }
+  }
+
+  const sample = [...changed, ...added, ...removed, ...currentFiles.map((file) => file.path)]
+    .filter((path, index, list) => list.indexOf(path) === index)
+    .slice(0, 6);
+
+  return { added, changed, removed, sample };
 }
 
 function messageCreatedAt(message: Message | undefined) {
@@ -6480,34 +6580,98 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'snapshots') {
-    const snapshots = data.snapshots ?? [];
+    const snapshots = ([...(data.snapshots ?? [])] as ProjectSnapshot[]).sort((a, b) => {
+      return Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? '');
+    });
 
     return (
-      <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
-        <PanelRows
-          rows={snapshots.map((snapshot: any) => [
-            snapshot.label ?? snapshot.kind,
-            `${snapshot.kind} - ${snapshot.byteLength ?? 0} bytes`,
-          ])}
-          empty="No snapshots yet."
-        />
-        <div className="grid gap-3">
-          <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
+      <section className="bolt-project-snapshots-panel" aria-label="Project checkpoints">
+        <div className="bolt-project-snapshots-header">
+          <div>
+            <h3>Checkpoints</h3>
+            <p>Restore a known-good project state or create a manual checkpoint before risky changes.</p>
+          </div>
+          <form onSubmit={onSubmit} className="bolt-project-snapshots-create">
             <input name="intent" value="create" type="hidden" />
             <PanelInput name="label" placeholder="Manual checkpoint" />
-            <PanelButton disabled={busy}>Create snapshot</PanelButton>
+            <PanelButton disabled={busy}>+ New checkpoint</PanelButton>
           </form>
-          {snapshots.map((snapshot: any) => (
-            <form key={snapshot.id} onSubmit={onSubmit}>
-              <input name="intent" value="restore" type="hidden" />
-              <input name="snapshotId" value={snapshot.id} type="hidden" />
-              <PanelButton disabled={busy} variant="outline">
-                Restore {snapshot.label ?? snapshot.id}
-              </PanelButton>
-            </form>
-          ))}
         </div>
-      </div>
+        {snapshots.length ? (
+          <div className="bolt-project-snapshots-timeline">
+            {snapshots.map((snapshot, index) => {
+              const previousSnapshot = snapshots[index + 1];
+              const files = snapshotFiles(snapshot);
+              const diff = snapshotDiffSummary(snapshot, previousSnapshot);
+              const modifiedCount = diff.added.length + diff.changed.length + diff.removed.length;
+              const fileCountLabel = `${files.length} file${files.length === 1 ? '' : 's'}`;
+              const title = snapshot.label || snapshotKindLabel(snapshot);
+              const exactDate = snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'Recorded';
+
+              return (
+                <article key={snapshot.id} className="bolt-project-snapshot-card">
+                  <div className="bolt-project-snapshot-rail" aria-hidden>
+                    <span />
+                  </div>
+                  <div className="bolt-project-snapshot-body">
+                    <div className="bolt-project-snapshot-main">
+                      <div className="bolt-project-snapshot-title-row">
+                        <span className="bolt-project-snapshot-kind">{snapshotAuthor(snapshot)}</span>
+                        <strong title={title}>{title}</strong>
+                      </div>
+                      <div className="bolt-project-snapshot-meta" aria-label="Checkpoint metadata">
+                        <span title={exactDate}>{timeAgo(snapshot.createdAt)}</span>
+                        <span>{fileCountLabel}</span>
+                        <span>{formatBytes(snapshot.byteLength)}</span>
+                        <span>{modifiedCount ? `${modifiedCount} changed` : 'Baseline'}</span>
+                      </div>
+                      <details className="bolt-project-snapshot-diff">
+                        <summary title={diff.sample.length ? diff.sample.join('\n') : 'No file metadata recorded'}>
+                          Preview changed files
+                        </summary>
+                        {diff.sample.length ? (
+                          <ul>
+                            {diff.sample.map((path) => {
+                              const marker = diff.added.includes(path)
+                                ? 'A'
+                                : diff.removed.includes(path)
+                                  ? 'D'
+                                  : diff.changed.includes(path)
+                                    ? 'M'
+                                    : '·';
+
+                              return (
+                                <li key={path} data-marker={marker}>
+                                  <span>{marker}</span>
+                                  <code>{path}</code>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p>No file manifest was recorded for this checkpoint.</p>
+                        )}
+                      </details>
+                    </div>
+                    <form onSubmit={onSubmit} className="bolt-project-snapshot-actions">
+                      <input name="intent" value="restore" type="hidden" />
+                      <input name="snapshotId" value={snapshot.id} type="hidden" />
+                      <button type="submit" disabled={busy} aria-label={`Restore checkpoint ${title}`}>
+                        Restore
+                      </button>
+                    </form>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bolt-project-snapshots-empty">
+            <strong>No checkpoints yet</strong>
+            <p>Create a checkpoint before major edits, package upgrades, or AI-led refactors.</p>
+          </div>
+        )}
+      </section>
     );
   }
 

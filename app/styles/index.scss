@@ -2435,6 +2435,285 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-hover);
 }
 
+.bolt-project-snapshots-panel {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.bolt-project-snapshots-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-snapshots-header h3 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bolt-project-snapshots-header p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bolt-project-snapshots-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.bolt-project-snapshots-timeline {
+  display: grid;
+  gap: 0;
+}
+
+.bolt-project-snapshot-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.bolt-project-snapshot-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.bolt-project-snapshot-rail::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--vc-ide-border-visible);
+  content: '';
+}
+
+.bolt-project-snapshot-rail span {
+  position: relative;
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  margin-top: 18px;
+  border: 2px solid var(--vc-ide-bg-panel);
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
+}
+
+.bolt-project-snapshot-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  margin-bottom: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-snapshot-main {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.bolt-project-snapshot-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-snapshot-title-row strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-snapshot-kind {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
+  color: var(--vc-ide-accent-action);
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.bolt-project-snapshot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-snapshot-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bolt-project-snapshot-meta span:not(:last-child)::after {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--vc-ide-border-visible);
+  content: '';
+}
+
+.bolt-project-snapshot-diff {
+  min-width: 0;
+}
+
+.bolt-project-snapshot-diff summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bolt-project-snapshot-diff summary:hover {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-snapshot-diff ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.bolt-project-snapshot-diff li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  list-style: none;
+}
+
+.bolt-project-snapshot-diff li > span {
+  display: inline-flex;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-muted);
+  font-size: 10px !important;
+  font-weight: 800;
+}
+
+.bolt-project-snapshot-diff li[data-marker='A'] > span {
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-snapshot-diff li[data-marker='D'] > span {
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-snapshot-diff li[data-marker='M'] > span {
+  color: var(--vc-ide-accent-warning);
+}
+
+.bolt-project-snapshot-diff code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-snapshot-diff p {
+  margin: 8px 0 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-snapshot-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bolt-project-snapshot-actions button {
+  min-height: 32px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 35%);
+  border-radius: 7px;
+  background: var(--vc-ide-accent-action);
+  color: var(--vc-ide-bg-app);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 13px;
+}
+
+.bolt-project-snapshot-actions button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.bolt-project-snapshot-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.bolt-project-snapshots-empty {
+  display: grid;
+  gap: 4px;
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  padding: 18px;
+  text-align: center;
+}
+
+.bolt-project-snapshots-empty strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-snapshots-empty p {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .bolt-project-snapshots-create,
+  .bolt-project-snapshot-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-project-snapshot-actions {
+    justify-content: stretch;
+  }
+
+  .bolt-project-snapshot-actions button {
+    width: 100%;
+  }
+}
+
 .bolt-project-agent-patch-review {
   display: grid;
   max-width: min(100%, var(--chat-max-width));
