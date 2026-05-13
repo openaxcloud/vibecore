@@ -166,6 +166,39 @@ type ProjectAgentSuggestion = {
   icon: string;
   priority: number;
 };
+type ProjectAgentExecutionMode = 'ask' | 'edit' | 'agent' | 'architect';
+
+const PROJECT_AGENT_EXECUTION_MODES: Array<{
+  id: ProjectAgentExecutionMode;
+  label: string;
+  chatMode: 'discuss' | 'build';
+  description: string;
+}> = [
+  {
+    id: 'ask',
+    label: 'Ask',
+    chatMode: 'discuss',
+    description: 'Answer, explain, and inspect without changing files or running commands.',
+  },
+  {
+    id: 'edit',
+    label: 'Edit',
+    chatMode: 'build',
+    description: 'Make scoped code changes only after identifying the target files.',
+  },
+  {
+    id: 'agent',
+    label: 'Agent',
+    chatMode: 'build',
+    description: 'Execute the requested task end to end with verification.',
+  },
+  {
+    id: 'architect',
+    label: 'Architect',
+    chatMode: 'discuss',
+    description: 'Design architecture, contracts, risks, and rollout steps before implementation.',
+  },
+];
 
 const INTEGRATION_CATALOG = [
   ['github', 'GitHub', 'Connect repositories for code sync and CI/CD.', 'cicd', 'i-ph:github-logo'],
@@ -771,6 +804,73 @@ function inferAgentToolAction(message: string | undefined): AgentToolAction | nu
   };
 }
 
+function resolveMentionedProjectFiles(message: string, projectFilePaths: string[]) {
+  const rawMentions = Array.from(message.matchAll(/@([^\s,;:()[\]{}"'`]+)/g)).map((match) =>
+    match[1].replace(/[.!?]+$/, ''),
+  );
+
+  const matches: string[] = [];
+
+  for (const mention of rawMentions) {
+    const normalizedMention = mention.replace(/^\/+/, '').toLowerCase();
+
+    const match = projectFilePaths.find((filePath) => {
+      const normalizedPath = filePath.replace(/^\/+/, '').toLowerCase();
+
+      return (
+        normalizedPath === normalizedMention ||
+        normalizedPath.endsWith(`/${normalizedMention}`) ||
+        normalizedPath.includes(normalizedMention)
+      );
+    });
+
+    if (match && !matches.includes(match)) {
+      matches.push(match);
+    }
+  }
+
+  return matches.slice(0, 12);
+}
+
+function buildProjectAgentPrompt({
+  message,
+  mode,
+  planFirst,
+  mentionedFiles,
+}: {
+  message: string;
+  mode: ProjectAgentExecutionMode;
+  planFirst: boolean;
+  mentionedFiles: string[];
+}) {
+  const modeConfig = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === mode) ?? PROJECT_AGENT_EXECUTION_MODES[2];
+
+  const guardrails = [
+    `Mode: ${modeConfig.label}. ${modeConfig.description}`,
+    planFirst
+      ? 'Plan first is enabled: produce a concise, reviewable plan and wait for explicit approval before editing files, running shell commands, deploying, or applying destructive actions.'
+      : 'Plan first is disabled: proceed according to the selected mode, but keep changes scoped and verify them.',
+  ];
+
+  if (mode === 'ask') {
+    guardrails.push(
+      'Do not edit files, run shell commands, or trigger runtime tools unless the user explicitly switches mode.',
+    );
+  }
+
+  if (mode === 'architect') {
+    guardrails.push(
+      'Prioritize architecture, contracts, rollout sequence, risks, and acceptance criteria over code changes.',
+    );
+  }
+
+  if (mentionedFiles.length > 0) {
+    guardrails.push(`User-selected file context: ${mentionedFiles.map((filePath) => `@${filePath}`).join(', ')}`);
+  }
+
+  return `<vibecore_agent_request>\n${guardrails.map((line) => `- ${line}`).join('\n')}\n</vibecore_agent_request>\n\n${message}`;
+}
+
 function findFirstLeaf(node: IdePaneNode): IdePaneLeaf | undefined {
   return node.type === 'leaf' ? node : (findFirstLeaf(node.first) ?? findFirstLeaf(node.second));
 }
@@ -1011,6 +1111,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
+    const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
+    const [projectPlanFirst, setProjectPlanFirst] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
@@ -2370,17 +2472,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const handleProjectAgentSendMessage = useCallback(
       (event: React.UIEvent, messageInput?: string) => {
+        const rawMessage = messageInput ?? input;
+
         if (projectIdeMode) {
-          const action = inferAgentToolAction(messageInput ?? input);
+          const action = inferAgentToolAction(rawMessage);
 
           if (action) {
             setAgentToolAction(action);
           }
+
+          const mentionedFiles = resolveMentionedProjectFiles(rawMessage, projectFilePaths);
+
+          const agentMessage = buildProjectAgentPrompt({
+            message: rawMessage,
+            mode: projectAgentExecutionMode,
+            planFirst: projectPlanFirst,
+            mentionedFiles,
+          });
+
+          handleSendMessage?.(event, agentMessage);
+
+          return;
         }
 
         handleSendMessage?.(event, messageInput);
       },
-      [handleSendMessage, input, projectIdeMode],
+      [handleSendMessage, input, projectAgentExecutionMode, projectFilePaths, projectIdeMode, projectPlanFirst],
     );
 
     const viewProjectCheckpoint = useCallback(
@@ -2581,6 +2698,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 >
                   Open →
                 </button>
+              </div>
+            )}
+            {projectIdeMode && projectPlanFirst && (
+              <div
+                className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary"
+                role="status"
+              >
+                <strong className="text-bolt-elements-textPrimary">Plan first enabled.</strong> The agent must return a
+                reviewable plan and wait for approval before applying changes or running commands.
               </div>
             )}
             {projectIdeMode && (
@@ -3118,11 +3244,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
             <span className="bolt-project-agent-title">Agent</span>
             <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
-              <button type="button" aria-pressed={chatMode === 'build'} onClick={() => setChatMode?.('build')}>
-                Build
-              </button>
-              <button type="button" aria-pressed={chatMode === 'discuss'} onClick={() => setChatMode?.('discuss')}>
-                Discuss
+              {PROJECT_AGENT_EXECUTION_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  aria-pressed={projectAgentExecutionMode === mode.id}
+                  title={mode.description}
+                  onClick={() => {
+                    setProjectAgentExecutionMode(mode.id);
+                    setChatMode?.(mode.chatMode);
+                  }}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <div className="bolt-project-agent-mode" role="group" aria-label="Execution guardrails">
+              <button
+                type="button"
+                aria-pressed={projectPlanFirst}
+                title="When enabled, the agent must return a plan and wait for approval before executing changes."
+                onClick={() => setProjectPlanFirst((enabled) => !enabled)}
+              >
+                Plan first
               </button>
             </div>
             <div className="ml-auto flex items-center gap-1">
