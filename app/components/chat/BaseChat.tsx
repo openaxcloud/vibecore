@@ -6175,7 +6175,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'database') {
-    return <ProjectDatabasePanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectDatabasePanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
 
   if (panel === 'object-storage') {
@@ -9315,84 +9315,476 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   );
 }
 
-function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const [activeTab, setActiveTab] = useState<'connection' | 'env' | 'activity' | 'backups'>('connection');
-  const databaseVars = (data.envVars ?? []).filter((item: any) => /DATABASE|POSTGRES|SQL/i.test(item.key));
-  const databaseBackups = (data.snapshots ?? []).filter((snapshot: any) => snapshot.kind === 'database-backup');
+function ProjectDatabasePanel({
+  projectId,
+  data,
+  onSubmit,
+  busy,
+  reload,
+}: {
+  projectId?: string;
+  data: any;
+  onSubmit: any;
+  busy: boolean;
+  reload?: () => void | Promise<void>;
+}) {
+  const connections = data.connections ?? [];
+  const envVars = data.envVars ?? [];
+  const secrets = data.secrets ?? [];
+  const databaseBackups = (data.snapshots ?? []).filter((snapshot: any) => snapshot.manifest?.scope === 'database');
+  const [activeTab, setActiveTab] = useState<'explorer' | 'query' | 'schema' | 'secrets' | 'backups'>('explorer');
+  const [selectedKey, setSelectedKey] = useState(connections[0]?.key ?? '');
 
-  const tableRows = databaseVars.length
-    ? databaseVars.map((item: any) => [item.key, item.updatedAt ?? 'Stored in project environment'])
-    : [['Database status', 'No database connection configured for this project']];
+  const [schemaState, setSchemaState] = useState<{ loading: boolean; schema?: any; error?: string }>({
+    loading: false,
+    schema: data.schema,
+    error: data.schemaError,
+  });
+
+  const [queryState, setQueryState] = useState<{ loading: boolean; result?: any; error?: string }>({ loading: false });
+  const selectedConnection = connections.find((connection: any) => connection.key === selectedKey) ?? connections[0];
+
+  async function loadSchema(key = selectedConnection?.key) {
+    if (!projectId || !key) {
+      return;
+    }
+
+    setSelectedKey(key);
+    setSchemaState({ loading: true });
+
+    try {
+      const response = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database?schemaKey=${encodeURIComponent(key)}`,
+        { headers: { accept: 'application/json' } },
+      );
+
+      const envelope = (await response.json()) as any;
+
+      if (!response.ok || envelope.status === 'error') {
+        throw new Error(envelope.error?.message ?? 'Unable to inspect database schema');
+      }
+
+      setSchemaState({ loading: false, schema: envelope.data?.schema, error: envelope.data?.schemaError });
+    } catch (error: any) {
+      setSchemaState({ loading: false, error: error?.message ?? 'Unable to inspect database schema' });
+    }
+  }
+
+  async function runQuery(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!projectId) {
+      return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    formData.set('intent', 'query');
+    setQueryState({ loading: true });
+
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = (await response.json()) as any;
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error ?? 'Database query failed');
+      }
+
+      setQueryState({ loading: false, result: result.result });
+      await reload?.();
+    } catch (error: any) {
+      setQueryState({ loading: false, error: error?.message ?? 'Database query failed' });
+    }
+  }
+
+  const defaultQuery =
+    selectedConnection?.kind === 'mongodb'
+      ? '{ "filter": {}, "projection": {} }'
+      : selectedConnection?.kind === 'redis'
+        ? 'SCAN 0 COUNT 50'
+        : 'select * from information_schema.tables limit 25';
 
   return (
-    <div className="bolt-project-database-tool">
-      <aside>
-        <strong>Database</strong>
-        <PanelRows rows={tableRows} empty="No database backend variables configured." />
-      </aside>
-      <main>
-        <div className="bolt-project-tool-tabs">
-          {[
-            ['connection', 'Connection'],
-            ['env', 'Environment'],
-            ['activity', 'Activity'],
-            ['backups', 'Backups'],
-          ].map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              aria-current={activeTab === id ? 'page' : undefined}
-              onClick={() => setActiveTab(id as any)}
+    <div className="grid gap-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          ['Connections', String(connections.length)],
+          ['Providers', [...new Set(connections.map((item: any) => item.kind))].join(', ') || 'None'],
+          ['Secrets', String(secrets.length)],
+          ['Env vars', String(envVars.length)],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">{label}</div>
+            <div className="mt-1 truncate text-sm font-semibold text-bolt-elements-textPrimary">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bolt-project-tool-tabs">
+        {[
+          ['explorer', 'Explorer'],
+          ['query', 'Query'],
+          ['schema', 'Schema'],
+          ['secrets', 'Secrets'],
+          ['backups', 'Backups'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-current={activeTab === id ? 'page' : undefined}
+            onClick={() => setActiveTab(id as any)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {connections.length === 0 ? (
+        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">No database connection configured</h3>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            Add a Postgres, MySQL, MongoDB or Redis URL as an environment variable or secret. Secret values are used
+            server-side and never returned to the browser.
+          </p>
+        </div>
+      ) : null}
+
+      {activeTab === 'explorer' && (
+        <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <section className="grid content-start gap-3">
+            {connections.map((connection: any) => (
+              <button
+                key={connection.key}
+                type="button"
+                className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-left hover:border-bolt-elements-focus"
+                aria-current={selectedConnection?.key === connection.key ? 'page' : undefined}
+                onClick={() => {
+                  setSelectedKey(connection.key);
+                  void loadSchema(connection.key);
+                }}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <strong className="text-sm text-bolt-elements-textPrimary">{connection.key}</strong>
+                  <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+                    {connection.kind}
+                  </span>
+                </div>
+                <div className="mt-2 truncate text-xs text-bolt-elements-textSecondary">{connection.maskedUrl}</div>
+                <div className="mt-2 text-xs text-bolt-elements-textSecondary">
+                  {connection.environment} · {connection.source}
+                </div>
+              </button>
+            ))}
+          </section>
+          <DatabaseSchemaPreview schemaState={schemaState} />
+        </div>
+      )}
+
+      {activeTab === 'query' && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <form
+            onSubmit={runQuery}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="query" type="hidden" />
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Connection
+              <select
+                name="connectionKey"
+                value={selectedConnection?.key ?? ''}
+                onChange={(event) => setSelectedKey(event.target.value)}
+                className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              >
+                {connections.map((connection: any) => (
+                  <option key={connection.key} value={connection.key}>
+                    {connection.key} ({connection.kind})
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedConnection?.kind === 'mongodb' && (
+              <PanelInput name="collection" placeholder="Collection name, optional for listCollections" />
+            )}
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Read-only query
+              <textarea
+                name="query"
+                defaultValue={defaultQuery}
+                className="min-h-40 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 font-mono text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              />
+            </label>
+            <PanelInput name="limit" type="number" min="1" max="200" defaultValue="50" aria-label="Result limit" />
+            <PanelButton disabled={busy || queryState.loading || !selectedConnection}>Run read-only query</PanelButton>
+          </form>
+          <DatabaseQueryResult queryState={queryState} />
+        </div>
+      )}
+
+      {activeTab === 'schema' && <DatabaseSchemaPreview schemaState={schemaState} />}
+
+      {activeTab === 'secrets' && (
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="grid gap-3">
+            {['development', 'preview', 'staging', 'production', 'shared'].map((environment) => {
+              const environmentSecrets = secrets.filter((secret: any) => {
+                const key = String(secret.key ?? '').toUpperCase();
+
+                return environment === 'shared'
+                  ? !/^(DEV|DEVELOPMENT|PREVIEW|STAGING|PROD|PRODUCTION)_/.test(key)
+                  : environment === 'production'
+                    ? key.startsWith('PROD_') || key.startsWith('PRODUCTION_')
+                    : environment === 'development'
+                      ? key.startsWith('DEV_') || key.startsWith('DEVELOPMENT_')
+                      : key.startsWith(`${environment.toUpperCase()}_`);
+              });
+
+              return (
+                <section
+                  key={environment}
+                  className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+                >
+                  <h3 className="text-sm font-semibold capitalize text-bolt-elements-textPrimary">{environment}</h3>
+                  <div className="mt-3 grid gap-2">
+                    {environmentSecrets.length ? (
+                      environmentSecrets.map((secret: any) => (
+                        <div
+                          key={secret.key}
+                          className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2"
+                        >
+                          <span className="truncate text-sm text-bolt-elements-textPrimary">{secret.key}</span>
+                          <form onSubmit={onSubmit}>
+                            <input name="intent" value="delete-secret" type="hidden" />
+                            <input name="key" value={secret.key} type="hidden" />
+                            <PanelButton disabled={busy} variant="outline">
+                              Delete
+                            </PanelButton>
+                          </form>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-bolt-elements-textSecondary">No secrets in this environment.</div>
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+          <form
+            onSubmit={onSubmit}
+            className="grid content-start gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="upsert-secret" type="hidden" />
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Environment
+              <select
+                onChange={(event) => {
+                  const input = event.currentTarget.form?.elements.namedItem('key') as HTMLInputElement | null;
+                  const prefix = event.currentTarget.value;
+
+                  if (input && prefix && !/^(DEV|DEVELOPMENT|PREVIEW|STAGING|PROD|PRODUCTION)_/.test(input.value)) {
+                    input.value = `${prefix}_${input.value || 'DATABASE_URL'}`;
+                  }
+                }}
+                className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              >
+                <option value="">Shared</option>
+                <option value="DEVELOPMENT">Development</option>
+                <option value="PREVIEW">Preview</option>
+                <option value="STAGING">Staging</option>
+                <option value="PRODUCTION">Production</option>
+              </select>
+            </label>
+            <PanelInput name="key" placeholder="DATABASE_URL" required />
+            <PanelInput name="value" type="password" placeholder="Secret value" required />
+            <PanelButton disabled={busy}>Save encrypted secret</PanelButton>
+          </form>
+        </div>
+      )}
+
+      {activeTab === 'backups' && (
+        <div className="grid gap-3">
+          <form onSubmit={onSubmit} className="bolt-project-inline-form">
+            <input name="intent" value="create-backup" type="hidden" />
+            <PanelInput name="label" placeholder="Manual database checkpoint" />
+            <PanelButton disabled={busy}>Create checkpoint</PanelButton>
+          </form>
+          <PanelRows
+            rows={databaseBackups.map((snapshot: any) => [
+              snapshot.label ?? snapshot.id,
+              snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'Database checkpoint',
+            ])}
+            empty="No database checkpoints yet."
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DatabaseSchemaPreview({ schemaState }: { schemaState: { loading: boolean; schema?: any; error?: string } }) {
+  if (schemaState.loading) {
+    return <div className="bolt-project-empty-panel">Inspecting database schema...</div>;
+  }
+
+  if (schemaState.error) {
+    return (
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-500">
+        {schemaState.error}
+      </div>
+    );
+  }
+
+  const schema = schemaState.schema;
+
+  if (!schema) {
+    return <div className="bolt-project-empty-panel">Select a connection to load tables, collections or keys.</div>;
+  }
+
+  const items = schema.tables ?? schema.collections ?? schema.keys ?? [];
+  const columns = Array.isArray(schema.columns) ? schema.columns : [];
+
+  const tableNames = new Set(
+    columns.map((column: any) => String(column.table_name ?? '').toLowerCase()).filter(Boolean),
+  );
+  const relationships = columns
+    .filter((column: any) =>
+      String(column.column_name ?? '')
+        .toLowerCase()
+        .endsWith('_id'),
+    )
+    .map((column: any) => {
+      const source = String(column.table_name ?? '');
+      const field = String(column.column_name ?? '');
+      const baseTarget = field.replace(/_id$/i, '').toLowerCase();
+
+      const target =
+        [baseTarget, `${baseTarget}s`, `${baseTarget}es`].find((candidate) => tableNames.has(candidate)) ?? baseTarget;
+
+      return { source, field, target };
+    })
+    .filter(
+      (relationship: any) => relationship.source && relationship.target && relationship.source !== relationship.target,
+    )
+    .slice(0, 24);
+
+  return (
+    <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+      <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Schema viewer</h3>
+      {items.length ? (
+        <div className="grid gap-2">
+          {items.slice(0, 80).map((item: any, index: number) => (
+            <div
+              key={`${item.table_name ?? item.name ?? item.key}-${index}`}
+              className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
             >
-              {label}
-            </button>
+              <div className="text-sm font-medium text-bolt-elements-textPrimary">
+                {item.table_name ?? item.name ?? item.key}
+              </div>
+              <div className="mt-1 text-xs text-bolt-elements-textSecondary">
+                {item.table_schema ?? item.type ?? item.sampleKeys?.join(', ') ?? `ttl ${item.ttl}`}
+              </div>
+            </div>
           ))}
         </div>
-        {activeTab === 'connection' ? (
-          <form onSubmit={onSubmit} className="bolt-project-sql-editor">
-            <input name="key" value="DATABASE_URL" type="hidden" />
-            <input name="value" placeholder="postgres://user:pass@host:5432/db" required />
-            <PanelButton disabled={busy}>Save DATABASE_URL</PanelButton>
-          </form>
-        ) : activeTab === 'env' ? (
-          <PanelRows rows={tableRows} empty="Database metadata is not configured for this project." />
-        ) : activeTab === 'activity' ? (
-          <PanelRows
-            rows={(data.recentActivity ?? [])
-              .filter((event: any) => String(event.action ?? '').includes('env'))
-              .map((event: any) => [
-                event.action,
-                event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by backend',
-              ])}
-            empty="No backend database activity recorded yet."
-          />
-        ) : (
-          <div className="grid gap-3">
-            <form onSubmit={onSubmit} className="bolt-project-inline-form">
-              <input name="intent" value="create-backup" type="hidden" />
-              <PanelInput name="label" placeholder="Manual database backup" />
-              <PanelButton disabled={busy}>Create backup</PanelButton>
-            </form>
-            <PanelRows
-              rows={databaseBackups.map((snapshot: any) => [
-                snapshot.label ?? snapshot.id,
-                snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'Database backup snapshot',
-              ])}
-              empty="No database backups yet."
-            />
-            {databaseBackups.map((snapshot: any) => (
-              <form key={snapshot.id} onSubmit={onSubmit}>
-                <input name="intent" value="restore-backup" type="hidden" />
-                <input name="snapshotId" value={snapshot.id} type="hidden" />
-                <PanelButton disabled={busy} variant="outline">
-                  Restore {snapshot.label ?? snapshot.id}
-                </PanelButton>
-              </form>
+      ) : (
+        <div className="text-sm text-bolt-elements-textSecondary">No schema objects returned.</div>
+      )}
+      {schema.columns?.length ? (
+        <div className="mt-4 overflow-auto rounded-md border border-bolt-elements-borderColor">
+          {schema.columns.slice(0, 160).map((column: any, index: number) => (
+            <div
+              key={`${column.table_name}-${column.column_name}-${index}`}
+              className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_120px] gap-2 border-b border-bolt-elements-borderColor px-3 py-2 text-xs last:border-b-0"
+            >
+              <span className="truncate text-bolt-elements-textPrimary">{column.table_name}</span>
+              <span className="truncate text-bolt-elements-textPrimary">{column.column_name}</span>
+              <span className="truncate text-bolt-elements-textSecondary">{column.data_type}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {relationships.length ? (
+        <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+          <div className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+            Relationship map
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {relationships.map((relationship: any, index: number) => (
+              <div
+                key={`${relationship.source}-${relationship.field}-${relationship.target}-${index}`}
+                className="flex items-center gap-2 rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs"
+              >
+                <span className="truncate font-medium text-bolt-elements-textPrimary">{relationship.source}</span>
+                <span className="text-bolt-elements-textTertiary">via {relationship.field}</span>
+                <span className="i-ph:arrow-right shrink-0 text-bolt-elements-textSecondary" aria-hidden="true" />
+                <span className="truncate font-medium text-bolt-elements-textPrimary">{relationship.target}</span>
+              </div>
             ))}
           </div>
-        )}
-      </main>
-    </div>
+          <p className="mt-3 text-xs text-bolt-elements-textSecondary">
+            Relations are inferred from real schema columns ending in _id. Database-enforced foreign keys will appear as
+            soon as the connected provider exposes them through inspection.
+          </p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function DatabaseQueryResult({ queryState }: { queryState: { loading: boolean; result?: any; error?: string } }) {
+  if (queryState.loading) {
+    return <div className="bolt-project-empty-panel">Running read-only query...</div>;
+  }
+
+  if (queryState.error) {
+    return (
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-500">
+        {queryState.error}
+      </div>
+    );
+  }
+
+  const rows = Array.isArray(queryState.result?.rows) ? queryState.result.rows : [];
+  const columns = queryState.result?.columns?.length ? queryState.result.columns : rows[0] ? Object.keys(rows[0]) : [];
+
+  return (
+    <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+      <h3 className="mb-3 text-sm font-semibold text-bolt-elements-textPrimary">Results</h3>
+      {rows.length ? (
+        <div className="max-h-[520px] overflow-auto rounded-md border border-bolt-elements-borderColor">
+          <table className="w-full min-w-[560px] text-left text-xs">
+            <thead className="sticky top-0 bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
+              <tr>
+                {columns.map((column: string) => (
+                  <th key={column} className="px-3 py-2 font-medium">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: any, index: number) => (
+                <tr key={index} className="border-t border-bolt-elements-borderColor">
+                  {columns.map((column: string) => (
+                    <td key={column} className="max-w-[260px] truncate px-3 py-2 text-bolt-elements-textPrimary">
+                      {typeof row[column] === 'object' ? JSON.stringify(row[column]) : String(row[column] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="text-sm text-bolt-elements-textSecondary">Run a query to see rows here.</div>
+      )}
+    </section>
   );
 }
 

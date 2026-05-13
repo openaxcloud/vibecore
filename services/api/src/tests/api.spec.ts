@@ -2732,6 +2732,49 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('discovers database connections without exposing secret values and blocks unsafe queries', async () => {
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Database Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const secret = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/secrets`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { key: 'PRODUCTION_DATABASE_URL', value: 'postgres://user:super-secret@localhost:5432/app' },
+    });
+    expect(secret.statusCode).toBe(200);
+
+    const databases = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/databases`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(databases.statusCode).toBe(200);
+    expect(databases.json().connections[0]).toMatchObject({
+      key: 'PRODUCTION_DATABASE_URL',
+      kind: 'postgres',
+      source: 'secret',
+      environment: 'production',
+    });
+    expect(JSON.stringify(databases.json())).not.toContain('super-secret');
+
+    const unsafeQuery = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/databases/query`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { key: 'PRODUCTION_DATABASE_URL', query: 'drop table users' },
+    });
+    expect(unsafeQuery.statusCode).toBe(400);
+    await app.close();
+  });
+
   it('enforces RBAC project access for persistent project operations', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

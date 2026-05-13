@@ -185,6 +185,39 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'database') {
+    try {
+      const schemaKey = url.searchParams.get('schemaKey');
+
+      const [dashboard, databases, envVars, secrets, snapshots] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/dashboard`),
+        apiRequest(request, `/projects/${projectId}/databases`),
+        apiRequest(request, `/projects/${projectId}/env-vars`),
+        apiRequest(request, `/projects/${projectId}/secrets`),
+        apiRequest(request, `/projects/${projectId}/snapshots`).catch(() => ({ snapshots: [] })),
+      ]);
+      const schema = schemaKey
+        ? await apiRequest(
+            request,
+            `/projects/${projectId}/databases/schema?key=${encodeURIComponent(schemaKey)}`,
+          ).catch((error) => ({ schemaError: panelErrorMessage(error) }))
+        : {};
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(dashboard as any),
+          ...(databases as any),
+          ...(envVars as any),
+          ...(secrets as any),
+          ...(snapshots as any),
+          ...(schema as any),
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   if (panel === 'secrets' && url.searchParams.get('reveal') === 'true' && url.searchParams.get('key')) {
     const confirmation = url.searchParams.get('confirm');
 
@@ -769,12 +802,39 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         method: 'POST',
         body: JSON.stringify({
           label: body.label || `Database backup ${new Date().toISOString()}`,
-          kind: 'database-backup',
+          kind: 'manual',
           manifest: { scope: 'database', source: 'mobile-ide' },
         }),
       });
     } else if (intent === 'restore-backup') {
       await apiRequest(request, `/projects/${projectId}/snapshots/${body.snapshotId}/restore`, { method: 'POST' });
+    } else if (intent === 'query') {
+      const queryResult = await apiRequest(request, `/projects/${projectId}/databases/query`, {
+        method: 'POST',
+        body: JSON.stringify({
+          key: body.connectionKey,
+          query: body.query,
+          collection: body.collection || undefined,
+          limit: body.limit ? Number(body.limit) : undefined,
+        }),
+      });
+
+      return json({ ok: true, ...(queryResult as any) });
+    } else if (intent === 'upsert-secret') {
+      await apiRequest(request, `/projects/${projectId}/secrets`, {
+        method: 'PUT',
+        body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
+      });
+    } else if (intent === 'delete-secret') {
+      await apiRequest(request, `/projects/${projectId}/secrets`, {
+        method: 'DELETE',
+        body: JSON.stringify({ key: body.key }),
+      });
+    } else if (intent === 'delete-env') {
+      await apiRequest(request, `/projects/${projectId}/env-vars`, {
+        method: 'DELETE',
+        body: JSON.stringify({ key: body.key }),
+      });
     } else {
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
         method: 'PUT',

@@ -3,7 +3,10 @@ import websocket from '@fastify/websocket';
 import WebSocket from 'ws';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { Client as PgClient } from 'pg';
 import { Redis } from 'ioredis';
+import mysql from 'mysql2/promise';
+import { MongoClient } from 'mongodb';
 import JSZip from 'jszip';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
@@ -365,6 +368,13 @@ const projectKeyValueSchema = z.object({
   value: z.string(),
 });
 const projectKeySchema = projectKeyValueSchema.pick({ key: true });
+const databaseConnectionQuerySchema = z.object({ key: z.string().min(1).max(160) });
+const databaseQuerySchema = z.object({
+  key: z.string().min(1).max(160),
+  query: z.string().min(1).max(12000),
+  collection: z.string().min(1).max(160).optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+});
 const collaboratorSchema = z.object({
   userId: z.string().min(1),
   roleKey: z.enum(['owner', 'admin', 'member', 'editor', 'viewer']),
@@ -799,6 +809,343 @@ function authError(reply: FastifyReply) {
 
 function adminMfaRequired() {
   return process.env.ADMIN_MFA_REQUIRED !== 'false';
+}
+
+type DatabaseKind = 'postgres' | 'mysql' | 'mongodb' | 'redis';
+type DatabaseConnectionCandidate = {
+  key: string;
+  source: 'env' | 'secret';
+  value: string;
+  kind: DatabaseKind;
+  maskedUrl: string;
+  environment: 'development' | 'preview' | 'staging' | 'production' | 'shared';
+};
+
+function detectDatabaseKind(key: string, value: string): DatabaseKind | undefined {
+  const normalized = `${key} ${value}`.toLowerCase();
+
+  if (/^(postgres|postgresql):\/\//.test(value) || /postgres|pg_/.test(normalized)) {
+    return 'postgres';
+  }
+
+  if (/^mysql:\/\//.test(value) || /mysql/.test(normalized)) {
+    return 'mysql';
+  }
+
+  if (/^mongodb(\+srv)?:\/\//.test(value) || /mongo/.test(normalized)) {
+    return 'mongodb';
+  }
+
+  if (/^redis(s)?:\/\//.test(value) || /redis/.test(normalized)) {
+    return 'redis';
+  }
+
+  return undefined;
+}
+
+function inferSecretEnvironment(key: string): DatabaseConnectionCandidate['environment'] {
+  if (/^(PROD|PRODUCTION)_/.test(key)) {
+    return 'production';
+  }
+
+  if (/^STAGING_/.test(key)) {
+    return 'staging';
+  }
+
+  if (/^(DEV|DEVELOPMENT)_/.test(key)) {
+    return 'development';
+  }
+
+  if (/^PREVIEW_/.test(key)) {
+    return 'preview';
+  }
+
+  return 'shared';
+}
+
+function maskConnectionUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    if (url.password) {
+      url.password = '***';
+    }
+
+    if (url.username) {
+      url.username = url.username ? '***' : '';
+    }
+
+    return url.toString();
+  } catch {
+    return redactSecretString(value);
+  }
+}
+
+function assertReadOnlySql(query: string) {
+  const normalized = query.trim().replace(/;\s*$/, '').toLowerCase();
+
+  if (!/^(select|show|describe|desc|explain|with)\b/.test(normalized)) {
+    throw Object.assign(new Error('Only read-only SQL statements are allowed in the IDE query editor'), {
+      statusCode: 400,
+      code: 'DATABASE_QUERY_NOT_READ_ONLY',
+    });
+  }
+}
+
+function assertReadOnlyRedis(query: string) {
+  const command = query.trim().split(/\s+/)[0]?.toUpperCase();
+  const allowed = new Set([
+    'GET',
+    'MGET',
+    'TTL',
+    'PTTL',
+    'TYPE',
+    'EXISTS',
+    'SCAN',
+    'KEYS',
+    'HGET',
+    'HGETALL',
+    'LRANGE',
+    'SMEMBERS',
+    'ZRANGE',
+    'INFO',
+  ]);
+
+  if (!command || !allowed.has(command)) {
+    throw Object.assign(new Error('Only read-only Redis commands are allowed in the IDE query editor'), {
+      statusCode: 400,
+      code: 'DATABASE_QUERY_NOT_READ_ONLY',
+    });
+  }
+}
+
+function serializeDbRows(rows: unknown) {
+  return JSON.parse(
+    JSON.stringify(rows, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)),
+  ) as unknown;
+}
+
+async function listDatabaseConnections(store: ApiStore, projectId: string): Promise<DatabaseConnectionCandidate[]> {
+  const envVars = await store.listProjectEnvVars(projectId);
+  const secrets = await store.listProjectSecrets(projectId);
+  const secretValues = await Promise.all(
+    secrets.map(async (secret) => {
+      const full = await store.getProjectSecret(projectId, secret.key);
+      const value = full?.valueEncrypted ? decryptJson<{ value: string }>(full.valueEncrypted).value : '';
+
+      return { key: secret.key, value, updatedAt: secret.updatedAt };
+    }),
+  );
+  const candidates = [
+    ...envVars.map((item) => ({ key: item.key, value: item.value, source: 'env' as const, updatedAt: item.updatedAt })),
+    ...secretValues.map((item) => ({ ...item, source: 'secret' as const })),
+  ];
+
+  return candidates.flatMap((item) => {
+    const kind = detectDatabaseKind(item.key, item.value);
+
+    if (!kind) {
+      return [];
+    }
+
+    return [
+      {
+        key: item.key,
+        value: item.value,
+        source: item.source,
+        kind,
+        maskedUrl: maskConnectionUrl(item.value),
+        environment: inferSecretEnvironment(item.key),
+      },
+    ];
+  });
+}
+
+async function requireDatabaseConnection(store: ApiStore, projectId: string, key: string) {
+  const connections = await listDatabaseConnections(store, projectId);
+  const connection = connections.find((item) => item.key === key);
+
+  if (!connection) {
+    throw Object.assign(new Error('Database connection not found for this project'), {
+      statusCode: 404,
+      code: 'DATABASE_CONNECTION_NOT_FOUND',
+    });
+  }
+
+  return connection;
+}
+
+async function inspectPostgresSchema(connectionString: string) {
+  const client = new PgClient({ connectionString });
+
+  await client.connect();
+
+  try {
+    const [tables, columns] = await Promise.all([
+      client.query(
+        "select table_schema, table_name, table_type from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200",
+      ),
+      client.query(
+        "select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name, ordinal_position limit 1000",
+      ),
+    ]);
+
+    return { tables: tables.rows, columns: columns.rows };
+  } finally {
+    await client.end();
+  }
+}
+
+async function inspectMysqlSchema(connectionString: string) {
+  const connection = await mysql.createConnection(connectionString);
+
+  try {
+    const [tables] = await connection.query(
+      'select table_schema, table_name, table_type from information_schema.tables where table_schema = database() order by table_name limit 200',
+    );
+    const [columns] = await connection.query(
+      'select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
+    );
+
+    return { tables: serializeDbRows(tables), columns: serializeDbRows(columns) };
+  } finally {
+    await connection.end();
+  }
+}
+
+async function inspectMongoSchema(connectionString: string) {
+  const client = new MongoClient(connectionString);
+
+  await client.connect();
+
+  try {
+    const database = client.db();
+    const collections = await database.listCollections({}, { nameOnly: true }).toArray();
+    const details = await Promise.all(
+      collections.slice(0, 80).map(async (collection) => {
+        const handle = database.collection(collection.name);
+        const [indexes, sample] = await Promise.all([
+          handle.indexes().catch(() => []),
+          handle.findOne().catch(() => null),
+        ]);
+
+        return { name: collection.name, indexes, sampleKeys: sample ? Object.keys(sample) : [] };
+      }),
+    );
+
+    return { collections: details };
+  } finally {
+    await client.close();
+  }
+}
+
+async function inspectRedisSchema(connectionString: string) {
+  const redis = new Redis(connectionString, { lazyConnect: true, maxRetriesPerRequest: 1 });
+
+  await redis.connect();
+
+  try {
+    const [info, keys] = await Promise.all([redis.info().catch(() => ''), redis.scan(0, 'COUNT', 100)]);
+    const sampledKeys = keys[1] ?? [];
+    const keyDetails = await Promise.all(
+      sampledKeys.slice(0, 50).map(async (key) => ({ key, type: await redis.type(key), ttl: await redis.ttl(key) })),
+    );
+
+    return { info: info.split('\n').slice(0, 20), keys: keyDetails };
+  } finally {
+    redis.disconnect();
+  }
+}
+
+async function runDatabaseQuery(
+  connection: DatabaseConnectionCandidate,
+  query: string,
+  collection?: string,
+  limit = 50,
+) {
+  if (connection.kind === 'postgres') {
+    assertReadOnlySql(query);
+    const client = new PgClient({ connectionString: connection.value });
+
+    await client.connect();
+
+    try {
+      const result = await client.query(query);
+
+      return {
+        columns: result.fields.map((field) => field.name),
+        rows: serializeDbRows(result.rows),
+        rowCount: result.rowCount,
+      };
+    } finally {
+      await client.end();
+    }
+  }
+
+  if (connection.kind === 'mysql') {
+    assertReadOnlySql(query);
+    const client = await mysql.createConnection(connection.value);
+
+    try {
+      const [rows, fields] = await client.query(query);
+
+      return {
+        columns: Array.isArray(fields) ? fields.map((field: any) => field.name).filter(Boolean) : [],
+        rows: serializeDbRows(rows),
+        rowCount: Array.isArray(rows) ? rows.length : undefined,
+      };
+    } finally {
+      await client.end();
+    }
+  }
+
+  if (connection.kind === 'redis') {
+    assertReadOnlyRedis(query);
+    const redis = new Redis(connection.value, { lazyConnect: true, maxRetriesPerRequest: 1 });
+
+    await redis.connect();
+
+    try {
+      const [command, ...args] = query.trim().split(/\s+/);
+      const result = await redis.call(command, ...args);
+
+      return { columns: ['result'], rows: [{ result: serializeDbRows(result) }], rowCount: 1 };
+    } finally {
+      redis.disconnect();
+    }
+  }
+
+  const client = new MongoClient(connection.value);
+
+  await client.connect();
+
+  try {
+    const parsed = JSON.parse(query) as Record<string, unknown>;
+    const database = client.db();
+    const targetCollection = collection || String(parsed.collection ?? '');
+
+    if (!targetCollection) {
+      const collections = await database.listCollections({}, { nameOnly: true }).toArray();
+
+      return {
+        columns: ['name'],
+        rows: collections.map((item) => ({ name: item.name })),
+        rowCount: collections.length,
+      };
+    }
+
+    const filter = typeof parsed.filter === 'object' && parsed.filter ? parsed.filter : {};
+    const projection = typeof parsed.projection === 'object' && parsed.projection ? parsed.projection : undefined;
+    const rows = await database
+      .collection(targetCollection)
+      .find(filter, { projection })
+      .limit(Math.max(1, Math.min(limit, 200)))
+      .toArray();
+
+    return { columns: rows[0] ? Object.keys(rows[0]) : [], rows: serializeDbRows(rows), rowCount: rows.length };
+  } finally {
+    await client.close();
+  }
 }
 
 async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
@@ -6218,6 +6565,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         updatedAt: secret.updatedAt,
       },
     };
+  });
+  app.get('/projects/:projectId/databases', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const connections = await listDatabaseConnections(store, project.id);
+
+    return {
+      connections: connections.map(({ value: _value, ...connection }) => ({
+        ...connection,
+        capabilities:
+          connection.kind === 'mongodb'
+            ? ['schema', 'find', 'readonly-json']
+            : connection.kind === 'redis'
+              ? ['schema', 'readonly-commands']
+              : ['schema', 'readonly-sql', 'query'],
+      })),
+      environments: ['development', 'preview', 'staging', 'production', 'shared'],
+    };
+  });
+  app.get('/projects/:projectId/databases/schema', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(databaseConnectionQuerySchema, request.query ?? {});
+    const connection = await requireDatabaseConnection(store, project.id, query.key);
+    const schema =
+      connection.kind === 'postgres'
+        ? await inspectPostgresSchema(connection.value)
+        : connection.kind === 'mysql'
+          ? await inspectMysqlSchema(connection.value)
+          : connection.kind === 'mongodb'
+            ? await inspectMongoSchema(connection.value)
+            : await inspectRedisSchema(connection.value);
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.schema.inspect',
+      metadata: { key: connection.key, kind: connection.kind },
+    });
+
+    return { schema };
+  });
+  app.post('/projects/:projectId/databases/query', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(databaseQuerySchema, request.body ?? {});
+    const connection = await requireDatabaseConnection(store, project.id, body.key);
+    const result = await runDatabaseQuery(connection, body.query, body.collection, body.limit);
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.query.readonly',
+      metadata: { key: connection.key, kind: connection.kind, rowCount: result.rowCount },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'database.query.readonly',
+      resourceType: 'projectDatabase',
+      resourceId: project.id,
+      metadata: { key: connection.key, kind: connection.kind, rowCount: result.rowCount },
+    });
+
+    return { result };
   });
   app.get('/projects/:projectId/collaborators', async (request) => {
     const project = await requireProject(

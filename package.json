@@ -207,6 +207,8 @@
     "lucide-react": "^0.485.0",
     "mime": "^4.0.4",
     "monaco-editor": "0.52.2",
+    "mongodb": "^7.2.0",
+    "mysql2": "^3.22.3",
     "nanostores": "^0.10.3",
     "nodemailer": "^8.0.7",
     "ollama-ai-provider": "^0.15.2",
