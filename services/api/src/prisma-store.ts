@@ -23,6 +23,7 @@ import type {
   OAuthConnectionRecord,
   OrganizationRecord,
   OrganizationInviteRecord,
+  ProjectActivityListOptions,
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
   ProjectEnvironmentRecord,
@@ -560,10 +561,45 @@ export class PrismaApiStore implements ApiStore {
     return mapProjectActivity(activity);
   }
 
-  async listProjectActivity(projectId: string) {
-    return (await this.prisma.projectActivity.findMany({ where: { projectId }, orderBy: { createdAt: 'asc' } })).map(
-      mapProjectActivity,
-    );
+  async listProjectActivity(projectId: string, options: ProjectActivityListOptions = {}) {
+    const limit = options.limit ? Math.min(Math.max(options.limit, 1), 200) : undefined;
+    const where: any = { projectId };
+
+    if (options.action) {
+      where.action = options.action;
+    }
+
+    if (options.actorUserId) {
+      where.actorUserId = options.actorUserId;
+    }
+
+    if (options.since || options.until) {
+      where.createdAt = {
+        ...(options.since ? { gte: new Date(options.since) } : {}),
+        ...(options.until ? { lte: new Date(options.until) } : {}),
+      };
+    }
+
+    const records = (
+      await this.prisma.projectActivity.findMany({
+        where,
+        orderBy: { createdAt: options.order ?? 'asc' },
+      })
+    ).map(mapProjectActivity);
+
+    const search = options.search?.trim().toLowerCase();
+    const filtered = search
+      ? records.filter(
+          (activity) =>
+            activity.action.toLowerCase().includes(search) ||
+            activity.actorUserId?.toLowerCase().includes(search) ||
+            JSON.stringify(activity.metadata ?? {})
+              .toLowerCase()
+              .includes(search),
+        )
+      : records;
+
+    return typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
   }
 
   async getProjectIdeState(projectId: string) {

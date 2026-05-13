@@ -23,6 +23,7 @@ import type {
   OAuthConnectionRecord,
   OrganizationInviteRecord,
   OrganizationRecord,
+  ProjectActivityListOptions,
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
   ProjectEnvironmentRecord,
@@ -590,8 +591,31 @@ export class TestApiStore implements ApiStore {
     return activity;
   }
 
-  async listProjectActivity(projectId: string) {
-    return [...this.projectActivity.values()].filter((activity) => activity.projectId === projectId);
+  async listProjectActivity(projectId: string, options: ProjectActivityListOptions = {}) {
+    const limit = options.limit ? Math.min(Math.max(options.limit, 1), 200) : undefined;
+    const search = options.search?.trim().toLowerCase();
+
+    const activities = [...this.projectActivity.values()]
+      .filter((activity) => activity.projectId === projectId)
+      .filter((activity) => !options.action || activity.action === options.action)
+      .filter((activity) => !options.actorUserId || activity.actorUserId === options.actorUserId)
+      .filter((activity) => !options.since || new Date(activity.createdAt) >= new Date(options.since))
+      .filter((activity) => !options.until || new Date(activity.createdAt) <= new Date(options.until))
+      .filter(
+        (activity) =>
+          !search ||
+          activity.action.toLowerCase().includes(search) ||
+          activity.actorUserId?.toLowerCase().includes(search) ||
+          JSON.stringify(activity.metadata ?? {})
+            .toLowerCase()
+            .includes(search),
+      )
+      .sort((left, right) => {
+        const delta = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+        return options.order === 'desc' ? -delta : delta;
+      });
+
+    return typeof limit === 'number' ? activities.slice(0, limit) : activities;
   }
 
   async getProjectIdeState(projectId: string) {

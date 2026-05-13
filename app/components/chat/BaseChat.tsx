@@ -4127,6 +4127,7 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   const [payload, setPayload] = useState<any>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<string>();
   const selectedFile = useStore(workbenchStore.selectedFile);
 
   const collaborationRealtime = useProjectCollaboration({
@@ -4160,44 +4161,65 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
     return response;
   }, []);
 
-  const loadPanel = useCallback(async () => {
-    if (!projectId) {
-      return;
-    }
-
-    setBusy(true);
-    setError(undefined);
-
-    try {
-      const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
-        headers: { accept: 'application/json' },
-      });
-      const result = (await response.json()) as {
-        error?: { code: string; message: string; retryable: boolean } | string;
-        status?: 'ok' | 'empty' | 'error';
-      };
-
-      if (!response.ok) {
-        const message = typeof result.error === 'string' ? result.error : result.error?.message;
-        throw new Error(message ?? 'Unable to load IDE panel');
+  const loadPanel = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!projectId) {
+        return;
       }
 
-      if (result.status === 'error' && typeof result.error === 'object' && result.error) {
-        setError(`[${result.error.code}] ${result.error.message}`);
+      if (!options?.silent) {
+        setBusy(true);
       }
 
-      setPayload(result);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
-      setPayload(undefined);
-    } finally {
-      setBusy(false);
-    }
-  }, [fetchPanel, panel, projectId]);
+      setError(undefined);
+
+      try {
+        const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
+          headers: { accept: 'application/json' },
+        });
+        const result = (await response.json()) as {
+          error?: { code: string; message: string; retryable: boolean } | string;
+          status?: 'ok' | 'empty' | 'error';
+        };
+
+        if (!response.ok) {
+          const message = typeof result.error === 'string' ? result.error : result.error?.message;
+          throw new Error(message ?? 'Unable to load IDE panel');
+        }
+
+        if (result.status === 'error' && typeof result.error === 'object' && result.error) {
+          setError(`[${result.error.code}] ${result.error.message}`);
+        }
+
+        setPayload(result);
+        setLastLoadedAt(new Date().toISOString());
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
+        setPayload(undefined);
+      } finally {
+        if (!options?.silent) {
+          setBusy(false);
+        }
+      }
+    },
+    [fetchPanel, panel, projectId],
+  );
 
   useEffect(() => {
     void loadPanel();
   }, [loadPanel]);
+
+  useEffect(() => {
+    if (!['activity', 'logs', 'monitoring'].includes(panel)) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadPanel({ silent: true });
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [loadPanel, panel]);
 
   useEffect(() => {
     if (panel !== 'collaborators' || !collaborationRealtime.snapshot) {
@@ -4313,6 +4335,7 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
             onSubmit={submit}
             busy={busy}
             reload={loadPanel}
+            lastLoadedAt={lastLoadedAt}
           />
         )}
       </div>
@@ -5541,6 +5564,7 @@ function ProjectIdePanelContent({
   onSubmit,
   busy,
   reload,
+  lastLoadedAt,
 }: {
   panel: string;
   data: any;
@@ -5549,6 +5573,7 @@ function ProjectIdePanelContent({
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   busy: boolean;
   reload?: () => void | Promise<void>;
+  lastLoadedAt?: string;
 }) {
   if (panel === 'overview') {
     const rows = [
@@ -5981,18 +6006,239 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'activity') {
-    return (
-      <PanelRows
-        rows={(data.activity ?? []).map((event: any) => [
-          event.action,
-          event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
-        ])}
-        empty="No activity yet."
-      />
-    );
+    return <ProjectActivityPanel data={data} reload={reload} busy={busy} lastLoadedAt={lastLoadedAt} />;
   }
 
   return <PanelRows rows={[]} empty="Panel not available." />;
+}
+
+function ProjectActivityPanel({
+  data,
+  reload,
+  busy,
+  lastLoadedAt,
+}: {
+  data: any;
+  reload?: () => void | Promise<void>;
+  busy: boolean;
+  lastLoadedAt?: string;
+}) {
+  const events = data.activity ?? [];
+  const [query, setQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
+  const [actorFilter, setActorFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState<'all' | '15m' | '1h' | '24h'>('all');
+  const [expandedEventId, setExpandedEventId] = useState<string>();
+
+  const filterOptions = useMemo(() => {
+    const actions = Array.from(new Set(events.map((event: any) => event.action).filter(Boolean))).sort() as string[];
+
+    const actors = Array.from(
+      new Set(events.map((event: any) => event.actorUserId).filter(Boolean)),
+    ).sort() as string[];
+
+    return { actions, actors };
+  }, [events]);
+
+  const filteredEvents = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    const now = Date.now();
+
+    const periodMs =
+      periodFilter === '15m'
+        ? 15 * 60 * 1000
+        : periodFilter === '1h'
+          ? 60 * 60 * 1000
+          : periodFilter === '24h'
+            ? 24 * 60 * 60 * 1000
+            : 0;
+
+    return events.filter((event: any) => {
+      if (actionFilter !== 'all' && event.action !== actionFilter) {
+        return false;
+      }
+
+      if (actorFilter !== 'all' && event.actorUserId !== actorFilter) {
+        return false;
+      }
+
+      if (periodMs && event.createdAt && now - new Date(event.createdAt).getTime() > periodMs) {
+        return false;
+      }
+
+      if (!search) {
+        return true;
+      }
+
+      return (
+        String(event.action ?? '')
+          .toLowerCase()
+          .includes(search) ||
+        String(event.actorUserId ?? '')
+          .toLowerCase()
+          .includes(search) ||
+        JSON.stringify(event.metadata ?? {})
+          .toLowerCase()
+          .includes(search)
+      );
+    });
+  }, [actionFilter, actorFilter, events, periodFilter, query]);
+
+  const ideSaveCount = events.filter((event: any) => event.action === 'project.ide_state.save').length;
+  const importantCount = events.filter((event: any) => classifyProjectActivity(event.action) !== 'routine').length;
+
+  return (
+    <section className="bolt-project-activity-panel" aria-label="Project activity audit trail">
+      <header className="bolt-project-activity-hero">
+        <div>
+          <span className="bolt-project-activity-eyebrow">Audit trail</span>
+          <h3>Project activity</h3>
+          <p>
+            Backend activity, collaboration changes and operational events. Routine IDE UI saves are suppressed before
+            they reach the activity stream.
+          </p>
+        </div>
+        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+          <span className="i-ph:arrows-clockwise" aria-hidden />
+          {busy ? 'Refreshing' : 'Refresh now'}
+        </button>
+      </header>
+
+      <div className="bolt-project-activity-metrics" aria-label="Activity summary">
+        <article>
+          <span>Total events</span>
+          <strong>{events.length}</strong>
+          <small>
+            {lastLoadedAt ? `Updated ${new Date(lastLoadedAt).toLocaleTimeString()}` : 'Live refresh every 15s'}
+          </small>
+        </article>
+        <article>
+          <span>Important</span>
+          <strong>{importantCount}</strong>
+          <small>Exports, deploys, collaborators, Git and runtime actions</small>
+        </article>
+        <article data-tone={ideSaveCount > 10 ? 'warning' : 'neutral'}>
+          <span>IDE state saves</span>
+          <strong>{ideSaveCount}</strong>
+          <small>{ideSaveCount > 10 ? 'Legacy noise detected in current window' : 'Noise controlled'}</small>
+        </article>
+      </div>
+
+      <div className="bolt-project-activity-filters">
+        <label>
+          <span>Search</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Find action, user or payload..."
+            aria-label="Search project activity"
+          />
+        </label>
+        <label>
+          <span>Type</span>
+          <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
+            <option value="all">All event types</option>
+            {filterOptions.actions.map((action: string) => (
+              <option key={action} value={action}>
+                {formatProjectActivityAction(action)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>User</span>
+          <select value={actorFilter} onChange={(event) => setActorFilter(event.target.value)}>
+            <option value="all">All users</option>
+            {filterOptions.actors.map((actor: string) => (
+              <option key={actor} value={actor}>
+                {actor}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Period</span>
+          <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as any)}>
+            <option value="all">All time</option>
+            <option value="15m">Last 15 minutes</option>
+            <option value="1h">Last hour</option>
+            <option value="24h">Last 24 hours</option>
+          </select>
+        </label>
+      </div>
+
+      <div className="bolt-project-activity-list" role="list" aria-live="polite">
+        {filteredEvents.length ? (
+          filteredEvents.map((event: any) => {
+            const expanded = expandedEventId === event.id;
+            const severity = classifyProjectActivity(event.action);
+
+            return (
+              <article key={event.id} className="bolt-project-activity-event" data-severity={severity} role="listitem">
+                <button
+                  type="button"
+                  className="bolt-project-activity-event-main"
+                  onClick={() => setExpandedEventId(expanded ? undefined : event.id)}
+                  aria-expanded={expanded}
+                >
+                  <span className="bolt-project-activity-dot" aria-hidden />
+                  <span>
+                    <strong>{formatProjectActivityAction(event.action)}</strong>
+                    <small>
+                      {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by backend'}
+                      {event.actorUserId ? ` · ${event.actorUserId}` : ' · system'}
+                    </small>
+                  </span>
+                  <em>{severity}</em>
+                  <span className={expanded ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
+                </button>
+                {expanded ? (
+                  <pre className="bolt-project-activity-payload">
+                    {JSON.stringify(
+                      {
+                        id: event.id,
+                        action: event.action,
+                        actorUserId: event.actorUserId ?? null,
+                        createdAt: event.createdAt,
+                        metadata: event.metadata ?? {},
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                ) : null}
+              </article>
+            );
+          })
+        ) : (
+          <div className="bolt-project-empty-panel">No activity matches the current filters.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function formatProjectActivityAction(action: string) {
+  return String(action ?? 'project.activity')
+    .replace(/^project\./, '')
+    .replace(/\./g, ' / ')
+    .replace(/_/g, ' ');
+}
+
+function classifyProjectActivity(action: string) {
+  if (/delete|fail|error|rollback|abuse|revoke/i.test(action)) {
+    return 'critical';
+  }
+
+  if (/deploy|export|import|create_from_ai|collaborator|secret|snapshot|git|domain/i.test(action)) {
+    return 'important';
+  }
+
+  if (action === 'project.ide_state.save') {
+    return 'routine';
+  }
+
+  return 'normal';
 }
 
 function ProjectSettingsPanel({

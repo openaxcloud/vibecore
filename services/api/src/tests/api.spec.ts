@@ -1913,6 +1913,16 @@ describe('SaaS API', () => {
         .activity.filter((event: { action: string }) => event.action === 'project.ide_state.save').length,
     ).toBe(ideSaveEventsBeforeUiOnly);
 
+    const filteredActivity = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/activity?action=project.ide_state.save&search=version&limit=5&order=desc`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(filteredActivity.statusCode).toBe(200);
+    expect(filteredActivity.json().activity).toHaveLength(1);
+    expect(filteredActivity.json().activity[0].action).toBe('project.ide_state.save');
+    expect(filteredActivity.json().filters.applied.limit).toBe(5);
+
     const clearIdeStateChat = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,

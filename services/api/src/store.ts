@@ -113,6 +113,16 @@ export interface ProjectActivityRecord {
   createdAt: string;
 }
 
+export interface ProjectActivityListOptions {
+  action?: string;
+  actorUserId?: string;
+  search?: string;
+  since?: string;
+  until?: string;
+  limit?: number;
+  order?: 'asc' | 'desc';
+}
+
 export interface ProjectTemplateRecord {
   id: string;
   sourceProjectId: string;
@@ -527,7 +537,7 @@ export interface ApiStore {
     action: string;
     metadata?: Record<string, unknown>;
   }): Promise<ProjectActivityRecord>;
-  listProjectActivity(projectId: string): Promise<ProjectActivityRecord[]>;
+  listProjectActivity(projectId: string, options?: ProjectActivityListOptions): Promise<ProjectActivityRecord[]>;
   getProjectIdeState(projectId: string): Promise<ProjectIdeStateRecord | undefined>;
   upsertProjectIdeState(input: {
     projectId: string;

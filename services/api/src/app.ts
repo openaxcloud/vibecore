@@ -222,6 +222,15 @@ const projectSettingsSchema = z.object({
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
+const projectActivityQuerySchema = z.object({
+  action: z.string().min(1).max(160).optional(),
+  actorUserId: z.string().min(1).max(160).optional(),
+  search: z.string().max(240).optional(),
+  since: z.string().datetime().optional(),
+  until: z.string().datetime().optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+  order: z.enum(['asc', 'desc']).default('desc'),
+});
 const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
 const agentMemoryTypeSchema = z.enum(['episodic', 'semantic', 'procedural', 'working', 'cache']);
 const agentMemoryWriteSchema = z.object({
@@ -5573,7 +5582,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       workspace: (await store.listWorkspaces(project.id))[0] ?? null,
       files: publicFiles(await projectStorage.listFiles(project.id)),
       git: await gitProvider.status(project.id),
-      recentActivity: (await store.listProjectActivity(project.id)).slice(-20),
+      recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
     };
   });
   app.get('/projects/:projectId/homepage-preview.svg', async (request, reply) => {
@@ -6357,8 +6366,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const query = parse(projectActivityQuerySchema, request.query ?? {});
+    const activity = await store.listProjectActivity(project.id, query);
+    const actions = Array.from(new Set(activity.map((event) => event.action))).sort();
+    const actors = Array.from(new Set(activity.map((event) => event.actorUserId).filter(Boolean) as string[])).sort();
 
-    return { activity: await store.listProjectActivity(project.id) };
+    return {
+      activity,
+      filters: {
+        actions,
+        actors,
+        applied: query,
+      },
+    };
   });
   app.delete('/projects/:projectId', async (request) => {
     const project = await requireProject(
