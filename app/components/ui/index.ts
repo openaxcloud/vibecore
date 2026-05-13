@@ -2,6 +2,7 @@
 
 // Core components
 export * from './Badge';
+export * from './Avatar';
 export * from './Button';
 export * from './Card';
 export * from './Checkbox';
@@ -10,10 +11,13 @@ export * from './Dialog';
 export * from './IconButton';
 export * from './Input';
 export * from './Label';
+export * from './RangeSlider';
 export * from './ScrollArea';
+export * from './Select';
 export * from './Switch';
 export * from './Tabs';
 export * from './ThemeSwitch';
+export * from './ToggleGroup';
 
 // Loading components
 export * from './LoadingDots';
