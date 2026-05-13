@@ -738,11 +738,19 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
-  attachTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachTerminal(terminal);
+  attachTerminal(terminal: ITerminal, command?: string) {
+    this.#terminalStore.attachTerminal(terminal, command);
   }
   attachBoltTerminal(terminal: ITerminal) {
     this.#terminalStore.attachBoltTerminal(terminal);
+  }
+
+  restartBoltTerminal(terminal: ITerminal) {
+    this.#terminalStore.restartBoltTerminal(terminal);
+  }
+
+  restartTerminal(terminal: ITerminal, command?: string) {
+    this.#terminalStore.restartTerminal(terminal, command);
   }
 
   detachTerminal(terminal: ITerminal) {

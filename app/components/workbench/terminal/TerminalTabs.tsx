@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
 import { TerminalManager } from './TerminalManager';
@@ -12,8 +12,46 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Terminal');
 
-const MAX_TERMINALS = 3;
-export const DEFAULT_TERMINAL_SIZE = 25;
+const MAX_TERMINALS = 4;
+const TERMINAL_UI_STORAGE_KEY = 'vibecore-terminal-ui-v1';
+export const DEFAULT_TERMINAL_SIZE = 34;
+
+type TerminalProfile = 'managed' | 'bash' | 'zsh' | 'sh';
+type TerminalUiState = {
+  activeTerminal: number;
+  terminalCount: number;
+  profile: TerminalProfile;
+  splitView: boolean;
+};
+
+const terminalProfiles: Array<{ id: TerminalProfile; label: string; command?: string }> = [
+  { id: 'managed', label: 'Managed shell' },
+  { id: 'bash', label: 'bash', command: '/bin/bash' },
+  { id: 'zsh', label: 'zsh', command: '/bin/zsh' },
+  { id: 'sh', label: 'sh', command: '/bin/sh' },
+];
+
+function readTerminalUiState(): TerminalUiState {
+  if (typeof window === 'undefined') {
+    return { activeTerminal: 0, terminalCount: 0, profile: 'managed' as TerminalProfile, splitView: false };
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(TERMINAL_UI_STORAGE_KEY) ?? '{}');
+
+    return {
+      activeTerminal: typeof parsed.activeTerminal === 'number' ? Math.max(0, parsed.activeTerminal) : 0,
+      terminalCount:
+        typeof parsed.terminalCount === 'number' ? Math.min(MAX_TERMINALS - 1, Math.max(0, parsed.terminalCount)) : 0,
+      profile: terminalProfiles.some((profile) => profile.id === parsed.profile)
+        ? (parsed.profile as TerminalProfile)
+        : ('managed' as TerminalProfile),
+      splitView: typeof parsed.splitView === 'boolean' ? parsed.splitView : false,
+    };
+  } catch {
+    return { activeTerminal: 0, terminalCount: 0, profile: 'managed' as TerminalProfile, splitView: false };
+  }
+}
 
 interface TerminalTabsProps {
   panelDefaultSize?: number;
@@ -27,14 +65,21 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const terminalPanelRef = useRef<ImperativePanelHandle>(null);
   const terminalToggledByShortcut = useRef(false);
 
-  const [activeTerminal, setActiveTerminal] = useState(0);
-  const [terminalCount, setTerminalCount] = useState(0);
+  const initialUiState = useMemo(readTerminalUiState, []);
+  const [activeTerminal, setActiveTerminal] = useState(initialUiState.activeTerminal);
+  const [terminalCount, setTerminalCount] = useState(initialUiState.terminalCount);
   const [terminalSize, setTerminalSize] = useState({ cols: 0, rows: 0 });
+  const [profile, setProfile] = useState<TerminalProfile>(initialUiState.profile);
+  const [splitView, setSplitView] = useState(initialUiState.splitView);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const activeProfile = terminalProfiles.find((item) => item.id === profile) ?? terminalProfiles[0];
 
   const addTerminal = () => {
     if (terminalCount < MAX_TERMINALS) {
-      setTerminalCount(terminalCount + 1);
-      setActiveTerminal(terminalCount);
+      const nextCount = terminalCount + 1;
+      setTerminalCount(nextCount);
+      setActiveTerminal(nextCount);
     }
   };
 
@@ -70,6 +115,31 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   );
 
   useEffect(() => {
+    if (activeTerminal > terminalCount) {
+      setActiveTerminal(terminalCount);
+    }
+  }, [activeTerminal, terminalCount]);
+
+  useEffect(() => {
+    if (!splitView || terminalCount > 0) {
+      return;
+    }
+
+    setTerminalCount(1);
+  }, [splitView, terminalCount]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.localStorage.setItem(
+      TERMINAL_UI_STORAGE_KEY,
+      JSON.stringify({ activeTerminal, terminalCount, profile, splitView }),
+    );
+  }, [activeTerminal, terminalCount, profile, splitView]);
+
+  useEffect(() => {
     return () => {
       terminalRefs.current.forEach((ref, index) => {
         if (index > 0 && ref?.getTerminal) {
@@ -82,6 +152,76 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
       });
     };
   }, []);
+
+  const restartActiveTerminal = useCallback(() => {
+    const ref = terminalRefs.current.get(activeTerminal);
+    const terminal = ref?.getTerminal();
+
+    if (!terminal) {
+      return;
+    }
+
+    terminal.reset();
+    terminal.clear();
+    terminal.focus();
+
+    if (activeTerminal === 0) {
+      void workbenchStore.restartBoltTerminal(terminal);
+    } else {
+      void workbenchStore.restartTerminal(terminal, activeProfile.command);
+    }
+  }, [activeProfile.command, activeTerminal]);
+
+  const killActiveTerminal = useCallback(() => {
+    const ref = terminalRefs.current.get(activeTerminal);
+    const terminal = ref?.getTerminal();
+
+    if (!terminal) {
+      return;
+    }
+
+    if (activeTerminal === 0) {
+      terminal.input('\x03');
+      terminal.write('\r\n^C\r\n');
+    } else {
+      void workbenchStore.detachTerminal(terminal);
+      terminal.write('\r\nProcess killed. Use Restart to open a new shell.\r\n');
+    }
+  }, [activeTerminal]);
+
+  const clearActiveTerminal = useCallback(() => {
+    terminalRefs.current.get(activeTerminal)?.clear();
+    terminalRefs.current.get(activeTerminal)?.getTerminal()?.focus();
+  }, [activeTerminal]);
+
+  const findInActiveTerminal = useCallback(
+    (direction: 'next' | 'previous' = 'next') => {
+      const query = searchQuery.trim();
+
+      if (!query) {
+        return;
+      }
+
+      const ref = terminalRefs.current.get(activeTerminal);
+
+      if (direction === 'next') {
+        ref?.findNext(query);
+      } else {
+        ref?.findPrevious(query);
+      }
+    },
+    [activeTerminal, searchQuery],
+  );
+
+  const visibleTerminalIndexes = useMemo(() => {
+    if (!splitView) {
+      return [activeTerminal];
+    }
+
+    const secondary = activeTerminal === 0 ? 1 : 0;
+
+    return Array.from(new Set([activeTerminal, Math.min(terminalCount, secondary)]));
+  }, [activeTerminal, splitView, terminalCount]);
 
   useEffect(() => {
     const { current: terminal } = terminalPanelRef;
@@ -180,7 +320,44 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 );
               })}
             </div>
-            <div className="bolt-terminal-runtime-meta" aria-label="Terminal runtime status">
+            <label className="bolt-terminal-profile-select">
+              <span>Profile</span>
+              <select
+                aria-label="Terminal profile"
+                value={profile}
+                onChange={(event) => setProfile(event.target.value as TerminalProfile)}
+              >
+                {terminalProfiles.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="bolt-terminal-search" role="search">
+              <input
+                aria-label="Search terminal scrollback"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    findInActiveTerminal(event.shiftKey ? 'previous' : 'next');
+                  }
+                }}
+                placeholder="Search terminal"
+              />
+              <button
+                type="button"
+                aria-label="Find previous terminal match"
+                onClick={() => findInActiveTerminal('previous')}
+              >
+                <span className="i-ph:caret-up" aria-hidden />
+              </button>
+              <button type="button" aria-label="Find next terminal match" onClick={() => findInActiveTerminal('next')}>
+                <span className="i-ph:caret-down" aria-hidden />
+              </button>
+            </div>
+            <div className="bolt-terminal-runtime-meta" aria-label="Terminal PTY size">
               <span className="bolt-terminal-runtime-dot" aria-hidden />
               <span>PTY</span>
               {terminalSize.cols > 0 && terminalSize.rows > 0 ? (
@@ -191,28 +368,31 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
             </div>
             <div className="bolt-terminal-actions">
               {terminalCount < MAX_TERMINALS && (
-                <IconButton icon="i-ph:plus" title="New terminal" size="md" onClick={addTerminal} />
+                <button type="button" className="bolt-terminal-action-button" onClick={addTerminal}>
+                  <span className="i-ph:plus" aria-hidden />
+                  New
+                </button>
               )}
-              <IconButton
-                icon="i-ph:arrow-clockwise"
-                title="Reset Terminal"
-                size="md"
-                onClick={() => {
-                  const ref = terminalRefs.current.get(activeTerminal);
-
-                  if (ref?.getTerminal()) {
-                    const terminal = ref.getTerminal()!;
-                    terminal.clear();
-                    terminal.focus();
-
-                    if (activeTerminal === 0) {
-                      workbenchStore.attachBoltTerminal(terminal);
-                    } else {
-                      workbenchStore.attachTerminal(terminal);
-                    }
-                  }
-                }}
-              />
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                onClick={() => setSplitView((value) => !value)}
+              >
+                <span className="i-ph:columns" aria-hidden />
+                {splitView ? 'Unsplit' : 'Split'}
+              </button>
+              <button type="button" className="bolt-terminal-action-button" onClick={clearActiveTerminal}>
+                <span className="i-ph:eraser" aria-hidden />
+                Clear
+              </button>
+              <button type="button" className="bolt-terminal-action-button" onClick={killActiveTerminal}>
+                <span className="i-ph:stop" aria-hidden />
+                Kill
+              </button>
+              <button type="button" className="bolt-terminal-action-button" onClick={restartActiveTerminal}>
+                <span className="i-ph:arrow-clockwise" aria-hidden />
+                Restart
+              </button>
               <IconButton
                 icon="i-ph:caret-down"
                 title="Close"
@@ -221,14 +401,14 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               />
             </div>
           </div>
-          {Array.from({ length: terminalCount + 1 }, (_, index) => {
-            const isActive = activeTerminal === index;
+          <div className={classNames('bolt-terminal-viewports', { 'is-split': splitView })}>
+            {Array.from({ length: terminalCount + 1 }, (_, index) => {
+              const isActive = visibleTerminalIndexes.includes(index);
 
-            logger.debug(`Starting bolt terminal [${index}]`);
+              logger.debug(`Starting bolt terminal [${index}]`);
 
-            if (index == 0) {
-              return (
-                <React.Fragment key={`terminal-container-${index}`}>
+              if (index == 0) {
+                return (
                   <Terminal
                     key={`terminal-${index}`}
                     id={`terminal_${index}`}
@@ -252,15 +432,9 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                     }}
                     theme={theme}
                   />
-                  <TerminalManager
-                    terminal={terminalRefs.current.get(index)?.getTerminal() || null}
-                    isActive={isActive}
-                  />
-                </React.Fragment>
-              );
-            } else {
-              return (
-                <React.Fragment key={`terminal-container-${index}`}>
+                );
+              } else {
+                return (
                   <Terminal
                     key={`terminal-${index}`}
                     id={`terminal_${index}`}
@@ -274,21 +448,24 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                         terminalRefs.current.delete(index);
                       }
                     }}
-                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
+                    onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal, activeProfile.command)}
                     onTerminalResize={(cols, rows) => {
                       setTerminalSize({ cols, rows });
                       workbenchStore.onTerminalResize(cols, rows);
                     }}
                     theme={theme}
                   />
-                  <TerminalManager
-                    terminal={terminalRefs.current.get(index)?.getTerminal() || null}
-                    isActive={isActive}
-                  />
-                </React.Fragment>
-              );
-            }
-          })}
+                );
+              }
+            })}
+          </div>
+          {Array.from({ length: terminalCount + 1 }, (_, index) => (
+            <TerminalManager
+              key={`terminal-manager-${index}`}
+              terminal={terminalRefs.current.get(index)?.getTerminal() || null}
+              isActive={visibleTerminalIndexes.includes(index)}
+            />
+          ))}
         </div>
       </div>
     </Panel>

@@ -6044,8 +6044,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-bottom-terminal-shell {
   position: relative;
   flex: 0 0 var(--project-terminal-height);
-  min-height: 100px;
-  max-height: 600px;
+  min-height: 320px;
+  max-height: 720px;
   height: var(--project-terminal-height);
   transition:
     flex-basis var(--vc-animation-split-panel),

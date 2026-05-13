@@ -4,10 +4,12 @@ import { withResolvers } from './promises';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import type { ITerminal } from '~/types/terminal';
 
-export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITerminal) {
+export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITerminal, command = '/bin/jsh') {
+  const useJshOsc = command === '/bin/jsh';
+
   const session = await runtime.openTerminal({
-    command: '/bin/jsh',
-    args: ['--osc'],
+    command,
+    ...(useJshOsc ? { args: ['--osc'] } : {}),
     terminal: {
       cols: terminal.cols ?? 80,
       rows: terminal.rows ?? 15,
@@ -16,7 +18,7 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
 
   const jshReady = withResolvers<void>();
 
-  let isInteractive = false;
+  let isInteractive = !useJshOsc;
 
   void (async () => {
     for await (const event of session.events) {
@@ -26,7 +28,7 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
         continue;
       }
 
-      if (!isInteractive) {
+      if (useJshOsc && !isInteractive) {
         const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
 
         if (osc === 'interactive') {
@@ -77,7 +79,9 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
     }
   });
 
-  await jshReady.promise;
+  if (useJshOsc) {
+    await jshReady.promise;
+  }
 
   return session;
 }

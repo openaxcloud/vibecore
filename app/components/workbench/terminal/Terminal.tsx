@@ -1,4 +1,5 @@
 import { FitAddon } from '@xterm/addon-fit';
+import { SearchAddon } from '@xterm/addon-search';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
@@ -11,6 +12,10 @@ const logger = createScopedLogger('Terminal');
 export interface TerminalRef {
   reloadStyles: () => void;
   getTerminal: () => XTerm | undefined;
+  clear: () => void;
+  findNext: (term: string) => boolean;
+  findPrevious: (term: string) => boolean;
+  fit: () => void;
 }
 
 export interface TerminalProps {
@@ -28,6 +33,7 @@ export const Terminal = memo(
       const terminalElementRef = useRef<HTMLDivElement>(null);
       const terminalRef = useRef<XTerm>();
       const fitAddonRef = useRef<FitAddon>();
+      const searchAddonRef = useRef<SearchAddon>();
       const resizeObserverRef = useRef<ResizeObserver>();
       const resizeFrameRef = useRef<number>();
 
@@ -35,8 +41,10 @@ export const Terminal = memo(
         const element = terminalElementRef.current!;
 
         const fitAddon = new FitAddon();
+        const searchAddon = new SearchAddon();
         const webLinksAddon = new WebLinksAddon();
         fitAddonRef.current = fitAddon;
+        searchAddonRef.current = searchAddon;
 
         const terminal = new XTerm({
           cursorBlink: true,
@@ -58,6 +66,7 @@ export const Terminal = memo(
         // Error handling for addon loading
         try {
           terminal.loadAddon(fitAddon);
+          terminal.loadAddon(searchAddon);
           terminal.loadAddon(webLinksAddon);
           terminal.open(element);
         } catch (error) {
@@ -133,6 +142,18 @@ export const Terminal = memo(
           },
           getTerminal: () => {
             return terminalRef.current;
+          },
+          clear: () => {
+            terminalRef.current?.clear();
+          },
+          findNext: (term: string) => {
+            return searchAddonRef.current?.findNext(term) ?? false;
+          },
+          findPrevious: (term: string) => {
+            return searchAddonRef.current?.findPrevious(term) ?? false;
+          },
+          fit: () => {
+            fitAddonRef.current?.fit();
           },
         };
       }, [readonly]);

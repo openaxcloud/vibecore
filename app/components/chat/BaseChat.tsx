@@ -65,6 +65,26 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
+const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
+
+function readProjectBottomTerminalUiState() {
+  if (typeof window === 'undefined') {
+    return { height: 420, open: false, stored: false };
+  }
+
+  try {
+    const stored = window.localStorage.getItem(PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY);
+    const parsed = JSON.parse(stored ?? '{}');
+
+    return {
+      height: typeof parsed.height === 'number' ? Math.min(720, Math.max(320, parsed.height)) : 420,
+      open: typeof parsed.open === 'boolean' ? parsed.open : false,
+      stored: Boolean(stored),
+    };
+  } catch {
+    return { height: 420, open: false, stored: false };
+  }
+}
 
 const IDE_MANAGEMENT_PANELS = [
   'overview',
@@ -1130,8 +1150,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
     const [agentWidth, setAgentWidth] = useState(420);
-    const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
-    const [terminalBottomHeight, setTerminalBottomHeight] = useState(240);
+    const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
+    const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
+    const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -1619,12 +1640,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setAgentWidth(Math.min(640, Math.max(360, ui.agentWidth)));
           }
 
-          if (typeof ui?.terminalBottomOpen === 'boolean') {
+          const localBottomTerminalUiState = readProjectBottomTerminalUiState();
+
+          if (localBottomTerminalUiState.stored) {
+            setTerminalBottomOpen(localBottomTerminalUiState.open);
+            setTerminalBottomHeight(localBottomTerminalUiState.height);
+          } else if (typeof ui?.terminalBottomOpen === 'boolean') {
             setTerminalBottomOpen(ui.terminalBottomOpen);
           }
 
-          if (typeof ui?.terminalBottomHeight === 'number') {
-            setTerminalBottomHeight(Math.min(600, Math.max(100, ui.terminalBottomHeight)));
+          if (!localBottomTerminalUiState.stored && typeof ui?.terminalBottomHeight === 'number') {
+            setTerminalBottomHeight(Math.min(720, Math.max(320, ui.terminalBottomHeight)));
           }
 
           if (ui?.cursorPositions && typeof ui.cursorPositions === 'object') {
@@ -2148,7 +2174,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const startHeight = terminalBottomHeight;
 
         const onMove = (moveEvent: MouseEvent) => {
-          const nextHeight = Math.min(600, Math.max(100, startHeight + startY - moveEvent.clientY));
+          const nextHeight = Math.min(720, Math.max(320, startHeight + startY - moveEvent.clientY));
           setTerminalBottomHeight(nextHeight);
         };
 
@@ -2188,6 +2214,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [rightPanelWidth],
     );
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      window.localStorage.setItem(
+        PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY,
+        JSON.stringify({ height: terminalBottomHeight, open: terminalBottomOpen }),
+      );
+    }, [terminalBottomHeight, terminalBottomOpen]);
 
     useEffect(() => {
       if (!projectIdeMode || useMobileIde) {
@@ -3568,11 +3605,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     onMouseDown={startTerminalResize}
                   />
                   <div className="bolt-project-bottom-terminal-frame">
-                    <ProjectBottomTerminal
-                      projectId={projectId}
-                      terminalHeight={terminalBottomHeight}
-                      onClose={() => setTerminalBottomOpen(false)}
-                    />
+                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
                   </div>
                 </div>
               )}
@@ -4352,15 +4385,7 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 }
 
-function ProjectBottomTerminal({
-  projectId,
-  terminalHeight,
-  onClose,
-}: {
-  projectId?: string;
-  terminalHeight: number;
-  onClose: () => void;
-}) {
+function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
   const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
@@ -4394,15 +4419,9 @@ function ProjectBottomTerminal({
             <span aria-hidden />
             {workspaceLabel}
           </span>
-          <span className="bolt-project-bottom-terminal-size">{terminalHeight}px</span>
-          <select
-            className="bolt-project-bottom-terminal-session"
-            aria-label="Backend runtime session"
-            value={backendSessionId}
-            onChange={() => undefined}
-          >
-            <option value={backendSessionId}>{workspaceLabel}</option>
-          </select>
+          <span className="bolt-project-bottom-terminal-session" title={backendSessionId}>
+            Session {backendSessionId === 'no-workspace' ? 'pending' : backendSessionId.slice(0, 8)}
+          </span>
           <button
             type="button"
             aria-label="Refresh runtime logs"

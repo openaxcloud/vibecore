@@ -47,9 +47,20 @@ export class TerminalStore {
     }
   }
 
-  async attachTerminal(terminal: ITerminal) {
+  async restartBoltTerminal(terminal: ITerminal) {
     try {
-      const shellProcess = await newShellProcess(this.#runtime, terminal);
+      this.#boltTerminal.process?.kill();
+    } catch {
+      // terminal cleanup is best-effort when restarting the managed shell
+    }
+
+    this.#boltTerminal = newBoltShellProcess();
+    await this.attachBoltTerminal(terminal);
+  }
+
+  async attachTerminal(terminal: ITerminal, command?: string) {
+    try {
+      const shellProcess = await newShellProcess(this.#runtime, terminal, command);
       this.#terminals.push({ terminal, process: shellProcess });
     } catch (error: any) {
       terminal.write(coloredText.red('Failed to spawn shell\n\n') + error.message);
@@ -76,5 +87,10 @@ export class TerminalStore {
       }
       this.#terminals.splice(terminalIndex, 1);
     }
+  }
+
+  async restartTerminal(terminal: ITerminal, command?: string) {
+    await this.detachTerminal(terminal);
+    await this.attachTerminal(terminal, command);
   }
 }
