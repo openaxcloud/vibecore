@@ -7816,14 +7816,19 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-create-pill.is-accent,
 .vc-create-confidence,
-.vc-create-chip[aria-pressed='true'] {
+.vc-create-chip[data-state='on'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 56%, transparent);
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-create-card-strong));
   color: var(--vc-create-text);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
 }
 
+.vc-create-chip-group {
+  scrollbar-width: thin;
+}
+
 .vc-create-chip:hover,
+.vc-create-chip:focus-visible,
 .vc-create-example:hover,
 .vc-create-refresh:hover {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 40%, transparent);

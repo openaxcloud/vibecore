@@ -31,7 +31,15 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AppShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from '~/components/ui';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '~/components/ui';
 import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
   apiRequest,
@@ -936,28 +944,33 @@ export default function NewProjectPage() {
                         Added to the prompt context and framework selection
                       </span>
                     </div>
-                    <div className="flex gap-2 overflow-x-auto pb-1">
+                    <ToggleGroup
+                      type="single"
+                      value={selectedCategory}
+                      onValueChange={(value) => {
+                        if (value) {
+                          setSelectedCategory(value);
+                        }
+                      }}
+                      className="vc-create-chip-group flex gap-2 overflow-x-auto border-0 bg-transparent p-0 pb-1 shadow-none"
+                      aria-label="Artifact type"
+                    >
                       {artifactCategories.map((category) => {
                         const Icon = category.icon;
-                        const selected = selectedCategory === category.id;
 
                         return (
-                          <button
+                          <ToggleGroupItem
                             key={category.id}
+                            value={category.id}
                             type="button"
-                            onClick={() => setSelectedCategory(category.id)}
-                            className={[
-                              'vc-create-chip inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]',
-                              selected ? 'is-selected' : '',
-                            ].join(' ')}
-                            aria-pressed={selected}
+                            className="vc-create-chip inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                           >
                             <Icon className="h-3.5 w-3.5" aria-hidden />
                             {category.label}
-                          </button>
+                          </ToggleGroupItem>
                         );
                       })}
-                    </div>
+                    </ToggleGroup>
                   </div>
                 </Form>
 
