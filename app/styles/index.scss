@@ -5329,6 +5329,60 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
+.bolt-project-security-scope {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bolt-project-security-scope article,
+.bolt-project-security-reports article,
+.bolt-project-security-compare,
+.bolt-project-security-comparison-grid article {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-security-scope article {
+  position: relative;
+  overflow: hidden;
+}
+
+.bolt-project-security-scope article::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--vc-ide-accent-green);
+}
+
+.bolt-project-security-scope article[data-enabled='false'] {
+  opacity: 0.62;
+}
+
+.bolt-project-security-scope article[data-enabled='false']::before {
+  background: var(--vc-ide-text-muted);
+}
+
+.bolt-project-security-scope strong,
+.bolt-project-security-comparison-grid strong,
+.bolt-project-security-reports strong {
+  display: block;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bolt-project-security-scope span,
+.bolt-project-security-comparison-grid span,
+.bolt-project-security-comparison-grid small,
+.bolt-project-security-reports p {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
 .bolt-project-security-grid {
   display: grid;
   min-height: 0;
@@ -5353,6 +5407,70 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
   padding: 0 8px;
+}
+
+.bolt-project-security-link {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 0 10px;
+  text-decoration: none;
+}
+
+.bolt-project-security-link:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-security-reports,
+.bolt-project-security-compare {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.bolt-project-security-reports article > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bolt-project-security-reports button {
+  min-height: 34px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.bolt-project-security-reports button:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-security-comparison-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.bolt-project-security-comparison-grid strong {
+  font-size: 22px;
+  margin-top: 6px;
+}
+
+.bolt-project-security-comparison-grid small[data-delta='up'] {
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-security-comparison-grid small[data-delta='down'] {
+  color: var(--vc-ide-accent-green);
 }
 
 .bolt-project-vulnerability-list {

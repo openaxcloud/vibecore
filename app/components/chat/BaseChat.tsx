@@ -5627,7 +5627,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'security') {
-    return <ProjectSecurityPanel data={data} onSubmit={onSubmit} busy={busy} />;
+    return <ProjectSecurityPanel data={data} project={project} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'logs') {
@@ -8820,35 +8820,85 @@ function ProjectDatabasePanel({ data, onSubmit, busy }: { data: any; onSubmit: a
   );
 }
 
-function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings'>('active');
+function ProjectSecurityPanel({
+  data,
+  project,
+  onSubmit,
+  busy,
+}: {
+  data: any;
+  project: any;
+  onSubmit: any;
+  busy: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings' | 'reports' | 'compare'>('active');
   const state = data.securityState ?? {};
   const settings = state.settings ?? {};
   const scans = state.scans ?? [];
   const vulnerabilities = state.vulnerabilities ?? [];
+  const activeVulnerabilities = vulnerabilities.filter((item: any) => !item.hidden);
 
   const visibleVulnerabilities = vulnerabilities.filter((item: any) =>
     activeTab === 'hidden' ? item.hidden : !item.hidden,
   );
 
   const latestScan = scans[0];
+  const previousScan = scans[1];
+  const latestCounts = latestScan?.counts ?? securityCountsFromVulnerabilities(activeVulnerabilities);
+  const previousCounts = previousScan?.counts ?? {};
+  const schedule = settings.schedule ?? {};
+  const githubSecurityUrl = githubSecurityHref(project);
 
   const severityRows = ['critical', 'high', 'moderate', 'low', 'info'].map((severity) => [
     severity,
-    `${vulnerabilities.filter((item: any) => item.severity === severity && !item.hidden).length} active`,
+    `${activeVulnerabilities.filter((item: any) => item.severity === severity).length} active`,
   ]);
+
+  const exportSarifReport = () => downloadSecurityReport('sarif', project, state);
+  const exportJsonReport = () => downloadSecurityReport('json', project, state);
+
+  const printReport = () => {
+    const report = buildSecurityReport(project, state);
+    const printable = window.open('', '_blank', 'noopener,noreferrer');
+
+    if (!printable) {
+      return;
+    }
+
+    printable.document.write(renderSecurityReportHtml(report));
+    printable.document.close();
+    printable.focus();
+    printable.print();
+  };
 
   return (
     <div className="bolt-project-security-tool">
       <section className="bolt-project-security-summary">
         <div>
           <h3>Security and privacy scanner</h3>
-          <p>Runs against the active workspace runtime and stores scan history in project backend state.</p>
+          <p>
+            Runs SCA, secret scanning and lightweight SAST against the active workspace. Findings, schedules and reports
+            are stored in project backend state.
+          </p>
         </div>
         <form onSubmit={onSubmit}>
           <input name="intent" value="scan" type="hidden" />
-          <PanelButton disabled={busy}>{busy ? 'Scanning...' : 'Run scan'}</PanelButton>
+          <PanelButton disabled={busy}>{busy ? 'Scanning...' : 'Run full scan'}</PanelButton>
         </form>
+      </section>
+
+      <section className="bolt-project-security-scope" aria-label="Security scanner coverage">
+        {[
+          ['SCA', 'npm audit dependency advisories', settings.dependencyAuditEnabled !== false],
+          ['Secrets', 'API keys, tokens and passwords in source', settings.secretScanEnabled !== false],
+          ['SAST', 'Unsafe DOM sinks and command execution patterns', settings.sastEnabled !== false],
+          ['Privacy', 'Client-side privacy risk signals', settings.privacyDetectionEnabled !== false],
+        ].map(([label, description, enabled]) => (
+          <article key={String(label)} data-enabled={enabled ? 'true' : 'false'}>
+            <strong>{label}</strong>
+            <span>{description}</span>
+          </article>
+        ))}
       </section>
 
       <div className="bolt-project-security-grid">
@@ -8857,12 +8907,32 @@ function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <PanelRows
             rows={[
               ['Status', latestScan?.status ?? 'No scan yet'],
-              ['Scanner', latestScan?.scanner ?? 'workspace-runtime'],
+              ['Profile', latestScan?.scanner ?? settings.scannerProfile ?? 'workspace-runtime'],
               ['Summary', latestScan?.summary ?? 'Run a scan to populate security findings'],
+              [
+                'Schedule',
+                schedule.enabled ? `${schedule.frequency}, next ${formatSecurityDate(schedule.nextRunAt)}` : 'Manual',
+              ],
             ]}
           />
           <strong>Severity</strong>
           <PanelRows rows={severityRows} />
+          <strong>GitHub Security</strong>
+          <PanelRows
+            rows={[
+              ['Status', githubSecurityUrl ? 'Repository detected' : 'No GitHub remote detected'],
+              ['Sync', settings.githubSecuritySyncEnabled ? 'Enabled' : 'Manual reports'],
+            ]}
+          />
+          {githubSecurityUrl ? (
+            <a className="bolt-project-security-link" href={githubSecurityUrl} target="_blank" rel="noreferrer">
+              Open GitHub Security tab
+            </a>
+          ) : (
+            <a className="bolt-project-security-link" href="?panel=git">
+              Connect a GitHub remote
+            </a>
+          )}
         </aside>
 
         <main>
@@ -8870,6 +8940,8 @@ function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
             {[
               ['active', 'Active'],
               ['hidden', 'Hidden'],
+              ['compare', 'Compare'],
+              ['reports', 'Reports'],
               ['settings', 'Settings'],
             ].map(([id, label]) => (
               <button
@@ -8886,9 +8958,19 @@ function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           {activeTab === 'settings' ? (
             <form onSubmit={onSubmit} className="bolt-project-security-settings">
               <input name="intent" value="settings" type="hidden" />
+              <label>
+                <span>Scanner profile</span>
+                <select name="scannerProfile" defaultValue={settings.scannerProfile ?? 'workspace-runtime'}>
+                  <option value="workspace-runtime">Full workspace runtime</option>
+                  <option value="sca">SCA only</option>
+                  <option value="secrets">Secrets only</option>
+                  <option value="sast">SAST only</option>
+                </select>
+              </label>
               {[
                 ['dependencyAuditEnabled', 'Dependency audit', settings.dependencyAuditEnabled !== false],
                 ['secretScanEnabled', 'Secret scan', settings.secretScanEnabled !== false],
+                ['sastEnabled', 'Static application security scan', settings.sastEnabled !== false],
                 ['privacyDetectionEnabled', 'Privacy detection', settings.privacyDetectionEnabled !== false],
               ].map(([name, label, enabled]) => (
                 <label key={String(name)}>
@@ -8899,8 +8981,94 @@ function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                   </select>
                 </label>
               ))}
+              <label>
+                <span>Automatic schedule</span>
+                <select name="scheduleEnabled" defaultValue={schedule.enabled ? 'true' : 'false'}>
+                  <option value="true">Enabled</option>
+                  <option value="false">Manual only</option>
+                </select>
+              </label>
+              <label>
+                <span>Schedule cadence</span>
+                <select name="scheduleFrequency" defaultValue={schedule.frequency ?? 'weekly'}>
+                  <option value="daily">Daily at 03:00 UTC</option>
+                  <option value="weekly">Weekly at 03:00 UTC</option>
+                </select>
+              </label>
+              <label>
+                <span>GitHub Security reporting</span>
+                <select
+                  name="githubSecuritySyncEnabled"
+                  defaultValue={settings.githubSecuritySyncEnabled ? 'true' : 'false'}
+                >
+                  <option value="true">Enabled when GitHub remote exists</option>
+                  <option value="false">Manual export only</option>
+                </select>
+              </label>
               <PanelButton disabled={busy}>Save scanner settings</PanelButton>
             </form>
+          ) : activeTab === 'reports' ? (
+            <section className="bolt-project-security-reports">
+              <article>
+                <strong>Export audit package</strong>
+                <p>
+                  Generate a report from the current backend scan state. SARIF can be uploaded to GitHub Security Code
+                  Scanning, and the printable report can be saved as PDF by the browser.
+                </p>
+                <div>
+                  <button type="button" onClick={exportSarifReport}>
+                    Export SARIF
+                  </button>
+                  <button type="button" onClick={exportJsonReport}>
+                    Export JSON
+                  </button>
+                  <button type="button" onClick={printReport}>
+                    Print / Save PDF
+                  </button>
+                </div>
+              </article>
+              <PanelRows
+                rows={[
+                  ['Findings in report', String(vulnerabilities.length)],
+                  ['Latest scan', latestScan?.completedAt ? formatSecurityDate(latestScan.completedAt) : 'No scan yet'],
+                  ['SARIF target', 'GitHub Code Scanning compatible'],
+                ]}
+              />
+            </section>
+          ) : activeTab === 'compare' ? (
+            <section className="bolt-project-security-compare">
+              <div>
+                <h4>Scan comparison</h4>
+                <p>Compares the latest completed scan against the previous scan stored for this project.</p>
+              </div>
+              <div className="bolt-project-security-comparison-grid">
+                {['critical', 'high', 'moderate', 'low', 'info'].map((severity) => {
+                  const current = Number(latestCounts?.[severity] ?? 0);
+                  const previous = Number(previousCounts?.[severity] ?? 0);
+                  const delta = current - previous;
+
+                  return (
+                    <article key={severity}>
+                      <span>{severity}</span>
+                      <strong>{current}</strong>
+                      <small data-delta={delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
+                        {delta > 0 ? '+' : ''}
+                        {delta} vs previous
+                      </small>
+                    </article>
+                  );
+                })}
+              </div>
+              <PanelRows
+                rows={[
+                  ['Latest', latestScan?.completedAt ? formatSecurityDate(latestScan.completedAt) : 'No scan yet'],
+                  [
+                    'Previous',
+                    previousScan?.completedAt ? formatSecurityDate(previousScan.completedAt) : 'No previous scan',
+                  ],
+                ]}
+              />
+            </section>
           ) : (
             <div className="bolt-project-vulnerability-list">
               {visibleVulnerabilities.length ? (
@@ -8936,6 +9104,196 @@ function ProjectSecurityPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
       </div>
     </div>
   );
+}
+
+function securityCountsFromVulnerabilities(vulnerabilities: any[]) {
+  return ['critical', 'high', 'moderate', 'low', 'info'].reduce<Record<string, number>>((acc, severity) => {
+    acc[severity] = vulnerabilities.filter((item: any) => item.severity === severity).length;
+    return acc;
+  }, {});
+}
+
+function formatSecurityDate(value?: string | null) {
+  if (!value) {
+    return 'Not scheduled';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not scheduled';
+  }
+
+  return date.toLocaleString();
+}
+
+function githubSecurityHref(project: any) {
+  const candidates = [
+    project?.repositoryUrl,
+    project?.gitRemoteUrl,
+    project?.githubUrl,
+    project?.metadata?.repositoryUrl,
+    project?.metadata?.gitRemoteUrl,
+  ].filter(Boolean);
+
+  const remote = String(candidates[0] ?? '');
+  const match = remote.match(/github\.com[:/](?<owner>[^/\s]+)\/(?<repo>[^/\s.]+)(?:\.git)?/i);
+
+  if (!match?.groups) {
+    return null;
+  }
+
+  return `https://github.com/${match.groups.owner}/${match.groups.repo}/security/code-scanning`;
+}
+
+function buildSecurityReport(project: any, state: any) {
+  const vulnerabilities = Array.isArray(state?.vulnerabilities) ? state.vulnerabilities : [];
+  const scans = Array.isArray(state?.scans) ? state.scans : [];
+
+  return {
+    project: {
+      id: project?.id ?? 'unknown',
+      name: project?.name ?? 'Workspace project',
+    },
+    generatedAt: new Date().toISOString(),
+    latestScan: scans[0] ?? null,
+    scans,
+    vulnerabilities,
+    counts: securityCountsFromVulnerabilities(vulnerabilities.filter((item: any) => !item.hidden)),
+  };
+}
+
+function securityReportToSarif(report: any) {
+  const vulnerabilities = Array.isArray(report.vulnerabilities) ? report.vulnerabilities : [];
+
+  return {
+    version: '2.1.0',
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: 'VibeCore Security Scanner',
+            informationUri: 'https://github.com/openaxcloud/vibecore',
+            rules: vulnerabilities.map((vulnerability: any) => ({
+              id: vulnerability.id,
+              name: vulnerability.title,
+              shortDescription: { text: vulnerability.title },
+              fullDescription: { text: vulnerability.details || vulnerability.recommendation || vulnerability.source },
+              help: {
+                text: vulnerability.recommendation || 'Review this finding and apply the recommended remediation.',
+              },
+              defaultConfiguration: { level: sarifLevel(vulnerability.severity) },
+              properties: {
+                source: vulnerability.source,
+                packageName: vulnerability.packageName,
+                status: vulnerability.status,
+              },
+            })),
+          },
+        },
+        results: vulnerabilities
+          .filter((vulnerability: any) => !vulnerability.hidden)
+          .map((vulnerability: any) => ({
+            ruleId: vulnerability.id,
+            level: sarifLevel(vulnerability.severity),
+            message: { text: vulnerability.details || vulnerability.title },
+            locations: [
+              {
+                physicalLocation: {
+                  artifactLocation: { uri: 'workspace' },
+                },
+              },
+            ],
+            properties: {
+              recommendation: vulnerability.recommendation,
+              source: vulnerability.source,
+            },
+          })),
+        properties: {
+          projectId: report.project.id,
+          projectName: report.project.name,
+          generatedAt: report.generatedAt,
+        },
+      },
+    ],
+  };
+}
+
+function sarifLevel(severity: string) {
+  if (severity === 'critical' || severity === 'high') {
+    return 'error';
+  }
+
+  if (severity === 'moderate') {
+    return 'warning';
+  }
+
+  return 'note';
+}
+
+function downloadSecurityReport(format: 'json' | 'sarif', project: any, state: any) {
+  const report = buildSecurityReport(project, state);
+  const payload = format === 'sarif' ? securityReportToSarif(report) : report;
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+
+  const projectSlug = String(report.project.name || report.project.id)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-');
+
+  anchor.href = url;
+  anchor.download = `${projectSlug || 'project'}-security-report.${format === 'sarif' ? 'sarif' : 'json'}`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+function renderSecurityReportHtml(report: any) {
+  const escape = (value: unknown) =>
+    String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const rows = (report.vulnerabilities ?? [])
+    .map(
+      (finding: any) => `
+        <tr>
+          <td>${escape(finding.severity)}</td>
+          <td>${escape(finding.title)}</td>
+          <td>${escape(finding.source)}</td>
+          <td>${escape(finding.recommendation || finding.details)}</td>
+        </tr>
+      `,
+    )
+    .join('');
+
+  return `<!doctype html>
+    <html>
+      <head>
+        <title>Security report - ${escape(report.project.name)}</title>
+        <style>
+          body { font-family: ui-sans-serif, system-ui, sans-serif; color: #0f172a; margin: 32px; }
+          h1 { margin: 0 0 8px; }
+          p { color: #475569; }
+          table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+          th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
+          th { background: #f8fafc; }
+        </style>
+      </head>
+      <body>
+        <h1>Security report</h1>
+        <p>${escape(report.project.name)} - generated ${escape(formatSecurityDate(report.generatedAt))}</p>
+        <table>
+          <thead><tr><th>Severity</th><th>Finding</th><th>Source</th><th>Recommendation</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4">No findings recorded.</td></tr>'}</tbody>
+        </table>
+      </body>
+    </html>`;
 }
 
 function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {

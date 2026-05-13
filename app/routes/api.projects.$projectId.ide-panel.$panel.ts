@@ -266,12 +266,31 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/activity`),
       ]);
 
+      const securityState = readSecurityState(envVars);
+
+      if (isSecurityScheduleDue(securityState, new Date())) {
+        await runSecurityScan(
+          request,
+          projectId,
+          dashboard?.workspace?.id ?? projectId,
+          securityState,
+          new Date().toISOString(),
+        );
+        await apiRequest(request, `/projects/${projectId}/env-vars`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            key: SECURITY_STATE_ENV_KEY,
+            value: JSON.stringify(normalizeSecurityState(securityState)),
+          }),
+        });
+      }
+
       return json(
         panelEnvelope(panel, project.project, {
           ...(dashboard as any),
           ...(envVars as any),
           ...(activity as any),
-          securityState: readSecurityState(envVars),
+          securityState,
         }),
       );
     } catch (error) {
@@ -1024,11 +1043,28 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     const now = new Date().toISOString();
 
     if (intent === 'settings') {
+      const scheduleEnabled = body.scheduleEnabled === 'true';
+
+      const scheduleFrequency = ['daily', 'weekly'].includes(String(body.scheduleFrequency))
+        ? String(body.scheduleFrequency)
+        : 'weekly';
+
       state.settings = {
         ...state.settings,
         privacyDetectionEnabled: body.privacyDetectionEnabled === 'true',
         dependencyAuditEnabled: body.dependencyAuditEnabled !== 'false',
         secretScanEnabled: body.secretScanEnabled !== 'false',
+        sastEnabled: body.sastEnabled !== 'false',
+        scannerProfile: ['workspace-runtime', 'sca', 'secrets', 'sast'].includes(String(body.scannerProfile))
+          ? String(body.scannerProfile)
+          : 'workspace-runtime',
+        schedule: {
+          enabled: scheduleEnabled,
+          frequency: scheduleFrequency,
+          nextRunAt: scheduleEnabled ? nextSecurityScheduleRun(scheduleFrequency, now) : null,
+          lastRunAt: state.settings.schedule?.lastRunAt ?? null,
+        },
+        githubSecuritySyncEnabled: body.githubSecuritySyncEnabled === 'true',
       };
     } else if (intent === 'hide-vulnerability' || intent === 'unhide-vulnerability') {
       state.vulnerabilities = state.vulnerabilities.map((vulnerability: any) =>
@@ -1038,38 +1074,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'scan') {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
-
-      const auditCommand = state.settings.dependencyAuditEnabled
-        ? 'npm audit --json || true'
-        : 'node -e "console.log(\\"{}\\")"';
-
-      const auditRun = await runTerminalCommand(request, workspaceId, auditCommand, 'Security dependency audit', now);
-      const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now);
-
-      if (state.settings.secretScanEnabled) {
-        const secretRun = await runTerminalCommand(
-          request,
-          workspaceId,
-          "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
-          'Security secret scan',
-          now,
-        );
-        findings.push(...vulnerabilitiesFromSecretScan(secretRun.output, now));
-      }
-
-      const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
-      state.vulnerabilities = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
-      state.scans.unshift({
-        id: randomUUID(),
-        scanType: 'full',
-        scanner: 'workspace-runtime',
-        status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
-        startedAt: now,
-        completedAt: new Date().toISOString(),
-        summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
-        exitCode: auditRun.exitCode,
-      });
-      state.scans = state.scans.slice(0, 20);
+      await runSecurityScan(request, projectId, workspaceId, state, now);
     }
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
@@ -1614,6 +1619,66 @@ async function runTerminalCommand(
   }
 }
 
+async function runSecurityScan(request: Request, projectId: string, workspaceId: string, state: any, now: string) {
+  const scannerProfile = state.settings.scannerProfile ?? 'workspace-runtime';
+
+  const runDependencyAudit =
+    state.settings.dependencyAuditEnabled && ['workspace-runtime', 'sca'].includes(scannerProfile);
+
+  const runSecretScan = state.settings.secretScanEnabled && ['workspace-runtime', 'secrets'].includes(scannerProfile);
+  const runSastScan = state.settings.sastEnabled && ['workspace-runtime', 'sast'].includes(scannerProfile);
+
+  const auditCommand = runDependencyAudit ? 'npm audit --json || true' : 'node -e "console.log(\\"{}\\")"';
+  const auditRun = await runTerminalCommand(request, workspaceId, auditCommand, 'Security dependency audit', now);
+  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now);
+
+  if (runSecretScan) {
+    const secretRun = await runTerminalCommand(
+      request,
+      workspaceId,
+      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
+      'Security secret scan',
+      now,
+    );
+    findings.push(...vulnerabilitiesFromSecretScan(secretRun.output, now));
+  }
+
+  if (runSastScan) {
+    const sastRun = await runTerminalCommand(
+      request,
+      workspaceId,
+      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
+      'Security static code scan',
+      now,
+    );
+    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now));
+  }
+
+  const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
+  state.vulnerabilities = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
+  state.scans.unshift({
+    id: randomUUID(),
+    scanType: 'full',
+    scanner: scannerProfile,
+    status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
+    startedAt: now,
+    completedAt: new Date().toISOString(),
+    summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
+    exitCode: auditRun.exitCode,
+    counts: securitySeverityCounts(findings),
+    sources: securitySourceCounts(findings),
+    trigger: isSecurityScheduleDue(state, new Date(now)) ? 'scheduled' : 'manual',
+  });
+  state.scans = state.scans.slice(0, 20);
+
+  if (state.settings.schedule?.enabled) {
+    state.settings.schedule.lastRunAt = now;
+    state.settings.schedule.nextRunAt = nextSecurityScheduleRun(state.settings.schedule.frequency, now);
+  }
+
+  return state;
+}
+
 const WORKFLOWS_STATE_ENV_KEY = 'VIBECORE_WORKFLOWS_STATE';
 
 const SECURITY_STATE_ENV_KEY = 'VIBECORE_SECURITY_STATE';
@@ -1624,6 +1689,15 @@ function defaultSecurityState() {
       privacyDetectionEnabled: true,
       dependencyAuditEnabled: true,
       secretScanEnabled: true,
+      sastEnabled: true,
+      scannerProfile: 'workspace-runtime',
+      schedule: {
+        enabled: false,
+        frequency: 'weekly',
+        nextRunAt: null,
+        lastRunAt: null,
+      },
+      githubSecuritySyncEnabled: false,
     },
     scans: [],
     vulnerabilities: [],
@@ -1653,8 +1727,34 @@ function normalizeSecurityState(input: any) {
       privacyDetectionEnabled: input?.settings?.privacyDetectionEnabled !== false,
       dependencyAuditEnabled: input?.settings?.dependencyAuditEnabled !== false,
       secretScanEnabled: input?.settings?.secretScanEnabled !== false,
+      sastEnabled: input?.settings?.sastEnabled !== false,
+      scannerProfile: ['workspace-runtime', 'sca', 'secrets', 'sast'].includes(input?.settings?.scannerProfile)
+        ? input.settings.scannerProfile
+        : fallback.settings.scannerProfile,
+      schedule: {
+        enabled: Boolean(input?.settings?.schedule?.enabled),
+        frequency: ['daily', 'weekly'].includes(input?.settings?.schedule?.frequency)
+          ? input.settings.schedule.frequency
+          : fallback.settings.schedule.frequency,
+        nextRunAt: input?.settings?.schedule?.nextRunAt ? String(input.settings.schedule.nextRunAt) : null,
+        lastRunAt: input?.settings?.schedule?.lastRunAt ? String(input.settings.schedule.lastRunAt) : null,
+      },
+      githubSecuritySyncEnabled: Boolean(input?.settings?.githubSecuritySyncEnabled),
     },
-    scans: Array.isArray(input?.scans) ? input.scans.slice(0, 20) : fallback.scans,
+    scans: Array.isArray(input?.scans)
+      ? input.scans.slice(0, 20).map((scan: any) => ({
+          id: String(scan.id || randomUUID()),
+          scanType: String(scan.scanType || 'full'),
+          scanner: String(scan.scanner || 'workspace-runtime'),
+          status: ['queued', 'running', 'completed', 'failed'].includes(scan.status) ? scan.status : 'completed',
+          startedAt: scan.startedAt ? String(scan.startedAt) : undefined,
+          completedAt: scan.completedAt ? String(scan.completedAt) : undefined,
+          summary: scan.summary ? String(scan.summary) : undefined,
+          exitCode: Number.isFinite(Number(scan.exitCode)) ? Number(scan.exitCode) : undefined,
+          counts: scan.counts && typeof scan.counts === 'object' ? scan.counts : undefined,
+          sources: scan.sources && typeof scan.sources === 'object' ? scan.sources : undefined,
+        }))
+      : fallback.scans,
     vulnerabilities: Array.isArray(input?.vulnerabilities)
       ? input.vulnerabilities.map((vulnerability: any) => ({
           id: String(vulnerability.id || randomUUID()),
@@ -1721,6 +1821,74 @@ function vulnerabilitiesFromSecretScan(output: string, timestamp: string) {
       createdAt: timestamp,
       updatedAt: timestamp,
     }));
+}
+
+function vulnerabilitiesFromSastOutput(output: string, timestamp: string) {
+  return output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 80)
+    .map((line, index) => {
+      const isCommandExecution = /\b(child_process|exec\(|spawn\(|new Function\(|eval\()/i.test(line);
+      const isDomSink = /(dangerouslySetInnerHTML|innerHTML\s*=|document\.write\()/i.test(line);
+
+      return {
+        id: `sast:${index}:${line.slice(0, 100)}`,
+        packageName: 'workspace',
+        title: isCommandExecution
+          ? 'Potential command execution sink'
+          : isDomSink
+            ? 'Potential unsafe DOM injection sink'
+            : 'Static security review item',
+        severity: isCommandExecution ? 'high' : isDomSink ? 'moderate' : 'low',
+        status: 'open',
+        hidden: false,
+        source: 'sast',
+        details: line,
+        recommendation: isCommandExecution
+          ? 'Validate inputs, avoid shell interpolation, and restrict command execution to allow-listed operations.'
+          : isDomSink
+            ? 'Sanitize untrusted HTML and prefer safe rendering primitives.'
+            : 'Review the matched source line and document why the pattern is safe.',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+    });
+}
+
+function securitySeverityCounts(findings: Array<{ severity?: string }>) {
+  return ['critical', 'high', 'moderate', 'low', 'info'].reduce<Record<string, number>>((acc, severity) => {
+    acc[severity] = findings.filter((finding) => finding.severity === severity).length;
+    return acc;
+  }, {});
+}
+
+function securitySourceCounts(findings: Array<{ source?: string }>) {
+  return findings.reduce<Record<string, number>>((acc, finding) => {
+    const source = finding.source || 'workspace-runtime';
+    acc[source] = (acc[source] ?? 0) + 1;
+
+    return acc;
+  }, {});
+}
+
+function nextSecurityScheduleRun(frequency: string, fromIso: string) {
+  const next = new Date(fromIso);
+  next.setUTCDate(next.getUTCDate() + (frequency === 'daily' ? 1 : 7));
+  next.setUTCHours(3, 0, 0, 0);
+
+  return next.toISOString();
+}
+
+function isSecurityScheduleDue(state: any, now: Date) {
+  if (!state?.settings?.schedule?.enabled || !state.settings.schedule.nextRunAt) {
+    return false;
+  }
+
+  const nextRunAt = new Date(state.settings.schedule.nextRunAt);
+
+  return !Number.isNaN(nextRunAt.getTime()) && nextRunAt.getTime() <= now.getTime();
 }
 
 function normalizeSeverity(value: unknown) {
