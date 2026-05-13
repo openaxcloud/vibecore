@@ -36,7 +36,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { AppShell } from '~/components/dashboard/SaaSLayout';
+import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import {
   Select,
   SelectContent,
@@ -949,6 +949,19 @@ export default function NewProjectPage() {
           </div>
         </section>
       </div>
+
+      <section className="vc-new-project-templates" aria-label="Production templates">
+        <header className="vc-new-project-templates-header">
+          <div>
+            <p className="vc-new-project-meta-label">Templates</p>
+            <h2 className="vc-new-project-templates-title">Start from the existing catalog</h2>
+          </div>
+          <p className="vc-new-project-templates-subtitle">
+            Authenticated template flow already wired to project creation.
+          </p>
+        </header>
+        <TemplateGallery compact mode="authenticated" />
+      </section>
     </AppShell>
   );
 }
