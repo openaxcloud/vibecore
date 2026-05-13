@@ -1557,25 +1557,82 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 9px !important;
 }
 
-.bolt-project-topbar-brand {
+.bolt-project-breadcrumb {
   display: inline-flex;
+  min-width: 0;
+  max-width: min(52vw, 680px);
   align-items: center;
-  gap: 6px;
-  padding-left: 2px;
+  gap: 3px;
+  padding-left: 1px;
+  overflow: hidden;
   color: var(--vc-ide-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
-.bolt-project-topbar-brand span:first-child {
-  color: var(--vc-ide-accent);
+.bolt-project-breadcrumb-segment {
+  display: inline-flex;
+  min-width: 0;
+  height: 30px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 7px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-project-breadcrumb-segment:hover,
+.bolt-project-breadcrumb-segment:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary) !important;
+  outline: none;
+}
+
+.bolt-project-breadcrumb-workspace {
+  max-width: min(18vw, 190px);
+  color: var(--vc-ide-accent) !important;
+}
+
+.bolt-project-breadcrumb-branch {
+  max-width: min(15vw, 160px);
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-breadcrumb-kicker {
+  flex-shrink: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 9px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bolt-project-breadcrumb-value {
+  min-width: 0;
+  color: inherit;
+  font-size: 12px !important;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+.bolt-project-breadcrumb-separator {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--vc-ide-text-muted), transparent 20%);
+  font-size: 13px !important;
+  font-weight: 700;
 }
 
 .bolt-project-name-shell {
   display: inline-flex;
   min-width: 0;
-  max-width: min(34vw, 360px);
+  max-width: min(25vw, 300px);
   align-items: center;
   gap: 2px;
 }
@@ -1583,17 +1640,28 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-name-trigger {
   display: inline-flex;
   min-width: 0;
-  max-width: min(30vw, 320px);
+  max-width: min(22vw, 260px);
   height: 30px;
   cursor: pointer;
   list-style: none;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  border: 1px solid transparent;
   border-radius: 6px;
   padding: 0 7px;
   color: var(--vc-ide-text-primary) !important;
   font-size: 12px;
   font-weight: 650;
+  transition:
+    border-color 120ms ease-out,
+    background 120ms ease-out;
+}
+
+.bolt-project-name-trigger:hover,
+.bolt-project-name-trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 18%);
+  background: var(--vc-ide-bg-hover);
+  outline: none;
 }
 
 .bolt-project-inline-rename-button {
@@ -1620,11 +1688,53 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-rename-form {
   display: inline-flex;
-  min-width: min(32vw, 260px);
-  max-width: min(42vw, 420px);
+  min-width: min(30vw, 240px);
+  max-width: min(36vw, 360px);
   height: 30px;
   align-items: center;
   gap: 4px;
+}
+
+@media (max-width: 960px) {
+  .bolt-project-breadcrumb {
+    max-width: min(49vw, 520px);
+  }
+
+  .bolt-project-breadcrumb-workspace {
+    max-width: min(16vw, 140px);
+  }
+
+  .bolt-project-name-shell,
+  .bolt-project-name-trigger {
+    max-width: min(22vw, 220px);
+  }
+
+  .bolt-project-breadcrumb-branch {
+    max-width: min(14vw, 120px);
+  }
+}
+
+@media (max-width: 720px) {
+  .bolt-project-breadcrumb-kicker,
+  .bolt-project-breadcrumb-workspace,
+  .bolt-project-breadcrumb-separator:first-of-type {
+    display: none;
+  }
+
+  .bolt-project-breadcrumb {
+    max-width: min(42vw, 280px);
+    gap: 2px;
+  }
+
+  .bolt-project-name-shell,
+  .bolt-project-name-trigger {
+    max-width: min(28vw, 180px);
+  }
+
+  .bolt-project-breadcrumb-branch {
+    max-width: min(16vw, 86px);
+    padding-inline: 5px;
+  }
 }
 
 .bolt-project-rename-input {

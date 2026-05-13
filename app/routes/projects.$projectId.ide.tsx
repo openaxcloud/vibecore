@@ -13,6 +13,7 @@ import {
   Copy,
   Download,
   Files,
+  GitBranch,
   Home,
   PenLine,
   Play,
@@ -49,6 +50,22 @@ type ProjectLoaderData = {
   project: {
     id: string;
     name: string;
+    organizationId?: string;
+    gitDefaultBranch?: string;
+  };
+  workspace: {
+    id?: string;
+    name?: string;
+    status?: string;
+    runtimeMode?: string;
+  } | null;
+  organization: {
+    id: string;
+    name?: string;
+    slug?: string;
+  } | null;
+  git: {
+    branch?: string;
   };
   collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
   notifications: Array<{ id?: string; action: string; createdAt?: string; metadata?: unknown }>;
@@ -81,20 +98,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   try {
     const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
 
-    const [collaboratorsResult, dashboardResult] = await Promise.all([
+    const [collaboratorsResult, dashboardResult, organizationsResult] = await Promise.all([
       apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
         request,
         `/projects/${projectId}/collaborators`,
       ).catch(() => ({ collaborators: [] })),
-      apiRequest<{ recentActivity?: ProjectLoaderData['notifications'] }>(
-        request,
-        `/projects/${projectId}/dashboard`,
-      ).catch(() => ({ recentActivity: [] })),
+      apiRequest<{
+        workspace?: ProjectLoaderData['workspace'];
+        git?: ProjectLoaderData['git'];
+        recentActivity?: ProjectLoaderData['notifications'];
+      }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
+      apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
+        organizations: [],
+      })),
     ]);
+    const organization =
+      organizationsResult.organizations.find((item) => item.id === result.project.organizationId) ??
+      organizationsResult.organizations[0] ??
+      null;
 
     return json<ProjectLoaderData>({
       projectId,
       project: result.project,
+      workspace: dashboardResult.workspace ?? null,
+      organization,
+      git: dashboardResult.git ?? {},
       collaborators: collaboratorsResult.collaborators ?? [],
       notifications: dashboardResult.recentActivity ?? [],
     });
@@ -104,6 +132,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return json<ProjectLoaderData>({
       projectId,
       project: { id: projectId, name: projectId },
+      workspace: null,
+      organization: null,
+      git: {},
       collaborators: [],
       notifications: [],
       projectApiError: message,
@@ -112,14 +143,18 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 };
 
 export default function ProjectIdeRoute() {
-  const { projectId, project, collaborators, notifications, projectApiError } = useLoaderData<typeof loader>();
+  const { projectId, project, workspace, organization, git, collaborators, notifications, projectApiError } =
+    useLoaderData<typeof loader>();
 
   return (
     <ProjectWorkspaceProvider projectId={projectId} initialError={projectApiError}>
       <div className="bolt-project-ide-shell h-dvh w-screen overflow-hidden">
         <IdeProjectTopBar
           projectId={projectId}
-          projectName={project.name}
+          project={project}
+          workspace={workspace}
+          organization={organization}
+          git={git}
           collaborators={collaborators}
           notifications={notifications}
           projectApiError={projectApiError}
@@ -142,13 +177,19 @@ export default function ProjectIdeRoute() {
 
 function IdeProjectTopBar({
   projectId,
-  projectName,
+  project,
+  workspace,
+  organization,
+  git,
   collaborators,
   notifications,
   projectApiError,
 }: {
   projectId: string;
-  projectName: string;
+  project: ProjectLoaderData['project'];
+  workspace: ProjectLoaderData['workspace'];
+  organization: ProjectLoaderData['organization'];
+  git: ProjectLoaderData['git'];
   collaborators: ProjectLoaderData['collaborators'];
   notifications: ProjectLoaderData['notifications'];
   projectApiError?: string;
@@ -160,9 +201,9 @@ function IdeProjectTopBar({
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [displayProjectName, setDisplayProjectName] = useState(projectName);
+  const [displayProjectName, setDisplayProjectName] = useState(project.name);
   const [renamingProject, setRenamingProject] = useState(false);
-  const [renameValue, setRenameValue] = useState(projectName);
+  const [renameValue, setRenameValue] = useState(project.name);
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -196,10 +237,20 @@ function IdeProjectTopBar({
 
   const visibleCollaborators = collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }];
 
+  const workspaceLabel =
+    organization?.name ||
+    organization?.slug ||
+    workspace?.name ||
+    workspace?.id ||
+    project.organizationId ||
+    'Workspace';
+
+  const branchLabel = git.branch || project.gitDefaultBranch || 'main';
+
   useEffect(() => {
-    setDisplayProjectName(projectName);
-    setRenameValue(projectName);
-  }, [projectName]);
+    setDisplayProjectName(project.name);
+    setRenameValue(project.name);
+  }, [project.name]);
 
   useEffect(() => {
     if (renamingProject) {
@@ -276,113 +327,140 @@ function IdeProjectTopBar({
         <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="VibeCore dashboard">
           <Home className="h-4 w-4" aria-hidden />
         </Link>
-        <div className="bolt-project-topbar-brand" aria-label="Project">
-          <span>VibeCore</span>
-          <span aria-hidden>/</span>
-        </div>
-        {renamingProject ? (
-          <form className="bolt-project-rename-form" onSubmit={submitInlineRename}>
-            <input
-              ref={renameInputRef}
-              value={renameValue}
-              onChange={(event) => setRenameValue(event.target.value)}
-              onKeyDown={handleRenameKeyDown}
-              className="bolt-project-rename-input"
-              aria-label="Project name"
-              title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
-              disabled={renameSaving}
-            />
-            <button type="submit" className="bolt-project-rename-save" disabled={renameSaving || !renameValue.trim()}>
-              {renameSaving ? 'Saving' : 'Save'}
-            </button>
-          </form>
-        ) : (
-          <div className="bolt-project-name-shell">
-            <details
-              className="relative min-w-0"
-              open={projectMenuOpen}
-              onToggle={(event) => setProjectMenuOpen(event.currentTarget.open)}
-            >
-              <summary
-                className="bolt-project-name-trigger"
-                title={displayProjectName}
-                aria-label={`Project menu for ${displayProjectName}`}
-                onDoubleClick={(event) => {
-                  event.preventDefault();
-                  startInlineRename();
-                }}
+        <nav className="bolt-project-breadcrumb" aria-label="Project breadcrumb">
+          <Link
+            to="/projects"
+            className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-workspace"
+            aria-label={`Workspace ${workspaceLabel}`}
+            title={`Workspace: ${workspaceLabel}`}
+          >
+            <span className="bolt-project-breadcrumb-kicker">Workspace</span>
+            <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel}</span>
+          </Link>
+          <span className="bolt-project-breadcrumb-separator" aria-hidden>
+            /
+          </span>
+          {renamingProject ? (
+            <form className="bolt-project-rename-form" onSubmit={submitInlineRename}>
+              <input
+                ref={renameInputRef}
+                value={renameValue}
+                onChange={(event) => setRenameValue(event.target.value)}
+                onKeyDown={handleRenameKeyDown}
+                className="bolt-project-rename-input"
+                aria-label="Project name"
+                title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
+                disabled={renameSaving}
+              />
+              <button type="submit" className="bolt-project-rename-save" disabled={renameSaving || !renameValue.trim()}>
+                {renameSaving ? 'Saving' : 'Save'}
+              </button>
+            </form>
+          ) : (
+            <div className="bolt-project-name-shell">
+              <details
+                className="relative min-w-0"
+                open={projectMenuOpen}
+                onToggle={(event) => setProjectMenuOpen(event.currentTarget.open)}
               >
-                <span className="truncate" title={displayProjectName}>
-                  {displayProjectName}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-              </summary>
-              {projectMenuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
-                  <ProjectMenuItem
-                    to={`/projects/${projectId}/ide?panel=settings`}
-                    icon={<Settings className="h-3.5 w-3.5" />}
-                    onClick={() => {
-                      setProjectMenuOpen(false);
-                      window.dispatchEvent(
-                        new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'settings' } }),
-                      );
-                    }}
-                  >
-                    Settings
-                  </ProjectMenuItem>
-                  <ProjectMenuAction
-                    action={`/api/projects/${projectId}/project-action`}
-                    intent="fork"
-                    projectName={displayProjectName}
-                    icon={<Copy className="h-3.5 w-3.5" />}
-                  >
-                    Fork
-                  </ProjectMenuAction>
-                  <ProjectMenuAction
-                    action={`/api/projects/${projectId}/project-action`}
-                    intent="rename"
-                    projectName={displayProjectName}
-                    icon={<PenLine className="h-3.5 w-3.5" />}
-                  >
-                    Rename
-                  </ProjectMenuAction>
-                  <ProjectMenuAction
-                    action={`/api/projects/${projectId}/project-action`}
-                    intent="delete"
-                    projectName={displayProjectName}
-                    icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
-                  >
-                    Delete
-                  </ProjectMenuAction>
-                  <ProjectMenuAction
-                    action={`/api/projects/${projectId}/project-action`}
-                    intent="duplicate"
-                    projectName={displayProjectName}
-                    icon={<Copy className="h-3.5 w-3.5" />}
-                  >
-                    Duplicate
-                  </ProjectMenuAction>
-                  <ProjectMenuItem
-                    to={`/api/projects/${projectId}/project-action?intent=export`}
-                    icon={<Download className="h-3.5 w-3.5" />}
-                  >
-                    Export
-                  </ProjectMenuItem>
-                </div>
-              )}
-            </details>
-            <button
-              type="button"
-              className="bolt-project-inline-rename-button"
-              aria-label={`Rename ${displayProjectName}`}
-              title={`Rename ${displayProjectName}`}
-              onClick={startInlineRename}
-            >
-              <PenLine className="h-3 w-3" aria-hidden />
-            </button>
-          </div>
-        )}
+                <summary
+                  className="bolt-project-name-trigger"
+                  title={`Project: ${displayProjectName}`}
+                  aria-label={`Project menu for ${displayProjectName}`}
+                  onDoubleClick={(event) => {
+                    event.preventDefault();
+                    startInlineRename();
+                  }}
+                >
+                  <span className="bolt-project-breadcrumb-kicker">Project</span>
+                  <span className="bolt-project-breadcrumb-value truncate" title={displayProjectName}>
+                    {displayProjectName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+                </summary>
+                {projectMenuOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
+                    <ProjectMenuItem
+                      to={`/projects/${projectId}/ide?panel=settings`}
+                      icon={<Settings className="h-3.5 w-3.5" />}
+                      onClick={() => {
+                        setProjectMenuOpen(false);
+                        window.dispatchEvent(
+                          new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'settings' } }),
+                        );
+                      }}
+                    >
+                      Settings
+                    </ProjectMenuItem>
+                    <ProjectMenuAction
+                      action={`/api/projects/${projectId}/project-action`}
+                      intent="fork"
+                      projectName={displayProjectName}
+                      icon={<Copy className="h-3.5 w-3.5" />}
+                    >
+                      Fork
+                    </ProjectMenuAction>
+                    <ProjectMenuAction
+                      action={`/api/projects/${projectId}/project-action`}
+                      intent="rename"
+                      projectName={displayProjectName}
+                      icon={<PenLine className="h-3.5 w-3.5" />}
+                    >
+                      Rename
+                    </ProjectMenuAction>
+                    <ProjectMenuAction
+                      action={`/api/projects/${projectId}/project-action`}
+                      intent="delete"
+                      projectName={displayProjectName}
+                      icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
+                    >
+                      Delete
+                    </ProjectMenuAction>
+                    <ProjectMenuAction
+                      action={`/api/projects/${projectId}/project-action`}
+                      intent="duplicate"
+                      projectName={displayProjectName}
+                      icon={<Copy className="h-3.5 w-3.5" />}
+                    >
+                      Duplicate
+                    </ProjectMenuAction>
+                    <ProjectMenuItem
+                      to={`/api/projects/${projectId}/project-action?intent=export`}
+                      icon={<Download className="h-3.5 w-3.5" />}
+                    >
+                      Export
+                    </ProjectMenuItem>
+                  </div>
+                )}
+              </details>
+              <button
+                type="button"
+                className="bolt-project-inline-rename-button"
+                aria-label={`Rename ${displayProjectName}`}
+                title={`Rename ${displayProjectName}`}
+                onClick={startInlineRename}
+              >
+                <PenLine className="h-3 w-3" aria-hidden />
+              </button>
+            </div>
+          )}
+          <span className="bolt-project-breadcrumb-separator" aria-hidden>
+            /
+          </span>
+          <Link
+            to={`/projects/${projectId}/ide?panel=git`}
+            className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"
+            aria-label={`Branch ${branchLabel}. Open Git panel.`}
+            title={`Branch: ${branchLabel}. Open Git panel.`}
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git' } }));
+            }}
+          >
+            <GitBranch className="h-3.5 w-3.5" aria-hidden />
+            <span className="bolt-project-breadcrumb-kicker">Branch</span>
+            <span className="bolt-project-breadcrumb-value truncate">{branchLabel}</span>
+          </Link>
+        </nav>
         <Link
           to={`/projects/${projectId}/ide?panel=logs`}
           className="bolt-project-runtime-status"
