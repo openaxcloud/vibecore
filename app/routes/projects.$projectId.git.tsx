@@ -179,7 +179,9 @@ export default function ProjectGitPage() {
             },
             {
               title: `${commits.length} commits indexed`,
-              detail: commits[0] ? `${commits[0].shortSha} ${commits[0].message}` : 'No commit graph available yet.',
+              detail: commits[0]
+                ? `${commits[0].shortSha} ${commits[0].message}`
+                : 'No commits yet. Make your first commit.',
               icon: GitCommit,
             },
             {
@@ -365,7 +367,7 @@ export default function ProjectGitPage() {
                 {commits.map((commit: NonNullable<GitData['commits']>[number], index: number) => (
                   <div
                     key={commit.sha}
-                    className="grid grid-cols-[24px_92px_minmax(0,1fr)_160px] items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm"
+                    className="grid grid-cols-[24px_92px_minmax(0,1fr)] items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm"
                   >
                     <div className="relative flex justify-center">
                       <span className="mt-1 h-2.5 w-2.5 rounded-full bg-bolt-elements-item-contentAccent" />
@@ -380,12 +382,11 @@ export default function ProjectGitPage() {
                         {commit.refs || commit.parents.join(', ') || 'root commit'}
                       </div>
                     </div>
-                    <div className="truncate text-right text-xs text-bolt-elements-textSecondary">{commit.author}</div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-sm text-bolt-elements-textSecondary">No commit graph available.</div>
+              <div className="text-sm text-bolt-elements-textSecondary">No commits yet. Make your first commit.</div>
             )}
           </div>
         </section>

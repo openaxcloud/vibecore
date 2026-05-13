@@ -11551,7 +11551,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
                 ))}
               </div>
             ) : (
-              <div className="bolt-project-empty-panel">No commit graph available.</div>
+              <div className="bolt-project-empty-panel">No commits yet. Make your first commit.</div>
             )}
           </div>
 

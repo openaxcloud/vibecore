@@ -3,6 +3,15 @@ import { existsSync } from 'node:fs';
 import { json } from '@remix-run/cloudflare';
 
 export async function loader() {
+  if (process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO !== 'true') {
+    return json({
+      branch: 'workspace',
+      commit: 'hidden',
+      isDirty: false,
+      lastCommit: undefined,
+    });
+  }
+
   try {
     // Check if we're in a git repository
     if (!existsSync('.git')) {

@@ -44,10 +44,12 @@ describe('GitCliProvider workspace isolation', () => {
 
     const provider = new GitCliProvider();
     const status = await provider.status(projectId);
+    const emptyGraph = await provider.logGraph(projectId, 5);
 
     expect(status.branch).toBe('main');
     expect(status.changedFiles).toEqual(['README.md']);
     expect(status.changedFiles).not.toContain('app/components/BaseChat.tsx');
+    expect(emptyGraph).toEqual([]);
 
     const commit = await provider.commit({
       projectId,

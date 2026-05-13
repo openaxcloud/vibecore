@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
@@ -16,6 +16,12 @@ function commandStdout(result: unknown) {
   }
 
   return String((result as { stdout?: unknown })?.stdout ?? '');
+}
+
+async function pathExists(path: string) {
+  return access(path)
+    .then(() => true)
+    .catch(() => false);
 }
 
 export interface ProjectFile {
@@ -257,6 +263,10 @@ export class GitCliProvider implements GitProvider {
     return safeProjectPath(projectId);
   }
 
+  private gitDir(projectId: string) {
+    return join(this.workspacePath(projectId), '.git');
+  }
+
   private gitEnv() {
     return {
       ...process.env,
@@ -266,17 +276,19 @@ export class GitCliProvider implements GitProvider {
 
   private async ensureRepository(projectId: string) {
     const target = this.workspacePath(projectId);
+    const gitDir = this.gitDir(projectId);
 
     await mkdir(target, { recursive: true });
 
-    const root = await execFile('git', ['rev-parse', '--show-toplevel'], {
-      cwd: target,
-      env: this.gitEnv(),
-    })
-      .then((result) => commandStdout(result).trim())
-      .catch(() => '');
-
-    if (root === target) {
+    if (await pathExists(gitDir)) {
+      await execFile('git', ['--git-dir', gitDir, '--work-tree', target, 'config', 'user.name', 'You'], {
+        cwd: target,
+        env: this.gitEnv(),
+      }).catch(() => undefined);
+      await execFile('git', ['--git-dir', gitDir, '--work-tree', target, 'config', 'user.email', 'you@vibecore.local'], {
+        cwd: target,
+        env: this.gitEnv(),
+      }).catch(() => undefined);
       return;
     }
 
@@ -291,7 +303,10 @@ export class GitCliProvider implements GitProvider {
   private async git(projectId: string, args: string[]) {
     await this.ensureRepository(projectId);
 
-    const result = await execFile('git', args, { cwd: this.workspacePath(projectId), env: this.gitEnv() });
+    const result = await execFile('git', ['--git-dir', this.gitDir(projectId), '--work-tree', this.workspacePath(projectId), ...args], {
+      cwd: this.workspacePath(projectId),
+      env: this.gitEnv(),
+    });
 
     return commandStdout(result).trim();
   }
@@ -336,8 +351,8 @@ export class GitCliProvider implements GitProvider {
     const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
     const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
 
-    await execFile('git', addArgs, { cwd: this.workspacePath(input.projectId), env: this.gitEnv() });
-    await execFile('git', ['commit', '-m', input.message], { cwd: this.workspacePath(input.projectId), env: this.gitEnv() });
+    await this.git(input.projectId, addArgs);
+    await this.git(input.projectId, ['commit', '-m', input.message]);
 
     const sha = await this.git(input.projectId, ['rev-parse', 'HEAD']);
 
@@ -434,7 +449,15 @@ export class GitCliProvider implements GitProvider {
       `--max-count=${Math.max(1, Math.min(limit, 100))}`,
       '--date=iso-strict',
       '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
-    ]);
+    ]).catch((error: any) => {
+      const message = String(error?.stderr ?? error?.message ?? '');
+
+      if (/does not have any commits yet|bad revision|unknown revision|ambiguous argument/i.test(message)) {
+        return '';
+      }
+
+      throw error;
+    });
 
     return output
       .split('\n')
@@ -455,7 +478,15 @@ export class GitCliProvider implements GitProvider {
   }
 
   async diff(projectId: string, filePath?: string) {
-    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])]);
+    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])]).catch((error: any) => {
+      const message = String(error?.stderr ?? error?.message ?? '');
+
+      if (/bad revision|unknown revision|ambiguous argument/i.test(message)) {
+        return '';
+      }
+
+      throw error;
+    });
   }
 
   async blame(input: { projectId: string; filePath: string; startLine?: number; endLine?: number }) {

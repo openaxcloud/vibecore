@@ -314,13 +314,34 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
   const gitInfo: GitInfo = {
     local: {
-      commitHash: typeof __COMMIT_HASH !== 'undefined' ? __COMMIT_HASH : 'development',
-      branch: typeof __GIT_BRANCH !== 'undefined' ? __GIT_BRANCH : 'main',
-      commitTime: typeof __GIT_COMMIT_TIME !== 'undefined' ? __GIT_COMMIT_TIME : new Date().toISOString(),
-      author: typeof __GIT_AUTHOR !== 'undefined' ? __GIT_AUTHOR : 'development',
-      email: typeof __GIT_EMAIL !== 'undefined' ? __GIT_EMAIL : 'development@local',
-      remoteUrl: typeof __GIT_REMOTE_URL !== 'undefined' ? __GIT_REMOTE_URL : 'local',
-      repoName: typeof __GIT_REPO_NAME !== 'undefined' ? __GIT_REPO_NAME : 'bolt.diy',
+      commitHash:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __COMMIT_HASH !== 'undefined'
+          ? __COMMIT_HASH
+          : 'hidden',
+      branch:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_BRANCH !== 'undefined'
+          ? __GIT_BRANCH
+          : 'workspace',
+      commitTime:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_COMMIT_TIME !== 'undefined'
+          ? __GIT_COMMIT_TIME
+          : new Date().toISOString(),
+      author:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_AUTHOR !== 'undefined'
+          ? __GIT_AUTHOR
+          : 'VibeCore',
+      email:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_EMAIL !== 'undefined'
+          ? __GIT_EMAIL
+          : 'hidden',
+      remoteUrl:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_REMOTE_URL !== 'undefined'
+          ? __GIT_REMOTE_URL
+          : 'hidden',
+      repoName:
+        process.env.VIBECORE_EXPOSE_PLATFORM_GIT_INFO === 'true' && typeof __GIT_REPO_NAME !== 'undefined'
+          ? __GIT_REPO_NAME
+          : 'workspace',
     },
     timestamp: new Date().toISOString(),
   };
