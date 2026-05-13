@@ -1,6 +1,6 @@
+import * as RadixPopover from '@radix-ui/react-popover';
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { Dialog, DialogTitle, DialogDescription, DialogRoot } from './Dialog';
 import { IconButton } from './IconButton';
 import type { DesignScheme } from '~/types/design-scheme';
 import { defaultDesignScheme, designFeatures, designFonts, paletteRoles } from '~/types/design-scheme';
@@ -272,73 +272,87 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({ setDesignS
 
   return (
     <div>
-      <IconButton title="Design Palette" className="transition-all" onClick={() => setIsDialogOpen(!isDialogOpen)}>
-        <div className="i-ph:palette text-xl"></div>
-      </IconButton>
-
-      <DialogRoot open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <Dialog className="w-[720px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-hidden">
-          <div className="w-full max-h-[calc(100vh-24px)] min-h-0 py-4 px-4 flex flex-col gap-5 overflow-hidden">
-            <div className="pr-10">
-              <DialogTitle className="text-2xl font-bold text-bolt-elements-textPrimary">
-                Design Palette & Features
-              </DialogTitle>
-              <DialogDescription className="text-bolt-elements-textSecondary leading-relaxed">
-                Customize your color palette, typography, and design features. These preferences will guide the AI in
-                creating designs that match your style.
-              </DialogDescription>
-            </div>
-
-            {/* Navigation Tabs */}
-            <div className="flex gap-1 p-1 bg-bolt-elements-bg-depth-3 rounded-xl">
-              {[
-                { key: 'colors', label: 'Colors', icon: 'i-ph:palette' },
-                { key: 'typography', label: 'Typography', icon: 'i-ph:text-aa' },
-                { key: 'features', label: 'Features', icon: 'i-ph:magic-wand' },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveSection(tab.key as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                    activeSection === tab.key
-                      ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary shadow-md'
-                      : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-bg-depth-2'
-                  }`}
-                >
-                  <span className={`${tab.icon} text-lg`} />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Content Area */}
-            <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
-              {activeSection === 'colors' && renderColorSection()}
-              {activeSection === 'typography' && renderTypographySection()}
-              {activeSection === 'features' && renderFeaturesSection()}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-bolt-elements-borderColor">
-              <div className="text-sm text-bolt-elements-textSecondary">
-                {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
+      <RadixPopover.Root open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <RadixPopover.Trigger asChild>
+          <IconButton
+            title="Design Palette"
+            className="transition-all"
+            onClick={() => setIsDialogOpen((open) => !open)}
+          >
+            <div className="i-ph:palette text-xl"></div>
+          </IconButton>
+        </RadixPopover.Trigger>
+        <RadixPopover.Portal>
+          <RadixPopover.Content
+            side="top"
+            align="end"
+            sideOffset={8}
+            collisionPadding={12}
+            className="z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[min(620px,calc(100dvh-64px))] overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-2 shadow-xl"
+          >
+            <div className="flex max-h-[min(620px,calc(100dvh-64px))] min-h-0 flex-col gap-4 px-4 py-4 overflow-hidden">
+              <div className="pr-8">
+                <h2 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
+                  <span className="i-ph:palette text-bolt-elements-item-contentAccent text-xl" aria-hidden />
+                  Design Palette
+                </h2>
+                <p className="text-xs text-bolt-elements-textSecondary leading-snug mt-1">
+                  Tune the color palette, typography, and design features that guide the agent.
+                </p>
               </div>
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={handleSave}
-                  className="bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text"
-                >
-                  Save Changes
-                </Button>
+
+              {/* Navigation Tabs */}
+              <div className="flex gap-1 p-1 bg-bolt-elements-bg-depth-3 rounded-lg">
+                {[
+                  { key: 'colors', label: 'Colors', icon: 'i-ph:palette' },
+                  { key: 'typography', label: 'Typography', icon: 'i-ph:text-aa' },
+                  { key: 'features', label: 'Features', icon: 'i-ph:magic-wand' },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveSection(tab.key as any)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors duration-150 ${
+                      activeSection === tab.key
+                        ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                        : 'bg-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-bg-depth-2'
+                    }`}
+                  >
+                    <span className={`${tab.icon} text-base`} aria-hidden />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Content Area */}
+              <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                {activeSection === 'colors' && renderColorSection()}
+                {activeSection === 'typography' && renderTypographySection()}
+                {activeSection === 'features' && renderFeaturesSection()}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-bolt-elements-borderColor">
+                <div className="text-[11px] text-bolt-elements-textSecondary">
+                  {Object.keys(palette).length} colors • {font.length} fonts • {features.length} features
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={handleSave}
+                    className="bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </Dialog>
-      </DialogRoot>
+          </RadixPopover.Content>
+        </RadixPopover.Portal>
+      </RadixPopover.Root>
 
       <style>{`
         .custom-scrollbar {

@@ -430,8 +430,28 @@ function fileTypeLabel(filePath?: string) {
   return extension ? extension.toUpperCase() : 'Project';
 }
 
+function stripPromptScaffold(value: unknown): string {
+  let text = String(value ?? '');
+
+  text = text
+    .replace(/^\s*\[Model:[^\]]*\]\s*/i, '')
+    .replace(/^\s*\[Provider:[^\]]*\]\s*/i, '')
+    .replace(/\[Model:[^\]]*\]/gi, '')
+    .replace(/\[Provider:[^\]]*\]/gi, '')
+    .replace(/<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm, '')
+    .replace(/<boltAction\s+[^>]*>[\s\S]*?<\/boltAction>/gm, '');
+
+  const userPromptMatch = text.match(/User prompt:\s*([\s\S]*)$/i);
+
+  if (userPromptMatch && userPromptMatch[1].trim()) {
+    text = userPromptMatch[1];
+  }
+
+  return text;
+}
+
 function shortContent(value: unknown, fallback = 'Project update') {
-  const text = String(value ?? '')
+  const text = stripPromptScaffold(value)
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -2919,15 +2939,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        window.requestAnimationFrame(() => {
-          const element = checkpoint.messageId
-            ? document.getElementById(`chat-message-${checkpoint.messageId}`)
-            : undefined;
+        const focusCheckpointMessage = () => {
+          const targetId = checkpoint.messageId ?? checkpoint.messages.at(-1)?.id;
 
-          element?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-          element?.classList.add('bolt-project-chat-jump-highlight');
+          let element: HTMLElement | null = null;
+
+          if (targetId) {
+            element = document.getElementById(`chat-message-${targetId}`);
+          }
+
+          if (!element) {
+            const rows = document.querySelectorAll<HTMLElement>('[data-testid="ide-agent-panel"] [data-message-id]');
+            element = rows[rows.length - 1] ?? null;
+          }
+
+          if (!element) {
+            return false;
+          }
+
+          element.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          element.classList.add('bolt-project-chat-jump-highlight');
           window.setTimeout(() => element?.classList.remove('bolt-project-chat-jump-highlight'), 1600);
-        });
+
+          return true;
+        };
+
+        let attempts = 0;
+
+        const tryFocus = () => {
+          if (focusCheckpointMessage() || attempts >= 12) {
+            return;
+          }
+
+          attempts += 1;
+          window.setTimeout(tryFocus, 60);
+        };
+
+        window.requestAnimationFrame(tryFocus);
       },
       [projectId],
     );

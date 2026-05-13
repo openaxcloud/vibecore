@@ -97,5 +97,21 @@ export function UserMessage({ content, parts }: UserMessageProps) {
 
 function stripMetadata(content: string) {
   const artifactRegex = /<boltArtifact\s+[^>]*>[\s\S]*?<\/boltArtifact>/gm;
-  return content.replace(MODEL_REGEX, '').replace(PROVIDER_REGEX, '').replace(artifactRegex, '');
+  const actionRegex = /<boltAction\s+[^>]*>[\s\S]*?<\/boltAction>/gm;
+
+  let text = content
+    .replace(MODEL_REGEX, '')
+    .replace(PROVIDER_REGEX, '')
+    .replace(/\[Model:[^\]]*\]/gi, '')
+    .replace(/\[Provider:[^\]]*\]/gi, '')
+    .replace(artifactRegex, '')
+    .replace(actionRegex, '');
+
+  const userPromptMatch = text.match(/User prompt:\s*([\s\S]*)$/i);
+
+  if (userPromptMatch && userPromptMatch[1].trim()) {
+    text = userPromptMatch[1];
+  }
+
+  return text.trim();
 }
