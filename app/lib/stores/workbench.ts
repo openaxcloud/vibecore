@@ -20,7 +20,12 @@ import { path } from '~/utils/path';
 import { unreachable } from '~/utils/unreachable';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { WORK_DIR } from '~/utils/constants';
-import { extractRelativePath } from '~/utils/diff';
+import {
+  applyReviewableDiffHunks,
+  buildReviewableDiffHunks,
+  extractRelativePath,
+  type ReviewableDiffHunk,
+} from '~/utils/diff';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -55,6 +60,22 @@ export type ProjectFilesPanelRequest = {
   open?: boolean;
   requestId: number;
 };
+export type AgentPatchProposalStatus = 'pending' | 'applying' | 'accepted' | 'rejected' | 'failed';
+export interface AgentPatchProposal {
+  id: string;
+  artifactId: string;
+  messageId: string;
+  actionId: string;
+  filePath: string;
+  relativePath: string;
+  originalContent: string;
+  proposedContent: string;
+  hunks: ReviewableDiffHunk[];
+  status: AgentPatchProposalStatus;
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
+}
 
 const WORKSPACE_LOG_LIMIT = 500;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
@@ -216,11 +237,16 @@ export class WorkbenchStore {
   projectFilesPanelOpen: WritableAtom<boolean> = import.meta.hot?.data.projectFilesPanelOpen ?? atom(true);
   projectFilesPanelRequest: WritableAtom<ProjectFilesPanelRequest | undefined> =
     import.meta.hot?.data.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
+  agentPatchReviewRequired: WritableAtom<boolean> =
+    import.meta.hot?.data.agentPatchReviewRequired ?? atom<boolean>(false);
+  agentPatchProposals: MapStore<Record<string, AgentPatchProposal>> =
+    import.meta.hot?.data.agentPatchProposals ?? map<Record<string, AgentPatchProposal>>({});
   quotaWarning: WritableAtom<string | undefined> =
     import.meta.hot?.data.quotaWarning ?? atom<string | undefined>(undefined);
   billingUpgradePrompt: WritableAtom<string | undefined> =
     import.meta.hot?.data.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
+  #agentPatchOriginals = new Map<string, string>();
   #globalExecutionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
@@ -228,6 +254,8 @@ export class WorkbenchStore {
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
+      import.meta.hot.data.agentPatchReviewRequired = this.agentPatchReviewRequired;
+      import.meta.hot.data.agentPatchProposals = this.agentPatchProposals;
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
@@ -895,6 +923,157 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+  setAgentPatchReviewRequired(required: boolean) {
+    this.agentPatchReviewRequired.set(required);
+  }
+
+  dismissAgentPatchProposal(proposalId: string) {
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal) {
+      return;
+    }
+
+    this.agentPatchProposals.setKey(proposalId, {
+      ...proposal,
+      status: proposal.status === 'accepted' ? 'accepted' : 'rejected',
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async rejectAgentPatchProposal(proposalId: string) {
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal) {
+      return;
+    }
+
+    const artifact = this.#getArtifact(proposal.artifactId);
+
+    artifact?.runner.skipAction(proposal.actionId);
+    this.#agentPatchOriginals.delete(proposal.actionId);
+    this.agentPatchProposals.setKey(proposalId, {
+      ...proposal,
+      status: 'rejected',
+      updatedAt: new Date().toISOString(),
+    });
+    this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
+  }
+
+  async acceptAgentPatchProposal(proposalId: string, acceptedHunkIds?: string[]) {
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal || proposal.status === 'applying') {
+      return;
+    }
+
+    const acceptedIds = acceptedHunkIds?.length ? acceptedHunkIds : proposal.hunks.map((hunk) => hunk.id);
+
+    if (!acceptedIds.length) {
+      await this.rejectAgentPatchProposal(proposalId);
+      return;
+    }
+
+    this.agentPatchProposals.setKey(proposalId, {
+      ...proposal,
+      status: 'applying',
+      updatedAt: new Date().toISOString(),
+      error: undefined,
+    });
+
+    try {
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      if (!artifact) {
+        throw new Error('Artifact no longer exists for this patch.');
+      }
+
+      const acceptedContent = applyReviewableDiffHunks({
+        originalContent: proposal.originalContent,
+        hunks: proposal.hunks,
+        acceptedHunkIds: acceptedIds,
+      });
+
+      const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
+
+      if (fileExistsInEditor) {
+        this.#editorStore.updateFile(proposal.filePath, acceptedContent);
+        await this.saveFile(proposal.filePath);
+      }
+
+      await artifact.runner.runAction(
+        {
+          artifactId: proposal.artifactId,
+          messageId: proposal.messageId,
+          actionId: proposal.actionId,
+          action: {
+            type: 'file',
+            filePath: proposal.relativePath,
+            content: acceptedContent,
+          },
+        },
+        false,
+      );
+
+      if (!fileExistsInEditor) {
+        await this.loadRuntimeFiles('.').catch((error) => {
+          this.appendWorkspaceLog(
+            error instanceof Error
+              ? `File refresh skipped after accepting AI patch: ${error.message}`
+              : 'File refresh skipped after accepting AI patch',
+          );
+        });
+      }
+
+      this.#agentPatchOriginals.delete(proposal.actionId);
+      this.resetAllFileModifications();
+      this.agentPatchProposals.setKey(proposalId, {
+        ...proposal,
+        proposedContent: acceptedContent,
+        status: 'accepted',
+        updatedAt: new Date().toISOString(),
+      });
+      this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
+
+      await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `AI checkpoint skipped after patch accept: ${error.message}`
+            : 'AI checkpoint skipped after patch accept',
+        );
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
+      this.agentPatchProposals.setKey(proposalId, {
+        ...proposal,
+        status: 'failed',
+        updatedAt: new Date().toISOString(),
+        error: message,
+      });
+      this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
+    }
+  }
+
+  async #createProjectAgentCheckpoint(label: string) {
+    if (!this.#projectId) {
+      return;
+    }
+
+    const form = new FormData();
+    form.set('intent', 'create');
+    form.set('label', label);
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(this.#projectId)}/ide-panel/snapshots`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`snapshot endpoint returned ${response.status}`);
+    }
+  }
+
   getDeletedPaths() {
     return this.#filesStore.getDeletedPaths();
   }
@@ -1183,6 +1362,11 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
+      if (this.agentPatchReviewRequired.get()) {
+        this.#queueAgentPatchProposal(data, isStreaming);
+        return;
+      }
+
       await this.#createAutomaticSnapshotBeforeLargeAiChange(data);
 
       const fullPath = path.join(this.#runtime.workdir, data.action.filePath);
@@ -1219,6 +1403,56 @@ export class WorkbenchStore {
       }
     } else {
       await artifact.runner.runAction(data);
+    }
+  }
+
+  #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
+    if (data.action.type !== 'file') {
+      return;
+    }
+
+    const fullPath = path.join(this.#runtime.workdir, data.action.filePath);
+    const existingFile = this.#filesStore.getFile(fullPath);
+    const existingDocument = this.#editorStore.documents.get()[fullPath];
+
+    const originalContent =
+      this.#agentPatchOriginals.get(data.actionId) ??
+      (existingFile?.type === 'file' ? existingFile.content : undefined) ??
+      existingDocument?.value ??
+      '';
+
+    this.#agentPatchOriginals.set(data.actionId, originalContent);
+
+    const now = new Date().toISOString();
+    const proposalId = `${data.artifactId}:${data.actionId}`;
+    const previous = this.agentPatchProposals.get()[proposalId];
+    const hunks = buildReviewableDiffHunks(data.action.filePath, originalContent, data.action.content);
+
+    this.agentPatchProposals.setKey(proposalId, {
+      id: proposalId,
+      artifactId: data.artifactId,
+      messageId: data.messageId,
+      actionId: data.actionId,
+      filePath: fullPath,
+      relativePath: data.action.filePath,
+      originalContent,
+      proposedContent: data.action.content,
+      hunks,
+      status: previous?.status === 'accepted' || previous?.status === 'rejected' ? previous.status : 'pending',
+      createdAt: previous?.createdAt ?? now,
+      updatedAt: now,
+    });
+
+    if (this.selectedFile.value !== fullPath) {
+      this.setSelectedFile(fullPath);
+    }
+
+    if (this.currentView.value !== 'diff') {
+      this.currentView.set('diff');
+    }
+
+    if (!isStreaming) {
+      this.appendWorkspaceLog(`AI patch waiting for review: ${data.action.filePath}`);
     }
   }
 

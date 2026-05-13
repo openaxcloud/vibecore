@@ -2252,6 +2252,185 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-hover);
 }
 
+.bolt-project-agent-patch-review {
+  display: grid;
+  max-width: min(100%, var(--chat-max-width));
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-border-visible) 62%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-accent-success) 5%);
+  padding: 10px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white, transparent 92%);
+}
+
+.bolt-project-agent-patch-review-head,
+.bolt-project-agent-patch-card-head,
+.bolt-project-agent-patch-actions,
+.bolt-project-agent-patch-hunk summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-agent-patch-review-head,
+.bolt-project-agent-patch-card-head {
+  justify-content: space-between;
+}
+
+.bolt-project-agent-patch-review-head > div,
+.bolt-project-agent-patch-card-head > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bolt-project-agent-patch-review strong,
+.bolt-project-agent-patch-card strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-agent-patch-review span,
+.bolt-project-agent-patch-card span {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-project-agent-patch-review-badge {
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 52%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
+  color: var(--vc-ide-accent-success) !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+
+.bolt-project-agent-patch-review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.bolt-project-agent-patch-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-panel);
+  padding: 8px;
+}
+
+.bolt-project-agent-patch-actions {
+  flex: 0 0 auto;
+}
+
+.bolt-project-agent-patch-actions button {
+  height: 28px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 9px;
+}
+
+.bolt-project-agent-patch-actions button:first-child {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success), transparent 35%);
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-agent-patch-actions button:hover:not(:disabled) {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-patch-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.bolt-project-agent-patch-error {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 55%);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 91%);
+  color: var(--vc-ide-accent-error);
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.bolt-project-agent-patch-hunks {
+  display: grid;
+  gap: 6px;
+}
+
+.bolt-project-agent-patch-hunk {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bolt-project-agent-patch-hunk summary {
+  min-height: 32px;
+  cursor: pointer;
+  justify-content: space-between;
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 18%);
+  padding: 6px 8px;
+}
+
+.bolt-project-agent-patch-hunk label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bolt-project-agent-patch-hunk input {
+  accent-color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-agent-patch-hunk pre {
+  display: grid;
+  max-height: 260px;
+  overflow: auto;
+  margin: 0;
+  background: color-mix(in srgb, var(--vc-ide-bg-app), black 8%);
+  padding: 6px 0;
+}
+
+.bolt-project-agent-patch-hunk code {
+  display: block;
+  min-height: 18px;
+  padding: 0 10px;
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  line-height: 18px;
+  white-space: pre;
+}
+
+.bolt-project-agent-patch-hunk code[data-line-type='add'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-text-primary) 30%);
+}
+
+.bolt-project-agent-patch-hunk code[data-line-type='remove'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-text-primary) 34%);
+}
+
 .bolt-project-chatbox {
   min-height: 80px;
   border-color: var(--vc-ide-border-visible) !important;

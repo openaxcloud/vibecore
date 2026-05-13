@@ -130,6 +130,16 @@ export class ActionRunner {
     });
   }
 
+  skipAction(actionId: string) {
+    const action = this.actions.get()[actionId];
+
+    if (!action) {
+      return;
+    }
+
+    this.#updateAction(actionId, { status: 'complete', executed: true });
+  }
+
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
     const { actionId } = data;
     const action = this.actions.get()[actionId];

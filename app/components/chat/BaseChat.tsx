@@ -880,16 +880,54 @@ function resolveMentionedProjectFiles(message: string, projectFilePaths: string[
   return matches.slice(0, 12);
 }
 
+function resolveMentionedProjectSymbols(message: string, files: FileMap) {
+  const rawSymbols = Array.from(message.matchAll(/#([A-Za-z_$][\w$.-]*)/g)).map((match) =>
+    match[1].replace(/[.!?]+$/, ''),
+  );
+
+  if (!rawSymbols.length) {
+    return [];
+  }
+
+  const results: Array<{ symbol: string; filePath: string; line: number; preview: string }> = [];
+
+  for (const symbol of rawSymbols) {
+    const symbolPattern = new RegExp(`\\b${symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+
+    for (const [filePath, file] of Object.entries(files)) {
+      if (file?.type !== 'file' || file.isBinary || results.some((result) => result.symbol === symbol)) {
+        continue;
+      }
+
+      const lines = file.content.split(/\r?\n/);
+      const lineIndex = lines.findIndex((line) => symbolPattern.test(line));
+
+      if (lineIndex >= 0) {
+        results.push({
+          symbol,
+          filePath,
+          line: lineIndex + 1,
+          preview: lines[lineIndex].trim().slice(0, 160),
+        });
+      }
+    }
+  }
+
+  return results.slice(0, 12);
+}
+
 function buildProjectAgentPrompt({
   message,
   mode,
   planFirst,
   mentionedFiles,
+  mentionedSymbols,
 }: {
   message: string;
   mode: ProjectAgentExecutionMode;
   planFirst: boolean;
   mentionedFiles: string[];
+  mentionedSymbols: Array<{ symbol: string; filePath: string; line: number; preview: string }>;
 }) {
   const modeConfig = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === mode) ?? PROJECT_AGENT_EXECUTION_MODES[2];
 
@@ -898,6 +936,9 @@ function buildProjectAgentPrompt({
     planFirst
       ? 'Plan first is enabled: produce a concise, reviewable plan and wait for explicit approval before editing files, running shell commands, deploying, or applying destructive actions.'
       : 'Plan first is disabled: proceed according to the selected mode, but keep changes scoped and verify them.',
+    mode === 'edit' || mode === 'agent'
+      ? 'Diff review is enforced by the IDE: file edits are captured as patch proposals and must be accepted or rejected by the user before they are applied.'
+      : 'No file patch should be produced in this mode unless the user explicitly switches to Edit or Agent.',
   ];
 
   if (mode === 'ask') {
@@ -914,6 +955,14 @@ function buildProjectAgentPrompt({
 
   if (mentionedFiles.length > 0) {
     guardrails.push(`User-selected file context: ${mentionedFiles.map((filePath) => `@${filePath}`).join(', ')}`);
+  }
+
+  if (mentionedSymbols.length > 0) {
+    guardrails.push(
+      `User-selected symbol context: ${mentionedSymbols
+        .map((item) => `#${item.symbol} at ${item.filePath}:${item.line} (${item.preview})`)
+        .join('; ')}`,
+    );
   }
 
   return `<vibecore_agent_request>\n${guardrails.map((line) => `- ${line}`).join('\n')}\n</vibecore_agent_request>\n\n${message}`;
@@ -957,6 +1006,132 @@ function flattenTabs(node: IdePaneNode): IdePaneTab[] {
   }
 
   return [...flattenTabs(node.first), ...flattenTabs(node.second)];
+}
+
+function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
+  const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
+
+  useEffect(() => {
+    setSelectedHunksByProposal((current) => {
+      let changed = false;
+
+      const next = { ...current };
+
+      for (const proposal of proposals) {
+        if (!next[proposal.id]) {
+          next[proposal.id] = new Set(proposal.hunks.map((hunk: any) => hunk.id));
+          changed = true;
+        }
+      }
+
+      for (const proposalId of Object.keys(next)) {
+        if (!proposals.some((proposal) => proposal.id === proposalId)) {
+          delete next[proposalId];
+          changed = true;
+        }
+      }
+
+      return changed ? next : current;
+    });
+  }, [proposals]);
+
+  if (!proposals.length) {
+    return null;
+  }
+
+  const toggleHunk = (proposalId: string, hunkId: string) => {
+    setSelectedHunksByProposal((current) => {
+      const selected = new Set(current[proposalId] ?? []);
+
+      if (selected.has(hunkId)) {
+        selected.delete(hunkId);
+      } else {
+        selected.add(hunkId);
+      }
+
+      return { ...current, [proposalId]: selected };
+    });
+  };
+
+  return (
+    <section className="bolt-project-agent-patch-review" aria-label="AI patch review queue">
+      <div className="bolt-project-agent-patch-review-head">
+        <div>
+          <strong>Review AI changes</strong>
+          <span>
+            {proposals.length} file proposal{proposals.length === 1 ? '' : 's'} waiting before apply
+          </span>
+        </div>
+        <span className="bolt-project-agent-patch-review-badge">Diff first</span>
+      </div>
+      <div className="bolt-project-agent-patch-review-list">
+        {proposals.map((proposal) => {
+          const selectedHunks =
+            selectedHunksByProposal[proposal.id] ?? new Set(proposal.hunks.map((hunk: any) => hunk.id));
+
+          const selectedCount = selectedHunks.size;
+          const busy = proposal.status === 'applying';
+
+          return (
+            <article key={proposal.id} className="bolt-project-agent-patch-card" data-status={proposal.status}>
+              <div className="bolt-project-agent-patch-card-head">
+                <div>
+                  <strong>{proposal.relativePath}</strong>
+                  <span>
+                    {proposal.hunks.length} hunk{proposal.hunks.length === 1 ? '' : 's'} · {selectedCount} selected
+                  </span>
+                </div>
+                <div className="bolt-project-agent-patch-actions">
+                  <button
+                    type="button"
+                    disabled={busy || selectedCount === 0}
+                    onClick={() => workbenchStore.acceptAgentPatchProposal(proposal.id, Array.from(selectedHunks))}
+                  >
+                    Accept selected
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => workbenchStore.rejectAgentPatchProposal(proposal.id)}
+                  >
+                    Reject file
+                  </button>
+                </div>
+              </div>
+              {proposal.error ? <p className="bolt-project-agent-patch-error">{proposal.error}</p> : null}
+              <div className="bolt-project-agent-patch-hunks">
+                {proposal.hunks.map((hunk: any, index: number) => {
+                  const checked = selectedHunks.has(hunk.id);
+
+                  return (
+                    <details key={hunk.id} className="bolt-project-agent-patch-hunk" open={index === 0}>
+                      <summary>
+                        <label onClick={(event) => event.stopPropagation()}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleHunk(proposal.id, hunk.id)} />
+                          Hunk {index + 1}
+                        </label>
+                        <span>
+                          -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}
+                        </span>
+                      </summary>
+                      <pre aria-label={`Diff hunk ${index + 1} for ${proposal.relativePath}`}>
+                        {hunk.lines.map((line: any) => (
+                          <code key={line.id} data-line-type={line.type}>
+                            {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
+                            {line.content}
+                          </code>
+                        ))}
+                      </pre>
+                    </details>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 interface BaseChatProps {
@@ -1167,6 +1342,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectPlanFirst, setProjectPlanFirst] = useState(false);
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
+    const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
+
+    const pendingAgentPatchProposals = useMemo(
+      () =>
+        Object.values(agentPatchProposals)
+          .filter((proposal) => ['pending', 'applying', 'failed'].includes(proposal.status))
+          .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
+      [agentPatchProposals],
+    );
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
@@ -1483,6 +1667,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       restoredProjectId.current = undefined;
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
+
+    useEffect(() => {
+      workbenchStore.setAgentPatchReviewRequired(
+        projectIdeMode && (projectAgentExecutionMode === 'edit' || projectAgentExecutionMode === 'agent'),
+      );
+
+      return () => {
+        workbenchStore.setAgentPatchReviewRequired(false);
+      };
+    }, [projectAgentExecutionMode, projectIdeMode]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId) {
@@ -2675,12 +2869,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           const mentionedFiles = resolveMentionedProjectFiles(rawMessage, projectFilePaths);
+          const mentionedSymbols = resolveMentionedProjectSymbols(rawMessage, projectFiles);
 
           const agentMessage = buildProjectAgentPrompt({
             message: rawMessage,
             mode: projectAgentExecutionMode,
             planFirst: projectPlanFirst,
             mentionedFiles,
+            mentionedSymbols,
           });
 
           handleSendMessage?.(event, agentMessage);
@@ -2690,7 +2886,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         handleSendMessage?.(event, messageInput);
       },
-      [handleSendMessage, input, projectAgentExecutionMode, projectFilePaths, projectIdeMode, projectPlanFirst],
+      [
+        handleSendMessage,
+        input,
+        projectAgentExecutionMode,
+        projectFilePaths,
+        projectFiles,
+        projectIdeMode,
+        projectPlanFirst,
+      ],
     );
 
     const viewProjectCheckpoint = useCallback(
@@ -2867,6 +3071,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               )}
               {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
             </div>
+            {projectIdeMode && <AgentPatchReviewQueue proposals={pendingAgentPatchProposals} />}
             {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
             {projectIdeMode && isStreaming && (
               <div className="vc-sr-only" role="status" aria-live="polite">

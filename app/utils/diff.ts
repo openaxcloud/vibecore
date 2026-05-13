@@ -1,4 +1,4 @@
-import { createTwoFilesPatch } from 'diff';
+import { createTwoFilesPatch, structuredPatch } from 'diff';
 import { MODIFICATIONS_TAG_NAME, WORK_DIR } from './constants';
 import type { FileMap } from '~/lib/stores/files';
 
@@ -13,6 +13,21 @@ interface ModifiedFile {
 }
 
 type FileModifications = Record<string, ModifiedFile>;
+
+export interface ReviewableDiffLine {
+  id: string;
+  type: 'context' | 'add' | 'remove';
+  content: string;
+}
+
+export interface ReviewableDiffHunk {
+  id: string;
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: ReviewableDiffLine[];
+}
 
 export function computeFileModifications(files: FileMap, modifiedFiles: Map<string, string>) {
   const modifications: FileModifications = {};
@@ -73,6 +88,98 @@ export function diffFiles(fileName: string, oldFileContent: string, newFileConte
   }
 
   return unifiedDiff;
+}
+
+function splitComparableLines(content: string) {
+  const normalized = content.replace(/\r\n/g, '\n');
+
+  if (normalized === '') {
+    return [];
+  }
+
+  const lines = normalized.split('\n');
+
+  if (lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+
+  return lines;
+}
+
+function hasTrailingNewline(content: string) {
+  return content.endsWith('\n') || content.endsWith('\r\n');
+}
+
+export function buildReviewableDiffHunks(
+  filePath: string,
+  originalContent: string,
+  proposedContent: string,
+): ReviewableDiffHunk[] {
+  const patch = structuredPatch(filePath, filePath, originalContent, proposedContent, '', '', {
+    context: 3,
+  });
+
+  return patch.hunks.map((hunk, hunkIndex) => ({
+    id: `${filePath}:${hunk.oldStart}:${hunk.newStart}:${hunkIndex}`,
+    oldStart: hunk.oldStart,
+    oldLines: hunk.oldLines,
+    newStart: hunk.newStart,
+    newLines: hunk.newLines,
+    lines: hunk.lines.map((line, lineIndex) => {
+      const marker = line[0];
+
+      return {
+        id: `${filePath}:${hunkIndex}:${lineIndex}`,
+        type: marker === '+' ? 'add' : marker === '-' ? 'remove' : 'context',
+        content: line.slice(1),
+      };
+    }),
+  }));
+}
+
+export function applyReviewableDiffHunks(input: {
+  originalContent: string;
+  hunks: ReviewableDiffHunk[];
+  acceptedHunkIds: Set<string> | string[];
+}) {
+  const { originalContent, hunks } = input;
+  const acceptedHunkIds = input.acceptedHunkIds instanceof Set ? input.acceptedHunkIds : new Set(input.acceptedHunkIds);
+
+  if (acceptedHunkIds.size === 0) {
+    return originalContent;
+  }
+
+  const originalLines = splitComparableLines(originalContent);
+  const outputLines: string[] = [];
+
+  let cursor = 0;
+
+  for (const hunk of hunks) {
+    const hunkStartIndex = Math.max(0, hunk.oldStart - 1);
+    const hunkEndIndex = hunkStartIndex + hunk.oldLines;
+
+    if (!acceptedHunkIds.has(hunk.id)) {
+      continue;
+    }
+
+    outputLines.push(...originalLines.slice(cursor, hunkStartIndex));
+
+    for (const line of hunk.lines) {
+      if (line.type === 'remove') {
+        continue;
+      }
+
+      outputLines.push(line.content);
+    }
+
+    cursor = hunkEndIndex;
+  }
+
+  outputLines.push(...originalLines.slice(cursor));
+
+  const newline = hasTrailingNewline(originalContent) ? '\n' : '';
+
+  return `${outputLines.join('\n')}${newline}`;
 }
 
 const regex = new RegExp(`^${WORK_DIR}\/`);
