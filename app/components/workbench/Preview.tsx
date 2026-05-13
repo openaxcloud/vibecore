@@ -112,14 +112,14 @@ const previewSplashSlides: SplashSlide[] = [
     icon: Sparkles,
     headline: 'Preparing your live preview',
     subtitle: 'E-code is starting the dev server, scanning runtime ports, and wiring the webview automatically.',
-    color: '#7B61FF',
+    color: 'var(--vc-ide-accent-ai-start)',
   },
   {
     layout: 'two-column',
     icon: Zap,
     headline: 'Preview runs without manual setup',
     subtitle: 'The workspace detects package scripts, installs dependencies if needed, and keeps refreshing ports.',
-    color: '#D29922',
+    color: 'var(--vc-ide-accent-warning)',
     stats: [
       { label: 'Port scans', value: 'Auto' },
       { label: 'Dev server', value: 'Live' },
@@ -130,14 +130,14 @@ const previewSplashSlides: SplashSlide[] = [
     icon: Lightbulb,
     headline: 'While it boots',
     subtitle: 'Use the rest of the IDE immediately. The preview will attach as soon as the app exposes a port.',
-    color: '#3FB950',
+    color: 'var(--vc-ide-accent-success)',
   },
   {
     layout: 'icon-grid',
     icon: Puzzle,
     headline: 'Everything stays connected',
     subtitle: 'Preview, files, terminal, logs, deployments, secrets, and collaboration run from one workspace.',
-    color: '#F85149',
+    color: 'var(--vc-ide-accent-error)',
     gridItems: [
       { icon: Database, label: 'Database' },
       { icon: Shield, label: 'Secrets' },
@@ -150,7 +150,7 @@ const previewSplashSlides: SplashSlide[] = [
     icon: Globe,
     headline: 'Ready for publishing',
     subtitle: 'When your app is stable, publish previews, staging, or production deployments from the same project.',
-    color: '#0099FF',
+    color: 'var(--vc-ide-accent-action)',
     stats: [
       { label: 'TLS', value: 'Built-in' },
       { label: 'Rollback', value: '1 click' },
@@ -677,7 +677,7 @@ export const Preview = memo(
             width: '15px',
             height: '100%',
             cursor: 'ew-resize',
-            background: 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))',
+            background: 'var(--bolt-elements-background-depth-4, var(--vc-ide-bg-hover))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -687,10 +687,10 @@ export const Preview = memo(
             zIndex: 10,
           }}
           onMouseOver={(e) =>
-            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, rgba(0,0,0,.3))')
+            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-4, var(--vc-ide-bg-hover))')
           }
           onMouseOut={(e) =>
-            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, rgba(0,0,0,.15))')
+            (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, var(--vc-ide-bg-card))')
           }
           title="Drag to resize width"
         >
@@ -856,7 +856,7 @@ export const Preview = memo(
       >
         <div
           style={{
-            color: 'var(--bolt-elements-textSecondary, rgba(0,0,0,0.5))',
+            color: 'var(--bolt-elements-textSecondary, var(--vc-ide-text-secondary))',
             fontSize: '10px',
             lineHeight: '5px',
             userSelect: 'none',
@@ -912,7 +912,11 @@ export const Preview = memo(
           }
 
           // Create the HTML content for the frame
-          const frameColor = getFrameColor();
+          const frameColor = getThemeColor('--vc-ide-bg-hover', '#111827');
+          const frameDetailColor = getThemeColor('--vc-ide-bg-app', '#111827');
+          const previewBackground = getThemeColor('--vc-ide-bg-panel', '#f6f8fb');
+          const previewTextColor = getThemeColor('--vc-ide-text-primary', '#111827');
+          const previewShadow = getThemeColor('--vc-ui-shadow-xl', '0 10px 30px rgb(15 23 42 / 0.16)');
           const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
 
           const framePadding =
@@ -952,7 +956,7 @@ export const Preview = memo(
                   justify-content: center;
                   align-items: center;
                   height: 100vh;
-                  background: #f0f0f0;
+                  background: ${previewBackground};
                   overflow: hidden;
                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
@@ -968,7 +972,7 @@ export const Preview = memo(
                   right: 0;
                   text-align: center;
                   font-size: 14px;
-                  color: #333;
+                  color: ${previewTextColor};
                 }
                 
                 .device-frame {
@@ -976,7 +980,7 @@ export const Preview = memo(
                   border-radius: ${frameRadius};
                   background: ${frameColor};
                   padding: ${framePadding};
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                  box-shadow: ${previewShadow};
                   overflow: hidden;
                 }
                 
@@ -989,7 +993,7 @@ export const Preview = memo(
                   transform: ${notchTransform};
                   width: ${notchWidth};
                   height: ${notchHeight};
-                  background: #333;
+                  background: ${frameDetailColor};
                   border-radius: 4px;
                   z-index: 2;
                 }
@@ -1003,7 +1007,7 @@ export const Preview = memo(
                   transform: ${homeTransform};
                   width: ${homeWidth};
                   height: ${homeHeight};
-                  background: #333;
+                  background: ${frameDetailColor};
                   border-radius: 50%;
                   z-index: 2;
                 }
@@ -1087,16 +1091,10 @@ export const Preview = memo(
       };
     }, [isDeviceModeOn, showDeviceFrameInPreview, getDeviceScale, isLandscape, selectedWindowSize]);
 
-    // Function to get the frame color based on dark mode
-    const getFrameColor = useCallback(() => {
-      // Check if the document has a dark class or data-theme="dark"
-      const isDarkMode =
-        document.documentElement.classList.contains('dark') ||
-        document.documentElement.getAttribute('data-theme') === 'dark' ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const getThemeColor = useCallback((token: string, fallback: string) => {
+      const value = window.getComputedStyle(document.documentElement).getPropertyValue(token).trim();
 
-      // Return a darker color for light mode, lighter color for dark mode
-      return isDarkMode ? '#555' : '#111';
+      return value || fallback;
     }, []);
 
     // Effect to handle color scheme changes
@@ -1424,9 +1422,9 @@ export const Preview = memo(
                       style={{
                         position: 'relative',
                         borderRadius: selectedWindowSize.frameType === 'mobile' ? '36px' : '20px',
-                        background: getFrameColor(),
+                        background: 'var(--vc-ide-bg-hover)',
                         padding: getFramePadding(),
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                        boxShadow: 'var(--vc-ui-shadow-xl)',
                         overflow: 'hidden',
                         transform: 'scale(1)',
                         transformOrigin: 'center center',
@@ -1449,7 +1447,7 @@ export const Preview = memo(
                           transform: isLandscape ? 'translateY(-50%)' : 'translateX(-50%)',
                           width: isLandscape ? '8px' : selectedWindowSize.frameType === 'mobile' ? '60px' : '80px',
                           height: isLandscape ? (selectedWindowSize.frameType === 'mobile' ? '60px' : '80px') : '8px',
-                          background: '#333',
+                          background: 'var(--vc-ide-bg-app)',
                           borderRadius: '4px',
                           zIndex: 2,
                         }}
@@ -1464,7 +1462,7 @@ export const Preview = memo(
                           transform: isLandscape ? 'translateY(50%)' : 'translateX(50%)',
                           width: isLandscape ? '4px' : '40px',
                           height: isLandscape ? '40px' : '4px',
-                          background: '#333',
+                          background: 'var(--vc-ide-bg-app)',
                           borderRadius: '50%',
                           zIndex: 2,
                         }}
@@ -1549,7 +1547,7 @@ export const Preview = memo(
                     top: '-25px',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: 'var(--bolt-elements-background-depth-3, rgba(0,0,0,0.7))',
+                    background: 'var(--bolt-elements-background-depth-3, var(--vc-ide-bg-card))',
                     color: 'var(--bolt-elements-textPrimary, white)',
                     padding: '2px 8px',
                     borderRadius: '4px',

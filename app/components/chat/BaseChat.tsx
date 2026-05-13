@@ -3511,7 +3511,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </React.Fragment>
             ))}
             {!commandPaletteEntries.length && (
-              <div className="px-4 py-6 text-sm text-[#6E7681]">No matching command, tool, or file.</div>
+              <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
+                No matching command, tool, or file.
+              </div>
             )}
             <footer>↑↓ navigate · ↵ select · esc close</footer>
           </div>
@@ -3594,9 +3596,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <span>
                 ↑{projectBackendState.git?.ahead ?? 0} ↓{projectBackendState.git?.behind ?? 0}
               </span>
-              <span className="i-ph:x-circle text-[#F85149]" aria-hidden />
+              <span className="i-ph:x-circle text-bolt-elements-icon-error" aria-hidden />
               <span>0</span>
-              <span className="i-ph:warning text-[#D29922]" aria-hidden />
+              <span className="i-ph:warning text-bolt-elements-icon-warning" aria-hidden />
               <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
               <button
                 type="button"
@@ -4769,31 +4771,52 @@ function IdeTabBar({
   const [toolQuery, setToolQuery] = useState('');
 
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    ['overview', 'Overview', 'Project summary', 'i-ph:gauge', '#0099FF', 'Workspace'],
-    ['editor', 'Code', 'Code editor', 'i-ph:code', '#0099FF', 'Workspace'],
-    ['files', 'Files', 'Browse project files', 'i-ph:files', '#D29922', 'Workspace'],
-    ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', '#0099FF', 'Workspace'],
-    ['locks', 'Locks', 'Locked files', 'i-ph:lock', '#D29922', 'Workspace'],
-    ['terminal', 'Terminal', 'Workspace shell', 'i-ph:terminal-window', '#3FB950', 'Runtime'],
-    ['logs', 'Logs', 'Runtime logs', 'i-ph:list-magnifying-glass', '#3FB950', 'Runtime'],
-    ['preview', 'Webview', 'App preview', 'i-ph:browser', '#0099FF', 'Runtime'],
-    ['database', 'Database', 'SQL browser', 'i-ph:database', '#7B61FF', 'Data'],
-    ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', '#D29922', 'Data'],
-    ['env', 'Env vars', 'Environment variables', 'i-ph:brackets-curly', '#D29922', 'Configuration'],
-    ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', '#D29922', 'Configuration'],
-    ['git', 'Git', 'Version control', 'i-ph:git-branch', '#3FB950', 'Project'],
-    ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', '#D29922', 'Project'],
-    ['integrations', 'Integrations', 'Connected services', 'i-ph:plugs-connected', '#3FB950', 'Project'],
-    ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', '#3FB950', 'Project'],
-    ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', '#7B61FF', 'Delivery'],
-    ['security', 'Security', 'Security scanner', 'i-ph:shield-check', '#F85149', 'Security'],
-    ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', '#0099FF', 'Delivery'],
-    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', '#C2C8CC', 'Project'],
-    ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', '#7B61FF', 'Project'],
-    ['activity', 'Activity', 'Project timeline', 'i-ph:activity', '#0099FF', 'Team'],
-    ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', '#C2C8CC', 'Team'],
-    ['domains', 'Domains', 'Custom domains', 'i-ph:globe', '#0099FF', 'Delivery'],
-    ['settings', 'Settings', 'Project settings', 'i-ph:gear', '#C2C8CC', 'Configuration'],
+    ['overview', 'Overview', 'Project summary', 'i-ph:gauge', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['editor', 'Code', 'Code editor', 'i-ph:code', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['files', 'Files', 'Browse project files', 'i-ph:files', 'var(--vc-ide-accent-warning)', 'Workspace'],
+    ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['locks', 'Locks', 'Locked files', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Workspace'],
+    ['terminal', 'Terminal', 'Workspace shell', 'i-ph:terminal-window', 'var(--vc-ide-accent-success)', 'Runtime'],
+    ['logs', 'Logs', 'Runtime logs', 'i-ph:list-magnifying-glass', 'var(--vc-ide-accent-success)', 'Runtime'],
+    ['preview', 'Webview', 'App preview', 'i-ph:browser', 'var(--vc-ide-accent-action)', 'Runtime'],
+    ['database', 'Database', 'SQL browser', 'i-ph:database', 'var(--vc-ide-accent-ai-start)', 'Data'],
+    ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', 'var(--vc-ide-accent-warning)', 'Data'],
+    [
+      'env',
+      'Env vars',
+      'Environment variables',
+      'i-ph:brackets-curly',
+      'var(--vc-ide-accent-warning)',
+      'Configuration',
+    ],
+    ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Configuration'],
+    ['git', 'Git', 'Version control', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
+    ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', 'var(--vc-ide-accent-warning)', 'Project'],
+    [
+      'integrations',
+      'Integrations',
+      'Connected services',
+      'i-ph:plugs-connected',
+      'var(--vc-ide-accent-success)',
+      'Project',
+    ],
+    ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
+    [
+      'deployments',
+      'Deployments',
+      'Publish your app',
+      'i-ph:rocket-launch',
+      'var(--vc-ide-accent-ai-start)',
+      'Delivery',
+    ],
+    ['security', 'Security', 'Security scanner', 'i-ph:shield-check', 'var(--vc-ide-accent-error)', 'Security'],
+    ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', 'var(--vc-ide-accent-action)', 'Delivery'],
+    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', 'var(--vc-ide-text-secondary)', 'Project'],
+    ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-ai-start)', 'Project'],
+    ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
+    ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', 'var(--vc-ide-text-secondary)', 'Team'],
+    ['domains', 'Domains', 'Custom domains', 'i-ph:globe', 'var(--vc-ide-accent-action)', 'Delivery'],
+    ['settings', 'Settings', 'Project settings', 'i-ph:gear', 'var(--vc-ide-text-secondary)', 'Configuration'],
   ];
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
