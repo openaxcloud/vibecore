@@ -3221,18 +3221,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <ClientOnly>
               {() => {
                 return chatStarted ? (
-                  <Messages
-                    className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
-                    messages={messages}
-                    isStreaming={isStreaming}
-                    append={append}
-                    chatMode={chatMode}
-                    setChatMode={setChatMode}
-                    provider={provider}
-                    model={model}
-                    projectIdeMode={projectIdeMode}
-                    addToolResult={addToolResult}
-                  />
+                  <>
+                    <Messages
+                      className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+                      messages={messages}
+                      isStreaming={isStreaming}
+                      append={append}
+                      chatMode={chatMode}
+                      setChatMode={setChatMode}
+                      provider={provider}
+                      model={model}
+                      projectIdeMode={projectIdeMode}
+                      addToolResult={addToolResult}
+                    />
+                    {projectIdeMode && pendingAgentPatchProposals.length > 0 && (
+                      <div className="w-full max-w-chat mx-auto px-0 pb-4">
+                        <AgentPatchReviewQueue proposals={pendingAgentPatchProposals} />
+                      </div>
+                    )}
+                  </>
                 ) : null;
               }}
             </ClientOnly>
@@ -3241,6 +3248,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <div
             className={classNames('my-auto flex flex-col gap-2 w-full max-w-chat mx-auto z-prompt mb-6', {
               'sticky bottom-2': chatStarted,
+              'bolt-project-agent-composer': projectIdeMode,
             })}
           >
             <div className="flex flex-col gap-2">
@@ -3276,7 +3284,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               )}
               {llmErrorAlert && <LlmErrorAlert alert={llmErrorAlert} clearAlert={() => clearLlmErrorAlert?.()} />}
             </div>
-            {projectIdeMode && <AgentPatchReviewQueue proposals={pendingAgentPatchProposals} />}
             {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
             {projectIdeMode && isStreaming && (
               <div className="vc-sr-only" role="status" aria-live="polite">
