@@ -74,6 +74,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       ? 'Show agent settings'
       : 'Hide agent settings'
     : 'Model Settings';
+  const enhancePromptTitle = props.enhancingPrompt
+    ? 'Enhancing your prompt with AI'
+    : props.input.length === 0
+      ? 'Type a prompt to enable AI prompt enhancement'
+      : 'Enhance this prompt with AI before sending';
 
   return (
     <div
@@ -284,7 +289,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             </IconButton>
             <WebSearch onSearchResult={(result) => props.onWebSearchResult?.(result)} disabled={props.isStreaming} />
             <IconButton
-              title="Enhance prompt"
+              title={enhancePromptTitle}
               disabled={props.input.length === 0 || props.enhancingPrompt}
               className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
               onClick={() => {
