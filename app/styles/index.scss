@@ -1287,6 +1287,157 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-muted) !important;
 }
 
+.bolt-project-notification-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border: 1.5px solid var(--vc-ide-bg-panel);
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
+}
+
+.bolt-project-notification-dot[data-urgent='true'] {
+  background: var(--vc-ide-accent-error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-error), transparent 76%);
+}
+
+.bolt-project-notification-popover {
+  border-color: var(--vc-ide-border-visible) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 4%), var(--vc-ide-bg-card)),
+    var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+  box-shadow: var(--vc-ui-shadow-xl) !important;
+}
+
+.bolt-project-notification-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-notification-header strong,
+.bolt-project-notification-title {
+  display: block;
+  color: var(--vc-ide-text-primary) !important;
+  font-weight: 700;
+}
+
+.bolt-project-notification-header span,
+.bolt-project-notification-detail,
+.bolt-project-notification-meta {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+.bolt-project-notification-header > div > span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px !important;
+}
+
+.bolt-project-notification-count {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700;
+}
+
+.bolt-project-notification-list {
+  display: grid;
+  max-height: min(420px, calc(100vh - 96px));
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.bolt-project-notification-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-panel) !important;
+  color: var(--vc-ide-text-primary) !important;
+  text-align: left;
+}
+
+.bolt-project-notification-item:hover {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover) !important;
+}
+
+.bolt-project-notification-icon {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-project-notification-item[data-kind='success'] .bolt-project-notification-icon {
+  background: color-mix(in srgb, #3fb950, transparent 86%);
+  color: #2f9e44;
+}
+
+.bolt-project-notification-item[data-kind='warning'] .bolt-project-notification-icon {
+  background: color-mix(in srgb, #d29922, transparent 84%);
+  color: #b7791f;
+}
+
+.bolt-project-notification-item[data-kind='error'] .bolt-project-notification-icon {
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-notification-detail {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px !important;
+}
+
+.bolt-project-notification-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 7px;
+  color: var(--vc-ide-text-muted) !important;
+  font-size: 10px !important;
+}
+
+.bolt-project-notification-empty {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 22px 14px;
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
+  text-align: center;
+}
+
+.bolt-project-notification-empty small {
+  max-width: 260px;
+  color: var(--vc-ide-text-muted) !important;
+}
+
 .bolt-project-topbar-left,
 .bolt-project-topbar-actions {
   display: flex;

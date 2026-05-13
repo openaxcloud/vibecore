@@ -3,9 +3,13 @@ import { type LoaderFunctionArgs, type MetaFunction } from '@remix-run/cloudflar
 import { useLoaderData } from '@remix-run/react';
 import { Link } from '@remix-run/react';
 import {
+  Activity,
+  AlertTriangle,
   Bell,
+  CheckCircle2,
   ChevronDown,
   CircleHelp,
+  Clock3,
   Copy,
   Download,
   Files,
@@ -19,7 +23,7 @@ import {
   Trash2,
   User,
 } from 'lucide-react';
-import { lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
@@ -36,8 +40,19 @@ type ProjectLoaderData = {
     name: string;
   };
   collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
-  notifications: Array<{ action: string; createdAt?: string }>;
+  notifications: Array<{ id?: string; action: string; createdAt?: string; metadata?: unknown }>;
   projectApiError?: string;
+};
+
+type IdeNotificationKind = 'success' | 'warning' | 'error' | 'info';
+type IdeNotification = {
+  id: string;
+  title: string;
+  detail: string;
+  timeLabel: string;
+  source: 'Backend activity' | 'Runtime' | 'Preview';
+  kind: IdeNotificationKind;
+  href: string;
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -96,6 +111,7 @@ export default function ProjectIdeRoute() {
           projectName={project.name}
           collaborators={collaborators}
           notifications={notifications}
+          projectApiError={projectApiError}
         />
         <main className="h-dvh pt-9">
           <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
@@ -118,11 +134,13 @@ function IdeProjectTopBar({
   projectName,
   collaborators,
   notifications,
+  projectApiError,
 }: {
   projectId: string;
   projectName: string;
   collaborators: ProjectLoaderData['collaborators'];
   notifications: ProjectLoaderData['notifications'];
+  projectApiError?: string;
 }) {
   const loading = useStore(workbenchStore.workspaceLoading);
   const status = useStore(workbenchStore.workspaceStatus);
@@ -143,6 +161,21 @@ function IdeProjectTopBar({
         : state === 'running'
           ? 'Running'
           : 'Stopped';
+  const notificationItems = useMemo(
+    () =>
+      buildIdeNotifications({
+        projectId,
+        backendEvents: notifications,
+        runtimeState: state,
+        runtimeStatusLabel: statusLabel,
+        runtimeError: projectApiError ?? error,
+        previewPorts: previews.map((preview) => preview.port),
+      }),
+    [error, notifications, previews, projectApiError, projectId, state, statusLabel],
+  );
+  const actionableNotificationCount = notificationItems.filter(
+    (item) => item.kind === 'warning' || item.kind === 'error',
+  ).length;
 
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b px-2 text-[12px]">
@@ -254,39 +287,62 @@ function IdeProjectTopBar({
             onClick={() => setNotificationsOpen((value) => !value)}
           >
             <Bell className="h-3.5 w-3.5" aria-hidden />
-            {notifications.length > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#F85149]" />}
+            {notificationItems.length > 0 && (
+              <span
+                className="bolt-project-notification-dot"
+                data-urgent={actionableNotificationCount > 0 ? 'true' : 'false'}
+                aria-hidden
+              />
+            )}
           </button>
           {notificationsOpen && (
             <div
-              className="absolute right-0 top-full z-50 mt-1 w-80 rounded-xl border border-[#2B3245] bg-[#1A2030] p-3 shadow-[0_24px_64px_rgba(0,4,20,0.7)]"
+              className="bolt-project-notification-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-3"
               role="dialog"
               aria-label="Project notifications"
             >
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <strong className="text-[13px] font-semibold text-[#F5F9FC]">Notifications</strong>
-                <span className="text-[11px] text-[#6E7681]">{notifications.length} project events</span>
+              <div className="bolt-project-notification-header">
+                <div>
+                  <strong>IDE notifications</strong>
+                  <span>Project activity and live workspace signals</span>
+                </div>
+                <span className="bolt-project-notification-count">
+                  {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
+                </span>
               </div>
-              {notifications.length ? (
-                <div className="grid max-h-80 gap-2 overflow-y-auto pr-1">
-                  {notifications.slice(0, 8).map((notification, index) => (
-                    <Link
-                      key={`${notification.action}-${notification.createdAt ?? index}`}
-                      to={`/projects/${projectId}/ide?panel=activity`}
-                      className="rounded-md border border-[#2B3245] bg-[#0E1525] p-2.5 text-left hover:bg-[#2B3245]"
-                      onClick={() => setNotificationsOpen(false)}
-                    >
-                      <span className="block text-[12px] font-medium text-[#F5F9FC]">{notification.action}</span>
-                      <span className="mt-1 block text-[11px] text-[#C2C8CC]">
-                        {notification.createdAt
-                          ? new Date(notification.createdAt).toLocaleString()
-                          : 'Recorded by backend'}
-                      </span>
-                    </Link>
-                  ))}
+              {notificationItems.length ? (
+                <div className="bolt-project-notification-list">
+                  {notificationItems.slice(0, 10).map((notification) => {
+                    const Icon = notificationIcon(notification.kind);
+                    return (
+                      <Link
+                        key={notification.id}
+                        to={notification.href}
+                        className="bolt-project-notification-item"
+                        data-kind={notification.kind}
+                        onClick={() => setNotificationsOpen(false)}
+                      >
+                        <span className="bolt-project-notification-icon" aria-hidden>
+                          <Icon className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="bolt-project-notification-title">{notification.title}</span>
+                          <span className="bolt-project-notification-detail">{notification.detail}</span>
+                          <span className="bolt-project-notification-meta">
+                            <span>{notification.source}</span>
+                            <span aria-hidden>•</span>
+                            <span>{notification.timeLabel}</span>
+                          </span>
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="rounded-md border border-[#2B3245] bg-[#0E1525] p-3 text-[12px] text-[#C2C8CC]">
-                  No project notifications recorded yet.
+                <div className="bolt-project-notification-empty">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden />
+                  <span>No IDE events recorded yet.</span>
+                  <small>Runtime, preview and backend project activity will appear here automatically.</small>
                 </div>
               )}
             </div>
@@ -389,6 +445,137 @@ function IdeProjectTopBar({
       </div>
     </header>
   );
+}
+
+function buildIdeNotifications({
+  projectId,
+  backendEvents,
+  runtimeState,
+  runtimeStatusLabel,
+  runtimeError,
+  previewPorts,
+}: {
+  projectId: string;
+  backendEvents: ProjectLoaderData['notifications'];
+  runtimeState: 'building' | 'crashed' | 'running' | 'stopped';
+  runtimeStatusLabel: string;
+  runtimeError?: string | null;
+  previewPorts: number[];
+}): IdeNotification[] {
+  const runtimeNotification: IdeNotification = {
+    id: `runtime-${runtimeState}`,
+    title: `Workspace ${runtimeStatusLabel.toLowerCase()}`,
+    detail:
+      runtimeState === 'crashed'
+        ? runtimeError || 'The workspace runtime reported an error.'
+        : runtimeState === 'running'
+          ? 'The IDE runtime is connected and ready for commands.'
+          : runtimeState === 'building'
+            ? 'The workspace is starting and preparing project services.'
+            : 'The workspace runtime is currently idle.',
+    timeLabel: 'Live',
+    source: 'Runtime',
+    kind: runtimeState === 'crashed' ? 'error' : runtimeState === 'building' ? 'warning' : 'info',
+    href: `/projects/${projectId}/ide?panel=logs`,
+  };
+
+  const previewNotification: IdeNotification | null = previewPorts.length
+    ? {
+        id: `preview-${previewPorts.join('-')}`,
+        title: 'Preview server available',
+        detail: `Live preview ${previewPorts.length === 1 ? 'port' : 'ports'}: ${previewPorts.join(', ')}`,
+        timeLabel: 'Live',
+        source: 'Preview',
+        kind: 'success',
+        href: `/projects/${projectId}/ide?panel=preview`,
+      }
+    : null;
+
+  const backendNotifications = backendEvents.map((event, index) => {
+    const createdAt = event.createdAt ? new Date(event.createdAt) : null;
+
+    return {
+      id: event.id ?? `activity-${event.action}-${event.createdAt ?? index}`,
+      title: formatActivityTitle(event.action),
+      detail: activityDetail(event.action, event.metadata),
+      timeLabel: createdAt ? createdAt.toLocaleString() : 'Recorded by API',
+      source: 'Backend activity' as const,
+      kind: classifyActivityKind(event.action),
+      href: `/projects/${projectId}/ide?panel=activity`,
+    };
+  });
+
+  return [runtimeNotification, ...(previewNotification ? [previewNotification] : []), ...backendNotifications].slice(
+    0,
+    12,
+  );
+}
+
+function formatActivityTitle(action: string) {
+  return action
+    .replace(/[_:.-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function activityDetail(action: string, metadata: unknown) {
+  if (metadata && typeof metadata === 'object' && 'message' in metadata && typeof metadata.message === 'string') {
+    return metadata.message;
+  }
+
+  if (action.includes('deploy')) {
+    return 'Deployment activity was recorded by the project API.';
+  }
+
+  if (action.includes('collaborator') || action.includes('member')) {
+    return 'Team or collaborator access changed.';
+  }
+
+  if (action.includes('snapshot')) {
+    return 'A project snapshot event was recorded.';
+  }
+
+  if (action.includes('settings')) {
+    return 'Project configuration changed.';
+  }
+
+  if (action.includes('ai.tool')) {
+    return 'An AI tool action changed the workspace.';
+  }
+
+  return 'Project activity recorded by the backend.';
+}
+
+function classifyActivityKind(action: string): IdeNotificationKind {
+  const normalized = action.toLowerCase();
+
+  if (normalized.includes('fail') || normalized.includes('error') || normalized.includes('delete')) {
+    return 'error';
+  }
+
+  if (normalized.includes('warning') || normalized.includes('quota') || normalized.includes('security')) {
+    return 'warning';
+  }
+
+  if (normalized.includes('create') || normalized.includes('deploy') || normalized.includes('snapshot')) {
+    return 'success';
+  }
+
+  return 'info';
+}
+
+function notificationIcon(kind: IdeNotificationKind) {
+  switch (kind) {
+    case 'success':
+      return CheckCircle2;
+    case 'warning':
+      return AlertTriangle;
+    case 'error':
+      return AlertTriangle;
+    default:
+      return kind === 'info' ? Activity : Clock3;
+  }
 }
 
 function ProjectMenuItem({
