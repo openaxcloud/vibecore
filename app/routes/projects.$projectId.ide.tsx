@@ -197,7 +197,7 @@ function IdeProjectTopBar({
             <ChevronDown className="h-3.5 w-3.5" aria-hidden />
           </summary>
           {projectMenuOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[#2B3245] bg-[#1A2030] p-1.5 shadow-[0_24px_64px_rgba(0,4,20,0.7)]">
+            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
               <ProjectMenuItem
                 to={`/projects/${projectId}/ide?panel=settings`}
                 icon={<Settings className="h-3.5 w-3.5" />}
@@ -355,13 +355,13 @@ function IdeProjectTopBar({
               <span
                 key={collaborator.id ?? collaborator.userId}
                 title={`${collaborator.userId ?? 'User'} (${collaborator.roleKey ?? 'member'})`}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#2B3245] text-[10px] font-semibold text-[#F5F9FC]"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full border-[1.5px] border-[var(--vc-ide-bg-panel)] bg-[var(--vc-ide-bg-hover)] text-[10px] font-semibold text-[var(--vc-ide-text-primary)]"
               >
                 {(collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
               </span>
             ))}
           {collaborators.length > 3 && (
-            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border-[1.5px] border-[#0E1525] bg-[#1A2030] px-1 text-[9px] font-semibold text-[#C2C8CC]">
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border-[1.5px] border-[var(--vc-ide-bg-panel)] bg-[var(--vc-ide-bg-card)] px-1 text-[9px] font-semibold text-[var(--vc-ide-text-secondary)]">
               +{collaborators.length - 3}
             </span>
           )}
@@ -406,20 +406,20 @@ function IdeProjectTopBar({
           onToggle={(event) => setUserMenuOpen(event.currentTarget.open)}
         >
           <summary
-            className="inline-flex h-[22px] w-[22px] cursor-pointer list-none items-center justify-center rounded-full bg-[#2B3245] hover:ring-1 hover:ring-[#0099FF]"
+            className="inline-flex h-[22px] w-[22px] cursor-pointer list-none items-center justify-center rounded-full bg-[var(--vc-ide-bg-hover)] text-[var(--vc-ide-text-primary)] hover:ring-1 hover:ring-[var(--vc-ide-accent-action)]"
             aria-label="User menu"
           >
             <User className="h-3.5 w-3.5" aria-hidden />
           </summary>
           {userMenuOpen && (
-            <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[#2B3245] bg-[#1A2030] p-1.5 shadow-[0_24px_64px_rgba(0,4,20,0.7)]">
+            <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
               <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
               <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
               <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
               <form method="post" action="/logout">
                 <button
                   type="submit"
-                  className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]"
+                  className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
                 >
                   Sign out
                 </button>
@@ -592,7 +592,7 @@ function ProjectMenuItem({
   return (
     <Link
       to={to}
-      className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[#F5F9FC] hover:bg-[#2B3245]"
+      className="flex h-8 items-center gap-2 rounded-md px-2 text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
       onClick={onClick}
     >
       {icon}
@@ -620,7 +620,7 @@ function ProjectMenuAction({
     <button
       type="button"
       disabled={busy}
-      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-[#F5F9FC] hover:bg-[#2B3245] disabled:opacity-60"
+      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)] disabled:opacity-60"
       onClick={async () => {
         if (intent === 'delete' && !window.confirm(`Delete ${projectName}?`)) {
           return;
