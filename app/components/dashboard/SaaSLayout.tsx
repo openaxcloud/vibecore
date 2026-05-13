@@ -27,6 +27,7 @@ import {
   MailPlus,
   Menu,
   MonitorPlay,
+  Plus,
   Rocket,
   Search,
   Settings,
@@ -85,16 +86,20 @@ export const publicNav = [
   { label: 'Pricing', to: '/pricing' },
 ];
 
-export const appNav = [
+export const workspaceNav = [
   { label: 'Dashboard', to: '/dashboard', icon: Gauge },
   { label: 'Projects', to: '/projects', icon: Boxes },
-  { label: 'Create project', to: '/projects/new', icon: Sparkles },
   { label: 'Templates', to: '/dashboard/templates', icon: Layers },
+];
+
+export const orgNav = [
   { label: 'Usage', to: '/usage', icon: Activity },
   { label: 'Billing', to: '/billing', icon: CreditCard },
   { label: 'Team', to: '/organization-members', icon: Users },
   { label: 'Support', to: '/support', icon: LifeBuoy },
 ];
+
+export const appNav = [...workspaceNav, { label: 'Create project', to: '/projects/new', icon: Plus }, ...orgNav];
 
 export const accountNav = [
   { label: 'Account', to: '/account-settings', icon: Settings },
@@ -470,14 +475,19 @@ export function AppShell({
       <div
         className={classNames(
           'grid min-h-screen transition-[grid-template-columns] duration-200',
-          sidebarCollapsed ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[256px_1fr]',
+          sidebarCollapsed ? 'lg:grid-cols-[64px_1fr]' : 'lg:grid-cols-[240px_1fr]',
         )}
       >
-        <aside className="hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block">
+        <aside
+          className={classNames(
+            'vc-sidebar hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block',
+            sidebarCollapsed && 'vc-sidebar--collapsed',
+          )}
+        >
           <div
             className={classNames(
               'flex h-14 items-center border-b border-bolt-elements-borderColor',
-              sidebarCollapsed ? 'justify-center px-2' : 'gap-2 px-4',
+              sidebarCollapsed ? 'flex-col justify-center gap-1 px-2 py-2' : 'gap-2 px-3',
             )}
           >
             <Link
@@ -488,49 +498,37 @@ export function AppShell({
             >
               <Sparkles className="h-4 w-4" aria-hidden />
             </Link>
-            <div className={classNames('min-w-0', sidebarCollapsed && 'hidden')}>
-              <span className="block text-sm font-semibold">VibeCore</span>
-              <span className="block text-xs text-bolt-elements-textTertiary">SaaS workspace</span>
-            </div>
-          </div>
-          <nav
-            className={classNames('space-y-6 overflow-visible p-3', sidebarCollapsed && 'px-2')}
-            aria-label="Application navigation"
-          >
-            <NavGroup items={appNav} collapsed={sidebarCollapsed} />
-            <div>
-              {!sidebarCollapsed ? (
-                <p className="px-3 pb-2 text-xs font-medium uppercase text-bolt-elements-textTertiary">Account</p>
-              ) : (
-                <div className="mx-auto mb-2 h-px w-8 bg-bolt-elements-borderColor" aria-hidden />
-              )}
-              <NavGroup items={accountNav} collapsed={sidebarCollapsed} />
-              <div className={classNames('mt-2 px-1', sidebarCollapsed && 'px-0')}>
-                <SignOutButton
-                  className={classNames('w-full', sidebarCollapsed ? 'justify-center px-0' : 'justify-start')}
-                  compact={sidebarCollapsed}
-                  iconOnly={sidebarCollapsed}
-                />
+            {!sidebarCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+                <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
               </div>
-            </div>
+            ) : null}
             <button
               type="button"
               onClick={toggleSidebar}
               className={classNames(
-                'group relative flex h-9 w-full items-center rounded-md border border-bolt-elements-borderColor text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
-                sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3',
+                'group relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
               )}
               aria-label={sidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
               title={sidebarCollapsed ? 'Expand menu' : 'Collapse menu'}
             >
-              {!sidebarCollapsed ? <span>Collapse</span> : null}
               {sidebarCollapsed ? (
-                <ChevronRight className="h-4 w-4" aria-hidden />
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               ) : (
-                <ChevronLeft className="h-4 w-4" aria-hidden />
+                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
               )}
               {sidebarCollapsed ? <span className="vc-collapsed-nav-label">Expand menu</span> : null}
             </button>
+          </div>
+          <nav
+            className={classNames('flex flex-col gap-3 overflow-visible p-3', sidebarCollapsed && 'items-center px-2')}
+            aria-label="Application navigation"
+          >
+            <CreateProjectCta collapsed={sidebarCollapsed} />
+            <NavSection label="Workspace" items={workspaceNav} collapsed={sidebarCollapsed} />
+            <NavSection label="Organization" items={orgNav} collapsed={sidebarCollapsed} />
+            <NavSection label="Account" items={accountNav} collapsed={sidebarCollapsed} />
           </nav>
         </aside>
         <section className="min-w-0">
@@ -565,28 +563,30 @@ function MobileAppNav() {
       className="flex gap-1 overflow-x-auto border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 lg:hidden"
       aria-label="Application mobile navigation"
     >
-      {[...appNav, ...accountNav].map((item) => {
-        const Icon = item.icon;
-        const mobileLabel = item.to === '/projects/new' ? 'New project' : item.label;
+      {[...workspaceNav, { label: 'Create project', to: '/projects/new', icon: Plus }, ...orgNav, ...accountNav].map(
+        (item) => {
+          const Icon = item.icon;
+          const mobileLabel = item.to === '/projects/new' ? 'New project' : item.label;
 
-        return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              classNames(
-                'inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
-                isActive
-                  ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                  : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
-              )
-            }
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-            {mobileLabel}
-          </NavLink>
-        );
-      })}
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                classNames(
+                  'inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                  isActive
+                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                    : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+                )
+              }
+            >
+              <Icon className="h-4 w-4" aria-hidden />
+              {mobileLabel}
+            </NavLink>
+          );
+        },
+      )}
       <SignOutButton className="shrink-0" compact />
     </nav>
   );
@@ -1039,6 +1039,51 @@ export function SignOutButton({
   );
 }
 
+function NavSection({
+  label,
+  items,
+  collapsed,
+}: {
+  label: string;
+  items: Array<{ label: string; to: string; icon: Icon }>;
+  collapsed: boolean;
+}) {
+  return (
+    <div className={classNames('w-full', collapsed && 'flex flex-col items-center')}>
+      {!collapsed ? (
+        <p className="vc-sidebar-group-label px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          {label}
+        </p>
+      ) : (
+        <div className="vc-sidebar-divider mb-1.5 mt-1 h-px w-6 bg-bolt-elements-borderColor" aria-hidden />
+      )}
+      <NavGroup items={items} collapsed={collapsed} />
+    </div>
+  );
+}
+
+function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
+  return (
+    <NavLink
+      to="/projects/new"
+      end
+      className={({ isActive }) =>
+        classNames(
+          'vc-sidebar-cta group relative inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-[12px] font-semibold transition-[background-color,filter,box-shadow] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
+          collapsed ? 'h-10 w-10' : 'h-10 w-full px-3',
+          isActive && 'vc-sidebar-cta--active',
+        )
+      }
+      aria-label={collapsed ? 'Create project' : undefined}
+      title={collapsed ? 'Create project' : undefined}
+    >
+      <Plus className={classNames('shrink-0', collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
+      {!collapsed ? <span className="truncate">New project</span> : null}
+      {collapsed ? <span className="vc-collapsed-nav-label">Create project</span> : null}
+    </NavLink>
+  );
+}
+
 function NavGroup({
   items,
   collapsed = false,
@@ -1047,7 +1092,7 @@ function NavGroup({
   collapsed?: boolean;
 }) {
   return (
-    <div className="grid gap-1">
+    <div className={classNames('grid w-full gap-1', collapsed && 'place-items-center')}>
       {items.map((item) => {
         const Icon = item.icon;
         return (
@@ -1056,10 +1101,10 @@ function NavGroup({
             to={item.to}
             className={({ isActive }) =>
               classNames(
-                'group relative flex items-center rounded-md text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
-                collapsed ? 'h-10 w-10 justify-center px-0' : 'h-9 gap-2 px-3',
+                'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
+                collapsed ? 'h-10 w-10 justify-center px-0' : 'h-9 w-full gap-2 px-3',
                 isActive
-                  ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary shadow-sm'
+                  ? 'vc-sidebar-nav-item--active bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
                   : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
               )
             }
