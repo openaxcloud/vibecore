@@ -329,7 +329,7 @@ export class GitCliProvider implements GitProvider {
 
   async status(projectId: string) {
     const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD']).catch(() => 'main');
-    const porcelain = await this.git(projectId, ['status', '--porcelain']);
+    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall']);
     const statusLines = porcelain.split('\n').filter(Boolean);
     const changedFiles = statusLines.map((line) => line.slice(3));
     const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
