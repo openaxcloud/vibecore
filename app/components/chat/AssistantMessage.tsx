@@ -8,7 +8,8 @@ import type {
 } from '@ai-sdk/ui-utils';
 import type { JSONValue } from 'ai';
 import type { Message } from 'ai';
-import { memo, Fragment } from 'react';
+import { memo, Fragment, useCallback, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
 import { ToolInvocations } from './ToolInvocations';
 import Popover from '~/components/ui/Popover';
@@ -377,32 +378,6 @@ export const AssistantMessage = memo(
                   </span>
                 )}
               </div>
-              {(onRewind || onFork) && messageId && (
-                <div className="flex gap-1.5 flex-col lg:flex-row ml-auto">
-                  {onRewind && (
-                    <WithTooltip tooltip="Revert to this message">
-                      <button
-                        type="button"
-                        aria-label="Revert to this message"
-                        onClick={() => onRewind(messageId)}
-                        key="i-ph:arrow-u-up-left"
-                        className="i-ph:arrow-u-up-left text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
-                      />
-                    </WithTooltip>
-                  )}
-                  {onFork && (
-                    <WithTooltip tooltip="Fork chat from this message">
-                      <button
-                        type="button"
-                        aria-label="Fork chat from this message"
-                        onClick={() => onFork(messageId)}
-                        key="i-ph:git-fork"
-                        className="i-ph:git-fork text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
-                      />
-                    </WithTooltip>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </>
@@ -416,7 +391,147 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
+        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
       </div>
     );
   },
 );
+
+type Feedback = 'up' | 'down' | null;
+
+function AssistantMessageFooter({
+  content,
+  messageId,
+  onRewind,
+  onFork,
+}: {
+  content: string;
+  messageId?: string;
+  onRewind?: (messageId: string) => void;
+  onFork?: (messageId: string) => void;
+}) {
+  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [copied, setCopied] = useState(false);
+
+  const storageKey = messageId ? `vibecore:msg-feedback:${messageId}` : undefined;
+
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') {
+      return;
+    }
+
+    const stored = window.localStorage.getItem(storageKey);
+
+    if (stored === 'up' || stored === 'down') {
+      setFeedback(stored);
+    }
+  }, [storageKey]);
+
+  const persistFeedback = useCallback(
+    (next: Feedback) => {
+      if (!storageKey || typeof window === 'undefined') {
+        return;
+      }
+
+      if (next) {
+        window.localStorage.setItem(storageKey, next);
+      } else {
+        window.localStorage.removeItem(storageKey);
+      }
+    },
+    [storageKey],
+  );
+
+  const toggleFeedback = (value: Exclude<Feedback, null>) => {
+    setFeedback((current) => {
+      const next = current === value ? null : value;
+      persistFeedback(next);
+
+      return next;
+    });
+  };
+
+  const copyMarkdown = useCallback(async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content ?? '');
+      } else {
+        throw new Error('Clipboard API unavailable');
+      }
+
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch (error) {
+      toast.error(`Copy failed: ${(error as Error).message}`);
+    }
+  }, [content]);
+
+  if (!content && !messageId) {
+    return null;
+  }
+
+  return (
+    <div className="bolt-assistant-message-footer" role="group" aria-label="Message actions">
+      <WithTooltip tooltip={copied ? 'Copied' : 'Copy message'}>
+        <button
+          type="button"
+          aria-label="Copy message"
+          className="bolt-assistant-message-action"
+          data-copied={copied ? 'true' : 'false'}
+          onClick={copyMarkdown}
+        >
+          <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+        </button>
+      </WithTooltip>
+      {onRewind && messageId ? (
+        <WithTooltip tooltip="Regenerate from this prompt">
+          <button
+            type="button"
+            aria-label="Regenerate from this prompt"
+            className="bolt-assistant-message-action"
+            onClick={() => onRewind(messageId)}
+          >
+            <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+          </button>
+        </WithTooltip>
+      ) : null}
+      {onFork && messageId ? (
+        <WithTooltip tooltip="Edit prompt and fork the conversation">
+          <button
+            type="button"
+            aria-label="Edit prompt and fork conversation"
+            className="bolt-assistant-message-action"
+            onClick={() => onFork(messageId)}
+          >
+            <span className="i-ph:pencil-simple" aria-hidden />
+          </button>
+        </WithTooltip>
+      ) : null}
+      <span className="bolt-assistant-message-action-divider" aria-hidden />
+      <WithTooltip tooltip="Helpful">
+        <button
+          type="button"
+          aria-label="Mark response as helpful"
+          aria-pressed={feedback === 'up'}
+          className="bolt-assistant-message-action"
+          data-active={feedback === 'up' ? 'true' : 'false'}
+          onClick={() => toggleFeedback('up')}
+        >
+          <span className="i-ph:thumbs-up" aria-hidden />
+        </button>
+      </WithTooltip>
+      <WithTooltip tooltip="Needs improvement">
+        <button
+          type="button"
+          aria-label="Mark response as needing improvement"
+          aria-pressed={feedback === 'down'}
+          className="bolt-assistant-message-action"
+          data-active={feedback === 'down' ? 'true' : 'false'}
+          onClick={() => toggleFeedback('down')}
+        >
+          <span className="i-ph:thumbs-down" aria-hidden />
+        </button>
+      </WithTooltip>
+    </div>
+  );
+}

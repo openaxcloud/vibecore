@@ -810,6 +810,72 @@ body
   font-weight: 600;
 }
 
+.bolt-assistant-message-footer {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  opacity: 0.85;
+  transition: opacity 120ms ease-out;
+}
+
+.bolt-assistant-message:hover .bolt-assistant-message-footer,
+.bolt-assistant-message:focus-within .bolt-assistant-message-footer {
+  opacity: 1;
+}
+
+.bolt-assistant-message-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-assistant-message-action span {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.bolt-assistant-message-action:hover,
+.bolt-assistant-message-action:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-assistant-message-action:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
+}
+
+.bolt-assistant-message-action[data-active='true'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
+  color: var(--vc-ide-accent-action);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 40%, transparent);
+}
+
+.bolt-assistant-message-action[data-copied='true'] {
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-assistant-message-action-divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 4px;
+  background: var(--vc-ide-border-subtle);
+}
+
 .bolt-project-agent-panel .bolt-user-message-bubble {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%) !important;
   background-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-card) 88%) !important;

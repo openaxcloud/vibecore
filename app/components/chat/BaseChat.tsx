@@ -10,6 +10,7 @@ import Cookies from 'js-cookie';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanelGroup } from 'react-resizable-panels';
 import { ClientOnly } from 'remix-utils/client-only';
+import { toast } from 'react-toastify';
 import { getApiKeysFromCookies } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
 import ChatAlert from './ChatAlert';
@@ -1459,7 +1460,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
-    const [projectPlanFirst, setProjectPlanFirst] = useState(false);
+
+    const [projectPlanFirst, setProjectPlanFirst] = useState(() => {
+      if (typeof window === 'undefined') {
+        return false;
+      }
+
+      return window.localStorage.getItem('vibecore:agent-plan-first-default') === 'true';
+    });
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      window.localStorage.setItem('vibecore:agent-plan-first-default', String(projectPlanFirst));
+    }, [projectPlanFirst]);
+
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
@@ -2774,17 +2791,57 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobilePanel(mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number]);
     }, [mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
 
+    const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
+
     useEffect(() => {
-      const updateOnlineState = () => setIsOnline(navigator.onLine);
-      updateOnlineState();
-      window.addEventListener('online', updateOnlineState);
-      window.addEventListener('offline', updateOnlineState);
+      const updateOnlineState = (transition: 'online' | 'offline' | 'init') => {
+        const online = navigator.onLine;
+        setIsOnline(online);
+
+        if (transition === 'init' || !projectIdeMode) {
+          return;
+        }
+
+        if (transition === 'offline') {
+          if (networkToastRef.current.offline === undefined) {
+            networkToastRef.current.offline = toast.warn('Connection lost. Reconnecting…', {
+              autoClose: false,
+              closeOnClick: false,
+              icon: false,
+            });
+          }
+        } else if (transition === 'online') {
+          if (networkToastRef.current.offline !== undefined) {
+            toast.dismiss(networkToastRef.current.offline);
+            networkToastRef.current.offline = undefined;
+          }
+
+          if (!networkToastRef.current.first) {
+            toast.success('Reconnected', { autoClose: 2500, icon: false });
+          }
+        }
+
+        networkToastRef.current.first = false;
+      };
+
+      updateOnlineState('init');
+
+      const onOffline = () => updateOnlineState('offline');
+      const onOnline = () => updateOnlineState('online');
+
+      window.addEventListener('online', onOnline);
+      window.addEventListener('offline', onOffline);
 
       return () => {
-        window.removeEventListener('online', updateOnlineState);
-        window.removeEventListener('offline', updateOnlineState);
+        window.removeEventListener('online', onOnline);
+        window.removeEventListener('offline', onOffline);
+
+        if (networkToastRef.current.offline !== undefined) {
+          toast.dismiss(networkToastRef.current.offline);
+          networkToastRef.current.offline = undefined;
+        }
       };
-    }, []);
+    }, [projectIdeMode]);
 
     useEffect(() => {
       if (!useMobileIde) {
