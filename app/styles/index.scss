@@ -780,6 +780,36 @@ body
   color: var(--vc-ide-text-primary) !important;
 }
 
+.bolt-message-usage-stats {
+  display: inline-flex;
+  min-height: 24px;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 14%);
+  padding: 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-message-usage-stats > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 24%);
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.bolt-message-usage-stats strong {
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+}
+
 .bolt-project-agent-panel .bolt-user-message-bubble {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%) !important;
   background-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-card) 88%) !important;
@@ -5259,6 +5289,47 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
 }
 
+.bolt-project-conversation-history-search {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 22%);
+  padding: 8px 10px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-conversation-history-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  line-height: 1.3;
+  outline: 0;
+}
+
+.bolt-project-conversation-history-search input::placeholder {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-conversation-history-search button {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-conversation-history-search button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
 .bolt-project-conversation-history-list {
   display: grid;
   gap: 8px;
@@ -9075,8 +9146,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .vc-new-project-submit:focus-visible {
   outline: none;
-  box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-action) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-action) 35%, transparent);
 }
 
 .vc-new-project-word-count {

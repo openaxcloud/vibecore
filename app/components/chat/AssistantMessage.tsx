@@ -59,6 +59,22 @@ function normalizedFilePath(path: string) {
   return normalizedPath;
 }
 
+function formatUsageNumber(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return undefined;
+  }
+
+  return value >= 1000 ? `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k` : String(value);
+}
+
+function formatDurationMs(value: number | undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return undefined;
+  }
+
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}ms`;
+}
+
 export const AssistantMessage = memo(
   ({
     content,
@@ -103,9 +119,20 @@ export const AssistantMessage = memo(
 
     const usage: {
       completionTokens: number;
+      cost?: string | number;
+      durationMs?: number;
       promptTokens: number;
       totalTokens: number;
     } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+    const usageStats = usage
+      ? [
+          ['In', formatUsageNumber(usage.promptTokens)],
+          ['Out', formatUsageNumber(usage.completionTokens)],
+          ['Total', formatUsageNumber(usage.totalTokens)],
+          ['Time', formatDurationMs(usage.durationMs)],
+          ['Cost', typeof usage.cost === 'number' ? `$${usage.cost.toFixed(4)}` : usage.cost],
+        ].filter(([, value]) => value)
+      : [];
 
     const toolInvocations = parts?.filter((part) => part.type === 'tool-invocation');
 
@@ -337,8 +364,16 @@ export const AssistantMessage = memo(
                   </span>
                 )}
                 {usage && (
-                  <span>
-                    Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+                  <span
+                    className="bolt-message-usage-stats"
+                    aria-label={`Message usage: ${usageStats.map(([label, value]) => `${label} ${value}`).join(', ')}`}
+                  >
+                    {usageStats.map(([label, value]) => (
+                      <span key={label}>
+                        <strong>{label}</strong>
+                        {value}
+                      </span>
+                    ))}
                   </span>
                 )}
               </div>
@@ -347,6 +382,8 @@ export const AssistantMessage = memo(
                   {onRewind && (
                     <WithTooltip tooltip="Revert to this message">
                       <button
+                        type="button"
+                        aria-label="Revert to this message"
                         onClick={() => onRewind(messageId)}
                         key="i-ph:arrow-u-up-left"
                         className="i-ph:arrow-u-up-left text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
@@ -356,6 +393,8 @@ export const AssistantMessage = memo(
                   {onFork && (
                     <WithTooltip tooltip="Fork chat from this message">
                       <button
+                        type="button"
+                        aria-label="Fork chat from this message"
                         onClick={() => onFork(messageId)}
                         key="i-ph:git-fork"
                         className="i-ph:git-fork text-[19px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"

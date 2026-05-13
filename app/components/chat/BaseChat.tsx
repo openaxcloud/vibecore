@@ -1111,6 +1111,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
+    const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
     const [projectPlanFirst, setProjectPlanFirst] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
@@ -1355,6 +1356,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return checkpoints.reverse();
     }, [archivedProjectConversations, messages, projectId, projectIdeMode, projectSnapshots]);
+    const filteredProjectConversationCheckpoints = useMemo(() => {
+      const query = conversationHistoryQuery.trim().toLowerCase();
+
+      if (!query) {
+        return projectConversationCheckpoints;
+      }
+
+      return projectConversationCheckpoints.filter((checkpoint) => {
+        const searchable = [
+          checkpoint.title,
+          checkpoint.description,
+          checkpoint.conversationTitle,
+          checkpoint.commitSha,
+          checkpoint.ageLabel,
+          ...checkpoint.messages.map((message) => message.content),
+        ]
+          .filter(Boolean)
+          .join('\n')
+          .toLowerCase();
+
+        return searchable.includes(query);
+      });
+    }, [conversationHistoryQuery, projectConversationCheckpoints]);
     const projectAgentSuggestions = useMemo(
       () =>
         buildProjectAgentSuggestions({
@@ -1383,6 +1407,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       restoredProjectId.current = undefined;
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectId) {
+        return;
+      }
+
+      try {
+        setConversationHistoryQuery(localStorage.getItem(`vibecore.agentHistorySearch.${projectId}`) ?? '');
+      } catch {
+        setConversationHistoryQuery('');
+      }
+    }, [projectId, projectIdeMode]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !projectId) {
+        return;
+      }
+
+      try {
+        const storageKey = `vibecore.agentHistorySearch.${projectId}`;
+
+        if (conversationHistoryQuery.trim()) {
+          localStorage.setItem(storageKey, conversationHistoryQuery);
+        } else {
+          localStorage.removeItem(storageKey);
+        }
+      } catch {
+        // Search persistence is best-effort and must never block the IDE.
+      }
+    }, [conversationHistoryQuery, projectId, projectIdeMode]);
 
     useEffect(() => {
       return () => {
@@ -3302,7 +3356,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-project-conversation-history-head">
                 <div>
                   <strong>Agent history</strong>
-                  <span>All checkpoints from this project conversation</span>
+                  <span>
+                    {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
+                    checkpoints
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -3313,8 +3370,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <span className="i-ph:x" aria-hidden />
                 </button>
               </div>
+              <label className="bolt-project-conversation-history-search">
+                <span className="i-ph:magnifying-glass" aria-hidden />
+                <input
+                  type="search"
+                  value={conversationHistoryQuery}
+                  placeholder="Search checkpoints, commits, prompts, or agent replies"
+                  aria-label="Search agent checkpoints"
+                  onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
+                />
+                {conversationHistoryQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear history search"
+                    onClick={() => setConversationHistoryQuery('')}
+                  >
+                    <span className="i-ph:x" aria-hidden />
+                  </button>
+                )}
+              </label>
               <div className="bolt-project-conversation-history-list">
-                {projectConversationCheckpoints.map((checkpoint) => {
+                {filteredProjectConversationCheckpoints.map((checkpoint) => {
                   const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
 
                   return (
@@ -3328,12 +3404,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </small>
                       </div>
                       <div className="bolt-project-history-checkpoint-actions">
-                        <button type="button" onClick={() => viewProjectCheckpoint(checkpoint)}>
+                        <button
+                          type="button"
+                          aria-label={`View chat at checkpoint ${checkpoint.title}`}
+                          onClick={() => viewProjectCheckpoint(checkpoint)}
+                        >
                           View Chat
                         </button>
                         <button
                           type="button"
                           disabled={!rollbackAvailable}
+                          aria-label={`Rollback to checkpoint ${checkpoint.title}`}
                           onClick={() => {
                             setRollbackDatabase(false);
                             setRollbackTarget(checkpoint);
@@ -3341,8 +3422,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         >
                           Rollback here
                         </button>
-                        <button type="button" onClick={() => openCheckpointChanges(checkpoint)}>
-                          Changes
+                        <button
+                          type="button"
+                          aria-label={`Review diff for checkpoint ${checkpoint.title}`}
+                          onClick={() => openCheckpointChanges(checkpoint)}
+                        >
+                          Review diff
                         </button>
                       </div>
                     </article>
@@ -3350,6 +3435,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 })}
                 {!projectConversationCheckpoints.length && (
                   <div className="bolt-project-history-empty">No project agent history yet.</div>
+                )}
+                {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
+                  <div className="bolt-project-history-empty">No checkpoints match this search.</div>
                 )}
               </div>
             </div>
