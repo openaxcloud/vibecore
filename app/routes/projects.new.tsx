@@ -1,7 +1,10 @@
+import { useStore } from '@nanostores/react';
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useNavigation } from '@remix-run/react';
+import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import {
   BarChart3,
+  CheckCircle,
+  ChevronDown,
   Code2,
   Cog,
   FileText,
@@ -27,18 +30,22 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
   apiRequest,
   firstOrganization,
   formObject,
+  json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { LLMManager } from '~/lib/modules/llm/manager';
 import type { ModelInfo } from '~/lib/modules/llm/types';
+import { providersStore } from '~/lib/stores/settings';
+import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
@@ -198,9 +205,14 @@ const preferredProviderOrder = [
   'Together',
   'Cerebras',
   'Fireworks',
+  'xAI',
   'XAI',
   'Moonshot',
+  'Z.ai',
   'ZAI',
+  'Cohere',
+  'HuggingFace',
+  'Hyperbolic',
   'Perplexity',
   'AmazonBedrock',
   'Ollama',
@@ -220,9 +232,14 @@ const providerIconByName: Record<string, LucideIcon> = {
   Together: Layers,
   Cerebras: Cog,
   Fireworks: Rocket,
+  xAI: Star,
   XAI: Star,
   Moonshot: Globe2,
+  'Z.ai': Sparkles,
   ZAI: Sparkles,
+  Cohere: Layers,
+  HuggingFace: Sparkles,
+  Hyperbolic: Zap,
   Perplexity: Search,
   AmazonBedrock: Layers,
   Ollama: Terminal,
@@ -244,15 +261,8 @@ const fallbackProvider =
 const fallbackModel =
   fallbackProvider?.staticModels.find((model) => model.name === DEFAULT_MODEL) ?? fallbackProvider?.staticModels[0];
 
-function providerForName(providerName?: string) {
-  return providerOptions.find((provider) => provider.name === providerName) ?? fallbackProvider;
-}
-
-function modelForProvider(providerName?: string, modelName?: string) {
-  const provider = providerForName(providerName);
-  const model = provider?.staticModels.find((candidate) => candidate.name === modelName) ?? provider?.staticModels[0];
-
-  return { provider, model };
+function knownProviderForName(providerName?: string) {
+  return PROVIDER_LIST.find((provider) => provider.name === providerName) ?? fallbackProvider ?? DEFAULT_PROVIDER;
 }
 
 function formatContextWindow(tokens: number): string {
@@ -265,6 +275,161 @@ function formatContextWindow(tokens: number): string {
   }
 
   return String(tokens);
+}
+
+type ModelsPayload = {
+  modelList: ModelInfo[];
+  providers: ProviderInfo[];
+  defaultProvider: ProviderInfo;
+};
+
+type CreateDropdownOption = {
+  value: string;
+  label: string;
+  description?: string;
+  meta?: string;
+  icon?: LucideIcon;
+};
+
+function CreateDropdown({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+  loading,
+  testId,
+}: {
+  label: string;
+  value: string;
+  options: CreateDropdownOption[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  loading?: boolean;
+  testId?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+  const SelectedIcon = selected?.icon;
+
+  const filteredOptions = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+      return options;
+    }
+
+    return options.filter((option) =>
+      [option.label, option.value, option.description, option.meta]
+        .filter(Boolean)
+        .some((part) => part!.toLowerCase().includes(normalizedQuery)),
+    );
+  }, [options, query]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery('');
+    }
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="vc-create-dropdown relative" data-testid={testId}>
+      <button
+        type="button"
+        disabled={disabled || options.length === 0}
+        className="vc-create-dropdown-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') {
+            setOpen(false);
+          }
+        }}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {loading ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--vc-ide-accent-action)]" aria-hidden />
+          ) : SelectedIcon ? (
+            <SelectedIcon className="h-4 w-4 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
+          ) : null}
+          <span className="min-w-0">
+            <span className="block truncate text-[12px] font-semibold">{selected?.label ?? 'No option available'}</span>
+            {selected?.meta ? <span className="block truncate text-[10px]">{selected.meta}</span> : null}
+          </span>
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
+      </button>
+
+      {open ? (
+        <div className="vc-create-dropdown-menu" role="listbox" aria-label={`${label} options`}>
+          <div className="vc-create-dropdown-search">
+            <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="min-w-0 flex-1 bg-transparent text-[12px] outline-none"
+              autoFocus
+            />
+          </div>
+          <div className="vc-create-dropdown-list">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => {
+                const Icon = option.icon;
+                const selectedOption = option.value === value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="option"
+                    aria-selected={selectedOption}
+                    className="vc-create-dropdown-option"
+                    onClick={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12px] font-semibold">{option.label}</span>
+                      {option.description ? (
+                        <span className="block truncate text-[10px] leading-4">{option.description}</span>
+                      ) : null}
+                    </span>
+                    {option.meta ? <span className="vc-create-dropdown-meta">{option.meta}</span> : null}
+                    {selectedOption ? <CheckCircle className="h-4 w-4 shrink-0" aria-hidden /> : null}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="vc-create-dropdown-empty">No matching option</div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 const importCards = [
@@ -329,9 +494,33 @@ function projectPromptForArtifact(prompt: string, category: ArtifactCategory) {
   ].join('\n');
 }
 
-export async function loader({ request }: EnterpriseLoaderArgs) {
+export async function loader({ request, context }: EnterpriseLoaderArgs) {
   await firstOrganization(request);
-  return null;
+
+  const serverEnv = context.cloudflare?.env as unknown as Record<string, string> | undefined;
+  const llmManager = LLMManager.getInstance(serverEnv);
+  const allProviders = llmManager.getAllProviders();
+  const defaultProvider = llmManager.getDefaultProvider();
+
+  const providers = allProviders.map((provider) => ({
+    name: provider.name,
+    staticModels: provider.staticModels,
+    getApiKeyLink: provider.getApiKeyLink,
+    labelForGetApiKey: provider.labelForGetApiKey,
+    icon: provider.icon,
+  }));
+
+  return json<ModelsPayload>({
+    modelList: llmManager.getStaticModelList(),
+    providers,
+    defaultProvider: {
+      name: defaultProvider.name,
+      staticModels: defaultProvider.staticModels,
+      getApiKeyLink: defaultProvider.getApiKeyLink,
+      labelForGetApiKey: defaultProvider.labelForGetApiKey,
+      icon: defaultProvider.icon,
+    },
+  });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -350,9 +539,8 @@ export async function action({ request }: EnterpriseActionArgs) {
   const artifactCategory =
     artifactCategories.find((category) => category.id === body.artifactType) ?? artifactCategories[0];
 
-  const selected = modelForProvider(body.provider, body.model);
-  const selectedProvider = selected.provider?.name ?? DEFAULT_PROVIDER.name;
-  const selectedModel = selected.model?.name ?? DEFAULT_MODEL;
+  const selectedProvider = knownProviderForName(body.provider).name;
+  const selectedModel = body.model?.trim() || fallbackModel?.name || DEFAULT_MODEL;
   const generationPrompt = prompt ? projectPromptForArtifact(prompt, artifactCategory) : '';
   const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt) : '');
 
@@ -416,23 +604,175 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function NewProjectPage() {
+  const initialModelsPayload = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const navigation = useNavigation();
+  const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
   const [prompt, setPrompt] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
-  const [selectedProvider, setSelectedProvider] = useState(fallbackProvider?.name ?? 'Anthropic');
-  const [selectedModel, setSelectedModel] = useState(fallbackModel?.name ?? DEFAULT_MODEL);
+  const [modelsPayload, setModelsPayload] = useState<ModelsPayload>(initialModelsPayload);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
 
   const activeCategory =
     artifactCategories.find((category) => category.id === selectedCategory) ?? artifactCategories[0];
 
-  const activeProvider = providerForName(selectedProvider);
-  const activeModels = activeProvider?.staticModels ?? [];
-  const activeModel = activeModels.find((model) => model.name === selectedModel) ?? activeModels[0] ?? fallbackModel;
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshModels = async () => {
+      setModelsLoading(true);
+      setModelsError(null);
+
+      try {
+        const response = await fetch('/api/models');
+
+        if (!response.ok) {
+          throw new Error(`Failed to load models (${response.status})`);
+        }
+
+        const payload = (await response.json()) as ModelsPayload;
+
+        if (!cancelled) {
+          setModelsPayload(payload);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setModelsError(error instanceof Error ? error.message : 'Failed to load models');
+        }
+      } finally {
+        if (!cancelled) {
+          setModelsLoading(false);
+        }
+      }
+    };
+
+    refreshModels();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [providersSettings]);
+
+  const enabledProviderNames = useMemo(() => {
+    return new Set(
+      Object.entries(providersSettings)
+        .filter(([_name, provider]) => provider.settings.enabled)
+        .map(([name]) => name),
+    );
+  }, [providersSettings]);
+
+  const modelsByProvider = useMemo(() => {
+    const map = new Map<string, ModelInfo[]>();
+
+    for (const model of modelsPayload.modelList) {
+      if (!model.provider || !model.name) {
+        continue;
+      }
+
+      const current = map.get(model.provider) ?? [];
+      current.push(model);
+      map.set(model.provider, current);
+    }
+
+    for (const provider of modelsPayload.providers) {
+      if (map.has(provider.name)) {
+        continue;
+      }
+
+      const staticModels = provider.staticModels?.filter((model) => model.name) ?? [];
+
+      if (staticModels.length > 0) {
+        map.set(provider.name, staticModels);
+      }
+    }
+
+    return map;
+  }, [modelsPayload]);
+
+  const availableProviders = useMemo(() => {
+    const providersWithModels = modelsPayload.providers
+      .filter((provider) => (modelsByProvider.get(provider.name)?.length ?? 0) > 0)
+      .sort((left, right) => {
+        const leftIndex = preferredProviderOrder.indexOf(left.name);
+        const rightIndex = preferredProviderOrder.indexOf(right.name);
+
+        return (leftIndex === -1 ? 999 : leftIndex) - (rightIndex === -1 ? 999 : rightIndex);
+      });
+
+    const enabledProviders = providersWithModels.filter((provider) => enabledProviderNames.has(provider.name));
+
+    return enabledProviders.length > 0 ? enabledProviders : providersWithModels;
+  }, [enabledProviderNames, modelsByProvider, modelsPayload.providers]);
+
+  const activeProvider =
+    availableProviders.find((provider) => provider.name === selectedProvider) ??
+    availableProviders.find((provider) => provider.name === modelsPayload.defaultProvider.name) ??
+    availableProviders[0] ??
+    fallbackProvider ??
+    DEFAULT_PROVIDER;
+
+  const activeModels = activeProvider
+    ? (modelsByProvider.get(activeProvider.name) ?? activeProvider.staticModels ?? [])
+    : [];
+
+  const activeModel =
+    activeModels.find((model) => model.name === selectedModel) ??
+    activeModels.find((model) => model.name === DEFAULT_MODEL) ??
+    activeModels[0] ??
+    fallbackModel;
+
   const ActiveProviderIcon = providerIconByName[activeProvider?.name ?? ''] ?? Sparkles;
   const ActiveCategoryIcon = activeCategory.icon;
+
+  const configuredProviderCount = availableProviders.filter((provider) =>
+    enabledProviderNames.has(provider.name),
+  ).length;
+
+  useEffect(() => {
+    if (!activeProvider?.name || selectedProvider === activeProvider.name) {
+      return;
+    }
+
+    setSelectedProvider(activeProvider.name);
+  }, [activeProvider?.name, selectedProvider]);
+
+  useEffect(() => {
+    if (!activeModel?.name || selectedModel === activeModel.name) {
+      return;
+    }
+
+    setSelectedModel(activeModel.name);
+  }, [activeModel?.name, selectedModel]);
+
+  const providerDropdownOptions = useMemo<CreateDropdownOption[]>(() => {
+    return availableProviders.map((provider) => {
+      const Icon = providerIconByName[provider.name] ?? Sparkles;
+      const modelCount = modelsByProvider.get(provider.name)?.length ?? provider.staticModels?.length ?? 0;
+      const enabled = enabledProviderNames.has(provider.name);
+
+      return {
+        value: provider.name,
+        label: provider.name,
+        description: enabled ? 'Enabled in Settings' : 'Available fallback provider',
+        meta: `${modelCount} model${modelCount === 1 ? '' : 's'}`,
+        icon: Icon,
+      };
+    });
+  }, [availableProviders, enabledProviderNames, modelsByProvider]);
+
+  const modelDropdownOptions = useMemo<CreateDropdownOption[]>(() => {
+    return activeModels.map((model) => ({
+      value: model.name,
+      label: model.label || model.name,
+      description: model.name,
+      meta: model.maxTokenAllowed ? `${formatContextWindow(model.maxTokenAllowed)} ctx` : undefined,
+    }));
+  }, [activeModels]);
 
   const examplePrompts = useMemo(() => {
     const prompts = activeCategory.prompts;
@@ -497,6 +837,16 @@ export default function NewProjectPage() {
                     <span className="vc-create-pill inline-flex h-7 items-center rounded-md px-2.5 text-[11px]">
                       Framework: {activeCategory.framework}
                     </span>
+                    <span className="vc-create-pill inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px]">
+                      {modelsLoading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                      ) : (
+                        <CheckCircle className="h-3 w-3 text-[var(--vc-ide-accent-success)]" aria-hidden />
+                      )}
+                      {configuredProviderCount > 0
+                        ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} from Settings`
+                        : 'Static provider fallback'}
+                    </span>
                   </div>
                   <div className="vc-create-divider grid gap-3 border-t px-3 py-3 lg:grid-cols-[minmax(180px,0.8fr)_minmax(260px,1.2fr)_auto] lg:items-end">
                     <label className="block min-w-0">
@@ -504,43 +854,33 @@ export default function NewProjectPage() {
                         <ActiveProviderIcon className="h-3 w-3" aria-hidden />
                         Provider
                       </span>
-                      <select
+                      <CreateDropdown
+                        label="AI provider"
                         value={activeProvider?.name ?? ''}
-                        onChange={(event) => {
-                          const nextProvider = providerForName(event.currentTarget.value);
-                          setSelectedProvider(nextProvider?.name ?? event.currentTarget.value);
-                          setSelectedModel(nextProvider?.staticModels[0]?.name ?? DEFAULT_MODEL);
+                        options={providerDropdownOptions}
+                        onChange={(nextProvider) => {
+                          setSelectedProvider(nextProvider);
+                          setSelectedModel('');
                         }}
-                        className="vc-create-select h-9 w-full rounded-md px-2.5 text-[12px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                         disabled={isSubmitting}
-                        aria-label="AI provider"
-                      >
-                        {providerOptions.map((provider) => (
-                          <option key={provider.name} value={provider.name}>
-                            {provider.name}
-                          </option>
-                        ))}
-                      </select>
+                        loading={modelsLoading}
+                        testId="ai-provider-dropdown"
+                      />
                     </label>
 
                     <label className="block min-w-0">
                       <span className="vc-create-label mb-1.5 block text-[10px] font-medium uppercase tracking-[0.4px]">
                         Model
                       </span>
-                      <select
+                      <CreateDropdown
+                        label="AI model"
                         value={activeModel?.name ?? ''}
-                        onChange={(event) => setSelectedModel(event.currentTarget.value)}
-                        className="vc-create-select h-9 w-full rounded-md px-2.5 text-[12px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
+                        options={modelDropdownOptions}
+                        onChange={setSelectedModel}
                         disabled={isSubmitting || activeModels.length === 0}
-                        aria-label="AI model"
-                      >
-                        {activeModels.map((model: ModelInfo) => (
-                          <option key={model.name} value={model.name}>
-                            {model.label || model.name}
-                            {model.maxTokenAllowed ? ` — ${formatContextWindow(model.maxTokenAllowed)} ctx` : ''}
-                          </option>
-                        ))}
-                      </select>
+                        loading={modelsLoading}
+                        testId="ai-model-dropdown"
+                      />
                     </label>
 
                     <button
@@ -556,6 +896,11 @@ export default function NewProjectPage() {
                       Create project
                     </button>
                   </div>
+                  {modelsError ? (
+                    <div className="vc-create-model-warning border-t px-3 py-2 text-[11px]">
+                      Provider sync failed, using the last available model list. {modelsError}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="vc-create-type-picker relative -mt-2 p-2 backdrop-blur-xl">

@@ -156,6 +156,87 @@ test('project creation light theme uses light containers and readable image prev
   expect(themeProbe.title.colorLuminance).toBeLessThan(0.18);
 });
 
+test('project creation syncs AI providers and models from settings', async ({ page }) => {
+  await authenticate(page);
+  const providerNames = [
+    'AmazonBedrock',
+    'Anthropic',
+    'Cerebras',
+    'Cohere',
+    'Deepseek',
+    'Fireworks',
+    'Github',
+    'Google',
+    'Groq',
+    'HuggingFace',
+    'Hyperbolic',
+    'LMStudio',
+    'Mistral',
+    'Moonshot',
+    'Ollama',
+    'OpenAILike',
+    'OpenRouter',
+    'OpenAI',
+    'Perplexity',
+    'Together',
+    'xAI',
+    'Z.ai',
+  ];
+
+  await page.addInitScript((names) => {
+    const settings = Object.fromEntries(names.map((name) => [name, { settings: { enabled: name === 'OpenAI' } }]));
+    localStorage.setItem('provider_settings', JSON.stringify(settings));
+  }, providerNames);
+
+  await page.route('**/api/models', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        defaultProvider: {
+          name: 'OpenAI',
+          staticModels: [],
+        },
+        providers: [
+          {
+            name: 'Anthropic',
+            staticModels: [{ name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 }],
+          },
+          {
+            name: 'OpenAI',
+            staticModels: [
+              { name: 'gpt-settings-live', label: 'GPT Settings Live', provider: 'OpenAI', maxTokenAllowed: 128000 },
+              { name: 'gpt-settings-small', label: 'GPT Settings Small', provider: 'OpenAI', maxTokenAllowed: 64000 },
+            ],
+          },
+        ],
+        modelList: [
+          { name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 },
+          { name: 'gpt-settings-live', label: 'GPT Settings Live', provider: 'OpenAI', maxTokenAllowed: 128000 },
+          { name: 'gpt-settings-small', label: 'GPT Settings Small', provider: 'OpenAI', maxTokenAllowed: 64000 },
+        ],
+      }),
+    });
+  });
+
+  await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+  await expect(page.getByText('1 provider from Settings')).toBeVisible({ timeout: 15_000 });
+
+  const providerDropdown = page.getByTestId('ai-provider-dropdown');
+  await expect(providerDropdown.getByRole('button', { name: 'AI provider' })).toContainText('OpenAI');
+  await providerDropdown.getByRole('button', { name: 'AI provider' }).click();
+  await expect(page.getByRole('option', { name: /OpenAI/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /Anthropic/ })).toHaveCount(0);
+
+  await page.keyboard.press('Escape');
+  const modelDropdown = page.getByTestId('ai-model-dropdown');
+  await expect(modelDropdown.getByRole('button', { name: 'AI model' })).toContainText('GPT Settings Live');
+  await modelDropdown.getByRole('button', { name: 'AI model' }).click();
+  await expect(page.getByRole('option', { name: /GPT Settings Live/ })).toBeVisible();
+  await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
+});
+
 test('private templates create a project instead of opening the public gallery', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard/templates');
