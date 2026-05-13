@@ -9299,52 +9299,262 @@ function renderSecurityReportHtml(report: any) {
 function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {
   const [cleared, setCleared] = useState(false);
   const [split, setSplit] = useState(false);
+  const [activeStream, setActiveStream] = useState<'console' | 'workflow' | 'system'>('console');
+  const [level, setLevel] = useState<'all' | 'info' | 'warn' | 'error'>('all');
+  const [query, setQuery] = useState('');
+  const [regexEnabled, setRegexEnabled] = useState(false);
+  const [liveTail, setLiveTail] = useState(true);
+  const workspace = data.workspace ?? data.runtimeStatus;
+  const workspaceStatus = workspace?.status ?? data.runtimeStatus?.status ?? 'unknown';
+  const runtimeLogs = Array.isArray(data.runtimeLogs?.logs) ? data.runtimeLogs.logs : [];
 
-  const lines = cleared
-    ? []
-    : [
-        data.workspace
-          ? `workspace:${data.workspace.id} status=${data.workspace.status} runtime=${data.workspace.runtimeMode}`
-          : 'workspace:none recorded for this project',
-        ...(data.recentActivity ?? []).map((event: any) => `${event.createdAt ?? 'recorded'} ${event.action}`),
-      ];
+  const deploymentLogs = (data.deployments ?? []).flatMap((deployment: any) =>
+    (deployment.logs ?? []).map((log: any) => ({
+      level: log.level ?? classifyLogLevel(log.message ?? ''),
+      message: log.message ?? '',
+      source: 'workflow',
+      timestamp: log.timestamp ?? deployment.createdAt,
+      context: deployment.provider ? `${deployment.provider}:${deployment.environment ?? 'preview'}` : 'deployment',
+    })),
+  );
+
+  const systemEvents = buildSystemLogEvents(data);
+  const logs = cleared ? [] : [...runtimeLogs, ...deploymentLogs, ...systemEvents];
+
+  const filteredLogs = filterLogEntries(
+    logs.filter((entry: any) => entry.source === activeStream),
+    level,
+    query,
+    regexEnabled,
+  );
+  const secondaryLogs = split
+    ? filterLogEntries(
+        logs.filter((entry: any) => entry.source !== activeStream),
+        level,
+        query,
+        regexEnabled,
+      )
+    : [];
+
+  useEffect(() => {
+    if (!liveTail || !reload) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      void reload();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [liveTail, reload]);
+
+  const downloadLogs = () => {
+    const payload = filteredLogs
+      .map((entry: any) => `${entry.timestamp ?? new Date().toISOString()} [${entry.level}] ${entry.message}`)
+      .join('\n');
+
+    const blob = new Blob([payload || 'No log lines in the current filter.'], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = `vibecore-${activeStream}-logs.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className={classNames('bolt-project-console-tool', split && 'bolt-project-console-tool-split')}>
       <div className="bolt-project-console-header">
-        <button type="button" onClick={() => setCleared(true)}>
-          Clear
+        {[
+          ['console', 'Console'],
+          ['workflow', 'Workflow logs'],
+          ['system', 'System logs'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={activeStream === id}
+            aria-label={`Show ${label}`}
+            onClick={() => setActiveStream(id as any)}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="bolt-project-console-status" title={`Workspace ${workspaceStatus}`}>
+          {workspaceStatus}
+        </span>
+        <select
+          aria-label="Filter logs by level"
+          value={level}
+          onChange={(event) => setLevel(event.target.value as any)}
+        >
+          <option value="all">All levels</option>
+          <option value="info">Info</option>
+          <option value="warn">Warn</option>
+          <option value="error">Error</option>
+        </select>
+        <input
+          aria-label="Search logs"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={regexEnabled ? 'Regex search' : 'Search logs'}
+        />
+        <button
+          type="button"
+          aria-pressed={regexEnabled}
+          aria-label="Toggle regex search"
+          onClick={() => setRegexEnabled((value) => !value)}
+        >
+          Regex
         </button>
-        <button type="button" onClick={() => setSplit((value) => !value)}>
-          {split ? 'Unsplit' : 'Split'}
+        <button type="button" aria-label="Clear visible logs" onClick={() => setCleared(true)}>
+          Clear logs
         </button>
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        <button type="button" aria-label="Toggle split log view" onClick={() => setSplit((value) => !value)}>
+          {split ? 'Close split' : 'Split view'}
+        </button>
+        <button type="button" aria-label="Download filtered logs" onClick={downloadLogs}>
+          Download
+        </button>
+        <button
+          type="button"
+          aria-pressed={liveTail}
+          aria-label="Toggle live tail"
+          onClick={() => setLiveTail((value) => !value)}
+        >
+          {liveTail ? 'Live tail on' : 'Live tail off'}
+        </button>
+        <button type="button" aria-label="Reload logs from backend" onClick={() => void reload?.()} disabled={busy}>
           {busy ? 'Refreshing' : 'Reload'}
         </button>
       </div>
-      <div className="bolt-project-console-body">
-        {lines.length ? (
-          lines.map((line: string, index: number) => <div key={`${line}-${index}`}>{line}</div>)
-        ) : (
-          <div>No backend log lines in the current view.</div>
-        )}
-      </div>
-      {split && (
-        <div className="bolt-project-console-body">
-          {(data.deployments ?? []).length ? (
-            (data.deployments ?? []).slice(0, 12).map((deployment: any) => (
-              <div key={deployment.id ?? deployment.createdAt}>
-                deployment:{deployment.id ?? 'unknown'} status={deployment.status ?? 'unknown'} provider=
-                {deployment.provider ?? 'unknown'}
-              </div>
-            ))
-          ) : (
-            <div>No backend deployments recorded.</div>
-          )}
-        </div>
+      <LogStreamView logs={filteredLogs} empty={`No ${activeStream} logs match the current filter.`} />
+      {split && <LogStreamView logs={secondaryLogs} empty="No secondary stream logs match the current filter." />}
+    </div>
+  );
+}
+
+function LogStreamView({ logs, empty }: { logs: any[]; empty: string }) {
+  return (
+    <div className="bolt-project-console-body" role="log" aria-live="polite">
+      {logs.length ? (
+        logs.map((entry: any, index: number) => (
+          <div key={`${entry.timestamp ?? 'log'}-${index}`} className="bolt-project-log-line" data-level={entry.level}>
+            <span>{formatLogTime(entry.timestamp)}</span>
+            <strong>{entry.level ?? 'info'}</strong>
+            {entry.context ? <em>{entry.context}</em> : null}
+            <code>{entry.message}</code>
+          </div>
+        ))
+      ) : (
+        <div className="bolt-project-console-empty">{empty}</div>
       )}
     </div>
   );
+}
+
+function buildSystemLogEvents(data: any) {
+  const workspace = data.workspace ?? data.runtimeStatus;
+  const processes = Array.isArray(data.runtimeProcesses) ? data.runtimeProcesses : [];
+  const ports = Array.isArray(data.runtimePorts) ? data.runtimePorts : [];
+  const activity = (data.recentActivity ?? []).filter((event: any) => event.action !== 'project.ide_state.save');
+
+  const ideStateSaveCount = (data.recentActivity ?? []).filter(
+    (event: any) => event.action === 'project.ide_state.save',
+  ).length;
+
+  const base = [
+    {
+      level: workspace?.status === 'failed' ? 'error' : 'info',
+      source: 'system',
+      message: workspace
+        ? `Workspace ${workspace.id ?? data.workspaceId} is ${workspace.status ?? 'unknown'} (${workspace.runtimeMode ?? 'runtime'})`
+        : `Workspace ${data.workspaceId ?? 'unknown'} has no dashboard record; using runtime snapshot`,
+      timestamp: new Date().toISOString(),
+      context: 'workspace',
+    },
+    {
+      level: 'info',
+      source: 'system',
+      message: `${processes.length} running process${processes.length === 1 ? '' : 'es'}, ${ports.length} detected port${
+        ports.length === 1 ? '' : 's'
+      }`,
+      timestamp: new Date().toISOString(),
+      context: 'runtime',
+    },
+  ];
+
+  if (ideStateSaveCount > 0) {
+    base.push({
+      level: 'warn',
+      source: 'system',
+      message: `${ideStateSaveCount} ide_state.save event${ideStateSaveCount === 1 ? '' : 's'} collapsed to keep logs readable`,
+      timestamp: new Date().toISOString(),
+      context: 'audit',
+    });
+  }
+
+  return [
+    ...base,
+    ...activity.slice(0, 80).map((event: any) => ({
+      level: classifyLogLevel(event.action ?? ''),
+      source: 'system',
+      message: event.action ?? 'project event',
+      timestamp: event.createdAt,
+      context: event.actorUserId ?? event.resourceType ?? 'activity',
+    })),
+  ];
+}
+
+function filterLogEntries(logs: any[], level: string, query: string, regexEnabled: boolean) {
+  const trimmed = query.trim();
+
+  return logs.filter((entry: any) => {
+    if (level !== 'all' && entry.level !== level) {
+      return false;
+    }
+
+    if (!trimmed) {
+      return true;
+    }
+
+    const haystack = `${entry.message ?? ''} ${entry.context ?? ''}`;
+
+    if (regexEnabled) {
+      try {
+        return new RegExp(trimmed, 'i').test(haystack);
+      } catch {
+        return false;
+      }
+    }
+
+    return haystack.toLowerCase().includes(trimmed.toLowerCase());
+  });
+}
+
+function classifyLogLevel(line: string) {
+  if (/\b(error|failed|exception|traceback|panic|fatal)\b/i.test(line)) {
+    return 'error';
+  }
+
+  if (/\b(warn|warning|deprecated|retry)\b/i.test(line)) {
+    return 'warn';
+  }
+
+  return 'info';
+}
+
+function formatLogTime(value?: string) {
+  const date = value ? new Date(value) : new Date();
+
+  if (Number.isNaN(date.getTime())) {
+    return '--:--:--';
+  }
+
+  return date.toLocaleTimeString();
 }
 
 function ProjectSecretsPanel({

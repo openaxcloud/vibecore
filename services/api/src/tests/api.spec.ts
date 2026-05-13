@@ -2897,6 +2897,43 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('returns classified runtime log snapshots for IDE log streams', async () => {
+    const runtime = await startRuntimeServices({
+      logs: ['vite ready in 120ms', 'GET /api/health 200', 'runtime port 5173 opened', 'Error: build failed'],
+    });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'runtime-logs@example.com', organizationName: 'Runtime Logs Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Logs Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/logs/snapshot`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({
+        workspaceId: projectId,
+        logs: expect.arrayContaining([
+          expect.objectContaining({ message: 'vite ready in 120ms', source: 'workflow', level: 'info' }),
+          expect.objectContaining({ message: 'GET /api/health 200', source: 'console', level: 'info' }),
+          expect.objectContaining({ message: 'runtime port 5173 opened', source: 'system', level: 'info' }),
+          expect.objectContaining({ message: 'Error: build failed', source: 'workflow', level: 'error' }),
+        ]),
+      });
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
   it('starts isolated runtime workspaces per user for the same shared project', async () => {
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();

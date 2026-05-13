@@ -2202,6 +2202,30 @@ function previewUrlForWorkspacePort(workspaceId: string, port: number) {
   return `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/preview/${encodeURIComponent(String(port))}/proxy/`;
 }
 
+function classifyRuntimeLogLevel(line: string): 'info' | 'warn' | 'error' {
+  if (/\b(error|failed|exception|traceback|panic|fatal)\b/i.test(line)) {
+    return 'error';
+  }
+
+  if (/\b(warn|warning|deprecated|retry)\b/i.test(line)) {
+    return 'warn';
+  }
+
+  return 'info';
+}
+
+function classifyRuntimeLogSource(line: string): 'workflow' | 'console' | 'system' {
+  if (/\b(npm|pnpm|yarn|bun|vite|webpack|rollup|build|dev server|compiled|ready in)\b/i.test(line)) {
+    return 'workflow';
+  }
+
+  if (/\b(workspace|runtime|container|port|process|manager)\b/i.test(line)) {
+    return 'system';
+  }
+
+  return 'console';
+}
+
 function runtimeSession(
   workspaceId: string,
   status: 'running' | 'starting' | 'stopped' | 'failed' = 'running',
@@ -4756,6 +4780,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       client.send(JSON.stringify({ type: 'stdout', data: line, timestamp: new Date().toISOString() }));
     }
     client.close();
+  });
+  app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+    const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+
+    return {
+      workspaceId: authorized.workspaceId,
+      logs: logs.logs.slice(-1000).map((line) => ({
+        level: classifyRuntimeLogLevel(line),
+        message: line,
+        source: classifyRuntimeLogSource(line),
+        timestamp: new Date().toISOString(),
+      })),
+    };
   });
   app.get('/api/runtime/workspaces/:workspaceId/files/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);

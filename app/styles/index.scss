@@ -3234,6 +3234,57 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 8px;
 }
 
+.bolt-project-console-header {
+  height: auto;
+  min-height: 42px;
+  align-content: center;
+  flex-wrap: wrap;
+  overflow: visible;
+  padding-block: 6px;
+}
+
+.bolt-project-console-header button {
+  min-height: 28px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bolt-project-console-header button[aria-pressed='true'] {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-console-header input {
+  width: min(220px, 22vw);
+  height: 28px;
+  min-width: 120px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 4px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  outline: none;
+  padding: 0 8px;
+}
+
+.bolt-project-console-header input:focus {
+  border-color: var(--vc-ide-accent-action);
+}
+
+.bolt-project-console-status {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  padding: 0 8px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
 .bolt-project-editor-toolbar span {
   min-width: 0;
   flex: 1;
@@ -3302,7 +3353,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-webview-toolbar select,
 .bolt-project-console-header select {
-  height: 24px;
+  height: 28px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 4px;
   background: var(--vc-ide-bg-card);
@@ -3703,10 +3754,63 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 0;
   overflow: auto;
   background: var(--vc-ide-bg-app);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-text-secondary);
   font-family: var(--vc-font-code);
-  font-size: 13px;
-  padding: 12px;
+  font-size: 12px;
+  padding: 10px;
+}
+
+.bolt-project-log-line {
+  display: grid;
+  align-items: start;
+  gap: 8px;
+  grid-template-columns: 78px 52px minmax(64px, 130px) minmax(0, 1fr);
+  border-bottom: 1px solid color-mix(in srgb, var(--vc-ide-border-subtle), transparent 45%);
+  padding: 5px 0;
+}
+
+.bolt-project-log-line > span {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-log-line > strong {
+  color: var(--vc-ide-accent-success);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bolt-project-log-line[data-level='warn'] > strong {
+  color: var(--vc-ide-accent-warning);
+}
+
+.bolt-project-log-line[data-level='error'] > strong {
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-log-line > em {
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-log-line > code {
+  min-width: 0;
+  color: var(--vc-ide-text-primary);
+  white-space: pre-wrap;
+}
+
+.bolt-project-console-empty {
+  display: flex;
+  min-height: 140px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: 8px;
+  color: var(--vc-ide-text-muted);
+  font-family: var(--vc-font-sans);
+  text-align: center;
 }
 
 .bolt-project-console-tool-split {

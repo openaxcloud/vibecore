@@ -381,6 +381,51 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'logs') {
+    try {
+      const [dashboard, activity, deployments] = await Promise.all([
+        apiRequest<any>(request, `/projects/${projectId}/dashboard`),
+        apiRequest(request, `/projects/${projectId}/activity`),
+        apiRequest(request, `/projects/${projectId}/deployments`),
+      ]);
+
+      const workspaceId = dashboard?.workspace?.id ?? projectId;
+
+      const [runtimeStatus, runtimeProcesses, runtimePorts, runtimeLogs] = await Promise.all([
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
+          error: panelErrorMessage(error),
+        })),
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
+          error: panelErrorMessage(error),
+        })),
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch((error) => ({
+          error: panelErrorMessage(error),
+        })),
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
+          (error) => ({
+            error: panelErrorMessage(error),
+            logs: [],
+          }),
+        ),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(dashboard as any),
+          ...(activity as any),
+          ...(deployments as any),
+          workspaceId,
+          runtimeStatus,
+          runtimeProcesses,
+          runtimePorts,
+          runtimeLogs,
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
