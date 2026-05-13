@@ -6694,40 +6694,123 @@ body :where(.lucide, svg[data-lucide]) {
   left: var(--project-agent-width, 420px);
   z-index: 40;
   display: flex;
-  height: 23px;
+  height: 28px;
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-panel);
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), var(--vc-ide-bg-app) 14%);
   color: var(--vc-ide-text-secondary);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
-  padding: 0 12px;
+  padding: 0 10px;
 }
 
-.bolt-project-statusbar div,
-.bolt-project-statusbar button {
+.bolt-project-statusbar-primary,
+.bolt-project-statusbar-secondary,
+.bolt-project-statusbar-pill,
+.bolt-project-statusbar-icon-button {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  min-width: 0;
 }
 
-.bolt-project-statusbar > div:first-child {
+.bolt-project-statusbar-primary {
+  gap: 6px;
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
 }
 
-.bolt-project-statusbar > div:last-child {
+.bolt-project-statusbar-secondary {
+  gap: 6px;
   flex: 0 0 auto;
+  margin-left: 8px;
 }
 
-.bolt-project-statusbar button {
-  height: 23px;
+.bolt-project-statusbar button,
+.bolt-project-statusbar-pill {
+  height: 22px;
   border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
+}
+
+.bolt-project-statusbar-pill {
+  gap: 5px;
+  max-width: 100%;
+  flex: 0 1 auto;
+  border-radius: 5px;
+  padding: 0 7px;
+  white-space: nowrap;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button.bolt-project-statusbar-pill,
+.bolt-project-statusbar-icon-button {
+  cursor: pointer;
+}
+
+button.bolt-project-statusbar-pill:hover,
+button.bolt-project-statusbar-pill:focus-visible,
+.bolt-project-statusbar-icon-button:hover,
+.bolt-project-statusbar-icon-button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 0 0 0 1px var(--vc-ide-border-visible);
+}
+
+.bolt-project-statusbar-pill strong,
+.bolt-project-statusbar-pill > span:not([class*='i-ph:']) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-statusbar-pill [class*='i-ph:'],
+.bolt-project-statusbar-label,
+.bolt-project-statusbar-count,
+.bolt-project-statusbar-error-count,
+.bolt-project-statusbar-warning-count {
+  flex: 0 0 auto;
+}
+
+.bolt-project-statusbar-label {
+  color: var(--vc-ide-text-muted);
+  font-weight: 600;
+}
+
+.bolt-project-statusbar-muted {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-statusbar-count,
+.bolt-project-statusbar-error-count,
+.bolt-project-statusbar-warning-count {
+  min-width: 16px;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 2px 5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bolt-project-statusbar-count {
+  background: var(--vc-ide-bg-muted);
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-project-statusbar-error-count {
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-statusbar-warning-count {
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
+  color: var(--vc-ide-accent-warning);
 }
 
 .bolt-project-statusbar [class*='i-ph:'] {
@@ -6741,36 +6824,29 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 11px;
 }
 
-.bolt-project-statusbar button:hover {
-  color: var(--vc-ide-text-primary);
-}
-
 .bolt-project-statusbar .bolt-project-statusbar-runtime,
 .bolt-project-statusbar .bolt-project-statusbar-workspace,
 .bolt-project-statusbar .bolt-project-statusbar-logs {
-  gap: 8px;
   min-width: 0;
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-runtime {
-  max-width: min(42vw, 440px);
+  flex: 1 1 240px;
+  max-width: min(36vw, 420px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-workspace {
-  max-width: min(30vw, 320px);
+  flex: 0 1 260px;
+  max-width: min(24vw, 300px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
   flex: 0 0 auto;
 }
 
-.bolt-project-statusbar-runtime > span:not(.bolt-project-statusbar-runtime-dot),
-.bolt-project-statusbar-workspace > span:not(.bolt-project-statusbar-runtime-dot),
-.bolt-project-statusbar-logs > span:not([class*='i-ph:']) {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child,
+.bolt-project-statusbar-primary > .bolt-project-statusbar-pill:nth-child(2) {
+  flex: 0 0 auto;
 }
 
 .bolt-project-statusbar-runtime-dot {
@@ -6794,10 +6870,15 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-accent-error);
 }
 
-.bolt-project-statusbar-theme {
-  height: 19px !important;
-  min-width: 19px !important;
-  padding: 0 !important;
+.bolt-project-statusbar-icon-button {
+  width: 22px;
+  justify-content: center;
+  border-radius: 5px;
+  padding: 0;
+}
+
+.bolt-project-statusbar-editor {
+  max-width: 120px;
 }
 
 .bolt-project-statusbar-mobile {
@@ -6809,12 +6890,14 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 max(8px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
 }
 
-.bolt-project-statusbar-mobile > div:first-child {
+.bolt-project-statusbar-mobile .bolt-project-statusbar-primary {
   gap: 8px;
 }
 
-.bolt-project-statusbar-mobile > div:last-child,
-.bolt-project-statusbar-mobile > div:first-child > span:not([class*='i-ph:']) {
+.bolt-project-statusbar-mobile .bolt-project-statusbar-secondary,
+.bolt-project-statusbar-mobile .bolt-project-statusbar-label,
+.bolt-project-statusbar-mobile .bolt-project-statusbar-muted,
+.bolt-project-statusbar-mobile .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child {
   display: none;
 }
 

@@ -159,6 +159,7 @@ type IdePaneTab = {
   filePath?: string;
   preview?: boolean;
 };
+type ProjectBottomTerminalView = 'terminal' | 'output' | 'problems' | 'debug';
 type AgentToolAction = {
   panel: IdeWorkspacePanel | IdeRightPanel;
   title: string;
@@ -1153,6 +1154,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
+    const [bottomTerminalView, setBottomTerminalView] = useState<ProjectBottomTerminalView>('terminal');
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -1288,6 +1290,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           .join(' | '),
       [billingUpgradePrompt, quotaWarning, workspaceError, workspaceLogs.length, workspaceStatusLabel],
     );
+    const statusbarDiagnostics = useMemo(() => {
+      const errorPattern = /\b(error|failed|exception|crash|fatal)\b/i;
+      const warningPattern = /\b(warn|warning|deprecated)\b/i;
+      const logErrors = workspaceLogs.filter((line) => errorPattern.test(line)).length;
+      const logWarnings = workspaceLogs.filter((line) => warningPattern.test(line) && !errorPattern.test(line)).length;
+
+      return {
+        errors: logErrors + (workspaceError ? 1 : 0),
+        warnings: logWarnings,
+      };
+    }, [workspaceError, workspaceLogs]);
+
+    const statusbarChangedFiles = projectBackendState.git?.changedFiles?.length ?? 0;
+
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
         return [];
@@ -2225,6 +2241,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         JSON.stringify({ height: terminalBottomHeight, open: terminalBottomOpen }),
       );
     }, [terminalBottomHeight, terminalBottomOpen]);
+
+    const openBottomTerminal = useCallback(
+      (view: ProjectBottomTerminalView = 'terminal') => {
+        setBottomTerminalView(view);
+
+        if (useMobileIde) {
+          setMobileIdePanel('terminal');
+
+          return;
+        }
+
+        setTerminalBottomOpen(true);
+      },
+      [useMobileIde],
+    );
 
     useEffect(() => {
       if (!projectIdeMode || useMobileIde) {
@@ -3605,7 +3636,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     onMouseDown={startTerminalResize}
                   />
                   <div className="bolt-project-bottom-terminal-frame">
-                    <ProjectBottomTerminal projectId={projectId} onClose={() => setTerminalBottomOpen(false)} />
+                    <ProjectBottomTerminal
+                      projectId={projectId}
+                      active={bottomTerminalView}
+                      onActiveChange={setBottomTerminalView}
+                      onClose={() => setTerminalBottomOpen(false)}
+                    />
                   </div>
                 </div>
               )}
@@ -3948,29 +3984,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             })}
             aria-label="IDE status"
           >
-            <div>
-              <span className="i-ph:git-branch" aria-hidden />
-              <span>{projectBackendState.git?.branch ?? 'main'}</span>
-              <span>
-                ↑{projectBackendState.git?.ahead ?? 0} ↓{projectBackendState.git?.behind ?? 0}
-              </span>
-              <span className="i-ph:x-circle text-bolt-elements-icon-error" aria-hidden />
-              <span>0</span>
-              <span className="i-ph:warning text-bolt-elements-icon-warning" aria-hidden />
-              <span>{projectBackendState.git?.changedFiles?.length ?? 0}</span>
+            <div className="bolt-project-statusbar-primary">
               <button
                 type="button"
-                className="bolt-project-statusbar-workspace"
-                onClick={() => {
-                  if (useMobileIde) {
-                    setMobileIdePanel('terminal');
-
-                    return;
-                  }
-
-                  setTerminalBottomOpen(true);
-                }}
+                className="bolt-project-statusbar-pill"
+                aria-label={`Open Git panel. Branch ${projectBackendState.git?.branch ?? 'main'}, ${
+                  projectBackendState.git?.ahead ?? 0
+                } ahead, ${projectBackendState.git?.behind ?? 0} behind, ${statusbarChangedFiles} changed files.`}
+                title={`Git branch: ${projectBackendState.git?.branch ?? 'main'} | Ahead ${
+                  projectBackendState.git?.ahead ?? 0
+                }, behind ${projectBackendState.git?.behind ?? 0} | ${statusbarChangedFiles} changed files`}
+                onClick={() => openWorkspacePanel('git')}
+              >
+                <span className="i-ph:git-branch" aria-hidden />
+                <span className="bolt-project-statusbar-label">Git</span>
+                <strong>{projectBackendState.git?.branch ?? 'main'}</strong>
+                <span className="bolt-project-statusbar-muted">
+                  {projectBackendState.git?.ahead ?? 0}↑ {projectBackendState.git?.behind ?? 0}↓
+                </span>
+                {statusbarChangedFiles > 0 ? (
+                  <span className="bolt-project-statusbar-count" aria-label={`${statusbarChangedFiles} changed files`}>
+                    {statusbarChangedFiles}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                className="bolt-project-statusbar-pill"
+                aria-label={`Open Problems. ${statusbarDiagnostics.errors} errors and ${statusbarDiagnostics.warnings} warnings.`}
+                title={`Problems: ${statusbarDiagnostics.errors} errors, ${statusbarDiagnostics.warnings} warnings`}
+                onClick={() => openBottomTerminal('problems')}
+              >
+                <span className="i-ph:warning-circle" aria-hidden />
+                <span className="bolt-project-statusbar-label">Problems</span>
+                <span className="bolt-project-statusbar-error-count">{statusbarDiagnostics.errors}</span>
+                <span className="bolt-project-statusbar-warning-count">{statusbarDiagnostics.warnings}</span>
+              </button>
+              <button
+                type="button"
+                className="bolt-project-statusbar-pill bolt-project-statusbar-workspace"
+                onClick={() => openBottomTerminal('terminal')}
                 title={workspaceStatusTitle}
+                aria-label={workspaceStatusTitle || 'Open workspace terminal'}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
@@ -3983,7 +4038,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
                   aria-hidden
                 />
-                <span>Workspace: {workspaceStatusLabel}</span>
+                <span className="bolt-project-statusbar-label">Workspace</span>
+                <strong>{workspaceStatusLabel}</strong>
                 {quotaWarning ? <span>{quotaWarning}</span> : null}
                 {billingUpgradePrompt ? <span>{billingUpgradePrompt}</span> : null}
                 {workspaceError ? <span>{workspaceError}</span> : null}
@@ -3991,15 +4047,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {workspaceLogs.length > 0 ? (
                 <button
                   type="button"
-                  className="bolt-project-statusbar-logs"
+                  className="bolt-project-statusbar-pill bolt-project-statusbar-logs"
                   onClick={() => {
+                    setBottomTerminalView('output');
+
                     if (useMobileIde) {
                       setMobileIdePanel('terminal');
-
-                      return;
+                    } else {
+                      setTerminalBottomOpen((value) => !value);
                     }
-
-                    setTerminalBottomOpen((value) => !value);
                   }}
                   title={
                     useMobileIde
@@ -4010,12 +4066,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
                 >
                   <span className="i-ph:list-magnifying-glass" aria-hidden />
-                  <span>{!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Show logs'}</span>
+                  <span>{!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Logs'}</span>
+                  <span className="bolt-project-statusbar-count">{workspaceLogs.length}</span>
                 </button>
               ) : null}
               <button
                 type="button"
-                className="bolt-project-statusbar-runtime"
+                className="bolt-project-statusbar-pill bolt-project-statusbar-runtime"
                 aria-label={
                   workspaceError
                     ? 'Crashed runtime'
@@ -4034,7 +4091,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                   openWorkspacePanel('preview');
                 }}
-                title="Open preview"
+                title={`Open preview | ${runtimeStatusSummary} | ${runtimePortSummary} | ${runtimeDevServerSummary}`}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
@@ -4047,36 +4104,51 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
                   aria-hidden
                 />
-                <span>{runtimeStatusSummary}</span>
-                <span>{runtimePortSummary}</span>
-                <span>{runtimeDevServerSummary}</span>
+                <span className="bolt-project-statusbar-label">Preview</span>
+                <strong>{runtimeStatusSummary}</strong>
+                <span className="bolt-project-statusbar-muted">{runtimePortSummary}</span>
+                <span className="bolt-project-statusbar-muted">{runtimeDevServerSummary}</span>
               </button>
             </div>
-            <div>
-              <ThemeSwitch
-                size="sm"
-                title="Switch light/dark theme"
-                className="bolt-project-statusbar-theme"
-                iconClassName="text-[11px]"
-              />
-              <span>
+            <div className="bolt-project-statusbar-secondary" aria-label="Editor status">
+              <span
+                className="bolt-project-statusbar-pill bolt-project-statusbar-editor"
+                title="Current cursor position"
+              >
                 {currentDocument?.filePath && cursorPositions[currentDocument.filePath]
                   ? `Ln ${cursorPositions[currentDocument.filePath].line}, Col ${
                       cursorPositions[currentDocument.filePath].column
                     }`
                   : 'Ln 1, Col 1'}
               </span>
-              <span>Spaces: 2</span>
-              <span>UTF-8</span>
-              <span>{fileTypeLabel(currentDocument?.filePath)}</span>
+              <span className="bolt-project-statusbar-pill" title="Indentation: 2 spaces">
+                Spaces: 2
+              </span>
+              <span className="bolt-project-statusbar-pill" title="File encoding: UTF-8">
+                UTF-8
+              </span>
+              <span className="bolt-project-statusbar-pill" title="Detected language mode">
+                {fileTypeLabel(currentDocument?.filePath)}
+              </span>
               <button
                 type="button"
                 aria-label="Toggle terminal"
-                onClick={() => setTerminalBottomOpen((value) => !value)}
+                title="Toggle terminal"
+                className="bolt-project-statusbar-icon-button"
+                onClick={() => {
+                  setBottomTerminalView('terminal');
+                  setTerminalBottomOpen((value) => !value);
+                }}
               >
                 <span className="i-ph:terminal-window" aria-hidden />
               </button>
-              <button type="button" aria-label="Toggle agent" onClick={() => textareaRef?.current?.focus()}>
+              <button
+                type="button"
+                aria-label="Focus agent composer"
+                title="Focus agent composer"
+                className="bolt-project-statusbar-icon-button"
+                onClick={() => textareaRef?.current?.focus()}
+              >
                 <span className="i-ph:sparkle" aria-hidden />
               </button>
             </div>
@@ -4385,8 +4457,17 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 }
 
-function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onClose: () => void }) {
-  const [active, setActive] = useState<'terminal' | 'output' | 'problems' | 'debug'>('terminal');
+function ProjectBottomTerminal({
+  projectId,
+  active,
+  onActiveChange,
+  onClose,
+}: {
+  projectId?: string;
+  active: ProjectBottomTerminalView;
+  onActiveChange: (view: ProjectBottomTerminalView) => void;
+  onClose: () => void;
+}) {
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
   const workspaceLabel = workspaceStatus ? `${workspaceStatus.status} workspace` : 'No backend workspace';
@@ -4407,7 +4488,7 @@ function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onC
               key={id}
               type="button"
               aria-current={active === id ? 'page' : undefined}
-              onClick={() => setActive(id as any)}
+              onClick={() => onActiveChange(id)}
             >
               <span className={icon} aria-hidden />
               {label}
@@ -4426,7 +4507,7 @@ function ProjectBottomTerminal({ projectId, onClose }: { projectId?: string; onC
             type="button"
             aria-label="Refresh runtime logs"
             onClick={() => {
-              setActive('terminal');
+              onActiveChange('terminal');
               void workbenchStore.refreshRuntimePorts().catch(() => undefined);
             }}
           >
