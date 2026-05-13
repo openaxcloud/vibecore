@@ -1626,8 +1626,38 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-runtime-status {
+  border: 1px solid var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card);
   padding: 0 8px;
-  color: var(--vc-ide-text-secondary) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-runtime-status:hover,
+.bolt-project-runtime-status:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  border-color: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action), transparent 82%);
+}
+
+.bolt-project-runtime-status-text {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-runtime-status-prefix {
+  color: var(--vc-ide-text-muted);
+  font-weight: 600;
+}
+
+.bolt-project-runtime-status-action {
+  margin-left: 2px;
+  border-left: 1px solid var(--vc-ide-border-visible);
+  padding-left: 7px;
+  color: var(--vc-ide-accent-action);
+  font-size: 11px !important;
+  font-weight: 750;
 }
 
 .bolt-project-run-button {

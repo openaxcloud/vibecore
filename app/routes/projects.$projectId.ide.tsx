@@ -381,7 +381,12 @@ function IdeProjectTopBar({
             </button>
           </div>
         )}
-        <Link to={`/projects/${projectId}/ide?panel=logs`} className="bolt-project-runtime-status">
+        <Link
+          to={`/projects/${projectId}/ide?panel=logs`}
+          className="bolt-project-runtime-status"
+          aria-label={`Runtime status is ${statusLabel}. Open runtime logs.`}
+          title={`Runtime status: ${statusLabel}. Open logs.`}
+        >
           <span className="relative flex h-2 w-2">
             {state === 'building' && (
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D29922] opacity-75" />
@@ -400,7 +405,11 @@ function IdeProjectTopBar({
               }}
             />
           </span>
-          {statusLabel}
+          <span className="bolt-project-runtime-status-text">
+            <span className="bolt-project-runtime-status-prefix">Runtime</span>
+            <span>{statusLabel}</span>
+          </span>
+          <span className="bolt-project-runtime-status-action">Logs</span>
         </Link>
       </div>
       <div aria-hidden className="flex-1" />
