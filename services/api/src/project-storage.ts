@@ -1,8 +1,8 @@
-import JSZip from 'jszip';
+import { execFile as execFileCallback } from 'node:child_process';
 import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
-import { execFile as execFileCallback } from 'node:child_process';
+import JSZip from 'jszip';
 
 const execFile = promisify(execFileCallback);
 
@@ -19,13 +19,35 @@ export interface StoredArchive {
 }
 
 export interface GitProvider {
-  importRepository(input: { repositoryUrl: string; branch?: string }): Promise<{ files: ProjectFile[]; defaultBranch: string; remoteUrl: string }>;
-  status(projectId: string): Promise<{ branch: string; changedFiles: string[]; ahead: number; behind: number }>;
-  commit(input: { projectId: string; message: string; files: ProjectFile[] }): Promise<{ sha: string; message: string }>;
+  importRepository(input: {
+    repositoryUrl: string;
+    branch?: string;
+  }): Promise<{ files: ProjectFile[]; defaultBranch: string; remoteUrl: string }>;
+  status(projectId: string): Promise<{
+    branch: string;
+    changedFiles: string[];
+    fileStatuses?: Array<{ path: string; status: string }>;
+    ahead: number;
+    behind: number;
+  }>;
+  commit(input: {
+    projectId: string;
+    message: string;
+    files: ProjectFile[];
+  }): Promise<{ sha: string; message: string }>;
   push(input: { projectId: string; branch: string }): Promise<{ pushed: boolean; branch: string }>;
-  pull(input: { projectId: string; branch: string }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
+  pull(input: {
+    projectId: string;
+    branch: string;
+  }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
   listBranches(projectId: string): Promise<string[]>;
-  createPullRequest(input: { projectId: string; title: string; body?: string; sourceBranch: string; targetBranch: string }): Promise<{ url: string; number: number }>;
+  createPullRequest(input: {
+    projectId: string;
+    title: string;
+    body?: string;
+    sourceBranch: string;
+    targetBranch: string;
+  }): Promise<{ url: string; number: number }>;
 }
 
 export interface ProjectStorage {
@@ -63,6 +85,7 @@ function safeProjectPath(projectId: string, filePath = '') {
 
 async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   const dir = join(root, current);
+
   const entries = await readdir(dir, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') {
       return [];
@@ -70,6 +93,7 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
 
     throw error;
   });
+
   const files: ProjectFile[] = [];
 
   for (const entry of entries) {
@@ -187,9 +211,18 @@ export class GitCliProvider implements GitProvider {
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
     const projectId = `import-${Date.now().toString(36)}`;
     const target = safeProjectPath(projectId);
-    await execFile('git', ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target]);
+    await execFile('git', [
+      'clone',
+      '--depth=1',
+      ...(input.branch ? ['--branch', input.branch] : []),
+      input.repositoryUrl,
+      target,
+    ]);
+
     const files = await walkFiles(target);
-    const defaultBranch = input.branch ?? (await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target })).stdout.trim();
+
+    const defaultBranch =
+      input.branch ?? (await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target })).stdout.trim();
 
     return { files, defaultBranch, remoteUrl: input.repositoryUrl };
   }
@@ -197,19 +230,23 @@ export class GitCliProvider implements GitProvider {
   async status(projectId: string) {
     const branch = await this.git(projectId, ['rev-parse', '--abbrev-ref', 'HEAD']);
     const porcelain = await this.git(projectId, ['status', '--porcelain']);
-    const changedFiles = porcelain
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => line.slice(3));
-    const aheadBehind = await this.git(projectId, ['rev-list', '--left-right', '--count', '@{upstream}...HEAD']).catch(() => '0\t0');
+    const statusLines = porcelain.split('\n').filter(Boolean);
+    const changedFiles = statusLines.map((line) => line.slice(3));
+    const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
+
+    const aheadBehind = await this.git(projectId, ['rev-list', '--left-right', '--count', '@{upstream}...HEAD']).catch(
+      () => '0\t0',
+    );
+
     const [behind, ahead] = aheadBehind.split(/\s+/).map((value) => Number(value) || 0);
 
-    return { branch, changedFiles, ahead, behind };
+    return { branch, changedFiles, fileStatuses, ahead, behind };
   }
 
   async commit(input: { projectId: string; message: string; files: ProjectFile[] }) {
     await execFile('git', ['add', '--all'], { cwd: this.workspacePath(input.projectId) });
     await execFile('git', ['commit', '-m', input.message], { cwd: this.workspacePath(input.projectId) });
+
     const sha = await this.git(input.projectId, ['rev-parse', 'HEAD']);
 
     return { sha, message: input.message };
@@ -223,6 +260,7 @@ export class GitCliProvider implements GitProvider {
 
   async pull(input: { projectId: string; branch: string }) {
     await this.git(input.projectId, ['pull', 'origin', input.branch]);
+
     const status = await this.status(input.projectId);
 
     return { pulled: true, branch: input.branch, changedFiles: status.changedFiles };
@@ -235,6 +273,8 @@ export class GitCliProvider implements GitProvider {
   }
 
   async createPullRequest(): Promise<{ url: string; number: number }> {
-    throw new Error('Pull request creation requires a GitHub integration provider; GitCliProvider does not create remote PRs.');
+    throw new Error(
+      'Pull request creation requires a GitHub integration provider; GitCliProvider does not create remote PRs.',
+    );
   }
 }

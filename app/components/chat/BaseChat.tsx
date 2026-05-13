@@ -29,6 +29,7 @@ import { themeStore } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
+import { buildGitStatusMap } from '~/utils/fileExplorerMetadata';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 import StarterTemplates from './StarterTemplates';
 import type { ActionAlert, SupabaseAlert, DeployAlert, LlmErrorAlertType } from '~/types/actions';
@@ -287,7 +288,7 @@ const TERMINAL_SCRIPT_TEMPLATES = [
 type ProjectIdeBackendState = {
   workspace?: { id?: string; status?: string; runtimeMode?: string } | null;
   ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
-  git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[] };
+  git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[]; fileStatuses?: unknown[] };
   files?: Array<{ path: string; sizeBytes?: number }>;
   recentActivity?: Array<{ action: string; createdAt?: string }>;
   collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
@@ -3489,6 +3490,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               files={projectFiles}
               selectedFile={selectedFile}
               unsavedFiles={unsavedFiles}
+              openEditors={flattenTabs(paneTree)
+                .filter((tab) => tab.filePath)
+                .map((tab) => ({
+                  id: tab.id,
+                  filePath: tab.filePath,
+                  dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
+                  pinned: Boolean(tab.pinned),
+                }))}
+              changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
               onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
               onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
             />
@@ -4118,6 +4128,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   files={projectFiles}
                   selectedFile={selectedFile}
                   unsavedFiles={unsavedFiles}
+                  openEditors={flattenTabs(paneTree)
+                    .filter((tab) => tab.filePath)
+                    .map((tab) => ({
+                      id: tab.id,
+                      filePath: tab.filePath,
+                      dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
+                      pinned: Boolean(tab.pinned),
+                    }))}
+                  changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
                   onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
                   onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
@@ -5525,17 +5544,35 @@ function ProjectFilesTool({
   files,
   selectedFile,
   unsavedFiles,
+  openEditors = [],
+  changedFiles = [],
   onFilePreview,
   onFileOpen,
 }: {
   files: any;
   selectedFile?: string;
   unsavedFiles?: Set<string>;
+  openEditors?: Array<{ id: string; filePath?: string; dirty?: boolean; pinned?: boolean }>;
+  changedFiles?: unknown[];
   onFilePreview: (filePath: string) => void;
   onFileOpen: (filePath: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
+  const gitStatusByPath = useMemo(() => buildGitStatusMap(changedFiles), [changedFiles]);
+
+  const fileOpenEditors = useMemo(
+    () =>
+      openEditors
+        .filter((editor) => typeof editor.filePath === 'string' && editor.filePath)
+        .map((editor) => ({
+          id: editor.id,
+          filePath: editor.filePath as string,
+          dirty: editor.dirty,
+          pinned: editor.pinned,
+        })),
+    [openEditors],
+  );
 
   const fileCount = Object.entries(files ?? {}).filter(
     ([filePath, entry]: [string, any]) => entry?.type === 'file' && !isIdeHiddenPath(filePath),
@@ -5605,6 +5642,9 @@ function ProjectFilesTool({
         collapsed={collapsed}
         hiddenFiles={IDE_FILE_TREE_HIDDEN_PATTERNS}
         unsavedFiles={unsavedFiles}
+        openEditors={fileOpenEditors}
+        gitStatusByPath={gitStatusByPath}
+        enableWorkspaceViews
         rootFolder={WORK_DIR}
         selectedFile={selectedFile}
         onFileSelect={(filePath) => {

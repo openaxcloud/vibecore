@@ -6,6 +6,15 @@ import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
+import {
+  buildFileOutline,
+  buildFileTimeline,
+  gitStatusForPath,
+  materialFileIcon,
+  normalizeWorkspacePath,
+  type GitFileStatus,
+  type OutlineSymbol,
+} from '~/utils/fileExplorerMetadata';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
 
@@ -35,6 +44,17 @@ interface Props {
   className?: string;
   onFilePreview?: (filePath: string) => void;
   onFileOpen?: (filePath: string) => void;
+  enableWorkspaceViews?: boolean;
+  openEditors?: OpenEditorEntry[];
+  gitStatusByPath?: Record<string, GitFileStatus | string | undefined>;
+}
+
+interface OpenEditorEntry {
+  id: string;
+  filePath: string;
+  label?: string;
+  dirty?: boolean;
+  pinned?: boolean;
 }
 
 interface InlineInputProps {
@@ -60,6 +80,9 @@ export const FileTree = memo(
     fileHistory = {},
     onFilePreview,
     onFileOpen,
+    enableWorkspaceViews = false,
+    openEditors = [],
+    gitStatusByPath,
   }: Props) => {
     renderLogger.trace('FileTree');
 
@@ -73,6 +96,21 @@ export const FileTree = memo(
       return collapsed
         ? new Set(fileList.filter((item) => item.kind === 'folder').map((item) => item.fullPath))
         : new Set<string>();
+    });
+
+    const [activeView, setActiveView] = useState<'files' | 'open' | 'outline' | 'timeline' | 'bookmarks'>('files');
+    const [dropActive, setDropActive] = useState(false);
+
+    const [bookmarks, setBookmarks] = useState<Set<string>>(() => {
+      if (typeof localStorage === 'undefined') {
+        return new Set();
+      }
+
+      try {
+        return new Set(JSON.parse(localStorage.getItem('vibecore:file-bookmarks') ?? '[]'));
+      } catch {
+        return new Set();
+      }
     });
 
     useEffect(() => {
@@ -123,6 +161,45 @@ export const FileTree = memo(
       return list;
     }, [fileList, collapsedFolders]);
 
+    const outline = useMemo(() => buildFileOutline(selectedFile, files), [files, selectedFile]);
+
+    const timeline = useMemo(
+      () => buildFileTimeline(files, fileHistory, gitStatusByPath),
+      [files, fileHistory, gitStatusByPath],
+    );
+
+    const visibleBookmarks = useMemo(
+      () => [...bookmarks].filter((filePath) => files[filePath]?.type === 'file'),
+      [bookmarks, files],
+    );
+
+    const persistBookmarks = useCallback((next: Set<string>) => {
+      setBookmarks(next);
+
+      try {
+        localStorage.setItem('vibecore:file-bookmarks', JSON.stringify([...next]));
+      } catch (error) {
+        logger.warn('Failed to persist file bookmarks', error);
+      }
+    }, []);
+
+    const toggleBookmark = useCallback(
+      (filePath: string) => {
+        const next = new Set(bookmarks);
+
+        if (next.has(filePath)) {
+          next.delete(filePath);
+          toast.info('Bookmark removed');
+        } else {
+          next.add(filePath);
+          toast.success('Bookmark added');
+        }
+
+        persistBookmarks(next);
+      },
+      [bookmarks, persistBookmarks],
+    );
+
     const toggleCollapseState = (fullPath: string) => {
       setCollapsedFolders((prevSet) => {
         const newSet = new Set(prevSet);
@@ -153,58 +230,259 @@ export const FileTree = memo(
       }
     };
 
-    return (
-      <div className={classNames('text-sm', className, 'overflow-y-auto modern-scrollbar')}>
-        {filteredFileList.map((fileOrFolder) => {
-          switch (fileOrFolder.kind) {
-            case 'file': {
-              return (
-                <File
-                  key={fileOrFolder.id}
-                  selected={selectedFile === fileOrFolder.fullPath}
-                  file={fileOrFolder}
-                  unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
-                  fileHistory={fileHistory}
-                  onCopyPath={() => {
-                    onCopyPath(fileOrFolder);
-                  }}
-                  onCopyRelativePath={() => {
-                    onCopyRelativePath(fileOrFolder);
-                  }}
-                  onClick={() => {
-                    onFilePreview?.(fileOrFolder.fullPath);
-                    onFileSelect?.(fileOrFolder.fullPath);
-                  }}
-                  onDoubleClick={() => {
-                    onFileOpen?.(fileOrFolder.fullPath);
-                  }}
-                />
-              );
+    const uploadDroppedFiles = useCallback(
+      async (event: React.DragEvent, targetFolder = rootFolder ?? '/') => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDropActive(false);
+
+        const droppedFiles = Array.from(event.dataTransfer.files ?? []);
+
+        if (droppedFiles.length === 0) {
+          return;
+        }
+
+        for (const file of droppedFiles) {
+          try {
+            const filePath = path.join(targetFolder, file.name);
+            const binaryContent = new Uint8Array(await file.arrayBuffer());
+            const success = await workbenchStore.createFile(filePath, binaryContent);
+
+            if (success) {
+              toast.success(`Uploaded ${file.name}`);
+            } else {
+              toast.error(`Failed to upload ${file.name}`);
             }
-            case 'folder': {
-              return (
-                <Folder
-                  key={fileOrFolder.id}
-                  folder={fileOrFolder}
-                  selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
-                  collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
-                  onCopyPath={() => {
-                    onCopyPath(fileOrFolder);
-                  }}
-                  onCopyRelativePath={() => {
-                    onCopyRelativePath(fileOrFolder);
-                  }}
-                  onClick={() => {
-                    toggleCollapseState(fileOrFolder.fullPath);
-                  }}
-                />
-              );
-            }
-            default: {
-              return undefined;
-            }
+          } catch (error) {
+            toast.error(`Error uploading ${file.name}`);
+            logger.error(error);
           }
-        })}
+        }
+      },
+      [rootFolder],
+    );
+
+    const openFileAtLine = useCallback(
+      (filePath: string, line?: number) => {
+        onFilePreview?.(filePath);
+        onFileSelect?.(filePath);
+
+        if (typeof line === 'number') {
+          workbenchStore.setCurrentDocumentScrollPosition({ line: Math.max(0, line - 1), column: 0 });
+        }
+      },
+      [onFilePreview, onFileSelect],
+    );
+
+    const renderFileRow = (filePath: string, meta?: { detail?: string; status?: GitFileStatus; line?: number }) => {
+      const icon = materialFileIcon(filePath);
+      const label = filePath.split('/').pop() ?? filePath;
+      const relativePath = normalizeWorkspacePath(filePath);
+
+      return (
+        <button
+          key={`${filePath}:${meta?.detail ?? ''}:${meta?.line ?? ''}`}
+          type="button"
+          className={classNames(
+            'group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-bolt-elements-textSecondary hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-item-contentActive',
+            {
+              'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selectedFile === filePath,
+            },
+          )}
+          title={relativePath}
+          onClick={() => openFileAtLine(filePath, meta?.line)}
+          onDoubleClick={() => onFileOpen?.(filePath)}
+        >
+          <span className={classNames('size-4 shrink-0', icon.icon)} style={{ color: icon.color }} aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium">{label}</span>
+            <span className="block truncate text-[11px] text-bolt-elements-textTertiary">
+              {meta?.detail ?? relativePath}
+            </span>
+          </span>
+          {meta?.status && <GitStatusPill status={meta.status} />}
+        </button>
+      );
+    };
+
+    return (
+      <div
+        className={classNames('text-sm', className, 'overflow-y-auto modern-scrollbar relative')}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDropActive(true);
+        }}
+        onDragLeave={() => setDropActive(false)}
+        onDrop={(event) => void uploadDroppedFiles(event)}
+      >
+        {enableWorkspaceViews && (
+          <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 p-2 backdrop-blur">
+            <div className="grid grid-cols-5 gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-1">
+              {[
+                ['files', 'Files', 'i-ph:files'],
+                ['open', 'Open editors', 'i-ph:tabs'],
+                ['outline', 'Outline', 'i-ph:list-bullets'],
+                ['timeline', 'Timeline', 'i-ph:clock-counter-clockwise'],
+                ['bookmarks', 'Bookmarks', 'i-ph:bookmark-simple'],
+              ].map(([view, label, icon]) => (
+                <button
+                  key={view}
+                  type="button"
+                  aria-label={label}
+                  title={label}
+                  className={classNames(
+                    'flex h-7 items-center justify-center rounded-md text-bolt-elements-textTertiary',
+                    {
+                      'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm':
+                        activeView === view,
+                      'hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-textPrimary':
+                        activeView !== view,
+                    },
+                  )}
+                  onClick={() => setActiveView(view as typeof activeView)}
+                >
+                  <span className={classNames('size-4', icon)} aria-hidden />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dropActive && (
+          <div className="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-xl border border-dashed border-bolt-elements-item-contentAccent bg-bolt-elements-background-depth-2/90 text-bolt-elements-item-contentAccent">
+            <div className="flex items-center gap-2 rounded-lg bg-bolt-elements-background-depth-1 px-3 py-2 shadow-lg">
+              <span className="i-ph:upload-simple size-4" aria-hidden />
+              Drop files to upload
+            </div>
+          </div>
+        )}
+
+        {activeView === 'open' &&
+          (openEditors.length ? (
+            <div className="space-y-1 p-2">
+              {openEditors.map((editor) =>
+                renderFileRow(editor.filePath, {
+                  detail: editor.dirty
+                    ? 'Unsaved changes'
+                    : editor.pinned
+                      ? 'Pinned editor'
+                      : normalizeWorkspacePath(editor.filePath),
+                  status: gitStatusForPath(gitStatusByPath, editor.filePath),
+                }),
+              )}
+            </div>
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:tabs"
+              title="No open editors"
+              description="Open a file to pin it in this view."
+            />
+          ))}
+
+        {activeView === 'outline' &&
+          (outline.length ? (
+            <OutlineView
+              symbols={outline}
+              onSelect={(symbol) => selectedFile && openFileAtLine(selectedFile, symbol.line)}
+            />
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:list-bullets"
+              title="No outline available"
+              description="Open a source file to inspect symbols and headings."
+            />
+          ))}
+
+        {activeView === 'timeline' &&
+          (timeline.length ? (
+            <div className="space-y-1 p-2">
+              {timeline.map((entry) =>
+                renderFileRow(entry.filePath, {
+                  detail: entry.detail,
+                  status: entry.status,
+                }),
+              )}
+            </div>
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:clock-counter-clockwise"
+              title="No timeline yet"
+              description="Edits and Git changes will appear here."
+            />
+          ))}
+
+        {activeView === 'bookmarks' &&
+          (visibleBookmarks.length ? (
+            <div className="space-y-1 p-2">
+              {visibleBookmarks.map((filePath) =>
+                renderFileRow(filePath, {
+                  detail: 'Bookmarked file',
+                  status: gitStatusForPath(gitStatusByPath, filePath),
+                }),
+              )}
+            </div>
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:bookmark-simple"
+              title="No bookmarks"
+              description="Use the file context menu to bookmark important files."
+            />
+          ))}
+
+        {activeView === 'files' &&
+          filteredFileList.map((fileOrFolder) => {
+            switch (fileOrFolder.kind) {
+              case 'file': {
+                return (
+                  <File
+                    key={fileOrFolder.id}
+                    selected={selectedFile === fileOrFolder.fullPath}
+                    file={fileOrFolder}
+                    unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
+                    gitStatus={gitStatusForPath(gitStatusByPath, fileOrFolder.fullPath)}
+                    bookmarked={bookmarks.has(fileOrFolder.fullPath)}
+                    fileHistory={fileHistory}
+                    onToggleBookmark={() => toggleBookmark(fileOrFolder.fullPath)}
+                    onCopyPath={() => {
+                      onCopyPath(fileOrFolder);
+                    }}
+                    onCopyRelativePath={() => {
+                      onCopyRelativePath(fileOrFolder);
+                    }}
+                    onClick={() => {
+                      onFilePreview?.(fileOrFolder.fullPath);
+                      onFileSelect?.(fileOrFolder.fullPath);
+                    }}
+                    onDoubleClick={() => {
+                      onFileOpen?.(fileOrFolder.fullPath);
+                    }}
+                  />
+                );
+              }
+              case 'folder': {
+                return (
+                  <Folder
+                    key={fileOrFolder.id}
+                    folder={fileOrFolder}
+                    selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
+                    collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
+                    onCopyPath={() => {
+                      onCopyPath(fileOrFolder);
+                    }}
+                    onCopyRelativePath={() => {
+                      onCopyRelativePath(fileOrFolder);
+                    }}
+                    onClick={() => {
+                      toggleCollapseState(fileOrFolder.fullPath);
+                    }}
+                  />
+                );
+              }
+              default: {
+                return undefined;
+              }
+            }
+          })}
       </div>
     );
   },
@@ -299,7 +577,9 @@ function FileContextMenu({
   onCopyRelativePath,
   fullPath,
   children,
-}: FolderContextMenuProps & { fullPath: string }) {
+  bookmarked,
+  onToggleBookmark,
+}: FolderContextMenuProps & { fullPath: string; bookmarked?: boolean; onToggleBookmark?: () => void }) {
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -343,7 +623,7 @@ function FileContextMenu({
 
         if (file) {
           try {
-            const filePath = path.join(fullPath, file.name);
+            const filePath = path.join(targetPath, file.name);
 
             // Convert file to binary data (Uint8Array)
             const arrayBuffer = await file.arrayBuffer();
@@ -633,6 +913,11 @@ function FileContextMenu({
               <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
               <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
               <ContextMenuItem onSelect={handleReveal}>Reveal in finder</ContextMenuItem>
+              {!isFolder && (
+                <ContextMenuItem onSelect={onToggleBookmark}>
+                  {bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                </ContextMenuItem>
+              )}
             </ContextMenu.Group>
             {/* Add lock/unlock options for files and folders */}
             <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
@@ -748,7 +1033,10 @@ interface FileProps {
   file: FileNode;
   selected: boolean;
   unsavedChanges?: boolean;
+  gitStatus?: GitFileStatus;
+  bookmarked?: boolean;
   fileHistory?: Record<string, FileHistory>;
+  onToggleBookmark?: () => void;
   onCopyPath: () => void;
   onCopyRelativePath: () => void;
   onClick: () => void;
@@ -763,7 +1051,10 @@ function File({
   onCopyRelativePath,
   selected,
   unsavedChanges = false,
+  gitStatus,
+  bookmarked = false,
   fileHistory = {},
+  onToggleBookmark,
 }: FileProps) {
   const { depth, name, fullPath } = file;
 
@@ -811,7 +1102,13 @@ function File({
   const showStats = additions > 0 || deletions > 0;
 
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={fullPath}>
+    <FileContextMenu
+      onCopyPath={onCopyPath}
+      onCopyRelativePath={onCopyRelativePath}
+      fullPath={fullPath}
+      bookmarked={bookmarked}
+      onToggleBookmark={onToggleBookmark}
+    >
       <NodeButton
         className={classNames('group', {
           'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault':
@@ -820,10 +1117,10 @@ function File({
             selected,
         })}
         depth={depth}
-        iconClasses={classNames('i-ph:file-duotone scale-98', {
+        iconClasses={classNames(materialFileIcon(name).icon, 'scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
-        iconStyle={{ color: fileIconColor(name) }}
+        iconStyle={{ color: materialFileIcon(name).color }}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
       >
@@ -846,11 +1143,91 @@ function File({
                 title={'File is locked'}
               />
             )}
+            {bookmarked && (
+              <span className="i-ph:bookmark-simple-fill scale-75 shrink-0 text-sky-500" title="Bookmarked" />
+            )}
+            {gitStatus && <GitStatusPill status={gitStatus} />}
             {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
           </div>
         </div>
       </NodeButton>
     </FileContextMenu>
+  );
+}
+
+function GitStatusPill({ status }: { status: GitFileStatus }) {
+  const labelByStatus: Record<GitFileStatus, string> = {
+    modified: 'M',
+    added: 'A',
+    deleted: 'D',
+    renamed: 'R',
+    untracked: '?',
+    conflicted: '!',
+  };
+
+  const toneByStatus: Record<GitFileStatus, string> = {
+    modified: 'text-amber-500 bg-amber-500/10',
+    added: 'text-emerald-500 bg-emerald-500/10',
+    deleted: 'text-red-500 bg-red-500/10',
+    renamed: 'text-sky-500 bg-sky-500/10',
+    untracked: 'text-violet-500 bg-violet-500/10',
+    conflicted: 'text-red-500 bg-red-500/15',
+  };
+
+  return (
+    <span
+      className={classNames(
+        'grid h-4 min-w-4 place-items-center rounded px-1 text-[10px] font-semibold',
+        toneByStatus[status],
+      )}
+      title={`Git status: ${status}`}
+      aria-label={`Git status ${status}`}
+    >
+      {labelByStatus[status]}
+    </span>
+  );
+}
+
+function OutlineView({ symbols, onSelect }: { symbols: OutlineSymbol[]; onSelect: (symbol: OutlineSymbol) => void }) {
+  return (
+    <div className="space-y-1 p-2">
+      {symbols.map((symbol) => (
+        <button
+          key={symbol.id}
+          type="button"
+          className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-bolt-elements-textSecondary hover:bg-bolt-elements-item-backgroundActive hover:text-bolt-elements-item-contentActive"
+          onClick={() => onSelect(symbol)}
+        >
+          <span
+            className={classNames('size-4 shrink-0', {
+              'i-ph:function': symbol.kind === 'function',
+              'i-ph:brackets-curly': symbol.kind === 'component',
+              'i-ph:cube': symbol.kind === 'class',
+              'i-ph:paint-brush': symbol.kind === 'style',
+              'i-ph:text-h': symbol.kind === 'heading',
+              'i-ph:dot-outline': symbol.kind === 'symbol',
+            })}
+            aria-hidden
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium">{symbol.label}</span>
+            <span className="block truncate text-[11px] text-bolt-elements-textTertiary">
+              Line {symbol.line} · {symbol.detail}
+            </span>
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function EmptyExplorerState({ icon, title, description }: { icon: string; title: string; description: string }) {
+  return (
+    <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-bolt-elements-textTertiary">
+      <span className={classNames('mb-3 size-7', icon)} aria-hidden />
+      <p className="text-sm font-medium text-bolt-elements-textSecondary">{title}</p>
+      <p className="mt-1 max-w-48 text-xs leading-5">{description}</p>
+    </div>
   );
 }
 
@@ -879,32 +1256,6 @@ function NodeButton({ depth, iconClasses, iconStyle, onClick, onDoubleClick, cla
       <div className="truncate w-full text-left">{children}</div>
     </button>
   );
-}
-
-function fileIconColor(fileName: string) {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-
-  if (extension === 'ts' || extension === 'tsx' || extension === 'js' || extension === 'jsx') {
-    return 'var(--vc-ide-accent-action)';
-  }
-
-  if (extension === 'json') {
-    return 'var(--vc-ide-accent-warning)';
-  }
-
-  if (extension === 'css' || extension === 'scss') {
-    return 'var(--vc-ide-accent-ai-end)';
-  }
-
-  if (extension === 'md' || extension === 'mdx') {
-    return 'var(--vc-ide-text-muted)';
-  }
-
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension ?? '')) {
-    return 'var(--vc-ide-accent-ai-start)';
-  }
-
-  return 'var(--vc-ide-text-secondary)';
 }
 
 type Node = FileNode | FolderNode;

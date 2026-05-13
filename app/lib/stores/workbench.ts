@@ -878,6 +878,20 @@ export class WorkbenchStore {
     this.unsavedFiles.set(newUnsavedFiles);
   }
 
+  async writeFileContent(filePath: string, content: string) {
+    const documents = this.#editorStore.documents.get();
+
+    if (documents[filePath]) {
+      this.#editorStore.updateFile(filePath, content);
+    }
+
+    await this.#filesStore.saveFile(filePath, content);
+
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+    newUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(newUnsavedFiles);
+  }
+
   async saveCurrentDocument() {
     const currentDocument = this.currentDocument.get();
 

@@ -1,7 +1,9 @@
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { WORK_DIR } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
 
 interface DisplayMatch {
@@ -29,8 +31,12 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
 
 export function Search() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [replaceQuery, setReplaceQuery] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [isRegex, setIsRegex] = useState(false);
   const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -46,64 +52,67 @@ export function Search() {
     }
   }, [groupedResults, searchResults]);
 
-  const handleSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setExpandedFiles({});
-      setHasSearched(false);
-
-      return;
-    }
-
-    setIsSearching(true);
-    setSearchResults([]);
-    setExpandedFiles({});
-    setHasSearched(true);
-
-    const minLoaderTime = 300; // ms
-    const start = Date.now();
-
-    try {
-      const options: FileSearchOptions = {
-        includes: ['**/*.*'],
-        excludes: ['**/node_modules/**', '**/package-lock.json', '**/.git/**', '**/dist/**', '**/*.lock'],
-        resultLimit: 500,
-        isRegex: false,
-        caseSensitive: false,
-      };
-
-      const results = await runtimeAdapter.searchFiles(query, options);
-      setSearchResults(
-        results.map((match) => ({
-          path: match.path,
-          lineNumber: match.lineNumber,
-          previewText: match.line,
-          matchCharStart: match.startColumn,
-          matchCharEnd: match.endColumn,
-        })),
-      );
-    } catch (error) {
-      console.error('Failed to initiate search:', error);
-    } finally {
-      const elapsed = Date.now() - start;
-
-      if (elapsed < minLoaderTime) {
-        setTimeout(() => setIsSearching(false), minLoaderTime - elapsed);
-      } else {
+  const handleSearch = useCallback(
+    async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
         setIsSearching(false);
+        setExpandedFiles({});
+        setHasSearched(false);
+
+        return;
       }
-    }
-  }, []);
+
+      setIsSearching(true);
+      setSearchResults([]);
+      setExpandedFiles({});
+      setHasSearched(true);
+
+      const minLoaderTime = 300; // ms
+      const start = Date.now();
+
+      try {
+        const options: FileSearchOptions = {
+          includes: ['**/*.*'],
+          excludes: ['**/node_modules/**', '**/package-lock.json', '**/.git/**', '**/dist/**', '**/*.lock'],
+          resultLimit: 500,
+          isRegex,
+          caseSensitive,
+        };
+
+        const results = await runtimeAdapter.searchFiles(query, options);
+        setSearchResults(
+          results.map((match) => ({
+            path: match.path,
+            lineNumber: match.lineNumber,
+            previewText: match.line,
+            matchCharStart: match.startColumn,
+            matchCharEnd: match.endColumn,
+          })),
+        );
+      } catch (error) {
+        console.error('Failed to initiate search:', error);
+      } finally {
+        const elapsed = Date.now() - start;
+
+        if (elapsed < minLoaderTime) {
+          setTimeout(() => setIsSearching(false), minLoaderTime - elapsed);
+        } else {
+          setIsSearching(false);
+        }
+      }
+    },
+    [caseSensitive, isRegex],
+  );
 
   const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
 
   useEffect(() => {
     debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch]);
+  }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
 
   const handleResultClick = (filePath: string, line?: number) => {
-    workbenchStore.setSelectedFile(filePath);
+    workbenchStore.setSelectedFile(resolveWorkbenchPath(filePath) ?? filePath);
 
     /*
      * Adjust line number to be 0-based if it's defined
@@ -114,18 +123,143 @@ export function Search() {
     workbenchStore.setCurrentDocumentScrollPosition({ line: adjustedLine, column: 0 });
   };
 
+  const resolveWorkbenchPath = useCallback((filePath: string) => {
+    const files = workbenchStore.files.get();
+
+    if (files[filePath]?.type === 'file') {
+      return filePath;
+    }
+
+    const absolutePath = filePath.startsWith(WORK_DIR) ? filePath : `${WORK_DIR}/${filePath.replace(/^\/+/, '')}`;
+
+    if (files[absolutePath]?.type === 'file') {
+      return absolutePath;
+    }
+
+    return Object.keys(files).find((candidate) => candidate.endsWith(`/${filePath.replace(/^\/+/, '')}`));
+  }, []);
+
+  const replaceAll = useCallback(async () => {
+    if (!searchQuery.trim() || searchResults.length === 0) {
+      return;
+    }
+
+    let matcher: RegExp;
+
+    try {
+      matcher = new RegExp(
+        isRegex ? searchQuery : searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+        caseSensitive ? 'g' : 'gi',
+      );
+    } catch {
+      toast.error('Invalid regular expression');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Replace ${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} across ${Object.keys(groupedResults).length} file${Object.keys(groupedResults).length === 1 ? '' : 's'}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsReplacing(true);
+
+    try {
+      const files = workbenchStore.files.get();
+
+      const targetPaths = [
+        ...new Set(searchResults.map((result) => resolveWorkbenchPath(result.path)).filter(Boolean)),
+      ] as string[];
+
+      let replacementCount = 0;
+
+      for (const filePath of targetPaths) {
+        const entry = files[filePath];
+
+        if (entry?.type !== 'file' || entry.isBinary) {
+          continue;
+        }
+
+        const nextContent = entry.content.replace(matcher, () => {
+          replacementCount += 1;
+          return replaceQuery;
+        });
+
+        if (nextContent !== entry.content) {
+          await workbenchStore.writeFileContent(filePath, nextContent);
+        }
+      }
+
+      toast.success(`Replaced ${replacementCount} match${replacementCount === 1 ? '' : 'es'}`);
+      await handleSearch(searchQuery);
+    } catch (error) {
+      console.error('Failed to replace results:', error);
+      toast.error('Replace failed');
+    } finally {
+      setIsReplacing(false);
+    }
+  }, [
+    caseSensitive,
+    groupedResults,
+    handleSearch,
+    isRegex,
+    replaceQuery,
+    resolveWorkbenchPath,
+    searchQuery,
+    searchResults,
+  ]);
+
   return (
     <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
       {/* Search Bar */}
-      <div className="flex items-center py-3 px-3">
-        <div className="relative flex-1">
+      <div className="space-y-2 border-b border-bolt-elements-borderColor px-3 py-3">
+        <div className="relative flex items-center gap-2">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search"
+            placeholder="Search files"
+            aria-label="Search files"
             className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
           />
+          <button
+            type="button"
+            aria-label="Toggle case sensitive search"
+            title="Match case"
+            onClick={() => setCaseSensitive((value) => !value)}
+            className={`h-7 rounded px-2 text-xs ${caseSensitive ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}
+          >
+            Aa
+          </button>
+          <button
+            type="button"
+            aria-label="Toggle regular expression search"
+            title="Use regular expression"
+            onClick={() => setIsRegex((value) => !value)}
+            className={`h-7 rounded px-2 text-xs ${isRegex ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}
+          >
+            .*
+          </button>
+        </div>
+        <div className="relative flex items-center gap-2">
+          <input
+            type="text"
+            value={replaceQuery}
+            onChange={(e) => setReplaceQuery(e.target.value)}
+            placeholder="Replace"
+            aria-label="Replace with"
+            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none transition-all"
+          />
+          <button
+            type="button"
+            className="h-7 whitespace-nowrap rounded-md bg-bolt-elements-item-backgroundAccent px-2 text-xs font-medium text-bolt-elements-item-contentAccent disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={isReplacing || searchResults.length === 0}
+            onClick={() => void replaceAll()}
+          >
+            {isReplacing ? 'Replacing...' : 'Replace all'}
+          </button>
         </div>
       </div>
 
