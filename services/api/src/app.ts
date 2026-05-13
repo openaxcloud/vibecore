@@ -1134,7 +1134,9 @@ function requireMcpMarketplaceService(mcpMarketplace?: McpMarketplaceService) {
   return mcpMarketplace;
 }
 
-function mapMcpMarketplaceError(error: unknown): { statusCode: number; payload: { error: string; code: string } } | null {
+function mapMcpMarketplaceError(
+  error: unknown,
+): { statusCode: number; payload: { error: string; code: string } } | null {
   if (error instanceof McpMarketplaceError) {
     return { statusCode: error.statusCode, payload: { error: error.message, code: error.code } };
   }
@@ -1766,7 +1768,6 @@ createRoot(document.getElementById('root')!).render(
 `;
 }
 
-
 function viteAppTsx(name: string, prompt: string) {
   return `export default function App() {
   return (
@@ -2397,6 +2398,8 @@ function redactAiValue(value: unknown): unknown {
 function ensureAiCommandAllowed(command = '', args: string[] = []) {
   const line = [command, ...args].join(' ').trim();
   const abuseSignal = detectCommandAbuse(command, args);
+  const allowList = configuredAiCommandAllowList();
+  const primaryCommand = line.split(/\s+/)[0]?.split('/').pop()?.toLowerCase();
   const blocked = [
     /\brm\s+-rf\s+(\/|\*)/,
     /\bsudo\b/,
@@ -2415,6 +2418,29 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
       abuseSignal,
     });
   }
+
+  if (allowList && (!primaryCommand || !allowList.has(primaryCommand))) {
+    throw Object.assign(new Error(`AI shell command "${primaryCommand ?? command}" is not allow-listed`), {
+      statusCode: 409,
+      code: 'AI_COMMAND_NOT_ALLOWLISTED',
+      allowedCommands: [...allowList],
+    });
+  }
+}
+
+function configuredAiCommandAllowList() {
+  const raw = process.env.VIBECORE_AGENT_SHELL_ALLOWLIST ?? process.env.AGENT_SHELL_COMMAND_ALLOWLIST;
+
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  return new Set(
+    raw
+      .split(/[,\s]+/)
+      .map((command) => command.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
 let gptTokenEncoder: ((text: string) => Uint32Array) | undefined;

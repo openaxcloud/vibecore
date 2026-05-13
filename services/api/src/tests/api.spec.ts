@@ -205,7 +205,13 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
         files.delete(payload.from);
         response.end(JSON.stringify({ ok: true }));
       } else if (request.method === 'POST' && url.pathname === '/commands/run') {
-        response.end(JSON.stringify({ code: 0, stdout: options.commandStdout ?? `ran ${payload.command}`, stderr: options.commandStderr ?? '' }));
+        response.end(
+          JSON.stringify({
+            code: 0,
+            stdout: options.commandStdout ?? `ran ${payload.command}`,
+            stderr: options.commandStderr ?? '',
+          }),
+        );
       } else if (request.method === 'GET' && url.pathname === '/ports') {
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
@@ -1024,9 +1030,7 @@ describe('SaaS API', () => {
     });
     expect(created.statusCode).toBe(201);
     expect(created.json().abuseEvent.organizationId).toBe(customer.organization.id);
-    expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.abuse_event.create')).toBe(
-      true,
-    );
+    expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.abuse_event.create')).toBe(true);
 
     delete process.env.PLATFORM_ADMIN_EMAILS;
     await app.close();
@@ -2561,6 +2565,51 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(command.statusCode).toBe(409);
       expect(runtime.calls).not.toContain('POST /commands/run');
     } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('enforces configured AI shell command allow-lists before runtime execution', async () => {
+    const previousAllowList = process.env.VIBECORE_AGENT_SHELL_ALLOWLIST;
+    process.env.VIBECORE_AGENT_SHELL_ALLOWLIST = 'node,pnpm';
+
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'ai-guardrails@example.com', organizationName: 'AI Guardrails Org' });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Guardrails Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const allowed = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/tools/run_command`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { command: 'node', args: ['--version'] },
+      });
+      expect(allowed.statusCode).toBe(201);
+
+      const blocked = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/tools/run_command`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { command: 'python3', args: ['--version'] },
+      });
+      expect(blocked.statusCode).toBe(409);
+      expect(blocked.json().code).toBe('AI_COMMAND_NOT_ALLOWLISTED');
+      expect(runtime.calls.filter((call) => call === 'POST /commands/run')).toHaveLength(1);
+    } finally {
+      if (previousAllowList === undefined) {
+        delete process.env.VIBECORE_AGENT_SHELL_ALLOWLIST;
+      } else {
+        process.env.VIBECORE_AGENT_SHELL_ALLOWLIST = previousAllowList;
+      }
+
       await runtime.close();
       await app.close();
     }
