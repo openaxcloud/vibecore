@@ -720,7 +720,7 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-right scale-98': collapsed,
           'i-ph:caret-down scale-98': !collapsed,
         })}
-        iconStyle={{ color: '#D29922' }}
+        iconStyle={{ color: 'var(--vc-ide-accent-warning)' }}
         onClick={onClick}
       >
         <div className="flex items-center w-full">
@@ -878,26 +878,26 @@ function fileIconColor(fileName: string) {
   const extension = fileName.split('.').pop()?.toLowerCase();
 
   if (extension === 'ts' || extension === 'tsx' || extension === 'js' || extension === 'jsx') {
-    return '#0099FF';
+    return 'var(--vc-ide-accent-action)';
   }
 
   if (extension === 'json') {
-    return '#D29922';
+    return 'var(--vc-ide-accent-warning)';
   }
 
   if (extension === 'css' || extension === 'scss') {
-    return '#FF6B9D';
+    return 'var(--vc-ide-accent-ai-end)';
   }
 
   if (extension === 'md' || extension === 'mdx') {
-    return '#6E7681';
+    return 'var(--vc-ide-text-muted)';
   }
 
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(extension ?? '')) {
-    return '#7B61FF';
+    return 'var(--vc-ide-accent-ai-start)';
   }
 
-  return '#C2C8CC';
+  return 'var(--vc-ide-text-secondary)';
 }
 
 type Node = FileNode | FolderNode;
