@@ -1165,6 +1165,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
     const [projectPlanFirst, setProjectPlanFirst] = useState(false);
+    const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
@@ -3440,6 +3441,103 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [renderPaneLeaf],
     );
 
+    const ideRailPrimaryItems = [
+      {
+        id: 'agent',
+        label: 'Agent',
+        icon: 'i-ph:sparkle',
+        active: true,
+        badge: statusbarDiagnostics.errors > 0 ? statusbarDiagnostics.errors : undefined,
+        badgeTone: 'danger',
+        title: 'Focus AI agent',
+        action: () => textareaRef?.current?.focus(),
+      },
+      {
+        id: 'files',
+        label: 'Files',
+        icon: 'i-ph:files',
+        active: rightPanelOpen && rightPanelMode === 'files',
+        badge: statusbarChangedFiles || undefined,
+        badgeTone: statusbarChangedFiles > 0 ? 'warning' : 'neutral',
+        title: `${projectFilePaths.length} indexed files${statusbarChangedFiles ? `, ${statusbarChangedFiles} changed` : ''}`,
+        action: () => openIdeTool('files'),
+      },
+      {
+        id: 'editor',
+        label: 'Editor',
+        icon: 'i-ph:code',
+        active: activeWorkspacePanel === 'editor',
+        badge: unsavedFiles instanceof Set && unsavedFiles.size > 0 ? unsavedFiles.size : undefined,
+        badgeTone: 'warning',
+        title: 'Open editor',
+        action: () => openIdeTool('editor'),
+      },
+      {
+        id: 'terminal',
+        label: 'Terminal',
+        icon: 'i-ph:terminal-window',
+        active: terminalBottomOpen && bottomTerminalView === 'terminal',
+        badge:
+          workspaceStatus?.status?.toLowerCase() === 'running' || runtimePreviews.length > 0
+            ? Math.max(1, runtimePreviews.length)
+            : undefined,
+        badgeTone: 'success',
+        title: 'Open terminal',
+        action: () => openBottomTerminal('terminal'),
+      },
+      {
+        id: 'preview',
+        label: 'Preview',
+        icon: 'i-ph:browser',
+        active: activeWorkspacePanel === 'preview',
+        badge: runtimePreviews.length || undefined,
+        badgeTone: runtimePreviews.length > 0 ? 'success' : 'neutral',
+        title: runtimePreviews.length
+          ? `${runtimePreviews.length} preview port${runtimePreviews.length === 1 ? '' : 's'}`
+          : 'Open preview',
+        action: () => openIdeTool('preview'),
+      },
+      {
+        id: 'publish',
+        label: 'Publish',
+        icon: 'i-ph:rocket-launch',
+        active: activeWorkspacePanel === 'deployments',
+        badge: undefined,
+        badgeTone: 'neutral',
+        title: 'Open deployments and publishing',
+        action: () => openIdeTool('deployments'),
+      },
+    ] as const;
+
+    const ideRailMoreItems = [
+      { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
+      {
+        panel: 'git',
+        label: 'Git',
+        icon: 'i-ph:git-branch',
+        badge: statusbarChangedFiles || undefined,
+        tone: 'warning',
+      },
+      { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
+      { panel: 'packages', label: 'Packages', icon: 'i-ph:cube', badge: undefined, tone: 'neutral' },
+      {
+        panel: 'monitoring',
+        label: 'Monitoring',
+        icon: 'i-ph:chart-line',
+        badge: statusbarDiagnostics.errors || undefined,
+        tone: statusbarDiagnostics.errors > 0 ? 'danger' : 'neutral',
+      },
+      { panel: 'security', label: 'Security', icon: 'i-ph:shield-check', badge: undefined, tone: 'neutral' },
+      {
+        panel: 'activity',
+        label: 'Activity',
+        icon: 'i-ph:activity',
+        badge: workspaceLogs.length || undefined,
+        tone: 'neutral',
+      },
+      { panel: 'settings', label: 'Settings', icon: 'i-ph:gear', badge: undefined, tone: 'neutral' },
+    ] as const;
+
     const projectIdePanels = (
       <div
         className="bolt-project-ide-panels"
@@ -3610,6 +3708,66 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             onMouseDown={startAgentResize}
           />
         </section>
+        <aside className="bolt-project-ide-rail" aria-label="IDE panels">
+          <div className="bolt-project-ide-rail-primary">
+            {ideRailPrimaryItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="bolt-project-ide-rail-item"
+                aria-current={item.active ? 'page' : undefined}
+                aria-label={`${item.label}${item.badge ? `, ${item.badge}` : ''}`}
+                title={item.title}
+                data-tone={item.badgeTone}
+                onClick={item.action}
+              >
+                <span className={item.icon} aria-hidden />
+                <span className="bolt-project-ide-rail-label">{item.label}</span>
+                {item.badge ? (
+                  <span className="bolt-project-ide-rail-badge" aria-hidden>
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <div className="bolt-project-ide-rail-more">
+            <button
+              type="button"
+              className="bolt-project-ide-rail-more-trigger"
+              aria-expanded={ideRailMoreOpen}
+              aria-controls="ide-rail-more-views"
+              onClick={() => setIdeRailMoreOpen((open) => !open)}
+            >
+              <span className={ideRailMoreOpen ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
+              <span>More views</span>
+            </button>
+            {ideRailMoreOpen && (
+              <div id="ide-rail-more-views" className="bolt-project-ide-rail-more-list">
+                {ideRailMoreItems.map((item) => (
+                  <button
+                    key={item.panel}
+                    type="button"
+                    className="bolt-project-ide-rail-item bolt-project-ide-rail-item-compact"
+                    aria-current={activeWorkspacePanel === item.panel ? 'page' : undefined}
+                    aria-label={`${item.label}${item.badge ? `, ${item.badge}` : ''}`}
+                    title={IDE_TOOL_DESCRIPTIONS[item.panel]}
+                    data-tone={item.tone}
+                    onClick={() => openIdeTool(item.panel)}
+                  >
+                    <span className={item.icon} aria-hidden />
+                    <span className="bolt-project-ide-rail-label">{item.label}</span>
+                    {item.badge ? (
+                      <span className="bolt-project-ide-rail-badge" aria-hidden>
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
         <div className="bolt-project-workspace-shell">
           <section className="bolt-project-ide-panel" aria-label="Editor and preview">
             <div className="bolt-project-main-stack">
@@ -3973,7 +4131,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }}
             >
               <span className={icon} aria-hidden />
-              <span>{id === 'deploy' ? 'Ship' : label}</span>
+              <span>{id === 'deploy' ? 'Publish' : label}</span>
             </button>
           ))}
         </nav>

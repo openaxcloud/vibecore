@@ -2131,6 +2131,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
+  --project-ide-rail-width: 72px;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -2358,11 +2359,148 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-panel);
 }
 
+.bolt-project-ide-rail {
+  position: fixed;
+  top: 36px;
+  bottom: 28px;
+  left: var(--project-agent-width);
+  z-index: 34;
+  display: flex;
+  width: var(--project-ide-rail-width);
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 4%), var(--vc-ide-bg-panel)),
+    var(--vc-ide-bg-panel);
+  padding: 8px 6px;
+}
+
+.bolt-project-ide-rail-primary,
+.bolt-project-ide-rail-more,
+.bolt-project-ide-rail-more-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.bolt-project-ide-rail-more {
+  padding-top: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-ide-rail-more-trigger,
+.bolt-project-ide-rail-item {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--vc-ide-text-muted);
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.bolt-project-ide-rail-item {
+  position: relative;
+  min-height: 52px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 3px;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.bolt-project-ide-rail-item > [class*='i-ph:'] {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.bolt-project-ide-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-ide-rail-item:hover,
+.bolt-project-ide-rail-item:focus-visible,
+.bolt-project-ide-rail-more-trigger:hover,
+.bolt-project-ide-rail-more-trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 20%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-ide-rail-item[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 46%);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%), transparent),
+    var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 3px 0 0 var(--vc-ide-accent-action);
+}
+
+.bolt-project-ide-rail-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-muted);
+  color: var(--vc-ide-text-primary);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 0 4px;
+  box-shadow: 0 0 0 1px var(--vc-ide-bg-panel);
+}
+
+.bolt-project-ide-rail-item[data-tone='success'] .bolt-project-ide-rail-badge {
+  background: var(--vc-ide-accent-success);
+  color: var(--vc-ide-bg-app);
+}
+
+.bolt-project-ide-rail-item[data-tone='warning'] .bolt-project-ide-rail-badge {
+  background: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-bg-app);
+}
+
+.bolt-project-ide-rail-item[data-tone='danger'] .bolt-project-ide-rail-badge {
+  background: var(--vc-ide-accent-error);
+  color: white;
+}
+
+.bolt-project-ide-rail-more-trigger {
+  min-height: 30px;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.bolt-project-ide-rail-more-trigger [class*='i-ph:'] {
+  font-size: 12px;
+}
+
+.bolt-project-ide-rail-item-compact {
+  min-height: 44px;
+}
+
 .bolt-project-workspace-shell {
   position: absolute;
   top: 36px;
   right: var(--project-right-panel-width, 0px);
-  left: var(--project-agent-width);
+  left: calc(var(--project-agent-width) + var(--project-ide-rail-width));
   width: auto;
   height: calc(100vh - 36px);
   padding-bottom: 23px;
@@ -6691,7 +6829,7 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   right: 0;
   bottom: 0;
-  left: var(--project-agent-width, 420px);
+  left: calc(var(--project-agent-width, 420px) + var(--project-ide-rail-width, 72px));
   z-index: 40;
   display: flex;
   height: 28px;
