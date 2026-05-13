@@ -439,7 +439,7 @@ const createSnapshotSchema = z.object({
   manifest: z.unknown().default({}),
 });
 const snapshotParams = z.object({ snapshotId: z.string().min(1) });
-const gitCommitSchema = z.object({ message: z.string().min(1) });
+const gitCommitSchema = z.object({ message: z.string().min(1), files: z.array(z.string().min(1)).optional() });
 const gitBranchSchema = z.object({ branch: z.string().min(1).default('main') });
 const gitCheckoutBranchSchema = z.object({
   branch: z.string().min(1),
@@ -8364,6 +8364,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       message: body.message,
       files: await projectStorage.listFiles(project.id),
+      selectedFiles: body.files,
     });
     await store.recordProjectActivity({
       projectId: project.id,

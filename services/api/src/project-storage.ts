@@ -6,6 +6,18 @@ import JSZip from 'jszip';
 
 const execFile = promisify(execFileCallback);
 
+function commandStdout(result: unknown) {
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  if (Array.isArray(result)) {
+    return String(result[0] ?? '');
+  }
+
+  return String((result as { stdout?: unknown })?.stdout ?? '');
+}
+
 export interface ProjectFile {
   path: string;
   content: string;
@@ -53,6 +65,7 @@ export interface GitProvider {
     projectId: string;
     message: string;
     files: ProjectFile[];
+    selectedFiles?: string[];
   }): Promise<{ sha: string; message: string }>;
   push(input: { projectId: string; branch: string }): Promise<{ pushed: boolean; branch: string }>;
   pull(input: {
@@ -244,32 +257,63 @@ export class GitCliProvider implements GitProvider {
     return safeProjectPath(projectId);
   }
 
+  private gitEnv() {
+    return {
+      ...process.env,
+      GIT_CEILING_DIRECTORIES: storageRoot(),
+    };
+  }
+
+  private async ensureRepository(projectId: string) {
+    const target = this.workspacePath(projectId);
+
+    await mkdir(target, { recursive: true });
+
+    const root = await execFile('git', ['rev-parse', '--show-toplevel'], {
+      cwd: target,
+      env: this.gitEnv(),
+    })
+      .then((result) => commandStdout(result).trim())
+      .catch(() => '');
+
+    if (root === target) {
+      return;
+    }
+
+    await execFile('git', ['init', '--initial-branch=main'], { cwd: target, env: this.gitEnv() }).catch(async () => {
+      await execFile('git', ['init'], { cwd: target, env: this.gitEnv() });
+      await execFile('git', ['checkout', '-B', 'main'], { cwd: target, env: this.gitEnv() });
+    });
+    await execFile('git', ['config', 'user.name', 'You'], { cwd: target, env: this.gitEnv() });
+    await execFile('git', ['config', 'user.email', 'you@vibecore.local'], { cwd: target, env: this.gitEnv() });
+  }
+
   private async git(projectId: string, args: string[]) {
-    const { stdout } = await execFile('git', args, { cwd: this.workspacePath(projectId) });
-    return stdout.trim();
+    await this.ensureRepository(projectId);
+
+    const result = await execFile('git', args, { cwd: this.workspacePath(projectId), env: this.gitEnv() });
+
+    return commandStdout(result).trim();
   }
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
     const projectId = `import-${Date.now().toString(36)}`;
     const target = safeProjectPath(projectId);
-    await execFile('git', [
-      'clone',
-      '--depth=1',
-      ...(input.branch ? ['--branch', input.branch] : []),
-      input.repositoryUrl,
-      target,
-    ]);
+    await execFile('git', ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target], {
+      env: this.gitEnv(),
+    });
 
     const files = await walkFiles(target);
 
     const defaultBranch =
-      input.branch ?? (await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target })).stdout.trim();
+      input.branch ??
+      commandStdout(await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() })).trim();
 
     return { files, defaultBranch, remoteUrl: input.repositoryUrl };
   }
 
   async status(projectId: string) {
-    const branch = await this.git(projectId, ['rev-parse', '--abbrev-ref', 'HEAD']);
+    const branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD']).catch(() => 'main');
     const porcelain = await this.git(projectId, ['status', '--porcelain']);
     const statusLines = porcelain.split('\n').filter(Boolean);
     const changedFiles = statusLines.map((line) => line.slice(3));
@@ -287,9 +331,13 @@ export class GitCliProvider implements GitProvider {
     return { branch, changedFiles, fileStatuses, conflicts, ahead, behind };
   }
 
-  async commit(input: { projectId: string; message: string; files: ProjectFile[] }) {
-    await execFile('git', ['add', '--all'], { cwd: this.workspacePath(input.projectId) });
-    await execFile('git', ['commit', '-m', input.message], { cwd: this.workspacePath(input.projectId) });
+  async commit(input: { projectId: string; message: string; files: ProjectFile[]; selectedFiles?: string[] }) {
+    await this.ensureRepository(input.projectId);
+    const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
+    const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];
+
+    await execFile('git', addArgs, { cwd: this.workspacePath(input.projectId), env: this.gitEnv() });
+    await execFile('git', ['commit', '-m', input.message], { cwd: this.workspacePath(input.projectId), env: this.gitEnv() });
 
     const sha = await this.git(input.projectId, ['rev-parse', 'HEAD']);
 

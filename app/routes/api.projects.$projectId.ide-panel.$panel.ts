@@ -1508,9 +1508,14 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     });
   } else if (panel === 'git') {
     if (intent === 'commit') {
+      const files = body.stagedFiles
+        ?.split(',')
+        .map((file) => file.trim())
+        .filter(Boolean);
+
       await apiRequest(request, `/projects/${projectId}/git/commit`, {
         method: 'POST',
-        body: JSON.stringify({ message: body.message || 'Update project files' }),
+        body: JSON.stringify({ message: body.message || 'Update project files', files }),
       });
     } else if (intent === 'push') {
       await apiRequest(request, `/projects/${projectId}/git/push`, {

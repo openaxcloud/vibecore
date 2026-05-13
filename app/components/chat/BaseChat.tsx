@@ -11342,6 +11342,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
 
   const [staged, setStaged] = useState<Set<string>>(new Set());
   const stagedFiles = Array.from(staged);
+  const hasRemote = Boolean(project.gitRepositoryUrl);
 
   async function loadInspection(filePath = inspectFile) {
     if (!filePath) {
@@ -11391,35 +11392,62 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
 
   return (
     <div className="grid gap-4">
-      <div className="grid gap-3 md:grid-cols-4">
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Branch</div>
-          <div className="mt-1 truncate text-sm font-semibold text-bolt-elements-textPrimary">{branch}</div>
-        </div>
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Sync</div>
-          <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">
-            {status.ahead ?? 0} ahead / {status.behind ?? 0} behind
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+            Workspace repository
+          </div>
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-sm text-bolt-elements-textSecondary">
+            <strong className="truncate text-bolt-elements-textPrimary">{branch}</strong>
+            <span>{status.ahead ?? 0} ahead</span>
+            <span>{status.behind ?? 0} behind</span>
+            <span>{changedFiles.length} changed</span>
+            {conflicts.length ? <span className="text-red-500">{conflicts.length} conflicts</span> : null}
           </div>
         </div>
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Changes</div>
-          <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">{changedFiles.length} files</div>
-        </div>
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Conflicts</div>
-          <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">{conflicts.length} unresolved</div>
-        </div>
+        <form onSubmit={onSubmit} className="flex min-w-[220px] gap-2">
+          <input name="intent" value="checkout-branch" type="hidden" />
+          <label className="sr-only" htmlFor="ide-git-branch-switch">
+            Switch branch
+          </label>
+          <select
+            id="ide-git-branch-switch"
+            name="branch"
+            defaultValue={branch}
+            className="h-9 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+          >
+            {[branch, ...branches.filter((item: string) => item !== branch)].map((item: string) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+          <PanelButton disabled={busy} variant="outline">
+            Switch
+          </PanelButton>
+        </form>
       </div>
+
+      {!hasRemote && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          <span className="text-amber-600 dark:text-amber-300">
+            No remote configured for this workspace repository.
+          </span>
+          <a
+            href={`/projects/${project.id}/settings`}
+            className="rounded-md border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-200"
+          >
+            Connect GitHub
+          </a>
+        </div>
+      )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="grid gap-4">
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
-              <span className="text-xs text-bolt-elements-textSecondary">
-                Remote: {project.gitRepositoryUrl ? 'configured' : 'not configured'}
-              </span>
+              <span className="text-xs text-bolt-elements-textSecondary">Click a file to preview its diff</span>
             </div>
             {changedFiles.length ? (
               changedFiles.map((file: any) => {
@@ -11447,6 +11475,9 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
                     </button>
                     <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
                       {String(file.status ?? 'M')}
+                    </span>
+                    <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
+                      {staged.has(path) ? 'Staged' : 'Stage'}
                     </span>
                   </label>
                 );
@@ -11513,7 +11544,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
                     <div className="min-w-0">
                       <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
                       <div className="truncate text-xs text-bolt-elements-textSecondary">
-                        {commit.author} {commit.refs ? `- ${commit.refs}` : ''}
+                        {timeAgo(commit.date)} {commit.refs ? `- ${commit.refs}` : ''}
                       </div>
                     </div>
                   </div>
@@ -11608,7 +11639,7 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             <form key={intent} onSubmit={onSubmit} className="flex gap-2">
               <input name="intent" value={intent} type="hidden" />
               <label className="sr-only" htmlFor={`git-${intent}-branch`}>
-                Branch for {intent}
+                Remote branch for {intent}
               </label>
               <PanelInput id={`git-${intent}-branch`} name="branch" defaultValue={branch} />
               <PanelButton disabled={busy} variant="outline">
@@ -11617,59 +11648,35 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             </form>
           ))}
 
-          <form
-            onSubmit={onSubmit}
-            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-          >
-            <input name="intent" value="checkout-branch" type="hidden" />
-            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="ide-git-branch-switch">
-              Switch branch
-            </label>
-            <select
-              id="ide-git-branch-switch"
-              name="branch"
-              defaultValue={branch}
-              className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-            >
-              {[branch, ...branches.filter((item: string) => item !== branch)].map((item: string) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-            <PanelButton disabled={busy} variant="outline">
-              Switch
-            </PanelButton>
-          </form>
+          <details className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-bolt-elements-textPrimary">
+              Branch actions
+            </summary>
+            <div className="mt-3 grid gap-3">
+              <form onSubmit={onSubmit} className="grid gap-2">
+                <input name="intent" value="create-branch" type="hidden" />
+                <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="ide-git-new-branch">
+                  Create branch
+                </label>
+                <PanelInput id="ide-git-new-branch" name="branch" placeholder="feature/billing-flow" required />
+                <PanelInput name="startPoint" defaultValue={branch} aria-label="Start point" />
+                <PanelButton disabled={busy} variant="outline">
+                  Create and switch
+                </PanelButton>
+              </form>
 
-          <form
-            onSubmit={onSubmit}
-            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-          >
-            <input name="intent" value="create-branch" type="hidden" />
-            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="ide-git-new-branch">
-              Create branch
-            </label>
-            <PanelInput id="ide-git-new-branch" name="branch" placeholder="feature/billing-flow" required />
-            <PanelInput name="startPoint" defaultValue={branch} aria-label="Start point" />
-            <PanelButton disabled={busy} variant="outline">
-              Create and switch
-            </PanelButton>
-          </form>
-
-          <form
-            onSubmit={onSubmit}
-            className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-          >
-            <input name="intent" value="stash" type="hidden" />
-            <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="ide-git-stash-message">
-              Stash message
-            </label>
-            <PanelInput id="ide-git-stash-message" name="message" placeholder="WIP before rebase" />
-            <PanelButton disabled={busy || changedFiles.length === 0} variant="outline">
-              Stash changes
-            </PanelButton>
-          </form>
+              <form onSubmit={onSubmit} className="grid gap-2">
+                <input name="intent" value="stash" type="hidden" />
+                <label className="text-xs font-medium text-bolt-elements-textSecondary" htmlFor="ide-git-stash-message">
+                  Stash message
+                </label>
+                <PanelInput id="ide-git-stash-message" name="message" placeholder="WIP before rebase" />
+                <PanelButton disabled={busy || changedFiles.length === 0} variant="outline">
+                  Stash changes
+                </PanelButton>
+              </form>
+            </div>
+          </details>
 
           {stashes.length ? (
             <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
