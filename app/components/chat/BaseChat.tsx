@@ -205,30 +205,35 @@ const PROJECT_AGENT_EXECUTION_MODES: Array<{
   label: string;
   chatMode: 'discuss' | 'build';
   description: string;
+  placeholder: string;
 }> = [
   {
     id: 'ask',
     label: 'Ask',
     chatMode: 'discuss',
     description: 'Answer, explain, and inspect without changing files or running commands.',
+    placeholder: 'Ask anything about this project…',
   },
   {
     id: 'edit',
     label: 'Edit',
     chatMode: 'build',
     description: 'Make scoped code changes only after identifying the target files.',
+    placeholder: 'Describe a scoped edit, e.g. "Add a logout button to the navbar"…',
   },
   {
     id: 'agent',
     label: 'Agent',
     chatMode: 'build',
     description: 'Execute the requested task end to end with verification.',
+    placeholder: 'Describe what you want the agent to build, fix or refactor…',
   },
   {
     id: 'architect',
     label: 'Architect',
     chatMode: 'discuss',
     description: 'Design architecture, contracts, risks, and rollout steps before implementation.',
+    placeholder: 'Describe the system to design — goals, constraints, integrations…',
   },
 ];
 
@@ -1031,6 +1036,31 @@ function flattenTabs(node: IdePaneNode): IdePaneTab[] {
   return [...flattenTabs(node.first), ...flattenTabs(node.second)];
 }
 
+function HeaderTip({
+  label,
+  children,
+  side = 'bottom',
+}: {
+  label: string;
+  children: React.ReactElement;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+}) {
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side={side}
+          sideOffset={6}
+          className="z-[80] max-w-[240px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-[11px] font-medium leading-tight text-bolt-elements-textPrimary shadow-md"
+        >
+          {label}
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  );
+}
+
 function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
@@ -1076,6 +1106,25 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
     });
   };
 
+  const pendingForBulk = proposals.filter((proposal) => proposal.status !== 'applying');
+
+  const acceptAll = () => {
+    for (const proposal of pendingForBulk) {
+      const selected = selectedHunksByProposal[proposal.id] ?? new Set(proposal.hunks.map((hunk: any) => hunk.id));
+
+      if (selected.size === 0) {
+        continue;
+      }
+
+      workbenchStore.acceptAgentPatchProposal(proposal.id, Array.from(selected));
+    }
+  };
+  const rejectAll = () => {
+    for (const proposal of pendingForBulk) {
+      workbenchStore.rejectAgentPatchProposal(proposal.id);
+    }
+  };
+
   return (
     <section className="bolt-project-agent-patch-review" aria-label="AI patch review queue">
       <div className="bolt-project-agent-patch-review-head">
@@ -1085,7 +1134,24 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
             {proposals.length} file proposal{proposals.length === 1 ? '' : 's'} waiting before apply
           </span>
         </div>
-        <span className="bolt-project-agent-patch-review-badge">Diff first</span>
+        <div className="bolt-project-agent-patch-review-bulk">
+          <button
+            type="button"
+            className="bolt-project-agent-patch-review-bulk-accept"
+            disabled={pendingForBulk.length === 0}
+            onClick={acceptAll}
+          >
+            Accept all
+          </button>
+          <button
+            type="button"
+            className="bolt-project-agent-patch-review-bulk-reject"
+            disabled={pendingForBulk.length === 0}
+            onClick={rejectAll}
+          >
+            Reject all
+          </button>
+        </div>
       </div>
       <div className="bolt-project-agent-patch-review-list">
         {proposals.map((proposal) => {
@@ -3218,7 +3284,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               setSelectedElement={setSelectedElement}
               onWebSearchResult={onWebSearchResult}
               projectIdeMode={projectIdeMode}
-              placeholder={projectIdeMode ? 'Describe what you want to build...' : undefined}
+              placeholder={
+                projectIdeMode
+                  ? `${
+                      (
+                        PROJECT_AGENT_EXECUTION_MODES.find((mode) => mode.id === projectAgentExecutionMode) ??
+                        PROJECT_AGENT_EXECUTION_MODES[2]
+                      ).placeholder
+                    }${projectPlanFirst ? ' (Plan first)' : ''}`
+                  : undefined
+              }
             />
           </div>
         </StickToBottom>
@@ -3894,56 +3969,68 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <span className="bolt-project-agent-title">Agent</span>
             <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
               {PROJECT_AGENT_EXECUTION_MODES.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  aria-pressed={projectAgentExecutionMode === mode.id}
-                  title={mode.description}
-                  onClick={() => {
-                    setProjectAgentExecutionMode(mode.id);
-                    setChatMode?.(mode.chatMode);
-                  }}
-                >
-                  {mode.label}
-                </button>
+                <HeaderTip key={mode.id} label={mode.description}>
+                  <button
+                    type="button"
+                    aria-pressed={projectAgentExecutionMode === mode.id}
+                    onClick={() => {
+                      setProjectAgentExecutionMode(mode.id);
+                      setChatMode?.(mode.chatMode);
+                    }}
+                  >
+                    {mode.label}
+                  </button>
+                </HeaderTip>
               ))}
             </div>
-            <div className="bolt-project-agent-mode" role="group" aria-label="Execution guardrails">
-              <button
-                type="button"
-                aria-pressed={projectPlanFirst}
-                title="When enabled, the agent must return a plan and wait for approval before executing changes."
-                onClick={() => setProjectPlanFirst((enabled) => !enabled)}
-              >
-                Plan first
-              </button>
-            </div>
+            <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
+              <label className="bolt-project-agent-plan-first" data-active={projectPlanFirst ? 'true' : 'false'}>
+                <input
+                  type="checkbox"
+                  checked={projectPlanFirst}
+                  onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
+                  aria-label="Plan first"
+                />
+                <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                  <span className="bolt-project-agent-plan-first-thumb" />
+                </span>
+                <span className="bolt-project-agent-plan-first-label">Plan first</span>
+              </label>
+            </HeaderTip>
             <div className="ml-auto flex items-center gap-1">
-              <ThemeSwitch
-                size="lg"
-                title="Switch light/dark theme"
-                className="bolt-project-ide-icon-button"
-                iconClassName="text-[14px]"
-              />
-              <button
-                type="button"
-                className="bolt-project-ide-icon-button"
-                aria-label="Conversation history"
-                onClick={() => setConversationHistoryOpen((value) => !value)}
-              >
-                <span className="i-ph:clock" aria-hidden />
-              </button>
-              <button type="button" className="bolt-project-ide-icon-button" aria-label="New chat" onClick={resetChat}>
-                <span className="i-ph:plus" aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="bolt-project-ide-icon-button"
-                aria-label="Agent settings"
-                onClick={() => openWorkspacePanel('settings')}
-              >
-                <span className="i-ph:sliders-horizontal" aria-hidden />
-              </button>
+              <HeaderTip label="Switch light / dark theme">
+                <ThemeSwitch size="lg" title="" className="bolt-project-ide-icon-button" iconClassName="text-[14px]" />
+              </HeaderTip>
+              <HeaderTip label="Conversation history">
+                <button
+                  type="button"
+                  className="bolt-project-ide-icon-button"
+                  aria-label="Conversation history"
+                  onClick={() => setConversationHistoryOpen((value) => !value)}
+                >
+                  <span className="i-ph:clock" aria-hidden />
+                </button>
+              </HeaderTip>
+              <HeaderTip label="Start a new chat">
+                <button
+                  type="button"
+                  className="bolt-project-ide-icon-button"
+                  aria-label="New chat"
+                  onClick={resetChat}
+                >
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
+              </HeaderTip>
+              <HeaderTip label="Agent settings">
+                <button
+                  type="button"
+                  className="bolt-project-ide-icon-button"
+                  aria-label="Agent settings"
+                  onClick={() => openWorkspacePanel('settings')}
+                >
+                  <span className="i-ph:sliders-horizontal" aria-hidden />
+                </button>
+              </HeaderTip>
             </div>
           </div>
           {conversationHistoryOpen && (

@@ -2301,6 +2301,52 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
 }
 
+.bolt-project-agent-patch-review-bulk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-project-agent-patch-review-bulk button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-project-agent-patch-review-bulk-accept {
+  background: color-mix(in srgb, var(--vc-ide-accent-success) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success) 55%, transparent) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-text-primary) 25%) !important;
+}
+
+.bolt-project-agent-patch-review-bulk-accept:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vc-ide-accent-success) 28%, transparent) !important;
+}
+
+.bolt-project-agent-patch-review-bulk-reject:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--vc-ide-accent-error) 14%, transparent);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error) 45%, transparent);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-text-primary) 25%);
+}
+
+.bolt-project-agent-patch-review-bulk button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .bolt-project-agent-patch-review-badge {
   flex: 0 0 auto;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 52%);
@@ -2418,7 +2464,9 @@ body :where(.lucide, svg[data-lucide]) {
   font-family: var(--font-mono, 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
   line-height: 18px;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .bolt-project-agent-patch-hunk code[data-line-type='add'] {
@@ -2836,6 +2884,97 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-mode button[aria-pressed='true'] {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-plan-first {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 2px 8px 2px 4px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vc-ide-text-muted);
+  transition:
+    color 120ms ease-out,
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+
+.bolt-project-agent-plan-first::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 1px;
+  height: 14px;
+  margin-right: 4px;
+  background: var(--vc-ide-border-subtle);
+}
+
+.bolt-project-agent-plan-first:hover {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-plan-first input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.bolt-project-agent-plan-first-track {
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  border: 1px solid var(--vc-ide-border-subtle);
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out;
+}
+
+.bolt-project-agent-plan-first-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vc-ide-text-muted);
+  transition:
+    transform 140ms ease-out,
+    background-color 120ms ease-out;
+}
+
+.bolt-project-agent-plan-first[data-active='true'] {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-plan-first[data-active='true'] .bolt-project-agent-plan-first-track {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 32%, transparent);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
+}
+
+.bolt-project-agent-plan-first[data-active='true'] .bolt-project-agent-plan-first-thumb {
+  transform: translateX(10px);
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-project-agent-plan-first input:focus-visible + .bolt-project-agent-plan-first-track {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
+  outline-offset: 1px;
 }
 
 .bolt-project-tabbar,
