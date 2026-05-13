@@ -11,34 +11,32 @@ import {
 } from '@remix-run/react';
 import {
   BarChart3,
-  CheckCircle,
   Code2,
   Cog,
-  FileText,
   Gamepad2,
   Github,
   Globe2,
+  ImagePlus,
   Layers,
   Loader2,
   Palette,
+  Paperclip,
   PenTool,
   Play,
   Presentation,
   RefreshCw,
   Rocket,
   Search,
-  Send,
   Smartphone,
   Sparkles,
   Star,
   Table2,
   Terminal,
-  Upload,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { AppShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { AppShell } from '~/components/dashboard/SaaSLayout';
 import {
   Select,
   SelectContent,
@@ -381,24 +379,35 @@ function CreateDropdown({
   );
 }
 
-const importCards = [
+const ROTATING_PLACEHOLDERS = [
+  'Build a SaaS dashboard with…',
+  'Create a portfolio with…',
+  'Generate an e-commerce store with…',
+];
+
+const heroAttachShortcuts: Array<{
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  hint: string;
+}> = [
+  {
+    to: '/import-zip',
+    icon: Paperclip,
+    label: 'Attach',
+    hint: 'Upload a zip archive (code, screenshots, images)',
+  },
   {
     to: '/import-github',
-    label: 'Import GitHub',
-    description: 'Connect an existing repository and continue in the IDE.',
     icon: Github,
+    label: 'GitHub repo URL',
+    hint: 'Import an existing GitHub repository',
   },
   {
     to: '/import-zip',
-    label: 'Import zip',
-    description: 'Upload a local project archive and preserve its structure.',
-    icon: Upload,
-  },
-  {
-    to: '/dashboard/templates',
-    label: 'Browse templates',
-    description: 'Open the full private template catalog.',
-    icon: Layers,
+    icon: ImagePlus,
+    label: 'Design palette',
+    hint: 'Drop a Figma export or design screenshots inside a zip archive',
   },
 ];
 
@@ -578,9 +587,9 @@ export default function NewProjectPage() {
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
   const [prompt, setPrompt] = useState('');
-  const [projectName, setProjectName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [modelsPayload, setModelsPayload] = useState<ModelsPayload>(initialModelsPayload);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
@@ -698,21 +707,24 @@ export default function NewProjectPage() {
   const ActiveProviderIcon = providerIconByName[activeProvider?.name ?? ''] ?? Sparkles;
   const ActiveCategoryIcon = activeCategory.icon;
 
-  const activeModelContext = activeModel?.maxTokenAllowed
-    ? `${formatContextWindow(activeModel.maxTokenAllowed)} tokens`
-    : 'Standard context';
-
   const promptWordCount = prompt.trim() ? prompt.trim().split(/\s+/).length : 0;
-
-  const projectNamePreview =
-    projectName.trim() || (prompt.trim() ? projectNameFromPrompt(prompt) : 'Generated from prompt');
-
-  const briefQuality =
-    promptWordCount >= 45 ? 'Detailed brief' : promptWordCount >= 18 ? 'Solid brief' : 'Needs more detail';
+  const canSubmit = !isSubmitting && promptWordCount >= 3;
 
   const configuredProviderCount = availableProviders.filter((provider) =>
     enabledProviderNames.has(provider.name),
   ).length;
+
+  useEffect(() => {
+    if (prompt.trim()) {
+      return undefined;
+    }
+
+    const id = window.setInterval(() => {
+      setPlaceholderIndex((index) => (index + 1) % ROTATING_PLACEHOLDERS.length);
+    }, 3500);
+
+    return () => window.clearInterval(id);
+  }, [prompt]);
 
   useEffect(() => {
     if (!activeProvider?.name || selectedProvider === activeProvider.name) {
@@ -755,39 +767,6 @@ export default function NewProjectPage() {
     }));
   }, [activeModels]);
 
-  const readinessItems = useMemo(
-    () => [
-      {
-        label: 'Provider source',
-        value: configuredProviderCount > 0 ? 'Settings synced' : 'Static fallback',
-        icon: CheckCircle,
-      },
-      {
-        label: 'Generation route',
-        value: activeProvider?.name ?? DEFAULT_PROVIDER.name,
-        icon: ActiveProviderIcon,
-      },
-      {
-        label: 'Workspace target',
-        value: activeCategory.framework,
-        icon: ActiveCategoryIcon,
-      },
-      {
-        label: 'Model context',
-        value: activeModelContext,
-        icon: Layers,
-      },
-    ],
-    [
-      ActiveCategoryIcon,
-      ActiveProviderIcon,
-      activeCategory.framework,
-      activeModelContext,
-      activeProvider?.name,
-      configuredProviderCount,
-    ],
-  );
-
   const examplePrompts = useMemo(() => {
     const prompts = activeCategory.prompts;
     const offset = promptSeed % prompts.length;
@@ -798,346 +777,176 @@ export default function NewProjectPage() {
   return (
     <AppShell
       title="Create project"
-      description="Create a persistent E-code project from a template, AI prompt, GitHub repository or zip archive."
+      description="Describe your idea. Vibecore creates a real workspace and opens the IDE."
       hideHeader
+      hideTopBar
+      mainClassName="vc-new-project-page"
+      contentClassName="vc-new-project-content"
     >
-      <div className="vc-create-page space-y-10 lg:space-y-12">
-        <section className="vc-create-hero">
-          <div className="vc-create-hero-inner">
-            <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_360px] lg:items-start">
-              <div className="min-w-0">
-                <div className="mb-5 flex items-start gap-4">
-                  <div className="vc-create-icon">
-                    <Sparkles className="h-5 w-5" aria-hidden />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="vc-create-label mb-2 text-[11px] font-medium uppercase tracking-[0.4px]">
-                      AI workspace builder
-                    </p>
-                    <h2 className="vc-create-title text-[30px] font-semibold leading-tight tracking-normal sm:text-[42px]">
-                      What do you want to create?
-                    </h2>
-                    <p className="vc-create-copy mt-3 max-w-2xl text-[13px] leading-6">
-                      Create a persistent Vibecore project from a prompt, template, GitHub repository or zip archive.
-                      The selected provider and model come from your real Settings configuration.
-                    </p>
-                  </div>
-                </div>
+      <div className="vc-new-project-hero">
+        <span className="vc-new-project-glow" aria-hidden />
+        <header className="vc-new-project-header">
+          <h1 className="vc-new-project-title">What do you want to build?</h1>
+          <p className="vc-new-project-subtitle">
+            Describe your idea. Vibecore creates a real workspace and opens the IDE.
+          </p>
+        </header>
 
-                <Form method="post" className="mt-7 max-w-4xl space-y-4 text-left" aria-label="Create project form">
-                  <input type="hidden" name="model" value={activeModel?.name ?? DEFAULT_MODEL} />
-                  <input type="hidden" name="provider" value={activeProvider?.name ?? DEFAULT_PROVIDER.name} />
-                  <input type="hidden" name="artifactType" value={selectedCategory} />
-                  <input type="hidden" name="framework" value={activeCategory.framework} />
+        <Form method="post" className="vc-new-project-form" aria-label="Create project form">
+          <input type="hidden" name="model" value={activeModel?.name ?? DEFAULT_MODEL} />
+          <input type="hidden" name="provider" value={activeProvider?.name ?? DEFAULT_PROVIDER.name} />
+          <input type="hidden" name="artifactType" value={selectedCategory} />
+          <input type="hidden" name="framework" value={activeCategory.framework} />
 
-                  {actionData?.error ? (
-                    <p className="vc-create-error px-3 py-2 text-[12px]">{actionData.error}</p>
-                  ) : null}
-
-                  <div className="vc-create-composer">
-                    <div className="vc-create-composer-header flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="vc-create-label text-[10px] font-medium uppercase tracking-[0.4px]">
-                          Prompt brief
-                        </p>
-                        <p className="vc-create-card-title mt-0.5 text-[13px] font-semibold">
-                          Describe the product, workflow, data, and expected first screen.
-                        </p>
-                      </div>
-                      <span className="vc-create-confidence inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-semibold">
-                        <CheckCircle className="h-3 w-3" aria-hidden />
-                        Live backend flow
-                      </span>
-                    </div>
-                    <div className="vc-create-brief-controls grid gap-3 border-b px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                      <label className="block min-w-0">
-                        <span className="vc-create-label mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px]">
-                          <FileText className="h-3 w-3" aria-hidden />
-                          Project name
-                        </span>
-                        <input
-                          name="name"
-                          value={projectName}
-                          onChange={(event) => setProjectName(event.currentTarget.value)}
-                          placeholder={projectNamePreview}
-                          className="vc-create-input h-11 w-full rounded-lg px-3 text-[13px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
-                          disabled={isSubmitting}
-                          aria-label="Project name"
-                        />
-                      </label>
-                      <div className="vc-create-brief-meter min-w-0 rounded-lg px-3 py-2">
-                        <span className="vc-create-label block text-[10px] font-medium uppercase tracking-[0.4px]">
-                          Brief depth
-                        </span>
-                        <strong className="mt-1 flex items-center gap-2 text-[12px]">
-                          <span className="vc-create-status-dot vc-create-status-dot--inline" aria-hidden />
-                          {briefQuality}
-                        </strong>
-                        <span className="mt-0.5 block text-[11px]">{promptWordCount} words</span>
-                      </div>
-                    </div>
-                    <textarea
-                      name="prompt"
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.currentTarget.value)}
-                      placeholder="Build me a todo app with drag-and-drop, dark mode, and local storage..."
-                      rows={5}
-                      className="vc-create-textarea min-h-[168px] w-full resize-none bg-transparent px-4 py-4 text-[13px] leading-6 outline-none"
-                      disabled={isSubmitting}
-                      aria-label="AI prompt"
-                    />
-                    <div className="vc-create-divider flex flex-wrap items-center gap-2 border-t px-3 py-2">
-                      <span className="vc-create-label text-[10px] font-medium uppercase tracking-[0.4px]">
-                        Context
-                      </span>
-                      <span className="vc-create-pill is-accent inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium">
-                        <ActiveCategoryIcon className="h-3 w-3" aria-hidden />
-                        {activeCategory.label}
-                      </span>
-                      <span className="vc-create-pill inline-flex h-7 items-center rounded-md px-2.5 text-[11px]">
-                        Framework: {activeCategory.framework}
-                      </span>
-                      <span className="vc-create-pill inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px]">
-                        {modelsLoading ? (
-                          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                        ) : (
-                          <CheckCircle className="h-3 w-3 text-[var(--vc-ide-accent-success)]" aria-hidden />
-                        )}
-                        {configuredProviderCount > 0
-                          ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} from Settings`
-                          : 'Static provider fallback'}
-                      </span>
-                    </div>
-                    <div className="vc-create-divider grid gap-3 border-t px-3 py-3 md:grid-cols-2 md:items-end">
-                      <label className="block min-w-0">
-                        <span className="vc-create-label mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px]">
-                          <ActiveProviderIcon className="h-3 w-3" aria-hidden />
-                          Provider
-                        </span>
-                        <CreateDropdown
-                          label="AI provider"
-                          value={activeProvider?.name ?? ''}
-                          options={providerDropdownOptions}
-                          onChange={(nextProvider) => {
-                            setSelectedProvider(nextProvider);
-                            setSelectedModel('');
-                          }}
-                          disabled={isSubmitting}
-                          loading={modelsLoading}
-                          testId="ai-provider-dropdown"
-                        />
-                      </label>
-
-                      <label className="block min-w-0">
-                        <span className="vc-create-label mb-1.5 block text-[10px] font-medium uppercase tracking-[0.4px]">
-                          Model
-                        </span>
-                        <CreateDropdown
-                          label="AI model"
-                          value={activeModel?.name ?? ''}
-                          options={modelDropdownOptions}
-                          onChange={setSelectedModel}
-                          disabled={isSubmitting || activeModels.length === 0}
-                          loading={modelsLoading}
-                          testId="ai-model-dropdown"
-                        />
-                      </label>
-
-                      <button
-                        type="submit"
-                        disabled={isSubmitting || !prompt.trim()}
-                        className="vc-create-submit inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-[12px] font-semibold transition-[filter,opacity] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-[var(--vc-ide-bg-panel)] disabled:cursor-not-allowed disabled:opacity-40 md:col-span-2"
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <Send className="h-3.5 w-3.5" aria-hidden />
-                        )}
-                        Create project
-                      </button>
-                    </div>
-                    {modelsError ? (
-                      <div className="vc-create-model-warning border-t px-3 py-2 text-[11px]">
-                        Provider sync failed, using the last available model list. {modelsError}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  <div className="vc-create-type-picker relative -mt-2 p-2 backdrop-blur-xl">
-                    <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                      <span className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">
-                        Artifact type
-                      </span>
-                      <span className="vc-create-label hidden text-[10px] sm:inline">
-                        Added to the prompt context and framework selection
-                      </span>
-                    </div>
-                    <ToggleGroup
-                      type="single"
-                      value={selectedCategory}
-                      onValueChange={(value) => {
-                        if (value) {
-                          setSelectedCategory(value);
-                        }
-                      }}
-                      className="vc-create-chip-group flex gap-2 overflow-x-auto border-0 bg-transparent p-0 pb-1 shadow-none"
-                      aria-label="Artifact type"
-                    >
-                      {artifactCategories.map((category) => {
-                        const Icon = category.icon;
-
-                        return (
-                          <ToggleGroupItem
-                            key={category.id}
-                            value={category.id}
-                            type="button"
-                            className="vc-create-chip inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
-                          >
-                            <Icon className="h-3.5 w-3.5" aria-hidden />
-                            {category.label}
-                          </ToggleGroupItem>
-                        );
-                      })}
-                    </ToggleGroup>
-                  </div>
-                </Form>
-
-                <div className="mt-4 max-w-4xl text-left">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">
-                      Try an example prompt
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setPromptSeed((value) => value + 1)}
-                      className="vc-create-refresh inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
-                      aria-label="Refresh example prompts"
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {examplePrompts.map((example) => (
-                      <button
-                        key={example}
-                        type="button"
-                        onClick={() => {
-                          setPrompt(example);
-                        }}
-                        className="vc-create-example rounded-xl px-3 py-2 text-left text-[11px] leading-5 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <aside className="vc-create-readiness-panel lg:sticky lg:top-5">
-                <div className="vc-create-readiness-head">
-                  <div className="flex items-center gap-2">
-                    <div className="vc-create-readiness-icon">
-                      <ActiveProviderIcon className="h-4 w-4" aria-hidden />
-                    </div>
-                    <div>
-                      <p className="vc-create-label text-[10px] font-medium uppercase tracking-[0.4px]">
-                        Build readiness
-                      </p>
-                      <h3 className="vc-create-heading text-[14px] font-semibold">Production path selected</h3>
-                    </div>
-                  </div>
-                  <span className="vc-create-status-dot" aria-hidden />
-                </div>
-
-                <div className="vc-create-readiness-model">
-                  <span className="vc-create-label text-[10px] font-medium uppercase tracking-[0.4px]">
-                    Active model
-                  </span>
-                  <strong className="mt-1 block truncate text-[16px]">{activeModel?.label || activeModel?.name}</strong>
-                  <span className="mt-1 block truncate text-[11px]">{activeModel?.name}</span>
-                </div>
-
-                <div className="grid gap-2">
-                  {readinessItems.map((item) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <div key={item.label} className="vc-create-readiness-row">
-                        <Icon className="h-3.5 w-3.5" aria-hidden />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[10px] uppercase tracking-[0.35px]">{item.label}</span>
-                          <strong className="block truncate text-[12px]">{item.value}</strong>
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="vc-create-readiness-footer">
-                  <div className="flex items-center gap-2">
-                    <Rocket className="h-3.5 w-3.5" aria-hidden />
-                    <span>Creates a real workspace, then opens the preserved IDE.</span>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </div>
-        </section>
-
-        <div className="mx-auto grid max-w-5xl gap-5 md:grid-cols-3 md:gap-x-4 md:gap-y-7">
-          <aside className="contents">
-            {importCards.map((card) => {
-              const Icon = card.icon;
-
-              return (
-                <LinkButton key={card.to} to={card.to} variant="outline">
-                  <span className="flex w-full items-center gap-3 text-left">
-                    <span className="vc-create-import-card flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="vc-create-card-title block text-[13px] font-medium">{card.label}</span>
-                      <span className="vc-create-label mt-0.5 block text-[11px] leading-4">{card.description}</span>
-                    </span>
-                  </span>
-                </LinkButton>
-              );
-            })}
-
-            <div className="vc-create-panel mt-1 p-4 md:col-span-3 md:mt-3">
-              <div className="mb-3 flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-[var(--vc-ide-accent-action)]" aria-hidden />
-                <h3 className="vc-create-heading text-[13px] font-semibold">What stays connected</h3>
-              </div>
-              <div className="vc-create-copy space-y-2 text-[12px] leading-5">
-                <div className="flex gap-2">
-                  <Code2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
-                  <span>Projects open in the preserved Bolt IDE with files, terminal, preview, and agent tools.</span>
-                </div>
-                <div className="flex gap-2">
-                  <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-warning)]" aria-hidden />
-                  <span>Templates, GitHub import, zip import, and private workspace routes remain available.</span>
-                </div>
-                <div className="flex gap-2">
-                  <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-success)]" aria-hidden />
-                  <span>AI prompts are submitted to the existing backend flow, then restored in the agent panel.</span>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <section className="vc-create-panel p-4 sm:p-5">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">Templates</p>
-              <h3 className="vc-create-heading mt-1 text-[15px] font-semibold">Start from the existing catalog</h3>
-            </div>
-            <p className="vc-create-copy max-w-xl text-[12px] leading-5">
-              This is the same authenticated template flow already wired to project creation.
+          {actionData?.error ? (
+            <p className="vc-new-project-error" role="alert">
+              {actionData.error}
             </p>
+          ) : null}
+
+          <div className="vc-new-project-composer">
+            <textarea
+              name="prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.currentTarget.value)}
+              placeholder={ROTATING_PLACEHOLDERS[placeholderIndex]}
+              rows={6}
+              className="vc-new-project-textarea"
+              disabled={isSubmitting}
+              aria-label="Describe your idea"
+            />
+            <div className="vc-new-project-composer-footer">
+              <div className="vc-new-project-attach-row" role="group" aria-label="Attach context">
+                {heroAttachShortcuts.map((shortcut) => {
+                  const Icon = shortcut.icon;
+                  return (
+                    <Link
+                      key={`${shortcut.label}-${shortcut.to}`}
+                      to={shortcut.to}
+                      className="vc-new-project-attach"
+                      aria-label={shortcut.hint}
+                      title={shortcut.hint}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden />
+                      <span className="sr-only">{shortcut.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+              <button type="submit" disabled={!canSubmit} className="vc-new-project-submit" aria-label="Create project">
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                )}
+                <span>Create</span>
+              </button>
+            </div>
           </div>
-          <TemplateGallery compact mode="authenticated" />
+          <p className="vc-new-project-word-count" aria-live="polite">
+            {promptWordCount === 0
+              ? 'Write a few sentences to unlock Create.'
+              : promptWordCount < 3
+                ? `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
+                : `${promptWordCount} words · ready when you are.`}
+          </p>
+
+          <section className="vc-new-project-meta" aria-label="Generation context">
+            <div className="vc-new-project-meta-row">
+              <span className="vc-new-project-meta-label">Artifact</span>
+              <ToggleGroup
+                type="single"
+                value={selectedCategory}
+                onValueChange={(value) => {
+                  if (value) {
+                    setSelectedCategory(value);
+                  }
+                }}
+                className="vc-new-project-chip-group"
+                aria-label="Artifact type"
+              >
+                {artifactCategories.map((category) => {
+                  const Icon = category.icon;
+
+                  return (
+                    <ToggleGroupItem
+                      key={category.id}
+                      value={category.id}
+                      type="button"
+                      className="vc-new-project-chip"
+                    >
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      {category.label}
+                    </ToggleGroupItem>
+                  );
+                })}
+              </ToggleGroup>
+            </div>
+
+            <div className="vc-new-project-meta-row vc-new-project-meta-row--models">
+              <label className="vc-new-project-meta-field">
+                <span className="vc-new-project-meta-label">
+                  <ActiveProviderIcon className="h-3.5 w-3.5" aria-hidden />
+                  Provider
+                </span>
+                <CreateDropdown
+                  label="AI provider"
+                  value={activeProvider?.name ?? ''}
+                  options={providerDropdownOptions}
+                  onChange={(nextProvider) => {
+                    setSelectedProvider(nextProvider);
+                    setSelectedModel('');
+                  }}
+                  disabled={isSubmitting}
+                  loading={modelsLoading}
+                  testId="ai-provider-dropdown"
+                />
+              </label>
+              <label className="vc-new-project-meta-field">
+                <span className="vc-new-project-meta-label">
+                  <ActiveCategoryIcon className="h-3.5 w-3.5" aria-hidden />
+                  Model
+                </span>
+                <CreateDropdown
+                  label="AI model"
+                  value={activeModel?.name ?? ''}
+                  options={modelDropdownOptions}
+                  onChange={setSelectedModel}
+                  disabled={isSubmitting || activeModels.length === 0}
+                  loading={modelsLoading}
+                  testId="ai-model-dropdown"
+                />
+              </label>
+            </div>
+
+            <p className="vc-new-project-meta-hint">
+              {configuredProviderCount > 0
+                ? `${configuredProviderCount} provider${configuredProviderCount === 1 ? '' : 's'} synced from Settings`
+                : 'Using the static provider fallback — connect a provider in Settings for more models'}
+              {modelsError ? ` · ${modelsError}` : ''}
+            </p>
+          </section>
+        </Form>
+
+        <section className="vc-new-project-examples" aria-label="Example prompts">
+          <header className="vc-new-project-examples-header">
+            <span className="vc-new-project-meta-label">Try an example</span>
+            <button
+              type="button"
+              onClick={() => setPromptSeed((value) => value + 1)}
+              className="vc-new-project-refresh"
+              aria-label="Refresh example prompts"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </header>
+          <div className="vc-new-project-example-list">
+            {examplePrompts.map((example) => (
+              <button key={example} type="button" onClick={() => setPrompt(example)} className="vc-new-project-example">
+                {example}
+              </button>
+            ))}
+          </div>
         </section>
       </div>
     </AppShell>
@@ -1156,44 +965,32 @@ export function ErrorBoundary() {
   return (
     <AppShell
       title="Create project"
-      description="Create a persistent Vibecore project from a template, AI prompt, GitHub repository or zip archive."
+      description="Sign in to create a project."
       hideHeader
+      hideTopBar
+      mainClassName="vc-new-project-page"
+      contentClassName="vc-new-project-content"
     >
-      <div className="vc-create-page">
-        <section className="vc-create-hero">
-          <div className="vc-create-auth-gate">
-            <div className="vc-create-icon">
-              <Rocket className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="vc-create-label mb-2 text-[11px] font-medium uppercase tracking-[0.4px]">
-                Workspace access
-              </p>
-              <h2 className="vc-create-title text-[30px] font-semibold leading-tight tracking-normal sm:text-[40px]">
-                Sign in to create a project
-              </h2>
-              <p className="vc-create-copy mt-3 max-w-2xl text-[13px] leading-6">
-                Vibecore needs your authenticated workspace, organization, and configured AI providers before it can
-                create a real project.
-              </p>
-              <p className="vc-create-model-warning mt-4 rounded-lg px-3 py-2 text-[12px]">{message}</p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  to="/login"
-                  className="vc-create-submit inline-flex h-11 items-center justify-center rounded-lg px-5 text-[12px] font-semibold"
-                >
-                  Log in
-                </Link>
-                <Link
-                  to="/"
-                  className="vc-create-example inline-flex h-11 items-center justify-center rounded-lg px-5 text-[12px] font-semibold"
-                >
-                  Back to homepage
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="vc-new-project-hero">
+        <span className="vc-new-project-glow" aria-hidden />
+        <header className="vc-new-project-header">
+          <h1 className="vc-new-project-title">Sign in to create a project</h1>
+          <p className="vc-new-project-subtitle">
+            Vibecore needs your authenticated workspace and configured AI providers before it can create a real project.
+          </p>
+        </header>
+        <p className="vc-new-project-error" role="alert">
+          {message}
+        </p>
+        <div className="vc-new-project-error-actions">
+          <Link to="/login" className="vc-new-project-submit">
+            <Sparkles className="h-4 w-4" aria-hidden />
+            <span>Log in</span>
+          </Link>
+          <Link to="/" className="vc-new-project-example">
+            Back to homepage
+          </Link>
+        </div>
       </div>
     </AppShell>
   );

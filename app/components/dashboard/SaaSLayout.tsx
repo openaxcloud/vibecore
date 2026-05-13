@@ -1,12 +1,12 @@
 import { useStore } from '@nanostores/react';
-import { Form, Link, NavLink } from '@remix-run/react';
+import * as Popover from '@radix-ui/react-popover';
+import { Form, Link, NavLink, useNavigate } from '@remix-run/react';
 import {
   Activity,
   Bell,
   BookOpen,
   Boxes,
   Braces,
-  Building2,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -27,19 +27,23 @@ import {
   MailPlus,
   Menu,
   MonitorPlay,
+  Moon,
   Plus,
   Rocket,
   Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  Sun,
   Terminal,
   Upload,
+  User as UserIcon,
   Users,
+  X,
   Youtube,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type React from 'react';
 import type { IconType } from 'react-icons';
 import {
@@ -61,6 +65,7 @@ import {
 } from 'react-icons/si';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
+import { profileStore } from '~/lib/stores/profile';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 
@@ -86,7 +91,10 @@ export const publicNav = [
   { label: 'Pricing', to: '/pricing' },
 ];
 
-export const workspaceNav = [
+type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
+
+export const workspaceNav: NavItem[] = [
+  { label: 'Search', to: '/command-palette', icon: Search, shortcut: '⌘K' },
   { label: 'Dashboard', to: '/dashboard', icon: Gauge },
   { label: 'Projects', to: '/projects', icon: Boxes },
   { label: 'Templates', to: '/dashboard/templates', icon: Layers },
@@ -442,99 +450,163 @@ function PublicMarketingFooter() {
   );
 }
 
-export function AppShell({
-  title,
-  description,
-  children,
-  actions,
-  hideHeader = false,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-  actions?: React.ReactNode;
-  hideHeader?: boolean;
-}) {
+function useSidebarController() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [hasExplicitChoice, setHasExplicitChoice] = useState(false);
 
   useEffect(() => {
-    setSidebarCollapsed(localStorage.getItem('vibecore:app-sidebar-collapsed') === 'true');
+    const stored = localStorage.getItem('vibecore:app-sidebar-collapsed');
+
+    if (stored === 'true' || stored === 'false') {
+      setSidebarCollapsed(stored === 'true');
+      setHasExplicitChoice(true);
+
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 1279.98px)').matches) {
+      setSidebarCollapsed(true);
+    }
   }, []);
 
-  const toggleSidebar = () => {
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mql = window.matchMedia('(max-width: 1279.98px)');
+
+    const onChange = (event: MediaQueryListEvent) => {
+      if (!hasExplicitChoice) {
+        setSidebarCollapsed(event.matches);
+      }
+    };
+
+    mql.addEventListener('change', onChange);
+
+    return () => mql.removeEventListener('change', onChange);
+  }, [hasExplicitChoice]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mql = window.matchMedia('(min-width: 1024px)');
+
+    const onChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setDrawerOpen(false);
+      }
+    };
+
+    mql.addEventListener('change', onChange);
+
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setHasExplicitChoice(true);
     setSidebarCollapsed((current) => {
       const next = !current;
       localStorage.setItem('vibecore:app-sidebar-collapsed', String(next));
 
       return next;
     });
+  }, []);
+
+  return {
+    sidebarCollapsed,
+    toggleSidebar,
+    drawerOpen,
+    openDrawer: useCallback(() => setDrawerOpen(true), []),
+    closeDrawer: useCallback(() => setDrawerOpen(false), []),
   };
+}
+
+function useSidebarShortcuts({ toggleSidebar, onSearch }: { toggleSidebar: () => void; onSearch: () => void }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      const inEditableField =
+        !!target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      const meta = event.metaKey || event.ctrlKey;
+
+      if (!meta) {
+        return;
+      }
+
+      if (event.key === '\\') {
+        event.preventDefault();
+        toggleSidebar();
+
+        return;
+      }
+
+      if ((event.key === 'k' || event.key === 'K') && !inEditableField) {
+        event.preventDefault();
+        onSearch();
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleSidebar, onSearch]);
+}
+
+export function AppShell({
+  title,
+  description,
+  children,
+  actions,
+  hideHeader = false,
+  hideTopBar = false,
+  mainClassName,
+  contentClassName,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+  hideHeader?: boolean;
+  hideTopBar?: boolean;
+  mainClassName?: string;
+  contentClassName?: string;
+}) {
+  const { sidebarCollapsed, toggleSidebar, drawerOpen, openDrawer, closeDrawer } = useSidebarController();
+  const navigate = useNavigate();
+
+  useSidebarShortcuts({
+    toggleSidebar,
+    onSearch: useCallback(() => navigate('/command-palette'), [navigate]),
+  });
 
   return (
-    <main className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
+    <main
+      className={classNames(
+        'min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
+        mainClassName,
+      )}
+    >
       <div
         className={classNames(
-          'grid min-h-screen transition-[grid-template-columns] duration-200',
+          'vc-app-shell-grid grid min-h-screen',
           sidebarCollapsed ? 'lg:grid-cols-[64px_1fr]' : 'lg:grid-cols-[240px_1fr]',
         )}
       >
-        <aside
-          className={classNames(
-            'vc-sidebar hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block',
-            sidebarCollapsed && 'vc-sidebar--collapsed',
-          )}
-        >
-          <div
-            className={classNames(
-              'flex h-14 items-center border-b border-bolt-elements-borderColor',
-              sidebarCollapsed ? 'flex-col justify-center gap-1 px-2 py-2' : 'gap-2 px-3',
-            )}
-          >
-            <Link
-              to="/dashboard"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
-              aria-label="Dashboard"
-              title="Dashboard"
-            >
-              <Sparkles className="h-4 w-4" aria-hidden />
-            </Link>
-            {!sidebarCollapsed ? (
-              <div className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold leading-tight">VibeCore</span>
-                <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
-              </div>
-            ) : null}
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className={classNames(
-                'group relative inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
-              )}
-              aria-label={sidebarCollapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
-              title={sidebarCollapsed ? 'Expand menu' : 'Collapse menu'}
-            >
-              {sidebarCollapsed ? (
-                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-              ) : (
-                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-              )}
-              {sidebarCollapsed ? <span className="vc-collapsed-nav-label">Expand menu</span> : null}
-            </button>
-          </div>
-          <nav
-            className={classNames('flex flex-col gap-3 overflow-visible p-3', sidebarCollapsed && 'items-center px-2')}
-            aria-label="Application navigation"
-          >
-            <CreateProjectCta collapsed={sidebarCollapsed} />
-            <NavSection label="Workspace" items={workspaceNav} collapsed={sidebarCollapsed} />
-            <NavSection label="Organization" items={orgNav} collapsed={sidebarCollapsed} />
-            <NavSection label="Account" items={accountNav} collapsed={sidebarCollapsed} />
-          </nav>
-        </aside>
+        <DesktopSidebar collapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+        <MobileSidebarDrawer open={drawerOpen} onClose={closeDrawer} />
         <section className="min-w-0">
-          <TopBar />
-          <MobileAppNav />
-          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+          {!hideTopBar ? <TopBar onOpenDrawer={openDrawer} /> : null}
+          <div className={classNames('mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8', contentClassName)}>
             {!hideHeader ? (
               <div className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -557,38 +629,269 @@ export function AppShell({
   );
 }
 
-function MobileAppNav() {
+function DesktopSidebar({ collapsed, toggleSidebar }: { collapsed: boolean; toggleSidebar: () => void }) {
+  return (
+    <aside
+      className={classNames(
+        'vc-sidebar relative hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block',
+        collapsed && 'vc-sidebar--collapsed',
+      )}
+      role="navigation"
+      aria-label="Main"
+    >
+      <SidebarHeader collapsed={collapsed} />
+      <SidebarToggle collapsed={collapsed} onToggle={toggleSidebar} />
+      <SidebarBody collapsed={collapsed} />
+      <SidebarFooter collapsed={collapsed} />
+    </aside>
+  );
+}
+
+function SidebarHeader({ collapsed }: { collapsed: boolean }) {
+  return (
+    <Link
+      to="/organization-switcher"
+      className={classNames(
+        'vc-sidebar-header group flex h-14 shrink-0 items-center border-b border-bolt-elements-borderColor transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+        collapsed ? 'justify-center px-2' : 'gap-2 px-3',
+      )}
+      aria-label="Organization switcher"
+      title={collapsed ? 'Organization switcher' : undefined}
+    >
+      <span
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
+        aria-hidden
+      >
+        <Sparkles className="h-4 w-4" />
+      </span>
+      {!collapsed ? (
+        <span className="vc-sidebar-fade-label min-w-0 flex-1">
+          <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+          <span className="block truncate text-[11px] leading-tight text-bolt-elements-textTertiary">
+            SaaS workspace
+          </span>
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function SidebarToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="vc-sidebar-toggle group absolute right-[-12px] top-4 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-bolt-elements-textTertiary shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+      aria-label={collapsed ? 'Expand navigation menu' : 'Collapse navigation menu'}
+      aria-expanded={!collapsed}
+      aria-keyshortcuts="Meta+\\ Control+\\"
+      title={collapsed ? 'Expand menu (⌘\\)' : 'Collapse menu (⌘\\)'}
+    >
+      {collapsed ? (
+        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+      )}
+    </button>
+  );
+}
+
+function SidebarBody({ collapsed }: { collapsed: boolean }) {
   return (
     <nav
-      className="flex gap-1 overflow-x-auto border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 lg:hidden"
-      aria-label="Application mobile navigation"
-    >
-      {[...workspaceNav, { label: 'Create project', to: '/projects/new', icon: Plus }, ...orgNav, ...accountNav].map(
-        (item) => {
-          const Icon = item.icon;
-          const mobileLabel = item.to === '/projects/new' ? 'New project' : item.label;
-
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                classNames(
-                  'inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                    : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
-                )
-              }
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-              {mobileLabel}
-            </NavLink>
-          );
-        },
+      className={classNames(
+        'flex flex-col gap-3 overflow-y-auto overflow-x-visible px-3 py-3',
+        collapsed && 'items-center px-2',
       )}
-      <SignOutButton className="shrink-0" compact />
+      aria-label="Application navigation"
+    >
+      <CreateProjectCta collapsed={collapsed} />
+      <NavSection items={workspaceNav} collapsed={collapsed} />
+      <NavSection label="Organization" items={orgNav} collapsed={collapsed} />
+      <NavSection label="Account" items={accountNav} collapsed={collapsed} />
     </nav>
+  );
+}
+
+function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', onKey);
+
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  return (
+    <div
+      className={classNames('vc-sidebar-drawer-root lg:hidden', open && 'vc-sidebar-drawer-root--open')}
+      aria-hidden={!open}
+    >
+      <button
+        type="button"
+        className="vc-sidebar-drawer-overlay"
+        aria-label="Close navigation"
+        onClick={onClose}
+        tabIndex={open ? 0 : -1}
+      />
+      <aside className="vc-sidebar-drawer-panel" role="navigation" aria-label="Main" aria-hidden={!open}>
+        <div className="flex h-14 items-center justify-between border-b border-bolt-elements-borderColor px-3">
+          <Link
+            to="/organization-switcher"
+            className="flex items-center gap-2"
+            aria-label="Organization switcher"
+            onClick={onClose}
+          >
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
+              aria-hidden
+            >
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+              <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            onClick={onClose}
+            aria-label="Close navigation"
+          >
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+        <div onClick={onClose} role="presentation">
+          <SidebarBody collapsed={false} />
+        </div>
+        <div className="border-t border-bolt-elements-borderColor px-3 py-3">
+          <SidebarFooter collapsed={false} embedded />
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; embedded?: boolean }) {
+  const profile = useStore(profileStore);
+  const theme = useStore(themeStore);
+  const displayName = profile.username?.trim() || 'Signed in user';
+
+  const initials = displayName
+    .split(/\s+/)
+    .map((part: string) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const hasInitials = initials.length > 0 && profile.username?.trim();
+
+  return (
+    <div
+      className={classNames(
+        'vc-sidebar-footer',
+        !embedded &&
+          'absolute inset-x-0 bottom-0 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
+        collapsed ? 'px-2 py-2' : 'px-3 py-3',
+        embedded && 'p-0',
+      )}
+    >
+      <Popover.Root>
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            className={classNames(
+              'group inline-flex items-center rounded-md text-left text-sm transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+              collapsed ? 'h-10 w-10 justify-center px-0' : 'h-10 w-full gap-2 px-2',
+            )}
+            aria-label="Account menu"
+            title={collapsed ? 'Account menu' : undefined}
+          >
+            <span
+              className="vc-sidebar-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-[11px] font-semibold uppercase text-bolt-elements-textPrimary"
+              aria-hidden
+            >
+              {hasInitials ? initials : <UserIcon className="h-4 w-4" aria-hidden />}
+            </span>
+            {!collapsed ? (
+              <span className="vc-sidebar-fade-label min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium leading-tight">{displayName}</span>
+                <span className="block truncate text-[11px] leading-tight text-bolt-elements-textTertiary">
+                  Account menu
+                </span>
+              </span>
+            ) : null}
+            {collapsed ? <span className="vc-collapsed-nav-label">Account menu</span> : null}
+          </button>
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side={collapsed ? 'right' : 'top'}
+            align={collapsed ? 'end' : 'start'}
+            sideOffset={8}
+            className="vc-sidebar-popover z-30 w-56 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-lg"
+          >
+            <div className="border-b border-bolt-elements-borderColor px-3 py-2">
+              <p className="truncate text-sm font-medium text-bolt-elements-textPrimary">{displayName}</p>
+              {profile.bio ? (
+                <p className="truncate text-[11px] text-bolt-elements-textTertiary">{profile.bio}</p>
+              ) : null}
+            </div>
+            <div className="grid gap-0.5 py-1">
+              <Popover.Close asChild>
+                <Link
+                  to="/account-settings"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                >
+                  <Settings className="h-4 w-4" aria-hidden />
+                  Account settings
+                </Link>
+              </Popover.Close>
+              <button
+                type="button"
+                onClick={() => toggleTheme()}
+                className="flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              >
+                <span className="flex items-center gap-2">
+                  {theme === 'dark' ? (
+                    <Sun className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <Moon className="h-4 w-4" aria-hidden />
+                  )}
+                  Theme
+                </span>
+                <span className="text-[11px] text-bolt-elements-textTertiary">
+                  {theme === 'dark' ? 'Dark' : 'Light'}
+                </span>
+              </button>
+            </div>
+            <div className="border-t border-bolt-elements-borderColor pt-1">
+              <Popover.Close asChild>
+                <Form method="post" action="/logout">
+                  <button
+                    type="submit"
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden />
+                    Sign out
+                  </button>
+                </Form>
+              </Popover.Close>
+            </div>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    </div>
   );
 }
 
@@ -979,34 +1282,29 @@ export function LinkButton({
   );
 }
 
-function TopBar() {
+function TopBar({ onOpenDrawer }: { onOpenDrawer: () => void }) {
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
-      <Link
-        to="/organization-switcher"
-        className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-bolt-elements-background-depth-2"
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-4 backdrop-blur-xl sm:px-6">
+      <button
+        type="button"
+        onClick={onOpenDrawer}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] lg:hidden"
+        aria-label="Open navigation menu"
       >
-        <Menu className="h-4 w-4 lg:hidden" aria-hidden />
-        <Building2 className="h-4 w-4" aria-hidden />
-        Organizations
+        <Menu className="h-4 w-4" aria-hidden />
+      </button>
+      <div className="hidden flex-1 lg:block" />
+      <Link
+        to="/command-palette"
+        className="ml-auto hidden items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:inline-flex"
+        aria-label="Open command palette"
+      >
+        <Command className="h-4 w-4" aria-hidden />
+        Search
+        <kbd className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+          ⌘K
+        </kbd>
       </Link>
-      <div className="flex items-center gap-2">
-        <Link
-          to="/command-palette"
-          className="hidden items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-sm text-bolt-elements-textSecondary sm:inline-flex"
-        >
-          <Command className="h-4 w-4" aria-hidden />
-          Command palette
-        </Link>
-        <Link
-          to="/notifications"
-          className="rounded-md p-2 hover:bg-bolt-elements-background-depth-2"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" aria-hidden />
-        </Link>
-        <SignOutButton compact />
-      </div>
     </header>
   );
 }
@@ -1039,24 +1337,18 @@ export function SignOutButton({
   );
 }
 
-function NavSection({
-  label,
-  items,
-  collapsed,
-}: {
-  label: string;
-  items: Array<{ label: string; to: string; icon: Icon }>;
-  collapsed: boolean;
-}) {
+function NavSection({ label, items, collapsed }: { label?: string; items: NavItem[]; collapsed: boolean }) {
   return (
     <div className={classNames('w-full', collapsed && 'flex flex-col items-center')}>
-      {!collapsed ? (
-        <p className="vc-sidebar-group-label px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
-          {label}
-        </p>
-      ) : (
-        <div className="vc-sidebar-divider mb-1.5 mt-1 h-px w-6 bg-bolt-elements-borderColor" aria-hidden />
-      )}
+      {label ? (
+        !collapsed ? (
+          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+            {label}
+          </p>
+        ) : (
+          <div className="vc-sidebar-divider mb-1.5 mt-1 h-px w-6 bg-bolt-elements-borderColor" aria-hidden />
+        )
+      ) : null}
       <NavGroup items={items} collapsed={collapsed} />
     </div>
   );
@@ -1084,13 +1376,7 @@ function CreateProjectCta({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-function NavGroup({
-  items,
-  collapsed = false,
-}: {
-  items: Array<{ label: string; to: string; icon: Icon }>;
-  collapsed?: boolean;
-}) {
+function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: boolean }) {
   return (
     <div className={classNames('grid w-full gap-1', collapsed && 'place-items-center')}>
       {items.map((item) => {
@@ -1101,19 +1387,35 @@ function NavGroup({
             to={item.to}
             className={({ isActive }) =>
               classNames(
-                'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor',
+                'vc-sidebar-nav-item group relative flex items-center rounded-md text-[13px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
                 collapsed ? 'h-10 w-10 justify-center px-0' : 'h-9 w-full gap-2 px-3',
                 isActive
-                  ? 'vc-sidebar-nav-item--active bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+                  ? 'vc-sidebar-nav-item--active text-bolt-elements-textPrimary'
                   : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
               )
             }
             aria-label={collapsed ? item.label : undefined}
             title={collapsed ? item.label : undefined}
           >
-            <Icon className={classNames('shrink-0', collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
-            {!collapsed ? <span className="truncate">{item.label}</span> : null}
-            {collapsed ? <span className="vc-collapsed-nav-label">{item.label}</span> : null}
+            <Icon
+              className={classNames(
+                'vc-sidebar-nav-icon shrink-0 transition-transform duration-150 group-hover:scale-[1.05]',
+                collapsed ? 'h-[20px] w-[20px]' : 'h-[18px] w-[18px]',
+              )}
+              aria-hidden
+            />
+            {!collapsed ? <span className="vc-sidebar-fade-label flex-1 truncate">{item.label}</span> : null}
+            {!collapsed && item.shortcut ? (
+              <kbd className="vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textTertiary">
+                {item.shortcut}
+              </kbd>
+            ) : null}
+            {collapsed ? (
+              <span className="vc-collapsed-nav-label">
+                {item.label}
+                {item.shortcut ? <span className="ml-2 opacity-60">{item.shortcut}</span> : null}
+              </span>
+            ) : null}
           </NavLink>
         );
       })}
