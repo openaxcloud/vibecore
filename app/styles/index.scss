@@ -7585,13 +7585,13 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
-.vc-home-ide-mock {
+.vc-home-ide-preview {
   display: grid;
   min-height: 430px;
   grid-template-columns: 160px minmax(0, 1fr);
 }
 
-.vc-home-ide-mock aside {
+.vc-home-ide-preview aside {
   display: grid;
   align-content: start;
   gap: 8px;
@@ -7599,7 +7599,7 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 14px;
 }
 
-.vc-home-ide-mock aside span,
+.vc-home-ide-preview aside span,
 .vc-home-tabs span,
 .vc-home-terminal span {
   border-radius: 7px;
@@ -7609,7 +7609,7 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
-.vc-home-ide-mock main {
+.vc-home-ide-preview main {
   display: grid;
   min-width: 0;
   grid-template-rows: auto 1fr auto;
@@ -7629,7 +7629,7 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-public-active-tab);
 }
 
-.vc-home-ide-mock pre {
+.vc-home-ide-preview pre {
   overflow: auto;
   margin: 0;
   padding: 24px;
@@ -8494,11 +8494,11 @@ body :where(.lucide, svg[data-lucide]) {
     padding-block: 54px;
   }
 
-  .vc-home-ide-mock {
+  .vc-home-ide-preview {
     grid-template-columns: 1fr;
   }
 
-  .vc-home-ide-mock aside {
+  .vc-home-ide-preview aside {
     display: none;
   }
 }

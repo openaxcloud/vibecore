@@ -2192,9 +2192,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(createdFiles.statusCode).toBe(200);
-    expect(createdFiles.json().files.map((file: { path: string }) => file.path)).toEqual(
-      expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx', 'src/styles.css']),
-    );
+    expect(createdFiles.json().files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
 
     const secret = await app.inject({
       method: 'PUT',
@@ -2223,7 +2221,7 @@ describe('SaaS API', () => {
     await app.close();
   });
 
-  it('creates an interactive enterprise app scaffold for AI generated app-builder projects', async () => {
+  it('does not scaffold simulated app files before the IDE agent generates real output', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'ai-builder@example.com', organizationName: 'AI Builder Org' });
     const prompt = 'build a saas platform a clone of bolt';
@@ -2243,26 +2241,14 @@ describe('SaaS API', () => {
     expect(exported.statusCode).toBe(200);
 
     const zip = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
-    const appSource = await zip.file('src/App.tsx')!.async('string');
-    const packageJson = JSON.parse(await zip.file('package.json')!.async('string'));
+    const paths = Object.keys(zip.files).filter((path) => !zip.files[path]?.dir);
+    const readme = await zip.file('README.md')!.async('string');
 
-    expect(packageJson.scripts).toMatchObject({ dev: 'vite', build: 'vite build', preview: 'vite preview' });
-    expect(packageJson.dependencies).toMatchObject({
-      react: expect.any(String),
-      'react-dom': expect.any(String),
-      'lucide-react': expect.any(String),
-      'react-router-dom': expect.any(String),
-      vite: expect.any(String),
-    });
-    expect(Object.values(packageJson.dependencies)).not.toContain('latest');
-    expect(appSource).toContain('AI delivery command center');
-    expect(appSource).toContain('Agent Stream');
-    expect(appSource).toContain('Live Preview Runtime');
-    expect(appSource).toContain('function createWorkspace');
-    expect(appSource).toContain('function approveSelectedModule');
-    expect(appSource).toContain('onClick={simulateSync}');
-    expect(appSource).not.toContain(prompt);
-    expect(appSource).not.toContain('VibeCore project');
+    expect(paths).toEqual(['README.md']);
+    expect(readme).toContain('Application files are intentionally left for the IDE agent');
+    expect(readme).toContain(prompt);
+    expect(zip.file('package.json')).toBeNull();
+    expect(zip.file('src/App.tsx')).toBeNull();
 
     await app.close();
   });

@@ -149,7 +149,7 @@ export default function LandingPage() {
               <span />
               <strong>projects/acme/ide</strong>
             </div>
-            <div className="vc-home-ide-mock">
+            <div className="vc-home-ide-preview">
               <aside>
                 {['app', 'components', 'routes', 'runtime', 'deploy'].map((item) => (
                   <span key={item}>{item}</span>

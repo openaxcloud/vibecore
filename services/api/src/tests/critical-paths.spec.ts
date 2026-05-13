@@ -141,7 +141,7 @@ async function startRuntimeServices() {
 }
 
 describe('critical API paths', () => {
-  it('creates a runnable app from a prompt and persists generated files', async () => {
+  it('creates an AI prompt project without pre-generating application files', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, 'critical-prompt@example.com');
 
@@ -160,9 +160,9 @@ describe('critical API paths', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(files.statusCode).toBe(200);
-    expect(files.json().files.map((file: { path: string }) => file.path)).toEqual(
-      expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx']),
-    );
+    const paths = files.json().files.map((file: { path: string }) => file.path);
+    expect(paths).toEqual(['README.md']);
+    expect(paths).not.toEqual(expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx']));
     await app.close();
   });
 
