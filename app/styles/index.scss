@@ -1602,17 +1602,28 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-icon-button {
   display: inline-flex;
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  color: #6e7681;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted);
+  transition:
+    background-color var(--vc-ui-transition-hover),
+    border-color var(--vc-ui-transition-hover),
+    color var(--vc-ui-transition-hover),
+    transform 120ms ease-out;
 }
 
 .bolt-project-ide-icon-button:hover {
-  background: #1a2030;
-  color: #f5f9fc;
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-ide-icon-button:active {
+  transform: scale(0.96);
 }
 
 .bolt-project-agent-shell {
@@ -2445,12 +2456,14 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-file-tree button:hover {
-  background: #2b3245;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-file-tree .bolt-project-file-selected {
-  border-left-color: #f26207;
-  background: #2b3245;
+  border-left-color: var(--vc-ide-accent-orange);
+  background: color-mix(in srgb, var(--vc-ide-bg-hover), var(--vc-ide-accent-orange) 8%);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-file-tree [class*='i-ph:'] {
@@ -2504,8 +2517,13 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: auto;
   padding: 12px;
   background:
-    linear-gradient(90deg, rgba(43, 50, 69, 0.26) 1px, transparent 1px),
-    linear-gradient(rgba(43, 50, 69, 0.22) 1px, transparent 1px), #0a0f1c;
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--vc-ide-border-visible), transparent 72%) 1px,
+      transparent 1px
+    ),
+    linear-gradient(color-mix(in srgb, var(--vc-ide-border-visible), transparent 76%) 1px, transparent 1px),
+    var(--vc-ide-bg-app);
   background-size: 24px 24px;
 }
 
@@ -2514,10 +2532,10 @@ body :where(.lucide, svg[data-lucide]) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #1a2030;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
-  background: #0e1525;
-  box-shadow: 0 12px 32px rgba(0, 4, 20, 0.6);
+  background: var(--vc-ide-bg-panel);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--vc-ide-bg-app), rgb(0 4 20 / 0.42) 38%);
   transition:
     width 200ms cubic-bezier(0.2, 0, 0, 1),
     max-width 200ms cubic-bezier(0.2, 0, 0, 1);
@@ -5139,6 +5157,11 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-shell .bolt-project-agent-shell {
+  background: var(--vc-ide-bg-panel) !important;
+  background-color: var(--vc-ide-bg-panel) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-webview-viewport {
   background: var(--vc-ide-bg-panel) !important;
   background-color: var(--vc-ide-bg-panel) !important;
 }

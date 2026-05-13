@@ -48,6 +48,10 @@ async function expectPreviewIframe(page: import('@playwright/test').Page, timeou
   return previewIframe;
 }
 
+async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 30_000) {
+  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
+}
+
 test('project preview boots a real app and renders inside the webview', async ({ page }) => {
   test.setTimeout(120_000);
 
@@ -79,7 +83,7 @@ test('project preview boots a real app and renders inside the webview', async ({
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expectWorkspaceRunning(page);
   await page.getByRole('button', { name: 'Webview' }).click();
 
   await expectPreviewIframe(page, 90_000);
@@ -129,7 +133,7 @@ test('project preview boots a package-script Vite app and renders inside the web
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expectWorkspaceRunning(page);
   await page.getByRole('button', { name: 'Webview' }).click();
 
   await expectPreviewIframe(page, 120_000);
@@ -147,7 +151,7 @@ test('template-created project boots and renders the generated app in preview', 
   await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Use template' }).first().click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30_000 });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expectWorkspaceRunning(page);
 
   await page.getByRole('button', { name: 'Webview' }).click();
 
@@ -176,7 +180,7 @@ test('AI-created project starts the agent with a valid default model', async ({ 
   await page.getByRole('button', { name: 'Create project' }).click();
 
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide(?:\?.*)?$/, { timeout: 30_000 });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expectWorkspaceRunning(page);
   await expect(page.getByText('Invalid model selected')).toHaveCount(0);
   await expect(page.getByText('User prompt: Build a realtime kanban board with analytics')).toBeVisible({
     timeout: 30_000,
@@ -212,7 +216,7 @@ test('preview window options stay readable and interactive in light theme', asyn
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expectWorkspaceRunning(page);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.getByRole('button', { name: 'Webview' }).click();
   await expectPreviewIframe(page, 90_000);
@@ -229,6 +233,10 @@ test('preview window options stay readable and interactive in light theme', asyn
 
   const metrics = await menu.evaluate((element) => {
     const style = window.getComputedStyle(element);
+    const previewFrame = document.querySelector('.bolt-project-webview-frame') as HTMLElement;
+    const previewViewport = document.querySelector('.bolt-project-webview-viewport') as HTMLElement;
+    const frameStyle = window.getComputedStyle(previewFrame);
+    const viewportStyle = window.getComputedStyle(previewViewport);
     const label = element.querySelector('.bolt-preview-window-menu-label') as HTMLElement;
     const labelStyle = window.getComputedStyle(label);
     const showFrame = element.querySelector('.bolt-preview-window-menu-toggle') as HTMLElement;
@@ -249,6 +257,9 @@ test('preview window options stay readable and interactive in light theme', asyn
       labelPaddingLeft: labelStyle.paddingLeft,
       labelBackground: labelStyle.backgroundColor,
       labelColor: labelStyle.color,
+      frameBackground: frameStyle.backgroundColor,
+      viewportBackground: viewportStyle.backgroundColor,
+      viewportBorderColor: viewportStyle.borderColor,
       switchWidth: Math.round(switchRect.width),
       switchHeight: Math.round(switchRect.height),
       textSwitchGap: Math.round(switchRect.left - textRect.right),
@@ -267,6 +278,9 @@ test('preview window options stay readable and interactive in light theme', asyn
     labelPaddingLeft: '12px',
     labelBackground: 'rgb(255, 255, 255)',
     labelColor: 'rgb(107, 114, 128)',
+    frameBackground: 'rgb(246, 248, 251)',
+    viewportBackground: 'rgb(255, 255, 255)',
+    viewportBorderColor: 'rgb(196, 204, 216)',
     switchWidth: 34,
     switchHeight: 18,
     presetDisplay: 'grid',

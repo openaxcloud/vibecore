@@ -60,7 +60,7 @@ test('critical path: preview iframe loads imported app content', async ({ page }
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Workspace running')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout: 30_000 });
   await page.getByRole('button', { name: 'Webview' }).click();
 
   const previewIframe = page.locator('iframe[title="preview"]').first();
