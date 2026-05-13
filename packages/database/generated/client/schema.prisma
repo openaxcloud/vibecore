@@ -811,6 +811,9 @@ model VerifiedDomain {
   domain            String
   verificationToken String
   verifiedAt        DateTime?
+  redirectWww       Boolean      @default(true)
+  wildcardEnabled   Boolean      @default(false)
+  sslStatus         String       @default("pending_dns")
   createdAt         DateTime     @default(now())
   organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 

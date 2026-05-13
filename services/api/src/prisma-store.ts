@@ -949,12 +949,35 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async createDomainVerification(input: { organizationId: string; domain: string; verificationToken: string }) {
+  async createDomainVerification(input: {
+    organizationId: string;
+    domain: string;
+    verificationToken: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
+  }) {
+    const domain = input.domain.toLowerCase();
+    const redirectWww = input.redirectWww ?? true;
+    const wildcardEnabled = input.wildcardEnabled ?? false;
+
     return mapDomainVerification(
       await this.prisma.verifiedDomain.upsert({
-        where: { organizationId_domain: { organizationId: input.organizationId, domain: input.domain.toLowerCase() } },
-        create: { ...input, domain: input.domain.toLowerCase() },
-        update: { verificationToken: input.verificationToken, verifiedAt: null },
+        where: { organizationId_domain: { organizationId: input.organizationId, domain } },
+        create: {
+          organizationId: input.organizationId,
+          domain,
+          verificationToken: input.verificationToken,
+          redirectWww,
+          wildcardEnabled,
+          sslStatus: 'pending_dns',
+        },
+        update: {
+          verificationToken: input.verificationToken,
+          verifiedAt: null,
+          redirectWww,
+          wildcardEnabled,
+          sslStatus: 'pending_dns',
+        },
       }),
     );
   }
@@ -969,7 +992,35 @@ export class PrismaApiStore implements ApiStore {
     }
 
     return mapDomainVerification(
-      await this.prisma.verifiedDomain.update({ where: { id: record.id }, data: { verifiedAt: new Date() } }),
+      await this.prisma.verifiedDomain.update({
+        where: { id: record.id },
+        data: { verifiedAt: new Date(), sslStatus: 'dns_verified' },
+      }),
+    );
+  }
+
+  async updateDomainVerificationConfig(input: {
+    organizationId: string;
+    domain: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
+  }) {
+    const record = await this.prisma.verifiedDomain.findUnique({
+      where: { organizationId_domain: { organizationId: input.organizationId, domain: input.domain.toLowerCase() } },
+    });
+
+    if (!record) {
+      return undefined;
+    }
+
+    return mapDomainVerification(
+      await this.prisma.verifiedDomain.update({
+        where: { id: record.id },
+        data: {
+          ...(typeof input.redirectWww === 'boolean' ? { redirectWww: input.redirectWww } : {}),
+          ...(typeof input.wildcardEnabled === 'boolean' ? { wildcardEnabled: input.wildcardEnabled } : {}),
+        },
+      }),
     );
   }
 
@@ -1860,6 +1911,9 @@ function mapDomainVerification(domain: any): DomainVerificationRecord {
     domain: domain.domain,
     verificationToken: domain.verificationToken,
     verifiedAt: toIso(domain.verifiedAt),
+    redirectWww: domain.redirectWww ?? true,
+    wildcardEnabled: domain.wildcardEnabled ?? false,
+    sslStatus: domain.sslStatus ?? 'pending_dns',
     createdAt: toIso(domain.createdAt)!,
   };
 }

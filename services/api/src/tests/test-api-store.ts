@@ -923,11 +923,20 @@ export class TestApiStore implements ApiStore {
     return updated;
   }
 
-  async createDomainVerification(input: { organizationId: string; domain: string; verificationToken: string }) {
+  async createDomainVerification(input: {
+    organizationId: string;
+    domain: string;
+    verificationToken: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
+  }) {
     const record: DomainVerificationRecord = {
       id: id('domain'),
       ...input,
       domain: input.domain.toLowerCase(),
+      redirectWww: input.redirectWww ?? true,
+      wildcardEnabled: input.wildcardEnabled ?? false,
+      sslStatus: 'pending_dns',
       createdAt: now(),
     };
     this.domainVerifications.set(record.id, record);
@@ -942,6 +951,30 @@ export class TestApiStore implements ApiStore {
 
     if (record) {
       record.verifiedAt = now();
+      record.sslStatus = 'dns_verified';
+    }
+
+    return record;
+  }
+
+  async updateDomainVerificationConfig(input: {
+    organizationId: string;
+    domain: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
+  }) {
+    const record = [...this.domainVerifications.values()].find(
+      (item) => item.organizationId === input.organizationId && item.domain === input.domain.toLowerCase(),
+    );
+
+    if (record) {
+      if (typeof input.redirectWww === 'boolean') {
+        record.redirectWww = input.redirectWww;
+      }
+
+      if (typeof input.wildcardEnabled === 'boolean') {
+        record.wildcardEnabled = input.wildcardEnabled;
+      }
     }
 
     return record;

@@ -496,8 +496,17 @@ const runtimeCommandSchema = z.object({
 const domainSchema = z.object({
   domain: z
     .string()
+    .trim()
+    .toLowerCase()
     .min(3)
-    .regex(/^[a-z0-9.-]+$/i),
+    .max(253)
+    .regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/, 'Use a valid domain such as app.example.com'),
+  redirectWww: z.boolean().optional(),
+  wildcardEnabled: z.boolean().optional(),
+});
+const domainConfigSchema = z.object({
+  redirectWww: z.boolean().optional(),
+  wildcardEnabled: z.boolean().optional(),
 });
 const oidcConfigSchema = z.object({
   issuer: z.string().url(),
@@ -5352,6 +5361,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId: orgId,
       domain: body.domain,
       verificationToken: createOpaqueToken('domain'),
+      redirectWww: body.redirectWww,
+      wildcardEnabled: body.wildcardEnabled,
     });
     await audit(request, store, {
       organizationId: orgId,
@@ -5361,6 +5372,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(201).send({ domain });
+  });
+  app.patch('/orgs/:orgId/domains/:domain', async (request, reply) => {
+    const { orgId, domain } = parse(domainParams, request.params);
+    const body = parse(domainConfigSchema, request.body ?? {});
+    await requireOrg(request, store, orgId, 'enterprise:write');
+    const updated = await store.updateDomainVerificationConfig({
+      organizationId: orgId,
+      domain,
+      redirectWww: body.redirectWww,
+      wildcardEnabled: body.wildcardEnabled,
+    });
+
+    if (!updated) {
+      return reply.code(404).send({ error: 'Domain not found', code: 'DOMAIN_NOT_FOUND' });
+    }
+
+    await audit(request, store, {
+      organizationId: orgId,
+      action: 'domain.config.update',
+      resourceType: 'domainVerification',
+      resourceId: updated.id,
+      metadata: { redirectWww: updated.redirectWww, wildcardEnabled: updated.wildcardEnabled },
+    });
+
+    return { domain: updated };
   });
   app.post('/orgs/:orgId/domains/:domain/verify', async (request, reply) => {
     const { orgId, domain } = parse(domainParams, request.params);

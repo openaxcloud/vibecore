@@ -5974,34 +5974,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'domains') {
-    const domains = data.domains ?? [];
-
-    return (
-      <div className="grid gap-4 xl:grid-cols-[1fr_280px]">
-        <PanelRows
-          rows={domains.map((domain: any) => [
-            domain.domain,
-            domain.verifiedAt ? `Verified ${domain.verifiedAt}` : 'Pending DNS verification',
-          ])}
-          empty="No custom domains."
-        />
-        <div className="grid gap-3">
-          <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
-            <PanelInput name="domain" required />
-            <PanelButton disabled={busy}>Add domain</PanelButton>
-          </form>
-          {domains.map((domain: any) => (
-            <form key={domain.id} onSubmit={onSubmit}>
-              <input name="intent" value="verify" type="hidden" />
-              <input name="domain" value={domain.domain} type="hidden" />
-              <PanelButton disabled={busy} variant="outline">
-                Verify {domain.domain}
-              </PanelButton>
-            </form>
-          ))}
-        </div>
-      </div>
-    );
+    return <ProjectDomainsPanel data={data} onSubmit={onSubmit} busy={busy} />;
   }
 
   if (panel === 'git') {
@@ -6019,6 +5992,228 @@ function ProjectIdePanelContent({
   }
 
   return <PanelRows rows={[]} empty="Panel not available." />;
+}
+
+function ProjectDomainsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
+  const domains = data.domains ?? [];
+  const latestReadyDeployment = (data.deployments ?? []).find((deployment: any) => deployment.status === 'READY');
+  const deploymentHost = getHostname(latestReadyDeployment?.productionUrl ?? latestReadyDeployment?.url);
+  const hasRoutingTarget = Boolean(deploymentHost);
+
+  return (
+    <div className="bolt-project-domains-panel">
+      <section className="bolt-project-domains-hero" aria-labelledby="domains-title">
+        <div>
+          <span className="bolt-project-domains-kicker">Domains</span>
+          <h3 id="domains-title">Production routing, DNS verification and managed TLS</h3>
+          <p>
+            Add a hostname, publish the DNS records below, then verify. VibeCore keeps redirect, wildcard and TLS
+            readiness as backend state for this organization.
+          </p>
+        </div>
+        <div className="bolt-project-domain-target-card">
+          <span>Deployment target</span>
+          <strong>{deploymentHost ?? 'Create a ready deployment first'}</strong>
+          <small>
+            {hasRoutingTarget
+              ? 'Use this host as the CNAME or ALIAS target.'
+              : 'The CNAME/A instructions unlock after the first successful deployment.'}
+          </small>
+        </div>
+      </section>
+
+      <div className="bolt-project-domains-layout">
+        <section className="bolt-project-domain-add-card" aria-labelledby="add-domain-title">
+          <div>
+            <h4 id="add-domain-title">Add domain</h4>
+            <p>Use a fully qualified domain. Wildcards are enabled per domain after it is created.</p>
+          </div>
+          <form onSubmit={onSubmit} className="bolt-project-domain-add-form">
+            <label>
+              Domain
+              <PanelInput
+                name="domain"
+                inputMode="url"
+                autoComplete="off"
+                placeholder="app.example.com"
+                pattern="^(?:[A-Za-z0-9](?:(?:[A-Za-z0-9]|-){0,61}[A-Za-z0-9])?[.])+[A-Za-z]{2,}$"
+                title="Enter a valid domain such as app.example.com"
+                aria-describedby="domain-help"
+                required
+              />
+            </label>
+            <small id="domain-help">No protocol, path or port. Example: app.example.com.</small>
+            <PanelButton disabled={busy}>Add domain</PanelButton>
+          </form>
+        </section>
+
+        {domains.length ? (
+          <div className="bolt-project-domain-list">
+            {domains.map((domain: any) => (
+              <DomainVerificationCard
+                key={domain.id}
+                domain={domain}
+                deploymentHost={deploymentHost}
+                onSubmit={onSubmit}
+                busy={busy}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bolt-project-domain-empty">
+            <strong>No custom domains yet</strong>
+            <span>Add a domain to generate organization-specific TXT verification records.</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DomainVerificationCard({
+  domain,
+  deploymentHost,
+  onSubmit,
+  busy,
+}: {
+  domain: any;
+  deploymentHost?: string;
+  onSubmit: any;
+  busy: boolean;
+}) {
+  const txtName = `_vibecore.${domain.domain}`;
+  const txtValue = `vibecore-domain-verification=${domain.verificationToken}`;
+  const rootName = domain.domain.split('.').length === 2 ? '@' : domain.domain.split('.')[0];
+
+  const records = [
+    { type: 'TXT', name: txtName, value: txtValue, state: 'Required' },
+    {
+      type: 'CNAME',
+      name: rootName === '@' ? 'www' : rootName,
+      value: deploymentHost ?? 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Routing' : 'Blocked',
+    },
+    {
+      type: 'A / ALIAS',
+      name: '@',
+      value: deploymentHost ? `ALIAS or ANAME to ${deploymentHost}` : 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Apex' : 'Blocked',
+    },
+  ];
+
+  if (domain.wildcardEnabled) {
+    records.push({
+      type: 'CNAME',
+      name: `*.${domain.domain}`,
+      value: deploymentHost ?? 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Wildcard' : 'Blocked',
+    });
+  }
+
+  return (
+    <article className="bolt-project-domain-card">
+      <div className="bolt-project-domain-card-header">
+        <div>
+          <h4>{domain.domain}</h4>
+          <p>Created {formatDomainDate(domain.createdAt)}</p>
+        </div>
+        <span className={classNames('bolt-project-domain-status', domain.verifiedAt ? 'verified' : 'pending')}>
+          {domain.verifiedAt ? 'DNS verified' : 'Pending DNS'}
+        </span>
+      </div>
+
+      <div className="bolt-project-domain-status-grid">
+        <div>
+          <span>Verification</span>
+          <strong>{domain.verifiedAt ? formatDomainDate(domain.verifiedAt) : 'TXT record required'}</strong>
+        </div>
+        <div>
+          <span>Auto TLS</span>
+          <strong>
+            {domain.sslStatus === 'dns_verified' ? 'Ready for certificate provisioning' : 'Waiting for DNS'}
+          </strong>
+        </div>
+        <div>
+          <span>WWW redirect</span>
+          <strong>{domain.redirectWww ? 'Enabled' : 'Disabled'}</strong>
+        </div>
+        <div>
+          <span>Wildcard</span>
+          <strong>{domain.wildcardEnabled ? 'Enabled' : 'Off'}</strong>
+        </div>
+      </div>
+
+      <div className="bolt-project-dns-records" aria-label={`DNS records for ${domain.domain}`}>
+        <div className="bolt-project-dns-records-head">
+          <span>Type</span>
+          <span>Name</span>
+          <span>Value</span>
+          <span>Status</span>
+        </div>
+        {records.map((record) => (
+          <div key={`${record.type}-${record.name}`} className="bolt-project-dns-record">
+            <code>{record.type}</code>
+            <code>{record.name}</code>
+            <code title={record.value}>{record.value}</code>
+            <span>{record.state}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="bolt-project-domain-actions">
+        <form onSubmit={onSubmit}>
+          <input name="intent" value="verify" type="hidden" />
+          <input name="domain" value={domain.domain} type="hidden" />
+          <PanelButton disabled={busy} variant={domain.verifiedAt ? 'outline' : undefined}>
+            {domain.verifiedAt ? 'Recheck DNS' : 'Verify DNS'}
+          </PanelButton>
+        </form>
+
+        <form onSubmit={onSubmit} className="bolt-project-domain-options">
+          <input name="intent" value="configure" type="hidden" />
+          <input name="domain" value={domain.domain} type="hidden" />
+          <input name="redirectWww" value="false" type="hidden" />
+          <label>
+            <input name="redirectWww" value="true" type="checkbox" defaultChecked={domain.redirectWww} />
+            Redirect www
+          </label>
+          <input name="wildcardEnabled" value="false" type="hidden" />
+          <label>
+            <input name="wildcardEnabled" value="true" type="checkbox" defaultChecked={domain.wildcardEnabled} />
+            Wildcard subdomains
+          </label>
+          <PanelButton disabled={busy} variant="outline">
+            Save routing
+          </PanelButton>
+        </form>
+      </div>
+    </article>
+  );
+}
+
+function getHostname(url?: string) {
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
+}
+
+function formatDomainDate(value?: string) {
+  if (!value) {
+    return 'Not available';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function ProjectActivityPanel({

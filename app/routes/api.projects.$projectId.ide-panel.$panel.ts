@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import {
   apiRequest,
   clearSessionCookie,
-  firstOrganization,
   formObject,
   json,
   type EnterpriseActionArgs,
@@ -121,10 +120,23 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'domains') {
     try {
-      const organization = await firstOrganization(request);
-      const domains = await apiRequest(request, `/orgs/${organization.id}/domains`);
+      const organizationId = (project.project as any)?.organizationId;
 
-      return json(panelEnvelope(panel, project.project, domains));
+      if (!organizationId) {
+        throw new Error('Project organization is missing');
+      }
+
+      const [domains, deployments] = await Promise.all([
+        apiRequest(request, `/orgs/${organizationId}/domains`),
+        apiRequest(request, `/projects/${projectId}/deployments`),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(domains as any),
+          ...(deployments as any),
+        }),
+      );
     } catch (error) {
       return json(panelEnvelopeError(panel, project.project, error));
     }
@@ -479,16 +491,33 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else if (panel === 'domains') {
-    const organization = await firstOrganization(request);
+    const project = await apiRequest<{ project: any }>(request, `/projects/${projectId}`);
+    const organizationId = project.project?.organizationId;
+
+    if (!organizationId) {
+      throw new Error('Project organization is missing');
+    }
 
     if (intent === 'verify') {
-      await apiRequest(request, `/orgs/${organization.id}/domains/${encodeURIComponent(body.domain ?? '')}/verify`, {
+      await apiRequest(request, `/orgs/${organizationId}/domains/${encodeURIComponent(body.domain ?? '')}/verify`, {
         method: 'POST',
       });
+    } else if (intent === 'configure') {
+      await apiRequest(request, `/orgs/${organizationId}/domains/${encodeURIComponent(body.domain ?? '')}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          redirectWww: body.redirectWww === 'true',
+          wildcardEnabled: body.wildcardEnabled === 'true',
+        }),
+      });
     } else {
-      await apiRequest(request, `/orgs/${organization.id}/domains`, {
+      await apiRequest(request, `/orgs/${organizationId}/domains`, {
         method: 'POST',
-        body: JSON.stringify({ domain: body.domain }),
+        body: JSON.stringify({
+          domain: body.domain,
+          redirectWww: true,
+          wildcardEnabled: false,
+        }),
       });
     }
   } else if (panel === 'settings') {

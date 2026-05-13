@@ -2484,6 +2484,66 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('persists domain DNS routing options and TLS readiness state', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'domains@example.com', organizationName: 'Domains Org' });
+
+    const invalid = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/domains`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { domain: 'https://bad-domain.example/path' },
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/domains`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { domain: 'App.Example.com', redirectWww: false, wildcardEnabled: true },
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().domain).toEqual(
+      expect.objectContaining({
+        domain: 'app.example.com',
+        redirectWww: false,
+        wildcardEnabled: true,
+        sslStatus: 'pending_dns',
+      }),
+    );
+
+    const configured = await app.inject({
+      method: 'PATCH',
+      url: `/orgs/${auth.organization.id}/domains/app.example.com`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { redirectWww: true, wildcardEnabled: false },
+    });
+    expect(configured.statusCode).toBe(200);
+    expect(configured.json().domain).toEqual(
+      expect.objectContaining({ redirectWww: true, wildcardEnabled: false, sslStatus: 'pending_dns' }),
+    );
+
+    const verified = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/domains/app.example.com/verify`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(verified.statusCode).toBe(200);
+    expect(verified.json().domain).toEqual(expect.objectContaining({ sslStatus: 'dns_verified' }));
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/domains`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().domains).toHaveLength(1);
+    expect(list.json().domains[0]).toEqual(expect.objectContaining({ domain: 'app.example.com' }));
+
+    await app.close();
+  });
+
   it('rolls back, redeploys and cancels deployment records', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

@@ -212,6 +212,9 @@ export interface DomainVerificationRecord {
   domain: string;
   verificationToken: string;
   verifiedAt?: string;
+  redirectWww: boolean;
+  wildcardEnabled: boolean;
+  sslStatus: 'pending_dns' | 'dns_verified' | 'failed';
   createdAt: string;
 }
 
@@ -642,8 +645,16 @@ export interface ApiStore {
     organizationId: string;
     domain: string;
     verificationToken: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
   }): Promise<DomainVerificationRecord>;
   verifyDomain(input: { organizationId: string; domain: string }): Promise<DomainVerificationRecord | undefined>;
+  updateDomainVerificationConfig(input: {
+    organizationId: string;
+    domain: string;
+    redirectWww?: boolean;
+    wildcardEnabled?: boolean;
+  }): Promise<DomainVerificationRecord | undefined>;
   listDomainVerifications(organizationId: string): Promise<DomainVerificationRecord[]>;
   upsertSsoConfig(input: {
     organizationId: string;

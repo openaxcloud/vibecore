@@ -655,6 +655,9 @@ exports.Prisma.VerifiedDomainScalarFieldEnum = {
   domain: 'domain',
   verificationToken: 'verificationToken',
   verifiedAt: 'verifiedAt',
+  redirectWww: 'redirectWww',
+  wildcardEnabled: 'wildcardEnabled',
+  sslStatus: 'sslStatus',
   createdAt: 'createdAt'
 };
 

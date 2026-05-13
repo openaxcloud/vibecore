@@ -66134,6 +66134,9 @@ export namespace Prisma {
     domain: string | null
     verificationToken: string | null
     verifiedAt: Date | null
+    redirectWww: boolean | null
+    wildcardEnabled: boolean | null
+    sslStatus: string | null
     createdAt: Date | null
   }
 
@@ -66143,6 +66146,9 @@ export namespace Prisma {
     domain: string | null
     verificationToken: string | null
     verifiedAt: Date | null
+    redirectWww: boolean | null
+    wildcardEnabled: boolean | null
+    sslStatus: string | null
     createdAt: Date | null
   }
 
@@ -66152,6 +66158,9 @@ export namespace Prisma {
     domain: number
     verificationToken: number
     verifiedAt: number
+    redirectWww: number
+    wildcardEnabled: number
+    sslStatus: number
     createdAt: number
     _all: number
   }
@@ -66163,6 +66172,9 @@ export namespace Prisma {
     domain?: true
     verificationToken?: true
     verifiedAt?: true
+    redirectWww?: true
+    wildcardEnabled?: true
+    sslStatus?: true
     createdAt?: true
   }
 
@@ -66172,6 +66184,9 @@ export namespace Prisma {
     domain?: true
     verificationToken?: true
     verifiedAt?: true
+    redirectWww?: true
+    wildcardEnabled?: true
+    sslStatus?: true
     createdAt?: true
   }
 
@@ -66181,6 +66196,9 @@ export namespace Prisma {
     domain?: true
     verificationToken?: true
     verifiedAt?: true
+    redirectWww?: true
+    wildcardEnabled?: true
+    sslStatus?: true
     createdAt?: true
     _all?: true
   }
@@ -66263,6 +66281,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt: Date | null
+    redirectWww: boolean
+    wildcardEnabled: boolean
+    sslStatus: string
     createdAt: Date
     _count: VerifiedDomainCountAggregateOutputType | null
     _min: VerifiedDomainMinAggregateOutputType | null
@@ -66289,6 +66310,9 @@ export namespace Prisma {
     domain?: boolean
     verificationToken?: boolean
     verifiedAt?: boolean
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["verifiedDomain"]>
@@ -66299,6 +66323,9 @@ export namespace Prisma {
     domain?: boolean
     verificationToken?: boolean
     verifiedAt?: boolean
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["verifiedDomain"]>
@@ -66309,6 +66336,9 @@ export namespace Prisma {
     domain?: boolean
     verificationToken?: boolean
     verifiedAt?: boolean
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["verifiedDomain"]>
@@ -66319,10 +66349,13 @@ export namespace Prisma {
     domain?: boolean
     verificationToken?: boolean
     verifiedAt?: boolean
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: boolean
     createdAt?: boolean
   }
 
-  export type VerifiedDomainOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "domain" | "verificationToken" | "verifiedAt" | "createdAt", ExtArgs["result"]["verifiedDomain"]>
+  export type VerifiedDomainOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "domain" | "verificationToken" | "verifiedAt" | "redirectWww" | "wildcardEnabled" | "sslStatus" | "createdAt", ExtArgs["result"]["verifiedDomain"]>
   export type VerifiedDomainInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -66344,6 +66377,9 @@ export namespace Prisma {
       domain: string
       verificationToken: string
       verifiedAt: Date | null
+      redirectWww: boolean
+      wildcardEnabled: boolean
+      sslStatus: string
       createdAt: Date
     }, ExtArgs["result"]["verifiedDomain"]>
     composites: {}
@@ -66774,6 +66810,9 @@ export namespace Prisma {
     readonly domain: FieldRef<"VerifiedDomain", 'String'>
     readonly verificationToken: FieldRef<"VerifiedDomain", 'String'>
     readonly verifiedAt: FieldRef<"VerifiedDomain", 'DateTime'>
+    readonly redirectWww: FieldRef<"VerifiedDomain", 'Boolean'>
+    readonly wildcardEnabled: FieldRef<"VerifiedDomain", 'Boolean'>
+    readonly sslStatus: FieldRef<"VerifiedDomain", 'String'>
     readonly createdAt: FieldRef<"VerifiedDomain", 'DateTime'>
   }
 
@@ -80455,6 +80494,9 @@ export namespace Prisma {
     domain: 'domain',
     verificationToken: 'verificationToken',
     verifiedAt: 'verifiedAt',
+    redirectWww: 'redirectWww',
+    wildcardEnabled: 'wildcardEnabled',
+    sslStatus: 'sslStatus',
     createdAt: 'createdAt'
   };
 
@@ -84642,6 +84684,9 @@ export namespace Prisma {
     domain?: StringFilter<"VerifiedDomain"> | string
     verificationToken?: StringFilter<"VerifiedDomain"> | string
     verifiedAt?: DateTimeNullableFilter<"VerifiedDomain"> | Date | string | null
+    redirectWww?: BoolFilter<"VerifiedDomain"> | boolean
+    wildcardEnabled?: BoolFilter<"VerifiedDomain"> | boolean
+    sslStatus?: StringFilter<"VerifiedDomain"> | string
     createdAt?: DateTimeFilter<"VerifiedDomain"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }
@@ -84652,6 +84697,9 @@ export namespace Prisma {
     domain?: SortOrder
     verificationToken?: SortOrder
     verifiedAt?: SortOrderInput | SortOrder
+    redirectWww?: SortOrder
+    wildcardEnabled?: SortOrder
+    sslStatus?: SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
   }
@@ -84666,6 +84714,9 @@ export namespace Prisma {
     domain?: StringFilter<"VerifiedDomain"> | string
     verificationToken?: StringFilter<"VerifiedDomain"> | string
     verifiedAt?: DateTimeNullableFilter<"VerifiedDomain"> | Date | string | null
+    redirectWww?: BoolFilter<"VerifiedDomain"> | boolean
+    wildcardEnabled?: BoolFilter<"VerifiedDomain"> | boolean
+    sslStatus?: StringFilter<"VerifiedDomain"> | string
     createdAt?: DateTimeFilter<"VerifiedDomain"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }, "id" | "organizationId_domain">
@@ -84676,6 +84727,9 @@ export namespace Prisma {
     domain?: SortOrder
     verificationToken?: SortOrder
     verifiedAt?: SortOrderInput | SortOrder
+    redirectWww?: SortOrder
+    wildcardEnabled?: SortOrder
+    sslStatus?: SortOrder
     createdAt?: SortOrder
     _count?: VerifiedDomainCountOrderByAggregateInput
     _max?: VerifiedDomainMaxOrderByAggregateInput
@@ -84691,6 +84745,9 @@ export namespace Prisma {
     domain?: StringWithAggregatesFilter<"VerifiedDomain"> | string
     verificationToken?: StringWithAggregatesFilter<"VerifiedDomain"> | string
     verifiedAt?: DateTimeNullableWithAggregatesFilter<"VerifiedDomain"> | Date | string | null
+    redirectWww?: BoolWithAggregatesFilter<"VerifiedDomain"> | boolean
+    wildcardEnabled?: BoolWithAggregatesFilter<"VerifiedDomain"> | boolean
+    sslStatus?: StringWithAggregatesFilter<"VerifiedDomain"> | string
     createdAt?: DateTimeWithAggregatesFilter<"VerifiedDomain"> | Date | string
   }
 
@@ -89456,6 +89513,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutDomainsInput
   }
@@ -89466,6 +89526,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
   }
 
@@ -89474,6 +89537,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutDomainsNestedInput
   }
@@ -89484,6 +89550,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -89493,6 +89562,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
   }
 
@@ -89501,6 +89573,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -89510,6 +89585,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -93189,6 +93267,9 @@ export namespace Prisma {
     domain?: SortOrder
     verificationToken?: SortOrder
     verifiedAt?: SortOrder
+    redirectWww?: SortOrder
+    wildcardEnabled?: SortOrder
+    sslStatus?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -93198,6 +93279,9 @@ export namespace Prisma {
     domain?: SortOrder
     verificationToken?: SortOrder
     verifiedAt?: SortOrder
+    redirectWww?: SortOrder
+    wildcardEnabled?: SortOrder
+    sslStatus?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -93207,6 +93291,9 @@ export namespace Prisma {
     domain?: SortOrder
     verificationToken?: SortOrder
     verifiedAt?: SortOrder
+    redirectWww?: SortOrder
+    wildcardEnabled?: SortOrder
+    sslStatus?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -100954,6 +101041,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
   }
 
@@ -100962,6 +101052,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
   }
 
@@ -101661,6 +101754,9 @@ export namespace Prisma {
     domain?: StringFilter<"VerifiedDomain"> | string
     verificationToken?: StringFilter<"VerifiedDomain"> | string
     verifiedAt?: DateTimeNullableFilter<"VerifiedDomain"> | Date | string | null
+    redirectWww?: BoolFilter<"VerifiedDomain"> | boolean
+    wildcardEnabled?: BoolFilter<"VerifiedDomain"> | boolean
+    sslStatus?: StringFilter<"VerifiedDomain"> | string
     createdAt?: DateTimeFilter<"VerifiedDomain"> | Date | string
   }
 
@@ -115039,6 +115135,9 @@ export namespace Prisma {
     domain: string
     verificationToken: string
     verifiedAt?: Date | string | null
+    redirectWww?: boolean
+    wildcardEnabled?: boolean
+    sslStatus?: string
     createdAt?: Date | string
   }
 
@@ -115587,6 +115686,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -115595,6 +115697,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -115603,6 +115708,9 @@ export namespace Prisma {
     domain?: StringFieldUpdateOperationsInput | string
     verificationToken?: StringFieldUpdateOperationsInput | string
     verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    redirectWww?: BoolFieldUpdateOperationsInput | boolean
+    wildcardEnabled?: BoolFieldUpdateOperationsInput | boolean
+    sslStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
