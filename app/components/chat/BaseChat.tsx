@@ -96,6 +96,7 @@ const IDE_MANAGEMENT_PANELS = [
   'extensions',
   'integrations',
   'workflows',
+  'debugger',
   'deployments',
   'security',
   'env',
@@ -131,6 +132,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   extensions: 'Marketplace',
   integrations: 'Connected services',
   workflows: 'Task automation',
+  debugger: 'Breakpoints and launch configs',
   deployments: 'Publish your app',
   security: 'Security scanner',
   env: 'Environment variables',
@@ -4991,7 +4993,7 @@ function ProjectBottomTerminal({
         ) : active === 'problems' ? (
           <ProjectIdeServicePanel projectId={projectId} panel="activity" />
         ) : (
-          <ProjectIdeServicePanel projectId={projectId} panel="monitoring" />
+          <ProjectIdeServicePanel projectId={projectId} panel="debugger" />
         )}
       </div>
     </section>
@@ -5741,6 +5743,7 @@ function IdeTabBar({
       'Project',
     ],
     ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
+    ['debugger', 'Debugger', 'Breakpoints and launch configs', 'i-ph:bug', 'var(--vc-ide-accent-action)', 'Project'],
     [
       'deployments',
       'Deployments',
@@ -6208,6 +6211,10 @@ function ProjectIdePanelContent({
 
   if (panel === 'logs') {
     return <ProjectLogsPanel data={data} reload={reload} busy={busy} />;
+  }
+
+  if (panel === 'debugger') {
+    return <ProjectDebuggerPanel data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
 
   if (panel === 'snapshots') {
@@ -10264,6 +10271,271 @@ function renderSecurityReportHtml(report: any) {
     </html>`;
 }
 
+function ProjectDebuggerPanel({
+  data,
+  onSubmit,
+  busy,
+  reload,
+}: {
+  data: any;
+  onSubmit: any;
+  busy: boolean;
+  reload?: () => void | Promise<void>;
+}) {
+  const state = data.debuggerState ?? {};
+  const launchConfigs = state.launchConfigs ?? [];
+  const breakpoints = state.breakpoints ?? [];
+  const watches = state.watches ?? [];
+  const sessions = state.sessions ?? [];
+  const activeSession = sessions.find((session: any) => session.status === 'paused') ?? sessions[0];
+  const processes = data.runtimeProcesses?.processes ?? data.runtimeProcesses ?? [];
+  const logs = data.runtimeLogs?.logs ?? [];
+
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          ['Launch configs', launchConfigs.length],
+          ['Breakpoints', breakpoints.filter((breakpoint: any) => breakpoint.enabled !== false).length],
+          ['Watch expressions', watches.filter((watch: any) => watch.enabled !== false).length],
+          ['Runtime processes', Array.isArray(processes) ? processes.length : 0],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">{label}</div>
+            <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="grid gap-4">
+          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Debug sessions</h3>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  Launches run in the real workspace runtime. Paused frames, variables and stepping appear when the
+                  configured adapter reports a paused state.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+                onClick={() => void reload?.()}
+                disabled={busy}
+              >
+                Refresh runtime
+              </button>
+            </div>
+            <div className="grid gap-2">
+              {sessions.length ? (
+                sessions.map((session: any) => (
+                  <div
+                    key={session.id}
+                    className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">
+                          {session.name}
+                        </div>
+                        <div className="mt-1 truncate font-mono text-xs text-bolt-elements-textSecondary">
+                          {session.command}
+                        </div>
+                      </div>
+                      <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+                        {session.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {['continue', 'step-over', 'step-into', 'step-out'].map((action) => (
+                        <button
+                          key={action}
+                          type="button"
+                          disabled={session.status !== 'paused'}
+                          className="h-8 rounded border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary disabled:opacity-50"
+                          title="Stepping is enabled when a debug adapter reports a paused frame."
+                        >
+                          {action.replace('-', ' ')}
+                        </button>
+                      ))}
+                      {session.status === 'running' && (
+                        <form onSubmit={onSubmit}>
+                          <input name="intent" value="stop-session" type="hidden" />
+                          <input name="sessionId" value={session.id} type="hidden" />
+                          <PanelButton disabled={busy} variant="outline">
+                            Stop
+                          </PanelButton>
+                        </form>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-bolt-elements-textSecondary">No debug session has been launched yet.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Breakpoints</h3>
+              <div className="mt-3 grid gap-2">
+                {breakpoints.length ? (
+                  breakpoints.map((breakpoint: any) => (
+                    <div
+                      key={breakpoint.id}
+                      className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="truncate font-mono text-xs text-bolt-elements-textPrimary">
+                            {breakpoint.filePath}:{breakpoint.line}
+                          </div>
+                          {breakpoint.condition || breakpoint.hitCondition || breakpoint.logMessage ? (
+                            <div className="mt-1 text-xs text-bolt-elements-textSecondary">
+                              {breakpoint.condition ? `if ${breakpoint.condition}` : null}
+                              {breakpoint.hitCondition ? ` hit ${breakpoint.hitCondition}` : null}
+                              {breakpoint.logMessage ? ` log ${breakpoint.logMessage}` : null}
+                            </div>
+                          ) : null}
+                        </div>
+                        <form onSubmit={onSubmit}>
+                          <input name="intent" value="delete-breakpoint" type="hidden" />
+                          <input name="breakpointId" value={breakpoint.id} type="hidden" />
+                          <PanelButton disabled={busy} variant="outline">
+                            Remove
+                          </PanelButton>
+                        </form>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-bolt-elements-textSecondary">No breakpoints configured.</div>
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Call stack and variables</h3>
+              {activeSession?.status === 'paused' ? (
+                <div className="mt-3 grid gap-2">
+                  <PanelRows rows={activeSession.callStack ?? []} empty="No stack frames reported by adapter." />
+                  <PanelRows rows={activeSession.variables ?? []} empty="No variables reported by adapter." />
+                </div>
+              ) : (
+                <div className="mt-3 rounded-md border border-dashed border-bolt-elements-borderColor p-4 text-sm text-bolt-elements-textSecondary">
+                  No paused frame. Start a launch configuration with inspector/debugpy and pause on a breakpoint to
+                  populate stack frames, scopes and variables.
+                </div>
+              )}
+            </section>
+          </div>
+        </section>
+
+        <aside className="grid content-start gap-4">
+          <form
+            onSubmit={onSubmit}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="start-session" type="hidden" />
+            <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+              Launch configuration
+              <select
+                name="configId"
+                className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              >
+                {launchConfigs.map((config: any) => (
+                  <option key={config.id} value={config.id}>
+                    {config.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <PanelButton disabled={busy || !launchConfigs.length}>Start debugging</PanelButton>
+          </form>
+
+          <form
+            onSubmit={onSubmit}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="save-config" type="hidden" />
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">launch.json config</h3>
+            <PanelInput name="name" placeholder="Node inspector: app" required />
+            <PanelInput name="command" placeholder="npm run dev" />
+            <PanelInput name="program" placeholder="src/server.ts" />
+            <PanelInput name="args" placeholder="--port 3000" />
+            <PanelInput name="env" placeholder="DEBUG=app:*" />
+            <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+              <input name="stopOnEntry" value="true" type="checkbox" />
+              Stop on entry
+            </label>
+            <PanelButton disabled={busy}>Save config</PanelButton>
+          </form>
+
+          <form
+            onSubmit={onSubmit}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="add-breakpoint" type="hidden" />
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Conditional breakpoint</h3>
+            <PanelInput name="filePath" placeholder="src/App.tsx" required />
+            <PanelInput name="line" type="number" min="1" placeholder="42" required />
+            <PanelInput name="condition" placeholder="user.id === targetId" />
+            <PanelInput name="hitCondition" placeholder=">= 5" />
+            <PanelInput name="logMessage" placeholder="user={user.id}" />
+            <PanelButton disabled={busy}>Add breakpoint</PanelButton>
+          </form>
+
+          <form
+            onSubmit={onSubmit}
+            className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
+          >
+            <input name="intent" value="add-watch" type="hidden" />
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Watch expressions</h3>
+            <PanelInput name="expression" placeholder="request.user" required />
+            <PanelButton disabled={busy}>Add watch</PanelButton>
+          </form>
+
+          {watches.length ? (
+            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Watch list</h3>
+              <div className="mt-3 grid gap-2">
+                {watches.map((watch: any) => (
+                  <div key={watch.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate font-mono text-bolt-elements-textPrimary">{watch.expression}</span>
+                    <form onSubmit={onSubmit}>
+                      <input name="intent" value="delete-watch" type="hidden" />
+                      <input name="watchId" value={watch.id} type="hidden" />
+                      <PanelButton disabled={busy} variant="outline">
+                        Remove
+                      </PanelButton>
+                    </form>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {logs.length ? (
+            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Runtime output</h3>
+              <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
+                {logs.slice(-12).map((log: any, index: number) => (
+                  <div key={`${log.timestamp}-${index}`}>{log.message}</div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {
   const [cleared, setCleared] = useState(false);
   const [split, setSplit] = useState(false);
@@ -11145,6 +11417,7 @@ function panelTitle(panel: string) {
     extensions: 'Extensions',
     integrations: 'Integrations',
     workflows: 'Workflows',
+    debugger: 'Debugger',
     files: 'Files',
     search: 'Search',
     locks: 'Locks',
@@ -11180,6 +11453,7 @@ function panelIcon(panel: string) {
     extensions: 'i-ph:puzzle-piece',
     integrations: 'i-ph:plugs-connected',
     workflows: 'i-ph:git-branch',
+    debugger: 'i-ph:bug',
     files: 'i-ph:files',
     search: 'i-ph:magnifying-glass',
     locks: 'i-ph:lock',

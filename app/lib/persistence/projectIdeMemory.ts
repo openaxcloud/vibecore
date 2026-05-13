@@ -16,6 +16,7 @@ export type ProjectIdeWorkspacePanel =
   | 'extensions'
   | 'integrations'
   | 'workflows'
+  | 'debugger'
   | 'deployments'
   | 'security'
   | 'env'

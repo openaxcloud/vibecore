@@ -94,6 +94,7 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   extensions: (projectId) => `/projects/${projectId}/dashboard`,
   integrations: (projectId) => `/projects/${projectId}/env-vars`,
   workflows: (projectId) => `/projects/${projectId}/env-vars`,
+  debugger: (projectId) => `/projects/${projectId}/env-vars`,
   security: (projectId) => `/projects/${projectId}/activity`,
   terminal: (projectId) => `/projects/${projectId}/dashboard`,
   deployments: (projectId) => `/projects/${projectId}/deployments`,
@@ -211,6 +212,49 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
           ...(secrets as any),
           ...(snapshots as any),
           ...(schema as any),
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
+  if (panel === 'debugger') {
+    try {
+      const [dashboard, envVars, activity] = await Promise.all([
+        apiRequest<any>(request, `/projects/${projectId}/dashboard`),
+        apiRequest(request, `/projects/${projectId}/env-vars`),
+        apiRequest(request, `/projects/${projectId}/activity`),
+      ]);
+
+      const workspaceId = dashboard?.workspace?.id ?? projectId;
+
+      const [runtimeStatus, runtimeProcesses, runtimeLogs] = await Promise.all([
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
+          error: panelErrorMessage(error),
+        })),
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
+          error: panelErrorMessage(error),
+          processes: [],
+        })),
+        apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
+          (error) => ({
+            error: panelErrorMessage(error),
+            logs: [],
+          }),
+        ),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(dashboard as any),
+          ...(envVars as any),
+          ...(activity as any),
+          workspaceId,
+          runtimeStatus,
+          runtimeProcesses,
+          runtimeLogs,
+          debuggerState: readDebuggerState(envVars),
         }),
       );
     } catch (error) {
@@ -596,6 +640,128 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
       });
     }
+  } else if (panel === 'debugger') {
+    const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
+    const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
+    const workspaceId = dashboard?.workspace?.id ?? projectId;
+    const state = readDebuggerState(envVars);
+    const now = new Date().toISOString();
+
+    if (intent === 'save-config') {
+      const config = normalizeLaunchConfig({
+        id: body.configId || randomUUID(),
+        name: body.name,
+        type: body.type,
+        request: body.request,
+        command: body.command,
+        program: body.program,
+        cwd: body.cwd,
+        args: parseDebugArgs(body.args ?? ''),
+        env: parseEnvVars(body.env ?? ''),
+        stopOnEntry: body.stopOnEntry === 'true',
+      });
+      state.launchConfigs = [
+        config,
+        ...state.launchConfigs.filter((candidate: any) => candidate.id !== config.id),
+      ].slice(0, 20);
+    } else if (intent === 'delete-config') {
+      state.launchConfigs = state.launchConfigs.filter((config: any) => config.id !== body.configId);
+    } else if (intent === 'add-breakpoint') {
+      const breakpoint = normalizeBreakpoint({
+        id: body.breakpointId || randomUUID(),
+        filePath: body.filePath,
+        line: Number(body.line),
+        column: body.column ? Number(body.column) : undefined,
+        enabled: body.enabled !== 'false',
+        condition: body.condition,
+        hitCondition: body.hitCondition,
+        logMessage: body.logMessage,
+      });
+      state.breakpoints = [
+        breakpoint,
+        ...state.breakpoints.filter((candidate: any) => candidate.id !== breakpoint.id),
+      ].slice(0, 200);
+    } else if (intent === 'toggle-breakpoint') {
+      state.breakpoints = state.breakpoints.map((breakpoint: any) =>
+        breakpoint.id === body.breakpointId ? { ...breakpoint, enabled: body.enabled === 'true' } : breakpoint,
+      );
+    } else if (intent === 'delete-breakpoint') {
+      state.breakpoints = state.breakpoints.filter((breakpoint: any) => breakpoint.id !== body.breakpointId);
+    } else if (intent === 'add-watch') {
+      const watch = normalizeWatchExpression({
+        id: body.watchId || randomUUID(),
+        expression: body.expression,
+        enabled: body.enabled !== 'false',
+      });
+      state.watches = [watch, ...state.watches.filter((candidate: any) => candidate.id !== watch.id)].slice(0, 80);
+    } else if (intent === 'delete-watch') {
+      state.watches = state.watches.filter((watch: any) => watch.id !== body.watchId);
+    } else if (intent === 'start-session') {
+      const config =
+        state.launchConfigs.find((candidate: any) => candidate.id === body.configId) ?? state.launchConfigs[0];
+
+      if (!config) {
+        throw json({ error: 'Create a launch configuration before starting the debugger.' }, { status: 400 });
+      }
+
+      const sessionId = randomUUID();
+      const command = buildDebugLaunchCommand(config);
+      const wrapper = `mkdir -p .vibecore/debug && nohup sh -lc ${shellQuote(command)} > .vibecore/debug/${sessionId}.log 2>&1 & echo $!`;
+
+      const result = await apiRequest<{ output?: string; exitCode?: number }>(
+        request,
+        `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ command: 'sh', args: ['-lc', wrapper], timeoutMs: 15_000 }),
+        },
+      );
+      const processId =
+        String(result.output ?? '')
+          .trim()
+          .split(/\s+/)
+          .pop() || undefined;
+
+      state.sessions = [
+        {
+          id: sessionId,
+          configId: config.id,
+          name: config.name,
+          status: result.exitCode && result.exitCode !== 0 ? 'failed' : 'running',
+          adapter: 'runtime-command',
+          command,
+          workspaceId,
+          processId,
+          startedAt: now,
+          updatedAt: now,
+          callStack: [],
+          variables: [],
+          lastOutput: result.output ?? '',
+        },
+        ...state.sessions,
+      ].slice(0, 20);
+    } else if (intent === 'stop-session') {
+      const session = state.sessions.find((candidate: any) => candidate.id === body.sessionId);
+
+      if (session?.processId) {
+        await apiRequest(
+          request,
+          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes/${encodeURIComponent(session.processId)}/kill`,
+          { method: 'POST' },
+        ).catch(() => undefined);
+      }
+
+      state.sessions = state.sessions.map((candidate: any) =>
+        candidate.id === body.sessionId
+          ? { ...candidate, status: 'stopped', stoppedAt: now, updatedAt: now, lastAction: 'stop' }
+          : candidate,
+      );
+    }
+
+    await apiRequest(request, `/projects/${projectId}/env-vars`, {
+      method: 'PUT',
+      body: JSON.stringify({ key: DEBUGGER_STATE_ENV_KEY, value: JSON.stringify(normalizeDebuggerState(state)) }),
+    });
   } else if (panel === 'collaborators') {
     if (intent === 'comment') {
       await apiRequest(request, `/projects/${projectId}/collaboration/comments`, {
@@ -1557,6 +1723,7 @@ function integrationSecretKey(integrationId: string) {
 
 const TERMINAL_STATE_ENV_KEY = 'VIBECORE_TERMINAL_STATE';
 const PACKAGES_STATE_ENV_KEY = 'VIBECORE_PACKAGES_STATE';
+const DEBUGGER_STATE_ENV_KEY = 'VIBECORE_DEBUGGER_STATE';
 
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
@@ -1603,6 +1770,155 @@ function parsePackageList(value: string) {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 20);
+}
+
+function defaultDebuggerState() {
+  return {
+    launchConfigs: [
+      normalizeLaunchConfig({
+        id: 'node-inspector-dev',
+        name: 'Node inspector: development server',
+        type: 'node',
+        request: 'launch',
+        command: 'npm run dev',
+        cwd: '.',
+        stopOnEntry: false,
+      }),
+    ],
+    breakpoints: [],
+    watches: [],
+    sessions: [],
+  };
+}
+
+function readDebuggerState(envVarsResponse: unknown) {
+  const envVars = (envVarsResponse as any)?.envVars ?? [];
+  const raw = envVars.find((item: any) => item.key === DEBUGGER_STATE_ENV_KEY)?.value;
+
+  if (typeof raw !== 'string' || !raw.trim()) {
+    return defaultDebuggerState();
+  }
+
+  try {
+    return normalizeDebuggerState(JSON.parse(raw));
+  } catch {
+    return defaultDebuggerState();
+  }
+}
+
+function normalizeDebuggerState(input: any) {
+  const fallback = defaultDebuggerState();
+
+  const launchConfigs = Array.isArray(input?.launchConfigs)
+    ? input.launchConfigs.map(normalizeLaunchConfig).slice(0, 20)
+    : fallback.launchConfigs;
+
+  return {
+    launchConfigs: launchConfigs.length ? launchConfigs : fallback.launchConfigs,
+    breakpoints: Array.isArray(input?.breakpoints) ? input.breakpoints.map(normalizeBreakpoint).slice(0, 200) : [],
+    watches: Array.isArray(input?.watches) ? input.watches.map(normalizeWatchExpression).slice(0, 80) : [],
+    sessions: Array.isArray(input?.sessions) ? input.sessions.map(normalizeDebugSession).slice(0, 20) : [],
+  };
+}
+
+function normalizeLaunchConfig(input: any) {
+  return {
+    id: String(input?.id || randomUUID()),
+    name: String(input?.name || 'Debug configuration').slice(0, 120),
+    type: ['node', 'python', 'shell', 'browser'].includes(input?.type) ? input.type : 'node',
+    request: input?.request === 'attach' ? 'attach' : 'launch',
+    command: typeof input?.command === 'string' ? input.command.trim().slice(0, 800) : '',
+    program: typeof input?.program === 'string' ? input.program.trim().slice(0, 240) : '',
+    cwd: typeof input?.cwd === 'string' && input.cwd.trim() ? input.cwd.trim().slice(0, 240) : '.',
+    args: Array.isArray(input?.args) ? input.args.map((arg: any) => String(arg).slice(0, 240)).slice(0, 32) : [],
+    env: input?.env && typeof input.env === 'object' && !Array.isArray(input.env) ? input.env : {},
+    stopOnEntry: Boolean(input?.stopOnEntry),
+  };
+}
+
+function normalizeBreakpoint(input: any) {
+  return {
+    id: String(input?.id || randomUUID()),
+    filePath: String(input?.filePath || 'src/App.tsx').slice(0, 240),
+    line: Math.max(1, Math.floor(Number(input?.line) || 1)),
+    column: input?.column ? Math.max(1, Math.floor(Number(input.column) || 1)) : undefined,
+    enabled: input?.enabled !== false,
+    condition: typeof input?.condition === 'string' ? input.condition.trim().slice(0, 500) : '',
+    hitCondition: typeof input?.hitCondition === 'string' ? input.hitCondition.trim().slice(0, 120) : '',
+    logMessage: typeof input?.logMessage === 'string' ? input.logMessage.trim().slice(0, 500) : '',
+  };
+}
+
+function normalizeWatchExpression(input: any) {
+  return {
+    id: String(input?.id || randomUUID()),
+    expression: String(input?.expression || '')
+      .trim()
+      .slice(0, 500),
+    enabled: input?.enabled !== false,
+  };
+}
+
+function normalizeDebugSession(input: any) {
+  return {
+    id: String(input?.id || randomUUID()),
+    configId: String(input?.configId || ''),
+    name: String(input?.name || 'Debug session').slice(0, 120),
+    status: ['running', 'paused', 'stopped', 'failed'].includes(input?.status) ? input.status : 'stopped',
+    adapter: String(input?.adapter || 'runtime-command'),
+    command: String(input?.command || '').slice(0, 800),
+    workspaceId: String(input?.workspaceId || ''),
+    processId: input?.processId ? String(input.processId) : undefined,
+    startedAt: input?.startedAt ? String(input.startedAt) : undefined,
+    stoppedAt: input?.stoppedAt ? String(input.stoppedAt) : undefined,
+    updatedAt: input?.updatedAt ? String(input.updatedAt) : undefined,
+    lastAction: input?.lastAction ? String(input.lastAction) : undefined,
+    lastOutput: input?.lastOutput ? String(input.lastOutput).slice(0, 4000) : '',
+    callStack: Array.isArray(input?.callStack) ? input.callStack.slice(0, 100) : [],
+    variables: Array.isArray(input?.variables) ? input.variables.slice(0, 200) : [],
+  };
+}
+
+function parseDebugArgs(value: string) {
+  return value
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 32);
+}
+
+function buildDebugLaunchCommand(config: any) {
+  if (config.command) {
+    return config.command;
+  }
+
+  const args = (config.args ?? []).map(shellQuote).join(' ');
+
+  if (config.type === 'python') {
+    if (!config.program) {
+      throw json({ error: 'Python launch requires a program path or command.' }, { status: 400 });
+    }
+
+    return `python -m debugpy --listen 0.0.0.0:5678 ${config.stopOnEntry ? '--wait-for-client ' : ''}${shellQuote(
+      config.program,
+    )}${args ? ` ${args}` : ''}`;
+  }
+
+  if (config.type === 'shell') {
+    if (!config.program) {
+      throw json({ error: 'Shell launch requires a program path or command.' }, { status: 400 });
+    }
+
+    return `${shellQuote(config.program)}${args ? ` ${args}` : ''}`;
+  }
+
+  if (!config.program) {
+    throw json({ error: 'Node launch requires a program path or command.' }, { status: 400 });
+  }
+
+  return `node ${config.stopOnEntry ? '--inspect-brk=0.0.0.0:9229' : '--inspect=0.0.0.0:9229'} ${shellQuote(
+    config.program,
+  )}${args ? ` ${args}` : ''}`;
 }
 
 function packageRunName(intent: string, packageManager: ProjectPackageManager) {
