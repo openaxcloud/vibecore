@@ -237,6 +237,36 @@ const PROJECT_AGENT_EXECUTION_MODES: Array<{
   },
 ];
 
+type ProjectAgentPublicMode = 'agent' | 'assistant';
+
+const PROJECT_AGENT_PUBLIC_MODES: Array<{
+  id: ProjectAgentPublicMode;
+  label: string;
+  description: string;
+  execution: ProjectAgentExecutionMode;
+}> = [
+  {
+    id: 'agent',
+    label: 'Agent',
+    description: 'Autonomously edits files and runs commands. Plan first will require your approval.',
+    execution: 'agent',
+  },
+  {
+    id: 'assistant',
+    label: 'Assistant',
+    description: 'Conversational — answers questions and proposes scoped edits but waits for your go.',
+    execution: 'ask',
+  },
+];
+
+function publicModeForExecution(execution: ProjectAgentExecutionMode): ProjectAgentPublicMode {
+  if (execution === 'agent' || execution === 'architect') {
+    return 'agent';
+  }
+
+  return 'assistant';
+}
+
 const INTEGRATION_CATALOG = [
   ['github', 'GitHub', 'Connect repositories for code sync and CI/CD.', 'cicd', 'i-ph:github-logo'],
   ['slack', 'Slack', 'Send build, deploy and incident notifications to channels.', 'communication', 'i-ph:slack-logo'],
@@ -1302,6 +1332,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       imageDataList = [],
       setImageDataList,
       messages,
+      description,
       actionAlert,
       clearAlert,
       deployAlert,
@@ -3966,37 +3997,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <div className="bolt-project-agent-avatar" aria-hidden>
               <span className="i-ph:sparkle" />
             </div>
-            <span className="bolt-project-agent-title">Agent</span>
-            <div className="bolt-project-agent-mode" role="group" aria-label="Agent mode">
-              {PROJECT_AGENT_EXECUTION_MODES.map((mode) => (
-                <HeaderTip key={mode.id} label={mode.description}>
-                  <button
-                    type="button"
-                    aria-pressed={projectAgentExecutionMode === mode.id}
-                    onClick={() => {
-                      setProjectAgentExecutionMode(mode.id);
-                      setChatMode?.(mode.chatMode);
-                    }}
-                  >
-                    {mode.label}
-                  </button>
-                </HeaderTip>
-              ))}
-            </div>
-            <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
-              <label className="bolt-project-agent-plan-first" data-active={projectPlanFirst ? 'true' : 'false'}>
-                <input
-                  type="checkbox"
-                  checked={projectPlanFirst}
-                  onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
-                  aria-label="Plan first"
-                />
-                <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                  <span className="bolt-project-agent-plan-first-thumb" />
-                </span>
-                <span className="bolt-project-agent-plan-first-label">Plan first</span>
-              </label>
-            </HeaderTip>
+            <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
+              {description?.trim() || 'New chat'}
+            </span>
             <div className="ml-auto flex items-center gap-1">
               <HeaderTip label="Switch light / dark theme">
                 <ThemeSwitch size="lg" title="" className="bolt-project-ide-icon-button" iconClassName="text-[14px]" />
@@ -4033,6 +4036,66 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </HeaderTip>
             </div>
           </div>
+          {(() => {
+            const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
+
+            const activeMode =
+              PROJECT_AGENT_PUBLIC_MODES.find((mode) => mode.id === activePublicMode) ?? PROJECT_AGENT_PUBLIC_MODES[0];
+
+            return (
+              <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
+                <div
+                  className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
+                  role="tablist"
+                  aria-label="Agent mode"
+                >
+                  {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
+                    const isActive = activePublicMode === mode.id;
+
+                    return (
+                      <HeaderTip key={mode.id} label={mode.description}>
+                        <button
+                          type="button"
+                          role="tab"
+                          aria-pressed={isActive}
+                          aria-selected={isActive}
+                          onClick={() => {
+                            const execution = PROJECT_AGENT_EXECUTION_MODES.find(
+                              (entry) => entry.id === mode.execution,
+                            );
+                            setProjectAgentExecutionMode(mode.execution);
+                            setChatMode?.(execution?.chatMode ?? 'build');
+                          }}
+                        >
+                          {mode.label}
+                        </button>
+                      </HeaderTip>
+                    );
+                  })}
+                </div>
+                <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
+                  <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
+                    <label className="bolt-project-agent-plan-first" data-active={projectPlanFirst ? 'true' : 'false'}>
+                      <input
+                        type="checkbox"
+                        checked={projectPlanFirst}
+                        onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
+                        aria-label="Plan first"
+                      />
+                      <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                        <span className="bolt-project-agent-plan-first-thumb" />
+                      </span>
+                      <span className="bolt-project-agent-plan-first-label">Plan first</span>
+                    </label>
+                  </HeaderTip>
+                </div>
+                <p className="bolt-project-agent-mode-description">
+                  {activeMode.description}
+                  {projectPlanFirst ? ' Plan first is on — the agent will draft a plan and wait for approval.' : ''}
+                </p>
+              </div>
+            );
+          })()}
           {conversationHistoryOpen && (
             <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
               <div className="bolt-project-conversation-history-head">
