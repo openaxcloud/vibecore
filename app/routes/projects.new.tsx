@@ -908,7 +908,7 @@ export default function NewProjectPage() {
                           : 'Static provider fallback'}
                       </span>
                     </div>
-                    <div className="vc-create-divider grid gap-3 border-t px-3 py-3 lg:grid-cols-[minmax(180px,0.8fr)_minmax(260px,1.2fr)_auto] lg:items-end">
+                    <div className="vc-create-divider grid gap-3 border-t px-3 py-3 md:grid-cols-2 md:items-end">
                       <label className="block min-w-0">
                         <span className="vc-create-label mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px]">
                           <ActiveProviderIcon className="h-3 w-3" aria-hidden />
@@ -946,7 +946,7 @@ export default function NewProjectPage() {
                       <button
                         type="submit"
                         disabled={isSubmitting || !prompt.trim()}
-                        className="vc-create-submit inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-[12px] font-semibold transition-[filter,opacity] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-[var(--vc-ide-bg-panel)] disabled:cursor-not-allowed disabled:opacity-40 lg:justify-self-end"
+                        className="vc-create-submit inline-flex h-11 items-center justify-center gap-2 rounded-lg px-5 text-[12px] font-semibold transition-[filter,opacity] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-[var(--vc-ide-bg-panel)] disabled:cursor-not-allowed disabled:opacity-40 md:col-span-2"
                       >
                         {isSubmitting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
