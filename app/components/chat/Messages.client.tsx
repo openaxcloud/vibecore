@@ -21,6 +21,7 @@ interface MessagesProps {
   setChatMode?: (mode: 'discuss' | 'build') => void;
   model?: string;
   provider?: ProviderInfo;
+  projectIdeMode?: boolean;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
@@ -56,7 +57,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const { role, content, id: messageId, annotations, parts } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = annotations?.includes('hidden') || role === 'system';
               const rowKey = messageId ?? `${role}-${index}`;
 
               if (isHidden) {

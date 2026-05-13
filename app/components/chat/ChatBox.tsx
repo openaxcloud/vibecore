@@ -69,6 +69,12 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const settingsToggleTitle = props.projectIdeMode
+    ? props.isModelSettingsCollapsed
+      ? 'Show agent settings'
+      : 'Hide agent settings'
+    : 'Model Settings';
+
   return (
     <div
       className={classNames(
@@ -165,6 +171,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             selected for inspection
           </div>
           <button
+            type="button"
+            aria-label="Clear selected inspected element"
             className="bg-transparent text-accent-500 pointer-auto"
             onClick={() => props.setSelectedElement?.(null)}
           >
@@ -297,7 +305,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               onStop={props.stopListening}
               disabled={props.isStreaming}
             />
-            {props.chatStarted && (
+            {props.chatStarted && !props.projectIdeMode && (
               <IconButton
                 title="Discuss"
                 className={classNames(
@@ -315,7 +323,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               </IconButton>
             )}
             <IconButton
-              title="Model Settings"
+              title={settingsToggleTitle}
               className={classNames('transition-all flex items-center gap-1', {
                 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
                   props.isModelSettingsCollapsed,
@@ -326,7 +334,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               disabled={!props.providerList || props.providerList.length === 0}
             >
               <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-              {props.isModelSettingsCollapsed ? <span className="text-xs">{props.model}</span> : <span />}
+              {props.isModelSettingsCollapsed && !props.projectIdeMode ? (
+                <span className="text-xs">{props.model}</span>
+              ) : (
+                <span className="sr-only">{settingsToggleTitle}</span>
+              )}
             </IconButton>
           </div>
           {props.input.length > 3 ? (

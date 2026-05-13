@@ -968,7 +968,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
-    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
+    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
@@ -2511,6 +2511,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     setChatMode={setChatMode}
                     provider={provider}
                     model={model}
+                    projectIdeMode={projectIdeMode}
                     addToolResult={addToolResult}
                   />
                 ) : null;
@@ -2588,7 +2589,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <button
                     key={suggestion.id}
                     type="button"
-                    title={suggestion.reason}
+                    title={`${suggestion.label}: ${suggestion.reason}`}
+                    aria-label={`${suggestion.label}. ${suggestion.reason}`}
                     onClick={(event) => handleProjectAgentSendMessage(event, suggestion.prompt)}
                     disabled={isStreaming}
                   >
