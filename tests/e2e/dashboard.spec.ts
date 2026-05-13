@@ -36,7 +36,6 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
 
   await page.keyboard.press('Escape').catch(() => {});
   await expect(trigger).toBeVisible({ timeout: 15_000 });
-  await trigger.scrollIntoViewIfNeeded();
   await trigger.click({ force: true });
 
   const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
