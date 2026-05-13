@@ -4,7 +4,6 @@ import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/re
 import {
   BarChart3,
   CheckCircle,
-  ChevronDown,
   Code2,
   Cog,
   FileText,
@@ -30,8 +29,9 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from '~/components/ui';
 import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
 import {
   apiRequest,
@@ -308,108 +308,41 @@ function CreateDropdown({
   loading?: boolean;
   testId?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
   const SelectedIcon = selected?.icon;
 
-  const filteredOptions = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    if (!normalizedQuery) {
-      return options;
-    }
-
-    return options.filter((option) =>
-      [option.label, option.value, option.description, option.meta]
-        .filter(Boolean)
-        .some((part) => part!.toLowerCase().includes(normalizedQuery)),
-    );
-  }, [options, query]);
-
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-
-    return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      setQuery('');
-    }
-  }, [open]);
-
   return (
-    <div ref={containerRef} className="vc-create-dropdown relative" data-testid={testId}>
-      <button
-        type="button"
-        disabled={disabled || options.length === 0}
-        className="vc-create-dropdown-trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={label}
-        onClick={() => setOpen((current) => !current)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') {
-            setOpen(false);
-          }
-        }}
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          {loading ? (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--vc-ide-accent-action)]" aria-hidden />
-          ) : SelectedIcon ? (
-            <SelectedIcon className="h-4 w-4 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
-          ) : null}
-          <span className="min-w-0">
-            <span className="block truncate text-[12px] font-semibold">{selected?.label ?? 'No option available'}</span>
-            {selected?.meta ? <span className="block truncate text-[10px]">{selected.meta}</span> : null}
+    <div className="vc-create-dropdown relative" data-testid={testId}>
+      <Select value={selected?.value ?? ''} onValueChange={onChange} disabled={disabled || options.length === 0}>
+        <SelectTrigger className="vc-create-dropdown-trigger" aria-label={label}>
+          <span className="flex min-w-0 items-center gap-2">
+            {loading ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--vc-ide-accent-action)]" aria-hidden />
+            ) : SelectedIcon ? (
+              <SelectedIcon className="h-4 w-4 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
+            ) : null}
+            <span className="min-w-0">
+              <span className="block truncate text-[12px] font-semibold">
+                {selected?.label ?? 'No option available'}
+              </span>
+              {selected?.meta ? <span className="block truncate text-[10px]">{selected.meta}</span> : null}
+            </span>
           </span>
-        </span>
-        <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />
-      </button>
+        </SelectTrigger>
 
-      {open ? (
-        <div className="vc-create-dropdown-menu" role="listbox" aria-label={`${label} options`}>
-          <div className="vc-create-dropdown-search">
-            <Search className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.currentTarget.value)}
-              placeholder={`Search ${label.toLowerCase()}...`}
-              className="min-w-0 flex-1 bg-transparent text-[12px] outline-none"
-              autoFocus
-            />
-          </div>
-          <div className="vc-create-dropdown-list">
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => {
+        <SelectContent className="vc-create-dropdown-content" aria-label={`${label} options`}>
+          <SelectGroup className="vc-create-dropdown-list">
+            {loading ? (
+              <div className="vc-create-dropdown-empty flex items-center justify-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                Syncing configured models
+              </div>
+            ) : options.length > 0 ? (
+              options.map((option) => {
                 const Icon = option.icon;
-                const selectedOption = option.value === value;
 
                 return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="option"
-                    aria-selected={selectedOption}
-                    className="vc-create-dropdown-option"
-                    onClick={() => {
-                      onChange(option.value);
-                      setOpen(false);
-                    }}
-                  >
+                  <SelectItem key={option.value} value={option.value} className="vc-create-dropdown-option">
                     {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-semibold">{option.label}</span>
@@ -418,16 +351,15 @@ function CreateDropdown({
                       ) : null}
                     </span>
                     {option.meta ? <span className="vc-create-dropdown-meta">{option.meta}</span> : null}
-                    {selectedOption ? <CheckCircle className="h-4 w-4 shrink-0" aria-hidden /> : null}
-                  </button>
+                  </SelectItem>
                 );
               })
             ) : (
               <div className="vc-create-dropdown-empty">No matching option</div>
             )}
-          </div>
-        </div>
-      ) : null}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
     </div>
   );
 }

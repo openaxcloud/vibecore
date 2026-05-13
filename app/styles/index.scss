@@ -1398,12 +1398,11 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-publish-button:hover {
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--vc-ide-accent-ai-start), white 8%) 0%,
-      color-mix(in srgb, var(--vc-ide-accent-action), white 8%) 100%
-    ) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--vc-ide-accent-ai-start), white 8%) 0%,
+    color-mix(in srgb, var(--vc-ide-accent-action), white 8%) 100%
+  ) !important;
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
@@ -2525,11 +2524,7 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: auto;
   padding: 12px;
   background:
-    linear-gradient(
-      90deg,
-      color-mix(in srgb, var(--vc-ide-border-visible), transparent 72%) 1px,
-      transparent 1px
-    ),
+    linear-gradient(90deg, color-mix(in srgb, var(--vc-ide-border-visible), transparent 72%) 1px, transparent 1px),
     linear-gradient(color-mix(in srgb, var(--vc-ide-border-visible), transparent 76%) 1px, transparent 1px),
     var(--vc-ide-bg-app);
   background-size: 24px 24px;
@@ -2999,8 +2994,16 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%), transparent 28%),
-    radial-gradient(circle at 86% 20%, color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 86%), transparent 30%),
+    radial-gradient(
+      circle at 18% 12%,
+      color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 86% 20%,
+      color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 86%),
+      transparent 30%
+    ),
     var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
   padding: 24px;
@@ -3013,8 +3016,16 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%), transparent 30%),
-    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%), transparent 30%),
+    radial-gradient(
+      circle at 50% 18%,
+      color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 18% 88%,
+      color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%),
+      transparent 30%
+    ),
     var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
   padding: 24px;
@@ -4411,8 +4422,7 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: space-between;
   gap: 8px;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), white 3%), var(--vc-ide-bg-panel));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), white 3%), var(--vc-ide-bg-panel));
   padding: 0 8px;
 }
 
@@ -5304,8 +5314,7 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-secondary) !important;
 }
 
-.bolt-project-ide-shell
-  :where(.bolt-project-tab[aria-selected='true'], .bolt-project-right-tab[aria-current='page']) {
+.bolt-project-ide-shell :where(.bolt-project-tab[aria-selected='true'], .bolt-project-right-tab[aria-current='page']) {
   background: var(--vc-ide-bg-app) !important;
   background-color: var(--vc-ide-bg-app) !important;
   color: var(--vc-ide-text-primary) !important;
@@ -6925,8 +6934,7 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-x: hidden;
   background:
     radial-gradient(circle at 18% 10%, rgba(249, 115, 22, 0.18), transparent 32rem),
-    radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.12), transparent 30rem),
-    var(--vc-public-bg);
+    radial-gradient(circle at 82% 8%, rgba(56, 189, 248, 0.12), transparent 30rem), var(--vc-public-bg);
   color: var(--vc-public-text);
 }
 
@@ -6966,8 +6974,7 @@ body :where(.lucide, svg[data-lucide]) {
   --vc-public-card-hover-shadow: rgba(15, 23, 42, 0.16);
   background:
     radial-gradient(circle at 18% 10%, rgba(180, 83, 9, 0.14), transparent 32rem),
-    radial-gradient(circle at 82% 8%, rgba(15, 118, 110, 0.1), transparent 30rem),
-    var(--vc-public-bg);
+    radial-gradient(circle at 82% 8%, rgba(15, 118, 110, 0.1), transparent 30rem), var(--vc-public-bg);
 }
 
 .vc-public-container {
@@ -7227,7 +7234,10 @@ body :where(.lucide, svg[data-lucide]) {
     linear-gradient(to bottom, var(--vc-public-hero-fade-start), var(--vc-public-bg)),
     linear-gradient(var(--vc-public-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--vc-public-grid-line) 1px, transparent 1px);
-  background-size: auto, 44px 44px, 44px 44px;
+  background-size:
+    auto,
+    44px 44px,
+    44px 44px;
   content: '';
 }
 
@@ -7874,12 +7884,8 @@ body :where(.lucide, svg[data-lucide]) {
   opacity: 0.55;
 }
 
-.vc-create-dropdown-menu {
-  position: absolute;
+.vc-create-dropdown-content {
   z-index: 70;
-  right: 0;
-  left: 0;
-  margin-top: 8px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 30%, var(--vc-create-border-strong));
   border-radius: 14px;
@@ -7887,25 +7893,6 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow:
     0 24px 64px color-mix(in srgb, var(--vc-ide-bg-app) 26%, transparent),
     0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action) 10%, transparent);
-}
-
-.vc-create-dropdown-search {
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid var(--vc-create-border);
-  background: color-mix(in srgb, var(--vc-create-card) 76%, transparent);
-  color: var(--vc-create-muted);
-  padding: 0 10px;
-}
-
-.vc-create-dropdown-search input {
-  color: var(--vc-create-text);
-}
-
-.vc-create-dropdown-search input::placeholder {
-  color: var(--vc-create-muted);
 }
 
 .vc-create-dropdown-list {
@@ -7923,7 +7910,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid transparent;
   border-radius: 10px;
   color: var(--vc-create-secondary);
-  padding: 8px 9px;
+  padding: 8px 9px 8px 34px;
   text-align: left;
   transition:
     background var(--vc-ui-transition-hover),
@@ -7940,7 +7927,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .vc-create-dropdown-option:hover,
-.vc-create-dropdown-option[aria-selected='true'] {
+.vc-create-dropdown-option[data-highlighted],
+.vc-create-dropdown-option[data-state='checked'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 30%, transparent);
   background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, var(--vc-create-card));
   color: var(--vc-create-text);
@@ -8222,8 +8210,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-home-cta {
   padding-block: 90px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 34%),
-    linear-gradient(135deg, #ea580c, #facc15);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 34%), linear-gradient(135deg, #ea580c, #facc15);
   color: var(--vc-public-cta-text);
 }
 
