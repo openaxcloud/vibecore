@@ -105,6 +105,57 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.getByRole('link', { name: /Browse templates/ })).toHaveAttribute('href', '/dashboard/templates');
 });
 
+test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
+  await authenticate(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+
+  const themeProbe = await page.evaluate(() => {
+    const parseRgb = (value: string) => {
+      const match = value.match(/\d+(\.\d+)?/g)?.map(Number) ?? [0, 0, 0];
+      return { r: match[0] ?? 0, g: match[1] ?? 0, b: match[2] ?? 0 };
+    };
+    const luminance = (value: string) => {
+      const { r, g, b } = parseRgb(value);
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    };
+    const styles = (selector: string) => {
+      const element = document.querySelector(selector);
+
+      if (!element) {
+        throw new Error(`Missing selector ${selector}`);
+      }
+
+      const style = window.getComputedStyle(element);
+
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        backgroundLuminance: luminance(style.backgroundColor),
+        colorLuminance: luminance(style.color),
+      };
+    };
+
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      hero: styles('.vc-create-hero'),
+      composer: styles('.vc-create-composer'),
+      templatePreview: styles('.vc-template-preview'),
+      title: styles('.vc-create-title'),
+    };
+  });
+
+  expect(themeProbe.theme).toBe('light');
+  expect(themeProbe.hero.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(themeProbe.composer.backgroundLuminance).toBeGreaterThan(0.92);
+  expect(themeProbe.templatePreview.backgroundLuminance).toBeGreaterThan(0.92);
+  expect(themeProbe.title.colorLuminance).toBeLessThan(0.18);
+});
+
 test('private templates create a project instead of opening the public gallery', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard/templates');
@@ -169,6 +220,46 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
   await expect(page.getByRole('heading', { name: 'Templates gallery' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Sign in to use templates' })).toHaveAttribute('href', '/login');
   await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
+});
+
+test('public homepage light theme keeps imagery adapted and readable', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.getByRole('heading', { name: /Build and deploy production apps/ })).toBeVisible();
+  await expect(page.locator('.vc-home-hero-bg')).toBeVisible();
+  await page.locator('#video-demo').scrollIntoViewIfNeeded();
+  await expect(page.locator('.vc-home-media-card img')).toBeVisible();
+
+  const imageProbe = await page.evaluate(() => {
+    const read = (selector: string) => {
+      const element = document.querySelector(selector);
+
+      if (!element) {
+        throw new Error(`Missing selector ${selector}`);
+      }
+
+      const style = window.getComputedStyle(element);
+
+      return {
+        filter: style.filter,
+        opacity: style.opacity,
+      };
+    };
+
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      heroImage: read('.vc-home-hero-bg'),
+      mediaImage: read('.vc-home-media-card img'),
+    };
+  });
+
+  expect(imageProbe.theme).toBe('light');
+  expect(imageProbe.heroImage.filter).toContain('brightness');
+  expect(imageProbe.mediaImage.filter).toContain('brightness');
+  expect(Number(imageProbe.heroImage.opacity)).toBeGreaterThan(0.1);
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
@@ -1165,6 +1256,63 @@ test('IDE project services open as in-place panels instead of legacy project pag
   expect(page.url()).not.toContain('/snapshots');
   expect(page.url()).not.toContain('/deployments');
   expect(page.url()).not.toContain('/env-vars');
+});
+
+test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  const projectId = await createTestProject(page, 'Light theme IDE tabs');
+
+  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
+
+  const tabProbe = await page.evaluate(() => {
+    const parseRgb = (value: string) => {
+      const match = value.match(/\d+(\.\d+)?/g)?.map(Number) ?? [0, 0, 0];
+
+      return { r: match[0] ?? 0, g: match[1] ?? 0, b: match[2] ?? 0 };
+    };
+    const luminance = (value: string) => {
+      const { r, g, b } = parseRgb(value);
+
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    };
+    const read = (selector: string) => {
+      const element = document.querySelector(selector);
+
+      if (!element) {
+        throw new Error(`Missing selector ${selector}`);
+      }
+
+      const style = window.getComputedStyle(element);
+
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        borderColor: style.borderColor,
+        backgroundLuminance: luminance(style.backgroundColor),
+        colorLuminance: luminance(style.color),
+      };
+    };
+
+    return {
+      theme: document.documentElement.getAttribute('data-theme'),
+      editorActive: read('.bolt-project-tab[aria-selected="true"]'),
+      editorStrip: read('.bolt-project-tabbar'),
+      rightPanel: read('[aria-label="Project files panel"]'),
+    };
+  });
+
+  expect(tabProbe.theme).toBe('light');
+  expect(tabProbe.editorActive.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.editorActive.colorLuminance).toBeLessThan(0.18);
+  expect(tabProbe.editorStrip.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.rightPanel.backgroundLuminance).toBeGreaterThan(0.88);
 });
 
 test('edit file workflow surfaces editor, files, terminal and preview affordances', async ({ page, isMobile }) => {

@@ -89,29 +89,14 @@ export const EditorPanel = memo(
       <Tabs.Root defaultValue="files" className="flex flex-col h-full">
         <PanelHeader className="w-full text-sm font-medium text-bolt-elements-textSecondary px-1">
           <div className="h-full flex-shrink-0 flex items-center justify-between w-full">
-            <Tabs.List className="h-full flex-shrink-0 flex items-center">
-              <Tabs.Trigger
-                value="files"
-                className={classNames(
-                  'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
-                )}
-              >
+            <Tabs.List className="vc-editor-panel-tabs h-full flex-shrink-0 flex items-center">
+              <Tabs.Trigger value="files" className={classNames('vc-editor-panel-tab')}>
                 Files
               </Tabs.Trigger>
-              <Tabs.Trigger
-                value="search"
-                className={classNames(
-                  'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
-                )}
-              >
+              <Tabs.Trigger value="search" className={classNames('vc-editor-panel-tab')}>
                 Search
               </Tabs.Trigger>
-              <Tabs.Trigger
-                value="locks"
-                className={classNames(
-                  'h-full bg-transparent hover:bg-bolt-elements-background-depth-3 py-0.5 px-2 rounded-lg text-sm font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary data-[state=active]:text-bolt-elements-textPrimary',
-                )}
-              >
+              <Tabs.Trigger value="locks" className={classNames('vc-editor-panel-tab')}>
                 Locks
               </Tabs.Trigger>
             </Tabs.List>

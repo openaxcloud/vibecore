@@ -447,21 +447,20 @@ export default function NewProjectPage() {
       description="Create a persistent E-code project from a template, AI prompt, GitHub repository or zip archive."
       hideHeader
     >
-      <div className="space-y-10 lg:space-y-12">
-        <section className="overflow-hidden rounded-lg border border-[#1A2030] bg-[#0E1525] shadow-[0_12px_32px_rgba(0,4,20,0.6)]">
-          <div className="relative px-5 py-8 sm:px-8 lg:px-10">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_at_top,_rgba(0,153,255,0.14)_0%,_rgba(123,97,255,0.08)_38%,_transparent_72%)]" />
+      <div className="vc-create-page space-y-10 lg:space-y-12">
+        <section className="vc-create-hero">
+          <div className="vc-create-hero-inner">
             <div className="relative mx-auto max-w-3xl text-center">
-              <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-lg border border-[#2B3245] bg-[#1A2030] shadow-[0_4px_12px_rgba(0,4,20,0.5)]">
-                <Sparkles className="h-5 w-5 text-[#0099FF]" aria-hidden />
+              <div className="vc-create-icon mx-auto mb-4">
+                <Sparkles className="h-5 w-5" aria-hidden />
               </div>
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">
+              <p className="vc-create-label mb-2 text-[11px] font-medium uppercase tracking-[0.4px]">
                 AI workspace builder
               </p>
-              <h2 className="text-[30px] font-semibold leading-tight tracking-normal text-[#F5F9FC] sm:text-[40px]">
+              <h2 className="vc-create-title text-[30px] font-semibold leading-tight tracking-normal sm:text-[40px]">
                 What do you want to create?
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-[13px] leading-6 text-[#C2C8CC]">
+              <p className="vc-create-copy mx-auto mt-3 max-w-xl text-[13px] leading-6">
                 Create a persistent E-code project from a template, AI prompt, GitHub repository or zip archive.
                 Everything still creates a real project and opens the E-code IDE.
               </p>
@@ -476,36 +475,32 @@ export default function NewProjectPage() {
                 <input type="hidden" name="artifactType" value={selectedCategory} />
                 <input type="hidden" name="framework" value={activeCategory.framework} />
 
-                {actionData?.error ? (
-                  <p className="rounded-md border border-[#F85149]/35 bg-[#F85149]/10 px-3 py-2 text-[12px] text-[#ffb3ae]">
-                    {actionData.error}
-                  </p>
-                ) : null}
+                {actionData?.error ? <p className="vc-create-error px-3 py-2 text-[12px]">{actionData.error}</p> : null}
 
-                <div className="overflow-hidden rounded-xl border border-[#2B3245] bg-[#1A2030] shadow-[0_12px_32px_rgba(0,4,20,0.6)] transition-colors focus-within:border-[#0099FF] focus-within:ring-2 focus-within:ring-[#0099FF]/25">
+                <div className="vc-create-composer">
                   <textarea
                     name="prompt"
                     value={prompt}
                     onChange={(event) => setPrompt(event.currentTarget.value)}
                     placeholder="Build me a todo app with drag-and-drop, dark mode, and local storage..."
                     rows={5}
-                    className="min-h-[150px] w-full resize-none bg-transparent px-4 py-4 text-[13px] leading-6 text-[#F5F9FC] outline-none placeholder:text-[#6E7681]"
+                    className="vc-create-textarea min-h-[150px] w-full resize-none bg-transparent px-4 py-4 text-[13px] leading-6 outline-none"
                     disabled={isSubmitting}
                     aria-label="AI prompt"
                   />
-                  <div className="flex flex-wrap items-center gap-2 border-t border-[#2B3245] px-3 py-2">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">Context</span>
-                    <span className="inline-flex h-7 items-center gap-1.5 rounded-md border border-[#0099FF]/45 bg-[#0099FF]/10 px-2.5 text-[11px] font-medium text-[#F5F9FC]">
+                  <div className="vc-create-divider flex flex-wrap items-center gap-2 border-t px-3 py-2">
+                    <span className="vc-create-label text-[10px] font-medium uppercase tracking-[0.4px]">Context</span>
+                    <span className="vc-create-pill is-accent inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium">
                       <ActiveCategoryIcon className="h-3 w-3" aria-hidden />
                       {activeCategory.label}
                     </span>
-                    <span className="inline-flex h-7 items-center rounded-md border border-[#2B3245] bg-[#0A0F1C] px-2.5 text-[11px] text-[#C2C8CC]">
+                    <span className="vc-create-pill inline-flex h-7 items-center rounded-md px-2.5 text-[11px]">
                       Framework: {activeCategory.framework}
                     </span>
                   </div>
-                  <div className="grid gap-3 border-t border-[#2B3245] px-3 py-3 lg:grid-cols-[minmax(180px,0.8fr)_minmax(260px,1.2fr)_auto] lg:items-end">
+                  <div className="vc-create-divider grid gap-3 border-t px-3 py-3 lg:grid-cols-[minmax(180px,0.8fr)_minmax(260px,1.2fr)_auto] lg:items-end">
                     <label className="block min-w-0">
-                      <span className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">
+                      <span className="vc-create-label mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px]">
                         <ActiveProviderIcon className="h-3 w-3" aria-hidden />
                         Provider
                       </span>
@@ -516,7 +511,7 @@ export default function NewProjectPage() {
                           setSelectedProvider(nextProvider?.name ?? event.currentTarget.value);
                           setSelectedModel(nextProvider?.staticModels[0]?.name ?? DEFAULT_MODEL);
                         }}
-                        className="h-9 w-full rounded-md border border-[#2B3245] bg-[#0A0F1C] px-2.5 text-[12px] font-medium text-[#F5F9FC] outline-none transition-colors focus:border-[#0099FF] focus:ring-2 focus:ring-[#0099FF]/25"
+                        className="vc-create-select h-9 w-full rounded-md px-2.5 text-[12px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                         disabled={isSubmitting}
                         aria-label="AI provider"
                       >
@@ -529,13 +524,13 @@ export default function NewProjectPage() {
                     </label>
 
                     <label className="block min-w-0">
-                      <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">
+                      <span className="vc-create-label mb-1.5 block text-[10px] font-medium uppercase tracking-[0.4px]">
                         Model
                       </span>
                       <select
                         value={activeModel?.name ?? ''}
                         onChange={(event) => setSelectedModel(event.currentTarget.value)}
-                        className="h-9 w-full rounded-md border border-[#2B3245] bg-[#0A0F1C] px-2.5 text-[12px] font-medium text-[#F5F9FC] outline-none transition-colors focus:border-[#0099FF] focus:ring-2 focus:ring-[#0099FF]/25"
+                        className="vc-create-select h-9 w-full rounded-md px-2.5 text-[12px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                         disabled={isSubmitting || activeModels.length === 0}
                         aria-label="AI model"
                       >
@@ -551,7 +546,7 @@ export default function NewProjectPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting || !prompt.trim()}
-                      className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-[#7B61FF] to-[#0099FF] px-5 text-[12px] font-semibold text-white shadow-[0_4px_12px_rgba(0,4,20,0.5)] transition-[filter,opacity] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-[#0099FF] focus:ring-offset-2 focus:ring-offset-[#0E1525] disabled:cursor-not-allowed disabled:opacity-40 lg:justify-self-end"
+                      className="vc-create-submit inline-flex h-9 items-center justify-center gap-2 rounded-md px-5 text-[12px] font-semibold transition-[filter,opacity] focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)] focus:ring-offset-2 focus:ring-offset-[var(--vc-ide-bg-panel)] disabled:cursor-not-allowed disabled:opacity-40 lg:justify-self-end"
                     >
                       {isSubmitting ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -563,12 +558,12 @@ export default function NewProjectPage() {
                   </div>
                 </div>
 
-                <div className="relative -mt-2 rounded-xl border border-[#2B3245] bg-[#0E1525]/95 p-2 shadow-[0_12px_32px_rgba(0,4,20,0.6)] backdrop-blur-xl">
+                <div className="vc-create-type-picker relative -mt-2 p-2 backdrop-blur-xl">
                   <div className="mb-2 flex items-center justify-between gap-3 px-1">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">
+                    <span className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">
                       Artifact type
                     </span>
-                    <span className="hidden text-[10px] text-[#6E7681] sm:inline">
+                    <span className="vc-create-label hidden text-[10px] sm:inline">
                       Added to the prompt context and framework selection
                     </span>
                   </div>
@@ -583,10 +578,8 @@ export default function NewProjectPage() {
                           type="button"
                           onClick={() => setSelectedCategory(category.id)}
                           className={[
-                            'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-[12px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#0099FF]',
-                            selected
-                              ? 'border-[#0099FF]/55 bg-[#0099FF]/15 text-[#F5F9FC] shadow-[0_0_0_1px_rgba(0,153,255,0.18)]'
-                              : 'border-[#2B3245] bg-[#1A2030] text-[#C2C8CC] hover:bg-[#2B3245] hover:text-[#F5F9FC]',
+                            'vc-create-chip inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]',
+                            selected ? 'is-selected' : '',
                           ].join(' ')}
                           aria-pressed={selected}
                         >
@@ -601,13 +594,13 @@ export default function NewProjectPage() {
 
               <div className="mx-auto mt-4 max-w-3xl text-left">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">
+                  <span className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">
                     Try an example prompt
                   </span>
                   <button
                     type="button"
                     onClick={() => setPromptSeed((value) => value + 1)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-[#6E7681] transition-colors hover:bg-[#2B3245] hover:text-[#F5F9FC] focus:outline-none focus:ring-2 focus:ring-[#0099FF]"
+                    className="vc-create-refresh inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                     aria-label="Refresh example prompts"
                   >
                     <RefreshCw className="h-3.5 w-3.5" aria-hidden />
@@ -621,7 +614,7 @@ export default function NewProjectPage() {
                       onClick={() => {
                         setPrompt(example);
                       }}
-                      className="rounded-xl border border-[#2B3245] bg-[#1A2030] px-3 py-2 text-left text-[11px] leading-5 text-[#C2C8CC] transition-colors hover:border-[#0099FF]/40 hover:bg-[#0099FF]/10 hover:text-[#F5F9FC] focus:outline-none focus:ring-2 focus:ring-[#0099FF]"
+                      className="vc-create-example rounded-xl px-3 py-2 text-left text-[11px] leading-5 transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
                     >
                       {example}
                     </button>
@@ -640,34 +633,34 @@ export default function NewProjectPage() {
               return (
                 <LinkButton key={card.to} to={card.to} variant="outline">
                   <span className="flex w-full items-center gap-3 text-left">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#2B3245] bg-[#1A2030]">
+                    <span className="vc-create-import-card flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
                       <Icon className="h-4 w-4" aria-hidden />
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-[13px] font-medium text-[#F5F9FC]">{card.label}</span>
-                      <span className="mt-0.5 block text-[11px] leading-4 text-[#6E7681]">{card.description}</span>
+                      <span className="vc-create-card-title block text-[13px] font-medium">{card.label}</span>
+                      <span className="vc-create-label mt-0.5 block text-[11px] leading-4">{card.description}</span>
                     </span>
                   </span>
                 </LinkButton>
               );
             })}
 
-            <div className="mt-1 rounded-lg border border-[#1A2030] bg-[#0E1525] p-4 shadow-[0_4px_12px_rgba(0,4,20,0.5)] md:col-span-3 md:mt-3">
+            <div className="vc-create-panel mt-1 p-4 md:col-span-3 md:mt-3">
               <div className="mb-3 flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-[#0099FF]" aria-hidden />
-                <h3 className="text-[13px] font-semibold text-[#F5F9FC]">What stays connected</h3>
+                <Rocket className="h-4 w-4 text-[var(--vc-ide-accent-action)]" aria-hidden />
+                <h3 className="vc-create-heading text-[13px] font-semibold">What stays connected</h3>
               </div>
-              <div className="space-y-2 text-[12px] leading-5 text-[#C2C8CC]">
+              <div className="vc-create-copy space-y-2 text-[12px] leading-5">
                 <div className="flex gap-2">
-                  <Code2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0099FF]" aria-hidden />
+                  <Code2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-action)]" aria-hidden />
                   <span>Projects open in the preserved Bolt IDE with files, terminal, preview, and agent tools.</span>
                 </div>
                 <div className="flex gap-2">
-                  <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#D29922]" aria-hidden />
+                  <FileText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-warning)]" aria-hidden />
                   <span>Templates, GitHub import, zip import, and private workspace routes remain available.</span>
                 </div>
                 <div className="flex gap-2">
-                  <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#3FB950]" aria-hidden />
+                  <Terminal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--vc-ide-accent-success)]" aria-hidden />
                   <span>AI prompts are submitted to the existing backend flow, then restored in the agent panel.</span>
                 </div>
               </div>
@@ -675,13 +668,13 @@ export default function NewProjectPage() {
           </aside>
         </div>
 
-        <section className="rounded-lg border border-[#1A2030] bg-[#0E1525] p-4 shadow-[0_4px_12px_rgba(0,4,20,0.5)] sm:p-5">
+        <section className="vc-create-panel p-4 sm:p-5">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.4px] text-[#6E7681]">Templates</p>
-              <h3 className="mt-1 text-[15px] font-semibold text-[#F5F9FC]">Start from the existing catalog</h3>
+              <p className="vc-create-label text-[11px] font-medium uppercase tracking-[0.4px]">Templates</p>
+              <h3 className="vc-create-heading mt-1 text-[15px] font-semibold">Start from the existing catalog</h3>
             </div>
-            <p className="max-w-xl text-[12px] leading-5 text-[#C2C8CC]">
+            <p className="vc-create-copy max-w-xl text-[12px] leading-5">
               This is the same authenticated template flow already wired to project creation.
             </p>
           </div>

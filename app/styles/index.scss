@@ -1882,7 +1882,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-tab[aria-selected='true'] .bolt-project-tab-main > span:first-child,
 .bolt-project-right-tab[aria-current='page'] .bolt-project-tab-main > span:first-child {
-  color: var(--vc-ide-accent);
+  color: var(--vc-ide-accent-action);
 }
 
 .bolt-project-tab[aria-selected='true']::after,
@@ -1892,7 +1892,7 @@ body :where(.lucide, svg[data-lucide]) {
   bottom: 0;
   left: 0;
   height: 2px;
-  background: var(--vc-ide-accent);
+  background: var(--vc-ide-accent-action);
   content: '';
 }
 
@@ -1931,7 +1931,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tab-save {
-  color: var(--vc-ide-accent);
+  color: var(--vc-ide-accent-action);
 }
 
 .bolt-project-tab-action {
@@ -5304,6 +5304,23 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-secondary) !important;
 }
 
+.bolt-project-ide-shell
+  :where(.bolt-project-tab[aria-selected='true'], .bolt-project-right-tab[aria-current='page']) {
+  background: var(--vc-ide-bg-app) !important;
+  background-color: var(--vc-ide-bg-app) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-ide-shell
+  :where(
+    .bolt-project-tab[aria-selected='true'] .bolt-project-tab-main,
+    .bolt-project-tab[aria-selected='true'] .bolt-project-tab-main span,
+    .bolt-project-right-tab[aria-current='page'] .bolt-project-tab-main,
+    .bolt-project-right-tab[aria-current='page'] .bolt-project-tab-main span
+  ) {
+  color: var(--vc-ide-text-primary) !important;
+}
+
 .bolt-project-ide-shell :where(strong, h1, h2, h3, h4, h5, h6, .bolt-project-agent-title) {
   color: var(--vc-ide-text-primary) !important;
 }
@@ -7592,6 +7609,268 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   gap: 10px;
   color: var(--vc-public-trust-text);
+}
+
+:root {
+  --vc-create-bg: var(--vc-ide-bg-panel);
+  --vc-create-card: var(--vc-ide-bg-card);
+  --vc-create-card-strong: var(--vc-ide-bg-app);
+  --vc-create-hover: var(--vc-ide-bg-hover);
+  --vc-create-border: var(--vc-ide-border-subtle);
+  --vc-create-border-strong: var(--vc-ide-border-visible);
+  --vc-create-text: var(--vc-ide-text-primary);
+  --vc-create-muted: var(--vc-ide-text-muted);
+  --vc-create-secondary: var(--vc-ide-text-secondary);
+  --vc-create-shadow: var(--vc-ui-shadow-lg);
+  --vc-create-glow:
+    radial-gradient(
+      ellipse at top,
+      color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent) 0%,
+      color-mix(in srgb, var(--vc-ide-accent-ai-start) 10%, transparent) 38%,
+      transparent 72%
+    );
+  --vc-create-primary-gradient: linear-gradient(
+    135deg,
+    var(--vc-ide-accent-ai-start),
+    var(--vc-ide-accent-action)
+  );
+}
+
+:root[data-theme='light'] {
+  --vc-create-card: #f8fafc;
+  --vc-create-card-strong: #ffffff;
+  --vc-create-shadow: 0 18px 44px rgb(15 23 42 / 0.1);
+}
+
+:root[data-theme='light'] .vc-create-page {
+  --vc-create-card: #f8fafc;
+  --vc-create-card-strong: #ffffff;
+  --vc-create-shadow: 0 18px 44px rgb(15 23 42 / 0.1);
+}
+
+.vc-create-hero,
+.vc-create-panel {
+  border: 1px solid var(--vc-create-border);
+  border-radius: var(--vc-ui-radius-modal);
+  background: var(--vc-create-bg);
+  box-shadow: var(--vc-create-shadow);
+}
+
+.vc-create-hero {
+  overflow: hidden;
+}
+
+.vc-create-hero-inner {
+  position: relative;
+  padding: 32px 20px;
+}
+
+.vc-create-hero-inner::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 16rem;
+  pointer-events: none;
+  background: var(--vc-create-glow);
+  content: '';
+}
+
+.vc-create-icon {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-create-border-strong);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-create-card);
+  color: var(--vc-ide-accent-action);
+  box-shadow: var(--vc-ui-shadow-md);
+}
+
+.vc-create-label {
+  color: var(--vc-create-muted);
+}
+
+.vc-create-title,
+.vc-create-heading,
+.vc-create-card-title {
+  color: var(--vc-create-text);
+}
+
+.vc-create-copy,
+.vc-create-card-copy {
+  color: var(--vc-create-secondary);
+}
+
+.vc-create-error {
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error) 36%, transparent);
+  border-radius: var(--vc-ui-radius-input);
+  background: color-mix(in srgb, var(--vc-ide-accent-error) 11%, transparent);
+  color: var(--vc-ide-accent-error);
+}
+
+.vc-create-composer,
+.vc-create-type-picker,
+.vc-create-import-card,
+.vc-template-preview,
+.vc-project-preview {
+  border: 1px solid var(--vc-create-border-strong);
+  border-radius: 12px;
+  background: var(--vc-create-card);
+  box-shadow: var(--vc-create-shadow);
+}
+
+.vc-create-composer {
+  overflow: hidden;
+  transition:
+    border-color var(--vc-ui-transition-hover),
+    box-shadow var(--vc-ui-transition-hover);
+}
+
+.vc-create-composer:focus-within {
+  border-color: var(--vc-ide-accent-action);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-action) 24%, transparent),
+    var(--vc-create-shadow);
+}
+
+.vc-create-textarea,
+.vc-create-select {
+  color: var(--vc-create-text);
+}
+
+.vc-create-textarea::placeholder {
+  color: var(--vc-create-muted);
+}
+
+.vc-create-divider {
+  border-color: var(--vc-create-border-strong);
+}
+
+.vc-create-pill,
+.vc-create-select,
+.vc-create-chip,
+.vc-create-example,
+.vc-template-provider-logo,
+.vc-template-provider-pill {
+  border: 1px solid var(--vc-create-border-strong);
+  background: var(--vc-create-card-strong);
+  color: var(--vc-create-secondary);
+}
+
+.vc-create-pill.is-accent,
+.vc-create-chip[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 56%, transparent);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-create-card-strong));
+  color: var(--vc-create-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
+}
+
+.vc-create-chip:hover,
+.vc-create-example:hover,
+.vc-create-refresh:hover {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 40%, transparent);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, var(--vc-create-card-strong));
+  color: var(--vc-create-text);
+}
+
+.vc-create-refresh {
+  color: var(--vc-create-muted);
+}
+
+.vc-create-submit {
+  background: var(--vc-create-primary-gradient);
+  color: white;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--vc-ide-accent-action) 22%, transparent);
+}
+
+.vc-create-submit:hover {
+  filter: saturate(1.06) brightness(1.04);
+}
+
+.vc-project-preview,
+.vc-template-preview {
+  position: relative;
+  background: var(--vc-create-card-strong);
+}
+
+.vc-project-preview-shell {
+  border: 1px solid var(--vc-create-border);
+  background: var(--vc-create-bg);
+}
+
+.vc-project-preview-bar {
+  border-bottom: 1px solid var(--vc-create-border);
+}
+
+.vc-project-preview-line {
+  background: var(--vc-create-card);
+}
+
+.vc-project-preview::after,
+.vc-template-preview::after,
+.vc-home-media-card::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, color-mix(in srgb, var(--vc-ide-bg-app) 16%, transparent), transparent 48%);
+  content: '';
+}
+
+.vc-home-media-card {
+  position: relative;
+}
+
+.vc-home-media-card img {
+  filter: saturate(0.94) contrast(1.02);
+}
+
+:root[data-theme='light'] .vc-home-media-card img,
+:root[data-theme='light'] .vc-home-hero-bg {
+  filter: saturate(0.86) contrast(0.96) brightness(1.08);
+}
+
+.vc-editor-panel-tabs {
+  gap: 3px;
+  border-radius: var(--vc-ui-radius-card);
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 58%, transparent);
+  padding: 2px;
+}
+
+.vc-editor-panel-tab {
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--vc-ui-radius-button);
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.vc-editor-panel-tab:hover {
+  border-color: var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-editor-panel-tab[data-state='active'] {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 0 -2px 0 var(--vc-ide-accent-action);
+}
+
+@media (min-width: 640px) {
+  .vc-create-hero-inner {
+    padding: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vc-create-hero-inner {
+    padding: 40px;
+  }
 }
 
 .vc-home-showcase-grid article a {

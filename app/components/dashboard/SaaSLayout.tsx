@@ -137,7 +137,7 @@ export const templates: TemplateCard[] = [
     stack: 'Next.js, Prisma, Tailwind',
     tag: 'Full stack',
     providers: [
-      { name: 'Next.js', Logo: SiNextdotjs, color: '#FFFFFF' },
+      { name: 'Next.js', Logo: SiNextdotjs, color: 'var(--vc-ide-text-primary)' },
       { name: 'Prisma', Logo: SiPrisma, color: '#B8C4D9' },
       { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
     ],
@@ -149,7 +149,7 @@ export const templates: TemplateCard[] = [
     tag: 'Backend',
     providers: [
       { name: 'Node.js', Logo: SiNodedotjs, color: '#5FA04E' },
-      { name: 'Fastify', Logo: SiFastify, color: '#FFFFFF' },
+      { name: 'Fastify', Logo: SiFastify, color: 'var(--vc-ide-text-primary)' },
       { name: 'PostgreSQL', Logo: SiPostgresql, color: '#4169E1' },
     ],
   },
@@ -159,9 +159,9 @@ export const templates: TemplateCard[] = [
     stack: 'RuntimeAdapter, tools, streaming',
     tag: 'AI',
     providers: [
-      { name: 'OpenAI', Logo: SiOpenai, color: '#FFFFFF' },
+      { name: 'OpenAI', Logo: SiOpenai, color: 'var(--vc-ide-text-primary)' },
       { name: 'Anthropic', Logo: SiAnthropic, color: '#D97757' },
-      { name: 'GitHub', Logo: SiGithub, color: '#FFFFFF' },
+      { name: 'GitHub', Logo: SiGithub, color: 'var(--vc-ide-text-primary)' },
     ],
   },
   {
@@ -170,7 +170,7 @@ export const templates: TemplateCard[] = [
     stack: 'Remix, responsive content',
     tag: 'Marketing',
     providers: [
-      { name: 'Remix', Logo: SiRemix, color: '#FFFFFF' },
+      { name: 'Remix', Logo: SiRemix, color: 'var(--vc-ide-text-primary)' },
       { name: 'Tailwind CSS', Logo: SiTailwindcss, color: '#06B6D4' },
       { name: 'Framer', Logo: SiFramer, color: '#0055FF' },
     ],
@@ -181,7 +181,7 @@ export const templates: TemplateCard[] = [
     stack: 'Expo, shared packages',
     tag: 'Mobile',
     providers: [
-      { name: 'Expo', Logo: SiExpo, color: '#FFFFFF' },
+      { name: 'Expo', Logo: SiExpo, color: 'var(--vc-ide-text-primary)' },
       { name: 'React', Logo: SiReact, color: '#61DAFB' },
       { name: 'TypeScript', Logo: SiTypescript, color: '#3178C6' },
     ],
@@ -694,7 +694,7 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative aspect-[16/9] overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C] shadow-[0_4px_12px_rgba(0,4,20,0.35)]">
+            <div className="vc-project-preview relative aspect-[16/9] overflow-hidden rounded-md">
               <ProjectPreviewFallback project={project} />
               {project.previewImageUrl ? (
                 <img
@@ -707,7 +707,6 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
                   }}
                 />
               ) : null}
-              <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-[#0A0F1C]/20 via-transparent to-white/[0.03]" />
             </div>
             <div className="flex items-center justify-between text-xs text-bolt-elements-textSecondary">
               <span>Updated {project.updated ?? 'recently'}</span>
@@ -728,18 +727,18 @@ export function ProjectGrid({ projects = [] }: { projects?: ProjectCard[] }) {
 function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   return (
     <div className="absolute inset-0 p-3">
-      <div className="flex h-full flex-col rounded-[6px] border border-[#1A2030] bg-[#0E1525]">
-        <div className="flex h-7 items-center gap-1.5 border-b border-[#1A2030] px-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#F85149]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#D29922]" />
-          <span className="h-1.5 w-1.5 rounded-full bg-[#3FB950]" />
-          <span className="ml-2 h-2 flex-1 rounded bg-[#1A2030]" />
+      <div className="vc-project-preview-shell flex h-full flex-col rounded-[6px]">
+        <div className="vc-project-preview-bar flex h-7 items-center gap-1.5 px-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-error)]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-warning)]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--vc-ide-accent-success)]" />
+          <span className="vc-project-preview-line ml-2 h-2 flex-1 rounded" />
         </div>
         <div className="flex flex-1 flex-col justify-center gap-2 px-4">
-          <span className="h-2 w-16 rounded-full bg-gradient-to-r from-[#7B61FF] to-[#0099FF]" />
-          <span className="h-3 w-2/3 rounded bg-[#1A2030]" />
-          <span className="h-2 w-4/5 rounded bg-[#1A2030]" />
-          <span className="h-2 w-1/2 rounded bg-[#1A2030]" />
+          <span className="h-2 w-16 rounded-full bg-gradient-to-r from-[var(--vc-ide-accent-ai-start)] to-[var(--vc-ide-accent-action)]" />
+          <span className="vc-project-preview-line h-3 w-2/3 rounded" />
+          <span className="vc-project-preview-line h-2 w-4/5 rounded" />
+          <span className="vc-project-preview-line h-2 w-1/2 rounded" />
           <span className="sr-only">Fallback homepage preview for {project.name}</span>
         </div>
       </div>
@@ -761,8 +760,8 @@ export function TemplateGallery({
           key={template.name}
           className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
         >
-          <div className="relative m-3 mb-0 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-[#0A0F1C] p-3">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(0,153,255,0.18),transparent_34%),radial-gradient(circle_at_85%_10%,rgba(123,97,255,0.16),transparent_32%)]" />
+          <div className="vc-template-preview relative m-3 mb-0 overflow-hidden p-3">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-ai-start)_16%,transparent),transparent_32%)]" />
             <div className="relative flex h-20 items-center justify-center gap-3">
               {template.providers.map((provider, index) => {
                 const Logo = provider.Logo;
@@ -770,7 +769,7 @@ export function TemplateGallery({
                 return (
                   <div
                     key={provider.name}
-                    className="flex h-12 w-12 items-center justify-center rounded-lg border border-[#2B3245] bg-[#0E1525] shadow-[0_4px_12px_rgba(0,4,20,0.5)] transition-transform duration-150 group-hover:-translate-y-0.5"
+                    className="vc-template-provider-logo flex h-12 w-12 items-center justify-center rounded-lg shadow-[var(--vc-ui-shadow-md)] transition-transform duration-150 group-hover:-translate-y-0.5"
                     style={{ transitionDelay: `${index * 35}ms` }}
                     title={provider.name}
                     aria-label={`${provider.name} logo`}
@@ -784,7 +783,7 @@ export function TemplateGallery({
               {template.providers.map((provider) => (
                 <span
                   key={provider.name}
-                  className="rounded-full border border-[#2B3245] bg-[#1A2030] px-2 py-0.5 text-[10px] font-medium text-[#C2C8CC]"
+                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
                 >
                   {provider.name}
                 </span>
