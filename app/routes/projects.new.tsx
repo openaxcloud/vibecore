@@ -610,6 +610,7 @@ export default function NewProjectPage() {
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
   const [prompt, setPrompt] = useState('');
+  const [projectName, setProjectName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
   const [modelsPayload, setModelsPayload] = useState<ModelsPayload>(initialModelsPayload);
@@ -732,6 +733,14 @@ export default function NewProjectPage() {
   const activeModelContext = activeModel?.maxTokenAllowed
     ? `${formatContextWindow(activeModel.maxTokenAllowed)} tokens`
     : 'Standard context';
+
+  const promptWordCount = prompt.trim() ? prompt.trim().split(/\s+/).length : 0;
+
+  const projectNamePreview =
+    projectName.trim() || (prompt.trim() ? projectNameFromPrompt(prompt) : 'Generated from prompt');
+
+  const briefQuality =
+    promptWordCount >= 45 ? 'Detailed brief' : promptWordCount >= 18 ? 'Solid brief' : 'Needs more detail';
 
   const configuredProviderCount = availableProviders.filter((provider) =>
     enabledProviderNames.has(provider.name),
@@ -871,6 +880,33 @@ export default function NewProjectPage() {
                         <CheckCircle className="h-3 w-3" aria-hidden />
                         Live backend flow
                       </span>
+                    </div>
+                    <div className="vc-create-brief-controls grid gap-3 border-b px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                      <label className="block min-w-0">
+                        <span className="vc-create-label mb-1.5 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.4px]">
+                          <FileText className="h-3 w-3" aria-hidden />
+                          Project name
+                        </span>
+                        <input
+                          name="name"
+                          value={projectName}
+                          onChange={(event) => setProjectName(event.currentTarget.value)}
+                          placeholder={projectNamePreview}
+                          className="vc-create-input h-11 w-full rounded-lg px-3 text-[13px] font-medium outline-none transition-colors focus:border-[var(--vc-ide-accent-action)] focus:ring-2 focus:ring-[var(--vc-ide-accent-action)]"
+                          disabled={isSubmitting}
+                          aria-label="Project name"
+                        />
+                      </label>
+                      <div className="vc-create-brief-meter min-w-0 rounded-lg px-3 py-2">
+                        <span className="vc-create-label block text-[10px] font-medium uppercase tracking-[0.4px]">
+                          Brief depth
+                        </span>
+                        <strong className="mt-1 flex items-center gap-2 text-[12px]">
+                          <span className="vc-create-status-dot vc-create-status-dot--inline" aria-hidden />
+                          {briefQuality}
+                        </strong>
+                        <span className="mt-0.5 block text-[11px]">{promptWordCount} words</span>
+                      </div>
                     </div>
                     <textarea
                       name="prompt"

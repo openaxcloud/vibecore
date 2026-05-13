@@ -7776,6 +7776,15 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-create-text);
 }
 
+.vc-create-input {
+  border: 1px solid var(--vc-create-border-strong);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-create-card-strong) 92%, transparent), var(--vc-create-card)),
+    var(--vc-create-card);
+  color: var(--vc-create-text);
+}
+
+.vc-create-input::placeholder,
 .vc-create-textarea::placeholder {
   color: var(--vc-create-muted);
 }
@@ -7964,6 +7973,21 @@ body :where(.lucide, svg[data-lucide]) {
   background: color-mix(in srgb, var(--vc-ide-accent-warning) 9%, transparent);
 }
 
+.vc-create-brief-controls {
+  border-color: var(--vc-create-border-strong);
+  background: color-mix(in srgb, var(--vc-create-card-strong) 62%, transparent);
+}
+
+.vc-create-brief-meter {
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success) 24%, var(--vc-create-border));
+  background: color-mix(in srgb, var(--vc-ide-accent-success) 8%, var(--vc-create-card));
+  color: var(--vc-create-text);
+}
+
+.vc-create-brief-meter span:last-child {
+  color: var(--vc-create-muted);
+}
+
 .vc-create-submit {
   background: var(--vc-create-primary-gradient);
   color: white;
@@ -8020,6 +8044,13 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: var(--vc-ide-accent-success);
   box-shadow: 0 0 0 6px color-mix(in srgb, var(--vc-ide-accent-success) 14%, transparent);
+}
+
+.vc-create-status-dot--inline {
+  display: inline-flex;
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ide-accent-success) 12%, transparent);
 }
 
 .vc-create-readiness-model {

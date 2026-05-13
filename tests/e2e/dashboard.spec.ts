@@ -100,6 +100,8 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await page.goto('/projects/new');
   await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
   await expect(page.getByLabel('AI prompt')).toBeVisible();
+  await expect(page.getByLabel('Project name')).toBeVisible();
+  await expect(page.getByText('Brief depth')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Production path selected' })).toBeVisible();
   await expect(page.getByText('Live backend flow')).toBeVisible();
   await expect(page.getByRole('link', { name: /Import GitHub/ })).toBeVisible();
