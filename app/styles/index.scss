@@ -945,6 +945,38 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   fill: var(--vc-ui-tooltip-bg);
 }
 
+.vc-collapsed-nav-label {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  z-index: 80;
+  margin-left: 12px;
+  min-width: max-content;
+  transform: translateY(-50%) translateX(-4px) scale(0.98);
+  border: 1px solid var(--vc-ui-tooltip-border);
+  border-radius: 8px;
+  background: var(--vc-ui-tooltip-bg);
+  color: var(--bolt-elements-textPrimary);
+  box-shadow: var(--vc-ui-shadow-lg);
+  opacity: 0;
+  padding: 6px 10px;
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  font-weight: 650;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+}
+
+.group:hover > .vc-collapsed-nav-label,
+.group:focus-visible > .vc-collapsed-nav-label,
+.group:focus-within > .vc-collapsed-nav-label {
+  transform: translateY(-50%) translateX(0) scale(1);
+  opacity: 1;
+}
+
 body :where(.cm-tooltip-arrow::before) {
   border-top-color: var(--vc-ui-tooltip-border);
 }

@@ -473,7 +473,7 @@ export function AppShell({
           sidebarCollapsed ? 'lg:grid-cols-[72px_1fr]' : 'lg:grid-cols-[256px_1fr]',
         )}
       >
-        <aside className="hidden border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block">
+        <aside className="hidden overflow-visible border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 lg:block">
           <div
             className={classNames(
               'flex h-14 items-center border-b border-bolt-elements-borderColor',
@@ -493,7 +493,10 @@ export function AppShell({
               <span className="block text-xs text-bolt-elements-textTertiary">SaaS workspace</span>
             </div>
           </div>
-          <nav className={classNames('space-y-6 p-3', sidebarCollapsed && 'px-2')} aria-label="Application navigation">
+          <nav
+            className={classNames('space-y-6 overflow-visible p-3', sidebarCollapsed && 'px-2')}
+            aria-label="Application navigation"
+          >
             <NavGroup items={appNav} collapsed={sidebarCollapsed} />
             <div>
               {!sidebarCollapsed ? (
@@ -526,11 +529,7 @@ export function AppShell({
               ) : (
                 <ChevronLeft className="h-4 w-4" aria-hidden />
               )}
-              {sidebarCollapsed ? (
-                <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block">
-                  Expand menu
-                </span>
-              ) : null}
+              {sidebarCollapsed ? <span className="vc-collapsed-nav-label">Expand menu</span> : null}
             </button>
           </nav>
         </aside>
@@ -1021,9 +1020,6 @@ export function SignOutButton({
   compact?: boolean;
   iconOnly?: boolean;
 }) {
-  const collapsedLabel =
-    'pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block';
-
   return (
     <Form method="post" action="/logout" className={iconOnly ? 'relative' : undefined}>
       <button
@@ -1037,7 +1033,7 @@ export function SignOutButton({
       >
         <LogOut className={classNames('shrink-0', iconOnly ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
         {iconOnly ? null : !compact ? <span>Sign out</span> : <span className="hidden sm:inline">Sign out</span>}
-        {iconOnly ? <span className={collapsedLabel}>Sign out</span> : null}
+        {iconOnly ? <span className="vc-collapsed-nav-label">Sign out</span> : null}
       </button>
     </Form>
   );
@@ -1072,11 +1068,7 @@ function NavGroup({
           >
             <Icon className={classNames('shrink-0', collapsed ? 'h-[18px] w-[18px]' : 'h-4 w-4')} aria-hidden />
             {!collapsed ? <span className="truncate">{item.label}</span> : null}
-            {collapsed ? (
-              <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2.5 py-1.5 text-xs font-medium text-bolt-elements-textPrimary shadow-lg group-hover:block group-focus-visible:block">
-                {item.label}
-              </span>
-            ) : null}
+            {collapsed ? <span className="vc-collapsed-nav-label">{item.label}</span> : null}
           </NavLink>
         );
       })}
