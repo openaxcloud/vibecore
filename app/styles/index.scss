@@ -6671,6 +6671,20 @@ body :where(.lucide, svg[data-lucide]) {
       font-size: 12px;
       color: var(--bolt-elements-textPrimary);
     }
+
+    .bolt-project-settings-status {
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 55%);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
+      padding: 0 12px;
+      color: var(--vc-ide-accent-success);
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
   }
 
   nav {
@@ -6710,6 +6724,15 @@ body :where(.lucide, svg[data-lucide]) {
       margin: 0;
       font-size: 13px;
       font-weight: 700;
+    }
+
+    .bolt-project-settings-card-title {
+      display: grid;
+      gap: 4px;
+
+      h4 {
+        margin: 0;
+      }
     }
 
     p,
@@ -6763,9 +6786,39 @@ body :where(.lucide, svg[data-lucide]) {
       background: var(--bolt-elements-background-depth-3);
     }
 
+    .bolt-project-form-actions,
+    .bolt-project-inline-action,
+    .bolt-project-danger-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     &.danger {
       border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 55%);
     }
+  }
+
+  .bolt-project-account-connectors,
+  .bolt-project-security-methods,
+  .bolt-project-usage-metrics {
+    display: grid;
+    gap: 10px;
+  }
+
+  .bolt-project-account-connectors > div,
+  .bolt-project-security-methods > a,
+  .bolt-project-usage-metrics > span {
+    display: grid;
+    gap: 4px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 10px;
+    background: var(--bolt-elements-background-depth-1);
+    padding: 12px;
+  }
+
+  .bolt-project-security-methods > a:hover {
+    border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 45%);
   }
 
   .bolt-project-settings-profile {
@@ -6815,6 +6868,55 @@ body :where(.lucide, svg[data-lucide]) {
     }
   }
 
+  .bolt-project-usage-limits {
+    display: grid;
+    overflow: hidden;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 10px;
+    background: var(--bolt-elements-background-depth-2);
+
+    > div {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(80px, 0.5fr) minmax(120px, 0.7fr);
+      gap: 12px;
+      align-items: center;
+      border-bottom: 1px solid var(--bolt-elements-borderColor);
+      padding: 10px 12px;
+      font-size: 12px;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &:first-child {
+        color: var(--bolt-elements-textSecondary);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      span:last-child {
+        position: relative;
+        display: grid;
+        gap: 6px;
+      }
+
+      em {
+        display: block;
+        height: 4px;
+        max-width: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--vc-ide-accent-action), var(--vc-ide-accent-success));
+      }
+    }
+  }
+
   .bolt-project-settings-provider-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6832,11 +6934,63 @@ body :where(.lucide, svg[data-lucide]) {
       display: grid;
       gap: 8px;
       grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
     }
 
     input[name='provider'],
     input[name='intent'] {
       display: none;
+    }
+  }
+
+  .bolt-project-ai-routing {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 12px;
+    background: var(--bolt-elements-background-depth-1);
+    padding: 12px;
+
+    .bolt-project-checkbox-row {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      input {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    button {
+      justify-self: start;
+    }
+  }
+
+  .bolt-project-provider-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+
+    span,
+    strong,
+    small {
+      display: block;
+    }
+
+    em {
+      border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 55%);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%);
+      padding: 3px 8px;
+      color: var(--vc-ide-accent-action);
+      font-size: 10px;
+      font-style: normal;
+      font-weight: 800;
+      white-space: nowrap;
     }
   }
 
@@ -6933,6 +7087,50 @@ body :where(.lucide, svg[data-lucide]) {
     }
   }
 
+  .bolt-project-memory-preview {
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 8px;
+    background: var(--bolt-elements-background-depth-1);
+    padding: 10px;
+
+    summary {
+      cursor: pointer;
+      color: var(--bolt-elements-textPrimary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    pre {
+      overflow: auto;
+      max-height: 180px;
+      margin: 10px 0 0;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+  }
+
+  .bolt-project-notification-channels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+
+    em {
+      border: 1px solid var(--bolt-elements-borderColor);
+      border-radius: 999px;
+      padding: 2px 7px;
+      color: var(--bolt-elements-textSecondary);
+      font-size: 10px;
+      font-style: normal;
+    }
+
+    em[data-enabled='true'] {
+      border-color: color-mix(in srgb, var(--vc-ide-accent-success), transparent 55%);
+      color: var(--vc-ide-accent-success);
+    }
+  }
+
   .bolt-project-memory-toggle {
     display: flex;
     align-items: center;
@@ -7002,7 +7200,8 @@ body :where(.lucide, svg[data-lucide]) {
   .bolt-project-settings-hub {
     header,
     .bolt-project-settings-grid,
-    .bolt-project-settings-provider-grid {
+    .bolt-project-settings-provider-grid,
+    .bolt-project-ai-routing {
       grid-template-columns: 1fr;
     }
 

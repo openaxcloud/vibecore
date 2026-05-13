@@ -518,7 +518,12 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ confirmation: body.confirmation }),
       });
       return json({ ok: true }, { headers: { 'Set-Cookie': clearSessionCookie() } });
-    } else if (intent === 'preferences' || intent === 'notification' || intent === 'ai-credential-mode') {
+    } else if (
+      intent === 'preferences' ||
+      intent === 'notification' ||
+      intent === 'ai-credential-mode' ||
+      intent === 'ai-routing'
+    ) {
       const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
       const state = readIdeSettingsState(envVars);
 
@@ -535,7 +540,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
         if (key && Object.prototype.hasOwnProperty.call(state.notifications, key)) {
           state.notifications = { ...state.notifications, [key]: body.enabled === 'true' };
         }
-      } else {
+      } else if (intent === 'ai-credential-mode') {
         const provider = body.provider;
 
         if (provider && SETTINGS_BYOK_SECRET_KEY_MAP[provider]) {
@@ -547,6 +552,23 @@ export async function action({ request, params }: EnterpriseActionArgs) {
             },
           };
         }
+      } else {
+        const supportedProviders = Object.keys(SETTINGS_BYOK_SECRET_KEY_MAP);
+        const defaultProvider = supportedProviders.includes(body.defaultProvider) ? body.defaultProvider : 'openai';
+
+        const fallbackProvider =
+          supportedProviders.includes(body.fallbackProvider) && body.fallbackProvider !== defaultProvider
+            ? body.fallbackProvider
+            : 'openrouter';
+
+        const model = typeof body.defaultModel === 'string' ? body.defaultModel.trim().slice(0, 120) : '';
+
+        state.aiRouting = {
+          defaultProvider,
+          defaultModel: model || `${defaultProvider}:managed-default`,
+          fallbackProvider,
+          fallbackEnabled: body.fallbackEnabled === 'true',
+        };
       }
 
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
@@ -1212,6 +1234,12 @@ function defaultIdeSettingsState() {
     aiCredentials: Object.fromEntries(
       Object.keys(SETTINGS_BYOK_SECRET_KEY_MAP).map((provider) => [provider, { mode: 'managed' }]),
     ),
+    aiRouting: {
+      defaultProvider: 'openai',
+      defaultModel: 'openai:managed-default',
+      fallbackProvider: 'openrouter',
+      fallbackEnabled: true,
+    },
   };
 }
 
@@ -1234,6 +1262,18 @@ function normalizeIdeSettingsState(input: any) {
   const fallback = defaultIdeSettingsState();
   const notifications = { ...fallback.notifications, ...(input?.notifications ?? {}) };
   const aiCredentials = { ...fallback.aiCredentials, ...(input?.aiCredentials ?? {}) };
+  const providerKeys = Object.keys(SETTINGS_BYOK_SECRET_KEY_MAP);
+
+  const defaultProvider = providerKeys.includes(input?.aiRouting?.defaultProvider)
+    ? input.aiRouting.defaultProvider
+    : fallback.aiRouting.defaultProvider;
+  const fallbackProvider = providerKeys.includes(input?.aiRouting?.fallbackProvider)
+    ? input.aiRouting.fallbackProvider
+    : fallback.aiRouting.fallbackProvider;
+  const defaultModel =
+    typeof input?.aiRouting?.defaultModel === 'string' && input.aiRouting.defaultModel.trim()
+      ? input.aiRouting.defaultModel.trim().slice(0, 120)
+      : `${defaultProvider}:managed-default`;
 
   return {
     preferences: {
@@ -1250,13 +1290,19 @@ function normalizeIdeSettingsState(input: any) {
       system: notifications.system !== false,
     },
     aiCredentials: Object.fromEntries(
-      Object.keys(SETTINGS_BYOK_SECRET_KEY_MAP).map((provider) => [
+      providerKeys.map((provider) => [
         provider,
         {
           mode: aiCredentials[provider]?.mode === 'byok' ? 'byok' : 'managed',
         },
       ]),
     ),
+    aiRouting: {
+      defaultProvider,
+      defaultModel,
+      fallbackProvider,
+      fallbackEnabled: input?.aiRouting?.fallbackEnabled !== false,
+    },
   };
 }
 
