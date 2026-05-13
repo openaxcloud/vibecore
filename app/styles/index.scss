@@ -2435,6 +2435,131 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-hover);
 }
 
+.bolt-agent-tool-calls {
+  display: grid;
+  width: 100%;
+  max-width: var(--chat-max-width);
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-accent-primary) 4%), var(--vc-ide-bg-card));
+  box-shadow: var(--vc-ui-shadow-soft);
+}
+
+.bolt-agent-tool-calls-header {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.bolt-agent-tool-calls-header:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-agent-tool-calls-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-primary), transparent 62%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
+  color: var(--vc-ide-accent-primary);
+  font-size: 15px;
+}
+
+.bolt-agent-tool-calls-header-copy,
+.bolt-agent-tool-call-copy {
+  min-width: 0;
+}
+
+.bolt-agent-tool-calls-header-copy strong,
+.bolt-agent-tool-calls-header-copy small,
+.bolt-agent-tool-call-copy strong,
+.bolt-agent-tool-call-copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-agent-tool-calls-header-copy strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.bolt-agent-tool-calls-header-copy small {
+  margin-top: 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.bolt-agent-tool-calls-chevron {
+  justify-self: end;
+  color: var(--vc-ide-text-muted);
+  font-size: 14px;
+}
+
+.bolt-agent-tool-calls-list {
+  display: grid;
+  gap: 1px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-border-subtle);
+}
+
+.bolt-agent-tool-call-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), var(--vc-ide-bg-card) 50%);
+  padding: 9px 12px;
+}
+
+.bolt-agent-tool-call-row.is-complete {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-agent-tool-call-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--vc-ide-accent-primary);
+  font-size: 14px;
+}
+
+.bolt-agent-tool-call-status[data-status='complete'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-agent-tool-call-copy strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bolt-agent-tool-call-copy small {
+  margin-top: 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .bolt-project-snapshots-panel {
   display: grid;
   min-width: 0;

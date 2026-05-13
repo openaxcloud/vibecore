@@ -11909,10 +11909,11 @@ function panelIcon(panel: string) {
 }
 
 function ScrollToBottom() {
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  const { escapedFromLock, isAtBottom, scrollToBottom, state } = useStickToBottomContext();
+  const shouldShowScrollControl = escapedFromLock && !isAtBottom && state.scrollDifference > 96;
 
   return (
-    !isAtBottom && (
+    shouldShowScrollControl && (
       <>
         <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
         <button
