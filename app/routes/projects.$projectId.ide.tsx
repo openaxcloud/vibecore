@@ -194,6 +194,8 @@ function IdeProjectTopBar({
     (item) => item.kind === 'warning' || item.kind === 'error',
   ).length;
 
+  const visibleCollaborators = collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }];
+
   useEffect(() => {
     setDisplayProjectName(projectName);
     setRenameValue(projectName);
@@ -492,22 +494,38 @@ function IdeProjectTopBar({
         </div>
         <div className="bolt-project-action-group bolt-project-action-group--collaboration" aria-label="Collaboration">
           <div className="bolt-project-collaborator-stack" aria-label="Collaborators">
-            {(collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }])
-              .slice(0, 3)
-              .map((collaborator) => (
+            {visibleCollaborators.slice(0, 3).map((collaborator) => {
+              const collaboratorName = collaborator.userId === 'you' ? 'You' : (collaborator.userId ?? 'User');
+              const collaboratorRole = collaborator.roleKey ?? 'member';
+              const collaboratorLabel = `${collaboratorName}, ${collaboratorRole}`;
+
+              return (
                 <span
                   key={collaborator.id ?? collaborator.userId}
-                  title={`${collaborator.userId ?? 'User'} (${collaborator.roleKey ?? 'member'})`}
+                  role="img"
+                  aria-label={collaboratorLabel}
+                  title={collaboratorLabel}
                   className="bolt-project-collaborator-avatar"
                 >
-                  {(collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
+                  {collaborator.userId === 'you' ? 'ME' : (collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
                 </span>
-              ))}
+              );
+            })}
             {collaborators.length > 3 && (
-              <span className="bolt-project-collaborator-overflow">+{collaborators.length - 3}</span>
+              <span
+                className="bolt-project-collaborator-overflow"
+                aria-label={`${collaborators.length - 3} more collaborators`}
+                title={`${collaborators.length - 3} more collaborators`}
+              >
+                +{collaborators.length - 3}
+              </span>
             )}
           </div>
-          <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-topbar-outline-button">
+          <Link
+            to={`/projects/${projectId}/ide?panel=collaborators`}
+            className="bolt-project-topbar-outline-button"
+            title="Open collaborators and live presence"
+          >
             <Share2 className="h-3 w-3" aria-hidden />
             Share
           </Link>

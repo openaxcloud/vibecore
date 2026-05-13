@@ -1539,8 +1539,9 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
-  font-size: 10px !important;
+  font-size: 9px !important;
   font-weight: 750;
+  letter-spacing: 0.01em;
   box-shadow: 0 1px 0 color-mix(in srgb, var(--vc-ide-text-primary), transparent 92%);
 }
 
