@@ -2220,6 +2220,15 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
 }
 
+.bolt-project-agent-composer {
+  flex: 0 0 auto;
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+  padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+  background:
+    linear-gradient(to top, var(--vc-ide-bg-panel) 78%, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 100%));
+}
+
 .bolt-project-agent-panel [data-radix-scroll-area-viewport],
 .bolt-project-agent-panel .modern-scrollbar {
   scrollbar-width: thin;
