@@ -3427,10 +3427,10 @@ body :where(.lucide, svg[data-lucide]) {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 8px;
-  background: #0e1525;
-  box-shadow: 0 12px 32px rgba(0, 4, 20, 0.6);
+  background: var(--vc-ide-bg-panel);
+  box-shadow: var(--vc-ui-shadow-lg);
   padding: 24px;
   text-align: center;
 }
@@ -3440,16 +3440,16 @@ body :where(.lucide, svg[data-lucide]) {
   width: 42px;
   height: 42px;
   place-items: center;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 8px;
-  background: #1a2030;
-  color: #0099ff;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-accent-action);
   font-size: 18px;
 }
 
 .bolt-preview-empty-card h3 {
   margin: 0;
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 14px;
   font-weight: 600;
 }
@@ -3457,13 +3457,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-empty-card p,
 .bolt-preview-empty-card small {
   margin: 0;
-  color: #c2c8cc;
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .bolt-preview-empty-card small {
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
 }
 
 .bolt-preview-empty-actions {
@@ -3479,10 +3479,10 @@ body :where(.lucide, svg[data-lucide]) {
   height: 28px;
   align-items: center;
   gap: 6px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 4px;
-  background: #1a2030;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
   font-size: 12px;
   font-weight: 500;
   padding: 0 10px;
@@ -3492,7 +3492,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-empty-actions button:hover:not(:disabled) {
-  background: #2b3245;
+  background: var(--vc-ide-bg-hover);
 }
 
 .bolt-preview-empty-actions button:disabled {
@@ -3711,14 +3711,14 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-git-tool h3 {
   display: block;
   margin: 0 0 10px;
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .bolt-project-database-tool summary {
   cursor: pointer;
-  color: #c2c8cc;
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   padding: 6px 0;
 }
@@ -3727,7 +3727,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: block;
   width: 100%;
   border-radius: 4px;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 12px;
   padding: 4px 8px;
   text-align: left;
@@ -3737,22 +3737,22 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   height: 32px;
   align-items: center;
-  border-bottom: 1px solid #1a2030;
-  background: #0e1525;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
 }
 
 .bolt-project-tool-tabs button {
   height: 32px;
-  border-right: 1px solid #1a2030;
-  color: #c2c8cc;
+  border-right: 1px solid var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   padding: 0 12px;
 }
 
 .bolt-project-tool-tabs button[aria-current='page'] {
-  background: #1a2030;
-  color: #f5f9fc;
-  box-shadow: inset 0 -2px 0 #f26207;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 0 -2px 0 var(--vc-ide-accent-orange);
 }
 
 .bolt-project-sql-editor,
@@ -3760,9 +3760,9 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-security-settings {
   display: grid;
   gap: 8px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
   margin: 12px 0;
   padding: 12px;
 }
@@ -4891,9 +4891,9 @@ body :where(.lucide, svg[data-lucide]) {
   height: 23px;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #1a2030;
-  background: #0e1525;
-  color: #c2c8cc;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
   font-size: 10px;
   line-height: 1;
   padding: 0 12px;
@@ -4936,7 +4936,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-statusbar button:hover {
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-runtime,
@@ -4972,20 +4972,20 @@ body :where(.lucide, svg[data-lucide]) {
   height: 7px;
   min-width: 7px;
   border-radius: 999px;
-  background: #6e7681;
+  background: var(--vc-ide-text-muted);
 }
 
 .bolt-project-statusbar-runtime-dot[data-state='running'] {
-  background: #3fb950;
+  background: var(--vc-ide-accent-success);
 }
 
 .bolt-project-statusbar-runtime-dot[data-state='starting'],
 .bolt-project-statusbar-runtime-dot[data-state='booting'] {
-  background: #d29922;
+  background: var(--vc-ide-accent-warning);
 }
 
 .bolt-project-statusbar-runtime-dot[data-state='error'] {
-  background: #f85149;
+  background: var(--vc-ide-accent-error);
 }
 
 .bolt-project-statusbar-theme {

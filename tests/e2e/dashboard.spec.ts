@@ -34,14 +34,14 @@ async function authenticate(page: import('@playwright/test').Page) {
 async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
   const trigger = page.locator('.bolt-project-tool-popover:visible').first().getByLabel('Open tool');
 
+  await page.keyboard.press('Escape').catch(() => {});
   await expect(trigger).toBeVisible({ timeout: 15_000 });
-  await trigger.dispatchEvent('mousedown', { bubbles: true, cancelable: true, button: 0 });
+  await trigger.scrollIntoViewIfNeeded();
+  await trigger.click({ force: true });
 
-  await expect
-    .poll(async () => page.locator('.bolt-project-tool-menu').count(), { timeout: 15_000 })
-    .toBeGreaterThan(0);
+  const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
+  await expect(toolMenu).toBeVisible({ timeout: 15_000 });
 
-  const toolMenu = page.locator('.bolt-project-tool-menu').last();
   await expect
     .poll(
       async () =>

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import JSZip from 'jszip';
 
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -40,7 +41,24 @@ async function createTestProject(page: import('@playwright/test').Page, name: st
 
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
-  return (await createProject.json()).project.id as string;
+  const projectId = (await createProject.json()).project.id as string;
+  const zip = new JSZip();
+  zip.file(
+    'src/App.tsx',
+    `export function App() {
+  return <main>Responsive IDE test</main>;
+}
+`,
+  );
+
+  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+    data: { zipBase64: await zip.generateAsync({ type: 'base64' }) },
+  });
+
+  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
+
+  return projectId;
 }
 
 test.describe('responsive IDE shell', () => {
