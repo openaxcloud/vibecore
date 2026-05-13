@@ -467,6 +467,8 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
     databasePanel: '.bolt-project-service-panel',
     rightPanel: '.bolt-project-right-panel-shell',
     rightHeader: '.bolt-project-right-files-header',
+    filesHeader: '.bolt-project-files-header',
+    filesSearch: '.bolt-project-files-search',
     statusbar: '.bolt-project-statusbar',
   };
 
@@ -533,6 +535,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       hoverBorder: 'rgb(216, 222, 232)',
       visibleBorder: 'rgb(196, 204, 216)',
       secondaryText: 'rgb(75, 85, 99)',
+      mutedText: 'rgb(107, 114, 128)',
       primaryText: 'rgb(17, 24, 39)',
       forbiddenPanelBackgrounds: [
         'rgb(10, 15, 28)',
@@ -557,6 +560,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       hoverBorder: 'rgb(26, 32, 48)',
       visibleBorder: 'rgb(43, 50, 69)',
       secondaryText: 'rgb(194, 200, 204)',
+      mutedText: 'rgb(110, 118, 129)',
       primaryText: 'rgb(245, 249, 252)',
       forbiddenPanelBackgrounds: [] as string[],
     },
@@ -587,6 +591,10 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
     expect(snapshot.surfaces.rightPanel.background).toBe(expected.panel);
     expect(snapshot.surfaces.rightPanel.borderLeftColor).toBe(expected.hoverBorder);
     expect(snapshot.surfaces.rightHeader.background).toBe(expected.panel);
+    expect(snapshot.surfaces.filesHeader.background).toBe(expected.panel);
+    expect(snapshot.surfaces.filesHeader.borderBottomColor).toBe(expected.hoverBorder);
+    expect(snapshot.surfaces.filesSearch.color).toBe(expected.mutedText);
+    expect(snapshot.surfaces.filesSearch.borderBottomColor).toBe(expected.hoverBorder);
     expect(snapshot.surfaces.statusbar.background).toBe(expected.panel);
     expect(snapshot.surfaces.statusbar.color).toBe(expected.secondaryText);
 

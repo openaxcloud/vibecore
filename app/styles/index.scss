@@ -1504,30 +1504,30 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-agent-action-card strong {
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 13px;
   font-weight: 600;
 }
 
 .bolt-project-agent-action-card small {
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
 }
 
 .bolt-project-agent-action-card button {
   justify-self: start;
   height: 28px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 4px;
-  background: #0e1525;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
   font-size: 12px;
   font-weight: 500;
   padding: 0 10px;
 }
 
 .bolt-project-agent-action-card button:hover {
-  background: #2b3245;
+  background: var(--vc-ide-bg-hover);
 }
 
 .bolt-project-chatbox {
@@ -1557,7 +1557,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox:focus-within {
-  border-color: #0099ff !important;
+  border-color: var(--vc-ide-accent-action) !important;
 }
 
 .bolt-project-ide-panel {
@@ -1569,7 +1569,7 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: #0e1525;
+  background: var(--vc-ide-bg-panel);
 }
 
 .bolt-project-ide-panel-header {
@@ -1578,9 +1578,9 @@ body :where(.lucide, svg[data-lucide]) {
   flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #1a2030;
-  background: #0e1525;
-  color: #c2c8cc;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   font-weight: 500;
   padding: 0 10px;
@@ -1589,15 +1589,15 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-tab {
   min-height: 28px;
   border-radius: 4px;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 12px;
   padding: 0 8px;
 }
 
 .bolt-project-ide-tab:hover,
 .bolt-project-ide-tab[aria-current='page'] {
-  background: #2b3245;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-ide-icon-button {
@@ -2119,8 +2119,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tool-item em {
   margin-left: auto;
   border-radius: 999px;
-  background: rgb(63 185 80 / 0.15);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 85%);
+  color: var(--vc-ide-accent-success);
   font-size: 10px;
   font-style: normal;
   padding: 2px 6px;
@@ -2184,7 +2184,7 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, #7b61ff, #ff6b9d);
+  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-ai-end));
   color: white;
   font-size: 32px;
   opacity: 0.75;
@@ -2192,7 +2192,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-welcome h2 {
   margin-top: 16px;
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: var(--vc-type-heading-size);
   font-weight: 600;
   line-height: var(--vc-type-line-height);
@@ -2200,7 +2200,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-welcome p {
   margin-top: 6px;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 13px;
 }
 
@@ -2215,25 +2215,25 @@ body :where(.lucide, svg[data-lucide]) {
   display: grid;
   min-height: 92px;
   justify-items: start;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: var(--vc-ui-radius-card);
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
   padding: 12px;
   text-align: left;
 }
 
 .bolt-project-welcome-card:hover {
-  background: #2b3245;
+  background: var(--vc-ide-bg-hover);
 }
 
 .bolt-project-welcome-card strong {
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 13px;
 }
 
 .bolt-project-welcome-card small,
 .bolt-project-welcome-recents {
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
 }
 
@@ -2252,11 +2252,11 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   border-radius: 4px;
   padding: 4px 6px;
-  color: #c2c8cc;
+  color: var(--vc-ide-text-secondary);
 }
 
 .bolt-project-welcome-recents button:hover {
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
 }
 
 .bolt-project-service-panel {
@@ -2264,7 +2264,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  background: #0a0f1c;
+  background: var(--vc-ide-bg-app);
 }
 
 .bolt-project-network-panel {
@@ -2272,7 +2272,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  background: #0a0f1c;
+  background: var(--vc-ide-bg-app);
 }
 
 .bolt-project-network-grid {
@@ -2285,14 +2285,14 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-network-grid > div {
   display: grid;
   gap: 8px;
-  border: 1px solid #2b3245;
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: var(--vc-ui-radius-card);
-  background: #0e1525;
+  background: var(--vc-ide-bg-panel);
   padding: 12px;
 }
 
 .bolt-project-network-grid strong {
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: 12px;
   font-weight: 600;
 }
@@ -2304,7 +2304,7 @@ body :where(.lucide, svg[data-lucide]) {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 6px 8px;
   border-radius: 6px;
-  color: #c2c8cc;
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   margin: 0;
   padding: 8px;
@@ -2312,13 +2312,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-network-grid button:hover {
-  background: #1a2030;
+  background: var(--vc-ide-bg-card);
 }
 
 .bolt-project-network-grid small {
   grid-column: 2;
   overflow: hidden;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2342,7 +2342,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 32px;
   align-items: center;
   gap: 6px;
-  border-bottom: 1px solid #1a2030;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
   padding: 0 8px;
 }
 
@@ -2350,7 +2350,7 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2361,9 +2361,9 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 42px;
   flex-direction: column;
   gap: 4px;
-  border-bottom: 1px solid #1a2030;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
   padding: 6px 8px;
-  color: #6e7681;
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
 }
 
@@ -2380,7 +2380,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-files-search input:focus {
-  border-color: #0079f2;
+  border-color: var(--vc-ide-accent-action);
 }
 
 .bolt-project-files-header button,
@@ -2909,9 +2909,9 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 180px;
   max-height: 42%;
   flex-direction: column;
-  border-top: 1px solid #1a2030;
-  background: #0a0f1c;
-  color: #c2c8cc;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-secondary);
 }
 
 .bolt-preview-logs-panel header {
@@ -2920,8 +2920,8 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-bottom: 1px solid #1a2030;
-  background: #0e1525;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
   padding: 0 8px;
 }
 
@@ -2939,15 +2939,15 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  color: #c2c8cc;
+  color: var(--vc-ide-text-secondary);
   font-size: 11px;
   padding: 0 8px;
 }
 
 .bolt-preview-logs-panel button:hover,
 .bolt-preview-logs-panel button[aria-selected='true'] {
-  background: #2b3245;
-  color: #f5f9fc;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-preview-logs-panel pre {
@@ -2955,8 +2955,8 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 0;
   overflow: auto;
   margin: 0;
-  color: #3fb950;
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--vc-ide-accent-success);
+  font-family: var(--vc-font-code);
   font-size: 12px;
   line-height: 1.5;
   padding: 10px 12px;
@@ -2967,9 +2967,9 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  background: #0a0f1c;
-  color: #3fb950;
-  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-accent-success);
+  font-family: var(--vc-font-code);
   font-size: 13px;
   padding: 12px;
 }
