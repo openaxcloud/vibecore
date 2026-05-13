@@ -763,6 +763,21 @@ function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}
   };
 }
 
+function formatEditorTabLabel(label: string, panel: IdeWorkspacePanel) {
+  if (panel !== 'editor') {
+    return label;
+  }
+
+  const normalized = label.replace(WORK_DIR, '').replace(/^\/+/, '');
+  const pathParts = normalized.split('/').filter(Boolean);
+
+  if (pathParts.length <= 2) {
+    return normalized || label;
+  }
+
+  return `${pathParts.at(-2)}/${pathParts.at(-1)}`;
+}
+
 function inferAgentToolAction(message: string | undefined): AgentToolAction | null {
   const text = (message ?? '').toLowerCase();
 
@@ -3169,25 +3184,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <IdeTabBar
               activePanel={activeTab?.panel ?? 'editor'}
               activeTabId={activeTab?.id}
-              tabs={leaf.tabs.map((tab) => ({
-                ...tab,
-                label:
+              tabs={leaf.tabs.map((tab) => {
+                const label =
                   tab.panel === 'editor'
                     ? tab.filePath?.replace(WORK_DIR, '') ||
                       currentDocument?.filePath?.replace(WORK_DIR, '') ||
                       'Editor'
-                    : panelTitle(tab.panel),
-                icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
-                preview: tab.preview,
-                dirty:
-                  tab.panel === 'editor' &&
-                  !!currentDocument &&
-                  !!(tab.filePath ?? currentDocument.filePath) &&
-                  unsavedFiles instanceof Set &&
-                  unsavedFiles.has(tab.filePath ?? currentDocument.filePath),
-                onSave: tab.panel === 'editor' ? onProjectEditorSave : undefined,
-                closable: !tab.pinned,
-              }))}
+                    : panelTitle(tab.panel);
+
+                return {
+                  ...tab,
+                  label,
+                  displayLabel: formatEditorTabLabel(label, tab.panel),
+                  icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+                  preview: tab.preview,
+                  dirty:
+                    tab.panel === 'editor' &&
+                    !!currentDocument &&
+                    !!(tab.filePath ?? currentDocument.filePath) &&
+                    unsavedFiles instanceof Set &&
+                    unsavedFiles.has(tab.filePath ?? currentDocument.filePath),
+                  onSave: tab.panel === 'editor' ? onProjectEditorSave : undefined,
+                  closable: !tab.pinned,
+                };
+              })}
               onSelect={(tabId, panel) => selectPaneTab(leaf.id, tabId, panel)}
               onClose={(tabId, panel) => {
                 const tab = leaf.tabs.find((item) => item.id === tabId);
@@ -4984,6 +5004,7 @@ function IdeTabBar({
     preview?: boolean;
     dirty?: boolean;
     closable?: boolean;
+    displayLabel?: string;
     onSave?: () => void;
   }>;
   trailing?: React.ReactNode;
@@ -5144,7 +5165,9 @@ function IdeTabBar({
               onClick={() => onSelect(tab.id, tab.panel)}
             >
               <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />
-              <span className={tab.preview || tab.dirty ? 'italic' : ''}>{tab.label}</span>
+              <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
+                {tab.displayLabel ?? tab.label}
+              </span>
             </button>
             {tab.dirty ? (
               <button

@@ -2513,7 +2513,9 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   height: 36px;
   min-height: 36px;
+  min-width: 0;
   align-items: stretch;
+  overflow: hidden;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
 }
@@ -2522,8 +2524,13 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   min-width: 0;
   flex: 1;
+  gap: 1px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-inline: 4px;
+  scroll-padding-inline: 4px;
   scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -2553,6 +2560,13 @@ body :where(.lucide, svg[data-lucide]) {
   user-select: none;
 }
 
+.bolt-project-tab {
+  flex: 0 0 clamp(168px, 18vw, 240px);
+  min-width: 168px;
+  max-width: 280px;
+  scroll-snap-align: start;
+}
+
 .bolt-project-tab-main {
   display: inline-flex;
   min-width: 0;
@@ -2568,6 +2582,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tab[data-pinned='true'] {
+  flex-basis: 36px;
   min-width: 36px;
   max-width: 36px;
   justify-content: center;
@@ -2578,14 +2593,16 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
 }
 
-.bolt-project-tab[data-pinned='true'] .bolt-project-tab-main > span:nth-child(2),
+.bolt-project-tab[data-pinned='true'] .bolt-project-tab-label,
 .bolt-project-tab[data-pinned='true'] .bolt-project-tab-close,
 .bolt-project-tab[data-pinned='true'] .bolt-project-tab-save {
   display: none;
 }
 
 .bolt-project-right-tab {
-  min-width: auto;
+  min-width: 116px;
+  max-width: none;
+  flex: 1 1 0;
   padding: 0 10px;
 }
 
@@ -2626,8 +2643,9 @@ body :where(.lucide, svg[data-lucide]) {
   cursor: grabbing;
 }
 
-.bolt-project-tab-main > span:nth-child(2) {
+.bolt-project-tab-label {
   min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
