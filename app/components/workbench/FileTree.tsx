@@ -12,7 +12,14 @@ import { path } from '~/utils/path';
 const logger = createScopedLogger('FileTree');
 
 const NODE_PADDING_LEFT = 16;
-const DEFAULT_HIDDEN_FILES = [/\/node_modules\//, /\/\.next/, /\/\.astro/];
+
+const DEFAULT_HIDDEN_FILES = [
+  /\/node_modules\//,
+  /\/\.next/,
+  /\/\.astro/,
+  /\/\.vite(?:\/|$)/,
+  /\/deps_temp_[^/]+(?:\/|$)/,
+];
 
 interface Props {
   files?: FileMap;

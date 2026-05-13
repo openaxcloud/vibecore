@@ -94,6 +94,7 @@ export interface ProjectIdeMemory {
     showWorkbench?: boolean;
     previewIndex?: number;
     previewPath?: string;
+    editorMinimapEnabled?: boolean;
     lockedItems?: Array<{ path: string; type: 'file' | 'folder' }>;
     deletedPaths?: string[];
   };

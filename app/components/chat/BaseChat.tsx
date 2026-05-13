@@ -93,6 +93,14 @@ const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
 
+const IDE_FILE_TREE_HIDDEN_PATTERNS = [
+  /\/node_modules\//,
+  /\/\.next/,
+  /\/\.astro/,
+  /\/\.vite(?:\/|$)/,
+  /\/deps_temp_[^/]+(?:\/|$)/,
+];
+
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'Project summary',
   database: 'SQL browser',
@@ -778,6 +786,10 @@ function formatEditorTabLabel(label: string, panel: IdeWorkspacePanel) {
   return `${pathParts.at(-2)}/${pathParts.at(-1)}`;
 }
 
+function isIdeHiddenPath(filePath: string) {
+  return IDE_FILE_TREE_HIDDEN_PATTERNS.some((pattern) => pattern.test(filePath));
+}
+
 function inferAgentToolAction(message: string | undefined): AgentToolAction | null {
   const text = (message ?? '').toLowerCase();
 
@@ -1120,6 +1132,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [agentWidth, setAgentWidth] = useState(420);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState(false);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState(240);
+    const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
@@ -1618,6 +1631,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setCursorPositions(ui.cursorPositions);
           }
 
+          if (typeof ui?.editorMinimapEnabled === 'boolean') {
+            setEditorMinimapEnabled(ui.editorMinimapEnabled);
+          }
+
           if (ui?.scrollPositions && typeof ui.scrollPositions === 'object') {
             setScrollPositions(ui.scrollPositions);
           }
@@ -1882,6 +1899,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             recentTabIds,
             closedTabs,
             mobilePanel,
+            editorMinimapEnabled,
             lockedItems: backendLockedItems,
             deletedPaths: backendDeletedPaths,
             showWorkbench: true,
@@ -1889,7 +1907,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }).catch((error) => {
           console.error('Failed to persist project IDE state', error);
         });
-      }, 400);
+      }, 1000);
 
       return () => window.clearTimeout(saveTimer);
     }, [
@@ -1913,6 +1931,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       recentTabIds,
       closedTabs,
       mobilePanel,
+      editorMinimapEnabled,
       backendLockedItems,
       backendDeletedPaths,
     ]);
@@ -2923,6 +2942,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, []);
 
+    const togglePaneTabPinned = useCallback((paneId: string, tabId?: string) => {
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, paneId, (leaf) => {
+          const targetTabId = tabId ?? leaf.activeTabId ?? leaf.tabs[0]?.id;
+
+          if (!targetTabId) {
+            return leaf;
+          }
+
+          return {
+            ...leaf,
+            tabs: leaf.tabs.map((tab) => (tab.id === targetTabId ? { ...tab, pinned: !tab.pinned } : tab)),
+          };
+        }),
+      );
+    }, []);
+
     const splitPaneRight = useCallback((paneId: string, tabId?: string) => {
       let nextActivePaneId: string | undefined;
 
@@ -2970,6 +3006,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const swapPaneTabs = useCallback(
       (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
         if (sourcePaneId === targetPaneId) {
+          setPaneTree((currentTree) =>
+            updateLeaf(currentTree, sourcePaneId, (leaf) => {
+              const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
+
+              const targetIndex = targetTabId
+                ? leaf.tabs.findIndex((tab) => tab.id === targetTabId)
+                : leaf.tabs.length - 1;
+
+              if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+                return leaf;
+              }
+
+              const tabs = [...leaf.tabs];
+              const [sourceTab] = tabs.splice(sourceIndex, 1);
+              const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+              tabs.splice(insertionIndex, 0, sourceTab);
+
+              return {
+                ...leaf,
+                tabs,
+                activeTabId: sourceTab.id,
+              };
+            }),
+          );
           return;
         }
 
@@ -3020,6 +3080,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             >
               <div className="bolt-project-editor-toolbar">
                 <span>{currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}</span>
+                <button
+                  type="button"
+                  aria-pressed={editorMinimapEnabled}
+                  title={editorMinimapEnabled ? 'Hide minimap' : 'Show minimap'}
+                  onClick={() => setEditorMinimapEnabled((enabled) => !enabled)}
+                  disabled={!currentDocument}
+                >
+                  Minimap
+                </button>
                 <button type="button" onClick={() => workbenchStore.resetCurrentDocument()} disabled={!currentDocument}>
                   Format
                 </button>
@@ -3033,6 +3102,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   value={currentDocument.value}
                   filePath={currentDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
+                  minimapEnabled={editorMinimapEnabled}
                   onSave={onProjectEditorSave}
                   onChange={(update) => {
                     workbenchStore.setCurrentDocumentContent(update.value);
@@ -3227,6 +3297,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
               }
               onDragEnd={clearPaneDropTarget}
+              onTogglePin={(tabId) => togglePaneTabPinned(leaf.id, tabId)}
               recentFiles={recentProjectFiles}
               onOpenFile={(filePath, preview) => openProjectFile(filePath, { paneId: leaf.id, preview })}
             />
@@ -4897,7 +4968,10 @@ function ProjectFilesTool({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
-  const fileCount = Object.values(files ?? {}).filter((entry: any) => entry?.type === 'file').length;
+
+  const fileCount = Object.entries(files ?? {}).filter(
+    ([filePath, entry]: [string, any]) => entry?.type === 'file' && !isIdeHiddenPath(filePath),
+  ).length;
 
   const filteredFiles = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase();
@@ -4961,6 +5035,7 @@ function ProjectFilesTool({
         files={filteredFiles}
         hideRoot
         collapsed={collapsed}
+        hiddenFiles={IDE_FILE_TREE_HIDDEN_PATTERNS}
         unsavedFiles={unsavedFiles}
         rootFolder={WORK_DIR}
         selectedFile={selectedFile}
@@ -4990,6 +5065,7 @@ function IdeTabBar({
   onSplitActiveRight,
   onSwapTab,
   onDragEnd,
+  onTogglePin,
   recentFiles = [],
   onOpenFile,
 }: {
@@ -5017,6 +5093,7 @@ function IdeTabBar({
   onSplitActiveRight?: (tabId?: string) => void;
   onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
   onDragEnd?: () => void;
+  onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
   onOpenFile?: (filePath: string, preview: boolean) => void;
 }) {
@@ -5124,7 +5201,8 @@ function IdeTabBar({
             data-tab-id={tab.id}
             data-testid={`tab-${tab.id}`}
             data-pinned={tab.pinned ? 'true' : undefined}
-            aria-label={tab.label}
+            data-dirty={tab.dirty ? 'true' : undefined}
+            aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
             aria-selected={activeTabId === tab.id}
             className="bolt-project-tab"
             draggable
@@ -5168,12 +5246,14 @@ function IdeTabBar({
               <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
                 {tab.displayLabel ?? tab.label}
               </span>
+              {tab.dirty ? <span className="bolt-project-tab-dirty-dot" aria-hidden /> : null}
             </button>
             {tab.dirty ? (
               <button
                 type="button"
                 className="bolt-project-tab-save"
                 aria-label={`Save ${tab.label}`}
+                title={`Save ${tab.label}`}
                 onClick={(event) => {
                   event.preventDefault();
                   tab.onSave?.();
@@ -5206,7 +5286,7 @@ function IdeTabBar({
         <button
           type="button"
           className="bolt-project-tab-action bolt-project-add-tab-action"
-          aria-label="Open tool"
+          aria-label="Add tab"
           title="Add tab"
           data-testid="tab-add"
           aria-expanded={open}
@@ -5232,8 +5312,6 @@ function IdeTabBar({
           onClick={(event) => event.preventDefault()}
         >
           <span className="i-ph:plus" aria-hidden />
-          <span>Add Tab</span>
-          <span className="i-ph:caret-down" aria-hidden />
         </button>
         {open && (
           <div
@@ -5344,6 +5422,16 @@ function IdeTabBar({
         </button>
         {actionsOpen && (
           <div className="bolt-project-tab-actions-menu">
+            <button
+              type="button"
+              onClick={() => {
+                onTogglePin?.(activeTabId ?? tabs[0]?.id);
+                setActionsOpen(false);
+              }}
+            >
+              <span className="i-ph:push-pin-simple" aria-hidden />
+              {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
+            </button>
             <button
               type="button"
               onClick={() => {

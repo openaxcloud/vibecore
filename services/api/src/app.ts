@@ -5622,22 +5622,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       state,
       updatedByUserId: request.currentUser!.id,
     });
-    await store.recordProjectActivity({
-      projectId: project.id,
-      actorUserId: request.currentUser!.id,
-      action: 'project.ide_state.save',
-      metadata: {
-        version: ideState.version,
-        persistedKeys: Object.keys(body.state),
-      },
-    });
-    await audit(request, store, {
-      organizationId: project.organizationId,
-      action: 'project.ide_state.save',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { version: ideState.version },
-    });
+    const persistedKeys = Object.keys(body.state);
+    const shouldRecordActivity = persistedKeys.some((key) => key !== 'ui');
+
+    if (shouldRecordActivity) {
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        action: 'project.ide_state.save',
+        metadata: {
+          version: ideState.version,
+          persistedKeys,
+        },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'project.ide_state.save',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { version: ideState.version, persistedKeys },
+      });
+    }
 
     return { ideState };
   });

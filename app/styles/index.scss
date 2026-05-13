@@ -2651,6 +2651,15 @@ body :where(.lucide, svg[data-lucide]) {
   white-space: nowrap;
 }
 
+.bolt-project-tab-dirty-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-warning);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-bg-panel) 82%, transparent);
+}
+
 .bolt-project-tab-close,
 .bolt-project-tab-save {
   margin-left: auto;
@@ -2689,25 +2698,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-add-tab-action {
-  width: auto;
-  gap: 5px;
+  width: 36px;
+  min-width: 36px;
+  gap: 0;
   border-left: 1px solid var(--vc-ide-border-subtle);
-  padding: 0 8px;
-  white-space: nowrap;
-}
-
-.bolt-project-add-tab-action span:nth-child(2) {
-  font-size: 11px;
-  font-weight: 650;
-}
-
-.bolt-project-add-tab-action span:last-child {
-  font-size: 10px;
-  transition: transform 120ms ease-out;
-}
-
-.bolt-project-add-tab-action[aria-expanded='true'] span:last-child {
-  transform: rotate(180deg);
+  border-radius: 0;
+  padding: 0;
+  font-size: 15px;
 }
 
 .bolt-project-tool-popover {
@@ -5127,12 +5124,21 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tab-actions-menu button {
+  display: inline-flex;
   height: 30px;
+  align-items: center;
+  gap: 8px;
   border-radius: 6px;
   color: var(--vc-ide-text-primary);
   font-size: 12px;
   padding: 0 8px;
   text-align: left;
+}
+
+.bolt-project-tab-actions-menu button span {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-muted);
+  font-size: 14px;
 }
 
 .bolt-project-tab-actions-menu button:hover {

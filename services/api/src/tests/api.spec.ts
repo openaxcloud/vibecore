@@ -1876,6 +1876,17 @@ describe('SaaS API', () => {
     expect(loadIdeState.statusCode).toBe(200);
     expect(loadIdeState.json().ideState.state.chat.messages[0].content).toBe('Continue from yesterday');
 
+    const activityAfterChatSave = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/activity`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(activityAfterChatSave.statusCode).toBe(200);
+    const ideSaveEventsBeforeUiOnly = activityAfterChatSave
+      .json()
+      .activity.filter((event: { action: string }) => event.action === 'project.ide_state.save').length;
+    expect(ideSaveEventsBeforeUiOnly).toBe(1);
+
     const saveUiOnlyIdeState = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
@@ -1889,6 +1900,18 @@ describe('SaaS API', () => {
     expect(saveUiOnlyIdeState.statusCode).toBe(200);
     expect(saveUiOnlyIdeState.json().ideState.state.chat.messages[0].content).toBe('Continue from yesterday');
     expect(saveUiOnlyIdeState.json().ideState.state.ui.agentWidth).toBe(700);
+
+    const activityAfterUiOnlySave = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/activity`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(activityAfterUiOnlySave.statusCode).toBe(200);
+    expect(
+      activityAfterUiOnlySave
+        .json()
+        .activity.filter((event: { action: string }) => event.action === 'project.ide_state.save').length,
+    ).toBe(ideSaveEventsBeforeUiOnly);
 
     const clearIdeStateChat = await app.inject({
       method: 'PUT',

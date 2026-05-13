@@ -34,6 +34,7 @@ export interface EditorAdapterProps extends EditorAdapterValue {
   theme?: 'dark' | 'light';
   autoFocus?: boolean;
   largeFile?: boolean;
+  minimapEnabled?: boolean;
   className?: string;
   onChange?: (change: EditorChange) => void;
   onSave?: () => void;
@@ -122,14 +123,10 @@ export function useResponsiveLayout(): ResponsiveLayoutState {
       return getResponsiveLayoutState(1200, 900);
     }
 
-    return getResponsiveLayoutState(
-      window.innerWidth,
-      window.innerHeight,
-      {
-        coarsePointer: window.matchMedia('(pointer: coarse)').matches,
-        reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-      },
-    );
+    return getResponsiveLayoutState(window.innerWidth, window.innerHeight, {
+      coarsePointer: window.matchMedia('(pointer: coarse)').matches,
+      reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    });
   };
 
   const [state, setState] = useState<ResponsiveLayoutState>(readState);
@@ -215,6 +212,7 @@ export function DesktopCodeEditor({
   language,
   readOnly,
   largeFile,
+  minimapEnabled = true,
   theme = 'dark',
   autoFocus,
   className,
@@ -280,7 +278,7 @@ export function DesktopCodeEditor({
         language: languageForPath(filePath, language),
         readOnly,
         automaticLayout: true,
-        minimap: { enabled: !largeFile },
+        minimap: { enabled: !largeFile && minimapEnabled },
         fontSize: 13,
         fontFamily: '"JetBrains Mono", "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace',
         fontLigatures: !largeFile,
@@ -338,7 +336,7 @@ export function DesktopCodeEditor({
 
     editor.updateOptions({
       readOnly,
-      minimap: { enabled: !largeFile },
+      minimap: { enabled: !largeFile && minimapEnabled },
       wordWrap: largeFile ? 'off' : 'on',
       fontLigatures: !largeFile,
       occurrencesHighlight: largeFile ? 'off' : 'singleFile',
@@ -353,7 +351,7 @@ export function DesktopCodeEditor({
     if (model && monaco) {
       monaco.editor.setModelLanguage(model, languageForPath(filePath, language));
     }
-  }, [filePath, language, largeFile, readOnly, value]);
+  }, [filePath, language, largeFile, minimapEnabled, readOnly, value]);
 
   useEffect(() => {
     monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vs');
