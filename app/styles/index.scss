@@ -7699,6 +7699,15 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 32px 20px;
 }
 
+.vc-create-auth-gate {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  max-width: 760px;
+  gap: 18px;
+  padding: 34px 22px;
+}
+
 .vc-create-hero-inner::before {
   position: absolute;
   inset: 0 0 auto;

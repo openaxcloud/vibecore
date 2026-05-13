@@ -1,6 +1,14 @@
 import { useStore } from '@nanostores/react';
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { Form, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
+import {
+  Form,
+  isRouteErrorResponse,
+  Link,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+  useRouteError,
+} from '@remix-run/react';
 import {
   BarChart3,
   CheckCircle,
@@ -45,6 +53,7 @@ import {
   apiRequest,
   firstOrganization,
   formObject,
+  isApiResponse,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -434,8 +443,27 @@ function projectPromptForArtifact(prompt: string, category: ArtifactCategory) {
   ].join('\n');
 }
 
+function loginRedirect(request: Request) {
+  const url = new URL(request.url);
+  const redirectTo = `${url.pathname}${url.search}`;
+
+  return redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
+}
+
+async function requireFirstOrganization(request: Request) {
+  try {
+    return await firstOrganization(request);
+  } catch (error) {
+    if (isApiResponse(error, 401) || isApiResponse(error, 403)) {
+      throw loginRedirect(request);
+    }
+
+    throw error;
+  }
+}
+
 export async function loader({ request, context }: EnterpriseLoaderArgs) {
-  await firstOrganization(request);
+  await requireFirstOrganization(request);
 
   const serverEnv = context.cloudflare?.env as unknown as Record<string, string> | undefined;
   const llmManager = LLMManager.getInstance(serverEnv);
@@ -464,7 +492,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await requireFirstOrganization(request);
 
   const body = formObject(await request.formData()) as {
     name?: string;
@@ -1110,6 +1138,61 @@ export default function NewProjectPage() {
             </p>
           </div>
           <TemplateGallery compact mode="authenticated" />
+        </section>
+      </div>
+    </AppShell>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+
+  const message = isRouteErrorResponse(error)
+    ? error.data?.error || error.statusText || 'Project creation is unavailable.'
+    : error instanceof Error
+      ? error.message
+      : 'Project creation is unavailable.';
+
+  return (
+    <AppShell
+      title="Create project"
+      description="Create a persistent Vibecore project from a template, AI prompt, GitHub repository or zip archive."
+      hideHeader
+    >
+      <div className="vc-create-page">
+        <section className="vc-create-hero">
+          <div className="vc-create-auth-gate">
+            <div className="vc-create-icon">
+              <Rocket className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="vc-create-label mb-2 text-[11px] font-medium uppercase tracking-[0.4px]">
+                Workspace access
+              </p>
+              <h2 className="vc-create-title text-[30px] font-semibold leading-tight tracking-normal sm:text-[40px]">
+                Sign in to create a project
+              </h2>
+              <p className="vc-create-copy mt-3 max-w-2xl text-[13px] leading-6">
+                Vibecore needs your authenticated workspace, organization, and configured AI providers before it can
+                create a real project.
+              </p>
+              <p className="vc-create-model-warning mt-4 rounded-lg px-3 py-2 text-[12px]">{message}</p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  to="/login"
+                  className="vc-create-submit inline-flex h-11 items-center justify-center rounded-lg px-5 text-[12px] font-semibold"
+                >
+                  Log in
+                </Link>
+                <Link
+                  to="/"
+                  className="vc-create-example inline-flex h-11 items-center justify-center rounded-lg px-5 text-[12px] font-semibold"
+                >
+                  Back to homepage
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </AppShell>
