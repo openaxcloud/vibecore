@@ -142,6 +142,49 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     }
   }
 
+  if (panel === 'git') {
+    try {
+      const blameFile = url.searchParams.get('blameFile');
+      const diffFile = url.searchParams.get('diffFile');
+
+      const [status, branches, graph, stashes] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/git/status`),
+        apiRequest(request, `/projects/${projectId}/git/branches`),
+        apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
+        apiRequest(request, `/projects/${projectId}/git/stashes`).catch(() => ({ stashes: [] })),
+      ]);
+      const [blame, diff] = await Promise.all([
+        blameFile
+          ? apiRequest(request, `/projects/${projectId}/git/blame?filePath=${encodeURIComponent(blameFile)}`).catch(
+              () => ({
+                blame: [],
+              }),
+            )
+          : Promise.resolve({ blame: [] }),
+        diffFile
+          ? apiRequest(request, `/projects/${projectId}/git/diff?filePath=${encodeURIComponent(diffFile)}`).catch(
+              () => ({
+                diff: '',
+              }),
+            )
+          : Promise.resolve({ diff: '' }),
+      ]);
+
+      return json(
+        panelEnvelope(panel, project.project, {
+          ...(status as any),
+          ...(branches as any),
+          ...(graph as any),
+          ...(stashes as any),
+          ...(blame as any),
+          ...(diff as any),
+        }),
+      );
+    } catch (error) {
+      return json(panelEnvelopeError(panel, project.project, error));
+    }
+  }
+
   if (panel === 'secrets' && url.searchParams.get('reveal') === 'true' && url.searchParams.get('key')) {
     const confirmation = url.searchParams.get('confirm');
 
@@ -1252,6 +1295,36 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/pull`, {
         method: 'POST',
         body: JSON.stringify({ branch: body.branch || 'main' }),
+      });
+    } else if (intent === 'checkout-branch') {
+      await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
+        method: 'POST',
+        body: JSON.stringify({ branch: body.branch || 'main', create: false }),
+      });
+    } else if (intent === 'create-branch') {
+      await apiRequest(request, `/projects/${projectId}/git/branches/checkout`, {
+        method: 'POST',
+        body: JSON.stringify({ branch: body.branch, create: true, startPoint: body.startPoint || undefined }),
+      });
+    } else if (intent === 'stash') {
+      await apiRequest(request, `/projects/${projectId}/git/stash`, {
+        method: 'POST',
+        body: JSON.stringify({ message: body.message || undefined }),
+      });
+    } else if (intent === 'apply-stash' || intent === 'pop-stash') {
+      await apiRequest(request, `/projects/${projectId}/git/stash/apply`, {
+        method: 'POST',
+        body: JSON.stringify({ stashRef: body.stashRef, drop: intent === 'pop-stash' }),
+      });
+    } else if (intent === 'cherry-pick') {
+      await apiRequest(request, `/projects/${projectId}/git/cherry-pick`, {
+        method: 'POST',
+        body: JSON.stringify({ sha: body.sha }),
+      });
+    } else if (intent === 'resolve-conflict') {
+      await apiRequest(request, `/projects/${projectId}/git/conflicts/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ filePath: body.filePath, strategy: body.strategy === 'theirs' ? 'theirs' : 'ours' }),
       });
     } else if (intent === 'pr') {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {

@@ -42,6 +42,42 @@ class TestGitProvider implements GitProvider {
     return ['main'];
   }
 
+  async checkoutBranch(input: { branch: string }) {
+    return { branch: input.branch };
+  }
+
+  async stashPush() {
+    return { stashed: true, output: 'Saved working directory' };
+  }
+
+  async stashList() {
+    return [];
+  }
+
+  async stashApply() {
+    return { applied: true, output: 'Applied stash' };
+  }
+
+  async cherryPick() {
+    return { picked: true, output: 'Cherry-picked commit' };
+  }
+
+  async resolveConflict(input: { filePath: string; strategy: 'ours' | 'theirs' }) {
+    return { resolved: true, filePath: input.filePath, strategy: input.strategy };
+  }
+
+  async logGraph() {
+    return [];
+  }
+
+  async diff() {
+    return '';
+  }
+
+  async blame() {
+    return [];
+  }
+
   async createPullRequest() {
     return { url: 'https://github.example/pull/1', number: 1 };
   }

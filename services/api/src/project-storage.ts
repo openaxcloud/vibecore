@@ -18,6 +18,24 @@ export interface StoredArchive {
   createdAt: string;
 }
 
+export interface GitCommitNode {
+  sha: string;
+  shortSha: string;
+  parents: string[];
+  author: string;
+  date: string;
+  message: string;
+  refs?: string;
+}
+
+export interface GitBlameLine {
+  line: number;
+  sha: string;
+  author: string;
+  date: string;
+  content: string;
+}
+
 export interface GitProvider {
   importRepository(input: {
     repositoryUrl: string;
@@ -27,6 +45,7 @@ export interface GitProvider {
     branch: string;
     changedFiles: string[];
     fileStatuses?: Array<{ path: string; status: string }>;
+    conflicts?: Array<{ path: string; status: string }>;
     ahead: number;
     behind: number;
   }>;
@@ -41,6 +60,28 @@ export interface GitProvider {
     branch: string;
   }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
   listBranches(projectId: string): Promise<string[]>;
+  checkoutBranch(input: {
+    projectId: string;
+    branch: string;
+    create?: boolean;
+    startPoint?: string;
+  }): Promise<{ branch: string }>;
+  stashPush(input: { projectId: string; message?: string }): Promise<{ stashed: boolean; output: string }>;
+  stashList(projectId: string): Promise<Array<{ id: string; branch?: string; message: string }>>;
+  stashApply(input: {
+    projectId: string;
+    stashRef: string;
+    drop?: boolean;
+  }): Promise<{ applied: boolean; output: string }>;
+  cherryPick(input: { projectId: string; sha: string }): Promise<{ picked: boolean; output: string }>;
+  resolveConflict(input: {
+    projectId: string;
+    filePath: string;
+    strategy: 'ours' | 'theirs';
+  }): Promise<{ resolved: boolean; filePath: string; strategy: 'ours' | 'theirs' }>;
+  logGraph(projectId: string, limit?: number): Promise<GitCommitNode[]>;
+  diff(projectId: string, filePath?: string): Promise<string>;
+  blame(input: { projectId: string; filePath: string; startLine?: number; endLine?: number }): Promise<GitBlameLine[]>;
   createPullRequest(input: {
     projectId: string;
     title: string;
@@ -233,6 +274,9 @@ export class GitCliProvider implements GitProvider {
     const statusLines = porcelain.split('\n').filter(Boolean);
     const changedFiles = statusLines.map((line) => line.slice(3));
     const fileStatuses = statusLines.map((line) => ({ path: line.slice(3), status: line.slice(0, 2).trim() || 'M' }));
+    const conflicts = statusLines
+      .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
+      .map((line) => ({ path: line.slice(3), status: line.slice(0, 2) }));
 
     const aheadBehind = await this.git(projectId, ['rev-list', '--left-right', '--count', '@{upstream}...HEAD']).catch(
       () => '0\t0',
@@ -240,7 +284,7 @@ export class GitCliProvider implements GitProvider {
 
     const [behind, ahead] = aheadBehind.split(/\s+/).map((value) => Number(value) || 0);
 
-    return { branch, changedFiles, fileStatuses, ahead, behind };
+    return { branch, changedFiles, fileStatuses, conflicts, ahead, behind };
   }
 
   async commit(input: { projectId: string; message: string; files: ProjectFile[] }) {
@@ -267,9 +311,140 @@ export class GitCliProvider implements GitProvider {
   }
 
   async listBranches(projectId: string) {
-    const output = await this.git(projectId, ['branch', '--format=%(refname:short)']);
+    const output = await this.git(projectId, ['branch', '--all', '--format=%(refname:short)']);
 
-    return output.split('\n').filter(Boolean);
+    return [
+      ...new Set(
+        output
+          .split('\n')
+          .map((branch) => branch.replace(/^remotes\/origin\//, ''))
+          .filter(Boolean),
+      ),
+    ];
+  }
+
+  async checkoutBranch(input: { projectId: string; branch: string; create?: boolean; startPoint?: string }) {
+    if (input.create) {
+      await this.git(input.projectId, ['checkout', '-b', input.branch, input.startPoint ?? 'HEAD']);
+    } else {
+      await this.git(input.projectId, ['checkout', input.branch]);
+    }
+
+    return { branch: input.branch };
+  }
+
+  async stashPush(input: { projectId: string; message?: string }) {
+    const args = ['stash', 'push', '--include-untracked'];
+
+    if (input.message) {
+      args.push('-m', input.message);
+    }
+
+    const output = await this.git(input.projectId, args);
+
+    return { stashed: !/No local changes/i.test(output), output };
+  }
+
+  async stashList(projectId: string) {
+    const output = await this.git(projectId, ['stash', 'list', '--format=%gd%x09%gs']);
+
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [id, message = ''] = line.split('\t');
+        const branch = message.match(/WIP on ([^:]+):/)?.[1];
+
+        return { id, branch, message };
+      });
+  }
+
+  async stashApply(input: { projectId: string; stashRef: string; drop?: boolean }) {
+    const output = await this.git(input.projectId, ['stash', input.drop ? 'pop' : 'apply', input.stashRef]);
+
+    return { applied: true, output };
+  }
+
+  async cherryPick(input: { projectId: string; sha: string }) {
+    const output = await this.git(input.projectId, ['cherry-pick', input.sha]);
+
+    return { picked: true, output };
+  }
+
+  async resolveConflict(input: { projectId: string; filePath: string; strategy: 'ours' | 'theirs' }) {
+    const filePath = input.filePath.replace(/^\/+/, '');
+
+    await this.git(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath]);
+    await this.git(input.projectId, ['add', '--', filePath]);
+
+    return { resolved: true, filePath, strategy: input.strategy };
+  }
+
+  async logGraph(projectId: string, limit = 30) {
+    const output = await this.git(projectId, [
+      'log',
+      `--max-count=${Math.max(1, Math.min(limit, 100))}`,
+      '--date=iso-strict',
+      '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
+    ]);
+
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const [sha, shortSha, parents = '', author = '', date = '', refs = '', message = ''] = line.split('\t');
+
+        return {
+          sha,
+          shortSha,
+          parents: parents ? parents.split(' ').filter(Boolean) : [],
+          author,
+          date,
+          refs,
+          message,
+        };
+      });
+  }
+
+  async diff(projectId: string, filePath?: string) {
+    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])]);
+  }
+
+  async blame(input: { projectId: string; filePath: string; startLine?: number; endLine?: number }) {
+    const range =
+      input.startLine && input.endLine
+        ? [`-L`, `${Math.max(1, input.startLine)},${Math.max(input.startLine, input.endLine)}`]
+        : [];
+    const output = await this.git(input.projectId, [
+      'blame',
+      '--line-porcelain',
+      ...range,
+      '--',
+      input.filePath.replace(/^\/+/, ''),
+    ]);
+    const lines: GitBlameLine[] = [];
+    let current: Partial<GitBlameLine> = {};
+
+    for (const line of output.split('\n')) {
+      if (/^[0-9a-f]{40}\s/.test(line)) {
+        const [sha, , finalLine] = line.split(' ');
+        current = { sha, line: Number(finalLine) };
+      } else if (line.startsWith('author ')) {
+        current.author = line.slice('author '.length);
+      } else if (line.startsWith('author-time ')) {
+        current.date = new Date(Number(line.slice('author-time '.length)) * 1000).toISOString();
+      } else if (line.startsWith('\t')) {
+        lines.push({
+          line: current.line ?? lines.length + 1,
+          sha: current.sha ?? '',
+          author: current.author ?? 'Unknown',
+          date: current.date ?? '',
+          content: line.slice(1),
+        });
+      }
+    }
+
+    return lines;
   }
 
   async createPullRequest(): Promise<{ url: string; number: number }> {

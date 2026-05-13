@@ -72,6 +72,57 @@ class TestGitProvider implements GitProvider {
     return this.branches.get(projectId) ?? ['main'];
   }
 
+  async checkoutBranch(input: { projectId: string; branch: string; create?: boolean }) {
+    const branches = this.branches.get(input.projectId) ?? ['main'];
+
+    if (input.create && !branches.includes(input.branch)) {
+      branches.push(input.branch);
+    }
+
+    this.branches.set(input.projectId, [input.branch, ...branches.filter((branch) => branch !== input.branch)]);
+
+    return { branch: input.branch };
+  }
+
+  async stashPush() {
+    return { stashed: true, output: 'Saved working directory' };
+  }
+
+  async stashList() {
+    return [];
+  }
+
+  async stashApply() {
+    return { applied: true, output: 'Applied stash' };
+  }
+
+  async cherryPick() {
+    return { picked: true, output: 'Cherry-picked commit' };
+  }
+
+  async resolveConflict(input: { filePath: string; strategy: 'ours' | 'theirs' }) {
+    return { resolved: true, filePath: input.filePath, strategy: input.strategy };
+  }
+
+  async logGraph(projectId: string) {
+    return (this.commits.get(projectId) ?? []).map((commit) => ({
+      sha: commit.sha,
+      shortSha: commit.sha.slice(0, 8),
+      parents: [],
+      author: 'Test User',
+      date: new Date().toISOString(),
+      message: commit.message,
+    }));
+  }
+
+  async diff() {
+    return '';
+  }
+
+  async blame() {
+    return [];
+  }
+
   async createPullRequest() {
     return { url: `https://github.example/pull/${Date.now()}`, number: 1 };
   }
@@ -2616,6 +2667,54 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { message: 'Initial import' },
     });
     expect(commit.statusCode).toBe(200);
+    const branch = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/branches/checkout`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { branch: 'feature/git-panel', create: true, startPoint: 'main' },
+    });
+    expect(branch.statusCode).toBe(200);
+    expect(branch.json().branch).toBe('feature/git-panel');
+    const branches = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/branches`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(branches.json().branches).toContain('feature/git-panel');
+    const graph = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/graph`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(graph.statusCode).toBe(200);
+    expect(graph.json().commits[0].message).toBe('Initial import');
+    const stash = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/stash`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { message: 'WIP from test' },
+    });
+    expect(stash.statusCode).toBe(200);
+    const cherryPick = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/cherry-pick`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { sha: 'abcd1234' },
+    });
+    expect(cherryPick.statusCode).toBe(200);
+    const resolveConflict = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/git/conflicts/resolve`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { filePath: 'README.md', strategy: 'ours' },
+    });
+    expect(resolveConflict.statusCode).toBe(200);
+    const blame = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/git/blame?filePath=README.md`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(blame.statusCode).toBe(200);
     const push = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/push`,

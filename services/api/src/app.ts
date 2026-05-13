@@ -431,6 +431,24 @@ const createSnapshotSchema = z.object({
 const snapshotParams = z.object({ snapshotId: z.string().min(1) });
 const gitCommitSchema = z.object({ message: z.string().min(1) });
 const gitBranchSchema = z.object({ branch: z.string().min(1).default('main') });
+const gitCheckoutBranchSchema = z.object({
+  branch: z.string().min(1),
+  create: z.boolean().default(false),
+  startPoint: z.string().min(1).optional(),
+});
+const gitStashSchema = z.object({ message: z.string().optional() });
+const gitStashApplySchema = z.object({ stashRef: z.string().min(1), drop: z.boolean().default(false) });
+const gitCherryPickSchema = z.object({ sha: z.string().min(4) });
+const gitConflictResolutionSchema = z.object({
+  filePath: z.string().min(1),
+  strategy: z.enum(['ours', 'theirs']),
+});
+const gitDiffQuerySchema = z.object({ filePath: z.string().optional() });
+const gitBlameQuerySchema = z.object({
+  filePath: z.string().min(1),
+  startLine: z.coerce.number().int().positive().optional(),
+  endLine: z.coerce.number().int().positive().optional(),
+});
 const pullRequestSchema = z.object({
   title: z.string().min(1),
   body: z.string().optional(),
@@ -8001,6 +8019,172 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     return { branches: await gitProvider.listBranches(project.id), selected: project.gitDefaultBranch ?? 'main' };
+  });
+  app.post('/projects/:projectId/git/branches/checkout', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(gitCheckoutBranchSchema, request.body ?? {});
+    const result = await gitProvider.checkoutBranch({
+      projectId: project.id,
+      branch: body.branch,
+      create: body.create,
+      startPoint: body.startPoint,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: body.create ? 'git.branch.create' : 'git.branch.checkout',
+      metadata: { branch: body.branch },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: body.create ? 'git.branch.create' : 'git.branch.checkout',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { branch: body.branch },
+    });
+
+    return result;
+  });
+  app.get('/projects/:projectId/git/graph', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { commits: await gitProvider.logGraph(project.id, 40) };
+  });
+  app.get('/projects/:projectId/git/stashes', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { stashes: await gitProvider.stashList(project.id) };
+  });
+  app.post('/projects/:projectId/git/stash', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(gitStashSchema, request.body ?? {});
+    const result = await gitProvider.stashPush({ projectId: project.id, message: body.message });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.stash.push',
+      metadata: { message: body.message },
+    });
+
+    return result;
+  });
+  app.post('/projects/:projectId/git/stash/apply', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(gitStashApplySchema, request.body ?? {});
+    const result = await gitProvider.stashApply({
+      projectId: project.id,
+      stashRef: body.stashRef,
+      drop: body.drop,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: body.drop ? 'git.stash.pop' : 'git.stash.apply',
+      metadata: { stashRef: body.stashRef },
+    });
+
+    return result;
+  });
+  app.post('/projects/:projectId/git/cherry-pick', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(gitCherryPickSchema, request.body ?? {});
+    const result = await gitProvider.cherryPick({ projectId: project.id, sha: body.sha });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.cherry-pick',
+      metadata: { sha: body.sha },
+    });
+
+    return result;
+  });
+  app.post('/projects/:projectId/git/conflicts/resolve', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(gitConflictResolutionSchema, request.body ?? {});
+    const result = await gitProvider.resolveConflict({
+      projectId: project.id,
+      filePath: body.filePath,
+      strategy: body.strategy,
+    });
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'git.conflict.resolve',
+      metadata: { filePath: body.filePath, strategy: body.strategy },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'git.conflict.resolve',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { filePath: body.filePath, strategy: body.strategy },
+    });
+
+    return result;
+  });
+  app.get('/projects/:projectId/git/diff', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(gitDiffQuerySchema, request.query ?? {});
+
+    return { diff: await gitProvider.diff(project.id, query.filePath) };
+  });
+  app.get('/projects/:projectId/git/blame', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(gitBlameQuerySchema, request.query ?? {});
+
+    return {
+      blame: await gitProvider.blame({
+        projectId: project.id,
+        filePath: query.filePath,
+        startLine: query.startLine,
+        endLine: query.endLine,
+      }),
+    };
   });
   app.post('/projects/:projectId/git/pull-requests', async (request, reply) => {
     const project = await requireProject(
