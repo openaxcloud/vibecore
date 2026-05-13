@@ -867,7 +867,7 @@ body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator)
   height: 5px;
   border-radius: 9999px;
   animation: vc-typing-dot var(--vc-animation-typing) ease-in-out infinite;
-  background: #7b61ff;
+  background: var(--vc-ide-accent-ai-start);
 }
 
 body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator) > span:nth-child(2) {
@@ -936,7 +936,7 @@ body
 body :where([role='tooltip'], .tooltip, .vc-tooltip, .cm-tooltip, [data-radix-tooltip-content]) {
   border: 1px solid var(--vc-ui-tooltip-border);
   background: var(--vc-ui-tooltip-bg);
-  color: #f5f9fc;
+  color: var(--vc-ide-text-primary);
   font-size: var(--vc-ui-tooltip-text-size) !important;
   box-shadow: var(--vc-ui-shadow-md);
 }
@@ -1384,21 +1384,26 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-run-button.is-running {
-  background: #f85149;
+  background: var(--vc-ide-accent-error);
 }
 
 .bolt-project-run-button.is-running:hover {
-  background: #d83b35 !important;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), black 12%) !important;
 }
 
 .bolt-project-publish-button {
-  background: linear-gradient(135deg, #7b61ff 0%, #0099ff 100%);
+  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start) 0%, var(--vc-ide-accent-action) 100%);
   color: white !important;
   padding: 0 12px;
 }
 
 .bolt-project-publish-button:hover {
-  background: linear-gradient(135deg, #866fff 0%, #0aa2ff 100%) !important;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--vc-ide-accent-ai-start), white 8%) 0%,
+      color-mix(in srgb, var(--vc-ide-accent-action), white 8%) 100%
+    ) !important;
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
@@ -1987,8 +1992,11 @@ body :where(.lucide, svg[data-lucide]) {
   z-index: 120;
   display: flex;
   width: 320px;
+  min-width: 320px;
+  inline-size: 320px;
   max-height: 480px;
   box-sizing: border-box;
+  flex: 0 0 auto;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--vc-ide-border-visible);
@@ -2991,10 +2999,10 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at 18% 12%, rgba(0, 153, 255, 0.16), transparent 28%),
-    radial-gradient(circle at 86% 20%, rgba(123, 97, 255, 0.14), transparent 30%),
-    var(--bolt-elements-background-depth-1, #0a0f1c);
-  color: var(--bolt-elements-textPrimary, #f5f9fc);
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%), transparent 28%),
+    radial-gradient(circle at 86% 20%, color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 86%), transparent 30%),
+    var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
   padding: 24px;
 }
 
@@ -3005,10 +3013,10 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   background:
-    radial-gradient(circle at 50% 18%, rgb(248 81 73 / 0.14), transparent 30%),
-    radial-gradient(circle at 18% 88%, rgb(0 153 255 / 0.14), transparent 30%),
-    var(--bolt-elements-background-depth-1, #0a0f1c);
-  color: var(--bolt-elements-textPrimary, #f5f9fc);
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%), transparent 30%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%), transparent 30%),
+    var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
   padding: 24px;
 }
 
@@ -3018,10 +3026,10 @@ body :where(.lucide, svg[data-lucide]) {
   flex-direction: column;
   align-items: center;
   overflow: hidden;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--bolt-elements-background-depth-2, #0e1525) 94%, transparent);
-  box-shadow: 0 24px 64px rgb(0 4 20 / 0.58);
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
+  box-shadow: var(--vc-ui-shadow-xl);
   padding: 34px 28px 28px;
   text-align: center;
 }
@@ -3032,22 +3040,23 @@ body :where(.lucide, svg[data-lucide]) {
   width: 104px;
   height: 104px;
   place-items: center;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 999px;
   background:
-    linear-gradient(180deg, rgb(248 81 73 / 0.12), transparent), var(--bolt-elements-background-depth-1, #0a0f1c);
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-accent-error), transparent 88%), transparent),
+    var(--vc-ide-bg-app);
   margin-bottom: 24px;
 }
 
 .bolt-preview-not-running-orbit > span {
   position: absolute;
-  border: 1px solid rgb(248 81 73 / 0.32);
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 68%);
   border-radius: 999px;
   inset: 10px;
 }
 
 .bolt-preview-not-running-orbit > span:nth-child(2) {
-  border-color: rgb(0 153 255 / 0.24);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 76%);
   inset: 22px;
   transform: rotate(28deg);
 }
@@ -3056,24 +3065,24 @@ body :where(.lucide, svg[data-lucide]) {
   width: 9px;
   height: 9px;
   border: 0;
-  background: #f85149;
-  box-shadow: 0 0 22px rgb(248 81 73 / 0.78);
+  background: var(--vc-ide-accent-error);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--vc-ide-accent-error), transparent 22%);
   inset: auto 18px 18px auto;
 }
 
 .bolt-preview-not-running-orbit > svg {
   width: 34px;
   height: 34px;
-  color: #f85149;
+  color: var(--vc-ide-accent-error);
   stroke-width: 1.8;
 }
 
 .bolt-preview-not-running-copy span {
   display: inline-flex;
-  border: 1px solid rgb(248 81 73 / 0.24);
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 76%);
   border-radius: 999px;
-  background: rgb(248 81 73 / 0.1);
-  color: #f85149;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
+  color: var(--vc-ide-accent-error);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -3083,7 +3092,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-not-running-copy h3 {
   margin: 14px 0 0;
-  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  color: var(--vc-ide-text-primary);
   font-size: 24px;
   font-weight: 750;
   letter-spacing: 0;
@@ -3092,7 +3101,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-not-running-copy p {
   max-width: 360px;
   margin: 12px auto 0;
-  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  color: var(--vc-ide-text-secondary);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -3122,8 +3131,8 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: linear-gradient(135deg, #7b61ff, #0099ff);
-  color: white;
+  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start), var(--vc-ide-accent-action));
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   margin-top: 24px;
@@ -3153,10 +3162,10 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-shell {
   width: min(560px, 100%);
   overflow: hidden;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--bolt-elements-background-depth-2, #0e1525) 94%, transparent);
-  box-shadow: 0 24px 64px rgba(0, 4, 20, 0.55);
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
+  box-shadow: var(--vc-ui-shadow-xl);
   backdrop-filter: blur(16px);
 }
 
@@ -3165,8 +3174,8 @@ body :where(.lucide, svg[data-lucide]) {
   height: 38px;
   align-items: center;
   gap: 7px;
-  border-bottom: 1px solid var(--bolt-elements-borderColor, #1a2030);
-  background: var(--bolt-elements-background-depth-3, #111827);
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
   padding: 0 12px;
 }
 
@@ -3177,23 +3186,23 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-splash-chrome span:nth-child(1) {
-  background: #f85149;
+  background: var(--vc-ide-accent-error);
 }
 
 .bolt-preview-splash-chrome span:nth-child(2) {
-  background: #d29922;
+  background: var(--vc-ide-accent-warning);
 }
 
 .bolt-preview-splash-chrome span:nth-child(3) {
-  background: #3fb950;
+  background: var(--vc-ide-accent-success);
 }
 
 .bolt-preview-splash-chrome div {
   height: 18px;
   flex: 1;
-  border: 1px solid var(--bolt-elements-borderColor, #1a2030);
+  border: 1px solid var(--vc-ide-border-subtle);
   border-radius: 999px;
-  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  background: var(--vc-ide-bg-panel);
   margin-left: 10px;
 }
 
@@ -3218,7 +3227,7 @@ body :where(.lucide, svg[data-lucide]) {
   width: 74px;
   height: 74px;
   place-items: center;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 18px;
   margin-bottom: 22px;
 }
@@ -3231,7 +3240,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-content h3 {
   margin: 0;
-  color: var(--bolt-elements-textPrimary, #f5f9fc);
+  color: var(--vc-ide-text-primary);
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0;
@@ -3240,7 +3249,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-content p {
   max-width: 390px;
   margin: 12px 0 0;
-  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  color: var(--vc-ide-text-secondary);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -3255,9 +3264,9 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-stats div {
   min-width: 92px;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 10px;
-  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  background: var(--vc-ide-bg-panel);
   padding: 12px 14px;
 }
 
@@ -3270,7 +3279,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-stats span {
   display: block;
   margin-top: 6px;
-  color: var(--bolt-elements-textTertiary, #6e7681);
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
 }
 
@@ -3287,10 +3296,10 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid var(--bolt-elements-borderColor, #2b3245);
+  border: 1px solid var(--vc-ide-border-visible);
   border-radius: 10px;
-  background: var(--bolt-elements-background-depth-1, #0a0f1c);
-  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-secondary);
   padding: 11px 12px;
   text-align: left;
 }
@@ -3327,7 +3336,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-splash-tips div.active {
-  background: color-mix(in srgb, var(--bolt-elements-item-contentAccent, #0099ff) 12%, transparent);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
   opacity: 1;
   transform: scale(1);
 }
@@ -3338,8 +3347,8 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-top: 1px solid var(--bolt-elements-borderColor, #1a2030);
-  color: var(--bolt-elements-textSecondary, #c2c8cc);
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-secondary);
   font-size: 12px;
   padding: 9px 18px;
   text-align: center;
@@ -3348,7 +3357,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-progress {
   height: 2px;
   overflow: hidden;
-  background: var(--bolt-elements-background-depth-1, #0a0f1c);
+  background: var(--vc-ide-bg-panel);
 }
 
 .bolt-preview-splash-progress span {
@@ -3370,7 +3379,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-footer p {
   margin: 0;
-  color: var(--bolt-elements-textTertiary, #6e7681);
+  color: var(--vc-ide-text-muted);
   font-size: 11px;
 }
 
@@ -3385,7 +3394,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 7px;
   border: 0;
   border-radius: 999px;
-  background: var(--bolt-elements-borderColor, #2b3245);
+  background: var(--vc-ide-border-visible);
   cursor: pointer;
   padding: 0;
   transition:
@@ -3396,7 +3405,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-dots button.active {
   width: 18px;
-  background: var(--bolt-elements-item-contentAccent, #0099ff);
+  background: var(--vc-ide-accent-action);
 }
 
 @keyframes bolt-preview-slide-in {
@@ -6703,7 +6712,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell summary:focus-visible,
 .bolt-project-ide-shell input:focus-visible,
 .bolt-project-ide-shell textarea:focus-visible {
-  outline: 2px solid #0099ff;
+  outline: 2px solid var(--vc-ide-accent-action);
   outline-offset: 2px;
 }
 
