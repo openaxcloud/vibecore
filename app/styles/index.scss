@@ -2530,7 +2530,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-shell {
   position: fixed;
   top: 36px;
-  left: 0;
+  left: var(--project-ide-rail-width);
   z-index: 35;
   width: var(--project-agent-width);
   height: calc(100vh - 36px);
@@ -2542,8 +2542,8 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   top: 36px;
   bottom: 28px;
-  left: var(--project-agent-width);
-  z-index: 34;
+  left: 0;
+  z-index: 36;
   display: flex;
   width: var(--project-ide-rail-width);
   flex-direction: column;
