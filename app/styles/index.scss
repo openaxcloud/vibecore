@@ -1886,6 +1886,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-user-menu-trigger {
+  appearance: none;
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -1897,6 +1898,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary) !important;
+  padding: 0;
   transition:
     background 120ms ease-out,
     border-color 120ms ease-out,

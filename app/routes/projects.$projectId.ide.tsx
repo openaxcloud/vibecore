@@ -28,6 +28,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -207,6 +208,8 @@ function IdeProjectTopBar({
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuId = useId();
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const previewRunning = previews.length > 0;
   const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
@@ -260,6 +263,37 @@ function IdeProjectTopBar({
       });
     }
   }, [renamingProject]);
+
+  useEffect(() => {
+    if (!userMenuOpen) {
+      return undefined;
+    }
+
+    const closeOnOutsideInteraction = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && userMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setUserMenuOpen(false);
+    };
+
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsideInteraction);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideInteraction);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [userMenuOpen]);
 
   const startInlineRename = () => {
     setProjectMenuOpen(false);
@@ -661,16 +695,26 @@ function IdeProjectTopBar({
           >
             <Files className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <details
-            className="relative"
-            open={userMenuOpen}
-            onToggle={(event) => setUserMenuOpen(event.currentTarget.open)}
-          >
-            <summary className="bolt-project-user-menu-trigger" aria-label="User menu" title="User menu">
+          <div className="relative" ref={userMenuRef}>
+            <button
+              type="button"
+              className="bolt-project-user-menu-trigger"
+              aria-label="Open user menu"
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-controls={userMenuOpen ? userMenuId : undefined}
+              title="User menu"
+              onClick={() => setUserMenuOpen((open) => !open)}
+            >
               <User className="h-3.5 w-3.5" aria-hidden />
-            </summary>
+            </button>
             {userMenuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]">
+              <div
+                id={userMenuId}
+                role="menu"
+                aria-label="User account menu"
+                className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]"
+              >
                 <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
                 <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
                 <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
@@ -684,7 +728,7 @@ function IdeProjectTopBar({
                 </form>
               </div>
             )}
-          </details>
+          </div>
         </div>
       </div>
     </header>
