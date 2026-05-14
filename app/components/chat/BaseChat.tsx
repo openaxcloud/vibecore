@@ -1494,6 +1494,55 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   );
 }
 
+const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
+
+function AppliedFilesToast({
+  files,
+  onDismissAll,
+  onUndoAll,
+}: {
+  files: string[];
+  onDismissAll: () => void;
+  onUndoAll: () => void;
+}) {
+  const visibleFiles = files.slice(0, 8);
+  const remainingCount = Math.max(files.length - visibleFiles.length, 0);
+
+  return (
+    <div className="bolt-agent-applied-toast">
+      <div className="bolt-agent-applied-toast-head">
+        <strong>
+          {files.length} file{files.length === 1 ? '' : 's'} applied
+        </strong>
+        <span>Successful agent patches were written.</span>
+      </div>
+      <details>
+        <summary>View details</summary>
+        <ul>
+          {visibleFiles.map((file) => (
+            <li key={file} title={file}>
+              {file}
+            </li>
+          ))}
+          {remainingCount > 0 ? (
+            <li>
+              {remainingCount} more file{remainingCount === 1 ? '' : 's'}
+            </li>
+          ) : null}
+        </ul>
+      </details>
+      <div className="bolt-agent-applied-toast-actions">
+        <button type="button" onClick={onUndoAll}>
+          Undo all
+        </button>
+        <button type="button" onClick={onDismissAll}>
+          Dismiss all
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
@@ -1769,6 +1818,74 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * Each silent accept fires a toast with an Undo action.
      */
     const autoAppliedRef = useRef<Map<string, string>>(new Map());
+    const appliedToastBufferRef = useRef<Map<string, { filePath: string; proposalId: string }>>(new Map());
+    const appliedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const flushAppliedFilesToast = useCallback(() => {
+      const appliedItems = Array.from(appliedToastBufferRef.current.values());
+
+      if (!appliedItems.length) {
+        return;
+      }
+
+      const files = appliedItems.map((item) => item.filePath);
+      const proposalIds = appliedItems.map((item) => item.proposalId);
+
+      appliedToastBufferRef.current.clear();
+
+      const content = (
+        <AppliedFilesToast
+          files={files}
+          onDismissAll={() => toast.dismiss()}
+          onUndoAll={() => {
+            for (const proposalId of proposalIds) {
+              void workbenchStore.revertAgentPatchProposal(proposalId);
+            }
+
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          }}
+        />
+      );
+
+      if (toast.isActive(AGENT_APPLIED_TOAST_ID)) {
+        toast.update(AGENT_APPLIED_TOAST_ID, {
+          render: content,
+          type: 'success',
+          autoClose: 3000,
+          closeButton: true,
+        });
+      } else {
+        toast.success(content, {
+          toastId: AGENT_APPLIED_TOAST_ID,
+          autoClose: 3000,
+          closeButton: true,
+        });
+      }
+    }, []);
+
+    const scheduleAppliedFilesToast = useCallback(
+      (filePath: string, proposalId: string) => {
+        appliedToastBufferRef.current.set(proposalId, { filePath, proposalId });
+
+        if (appliedToastTimerRef.current) {
+          clearTimeout(appliedToastTimerRef.current);
+        }
+
+        appliedToastTimerRef.current = setTimeout(() => {
+          appliedToastTimerRef.current = null;
+          flushAppliedFilesToast();
+        }, 80);
+      },
+      [flushAppliedFilesToast],
+    );
+
+    useEffect(() => {
+      return () => {
+        if (appliedToastTimerRef.current) {
+          clearTimeout(appliedToastTimerRef.current);
+        }
+      };
+    }, []);
 
     useEffect(() => {
       if (!projectAutoApply) {
@@ -1798,26 +1915,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             return;
           }
 
-          toast.success(`Applied ${filePath}`, {
-            autoClose: 5_000,
-            closeButton: ({ closeToast }) => (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void workbenchStore.revertAgentPatchProposal(proposal.id);
-                  closeToast?.(event);
-                }}
-                className="bolt-toast-undo-action"
-                aria-label={`Undo change to ${filePath}`}
-              >
-                Undo
-              </button>
-            ),
-          });
+          scheduleAppliedFilesToast(filePath, proposal.id);
         });
       }
-    }, [agentPatchProposals, projectAutoApply]);
+    }, [agentPatchProposals, projectAutoApply, scheduleAppliedFilesToast]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>

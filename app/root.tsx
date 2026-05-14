@@ -131,7 +131,7 @@ function AppToastContainer() {
       position="bottom-right"
       pauseOnFocusLoss
       transition={toastAnimation}
-      autoClose={4000}
+      autoClose={3000}
       limit={3}
       newestOnTop
     />

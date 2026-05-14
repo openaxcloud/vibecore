@@ -11326,6 +11326,81 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container--bottom-right {
   bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 
+body:has(.bolt-project-statusbar) .Toastify__toast-container {
+  width: min(360px, calc(100vw - 24px));
+}
+
+.bolt-agent-applied-toast {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.bolt-agent-applied-toast-head {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-agent-applied-toast-head strong {
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.bolt-agent-applied-toast-head span,
+.bolt-agent-applied-toast details,
+.bolt-agent-applied-toast li {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-agent-applied-toast summary {
+  width: max-content;
+  cursor: pointer;
+  color: var(--vc-ide-accent-action);
+  font-weight: 700;
+}
+
+.bolt-agent-applied-toast ul {
+  display: grid;
+  max-height: 118px;
+  gap: 2px;
+  overflow: auto;
+  padding: 6px 0 0 16px;
+  margin: 0;
+}
+
+.bolt-agent-applied-toast li {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-agent-applied-toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bolt-agent-applied-toast-actions button {
+  min-height: 28px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 0 9px;
+}
+
+.bolt-agent-applied-toast-actions button:hover,
+.bolt-agent-applied-toast-actions button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
 @media (max-height: 499px) {
   .bolt-mobile-tabbar {
     display: grid;
