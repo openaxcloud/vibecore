@@ -5,7 +5,6 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import * as dotenv from 'dotenv';
-import path from 'node:path';
 
 // Load environment variables from multiple files
 dotenv.config({ path: '.env.local' });
@@ -126,14 +125,8 @@ export default defineConfig((config) => {
       },
     },
     resolve: {
-      dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
+      dedupe: ['react', 'react-dom'],
       alias: {
-        react: path.resolve('./node_modules/react'),
-        'react/jsx-runtime': path.resolve('./node_modules/react/jsx-runtime.js'),
-        'react/jsx-dev-runtime': path.resolve('./node_modules/react/jsx-dev-runtime.js'),
-        'react-dom': path.resolve('./node_modules/react-dom'),
-        'react-dom/client': path.resolve('./node_modules/react-dom/client.js'),
-        'react-dom/server': path.resolve('./node_modules/react-dom/server.browser.js'),
         buffer: 'vite-plugin-node-polyfills/polyfills/buffer',
       },
     },
