@@ -6730,6 +6730,7 @@ function IdeTabBar({
             role="tab"
             data-tab-id={tab.id}
             data-testid={`tab-${tab.id}`}
+            data-panel={tab.panel}
             data-pinned={tab.pinned ? 'true' : undefined}
             data-dirty={tab.dirty ? 'true' : undefined}
             aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
@@ -6772,10 +6773,7 @@ function IdeTabBar({
               title={tab.label}
               onClick={() => onSelect(tab.id, tab.panel)}
             >
-              <span
-                className={classNames('bolt-project-tab-icon', tab.pinned ? 'i-ph:push-pin-simple' : tab.icon)}
-                aria-hidden
-              />
+              <span className={classNames('bolt-project-tab-icon', tab.icon)} aria-hidden />
               <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
                 {tab.displayLabel ?? tab.label}
               </span>

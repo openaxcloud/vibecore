@@ -3981,6 +3981,22 @@ body :where(.lucide, svg[data-lucide]) {
   display: none;
 }
 
+.bolt-project-tab[data-pinned='true'][data-panel='preview'] {
+  flex-basis: auto;
+  min-width: 96px;
+  max-width: 128px;
+  justify-content: flex-start;
+  padding: 0 9px;
+}
+
+.bolt-project-tab[data-pinned='true'][data-panel='preview'] .bolt-project-tab-main {
+  justify-content: flex-start;
+}
+
+.bolt-project-tab[data-pinned='true'][data-panel='preview'] .bolt-project-tab-label {
+  display: inline-block;
+}
+
 .bolt-project-right-tab {
   flex: 0 0 auto;
   min-width: 84px;
