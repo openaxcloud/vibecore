@@ -971,6 +971,18 @@ function formatEditorTabLabel(label: string, panel: IdeWorkspacePanel) {
   return `${pathParts.at(-2)}/${pathParts.at(-1)}`;
 }
 
+function formatRailBadgeValue(value: number) {
+  return value > 99 ? '99+' : String(value);
+}
+
+function formatRailItemLabel(label: string, badgeLabel?: string) {
+  return badgeLabel ? `${label}, ${badgeLabel}` : label;
+}
+
+function formatRailItemTitle(title: string, badgeLabel?: string) {
+  return badgeLabel ? `${title} · ${badgeLabel}` : title;
+}
+
 function isIdeHiddenPath(filePath: string) {
   return IDE_FILE_TREE_HIDDEN_PATTERNS.some((pattern) => pattern.test(filePath));
 }
@@ -4061,6 +4073,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         icon: 'i-ph:sparkle',
         active: true,
         badge: statusbarDiagnostics.errors > 0 ? statusbarDiagnostics.errors : undefined,
+        badgeLabel:
+          statusbarDiagnostics.errors > 0
+            ? `${statusbarDiagnostics.errors} project error${statusbarDiagnostics.errors === 1 ? '' : 's'}`
+            : undefined,
         badgeTone: 'danger',
         title: 'Focus AI agent',
         action: () => textareaRef?.current?.focus(),
@@ -4071,6 +4087,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         icon: 'i-ph:files',
         active: rightPanelOpen && rightPanelMode === 'files',
         badge: statusbarChangedFiles || undefined,
+        badgeLabel:
+          statusbarChangedFiles > 0
+            ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
+            : undefined,
         badgeTone: statusbarChangedFiles > 0 ? 'warning' : 'neutral',
         title: `${projectFilePaths.length} indexed files${statusbarChangedFiles ? `, ${statusbarChangedFiles} changed` : ''}`,
         action: () => openIdeTool('files'),
@@ -4081,6 +4101,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         icon: 'i-ph:code',
         active: activeWorkspacePanel === 'editor',
         badge: unsavedFiles instanceof Set && unsavedFiles.size > 0 ? unsavedFiles.size : undefined,
+        badgeLabel:
+          unsavedFiles instanceof Set && unsavedFiles.size > 0
+            ? `${unsavedFiles.size} unsaved editor${unsavedFiles.size === 1 ? '' : 's'}`
+            : undefined,
         badgeTone: 'warning',
         title: 'Open editor',
         action: () => openIdeTool('editor'),
@@ -4094,6 +4118,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           workspaceStatus?.status?.toLowerCase() === 'running' || runtimePreviews.length > 0
             ? Math.max(1, runtimePreviews.length)
             : undefined,
+        badgeLabel:
+          workspaceStatus?.status?.toLowerCase() === 'running' || runtimePreviews.length > 0
+            ? runtimePreviews.length > 0
+              ? `${runtimePreviews.length} active preview port${runtimePreviews.length === 1 ? '' : 's'}`
+              : 'workspace runtime is running'
+            : undefined,
         badgeTone: 'success',
         title: 'Open terminal',
         action: () => openBottomTerminal('terminal'),
@@ -4104,6 +4134,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         icon: 'i-ph:browser',
         active: activeWorkspacePanel === 'preview',
         badge: runtimePreviews.length || undefined,
+        badgeLabel:
+          runtimePreviews.length > 0
+            ? `${runtimePreviews.length} active preview port${runtimePreviews.length === 1 ? '' : 's'}`
+            : undefined,
         badgeTone: runtimePreviews.length > 0 ? 'success' : 'neutral',
         title: runtimePreviews.length
           ? `${runtimePreviews.length} preview port${runtimePreviews.length === 1 ? '' : 's'}`
@@ -4129,6 +4163,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         label: 'Git',
         icon: 'i-ph:git-branch',
         badge: statusbarChangedFiles || undefined,
+        badgeLabel:
+          statusbarChangedFiles > 0
+            ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
+            : undefined,
         tone: 'warning',
       },
       { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
@@ -4138,6 +4176,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         label: 'Monitoring',
         icon: 'i-ph:chart-line',
         badge: statusbarDiagnostics.errors || undefined,
+        badgeLabel:
+          statusbarDiagnostics.errors > 0
+            ? `${statusbarDiagnostics.errors} project error${statusbarDiagnostics.errors === 1 ? '' : 's'}`
+            : undefined,
         tone: statusbarDiagnostics.errors > 0 ? 'danger' : 'neutral',
       },
       { panel: 'security', label: 'Security', icon: 'i-ph:shield-check', badge: undefined, tone: 'neutral' },
@@ -4146,10 +4188,64 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         label: 'Activity',
         icon: 'i-ph:activity',
         badge: workspaceLogs.length || undefined,
+        badgeLabel:
+          workspaceLogs.length > 0
+            ? `${workspaceLogs.length} workspace log event${workspaceLogs.length === 1 ? '' : 's'}`
+            : undefined,
         tone: 'neutral',
       },
       { panel: 'settings', label: 'Settings', icon: 'i-ph:gear', badge: undefined, tone: 'neutral' },
     ] as const;
+
+    const renderIdeRailPrimaryItem = (item: (typeof ideRailPrimaryItems)[number]) => {
+      const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
+
+      return (
+        <button
+          key={item.id}
+          type="button"
+          className="bolt-project-ide-rail-item"
+          aria-current={item.active ? 'page' : undefined}
+          aria-label={formatRailItemLabel(item.label, badgeLabel)}
+          title={formatRailItemTitle(item.title, badgeLabel)}
+          data-tone={item.badgeTone}
+          onClick={item.action}
+        >
+          <span className={item.icon} aria-hidden />
+          <span className="bolt-project-ide-rail-label">{item.label}</span>
+          {item.badge ? (
+            <span className="bolt-project-ide-rail-badge" aria-hidden>
+              {formatRailBadgeValue(item.badge)}
+            </span>
+          ) : null}
+        </button>
+      );
+    };
+
+    const renderIdeRailMoreItem = (item: (typeof ideRailMoreItems)[number]) => {
+      const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
+
+      return (
+        <button
+          key={item.panel}
+          type="button"
+          className="bolt-project-ide-rail-item bolt-project-ide-rail-item-compact"
+          aria-current={activeWorkspacePanel === item.panel ? 'page' : undefined}
+          aria-label={formatRailItemLabel(item.label, badgeLabel)}
+          title={formatRailItemTitle(IDE_TOOL_DESCRIPTIONS[item.panel], badgeLabel)}
+          data-tone={item.tone}
+          onClick={() => openIdeTool(item.panel)}
+        >
+          <span className={item.icon} aria-hidden />
+          <span className="bolt-project-ide-rail-label">{item.label}</span>
+          {item.badge ? (
+            <span className="bolt-project-ide-rail-badge" aria-hidden>
+              {formatRailBadgeValue(item.badge)}
+            </span>
+          ) : null}
+        </button>
+      );
+    };
 
     const projectIdePanels = (
       <div
@@ -4366,34 +4462,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           />
         </section>
         <aside className="bolt-project-ide-rail" aria-label="IDE panels">
-          <div className="bolt-project-ide-rail-primary">
-            {ideRailPrimaryItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="bolt-project-ide-rail-item"
-                aria-current={item.active ? 'page' : undefined}
-                aria-label={`${item.label}${item.badge ? `, ${item.badge}` : ''}`}
-                title={item.title}
-                data-tone={item.badgeTone}
-                onClick={item.action}
-              >
-                <span className={item.icon} aria-hidden />
-                <span className="bolt-project-ide-rail-label">{item.label}</span>
-                {item.badge ? (
-                  <span className="bolt-project-ide-rail-badge" aria-hidden>
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </div>
+          <div className="bolt-project-ide-rail-primary">{ideRailPrimaryItems.map(renderIdeRailPrimaryItem)}</div>
           <div className="bolt-project-ide-rail-more">
             <button
               type="button"
               className="bolt-project-ide-rail-more-trigger"
               aria-expanded={ideRailMoreOpen}
               aria-controls="ide-rail-more-views"
+              title="More views: Search, Git, Database, Packages, Monitoring, Security, Activity and Settings"
+              aria-label="More IDE views"
               onClick={() => setIdeRailMoreOpen((open) => !open)}
             >
               <span className={ideRailMoreOpen ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
@@ -4401,26 +4478,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </button>
             {ideRailMoreOpen && (
               <div id="ide-rail-more-views" className="bolt-project-ide-rail-more-list">
-                {ideRailMoreItems.map((item) => (
-                  <button
-                    key={item.panel}
-                    type="button"
-                    className="bolt-project-ide-rail-item bolt-project-ide-rail-item-compact"
-                    aria-current={activeWorkspacePanel === item.panel ? 'page' : undefined}
-                    aria-label={`${item.label}${item.badge ? `, ${item.badge}` : ''}`}
-                    title={IDE_TOOL_DESCRIPTIONS[item.panel]}
-                    data-tone={item.tone}
-                    onClick={() => openIdeTool(item.panel)}
-                  >
-                    <span className={item.icon} aria-hidden />
-                    <span className="bolt-project-ide-rail-label">{item.label}</span>
-                    {item.badge ? (
-                      <span className="bolt-project-ide-rail-badge" aria-hidden>
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    ) : null}
-                  </button>
-                ))}
+                {ideRailMoreItems.map(renderIdeRailMoreItem)}
               </div>
             )}
           </div>
