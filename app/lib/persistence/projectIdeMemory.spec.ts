@@ -390,6 +390,68 @@ describe('project IDE memory save debouncing', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('uses a 1.5 s default debounce window (Phase 0 #4)', async () => {
+    // Clear any test override so the production default applies.
+    clearProjectIdeMemoryCacheForTest();
+    installLocalStorage();
+
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-default';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 320 } });
+
+    // Just before 1.5 s — nothing fires.
+    await vi.advanceTimersByTimeAsync(1_400);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Cross the 1.5 s threshold — single PUT.
+    await vi.advanceTimersByTimeAsync(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushes the pending save on a visibility-hidden lifecycle event', async () => {
+    clearProjectIdeMemoryCacheForTest();
+    setProjectIdeMemorySaveDebounceMsForTest(1_500);
+    installLocalStorage();
+
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    /*
+     * Capture the registered lifecycle handlers so we can fire them manually
+     * without needing a real DOM lifecycle event.
+     */
+    const lifecycleHandlers: Record<string, EventListener> = {};
+
+    const stubWindow = {
+      addEventListener: vi.fn((event: string, handler: EventListener) => {
+        lifecycleHandlers[event] = handler;
+      }),
+      removeEventListener: vi.fn(),
+    };
+
+    const stubDocument = { visibilityState: 'visible' as DocumentVisibilityState };
+    vi.stubGlobal('window', stubWindow as unknown as Window);
+    vi.stubGlobal('document', stubDocument as unknown as Document);
+
+    const projectId = 'project-debounce-visibility';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 999 } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    /*
+     * Simulate a tab going to background; the flush should fire the PUT
+     * synchronously without waiting on the 1.5 s timer.
+     */
+    stubDocument.visibilityState = 'hidden';
+    lifecycleHandlers.visibilitychange?.(new Event('visibilitychange'));
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects the shared debounced promise when the PUT fails permanently', async () => {
     /*
      * 400-class status triggers persistWithRetry's retry loop (1 s + 4 s + 12 s

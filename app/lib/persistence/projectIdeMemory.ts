@@ -131,7 +131,14 @@ interface DebouncedSaveEntry {
 
 const pendingDebouncedSaves = new Map<string, DebouncedSaveEntry>();
 
-const DEFAULT_SAVE_DEBOUNCE_MS = 5_000;
+/*
+ * Phase 0 #4 — Debounce IDE-state network saves to 1.5 s so chat-stream
+ * ticks, drag-resize, scroll and cursor moves don't each fire their own
+ * PUT. flushProjectIdeMemorySaves() is wired below to fire on
+ * visibilitychange === 'hidden' and beforeunload so we don't lose state
+ * on a tab close or navigation that happens inside the debounce window.
+ */
+const DEFAULT_SAVE_DEBOUNCE_MS = 1_500;
 
 let saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
 
@@ -352,12 +359,44 @@ function notifyCrossTabListeners(projectId: string, memory: ProjectIdeMemory) {
   }
 }
 
+let lifecycleListenersInstalled = false;
+
+function installLifecycleFlushListenersOnce() {
+  if (lifecycleListenersInstalled || typeof globalThis === 'undefined' || typeof globalThis.window === 'undefined') {
+    return;
+  }
+
+  lifecycleListenersInstalled = true;
+
+  /*
+   * Phase 0 #4 — fire any pending debounced save when the tab goes
+   * background or is being unloaded so we never drop state because the
+   * 1.5 s debounce window outlived the page. visibilitychange covers the
+   * "tab inactive / pwa minimised" case; pagehide covers iOS Safari
+   * cleanly; beforeunload covers desktop browser close + nav.
+   */
+  const flushAll = () => {
+    void flushProjectIdeMemorySaves();
+  };
+
+  const onVisibilityChange = () => {
+    if (globalThis.document?.visibilityState === 'hidden') {
+      flushAll();
+    }
+  };
+
+  globalThis.window.addEventListener('visibilitychange', onVisibilityChange);
+  globalThis.window.addEventListener('pagehide', flushAll);
+  globalThis.window.addEventListener('beforeunload', flushAll);
+}
+
 function installStorageListenerOnce() {
   if (storageListenerInstalled || typeof globalThis === 'undefined' || typeof globalThis.window === 'undefined') {
     return;
   }
 
   storageListenerInstalled = true;
+  installLifecycleFlushListenersOnce();
   globalThis.window.addEventListener('storage', (event) => {
     if (!event.key || !event.key.startsWith(`${PROJECT_IDE_MEMORY_STORAGE_PREFIX}:`) || !event.newValue) {
       return;
@@ -426,6 +465,8 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
 }
 
 export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {
+  installLifecycleFlushListenersOnce();
+
   const existing = memoryCache.get(projectId) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
   const dirty = memoryForServerSave(next, patch);
