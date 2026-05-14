@@ -15,8 +15,8 @@ describe('project agent panel layout', () => {
     expect(clampProjectAgentPanelWidth(900)).toBe(PROJECT_AGENT_PANEL_MAX_WIDTH);
   });
 
-  it('uses 25 percent of the viewport as the desktop default with hard bounds', () => {
-    expect(defaultProjectAgentPanelWidth(1440)).toBe(360);
+  it('uses 30 percent of the viewport as the desktop default with hard bounds', () => {
+    expect(defaultProjectAgentPanelWidth(1440)).toBe(432);
     expect(defaultProjectAgentPanelWidth(960)).toBe(PROJECT_AGENT_PANEL_MIN_WIDTH);
     expect(defaultProjectAgentPanelWidth(3200)).toBe(PROJECT_AGENT_PANEL_MAX_WIDTH);
     expect(defaultProjectAgentPanelWidth()).toBe(PROJECT_AGENT_PANEL_DEFAULT_WIDTH);

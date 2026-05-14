@@ -2362,8 +2362,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
-  --project-agent-min-width: 340px;
-  --project-ide-rail-width: 48px;
+  --project-agent-min-width: 400px;
+  --project-ide-rail-width: 56px;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -2377,7 +2377,7 @@ body :where(.lucide, svg[data-lucide]) {
   top: 36px;
   right: 0;
   bottom: 0;
-  left: var(--project-ide-rail-width);
+  left: calc(var(--project-ide-rail-width) + 1px);
   z-index: 35;
   min-width: 0;
   min-height: 0;
@@ -2964,8 +2964,10 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-agent-patch-review {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   max-width: min(100%, var(--chat-max-width));
   max-height: min(45vh, 480px);
   gap: 10px;
@@ -2988,6 +2990,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-patch-review-head,
 .bolt-project-agent-patch-card-head {
   justify-content: space-between;
+  min-width: 0;
 }
 
 .bolt-project-agent-patch-review-head > div,
@@ -3016,6 +3019,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-patch-review-bulk {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 4px;
 }
@@ -3023,8 +3027,10 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-patch-review-bulk button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   height: 26px;
+  min-width: 78px;
   padding: 0 10px;
   border-radius: 6px;
   border: 1px solid var(--vc-ide-border-subtle);
@@ -3032,6 +3038,8 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
   font-size: 11px;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 120ms ease-out,
@@ -3098,13 +3106,16 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-patch-actions button {
   height: 28px;
+  min-width: 72px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
   font-size: 11px;
   font-weight: 600;
+  line-height: 1;
   padding: 0 9px;
+  white-space: nowrap;
 }
 
 .bolt-project-agent-patch-actions button:first-child {
@@ -3120,6 +3131,27 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-patch-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+@container (max-width: 390px) {
+  .bolt-project-agent-patch-review-head,
+  .bolt-project-agent-patch-card-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bolt-project-agent-patch-review-bulk,
+  .bolt-project-agent-patch-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .bolt-project-agent-patch-review-bulk button,
+  .bolt-project-agent-patch-actions button {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 .bolt-project-agent-patch-error {
@@ -3386,7 +3418,7 @@ body :where(.lucide, svg[data-lucide]) {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 4%), var(--vc-ide-bg-panel)),
     var(--vc-ide-bg-panel);
-  padding: 7px 5px;
+  padding: 7px 6px;
 }
 
 .bolt-project-ide-rail-primary,
@@ -3467,7 +3499,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-rail-badge {
   position: absolute;
   top: 3px;
-  right: 2px;
+  right: 1px;
   display: inline-flex;
   min-width: 15px;
   height: 15px;
