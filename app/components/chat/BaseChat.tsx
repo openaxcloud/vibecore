@@ -5720,8 +5720,19 @@ function ProjectBottomTerminal({
               <span className={icon} aria-hidden />
               {label}
               {id === 'problems' && diagnosticErrorCount + diagnosticWarningCount > 0 ? (
-                <span className="bolt-project-bottom-terminal-tab-badge">
-                  {diagnosticErrorCount}E {diagnosticWarningCount}W
+                <span
+                  className="bolt-project-bottom-terminal-problems-badges"
+                  aria-hidden="true"
+                  title={`${diagnosticErrorCount} errors, ${diagnosticWarningCount} warnings`}
+                >
+                  <span className="bolt-project-bottom-terminal-problem-badge" data-severity="error">
+                    <span className="i-ph:x-circle-fill" aria-hidden />
+                    {diagnosticErrorCount}
+                  </span>
+                  <span className="bolt-project-bottom-terminal-problem-badge" data-severity="warning">
+                    <span className="i-ph:warning-fill" aria-hidden />
+                    {diagnosticWarningCount}
+                  </span>
                 </span>
               ) : null}
             </button>

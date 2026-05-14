@@ -8007,18 +8007,43 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: inset 0 2px 0 var(--vc-ide-accent-action);
 }
 
-.bolt-project-bottom-terminal-tab-badge {
+.bolt-project-bottom-terminal-problems-badges {
   display: inline-flex;
-  min-width: 28px;
+  align-items: center;
+  gap: 3px;
+}
+
+.bolt-project-bottom-terminal-problem-badge {
+  display: inline-flex;
+  min-width: 26px;
   height: 18px;
   align-items: center;
   justify-content: center;
+  gap: 3px;
   border-radius: 999px;
+  border: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-muted);
-  color: var(--vc-ide-text-primary);
+  color: var(--vc-ide-text-secondary);
   font-size: 10px;
   font-weight: 700;
-  padding: 0 6px;
+  line-height: 1;
+  padding: 0 5px;
+}
+
+.bolt-project-bottom-terminal-problem-badge [class*='i-ph:'] {
+  font-size: 11px;
+}
+
+.bolt-project-bottom-terminal-problem-badge[data-severity='error'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 56%);
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 88%);
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-bottom-terminal-problem-badge[data-severity='warning'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 52%);
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 88%);
+  color: var(--vc-ide-accent-warning);
 }
 
 .bolt-project-bottom-terminal-status,
