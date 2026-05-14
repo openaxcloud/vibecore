@@ -14,6 +14,11 @@ import { toast } from 'react-toastify';
 import { getApiKeysFromCookies } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
 import ChatAlert from './ChatAlert';
+import {
+  bucketEventsByTime as bucketEventsByTimeHelper,
+  deploymentStatusColor,
+  partitionMonitoringEvents as partitionMonitoringEventsHelper,
+} from './projectMonitoring';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -8867,16 +8872,46 @@ function ProjectMonitoringPanel({
   busy: boolean;
 }) {
   const [windowSize, setWindowSize] = useState<'15m' | '1h' | '24h'>('1h');
-  const deployments = data.deployments ?? [];
-  const activityCount = data.recentActivity?.length ?? 0;
-  const workspaceStatus = data.workspace?.status ?? 'inactive';
+  const deployments: any[] = Array.isArray(data.deployments) ? data.deployments : [];
+  const allActivity: any[] = Array.isArray(data.recentActivity) ? data.recentActivity : [];
+
+  const windowMs = windowSize === '15m' ? 15 * 60_000 : windowSize === '1h' ? 60 * 60_000 : 24 * 60 * 60_000;
+  const cutoff = Date.now() - windowMs;
+
+  const windowed = allActivity.filter((event) => {
+    if (!event?.createdAt) {
+      return true;
+    }
+
+    const ts = new Date(event.createdAt).getTime();
+
+    return Number.isFinite(ts) && ts >= cutoff;
+  });
+
+  const { userFacingEvents, hiddenRoutineCount } = partitionMonitoringEventsHelper(windowed);
+
+  const workspace = data.workspace ?? data.runtimeStatus;
+
+  const workspaceLabel = runtimeStatusText({
+    workspaceStatus: workspace,
+    workspaceLoading: Boolean(workspace && !workspace.status),
+    workspaceError: workspace?.error,
+  });
+
+  const lastDeployment = deployments[0];
+
+  const lastDeploymentDetail = lastDeployment
+    ? `${lastDeployment.status ?? 'unknown'}${
+        lastDeployment.createdAt ? ` · ${new Date(lastDeployment.createdAt).toLocaleString()}` : ''
+      }`
+    : 'No deployment recorded';
 
   const metrics = [
-    ['Workspace', workspaceStatus, data.workspace?.runtimeMode ?? 'No runtime session'],
-    ['Deployments', String(deployments.length), deployments[0]?.status ?? 'No deployment'],
-    ['Activity events', String(activityCount), `${windowSize} backend view`],
+    ['Workspace', workspaceLabel, workspace?.runtimeMode ?? 'No runtime session reported'],
+    ['Deployments', String(deployments.length), lastDeploymentDetail],
+    ['User events', String(userFacingEvents.length), `${windowSize} window · ${hiddenRoutineCount} routine hidden`],
     ['Tracked files', String(data.files?.length ?? 0), `${windowSize} window`],
-  ];
+  ] as const;
 
   return (
     <div className="bolt-project-monitoring-panel">
@@ -8904,16 +8939,135 @@ function ProjectMonitoringPanel({
           </article>
         ))}
       </div>
+      <ProjectMonitoringDeploymentTimeline deployments={deployments} />
+      <ProjectMonitoringActivitySparkline
+        events={userFacingEvents}
+        windowMs={windowMs}
+        emptyLabel="No user-facing events in this window."
+      />
       <PanelRows
-        rows={(data.recentActivity ?? [])
-          .slice(0, 8)
+        rows={userFacingEvents
+          .slice(0, 12)
           .map((event: any) => [
-            event.action,
+            formatProjectActivityAction(event.action ?? 'project.activity'),
             event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
           ])}
-        empty="No monitoring events yet."
+        empty="No user-facing events yet. Routine IDE state saves are hidden — see logs for raw audit."
       />
+      {hiddenRoutineCount > 0 ? (
+        <div className="bolt-project-monitoring-routine-note" role="note">
+          {hiddenRoutineCount} routine internal event{hiddenRoutineCount === 1 ? '' : 's'} hidden (
+          <code>project.ide_state.*</code>
+          ). Open the Logs panel to inspect the raw audit trail.
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+function ProjectMonitoringDeploymentTimeline({ deployments }: { deployments: any[] }) {
+  const visible = deployments.slice(0, 24);
+
+  if (visible.length === 0) {
+    return (
+      <section className="bolt-project-monitoring-timeline" aria-label="Deployment history">
+        <header>
+          <strong>Deployments</strong>
+          <small>No deployment recorded for this project yet.</small>
+        </header>
+      </section>
+    );
+  }
+
+  const width = 100;
+  const barWidth = width / visible.length;
+
+  return (
+    <section className="bolt-project-monitoring-timeline" aria-label="Deployment history">
+      <header>
+        <strong>Deployments</strong>
+        <small>
+          Last {visible.length} deployment{visible.length === 1 ? '' : 's'}, newest on the right.
+        </small>
+      </header>
+      <svg viewBox={`0 0 ${width} 20`} preserveAspectRatio="none" role="img" aria-label="Deployment status timeline">
+        {visible
+          .slice()
+          .reverse()
+          .map((deployment: any, index: number) => (
+            <rect
+              key={deployment.id ?? `${deployment.createdAt ?? 'deploy'}-${index}`}
+              x={index * barWidth + barWidth * 0.1}
+              y={2}
+              width={Math.max(barWidth * 0.8, 0.5)}
+              height={16}
+              fill={deploymentStatusColor(deployment.status)}
+            >
+              <title>
+                {(deployment.status ?? 'unknown') +
+                  (deployment.provider ? ` · ${deployment.provider}` : '') +
+                  (deployment.createdAt ? ` · ${new Date(deployment.createdAt).toLocaleString()}` : '')}
+              </title>
+            </rect>
+          ))}
+      </svg>
+    </section>
+  );
+}
+
+function ProjectMonitoringActivitySparkline({
+  events,
+  windowMs,
+  emptyLabel,
+}: {
+  events: any[];
+  windowMs: number;
+  emptyLabel: string;
+}) {
+  if (events.length === 0) {
+    return (
+      <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
+        <header>
+          <strong>Activity rate</strong>
+          <small>{emptyLabel}</small>
+        </header>
+      </section>
+    );
+  }
+
+  const buckets = 24;
+  const counts = bucketEventsByTimeHelper(events, windowMs, buckets);
+  const max = Math.max(1, ...counts);
+  const width = 100;
+  const barWidth = width / buckets;
+
+  return (
+    <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
+      <header>
+        <strong>Activity rate</strong>
+        <small>
+          {events.length} event{events.length === 1 ? '' : 's'} across {buckets} buckets · peak {max}/bucket
+        </small>
+      </header>
+      <svg viewBox={`0 0 ${width} 24`} preserveAspectRatio="none" role="img" aria-label="Activity events per bucket">
+        {counts.map((count, index) => {
+          const height = (count / max) * 22;
+
+          return (
+            <rect
+              key={index}
+              x={index * barWidth + barWidth * 0.1}
+              y={24 - height}
+              width={Math.max(barWidth * 0.8, 0.5)}
+              height={height}
+              fill="var(--vc-status-info, #38bdf8)"
+            >
+              <title>{`${count} event${count === 1 ? '' : 's'}`}</title>
+            </rect>
+          );
+        })}
+      </svg>
+    </section>
   );
 }
 
@@ -11908,22 +12062,34 @@ function panelIcon(panel: string) {
   return icons[panel] ?? 'i-ph:squares-four';
 }
 
+/*
+ * Threshold (in px) the user has to be away from the bottom of the conversation
+ * before the "Go to last message" control fades in. Keeping it well above the
+ * patch-review card height (~200px) prevents the button from flickering when
+ * content streams in and the layout settles.
+ */
+const SCROLL_TO_BOTTOM_THRESHOLD = 240;
+
 function ScrollToBottom() {
-  const { escapedFromLock, isAtBottom, scrollToBottom, state } = useStickToBottomContext();
-  const shouldShowScrollControl = escapedFromLock && !isAtBottom && state.scrollDifference > 96;
+  const { isAtBottom, scrollToBottom, state } = useStickToBottomContext();
+  const shouldShowScrollControl = !isAtBottom && state.scrollDifference > SCROLL_TO_BOTTOM_THRESHOLD;
+
+  if (!shouldShowScrollControl) {
+    return null;
+  }
 
   return (
-    shouldShowScrollControl && (
-      <>
-        <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
-        <button
-          className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
-          onClick={() => scrollToBottom()}
-        >
-          Go to last message
-          <span className="i-ph:arrow-down animate-bounce" />
-        </button>
-      </>
-    )
+    <>
+      <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
+      <button
+        type="button"
+        aria-label="Scroll to the latest message"
+        className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm shadow-sm"
+        onClick={() => scrollToBottom()}
+      >
+        Go to last message
+        <span className="i-ph:arrow-down animate-bounce" />
+      </button>
+    </>
   );
 }

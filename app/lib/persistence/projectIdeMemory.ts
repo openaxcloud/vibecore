@@ -115,6 +115,26 @@ const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
 
+/**
+ * Coalesce rapid-fire saves (one per chat-stream tick, drag-resize, scroll, …)
+ * into a single network PUT. The cache + localStorage writes stay synchronous
+ * so reads always see the latest state, but the `/api/projects/:id/ide-state`
+ * PUT — and the `project.ide_state.save` audit event it emits — only fires
+ * once per debounce window.
+ */
+interface DebouncedSaveEntry {
+  timer: ReturnType<typeof setTimeout>;
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (error: unknown) => void;
+}
+
+const pendingDebouncedSaves = new Map<string, DebouncedSaveEntry>();
+
+const DEFAULT_SAVE_DEBOUNCE_MS = 5_000;
+
+let saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
+
 let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
 
@@ -263,6 +283,13 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
     pendingDirty.delete(projectId);
     crossTabListeners.delete(projectId);
 
+    const debounced = pendingDebouncedSaves.get(projectId);
+
+    if (debounced) {
+      clearTimeout(debounced.timer);
+      pendingDebouncedSaves.delete(projectId);
+    }
+
     return;
   }
 
@@ -270,6 +297,22 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
   pendingSaves.clear();
   pendingDirty.clear();
   crossTabListeners.clear();
+
+  for (const entry of pendingDebouncedSaves.values()) {
+    clearTimeout(entry.timer);
+  }
+
+  pendingDebouncedSaves.clear();
+  saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
+}
+
+/**
+ * Override the network-save debounce window. Intended for tests so they can
+ * collapse the debounce to zero (or assert on its value); production callers
+ * should not use this.
+ */
+export function setProjectIdeMemorySaveDebounceMsForTest(ms: number) {
+  saveDebounceMs = ms;
 }
 
 export function subscribeProjectIdeMemory(projectId: string, listener: (memory: ProjectIdeMemory) => void) {
@@ -382,7 +425,7 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
   }
 }
 
-export async function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {
+export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {
   const existing = memoryCache.get(projectId) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
   const dirty = memoryForServerSave(next, patch);
@@ -390,12 +433,89 @@ export async function saveProjectIdeMemory(projectId: string, patch: ProjectIdeM
   writeLocalProjectIdeMemory(projectId, next);
   pendingDirty.set(projectId, dirty);
 
+  /*
+   * If the debounce window is 0 (tests / shutdown override), preserve the
+   * original synchronous behaviour: chain the PUT immediately so callers
+   * `await`-ing the save still observe the network result.
+   */
+  if (saveDebounceMs <= 0) {
+    const previous = pendingSaves.get(projectId) ?? Promise.resolve();
+    const save = previous.catch(() => undefined).then(() => persistWithRetry(projectId));
+    pendingSaves.set(projectId, save);
+
+    return save;
+  }
+
+  const existingEntry = pendingDebouncedSaves.get(projectId);
+
+  if (existingEntry) {
+    clearTimeout(existingEntry.timer);
+    existingEntry.timer = setTimeout(() => runDebouncedSave(projectId), saveDebounceMs);
+
+    return existingEntry.promise;
+  }
+
+  let resolveFn!: () => void;
+  let rejectFn!: (error: unknown) => void;
+
+  const promise = new Promise<void>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+
+  const entry: DebouncedSaveEntry = {
+    timer: setTimeout(() => runDebouncedSave(projectId), saveDebounceMs),
+    promise,
+    resolve: resolveFn,
+    reject: rejectFn,
+  };
+  pendingDebouncedSaves.set(projectId, entry);
+
+  return promise;
+}
+
+function runDebouncedSave(projectId: string) {
+  const entry = pendingDebouncedSaves.get(projectId);
+
+  if (!entry) {
+    return;
+  }
+
+  pendingDebouncedSaves.delete(projectId);
+
   const previous = pendingSaves.get(projectId) ?? Promise.resolve();
   const save = previous.catch(() => undefined).then(() => persistWithRetry(projectId));
-
   pendingSaves.set(projectId, save);
 
-  return save;
+  save.then(
+    () => entry.resolve(),
+    (error) => entry.reject(error),
+  );
+}
+
+/**
+ * Fire pending debounced saves immediately. Returns a promise that resolves
+ * once every flushed PUT has settled. Use this from beforeunload handlers and
+ * tests where the 5 s debounce window would otherwise discard data.
+ */
+export async function flushProjectIdeMemorySaves(projectId?: string): Promise<void> {
+  const ids = projectId ? [projectId] : Array.from(pendingDebouncedSaves.keys());
+
+  const promises: Promise<void>[] = [];
+
+  for (const id of ids) {
+    const entry = pendingDebouncedSaves.get(id);
+
+    if (!entry) {
+      continue;
+    }
+
+    clearTimeout(entry.timer);
+    promises.push(entry.promise);
+    runDebouncedSave(id);
+  }
+
+  await Promise.allSettled(promises);
 }
 
 async function persistWithRetry(projectId: string): Promise<void> {

@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearProjectIdeMemoryCacheForTest,
+  flushProjectIdeMemorySaves,
   getProjectIdeMemory,
   getProjectIdeMemoryStorageKey,
   saveProjectIdeMemory,
+  setProjectIdeMemorySaveDebounceMsForTest,
 } from './projectIdeMemory';
 
 function installLocalStorage() {
@@ -37,6 +39,15 @@ function installLocalStorage() {
 describe('project IDE memory persistence', () => {
   beforeEach(() => {
     clearProjectIdeMemoryCacheForTest();
+
+    /*
+     * The existing tests assert that `await saveProjectIdeMemory(...)` has
+     * already flushed both the local cache and the network PUT. Collapse the
+     * debounce to 0 so they keep observing the historical synchronous path;
+     * dedicated debounce tests live in the suite below.
+     */
+    setProjectIdeMemorySaveDebounceMsForTest(0);
+
     installLocalStorage();
     vi.stubGlobal(
       'fetch',
@@ -287,5 +298,121 @@ describe('project IDE memory persistence', () => {
         { id: 'tab-terminal', panel: 'terminal' },
       ],
     });
+  });
+});
+
+describe('project IDE memory save debouncing', () => {
+  beforeEach(() => {
+    clearProjectIdeMemoryCacheForTest();
+    setProjectIdeMemorySaveDebounceMsForTest(5_000);
+    installLocalStorage();
+    vi.useFakeTimers();
+  });
+
+  afterEach(async () => {
+    await flushProjectIdeMemorySaves();
+    vi.useRealTimers();
+    clearProjectIdeMemoryCacheForTest();
+    vi.unstubAllGlobals();
+  });
+
+  it('writes the latest state to localStorage synchronously even before the network PUT fires', () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-local';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 612 } });
+
+    const raw = globalThis.localStorage.getItem(getProjectIdeMemoryStorageKey(projectId));
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!).ui.agentWidth).toBe(612);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('coalesces 8 rapid saves into a single network PUT after the debounce window', async () => {
+    const fetchMock = vi.fn(async (_url: unknown, _init: { body: string }) => ({
+      ok: true,
+      json: async () => ({ ideState: null }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-coalesce';
+
+    for (let i = 0; i < 8; i += 1) {
+      void saveProjectIdeMemory(projectId, { ui: { agentWidth: 300 + i } });
+    }
+
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const call = fetchMock.mock.calls[0];
+
+    if (!call) {
+      throw new Error('expected a recorded fetch call');
+    }
+
+    const lastBody = JSON.parse(call[1].body) as { state: { ui: { agentWidth: number } } };
+    expect(lastBody.state.ui.agentWidth).toBe(307);
+  });
+
+  it('resets the debounce timer when a new save arrives before the window elapses', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-reset';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 100 } });
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 200 } });
+    await vi.advanceTimersByTimeAsync(4_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('flushProjectIdeMemorySaves fires the pending PUT immediately', async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ ideState: null }) }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-flush';
+
+    void saveProjectIdeMemory(projectId, { ui: { agentWidth: 712 } });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await flushProjectIdeMemorySaves(projectId);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects the shared debounced promise when the PUT fails permanently', async () => {
+    /*
+     * 400-class status triggers persistWithRetry's retry loop (1 s + 4 s + 12 s
+     * back-off). Advance past every back-off in turn so the eventual rejection
+     * surfaces synchronously to the spec.
+     */
+    const fetchMock = vi.fn(async () => ({ ok: false, status: 400 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-debounce-error';
+
+    const savePromise = saveProjectIdeMemory(projectId, { ui: { agentWidth: 808 } });
+
+    const observed = savePromise.then(
+      () => 'resolved' as const,
+      (error) => (error as Error).message,
+    );
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await vi.advanceTimersByTimeAsync(12_000);
+
+    await expect(observed).resolves.toMatch(/Failed to save project IDE memory/);
   });
 });

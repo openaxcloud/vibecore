@@ -5604,6 +5604,59 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 12px;
 }
 
+.bolt-project-monitoring-timeline,
+.bolt-project-monitoring-sparkline {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-panel);
+  padding: 12px;
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  header strong {
+    font-size: 13px;
+    color: var(--vc-ide-text-primary);
+  }
+
+  header small {
+    font-size: 11px;
+    color: var(--vc-ide-text-secondary);
+  }
+
+  svg {
+    width: 100%;
+    height: 32px;
+    overflow: visible;
+  }
+}
+
+.bolt-project-monitoring-sparkline svg {
+  height: 36px;
+}
+
+.bolt-project-monitoring-routine-note {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  padding: 8px 12px;
+  background: var(--vc-ide-bg-panel-subtle, var(--vc-ide-bg-panel));
+  border: 1px dashed var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+
+  code {
+    font-family: var(--vc-ide-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    background: rgba(0, 0, 0, 0.08);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+}
+
 .bolt-project-activity-panel {
   display: grid;
   gap: 14px;
@@ -6149,8 +6202,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-panel-toolbar button,
 .bolt-project-object-grid button,
-.bolt-project-package-list button,
-.bolt-project-extension-catalog button {
+.bolt-project-package-list button {
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
   background: var(--vc-ide-bg-card);
@@ -6163,8 +6215,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-panel-toolbar button.selected,
-.bolt-project-object-grid button.selected,
-.bolt-project-extension-catalog button.selected {
+.bolt-project-object-grid button.selected {
   border-color: var(--vc-ide-accent-action);
   box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
 }
@@ -6179,14 +6230,12 @@ body :where(.lucide, svg[data-lucide]) {
   margin-bottom: 12px;
 }
 
-.bolt-project-object-grid,
-.bolt-project-extension-catalog {
+.bolt-project-object-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .bolt-project-object-grid button,
-.bolt-project-package-list button,
-.bolt-project-extension-catalog button {
+.bolt-project-package-list button {
   display: grid;
   gap: 5px;
   padding: 10px;
@@ -6195,14 +6244,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-object-grid button:hover,
 .bolt-project-package-list button:hover,
-.bolt-project-extension-catalog button:hover,
 .bolt-project-panel-toolbar button:hover:not(:disabled) {
   background: var(--vc-ide-bg-hover);
 }
 
 .bolt-project-object-grid strong,
 .bolt-project-package-list strong,
-.bolt-project-extension-catalog strong,
 .bolt-project-metric-grid strong {
   color: var(--vc-ide-text-primary);
   font-size: 13px;
@@ -6210,15 +6257,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-object-grid span,
 .bolt-project-package-list span,
-.bolt-project-extension-catalog span,
 .bolt-project-metric-grid span,
 .bolt-project-metric-grid small {
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
 }
 
-.bolt-project-object-grid em,
-.bolt-project-extension-catalog em {
+.bolt-project-object-grid em {
   width: fit-content;
   border-radius: 999px;
   background: var(--vc-ide-bg-hover);
@@ -6236,6 +6281,184 @@ body :where(.lucide, svg[data-lucide]) {
   display: grid;
   gap: 14px;
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-extensions-panel {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.bolt-project-extensions-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-primary), transparent 90%), transparent),
+    var(--vc-ide-bg-card);
+  padding: 14px;
+}
+
+.bolt-project-extensions-hero strong,
+.bolt-project-section-heading strong,
+.bolt-project-extension-card strong {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-extensions-hero > div:first-child,
+.bolt-project-section-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.bolt-project-extensions-hero > div:first-child > strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bolt-project-extensions-hero > div:first-child > span,
+.bolt-project-section-heading span,
+.bolt-project-extension-card span,
+.bolt-project-extension-card p {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bolt-project-extensions-summary {
+  display: grid;
+  min-width: 86px;
+  justify-items: center;
+  gap: 2px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-panel);
+  padding: 10px 12px;
+}
+
+.bolt-project-extensions-summary strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.bolt-project-extensions-summary span {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bolt-project-extension-categories {
+  display: flex;
+  min-width: min(100%, 360px);
+  flex: 2;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bolt-project-extension-categories button {
+  min-height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  padding: 0 10px;
+}
+
+.bolt-project-extension-categories button.selected {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 35%);
+  background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-installed-extensions,
+.bolt-project-extensions-panel section {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.bolt-project-section-heading {
+  min-width: 0;
+}
+
+.bolt-project-section-heading strong {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bolt-project-extension-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.bolt-project-extension-card {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-card);
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-extension-card[data-enabled='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success), transparent 55%);
+}
+
+.bolt-project-extension-card > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bolt-project-extension-card strong,
+.bolt-project-extension-card span,
+.bolt-project-extension-card p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-extension-card strong {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bolt-project-extension-card p {
+  min-height: 34px;
+  margin: 0;
+}
+
+.bolt-project-extension-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-extension-card-footer em {
+  width: fit-content;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-style: normal;
+  padding: 3px 7px;
+}
+
+.bolt-project-extension-card[data-enabled='true'] .bolt-project-extension-card-footer em {
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
+  color: var(--vc-ide-accent-success);
+}
+
+.bolt-project-extension-card-footer form {
+  display: contents;
 }
 
 .bolt-project-packages-hero,
