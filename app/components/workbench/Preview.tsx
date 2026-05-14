@@ -17,7 +17,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
@@ -35,6 +35,7 @@ type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'custom';
 type PreviewLogTab = 'webview' | 'server';
 type PreviewDevToolsTab = 'console' | 'network' | 'elements';
 type SplashLayout = 'icon-hero' | 'two-column' | 'tips-carousel' | 'stat-highlight' | 'icon-grid';
+type PreviewBootStepId = 'dependencies' | 'build' | 'server' | 'ready';
 
 interface SplashSlide {
   layout: SplashLayout;
@@ -63,6 +64,67 @@ interface WindowSize {
   icon: string;
   hasFrame?: boolean;
   frameType?: 'mobile' | 'tablet' | 'laptop' | 'desktop';
+}
+
+const previewBootSteps: Array<{ id: PreviewBootStepId; label: string; description: string }> = [
+  {
+    id: 'dependencies',
+    label: 'Installing dependencies',
+    description: 'Preparing packages and workspace runtime.',
+  },
+  {
+    id: 'build',
+    label: 'Building',
+    description: 'Running the project build or dev command.',
+  },
+  {
+    id: 'server',
+    label: 'Starting dev server',
+    description: 'Detecting ports and attaching the webview.',
+  },
+  {
+    id: 'ready',
+    label: 'Ready',
+    description: 'Preview is connected to a live port.',
+  },
+];
+
+function resolvePreviewBootProgress(input: {
+  workspaceReady: boolean;
+  previewsLength: number;
+  isStartingPreview: boolean;
+  isRefreshingPorts: boolean;
+  previewRunFailed: boolean;
+  previewStatus?: string;
+}) {
+  const status = input.previewStatus?.toLowerCase() ?? '';
+
+  if (input.previewsLength > 0) {
+    return { activeStep: 'ready' as PreviewBootStepId, progress: 100 };
+  }
+
+  if (input.previewRunFailed) {
+    return { activeStep: 'server' as PreviewBootStepId, progress: 82 };
+  }
+
+  if (!input.workspaceReady || status.includes('install') || status.includes('dependenc')) {
+    return { activeStep: 'dependencies' as PreviewBootStepId, progress: 24 };
+  }
+
+  if (input.isStartingPreview || status.includes('build') || status.includes('running')) {
+    return { activeStep: 'build' as PreviewBootStepId, progress: 52 };
+  }
+
+  if (
+    input.isRefreshingPorts ||
+    status.includes('port') ||
+    status.includes('dev server') ||
+    status.includes('detect')
+  ) {
+    return { activeStep: 'server' as PreviewBootStepId, progress: 76 };
+  }
+
+  return { activeStep: 'server' as PreviewBootStepId, progress: 68 };
 }
 
 const WINDOW_SIZES: WindowSize[] = [
@@ -367,6 +429,23 @@ export const Preview = memo(
     const visiblePreviewUrl =
       iframeUrl ??
       (activePreview ? `${activePreview.baseUrl}${displayPath.startsWith('/') ? displayPath : `/${displayPath}`}` : '');
+    const previewBootProgress = useMemo(
+      () =>
+        resolvePreviewBootProgress({
+          workspaceReady,
+          previewsLength: previews.length,
+          isStartingPreview,
+          isRefreshingPorts,
+          previewRunFailed,
+          previewStatus,
+        }),
+      [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, workspaceReady],
+    );
+    const openPreviewLogs = useCallback(() => {
+      setActiveLogTab('server');
+      setLogsOpen(true);
+      onOpenLogsRight?.();
+    }, [onOpenLogsRight]);
 
     const copyPreviewUrl = useCallback(async () => {
       if (!visiblePreviewUrl) {
@@ -1810,6 +1889,7 @@ export const Preview = memo(
                 ) : (
                   <PreviewSplashSequence
                     appName={projectId ? 'Project preview' : undefined}
+                    activeStep={previewBootProgress.activeStep}
                     currentTask={
                       previewStatus ??
                       (workspaceReady
@@ -1817,6 +1897,9 @@ export const Preview = memo(
                         : 'Starting project workspace...')
                     }
                     isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
+                    progress={previewBootProgress.progress}
+                    steps={previewBootSteps}
+                    onViewLogs={openPreviewLogs}
                   />
                 )}
               </>
@@ -1983,12 +2066,20 @@ export const Preview = memo(
 
 function PreviewSplashSequence({
   appName,
+  activeStep,
   currentTask,
   isBusy,
+  onViewLogs,
+  progress,
+  steps,
 }: {
   appName?: string;
+  activeStep: PreviewBootStepId;
   currentTask: string;
   isBusy: boolean;
+  onViewLogs?: () => void;
+  progress: number;
+  steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
 }) {
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -2016,10 +2107,39 @@ function PreviewSplashSequence({
         </div>
         <div className="bolt-preview-splash-task">
           {isBusy ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
-          <span>{currentTask}</span>
+          <span>
+            <strong>{steps.find((step) => step.id === activeStep)?.label ?? 'Preparing preview'}</strong>
+            <small>{currentTask}</small>
+          </span>
+          {onViewLogs ? (
+            <button type="button" onClick={onViewLogs}>
+              View logs
+            </button>
+          ) : null}
         </div>
-        <div className="bolt-preview-splash-progress" aria-hidden>
-          <span style={{ backgroundColor: slide.color }} />
+        <div
+          className="bolt-preview-splash-progress"
+          role="progressbar"
+          aria-label="Preview startup progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress)}
+        >
+          <span style={{ backgroundColor: slide.color, width: `${Math.max(8, Math.min(progress, 100))}%` }} />
+        </div>
+        <div className="bolt-preview-splash-steps" aria-label="Preview startup steps">
+          {steps.map((step) => {
+            const stepIndex = steps.findIndex((item) => item.id === step.id);
+            const activeIndex = steps.findIndex((item) => item.id === activeStep);
+            const state = stepIndex < activeIndex ? 'complete' : stepIndex === activeIndex ? 'active' : 'pending';
+
+            return (
+              <div key={step.id} data-state={state} title={step.description}>
+                <span aria-hidden>{state === 'complete' ? '✓' : stepIndex + 1}</span>
+                <strong>{step.label}</strong>
+              </div>
+            );
+          })}
         </div>
         <div className="bolt-preview-splash-footer">
           <div className="bolt-preview-splash-dots" aria-label="Preview preparation slides">

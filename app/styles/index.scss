@@ -5963,30 +5963,127 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-splash-task {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   min-height: 34px;
   align-items: center;
-  justify-content: center;
   gap: 8px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
-  padding: 9px 18px;
-  text-align: center;
+  padding: 10px 18px;
+  text-align: left;
+}
+
+.bolt-preview-splash-task > span:not([class]) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bolt-preview-splash-task strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.bolt-preview-splash-task small {
+  overflow: hidden;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-preview-splash-task button {
+  min-height: 30px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 0 10px;
+}
+
+.bolt-preview-splash-task button:hover,
+.bolt-preview-splash-task button:focus-visible {
+  border-color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-bg-hover);
+  outline: 0;
 }
 
 .bolt-preview-splash-progress {
-  height: 2px;
+  height: 5px;
   overflow: hidden;
   background: var(--vc-ide-bg-panel);
 }
 
 .bolt-preview-splash-progress span {
   display: block;
-  width: 42%;
   height: 100%;
   border-radius: 999px;
-  animation: bolt-preview-progress 1.8s ease-in-out infinite;
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bolt-preview-splash-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-bg-panel) 35%);
+  padding: 10px 14px;
+}
+
+.bolt-preview-splash-steps div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-preview-splash-steps span {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.bolt-preview-splash-steps strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-preview-splash-steps div[data-state='active'] {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-preview-splash-steps div[data-state='active'] span {
+  border-color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-preview-splash-steps div[data-state='complete'] {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-preview-splash-steps div[data-state='complete'] span {
+  border-color: var(--vc-ide-accent-success);
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
+  color: var(--vc-ide-accent-success);
 }
 
 .bolt-preview-splash-footer {
