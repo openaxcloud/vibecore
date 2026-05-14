@@ -3,6 +3,7 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 /* eslint-disable import/order */
+import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
 import type { JSONValue, Message } from 'ai';
@@ -1435,6 +1436,7 @@ interface BaseChatProps {
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
   projectId?: string;
+  initialIdePanels?: Record<string, any>;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -1489,6 +1491,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onWebSearchResult,
       projectIdeMode = false,
       projectId,
+      initialIdePanels,
     },
     ref,
   ) => {
@@ -3892,12 +3895,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return <ProjectTerminalPanel projectId={projectId} />;
         }
 
-        return <ProjectIdeServicePanel projectId={projectId} panel={panel} />;
+        return (
+          <ProjectIdeServicePanel projectId={projectId} panel={panel} initialPayload={initialIdePanels?.[panel]} />
+        );
       },
       [
         currentDocument,
         editorMinimapEnabled,
         editorProjectFiles,
+        initialIdePanels,
         onProjectEditorSave,
         openIdeTool,
         openProjectFile,
@@ -4527,6 +4533,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <ProjectBottomTerminal
                       projectId={projectId}
                       active={bottomTerminalView}
+                      initialIdePanels={initialIdePanels}
                       onActiveChange={setBottomTerminalView}
                       onClose={() => setTerminalBottomOpen(false)}
                     />
@@ -4583,7 +4590,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
               ) : (
-                <ProjectIdeServicePanel projectId={projectId} panel="logs" />
+                <ProjectIdeServicePanel projectId={projectId} panel="logs" initialPayload={initialIdePanels?.logs} />
               )}
             </div>
           </aside>
@@ -4824,7 +4831,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
                   <div className="bolt-workbench-mobile fixed top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 z-0 w-full px-2">
                     <div className="h-full overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-                      <ProjectIdeServicePanel projectId={projectId} panel={activeMobileServicePanel} />
+                      <ProjectIdeServicePanel
+                        projectId={projectId}
+                        panel={activeMobileServicePanel}
+                        initialPayload={initialIdePanels?.[activeMobileServicePanel]}
+                      />
                     </div>
                   </div>
                 </PanelBoundary>
@@ -5008,25 +5019,73 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
             </div>
             <div className="bolt-project-statusbar-secondary" aria-label="Editor status">
-              <span
-                className="bolt-project-statusbar-pill bolt-project-statusbar-editor"
-                title="Current cursor position"
-              >
-                {currentDocument?.filePath && cursorPositions[currentDocument.filePath]
-                  ? `Ln ${cursorPositions[currentDocument.filePath].line}, Col ${
-                      cursorPositions[currentDocument.filePath].column
-                    }`
-                  : 'Ln 1, Col 1'}
-              </span>
-              <span className="bolt-project-statusbar-pill" title="Indentation: 2 spaces">
-                Spaces: 2
-              </span>
-              <span className="bolt-project-statusbar-pill" title="File encoding: UTF-8">
-                UTF-8
-              </span>
-              <span className="bolt-project-statusbar-pill" title="Detected language mode">
-                {fileTypeLabel(currentDocument?.filePath)}
-              </span>
+              {(() => {
+                const cursorValue =
+                  currentDocument?.filePath && cursorPositions[currentDocument.filePath]
+                    ? `Ln ${cursorPositions[currentDocument.filePath].line}, Col ${
+                        cursorPositions[currentDocument.filePath].column
+                      }`
+                    : 'Ln 1, Col 1';
+                const editorItems: Array<{ key: string; tier: 1 | 2 | 3 | 4; title: string; value: string }> = [
+                  { key: 'cursor', tier: 4, title: 'Current cursor position', value: cursorValue },
+                  { key: 'indent', tier: 2, title: 'Indentation: 2 spaces', value: 'Spaces: 2' },
+                  { key: 'encoding', tier: 1, title: 'File encoding: UTF-8', value: 'UTF-8' },
+                  {
+                    key: 'language',
+                    tier: 3,
+                    title: 'Detected language mode',
+                    value: fileTypeLabel(currentDocument?.filePath),
+                  },
+                ];
+
+                return (
+                  <>
+                    {editorItems.map((item) => (
+                      <span
+                        key={item.key}
+                        className={classNames(
+                          'bolt-project-statusbar-pill',
+                          'bolt-project-statusbar-editor-pill',
+                          `bolt-project-statusbar-editor-pill--tier-${item.tier}`,
+                          item.key === 'cursor' && 'bolt-project-statusbar-editor',
+                        )}
+                        title={item.title}
+                      >
+                        {item.value}
+                      </span>
+                    ))}
+                    <Popover.Root>
+                      <Popover.Trigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Show editor status details"
+                          title="More editor status"
+                          className="bolt-project-statusbar-icon-button bolt-project-statusbar-overflow-trigger"
+                        >
+                          <span className="i-ph:dots-three" aria-hidden />
+                        </button>
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Content
+                          side="top"
+                          align="end"
+                          sideOffset={6}
+                          className="bolt-project-statusbar-overflow-content"
+                        >
+                          <div className="bolt-project-statusbar-overflow-list" role="list">
+                            {editorItems.map((item) => (
+                              <div key={item.key} className="bolt-project-statusbar-overflow-row" role="listitem">
+                                <span className="bolt-project-statusbar-overflow-label">{item.title}</span>
+                                <span className="bolt-project-statusbar-overflow-value">{item.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
+                  </>
+                );
+              })()}
               <button
                 type="button"
                 aria-label="Toggle terminal"
@@ -5125,11 +5184,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   },
 );
 
-function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; panel: string }) {
-  const [payload, setPayload] = useState<any>();
+function ProjectIdeServicePanel({
+  projectId,
+  panel,
+  initialPayload,
+}: {
+  projectId?: string;
+  panel: string;
+  initialPayload?: any;
+}) {
+  const [payload, setPayload] = useState<any>(() => initialPayload);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
-  const [lastLoadedAt, setLastLoadedAt] = useState<string>();
+
+  const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
+    initialPayload ? new Date().toISOString() : undefined,
+  );
+
   const selectedFile = useStore(workbenchStore.selectedFile);
 
   const collaborationRealtime = useProjectCollaboration({
@@ -5197,7 +5268,10 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
         setLastLoadedAt(new Date().toISOString());
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
-        setPayload(undefined);
+
+        if (!options?.silent) {
+          setPayload(undefined);
+        }
       } finally {
         if (!options?.silent) {
           setBusy(false);
@@ -5208,8 +5282,13 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
   );
 
   useEffect(() => {
-    void loadPanel();
-  }, [loadPanel]);
+    if (initialPayload) {
+      setPayload(initialPayload);
+      setLastLoadedAt(new Date().toISOString());
+    }
+
+    void loadPanel({ silent: Boolean(initialPayload) });
+  }, [initialPayload, loadPanel]);
 
   useEffect(() => {
     if (!['activity', 'logs', 'monitoring'].includes(panel)) {
@@ -5357,11 +5436,13 @@ function ProjectIdeServicePanel({ projectId, panel }: { projectId?: string; pane
 function ProjectBottomTerminal({
   projectId,
   active,
+  initialIdePanels,
   onActiveChange,
   onClose,
 }: {
   projectId?: string;
   active: ProjectBottomTerminalView;
+  initialIdePanels?: Record<string, any>;
   onActiveChange: (view: ProjectBottomTerminalView) => void;
   onClose: () => void;
 }) {
@@ -5429,11 +5510,11 @@ function ProjectBottomTerminal({
             )}
           </ClientOnly>
         ) : active === 'output' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="logs" />
+          <ProjectIdeServicePanel projectId={projectId} panel="logs" initialPayload={initialIdePanels?.logs} />
         ) : active === 'problems' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="activity" />
+          <ProjectIdeServicePanel projectId={projectId} panel="activity" initialPayload={initialIdePanels?.activity} />
         ) : (
-          <ProjectIdeServicePanel projectId={projectId} panel="debugger" />
+          <ProjectIdeServicePanel projectId={projectId} panel="debugger" initialPayload={initialIdePanels?.debugger} />
         )}
       </div>
     </section>

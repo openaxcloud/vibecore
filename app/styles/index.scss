@@ -8344,6 +8344,97 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
   line-height: 1;
   padding: 0 10px;
+  container-type: inline-size;
+  container-name: statusbar;
+}
+
+/*
+ * Responsive masking: the editor info pills drop out at progressive widths so
+ * the primary cluster (Git, Problems, Workspace, Preview) keeps room. An
+ * overflow popover surfaces every hidden pill in a dropdown.
+ */
+.bolt-project-statusbar-overflow-trigger {
+  display: none !important;
+}
+
+.bolt-project-statusbar-overflow-content {
+  z-index: 999;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.bolt-project-statusbar-overflow-list {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-statusbar-overflow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.bolt-project-statusbar-overflow-row:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-statusbar-overflow-label {
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-statusbar-overflow-value {
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+}
+
+@container statusbar (max-width: 880px) {
+  .bolt-project-statusbar-editor-pill--tier-1 {
+    display: none !important;
+  }
+
+  .bolt-project-statusbar-overflow-trigger {
+    display: inline-flex !important;
+  }
+}
+
+@container statusbar (max-width: 780px) {
+  .bolt-project-statusbar-editor-pill--tier-2 {
+    display: none !important;
+  }
+}
+
+@container statusbar (max-width: 700px) {
+  .bolt-project-statusbar-editor-pill--tier-3 {
+    display: none !important;
+  }
+}
+
+@container statusbar (max-width: 620px) {
+  .bolt-project-statusbar-editor-pill--tier-4 {
+    display: none !important;
+  }
+}
+
+@container statusbar (max-width: 560px) {
+  .bolt-project-statusbar-primary .bolt-project-statusbar-label {
+    display: none !important;
+  }
+}
+
+@container statusbar (max-width: 480px) {
+  .bolt-project-statusbar-primary .bolt-project-statusbar-muted {
+    display: none !important;
+  }
 }
 
 .bolt-project-statusbar-primary,
@@ -10513,6 +10604,15 @@ button.bolt-project-statusbar-pill:focus-visible,
     left: 8px;
     width: auto;
   }
+}
+
+/*
+ * Lift the bottom-right toast stack so it never overlaps the IDE statusbar.
+ * :has() targets the layout only when the statusbar is rendered, so pages
+ * without it (landing, account, etc.) keep the default bottom position.
+ */
+body:has(.bolt-project-statusbar) .Toastify__toast-container--bottom-right {
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (max-height: 499px) {
