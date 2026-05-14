@@ -80,6 +80,7 @@ import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
+import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
@@ -200,6 +201,7 @@ const IDE_MANAGEMENT_PANELS = [
 
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
+const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
@@ -1944,7 +1946,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const restoredProjectId = useRef<string | undefined>(undefined);
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
-    const activeProjectPanel = searchParams.get('panel') || '';
+    const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
+
+    const setProjectPanelSearchParam = useCallback(
+      (panel?: string) => {
+        setSearchParams(withPanelSearchParam(searchParams, panel));
+      },
+      [searchParams, setSearchParams],
+    );
 
     const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
       return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
@@ -2506,7 +2515,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setWorkspaceTabs(restoredTabs);
           }
 
-          if (ui?.activeWorkspacePanel && isIdeWorkspacePanel(ui.activeWorkspacePanel)) {
+          if (!activeProjectPanel && ui?.activeWorkspacePanel && isIdeWorkspacePanel(ui.activeWorkspacePanel)) {
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
@@ -2611,7 +2620,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => {
         cancelled = true;
       };
-    }, [projectFiles, projectIdeMode, projectId]);
+    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId]);
 
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
@@ -2806,12 +2815,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (!nextOpen) {
-          setSearchParams({});
+          setProjectPanelSearchParam();
         }
 
         return nextOpen;
       });
-    }, [projectFilesPanelRequest, projectIdeMode, setSearchParams]);
+    }, [projectFilesPanelRequest, projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -2829,7 +2838,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           if (!nextOpen) {
-            setSearchParams({});
+            setProjectPanelSearchParam();
           }
 
           return nextOpen;
@@ -2839,7 +2848,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.addEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
 
       return () => window.removeEventListener('vibecore:toggle-project-files-panel', handleToggleFilesPanel);
-    }, [projectIdeMode, setSearchParams]);
+    }, [projectIdeMode, setProjectPanelSearchParam]);
 
     useEffect(() => {
       if (!projectIdeMode || !projectStateReady || selectedFile || !firstProjectFile) {
@@ -2967,10 +2976,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (options.replaceUrl !== false) {
-          setSearchParams(panel === 'editor' ? {} : { panel });
+          setProjectPanelSearchParam(panel);
         }
       },
-      [activePaneId, setSearchParams],
+      [activePaneId, setProjectPanelSearchParam],
     );
 
     const openProjectFile = useCallback(
@@ -3015,14 +3024,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (isIdeRightPanel(panel)) {
           setRightPanelMode('files');
           setRightPanelOpen(true);
-          setSearchParams({ panel });
+          setProjectPanelSearchParam(panel);
 
           return;
         }
 
         openWorkspacePanel(panel, { paneId });
       },
-      [activePaneId, openWorkspacePanel, setSearchParams],
+      [activePaneId, openWorkspacePanel, setProjectPanelSearchParam],
     );
 
     useEffect(() => {
@@ -3058,7 +3067,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           if (activeWorkspacePanel === panel) {
             const nextActive = safeTabs[safeTabs.length - 1] ?? 'editor';
             setActiveWorkspacePanel(nextActive);
-            setSearchParams(nextActive === 'editor' ? {} : { panel: nextActive });
+            setProjectPanelSearchParam(nextActive);
           }
 
           return safeTabs;
@@ -3083,7 +3092,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }),
         );
       },
-      [activeWorkspacePanel, setSearchParams],
+      [activeWorkspacePanel, setProjectPanelSearchParam],
     );
 
     useEffect(() => {
@@ -3092,6 +3101,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (isIdeRightPanel(activeProjectPanel)) {
+        setRightPanelMode('files');
         setRightPanelOpen(true);
 
         return;
@@ -3969,7 +3979,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setActivePaneId(paneId);
         setActiveWorkspacePanel(panel);
         setRecentTabIds((ids) => [tabId, ...ids.filter((id) => id !== tabId)].slice(0, 20));
-        setSearchParams(panel === 'editor' ? {} : { panel });
+        setProjectPanelSearchParam(panel);
 
         if (panel === 'editor' && selectedTab?.filePath) {
           workbenchStore.setSelectedFile(selectedTab.filePath);
@@ -3988,7 +3998,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           workbenchStore.toggleTerminal(true);
         }
       },
-      [paneTree, setSearchParams],
+      [paneTree, setProjectPanelSearchParam],
     );
 
     const closePaneTabs = useCallback((paneId: string, mode: 'all' | 'others' | 'right', tabId?: string) => {
@@ -4141,9 +4151,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setActivePaneId(targetPaneId);
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
-        setSearchParams(sourceTab.panel === 'editor' ? {} : { panel: sourceTab.panel });
+        setProjectPanelSearchParam(sourceTab.panel);
       },
-      [paneTree, setSearchParams],
+      [paneTree, setProjectPanelSearchParam],
     );
 
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
@@ -5039,7 +5049,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-panel-slot bolt-project-panel-slot-right"
                 onCollapse={() => {
                   setRightPanelOpen(false);
-                  setSearchParams({});
+                  setProjectPanelSearchParam();
                 }}
                 onResize={(size) => {
                   const nextWidth = Math.min(
@@ -5063,7 +5073,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       aria-label="Close right panel"
                       onClick={() => {
                         setRightPanelOpen(false);
-                        setSearchParams({});
+                        setProjectPanelSearchParam();
                       }}
                     >
                       <span className="i-ph:x" aria-hidden />
