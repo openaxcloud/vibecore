@@ -2305,7 +2305,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
-  --project-ide-rail-width: 60px;
+  --project-ide-rail-width: 48px;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -3187,7 +3187,7 @@ body :where(.lucide, svg[data-lucide]) {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 4%), var(--vc-ide-bg-panel)),
     var(--vc-ide-bg-panel);
-  padding: 8px 6px;
+  padding: 7px 5px;
 }
 
 .bolt-project-ide-rail-primary,
@@ -3196,7 +3196,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .bolt-project-ide-rail-more {
@@ -3223,7 +3223,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item {
   position: relative;
-  min-height: 44px;
+  min-height: 38px;
   flex-direction: column;
   gap: 0;
   padding: 0;
@@ -3233,7 +3233,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-item > [class*='i-ph:'] {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 
@@ -3262,22 +3262,22 @@ body :where(.lucide, svg[data-lucide]) {
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%), transparent),
     var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
-  box-shadow: inset 3px 0 0 var(--vc-ide-accent-action);
+  box-shadow: inset 2px 0 0 var(--vc-ide-accent-action);
 }
 
 .bolt-project-ide-rail-badge {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 2px;
   display: inline-flex;
-  min-width: 16px;
-  height: 16px;
+  min-width: 15px;
+  height: 15px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: var(--vc-ide-bg-muted);
   color: var(--vc-ide-text-primary);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   padding: 0 4px;
   box-shadow: 0 0 0 1px var(--vc-ide-bg-panel);
@@ -3299,9 +3299,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-more-trigger {
-  min-height: 30px;
+  min-height: 28px;
   gap: 4px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -3310,7 +3310,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-item-compact {
-  min-height: 44px;
+  min-height: 38px;
 }
 
 .bolt-project-workspace-shell {
