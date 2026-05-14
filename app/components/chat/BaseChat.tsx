@@ -12167,10 +12167,10 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   const activeStreamEmptyMessage = cleared
     ? 'Visible logs were cleared for this session. Reload to fetch the latest runtime output.'
     : activeStreamLogs.length === 0
-      ? `No ${activeStream} logs have been recorded yet.`
+      ? `No ${activeStream} logs yet. Start the workspace or run a command to stream output here.`
       : filtersActive
-        ? `No ${activeStream} logs match the current filter.`
-        : `No ${activeStream} logs to display.`;
+        ? `No ${activeStream} log results for this filter.`
+        : `No ${activeStream} logs are visible right now.`;
 
   const secondaryLogs = split
     ? filterLogEntries(
@@ -12282,8 +12282,8 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
           logs={secondaryLogs}
           empty={
             filtersActive
-              ? 'No secondary stream logs match the current filter.'
-              : 'No secondary stream logs have been recorded yet.'
+              ? 'No secondary stream log results for this filter.'
+              : 'No secondary stream logs yet. Start the workspace or run a command to stream output here.'
           }
         />
       )}
