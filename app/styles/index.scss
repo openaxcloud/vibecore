@@ -2031,10 +2031,26 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px !important;
   font-weight: 700;
   letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition:
     border-color 120ms ease-out,
     background 120ms ease-out,
     color 120ms ease-out;
+}
+
+/*
+ * Phase 0 #9 — truncate the actual span/text node inside each segment so
+ * long workspace names (e.g. "Create a polished portfolio with case studies")
+ * stop blowing past the segment's max-width and start showing an ellipsis.
+ * The hover/title tooltip surfaces the full string.
+ */
+.bolt-project-breadcrumb-segment > :where(span, strong, em) {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bolt-project-breadcrumb-segment:hover,
@@ -2517,19 +2533,21 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-agent-suggestions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 148px), 1fr));
   max-width: min(100%, var(--chat-max-width));
   gap: 8px;
-  overflow-x: auto;
+  overflow: visible;
   padding: 0 2px 2px;
-  scrollbar-width: none;
 }
 
 .bolt-project-agent-suggestions button {
   display: inline-flex;
-  flex: 0 0 auto;
+  min-width: 0;
+  width: 100%;
   min-height: 28px;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 999px;
@@ -2549,6 +2567,12 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@container (max-width: 360px) {
+  .bolt-project-agent-suggestions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .bolt-project-agent-suggestions button:hover {
