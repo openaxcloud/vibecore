@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRiskyAgentPatchPath, shouldAutoApplyPatch } from './agent-auto-apply';
+import { autoApplyAttemptKey, isRiskyAgentPatchPath, shouldAutoApplyPatch } from './agent-auto-apply';
 
 describe('isRiskyAgentPatchPath', () => {
   it('flags dependency manifests at the project root', () => {
@@ -90,5 +90,32 @@ describe('shouldAutoApplyPatch', () => {
     for (const status of ['applying', 'accepted', 'rejected', 'failed', 'reverted']) {
       expect(shouldAutoApplyPatch({ autoApplyEnabled: true, status })).toBe(false);
     }
+  });
+});
+
+describe('autoApplyAttemptKey', () => {
+  it('changes when the agent regenerates a new version of the same proposal', () => {
+    const first = autoApplyAttemptKey({
+      id: 'artifact:file-1',
+      updatedAt: '2026-05-14T10:00:00.000Z',
+      proposedContent: 'export const value = 1;',
+    });
+    const second = autoApplyAttemptKey({
+      id: 'artifact:file-1',
+      updatedAt: '2026-05-14T10:00:01.000Z',
+      proposedContent: 'export const value = 100;',
+    });
+
+    expect(second).not.toBe(first);
+  });
+
+  it('stays stable for the same proposal version so failed attempts do not loop forever', () => {
+    const input = {
+      id: 'artifact:file-1',
+      updatedAt: '2026-05-14T10:00:00.000Z',
+      proposedContent: 'export const value = 1;',
+    };
+
+    expect(autoApplyAttemptKey(input)).toBe(autoApplyAttemptKey(input));
   });
 });

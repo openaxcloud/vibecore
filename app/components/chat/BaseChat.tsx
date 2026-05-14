@@ -20,7 +20,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
-import { shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
+import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -1768,7 +1768,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * a new proposal lands, so existing items get picked up immediately.
      * Each silent accept fires a toast with an Undo action.
      */
-    const autoAppliedRef = useRef<Set<string>>(new Set());
+    const autoAppliedRef = useRef<Map<string, string>>(new Map());
 
     useEffect(() => {
       if (!projectAutoApply) {
@@ -1776,7 +1776,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       for (const proposal of Object.values(agentPatchProposals)) {
-        if (autoAppliedRef.current.has(proposal.id)) {
+        const attemptKey = autoApplyAttemptKey({
+          id: proposal.id,
+          updatedAt: proposal.updatedAt,
+          proposedContent: proposal.proposedContent,
+        });
+
+        if (autoAppliedRef.current.get(proposal.id) === attemptKey) {
           continue;
         }
 
@@ -1784,10 +1790,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        autoAppliedRef.current.add(proposal.id);
+        autoAppliedRef.current.set(proposal.id, attemptKey);
 
         const filePath = proposal.relativePath;
-        void workbenchStore.acceptAgentPatchProposal(proposal.id).then(() => {
+        void workbenchStore.acceptAgentPatchProposal(proposal.id).then((result) => {
+          if (result !== 'accepted') {
+            return;
+          }
+
           toast.success(`Applied ${filePath}`, {
             autoClose: 5_000,
             closeButton: ({ closeToast }) => (
@@ -4739,8 +4749,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <HeaderTip
                         label={
                           projectAutoApply
-                            ? 'Risk: patches apply without review. Generated code is still validated before write, but review is safer.'
-                            : 'Off by default. Leave this off to review diffs before the agent writes files.'
+                            ? 'Auto-applies patches that pass validation. Failed patches stay in manual review.'
+                            : 'Review every patch before the agent writes files.'
                         }
                       >
                         <label
@@ -4751,12 +4761,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             type="checkbox"
                             checked={projectAutoApply}
                             onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
-                            aria-label="Auto-apply"
+                            aria-label="Auto-apply successful patches"
                           />
                           <span className="bolt-project-agent-plan-first-track" aria-hidden>
                             <span className="bolt-project-agent-plan-first-thumb" />
                           </span>
-                          <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
+                          <span className="bolt-project-agent-plan-first-label">Auto-apply successful patches</span>
                         </label>
                       </HeaderTip>
                     </div>

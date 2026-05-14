@@ -1011,18 +1011,21 @@ export class WorkbenchStore {
     this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
   }
 
-  async acceptAgentPatchProposal(proposalId: string, acceptedHunkIds?: string[]) {
+  async acceptAgentPatchProposal(
+    proposalId: string,
+    acceptedHunkIds?: string[],
+  ): Promise<'accepted' | 'failed' | 'ignored' | 'rejected'> {
     const proposal = this.agentPatchProposals.get()[proposalId];
 
     if (!proposal || proposal.status === 'applying') {
-      return;
+      return 'ignored';
     }
 
     const acceptedIds = acceptedHunkIds?.length ? acceptedHunkIds : proposal.hunks.map((hunk) => hunk.id);
 
     if (!acceptedIds.length) {
       await this.rejectAgentPatchProposal(proposalId);
-      return;
+      return 'rejected';
     }
 
     this.agentPatchProposals.setKey(proposalId, {
@@ -1099,6 +1102,8 @@ export class WorkbenchStore {
             : 'AI checkpoint skipped after patch accept',
         );
       });
+
+      return 'accepted';
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
       this.agentPatchProposals.setKey(proposalId, {
@@ -1108,6 +1113,8 @@ export class WorkbenchStore {
         error: message,
       });
       this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
+
+      return 'failed';
     }
   }
 

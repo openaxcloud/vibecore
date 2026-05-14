@@ -86,6 +86,17 @@ export interface AutoApplyDecisionInput {
   status: string;
 }
 
+export interface AutoApplyAttemptKeyInput {
+  /** Stable proposal identifier, usually `${artifactId}:${actionId}`. */
+  id: string;
+
+  /** Updated whenever the proposal content/status is refreshed. */
+  updatedAt: string;
+
+  /** Proposed file content for this exact attempt. */
+  proposedContent: string;
+}
+
 /**
  * Returns true only when every condition for a silent auto-apply is met:
  * setting on AND proposal still pending. Once the toggle is on, every
@@ -94,4 +105,15 @@ export interface AutoApplyDecisionInput {
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
   return input.autoApplyEnabled && input.status === 'pending';
+}
+
+/**
+ * Builds a per-version key for the auto-apply effect. The proposal id alone
+ * is not enough because the agent may regenerate the same action after a
+ * validation failure. Using the content and timestamp lets the effect retry
+ * genuinely new patch versions while avoiding an infinite loop for the same
+ * failing proposal.
+ */
+export function autoApplyAttemptKey(input: AutoApplyAttemptKeyInput): string {
+  return `${input.id}:${input.updatedAt}:${input.proposedContent.length}`;
 }
