@@ -71,6 +71,15 @@ type ProjectLoaderData = {
   };
   collaborators: Array<{ id?: string; userId?: string; roleKey?: string }>;
   notifications: Array<{ id?: string; action: string; createdAt?: string; metadata?: unknown }>;
+  initialIdePanels: Record<
+    string,
+    {
+      panel: string;
+      project: ProjectLoaderData['project'];
+      status: 'ok' | 'empty' | 'error';
+      data: unknown;
+    }
+  >;
   projectApiError?: string;
 };
 
@@ -127,6 +136,14 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       git: dashboardResult.git ?? {},
       collaborators: collaboratorsResult.collaborators ?? [],
       notifications: dashboardResult.recentActivity ?? [],
+      initialIdePanels: {
+        git: {
+          panel: 'git',
+          project: result.project,
+          status: 'ok',
+          data: { status: dashboardResult.git ?? {} },
+        },
+      },
     });
   } catch (error) {
     const message = await apiErrorMessage(error, 'Project API unavailable');
@@ -139,14 +156,24 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       git: {},
       collaborators: [],
       notifications: [],
+      initialIdePanels: {},
       projectApiError: message,
     });
   }
 };
 
 export default function ProjectIdeRoute() {
-  const { projectId, project, workspace, organization, git, collaborators, notifications, projectApiError } =
-    useLoaderData<typeof loader>();
+  const {
+    projectId,
+    project,
+    workspace,
+    organization,
+    git,
+    collaborators,
+    notifications,
+    initialIdePanels,
+    projectApiError,
+  } = useLoaderData<typeof loader>();
 
   return (
     <ProjectWorkspaceProvider projectId={projectId} initialError={projectApiError}>
@@ -162,11 +189,18 @@ export default function ProjectIdeRoute() {
           projectApiError={projectApiError}
         />
         <main className="h-dvh pt-9">
-          <ClientOnly fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} />}>
+          <ClientOnly
+            fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} initialIdePanels={initialIdePanels} />}
+          >
             {() => (
               <PanelBoundary title="Bolt IDE">
                 <Suspense fallback={<PanelLoading title="Loading Bolt IDE..." />}>
-                  <ProjectIdeChat forceWorkbench projectIdeMode projectId={projectId} />
+                  <ProjectIdeChat
+                    forceWorkbench
+                    projectIdeMode
+                    projectId={projectId}
+                    initialIdePanels={initialIdePanels}
+                  />
                 </Suspense>
               </PanelBoundary>
             )}

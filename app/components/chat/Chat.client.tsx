@@ -109,10 +109,12 @@ export function Chat({
   forceWorkbench = false,
   projectIdeMode = false,
   projectId,
+  initialIdePanels,
 }: {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  initialIdePanels?: Record<string, unknown>;
 }) {
   renderLogger.trace('Chat');
 
@@ -124,7 +126,14 @@ export function Chat({
   }, [initialMessages]);
 
   if (!ready) {
-    return <BaseChat chatStarted={forceWorkbench} projectIdeMode={projectIdeMode} projectId={projectId} />;
+    return (
+      <BaseChat
+        chatStarted={forceWorkbench}
+        projectIdeMode={projectIdeMode}
+        projectId={projectId}
+        initialIdePanels={initialIdePanels}
+      />
+    );
   }
 
   return (
@@ -132,6 +141,7 @@ export function Chat({
       forceWorkbench={forceWorkbench}
       projectIdeMode={projectIdeMode}
       projectId={projectId}
+      initialIdePanels={initialIdePanels}
       description={title}
       initialMessages={initialMessages}
       exportChat={exportChat}
@@ -163,6 +173,7 @@ interface ChatProps {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  initialIdePanels?: Record<string, unknown>;
   initialMessages: Message[];
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
@@ -175,6 +186,7 @@ export const ChatImpl = memo(
     forceWorkbench = false,
     projectIdeMode = false,
     projectId,
+    initialIdePanels,
     description,
     initialMessages,
     storeMessageHistory,
@@ -861,6 +873,7 @@ export const ChatImpl = memo(
         chatStarted={forceWorkbench || chatStarted}
         projectIdeMode={projectIdeMode}
         projectId={projectId}
+        initialIdePanels={initialIdePanels}
         isStreaming={isLoading || fakeLoading}
         onStreamingChange={(streaming) => {
           streamingState.set(streaming);
