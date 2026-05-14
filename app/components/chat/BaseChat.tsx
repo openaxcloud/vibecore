@@ -1336,33 +1336,48 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
                 </div>
               </div>
               {proposal.error ? <p className="bolt-project-agent-patch-error">{proposal.error}</p> : null}
-              <div className="bolt-project-agent-patch-hunks">
-                {proposal.hunks.map((hunk: any, index: number) => {
-                  const checked = selectedHunks.has(hunk.id);
+              <details className="bolt-project-agent-patch-hunks-toggle">
+                <summary>
+                  <span className="bolt-project-agent-patch-hunks-toggle-label">
+                    Show diff
+                    <span className="bolt-project-agent-patch-hunks-toggle-count">
+                      {proposal.hunks.length} hunk{proposal.hunks.length === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  <span className="bolt-project-agent-patch-hunks-toggle-chevron i-ph:caret-down" aria-hidden />
+                </summary>
+                <div className="bolt-project-agent-patch-hunks">
+                  {proposal.hunks.map((hunk: any, index: number) => {
+                    const checked = selectedHunks.has(hunk.id);
 
-                  return (
-                    <details key={hunk.id} className="bolt-project-agent-patch-hunk" open={index === 0}>
-                      <summary>
-                        <label onClick={(event) => event.stopPropagation()}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleHunk(proposal.id, hunk.id)} />
-                          Hunk {index + 1}
-                        </label>
-                        <span>
-                          -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}
-                        </span>
-                      </summary>
-                      <pre aria-label={`Diff hunk ${index + 1} for ${proposal.relativePath}`}>
-                        {hunk.lines.map((line: any) => (
-                          <code key={line.id} data-line-type={line.type}>
-                            {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
-                            {line.content}
-                          </code>
-                        ))}
-                      </pre>
-                    </details>
-                  );
-                })}
-              </div>
+                    return (
+                      <div key={hunk.id} className="bolt-project-agent-patch-hunk bolt-project-agent-patch-hunk--flat">
+                        <div className="bolt-project-agent-patch-hunk-head">
+                          <label onClick={(event) => event.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleHunk(proposal.id, hunk.id)}
+                            />
+                            Hunk {index + 1}
+                          </label>
+                          <span>
+                            -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}
+                          </span>
+                        </div>
+                        <pre aria-label={`Diff hunk ${index + 1} for ${proposal.relativePath}`}>
+                          {hunk.lines.map((line: any) => (
+                            <code key={line.id} data-line-type={line.type}>
+                              {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
+                              {line.content}
+                            </code>
+                          ))}
+                        </pre>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
             </article>
           );
         })}
@@ -6278,12 +6293,30 @@ function IdeTabBar({
               title={tab.label}
               onClick={() => onSelect(tab.id, tab.panel)}
             >
-              <span className={tab.pinned ? 'i-ph:push-pin-simple' : tab.icon} aria-hidden />
+              <span
+                className={classNames('bolt-project-tab-icon', tab.pinned ? 'i-ph:push-pin-simple' : tab.icon)}
+                aria-hidden
+              />
               <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
                 {tab.displayLabel ?? tab.label}
               </span>
               {tab.dirty ? <span className="bolt-project-tab-dirty-dot" aria-hidden /> : null}
             </button>
+            {onTogglePin ? (
+              <button
+                type="button"
+                className="bolt-project-tab-pin"
+                aria-label={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
+                title={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onTogglePin(tab.id);
+                }}
+              >
+                <span className={tab.pinned ? 'i-ph:push-pin-simple-fill' : 'i-ph:push-pin-simple'} aria-hidden />
+              </button>
+            ) : null}
             {tab.dirty ? (
               <button
                 type="button"
