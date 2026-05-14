@@ -3780,6 +3780,12 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-panel);
 }
 
+.bolt-project-tabbar {
+  box-sizing: border-box;
+  gap: 4px;
+  padding-right: 8px;
+}
+
 .bolt-project-tabs {
   display: flex;
   min-width: 0;
@@ -3994,12 +4000,22 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
+.bolt-project-tabbar > .bolt-project-tool-popover {
+  margin-block: 3px;
+}
+
+.bolt-project-tabbar > .bolt-project-tool-popover .bolt-project-tab-action {
+  width: 30px;
+  height: 28px;
+  border: 1px solid transparent;
+}
+
 .bolt-project-add-tab-action {
-  width: 36px;
-  min-width: 36px;
+  width: 30px;
+  min-width: 30px;
   gap: 0;
-  border-left: 1px solid var(--vc-ide-border-subtle);
-  border-radius: 0;
+  border-left: 0;
+  border-radius: 6px;
   padding: 0;
   font-size: 15px;
 }
