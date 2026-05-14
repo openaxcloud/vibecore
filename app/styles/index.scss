@@ -1154,7 +1154,10 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(:hover, :focus-visible)::after {
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(
+    :hover,
+    :focus-visible
+  )::after {
   position: absolute;
   z-index: 2500;
   bottom: calc(100% + 8px);
@@ -1177,7 +1180,10 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(:hover, :focus-visible)::before {
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(
+    :hover,
+    :focus-visible
+  )::before {
   position: absolute;
   z-index: 2501;
   bottom: calc(100% + 3px);
@@ -2523,8 +2529,11 @@ body :where(.lucide, svg[data-lucide]) {
   margin-top: auto !important;
   margin-bottom: 0 !important;
   padding: 8px 0 calc(10px + env(safe-area-inset-bottom, 0px));
-  background:
-    linear-gradient(to top, var(--vc-ide-bg-panel) 78%, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 100%));
+  background: linear-gradient(
+    to top,
+    var(--vc-ide-bg-panel) 78%,
+    color-mix(in srgb, var(--vc-ide-bg-panel), transparent 100%)
+  );
 }
 
 .bolt-project-agent-panel [data-radix-scroll-area-viewport],
@@ -2641,8 +2650,11 @@ body :where(.lucide, svg[data-lucide]) {
   overflow: hidden;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: var(--vc-ui-radius-card);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-accent-primary) 4%), var(--vc-ide-bg-card));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-accent-primary) 4%),
+    var(--vc-ide-bg-card)
+  );
   box-shadow: var(--vc-ui-shadow-soft);
 }
 
@@ -4300,6 +4312,18 @@ body :where(.lucide, svg[data-lucide]) {
   transform: none !important;
 }
 
+.bolt-project-tool-menu--anchored {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-width: 0;
+  inline-size: auto;
+  max-height: min(430px, calc(100dvh - 172px));
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .bolt-project-tool-menu-header {
   flex: 0 0 auto;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
@@ -4347,6 +4371,22 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-tool-search input::placeholder {
   color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-tool-search-close {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-tool-search-close:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-tool-section {

@@ -6769,7 +6769,6 @@ function IdeTabBar({
 }) {
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ left: 0, top: 44 });
   const [toolQuery, setToolQuery] = useState('');
 
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
@@ -6845,329 +6844,308 @@ function IdeTabBar({
       .entries(),
   );
 
-  return (
-    <div className="bolt-project-tabbar">
-      <div
-        className="bolt-project-tabs"
-        role="tablist"
-        onDragOver={(event) => {
-          if (onSwapTab) {
-            event.preventDefault();
-          }
-        }}
-        onDrop={(event) => {
-          const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-          const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
-
-          if (sourcePaneId && sourceTabId) {
-            event.preventDefault();
-            onSwapTab?.(sourcePaneId, sourceTabId, activeTabId);
-          }
-        }}
-      >
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            role="tab"
-            data-tab-id={tab.id}
-            data-testid={`tab-${tab.id}`}
-            data-panel={tab.panel}
-            data-pinned={tab.pinned ? 'true' : undefined}
-            data-dirty={tab.dirty ? 'true' : undefined}
-            aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
-            aria-selected={activeTabId === tab.id}
-            className="bolt-project-tab"
-            draggable
-            onDragStart={(event) => {
-              const pane = event.currentTarget.closest('[data-pane-id]') as HTMLElement | null;
-              const paneId = pane?.dataset.paneId;
-
-              if (!paneId) {
-                event.preventDefault();
-                return;
-              }
-
-              event.dataTransfer.effectAllowed = 'move';
-              event.dataTransfer.setData('application/x-vibecore-pane-id', paneId);
-              event.dataTransfer.setData('application/x-vibecore-tab-id', tab.id);
-            }}
-            onDragEnd={onDragEnd}
-            onDragOver={(event) => {
-              if (onSwapTab) {
-                event.preventDefault();
-              }
-            }}
-            onDrop={(event) => {
-              const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-              const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
-
-              if (sourcePaneId && sourceTabId) {
-                event.preventDefault();
-                event.stopPropagation();
-                onSwapTab?.(sourcePaneId, sourceTabId, tab.id);
-              }
-            }}
+  const toolMenu = open ? (
+    <div className="bolt-project-tool-menu bolt-project-tool-menu--anchored">
+      <div className="bolt-project-tool-menu-header">
+        <div className="bolt-project-tool-search">
+          <span className="i-ph:magnifying-glass" aria-hidden />
+          <input
+            autoFocus
+            placeholder="Search tools and files..."
+            aria-label="Search tools and files"
+            value={toolQuery}
+            onChange={(event) => setToolQuery(event.target.value)}
+          />
+          <button
+            type="button"
+            aria-label="Close tools and files search"
+            title="Close"
+            className="bolt-project-tool-search-close"
+            onClick={() => setOpen(false)}
           >
-            <button
-              type="button"
-              className="bolt-project-tab-main"
-              title={tab.label}
-              onClick={() => onSelect(tab.id, tab.panel)}
-            >
-              <span className={classNames('bolt-project-tab-icon', tab.icon)} aria-hidden />
-              <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
-                {tab.displayLabel ?? tab.label}
-              </span>
-              {tab.dirty ? <span className="bolt-project-tab-dirty-dot" aria-hidden /> : null}
-            </button>
-            {onTogglePin ? (
+            <span className="i-ph:x" aria-hidden />
+          </button>
+        </div>
+      </div>
+      <div className="bolt-project-tool-menu-body">
+        {!normalizedToolQuery && (
+          <>
+            <div className="bolt-project-tool-section">RECENT FILES</div>
+            {filteredRecentFiles.map((filePath) => (
               <button
+                key={`recent-file-${filePath}`}
                 type="button"
-                className="bolt-project-tab-pin"
-                aria-label={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
-                title={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onTogglePin(tab.id);
+                className="bolt-project-tool-item"
+                onClick={() => {
+                  onOpenFile?.(filePath, false);
+                  setOpen(false);
                 }}
               >
-                <span className={tab.pinned ? 'i-ph:push-pin-simple-fill' : 'i-ph:push-pin-simple'} aria-hidden />
+                <span className="i-ph:file-code" aria-hidden />
+                <span>
+                  <strong>{filePath.split('/').pop() || filePath}</strong>
+                  <small>{filePath.replace(WORK_DIR, '')}</small>
+                </span>
+                <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
               </button>
-            ) : null}
-            {tab.dirty ? (
+            ))}
+          </>
+        )}
+        <div className="bolt-project-tool-section">TOOLS</div>
+        {toolGroups.map(([category, groupTools]) => (
+          <div key={category} className="bolt-project-tool-group">
+            <div className="bolt-project-tool-section">{category}</div>
+            {groupTools.map(([id, title, description, icon, color]) => (
               <button
+                key={id}
                 type="button"
-                className="bolt-project-tab-save"
-                aria-label={`Save ${tab.label}`}
-                title={`Save ${tab.label}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  tab.onSave?.();
+                className="bolt-project-tool-item"
+                data-testid={`feature-${id}`}
+                onClick={() => {
+                  onOpenTool?.(id);
+                  setOpen(false);
                 }}
               >
-                ●
+                <span className={icon} style={{ color }} aria-hidden />
+                <span>
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </span>
+                {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
+                <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
               </button>
-            ) : tab.closable && onClose ? (
-              <button
-                type="button"
-                className="bolt-project-tab-close"
-                aria-label={`Close ${tab.label}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onClose(tab.id, tab.panel);
-                }}
-              >
-                ×
-              </button>
-            ) : (
-              <span className="bolt-project-tab-close" aria-hidden>
-                ×
-              </span>
-            )}
+            ))}
           </div>
         ))}
-      </div>
-      {trailing}
-      <div className="bolt-project-tool-popover">
-        <button
-          type="button"
-          className="bolt-project-tab-action bolt-project-add-tab-action"
-          aria-label="Add tab"
-          title="Add tab"
-          data-testid="tab-add"
-          aria-expanded={open}
-          onMouseDown={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-
-            const rect = event.currentTarget.getBoundingClientRect();
-            const menuWidth = 320;
-            const menuMaxHeight = 480;
-            const viewportPadding = 8;
-
-            const left = Math.min(
-              Math.max(viewportPadding, rect.left),
-              Math.max(viewportPadding, window.innerWidth - menuWidth - viewportPadding),
-            );
-
-            const top = Math.min(rect.bottom + 4, Math.max(44, window.innerHeight - menuMaxHeight - viewportPadding));
-
-            setMenuPosition({ left, top });
-            setOpen(true);
-          }}
-          onClick={(event) => event.preventDefault()}
-        >
-          <span className="i-ph:plus" aria-hidden />
-        </button>
-        {open && (
-          <div
-            className="bolt-project-tool-menu"
-            style={{
-              left: menuPosition.left,
-              top: menuPosition.top,
-              maxHeight: '480px',
-            }}
-          >
-            <div className="bolt-project-tool-menu-header">
-              <div className="bolt-project-tool-search">
-                <span className="i-ph:magnifying-glass" aria-hidden />
-                <input
-                  placeholder="Search tools and files..."
-                  aria-label="Search tools and files"
-                  value={toolQuery}
-                  onChange={(event) => setToolQuery(event.target.value)}
-                />
-              </div>
-            </div>
-            <div className="bolt-project-tool-menu-body">
-              {!normalizedToolQuery && (
-                <>
-                  <div className="bolt-project-tool-section">RECENT FILES</div>
-                  {filteredRecentFiles.map((filePath) => (
-                    <button
-                      key={`recent-file-${filePath}`}
-                      type="button"
-                      className="bolt-project-tool-item"
-                      onClick={(event) => {
-                        onOpenFile?.(filePath, false);
-
-                        if (event.nativeEvent.isTrusted) {
-                          window.setTimeout(() => setOpen(false), 0);
-                        } else {
-                          setOpen(false);
-                        }
-                      }}
-                    >
-                      <span className="i-ph:file-code" aria-hidden />
-                      <span>
-                        <strong>{filePath.split('/').pop() || filePath}</strong>
-                        <small>{filePath.replace(WORK_DIR, '')}</small>
-                      </span>
-                      <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
-                    </button>
-                  ))}
-                </>
-              )}
-              <div className="bolt-project-tool-section">TOOLS</div>
-              {toolGroups.map(([category, groupTools]) => (
-                <div key={category} className="bolt-project-tool-group">
-                  <div className="bolt-project-tool-section">{category}</div>
-                  {groupTools.map(([id, title, description, icon, color]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className="bolt-project-tool-item"
-                      data-testid={`feature-${id}`}
-                      onClick={(event) => {
-                        onOpenTool?.(id);
-
-                        if (event.nativeEvent.isTrusted) {
-                          window.setTimeout(() => setOpen(false), 0);
-                        } else {
-                          setOpen(false);
-                        }
-                      }}
-                    >
-                      <span className={icon} style={{ color }} aria-hidden />
-                      <span>
-                        <strong>{title}</strong>
-                        <small>{description}</small>
-                      </span>
-                      {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
-                      <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
-                    </button>
-                  ))}
-                </div>
-              ))}
-              {!filteredTools.length && (
-                <div className="bolt-project-tool-empty">
-                  <span className="i-ph:sparkle" aria-hidden />
-                  <strong>No features found</strong>
-                  <small>Try a different search term.</small>
-                </div>
-              )}
-            </div>
-            <div className="bolt-project-tool-footer">
-              {filteredTools.length} feature{filteredTools.length === 1 ? '' : 's'} available
-              {normalizedToolQuery ? ` matching "${toolQuery.trim()}"` : ''}
-            </div>
+        {!filteredTools.length && (
+          <div className="bolt-project-tool-empty">
+            <span className="i-ph:sparkle" aria-hidden />
+            <strong>No features found</strong>
+            <small>Try a different search term.</small>
           </div>
         )}
       </div>
-      <div className="bolt-project-tool-popover">
-        <button
-          type="button"
-          className="bolt-project-tab-action"
-          aria-label="Tab actions"
-          title="Tab actions"
-          aria-expanded={actionsOpen}
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={() => setActionsOpen((value) => !value)}
-        >
-          <span className="i-ph:dots-three" aria-hidden />
-        </button>
-        {actionsOpen && (
-          <div className="bolt-project-tab-actions-menu">
-            <button
-              type="button"
-              onClick={() => {
-                onTogglePin?.(activeTabId ?? tabs[0]?.id);
-                setActionsOpen(false);
-              }}
-            >
-              <span className="i-ph:push-pin-simple" aria-hidden />
-              {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onCloseOthers?.(activeTabId ?? tabs[0]?.id);
-                setActionsOpen(false);
-              }}
-            >
-              Close others
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onCloseToRight?.(activeTabId ?? tabs[0]?.id);
-                setActionsOpen(false);
-              }}
-            >
-              Close to right
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onCloseAll?.();
-                setActionsOpen(false);
-              }}
-            >
-              Close all
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onCloseAll?.();
-                setActionsOpen(false);
-              }}
-            >
-              Close saved
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
-                setActionsOpen(false);
-              }}
-            >
-              Split active right
-            </button>
-          </div>
-        )}
+      <div className="bolt-project-tool-footer">
+        {filteredTools.length} feature{filteredTools.length === 1 ? '' : 's'} available
+        {normalizedToolQuery ? ` matching "${toolQuery.trim()}"` : ''}
       </div>
     </div>
+  ) : null;
+
+  return (
+    <>
+      <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
+        <div
+          className="bolt-project-tabs"
+          role="tablist"
+          onDragOver={(event) => {
+            if (onSwapTab) {
+              event.preventDefault();
+            }
+          }}
+          onDrop={(event) => {
+            const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
+            const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
+
+            if (sourcePaneId && sourceTabId) {
+              event.preventDefault();
+              onSwapTab?.(sourcePaneId, sourceTabId, activeTabId);
+            }
+          }}
+        >
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              role="tab"
+              data-tab-id={tab.id}
+              data-testid={`tab-${tab.id}`}
+              data-panel={tab.panel}
+              data-pinned={tab.pinned ? 'true' : undefined}
+              data-dirty={tab.dirty ? 'true' : undefined}
+              aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
+              aria-selected={activeTabId === tab.id}
+              className="bolt-project-tab"
+              draggable
+              onDragStart={(event) => {
+                const pane = event.currentTarget.closest('[data-pane-id]') as HTMLElement | null;
+                const paneId = pane?.dataset.paneId;
+
+                if (!paneId) {
+                  event.preventDefault();
+                  return;
+                }
+
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('application/x-vibecore-pane-id', paneId);
+                event.dataTransfer.setData('application/x-vibecore-tab-id', tab.id);
+              }}
+              onDragEnd={onDragEnd}
+              onDragOver={(event) => {
+                if (onSwapTab) {
+                  event.preventDefault();
+                }
+              }}
+              onDrop={(event) => {
+                const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
+                const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
+
+                if (sourcePaneId && sourceTabId) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSwapTab?.(sourcePaneId, sourceTabId, tab.id);
+                }
+              }}
+            >
+              <button
+                type="button"
+                className="bolt-project-tab-main"
+                title={tab.label}
+                onClick={() => onSelect(tab.id, tab.panel)}
+              >
+                <span className={classNames('bolt-project-tab-icon', tab.icon)} aria-hidden />
+                <span className={classNames('bolt-project-tab-label', tab.preview || tab.dirty ? 'italic' : '')}>
+                  {tab.displayLabel ?? tab.label}
+                </span>
+                {tab.dirty ? <span className="bolt-project-tab-dirty-dot" aria-hidden /> : null}
+              </button>
+              {onTogglePin ? (
+                <button
+                  type="button"
+                  className="bolt-project-tab-pin"
+                  aria-label={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
+                  title={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onTogglePin(tab.id);
+                  }}
+                >
+                  <span className={tab.pinned ? 'i-ph:push-pin-simple-fill' : 'i-ph:push-pin-simple'} aria-hidden />
+                </button>
+              ) : null}
+              {tab.dirty ? (
+                <button
+                  type="button"
+                  className="bolt-project-tab-save"
+                  aria-label={`Save ${tab.label}`}
+                  title={`Save ${tab.label}`}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    tab.onSave?.();
+                  }}
+                >
+                  ●
+                </button>
+              ) : tab.closable && onClose ? (
+                <button
+                  type="button"
+                  className="bolt-project-tab-close"
+                  aria-label={`Close ${tab.label}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onClose(tab.id, tab.panel);
+                  }}
+                >
+                  ×
+                </button>
+              ) : (
+                <span className="bolt-project-tab-close" aria-hidden>
+                  ×
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        {trailing}
+        <div className="bolt-project-tool-popover">
+          <button
+            type="button"
+            className="bolt-project-tab-action bolt-project-add-tab-action"
+            aria-label="Add tab"
+            title="Add tab"
+            data-testid="tab-add"
+            aria-expanded={open}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <span className="i-ph:plus" aria-hidden />
+          </button>
+        </div>
+        <div className="bolt-project-tool-popover">
+          <button
+            type="button"
+            className="bolt-project-tab-action"
+            aria-label="Tab actions"
+            title="Tab actions"
+            aria-expanded={actionsOpen}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setActionsOpen((value) => !value)}
+          >
+            <span className="i-ph:dots-three" aria-hidden />
+          </button>
+          {actionsOpen && (
+            <div className="bolt-project-tab-actions-menu">
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePin?.(activeTabId ?? tabs[0]?.id);
+                  setActionsOpen(false);
+                }}
+              >
+                <span className="i-ph:push-pin-simple" aria-hidden />
+                {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseOthers?.(activeTabId ?? tabs[0]?.id);
+                  setActionsOpen(false);
+                }}
+              >
+                Close others
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseToRight?.(activeTabId ?? tabs[0]?.id);
+                  setActionsOpen(false);
+                }}
+              >
+                Close to right
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseAll?.();
+                  setActionsOpen(false);
+                }}
+              >
+                Close all
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCloseAll?.();
+                  setActionsOpen(false);
+                }}
+              >
+                Close saved
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
+                  setActionsOpen(false);
+                }}
+              >
+                Split active right
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {toolMenu}
+    </>
   );
 }
 
