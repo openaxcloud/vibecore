@@ -97,6 +97,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Le
 const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
 const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
+const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   'Add tab': { description: 'Open another editor, terminal, preview or project panel.', shortcut: 'Ctrl+T' },
@@ -7426,7 +7427,16 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'security') {
-    return <ProjectSecurityPanel data={data} project={project} onSubmit={onSubmit} busy={busy} />;
+    return (
+      <ProjectSecurityPanel
+        data={data}
+        project={project}
+        projectId={projectId}
+        onSubmit={onSubmit}
+        busy={busy}
+        reload={reload}
+      />
+    );
   }
 
   if (panel === 'logs') {
@@ -11691,15 +11701,28 @@ function DatabaseQueryResult({ queryState }: { queryState: { loading: boolean; r
 function ProjectSecurityPanel({
   data,
   project,
+  projectId,
   onSubmit,
   busy,
+  reload,
 }: {
   data: any;
   project: any;
+  projectId?: string;
   onSubmit: any;
   busy: boolean;
+  reload?: () => void | Promise<void>;
 }) {
   const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings' | 'reports' | 'compare'>('active');
+
+  const [scanState, setScanState] = useState<{
+    status: 'idle' | 'running' | 'completed' | 'timeout' | 'cancelled' | 'failed';
+    progress: number;
+    message?: string;
+    startedAt?: number;
+  }>({ status: 'idle', progress: 0 });
+
+  const scanAbortRef = useRef<AbortController | null>(null);
   const state = data.securityState ?? {};
   const settings = state.settings ?? {};
   const scans = state.scans ?? [];
@@ -11725,6 +11748,142 @@ function ProjectSecurityPanel({
   const exportSarifReport = () => downloadSecurityReport('sarif', project, state);
   const exportJsonReport = () => downloadSecurityReport('json', project, state);
 
+  const scanRunning = scanState.status === 'running';
+  const scanElapsedMs = scanRunning && scanState.startedAt ? Date.now() - scanState.startedAt : 0;
+  const scanStage = scanProgressStage(scanState.progress, scanElapsedMs);
+
+  useEffect(() => {
+    if (!scanRunning || !scanState.startedAt) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      setScanState((current) => {
+        if (current.status !== 'running' || !current.startedAt) {
+          return current;
+        }
+
+        const elapsed = Date.now() - current.startedAt;
+
+        const progress = Math.min(
+          94,
+          Math.max(current.progress, 8 + Math.round((elapsed / PROJECT_SECURITY_SCAN_TIMEOUT_MS) * 84)),
+        );
+
+        return {
+          ...current,
+          progress,
+          message: scanProgressStage(progress, elapsed),
+        };
+      });
+    }, 800);
+
+    return () => window.clearInterval(interval);
+  }, [scanRunning, scanState.startedAt]);
+
+  useEffect(() => {
+    return () => {
+      scanAbortRef.current?.abort();
+    };
+  }, []);
+
+  const runScan = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!projectId) {
+      setScanState({
+        status: 'failed',
+        progress: 0,
+        message: 'Missing project id. Reload the IDE and try again.',
+      });
+
+      return;
+    }
+
+    scanAbortRef.current?.abort();
+
+    const controller = new AbortController();
+    scanAbortRef.current = controller;
+
+    const timeout = window.setTimeout(() => {
+      controller.abort();
+      setScanState({
+        status: 'timeout',
+        progress: 100,
+        message: 'Security scan timed out after 90 seconds. No result was accepted; retry or inspect runtime logs.',
+      });
+    }, PROJECT_SECURITY_SCAN_TIMEOUT_MS);
+
+    setScanState({
+      status: 'running',
+      progress: 8,
+      startedAt: Date.now(),
+      message: 'Preparing scanner profile',
+    });
+
+    try {
+      const formData = new FormData(event.currentTarget);
+
+      const response = await fetch(`/api/projects/${projectId}/ide-panel/security`, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      });
+
+      const result = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(result.error ?? 'Security scan failed');
+      }
+
+      window.clearTimeout(timeout);
+      setScanState({
+        status: 'completed',
+        progress: 100,
+        message: 'Scan completed. Results were refreshed from backend state.',
+      });
+      await reload?.();
+    } catch (error) {
+      window.clearTimeout(timeout);
+
+      if (controller.signal.aborted) {
+        setScanState((current) =>
+          current.status === 'timeout'
+            ? current
+            : {
+                status: 'cancelled',
+                progress: 0,
+                message:
+                  'Scan cancelled locally. Reload the panel to confirm whether the backend stored a partial run.',
+              },
+        );
+
+        return;
+      }
+
+      setScanState({
+        status: 'failed',
+        progress: 100,
+        message: error instanceof Error ? error.message : 'Security scan failed',
+      });
+    } finally {
+      window.clearTimeout(timeout);
+
+      if (scanAbortRef.current === controller) {
+        scanAbortRef.current = null;
+      }
+    }
+  };
+
+  const cancelScan = () => {
+    scanAbortRef.current?.abort();
+    setScanState({
+      status: 'cancelled',
+      progress: 0,
+      message: 'Scan cancelled locally. No completed scan was accepted in this browser session.',
+    });
+  };
+
   const printReport = () => {
     const report = buildSecurityReport(project, state);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
@@ -11749,11 +11908,36 @@ function ProjectSecurityPanel({
             are stored in project backend state.
           </p>
         </div>
-        <form onSubmit={onSubmit}>
+        <form onSubmit={runScan} className="bolt-project-security-scan-form">
           <input name="intent" value="scan" type="hidden" />
-          <PanelButton disabled={busy}>{busy ? 'Scanning...' : 'Run full scan'}</PanelButton>
+          <PanelButton disabled={busy || scanRunning}>{scanRunning ? 'Scanning...' : 'Run full scan'}</PanelButton>
+          {scanRunning ? (
+            <button type="button" className="bolt-project-security-cancel" onClick={cancelScan}>
+              Cancel scan
+            </button>
+          ) : null}
         </form>
       </section>
+
+      {scanState.status !== 'idle' ? (
+        <section className="bolt-project-security-progress" data-status={scanState.status} aria-live="polite">
+          <div>
+            <strong>
+              {scanState.status === 'running'
+                ? scanStage
+                : scanState.status === 'completed'
+                  ? 'Scan completed'
+                  : scanState.status === 'timeout'
+                    ? 'Scan timed out'
+                    : scanState.status === 'cancelled'
+                      ? 'Scan cancelled'
+                      : 'Scan failed'}
+            </strong>
+            <span>{scanState.message}</span>
+          </div>
+          <progress max={100} value={scanState.progress} aria-label="Security scan progress" />
+        </section>
+      ) : null}
 
       <section className="bolt-project-security-scope" aria-label="Security scanner coverage">
         {[
@@ -11979,6 +12163,26 @@ function securityCountsFromVulnerabilities(vulnerabilities: any[]) {
     acc[severity] = vulnerabilities.filter((item: any) => item.severity === severity).length;
     return acc;
   }, {});
+}
+
+function scanProgressStage(progress: number, elapsedMs: number) {
+  if (progress < 18) {
+    return 'Preparing scanner profile';
+  }
+
+  if (progress < 42) {
+    return 'Running dependency audit';
+  }
+
+  if (progress < 66) {
+    return 'Scanning secrets';
+  }
+
+  if (progress < 88) {
+    return 'Running static analysis';
+  }
+
+  return elapsedMs > 60_000 ? 'Finalizing long-running scan' : 'Finalizing report';
 }
 
 function formatSecurityDate(value?: string | null) {

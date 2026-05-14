@@ -7627,6 +7627,101 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
+.bolt-project-security-scan-form {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bolt-project-security-cancel {
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 42%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 750;
+  padding: 0 10px;
+}
+
+.bolt-project-security-cancel:hover {
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 82%);
+}
+
+.bolt-project-security-progress {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%), transparent 64%),
+    var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-security-progress[data-status='timeout'],
+.bolt-project-security-progress[data-status='failed'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 35%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-error), transparent 88%), transparent 64%),
+    var(--vc-ide-bg-card);
+}
+
+.bolt-project-security-progress[data-status='completed'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-green), transparent 35%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-green), transparent 88%), transparent 64%),
+    var(--vc-ide-bg-card);
+}
+
+.bolt-project-security-progress > div {
+  display: grid;
+  gap: 3px;
+}
+
+.bolt-project-security-progress strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-project-security-progress span {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-security-progress progress {
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-security-progress progress::-webkit-progress-bar {
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-security-progress progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-project-security-progress[data-status='timeout'] progress::-webkit-progress-value,
+.bolt-project-security-progress[data-status='failed'] progress::-webkit-progress-value {
+  background: var(--vc-ide-accent-error);
+}
+
+.bolt-project-security-progress[data-status='completed'] progress::-webkit-progress-value {
+  background: var(--vc-ide-accent-green);
+}
+
+.bolt-project-security-progress progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+}
+
 .bolt-project-security-scope {
   display: grid;
   gap: 10px;
