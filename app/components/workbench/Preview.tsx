@@ -25,6 +25,7 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -289,6 +290,7 @@ export const Preview = memo(
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const previewReloadTimer = useRef<number | undefined>();
     const [activePreviewIndex, setActivePreviewIndex] = useState(0);
     const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -569,6 +571,66 @@ export const Preview = memo(
       }
     }, []);
 
+    const reloadPreview = useCallback(
+      (reason = 'manual') => {
+        const iframe = iframeRef.current;
+
+        if (!iframe) {
+          void refreshPorts();
+          return;
+        }
+
+        const currentSrc = iframe.src;
+
+        if (!currentSrc) {
+          void refreshPorts();
+          return;
+        }
+
+        try {
+          iframe.contentWindow?.location.reload();
+        } catch {
+          iframe.src = currentSrc;
+        }
+
+        setPreviewNetworkEvents((events) =>
+          [
+            {
+              method: 'GET',
+              url: currentSrc,
+              status: 'reloaded',
+              source: reason,
+            },
+            ...events,
+          ].slice(0, 80),
+        );
+      },
+      [refreshPorts],
+    );
+
+    useEffect(() => {
+      const unsubscribe = workspaceEvents.on('file:applied', ({ filePath }) => {
+        if (previewReloadTimer.current) {
+          window.clearTimeout(previewReloadTimer.current);
+        }
+
+        setPreviewStatus(`Refreshing preview after ${filePath.replace(/^\/+/, '')}`);
+        previewReloadTimer.current = window.setTimeout(() => {
+          reloadPreview('file:applied');
+          previewReloadTimer.current = undefined;
+        }, 150);
+      });
+
+      return () => {
+        unsubscribe();
+
+        if (previewReloadTimer.current) {
+          window.clearTimeout(previewReloadTimer.current);
+          previewReloadTimer.current = undefined;
+        }
+      };
+    }, [reloadPreview]);
+
     const startPreviewServer = useCallback(async () => {
       setIsStartingPreview(true);
       setPreviewStatus(undefined);
@@ -660,14 +722,6 @@ export const Preview = memo(
 
       return () => window.clearTimeout(timeout);
     }, [autoStart, previews.length, workspaceReady]);
-
-    const reloadPreview = () => {
-      if (iframeRef.current) {
-        iframeRef.current.src = iframeRef.current.src;
-      } else {
-        void refreshPorts();
-      }
-    };
 
     const navigatePreviewHistory = (direction: 'back' | 'forward') => {
       try {
@@ -1353,7 +1407,7 @@ export const Preview = memo(
           <div className="flex items-center gap-1">
             <IconButton icon="i-ph:arrow-left" onClick={() => navigatePreviewHistory('back')} title="Back" />
             <IconButton icon="i-ph:arrow-right" onClick={() => navigatePreviewHistory('forward')} title="Forward" />
-            <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} title="Refresh preview" />
+            <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} title="Refresh preview" />
             <IconButton
               icon="i-ph:selection"
               onClick={() => setIsSelectionMode(!isSelectionMode)}

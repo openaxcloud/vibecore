@@ -14,6 +14,7 @@ import { description } from '~/lib/persistence';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { validateGeneratedFiles, validateImports, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
@@ -1050,6 +1051,10 @@ export class WorkbenchStore {
         status: 'accepted',
         updatedAt: new Date().toISOString(),
       });
+      this.#emitFileApplied(proposal.relativePath, 'agent', {
+        artifactId: proposal.artifactId,
+        actionId: proposal.actionId,
+      });
       this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
       await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
@@ -1116,6 +1121,10 @@ export class WorkbenchStore {
         ...proposal,
         status: 'reverted',
         updatedAt: new Date().toISOString(),
+      });
+      this.#emitFileApplied(proposal.relativePath, 'agent', {
+        artifactId: proposal.artifactId,
+        actionId: `${proposal.actionId}-revert`,
       });
       this.appendWorkspaceLog(`AI patch reverted: ${proposal.relativePath}`);
     } catch (error) {
@@ -1471,6 +1480,10 @@ export class WorkbenchStore {
       if (!isStreaming) {
         await artifact.runner.runAction(data);
         this.resetAllFileModifications();
+        this.#emitFileApplied(data.action.filePath, 'agent', {
+          artifactId: data.artifactId,
+          actionId: data.actionId,
+        });
       }
     } else {
       await artifact.runner.runAction(data);
@@ -1839,6 +1852,21 @@ export class WorkbenchStore {
   actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
     return await this._runAction(data, isStreaming);
   }, 100); // TODO: remove this magic number to have it configurable
+
+  #emitFileApplied(
+    filePath: string,
+    source: 'agent' | 'user' | 'system',
+    metadata?: {
+      artifactId?: string;
+      actionId?: string;
+    },
+  ) {
+    workspaceEvents.emit('file:applied', {
+      filePath,
+      source,
+      ...metadata,
+    });
+  }
 
   #getArtifact(id: string) {
     const artifacts = this.artifacts.get();
