@@ -8,6 +8,9 @@ import type { BoltShell } from '~/utils/shell';
 import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('ActionRunner');
+const TOOL_TIMEOUT_MS = 60_000;
+const TOOL_MAX_ATTEMPTS = 3;
+const TOOL_RETRY_BASE_DELAY_MS = 250;
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
@@ -65,6 +68,14 @@ class ActionCommandError extends Error {
   }
 }
 
+class ToolTimeoutError extends Error {
+  constructor(actionType: ActionState['type'], timeoutMs: number) {
+    super(`${actionType} action timed out after ${Math.round(timeoutMs / 1000)} seconds`);
+    this.name = 'ToolTimeoutError';
+    Object.setPrototypeOf(this, ToolTimeoutError.prototype);
+  }
+}
+
 export class ActionRunner {
   #runtime: RuntimeAdapter;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
@@ -75,6 +86,7 @@ export class ActionRunner {
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
+  #actionWatchdogs = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     runtime: RuntimeAdapter,
@@ -179,71 +191,62 @@ export class ActionRunner {
     this.#updateAction(actionId, { status: 'running' });
 
     try {
-      switch (action.type) {
-        case 'shell': {
-          await this.#runShellAction(action);
-          break;
-        }
-        case 'file': {
-          await this.#runFileAction(action);
-          break;
-        }
-        case 'supabase': {
-          try {
+      await this.#runActionWithRetry(action, async () => {
+        switch (action.type) {
+          case 'shell': {
+            await this.#runShellAction(action);
+            break;
+          }
+          case 'file': {
+            await this.#runFileAction(action);
+            break;
+          }
+          case 'supabase': {
             await this.handleSupabaseAction(action as SupabaseAction);
-          } catch (error: any) {
-            // Update action status
-            this.#updateAction(actionId, {
-              status: 'failed',
-              error: error instanceof Error ? error.message : 'Supabase action failed',
-            });
+            break;
+          }
+          case 'build': {
+            const buildOutput = await this.#runBuildAction(action);
 
-            // Return early without re-throwing
+            // Store build output for deployment
+            this.buildOutput = buildOutput;
+            break;
+          }
+          case 'start': {
+            // making the start app non blocking
+
+            this.#runStartAction(action)
+              .then(() => this.#updateAction(actionId, { status: 'complete' }))
+              .catch((err: Error) => {
+                if (action.abortSignal.aborted) {
+                  return;
+                }
+
+                this.#updateAction(actionId, { status: 'failed', error: this.#formatActionError(err) });
+                logger.error(`[${action.type}]:Action failed\n\n`, err);
+
+                if (!(err instanceof ActionCommandError)) {
+                  return;
+                }
+
+                this.onAlert?.({
+                  type: 'error',
+                  title: 'Dev Server Failed',
+                  description: err.header,
+                  content: err.output,
+                });
+              });
+
+            /*
+             * adding a delay to avoid any race condition between 2 start actions
+             * i am up for a better approach
+             */
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
             return;
           }
-          break;
         }
-        case 'build': {
-          const buildOutput = await this.#runBuildAction(action);
-
-          // Store build output for deployment
-          this.buildOutput = buildOutput;
-          break;
-        }
-        case 'start': {
-          // making the start app non blocking
-
-          this.#runStartAction(action)
-            .then(() => this.#updateAction(actionId, { status: 'complete' }))
-            .catch((err: Error) => {
-              if (action.abortSignal.aborted) {
-                return;
-              }
-
-              this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
-              logger.error(`[${action.type}]:Action failed\n\n`, err);
-
-              if (!(err instanceof ActionCommandError)) {
-                return;
-              }
-
-              this.onAlert?.({
-                type: 'error',
-                title: 'Dev Server Failed',
-                description: err.header,
-                content: err.output,
-              });
-            });
-
-          /*
-           * adding a delay to avoid any race condition between 2 start actions
-           * i am up for a better approach
-           */
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          return;
-        }
-      }
+      });
 
       this.#updateAction(actionId, {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
@@ -253,7 +256,7 @@ export class ActionRunner {
         return;
       }
 
-      this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
+      this.#updateAction(actionId, { status: 'failed', error: this.#formatActionError(error) });
       logger.error(`[${action.type}]:Action failed\n\n`, error);
 
       if (!(error instanceof ActionCommandError)) {
@@ -270,6 +273,70 @@ export class ActionRunner {
       // re-throw the error to be caught in the promise chain
       throw error;
     }
+  }
+
+  async #runActionWithRetry(action: ActionState, operation: () => Promise<void>) {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= TOOL_MAX_ATTEMPTS; attempt++) {
+      if (action.abortSignal.aborted) {
+        return;
+      }
+
+      try {
+        await this.#withTimeout(action, operation());
+        return;
+      } catch (error) {
+        lastError = error;
+
+        if (action.abortSignal.aborted || error instanceof ActionCommandError) {
+          throw error;
+        }
+
+        if (attempt >= TOOL_MAX_ATTEMPTS) {
+          throw error;
+        }
+
+        const delayMs = TOOL_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        logger.warn(
+          `[${action.type}]:Action attempt ${attempt} failed; retrying in ${delayMs}ms`,
+          error instanceof Error ? error.message : error,
+        );
+        await this.#delay(delayMs);
+      }
+    }
+
+    throw lastError;
+  }
+
+  async #withTimeout<T>(action: ActionState, promise: Promise<T>): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new ToolTimeoutError(action.type, TOOL_TIMEOUT_MS));
+      }, TOOL_TIMEOUT_MS);
+    });
+
+    try {
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  async #delay(ms: number) {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  #formatActionError(error: unknown) {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    return 'Action failed';
   }
 
   async #runShellAction(action: ActionState) {
@@ -351,6 +418,7 @@ export class ActionRunner {
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);
+        throw error;
       }
     }
 
@@ -359,6 +427,7 @@ export class ActionRunner {
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
+      throw error;
     }
   }
 
@@ -382,6 +451,44 @@ export class ActionRunner {
     }
 
     this.actions.setKey(id, merged);
+
+    if (merged.status === 'running') {
+      this.#scheduleActionWatchdog(id);
+    } else {
+      this.#clearActionWatchdog(id);
+    }
+  }
+
+  #scheduleActionWatchdog(actionId: string) {
+    this.#clearActionWatchdog(actionId);
+
+    const timeoutId = setTimeout(() => {
+      const action = this.actions.get()[actionId];
+
+      if (!action || action.status !== 'running') {
+        return;
+      }
+
+      const error = new ToolTimeoutError(action.type, TOOL_TIMEOUT_MS);
+      logger.error(`[${action.type}]:Action timed out`, error);
+      this.#updateAction(actionId, {
+        status: 'failed',
+        error: error.message,
+      });
+    }, TOOL_TIMEOUT_MS);
+
+    this.#actionWatchdogs.set(actionId, timeoutId);
+  }
+
+  #clearActionWatchdog(actionId: string) {
+    const timeoutId = this.#actionWatchdogs.get(actionId);
+
+    if (!timeoutId) {
+      return;
+    }
+
+    clearTimeout(timeoutId);
+    this.#actionWatchdogs.delete(actionId);
   }
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
