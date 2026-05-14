@@ -43,6 +43,7 @@ import { BaseChat } from '~/components/chat/BaseChat';
 import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
+import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
@@ -60,6 +61,7 @@ type ProjectLoaderData = {
     name?: string;
     status?: string;
     runtimeMode?: string;
+    ports?: Array<{ port?: number; ready?: boolean; url?: string }>;
   } | null;
   organization: {
     id: string;
@@ -231,7 +233,6 @@ function IdeProjectTopBar({
   projectApiError?: string;
 }) {
   const loading = useStore(workbenchStore.workspaceLoading);
-  const status = useStore(workbenchStore.workspaceStatus);
   const error = useStore(workbenchStore.workspaceError);
   const previews = useStore(workbenchStore.previews);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
@@ -248,8 +249,18 @@ function IdeProjectTopBar({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const userMenuId = useId();
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
-  const previewRunning = previews.length > 0;
-  const state = loading ? 'building' : error ? 'crashed' : status?.status === 'running' ? 'running' : 'stopped';
+  const isReallyRunning = isWorkspaceReallyRunning(workspace, previews);
+  const previewRunning = isReallyRunning;
+  const workspaceState = workspaceUiState(workspace, { ports: previews, loading, error });
+
+  const state =
+    workspaceState === 'starting'
+      ? 'building'
+      : workspaceState === 'error'
+        ? 'crashed'
+        : workspaceState === 'running'
+          ? 'running'
+          : 'stopped';
 
   const statusLabel =
     state === 'building'

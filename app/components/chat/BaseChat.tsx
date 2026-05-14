@@ -72,6 +72,7 @@ import { useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -334,7 +335,12 @@ const TERMINAL_SCRIPT_TEMPLATES = [
   ['clean-deps', 'Clean Dependencies', 'Remove and reinstall dependencies.', 'rm -rf node_modules && npm install'],
 ] as const;
 type ProjectIdeBackendState = {
-  workspace?: { id?: string; status?: string; runtimeMode?: string } | null;
+  workspace?: {
+    id?: string;
+    status?: string;
+    runtimeMode?: string;
+    ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
+  } | null;
   ports?: Array<{ port?: number; ready?: boolean; type?: string; url?: string }>;
   git?: { branch?: string; ahead?: number; behind?: number; changedFiles?: unknown[]; fileStatuses?: unknown[] };
   files?: Array<{ path: string; sizeBytes?: number }>;
@@ -352,7 +358,8 @@ type IdePaneSplit = {
 type IdePaneNode = IdePaneLeaf | IdePaneSplit;
 
 function runtimeStatusText(input: {
-  workspaceStatus?: { status?: string } | null;
+  workspaceStatus?: { status?: string; ports?: Array<{ port?: number; ready?: boolean }> } | null;
+  ports?: Array<{ port?: number; ready?: boolean }>;
   workspaceLoading: boolean;
   workspaceError?: string;
 }) {
@@ -364,13 +371,15 @@ function runtimeStatusText(input: {
     return 'Runtime: Starting';
   }
 
-  const status = input.workspaceStatus?.status?.toLowerCase();
+  const status = workspaceUiState(input.workspaceStatus, {
+    ports: input.ports,
+  });
 
   if (status === 'running') {
     return 'Runtime: Running';
   }
 
-  if (status === 'booting' || status === 'starting') {
+  if (status === 'starting') {
     return 'Runtime: Starting';
   }
 
@@ -687,7 +696,7 @@ function buildProjectAgentSuggestions(input: {
 
   const lastUserText = [...messages].reverse().find((message) => message.role === 'user')?.content;
   const recentLogs = workspaceLogs.slice(-40).join('\n').toLowerCase();
-  const previewRunning = (runtimeState.ports ?? []).some((port) => port.ready !== false);
+  const previewRunning = isWorkspaceReallyRunning(runtimeState.workspace, runtimeState.ports);
 
   const hasPackageJson = hasProjectFile(
     files,
@@ -1575,7 +1584,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
     const runtimePreviews = useStore(workbenchStore.previews);
-    const workspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
     const workspaceError = useStore(workbenchStore.workspaceError);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
@@ -1787,28 +1795,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return projectBackendState;
       }
 
+      const runtimePorts = runtimePreviews.map((preview) => ({
+        port: preview.port,
+        ready: preview.ready,
+        type: 'open',
+        url: preview.baseUrl,
+      }));
+
       return {
         ...projectBackendState,
-        workspace: {
-          ...(projectBackendState.workspace ?? {}),
-          status: projectBackendState.workspace?.status ?? 'running',
-        },
-        ports: runtimePreviews.map((preview) => ({
-          port: preview.port,
-          ready: preview.ready,
-          type: 'open',
-          url: preview.baseUrl,
-        })),
+        workspace: projectBackendState.workspace
+          ? {
+              ...projectBackendState.workspace,
+              ports: projectBackendState.workspace.ports ?? runtimePorts,
+            }
+          : null,
+        ports: runtimePorts,
       };
     }, [projectBackendState, runtimePreviews]);
+
+    const runtimePorts = projectRuntimeState.ports ?? [];
+    const isRuntimeReallyRunning = isWorkspaceReallyRunning(projectRuntimeState.workspace, runtimePorts);
+
+    const runtimeUiState = workspaceUiState(projectRuntimeState.workspace, {
+      ports: runtimePorts,
+      loading: workspaceLoading,
+      error: workspaceError,
+    });
     const runtimeStatusSummary = useMemo(
       () =>
         runtimeStatusText({
-          workspaceStatus,
+          workspaceStatus: projectRuntimeState.workspace,
+          ports: runtimePorts,
           workspaceLoading,
           workspaceError,
         }),
-      [workspaceError, workspaceLoading, workspaceStatus],
+      [projectRuntimeState.workspace, runtimePorts, workspaceError, workspaceLoading],
     );
     const runtimePortSummary = useMemo(
       () =>
@@ -1840,8 +1862,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return 'Starting';
       }
 
-      return workspaceStatus?.status ?? 'Not started';
-    }, [workspaceError, workspaceLoading, workspaceStatus]);
+      if (isRuntimeReallyRunning) {
+        return 'Running';
+      }
+
+      const status = projectRuntimeState.workspace?.status?.toLowerCase();
+
+      if (status === 'running' || status === 'booting' || status === 'starting') {
+        return 'Starting';
+      }
+
+      return projectRuntimeState.workspace?.status ?? 'Not started';
+    }, [isRuntimeReallyRunning, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
     const workspaceStatusTitle = useMemo(
       () =>
         [
@@ -4295,16 +4327,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         label: 'Terminal',
         icon: 'i-ph:terminal-window',
         active: terminalBottomOpen && bottomTerminalView === 'terminal',
-        badge:
-          workspaceStatus?.status?.toLowerCase() === 'running' || runtimePreviews.length > 0
-            ? Math.max(1, runtimePreviews.length)
-            : undefined,
-        badgeLabel:
-          workspaceStatus?.status?.toLowerCase() === 'running' || runtimePreviews.length > 0
-            ? runtimePreviews.length > 0
-              ? `${runtimePreviews.length} active preview port${runtimePreviews.length === 1 ? '' : 's'}`
-              : 'workspace runtime is running'
-            : undefined,
+        badge: isRuntimeReallyRunning ? runtimePorts.length : undefined,
+        badgeLabel: isRuntimeReallyRunning
+          ? `${runtimePorts.length} active preview port${runtimePorts.length === 1 ? '' : 's'}`
+          : undefined,
         badgeTone: 'success',
         title: 'Open terminal',
         action: () => openBottomTerminal('terminal'),
@@ -4314,14 +4340,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         label: 'Preview',
         icon: 'i-ph:browser',
         active: activeWorkspacePanel === 'preview',
-        badge: runtimePreviews.length || undefined,
-        badgeLabel:
-          runtimePreviews.length > 0
-            ? `${runtimePreviews.length} active preview port${runtimePreviews.length === 1 ? '' : 's'}`
-            : undefined,
-        badgeTone: runtimePreviews.length > 0 ? 'success' : 'neutral',
-        title: runtimePreviews.length
-          ? `${runtimePreviews.length} preview port${runtimePreviews.length === 1 ? '' : 's'}`
+        badge: isRuntimeReallyRunning ? runtimePorts.length : undefined,
+        badgeLabel: isRuntimeReallyRunning
+          ? `${runtimePorts.length} active preview port${runtimePorts.length === 1 ? '' : 's'}`
+          : undefined,
+        badgeTone: isRuntimeReallyRunning ? 'success' : 'neutral',
+        title: isRuntimeReallyRunning
+          ? `${runtimePorts.length} preview port${runtimePorts.length === 1 ? '' : 's'}`
           : 'Open preview',
         action: () => openIdeTool('preview'),
       },
@@ -4710,6 +4735,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <ProjectBottomTerminal
                       projectId={projectId}
                       active={bottomTerminalView}
+                      runtimeWorkspace={projectRuntimeState.workspace}
                       initialIdePanels={initialIdePanels}
                       onActiveChange={setBottomTerminalView}
                       onClose={() => setTerminalBottomOpen(false)}
@@ -5114,13 +5140,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
-                  data-state={
-                    workspaceError
-                      ? 'error'
-                      : workspaceLoading
-                        ? 'starting'
-                        : (workspaceStatus?.status?.toLowerCase() ?? 'stopped')
-                  }
+                  data-state={workspaceError ? 'error' : workspaceLoading ? 'starting' : runtimeUiState}
                   aria-hidden
                 />
                 <span className="bolt-project-statusbar-label">Workspace</span>
@@ -5163,7 +5183,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ? 'Crashed runtime'
                     : workspaceLoading
                       ? 'Building runtime'
-                      : workspaceStatus?.status?.toLowerCase() === 'running'
+                      : isRuntimeReallyRunning
                         ? `Running on ${runtimePortSummary}`
                         : 'Stopped runtime'
                 }
@@ -5180,13 +5200,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
-                  data-state={
-                    workspaceError
-                      ? 'error'
-                      : workspaceLoading
-                        ? 'starting'
-                        : (workspaceStatus?.status?.toLowerCase() ?? 'stopped')
-                  }
+                  data-state={workspaceError ? 'error' : workspaceLoading ? 'starting' : runtimeUiState}
                   aria-hidden
                 />
                 <span className="bolt-project-statusbar-label">Preview</span>
@@ -5613,21 +5627,28 @@ function ProjectIdeServicePanel({
 function ProjectBottomTerminal({
   projectId,
   active,
+  runtimeWorkspace,
   initialIdePanels,
   onActiveChange,
   onClose,
 }: {
   projectId?: string;
   active: ProjectBottomTerminalView;
+  runtimeWorkspace?: ProjectIdeBackendState['workspace'];
   initialIdePanels?: Record<string, any>;
   onActiveChange: (view: ProjectBottomTerminalView) => void;
   onClose: () => void;
 }) {
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
+  const runtimePreviews = useStore(workbenchStore.previews);
   const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
   const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
-  const workspaceLabel = workspaceStatus ? `${workspaceStatus.status} workspace` : 'No backend workspace';
+  const runtimeUiState = workspaceUiState(runtimeWorkspace, { ports: runtimePreviews });
+
+  const workspaceLabel = runtimeWorkspace
+    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : runtimeWorkspace.status} workspace`
+    : 'No backend workspace';
 
   const terminalTabs = [
     ['terminal', 'Terminal', 'i-ph:terminal-window'],
@@ -5663,7 +5684,10 @@ function ProjectBottomTerminal({
           ))}
         </div>
         <div className="bolt-project-bottom-terminal-meta">
-          <span className="bolt-project-bottom-terminal-status" data-state={workspaceStatus?.status ?? 'offline'}>
+          <span
+            className="bolt-project-bottom-terminal-status"
+            data-state={runtimeWorkspace ? runtimeUiState : 'offline'}
+          >
             <span aria-hidden />
             {workspaceLabel}
           </span>
