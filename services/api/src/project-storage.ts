@@ -157,6 +157,10 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   const files: ProjectFile[] = [];
 
   for (const entry of entries) {
+    if (entry.isDirectory() && entry.name === '.git') {
+      continue;
+    }
+
     const child = join(current, entry.name);
 
     if (entry.isDirectory()) {

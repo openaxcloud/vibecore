@@ -2107,6 +2107,20 @@ function starterFiles(input: {
   ];
 }
 
+async function commitInitialScaffold(gitProvider: GitProvider, projectId: string) {
+  const status = await gitProvider.status(projectId);
+
+  if (status.changedFiles.length === 0) {
+    return undefined;
+  }
+
+  return gitProvider.commit({
+    projectId,
+    message: 'chore: initial scaffold',
+    files: [],
+  });
+}
+
 function vitePackageJson(name: string) {
   return `${JSON.stringify(
     {
@@ -6012,6 +6026,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceType: 'blank',
     });
     await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -6045,6 +6060,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       project.id,
       starterFiles({ sourceType: 'template', name: project.name, templateName: body.templateName }),
     );
+    await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -6085,6 +6101,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         model: body.model,
       }),
     );
+    await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -6152,6 +6169,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceType: 'zip',
     });
     const files = await projectStorage.importZip(project.id, body.zipBase64);
+    await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
