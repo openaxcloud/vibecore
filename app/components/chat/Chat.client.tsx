@@ -498,14 +498,44 @@ export const ChatImpl = memo(
       }
     }, [input, textareaRef]);
 
+    /*
+     * Phase 0 #6 — framer-motion's `animate(selector, …)` throws when the
+     * selector matches zero elements (v11+ behaviour). The intro/examples
+     * DOM is conditionally rendered, so a navigation that cleaned it up
+     * before this runs would blow up the chat boot. Guard each call and
+     * swallow framer's empty-target error without failing the boot.
+     */
+    const animateIfPresent = (
+      selector: string,
+      keyframes: Parameters<typeof animate>[1],
+      options?: Parameters<typeof animate>[2],
+    ): Promise<void> => {
+      if (typeof document === 'undefined' || !document.querySelector(selector)) {
+        return Promise.resolve();
+      }
+
+      try {
+        return Promise.resolve(animate(selector, keyframes, options)).then(
+          () => undefined,
+          (error) => {
+            logger.warn('chat boot animation skipped', { selector, error });
+          },
+        );
+      } catch (error) {
+        logger.warn('chat boot animation threw', { selector, error });
+
+        return Promise.resolve();
+      }
+    };
+
     const runAnimation = async () => {
       if (chatStarted) {
         return;
       }
 
       await Promise.all([
-        animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-        animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
+        animateIfPresent('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
+        animateIfPresent('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
       ]);
 
       chatStore.setKey('started', true);
