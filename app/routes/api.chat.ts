@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createDataStream, generateId } from 'ai';
+import { createDataStream, formatDataStreamPart, generateId } from 'ai';
 import {
   agentMemoryAnnotation,
   persistAgentMemoryCandidate,
@@ -29,6 +29,11 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { WORK_DIR } from '~/utils/constants';
+import {
+  createPortfolioTemplateArtifact,
+  createPortfolioTemplateStreamChunks,
+  shouldUsePortfolioTemplate,
+} from '~/utils/portfolio-template';
 
 export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
@@ -124,6 +129,80 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const dataStream = createDataStream({
       async execute(dataStream) {
         streamRecovery.startMonitoring();
+
+        if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
+          const streamChunks = createPortfolioTemplateStreamChunks(messages);
+          const assistantText = createPortfolioTemplateArtifact(messages);
+
+          const zeroUsage = {
+            completionTokens: 0,
+            promptTokens: 0,
+            totalTokens: 0,
+          };
+
+          dataStream.writeData({
+            type: 'progress',
+            label: 'portfolio-template',
+            status: 'complete',
+            order: progressCounter++,
+            message: 'Loaded cached portfolio template',
+          } satisfies ProgressAnnotation);
+
+          dataStream.writeData({
+            type: 'progress',
+            label: 'response',
+            status: 'in-progress',
+            order: progressCounter++,
+            message: 'Streaming cached portfolio files',
+          } satisfies ProgressAnnotation);
+
+          for (const chunk of streamChunks) {
+            dataStream.write(formatDataStreamPart('text', chunk));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+
+          streamRecovery.stop();
+          dataStream.writeMessageAnnotation({
+            type: 'usage',
+            value: zeroUsage,
+          });
+          dataStream.writeData({
+            type: 'progress',
+            label: 'response',
+            status: 'complete',
+            order: progressCounter++,
+            message: 'Response Generated',
+          } satisfies ProgressAnnotation);
+          dataStream.write(
+            formatDataStreamPart('finish_step', {
+              finishReason: 'stop',
+              usage: {
+                completionTokens: zeroUsage.completionTokens,
+                promptTokens: zeroUsage.promptTokens,
+              },
+              isContinued: false,
+            }),
+          );
+          dataStream.write(
+            formatDataStreamPart('finish_message', {
+              finishReason: 'stop',
+              usage: {
+                completionTokens: zeroUsage.completionTokens,
+                promptTokens: zeroUsage.promptTokens,
+              },
+            }),
+          );
+
+          await persistAgentMemoryCandidate(request, {
+            messages,
+            assistantText,
+            projectId,
+          }).catch((error) => {
+            logger.warn('Portfolio template memory persistence skipped', error);
+          });
+
+          return;
+        }
 
         const filePaths = getFilePaths(files || {});
 
