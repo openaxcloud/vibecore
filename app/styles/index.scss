@@ -2372,6 +2372,52 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
+.bolt-project-panel-group {
+  position: fixed;
+  top: 36px;
+  right: 0;
+  bottom: 0;
+  left: var(--project-ide-rail-width);
+  z-index: 35;
+  min-width: 0;
+  min-height: 0;
+  background: var(--vc-ide-bg-app);
+}
+
+.bolt-project-panel-slot {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bolt-project-panel-slot-agent {
+  min-width: var(--project-agent-min-width);
+}
+
+.bolt-project-panel-slot-right {
+  min-width: 180px;
+}
+
+.bolt-project-panel-resize-handle {
+  width: 4px;
+  flex: 0 0 4px;
+  cursor: col-resize;
+  background: var(--vc-ide-border-subtle);
+  transition:
+    background 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+
+.bolt-project-panel-resize-handle:hover,
+.bolt-project-panel-resize-handle[data-resize-handle-active],
+.bolt-project-panel-resize-handle:focus-visible {
+  outline: 0;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%);
+}
+
 .bolt-project-agent-panel {
   --chat-max-width: min(100%, 34rem);
   width: 100%;
@@ -3298,13 +3344,10 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-agent-shell {
-  position: fixed;
-  top: 36px;
-  left: var(--project-ide-rail-width);
-  z-index: 35;
-  width: var(--project-agent-width);
+  position: relative;
+  width: 100%;
   min-width: var(--project-agent-min-width);
-  height: calc(100vh - 36px);
+  height: 100%;
   border-right: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
 }
@@ -3450,12 +3493,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-workspace-shell {
-  position: absolute;
-  top: 36px;
-  right: var(--project-right-panel-width, 0px);
-  left: calc(var(--project-agent-width) + var(--project-ide-rail-width));
-  width: auto;
-  height: calc(100vh - 36px);
+  position: relative;
+  width: 100%;
+  height: 100%;
   padding-bottom: 23px;
   box-sizing: border-box;
   display: flex;
@@ -3470,37 +3510,17 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-right-panel-shell {
-  position: fixed;
-  top: 36px;
-  right: 0;
-  z-index: 38;
+  position: relative;
   display: flex;
-  width: var(--project-right-panel-width, 240px);
-  min-width: 180px;
-  max-width: 300px;
-  height: calc(100vh - 36px);
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
   box-sizing: border-box;
   flex-direction: column;
   border-left: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
-  box-shadow: -12px 0 32px rgb(0 4 20 / 0.35);
-}
-
-.bolt-project-right-resize-handle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -2px;
-  z-index: 2;
-  width: 4px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 150ms ease-out;
-}
-
-.bolt-project-right-resize-handle:hover,
-.bolt-project-right-resize-handle:active {
-  background: var(--vc-ide-accent-action);
+  box-shadow: none;
 }
 
 .bolt-project-right-panel-content {
@@ -3528,23 +3548,6 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-right-files-header > span:first-child {
   color: var(--vc-ide-accent-warning);
   font-size: 14px;
-}
-
-.bolt-project-agent-resize-handle {
-  position: absolute;
-  top: 0;
-  right: -2px;
-  bottom: 0;
-  z-index: 4;
-  width: 4px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 150ms ease-out;
-}
-
-.bolt-project-agent-resize-handle:hover,
-.bolt-project-agent-resize-handle:active {
-  background: var(--vc-ide-accent-action);
 }
 
 .bolt-project-agent-header {

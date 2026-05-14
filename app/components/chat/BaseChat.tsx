@@ -9,7 +9,7 @@ import { EditorAdapter } from '@vibecore/editor';
 import type { JSONValue, Message } from 'ai';
 import Cookies from 'js-cookie';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanelGroup } from 'react-resizable-panels';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 import { getApiKeysFromCookies } from './APIKeyManager';
@@ -2863,29 +2863,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       workbenchStore.saveCurrentDocument().catch(() => undefined);
     }, []);
 
-    const startAgentResize = useCallback(
-      (event: React.MouseEvent<HTMLDivElement>) => {
-        event.preventDefault();
-
-        const startX = event.clientX;
-        const startWidth = agentWidth;
-
-        const onMove = (moveEvent: MouseEvent) => {
-          const nextWidth = clampProjectAgentPanelWidth(startWidth + moveEvent.clientX - startX);
-          setAgentWidth(nextWidth);
-        };
-
-        const onUp = () => {
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('mouseup', onUp);
-        };
-
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-      },
-      [agentWidth],
-    );
-
     const startTerminalResize = useCallback(
       (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
@@ -2907,32 +2884,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.addEventListener('mouseup', onUp);
       },
       [terminalBottomHeight],
-    );
-
-    const startRightPanelResize = useCallback(
-      (event: React.MouseEvent<HTMLDivElement>) => {
-        event.preventDefault();
-
-        const startX = event.clientX;
-        const startWidth = rightPanelWidth;
-
-        const onMove = (moveEvent: MouseEvent) => {
-          const nextWidth = Math.min(
-            MAX_RIGHT_PANEL_WIDTH,
-            Math.max(MIN_RIGHT_PANEL_WIDTH, startWidth + startX - moveEvent.clientX),
-          );
-          setRightPanelWidth(nextWidth);
-        };
-
-        const onUp = () => {
-          window.removeEventListener('mousemove', onMove);
-          window.removeEventListener('mouseup', onUp);
-        };
-
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-      },
-      [rightPanelWidth],
     );
 
     useEffect(() => {
@@ -4465,6 +4416,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     };
 
+    const panelPercentToPixels = useCallback((size: number) => {
+      const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
+      const availableWidth = Math.max(320, viewportWidth - 48);
+
+      return Math.round((availableWidth * size) / 100);
+    }, []);
+
     const projectIdePanels = (
       <div
         className="bolt-project-ide-panels"
@@ -4476,240 +4434,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           } as React.CSSProperties
         }
       >
-        <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
-          <div className="bolt-project-agent-header">
-            <div className="bolt-project-agent-avatar" aria-hidden>
-              <span className="i-ph:sparkle" />
-            </div>
-            <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
-              {description?.trim() || 'New chat'}
-            </span>
-            {isAgentRunning && (
-              <button
-                type="button"
-                className="bolt-project-agent-stop-button"
-                aria-label={stopAgentLabel}
-                title={stopAgentLabel}
-                disabled={!handleStop}
-                onClick={() => handleStop?.()}
-              >
-                <span className="i-ph:stop-circle-bold" aria-hidden />
-                <span>{stopAgentLabel}</span>
-              </button>
-            )}
-            <div className="ml-auto flex items-center gap-1">
-              <HeaderTip label="Switch light / dark theme">
-                <ThemeSwitch size="lg" title="" className="bolt-project-ide-icon-button" iconClassName="text-[14px]" />
-              </HeaderTip>
-              <HeaderTip label="Conversation history">
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="Conversation history"
-                  onClick={() => setConversationHistoryOpen((value) => !value)}
-                >
-                  <span className="i-ph:clock" aria-hidden />
-                </button>
-              </HeaderTip>
-              <HeaderTip label="Start a new chat">
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="New chat"
-                  onClick={resetChat}
-                >
-                  <span className="i-ph:plus" aria-hidden />
-                </button>
-              </HeaderTip>
-              <HeaderTip label="Agent settings">
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="Agent settings"
-                  onClick={() => openWorkspacePanel('settings')}
-                >
-                  <span className="i-ph:sliders-horizontal" aria-hidden />
-                </button>
-              </HeaderTip>
-            </div>
-          </div>
-          {(() => {
-            const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
-
-            const activeMode =
-              PROJECT_AGENT_PUBLIC_MODES.find((mode) => mode.id === activePublicMode) ?? PROJECT_AGENT_PUBLIC_MODES[0];
-
-            return (
-              <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
-                <div
-                  className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
-                  role="tablist"
-                  aria-label="Agent mode"
-                >
-                  {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
-                    const isActive = activePublicMode === mode.id;
-
-                    return (
-                      <HeaderTip key={mode.id} label={mode.description}>
-                        <button
-                          type="button"
-                          role="tab"
-                          aria-pressed={isActive}
-                          aria-selected={isActive}
-                          onClick={() => {
-                            const execution = PROJECT_AGENT_EXECUTION_MODES.find(
-                              (entry) => entry.id === mode.execution,
-                            );
-                            setProjectAgentExecutionMode(mode.execution);
-                            setChatMode?.(execution?.chatMode ?? 'build');
-                          }}
-                        >
-                          {mode.label}
-                        </button>
-                      </HeaderTip>
-                    );
-                  })}
-                </div>
-                <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
-                  <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
-                    <label className="bolt-project-agent-plan-first" data-active={projectPlanFirst ? 'true' : 'false'}>
-                      <input
-                        type="checkbox"
-                        checked={projectPlanFirst}
-                        onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
-                        aria-label="Plan first"
-                      />
-                      <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                        <span className="bolt-project-agent-plan-first-thumb" />
-                      </span>
-                      <span className="bolt-project-agent-plan-first-label">Plan first</span>
-                    </label>
-                  </HeaderTip>
-                  <HeaderTip label="When on, the agent applies safe file edits silently and offers Undo. Dependency manifests, config and .env files still surface for review.">
-                    <label className="bolt-project-agent-plan-first" data-active={projectAutoApply ? 'true' : 'false'}>
-                      <input
-                        type="checkbox"
-                        checked={projectAutoApply}
-                        onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
-                        aria-label="Auto-apply"
-                      />
-                      <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                        <span className="bolt-project-agent-plan-first-thumb" />
-                      </span>
-                      <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
-                    </label>
-                  </HeaderTip>
-                </div>
-                <p className="bolt-project-agent-mode-description">
-                  {activeMode.description}
-                  {projectPlanFirst ? ' Plan first is on — the agent will draft a plan and wait for approval.' : ''}
-                  {projectAutoApply
-                    ? ' Auto-apply is on — safe file edits land silently with Undo. Risky files still need review.'
-                    : ''}
-                </p>
-              </div>
-            );
-          })()}
-          {conversationHistoryOpen && (
-            <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
-              <div className="bolt-project-conversation-history-head">
-                <div>
-                  <strong>Agent history</strong>
-                  <span>
-                    {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
-                    checkpoints
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="bolt-project-ide-icon-button"
-                  aria-label="Close history"
-                  onClick={() => setConversationHistoryOpen(false)}
-                >
-                  <span className="i-ph:x" aria-hidden />
-                </button>
-              </div>
-              <label className="bolt-project-conversation-history-search">
-                <span className="i-ph:magnifying-glass" aria-hidden />
-                <input
-                  type="search"
-                  value={conversationHistoryQuery}
-                  placeholder="Search checkpoints, commits, prompts, or agent replies"
-                  aria-label="Search agent checkpoints"
-                  onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
-                />
-                {conversationHistoryQuery && (
-                  <button
-                    type="button"
-                    aria-label="Clear history search"
-                    onClick={() => setConversationHistoryQuery('')}
-                  >
-                    <span className="i-ph:x" aria-hidden />
-                  </button>
-                )}
-              </label>
-              <div className="bolt-project-conversation-history-list">
-                {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                  const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
-
-                  return (
-                    <article key={checkpoint.id} className="bolt-project-history-checkpoint">
-                      <div className="bolt-project-history-checkpoint-main">
-                        <strong>{checkpoint.title}</strong>
-                        <span>{checkpoint.description}</span>
-                        <small>
-                          {checkpoint.ageLabel}
-                          {checkpoint.commitSha ? ` • ${checkpoint.commitSha}` : ''}
-                        </small>
-                      </div>
-                      <div className="bolt-project-history-checkpoint-actions">
-                        <button
-                          type="button"
-                          aria-label={`View chat at checkpoint ${checkpoint.title}`}
-                          onClick={() => viewProjectCheckpoint(checkpoint)}
-                        >
-                          View Chat
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!rollbackAvailable}
-                          aria-label={`Rollback to checkpoint ${checkpoint.title}`}
-                          onClick={() => {
-                            setRollbackDatabase(false);
-                            setRollbackTarget(checkpoint);
-                          }}
-                        >
-                          Rollback here
-                        </button>
-                        <button
-                          type="button"
-                          aria-label={`Review diff for checkpoint ${checkpoint.title}`}
-                          onClick={() => openCheckpointChanges(checkpoint)}
-                        >
-                          Review diff
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
-                {!projectConversationCheckpoints.length && (
-                  <div className="bolt-project-history-empty">No project agent history yet.</div>
-                )}
-                {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
-                  <div className="bolt-project-history-empty">No checkpoints match this search.</div>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
-          <div
-            className="bolt-project-agent-resize-handle"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize AI agent panel"
-            onMouseDown={startAgentResize}
-          />
-        </section>
         <aside className="bolt-project-ide-rail" aria-label="IDE panels">
           <div className="bolt-project-ide-rail-primary">{ideRailPrimaryItems.map(renderIdeRailPrimaryItem)}</div>
           <div className="bolt-project-ide-rail-more">
@@ -4732,98 +4456,388 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </div>
         </aside>
-        <div className="bolt-project-workspace-shell">
-          <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-            <div className="bolt-project-main-stack">
-              <div
-                className="bolt-project-main-panes"
-                style={
-                  {
-                    '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
-                  } as React.CSSProperties
-                }
-              >
-                {renderPaneNode(paneTree)}
-              </div>
-              {terminalBottomOpen && (
-                <div
-                  className="bolt-project-bottom-terminal-shell"
-                  style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
-                >
-                  <div
-                    className="bolt-project-terminal-resize-handle"
-                    role="separator"
-                    aria-orientation="horizontal"
-                    aria-label="Resize pinned terminal"
-                    onMouseDown={startTerminalResize}
-                  />
-                  <div className="bolt-project-bottom-terminal-frame">
-                    <ProjectBottomTerminal
-                      projectId={projectId}
-                      active={bottomTerminalView}
-                      runtimeWorkspace={projectRuntimeState.workspace}
-                      initialIdePanels={initialIdePanels}
-                      onActiveChange={setBottomTerminalView}
-                      onClose={() => setTerminalBottomOpen(false)}
+        <PanelGroup direction="horizontal" className="bolt-project-panel-group">
+          <Panel
+            id="project-agent-panel"
+            order={1}
+            defaultSize={25}
+            minSize={20}
+            maxSize={40}
+            className="bolt-project-panel-slot bolt-project-panel-slot-agent"
+            onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
+          >
+            <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
+              <div className="bolt-project-agent-header">
+                <div className="bolt-project-agent-avatar" aria-hidden>
+                  <span className="i-ph:sparkle" />
+                </div>
+                <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
+                  {description?.trim() || 'New chat'}
+                </span>
+                {isAgentRunning && (
+                  <button
+                    type="button"
+                    className="bolt-project-agent-stop-button"
+                    aria-label={stopAgentLabel}
+                    title={stopAgentLabel}
+                    disabled={!handleStop}
+                    onClick={() => handleStop?.()}
+                  >
+                    <span className="i-ph:stop-circle-bold" aria-hidden />
+                    <span>{stopAgentLabel}</span>
+                  </button>
+                )}
+                <div className="ml-auto flex items-center gap-1">
+                  <HeaderTip label="Switch light / dark theme">
+                    <ThemeSwitch
+                      size="lg"
+                      title=""
+                      className="bolt-project-ide-icon-button"
+                      iconClassName="text-[14px]"
                     />
+                  </HeaderTip>
+                  <HeaderTip label="Conversation history">
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button"
+                      aria-label="Conversation history"
+                      onClick={() => setConversationHistoryOpen((value) => !value)}
+                    >
+                      <span className="i-ph:clock" aria-hidden />
+                    </button>
+                  </HeaderTip>
+                  <HeaderTip label="Start a new chat">
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button"
+                      aria-label="New chat"
+                      onClick={resetChat}
+                    >
+                      <span className="i-ph:plus" aria-hidden />
+                    </button>
+                  </HeaderTip>
+                  <HeaderTip label="Agent settings">
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button"
+                      aria-label="Agent settings"
+                      onClick={() => openWorkspacePanel('settings')}
+                    >
+                      <span className="i-ph:sliders-horizontal" aria-hidden />
+                    </button>
+                  </HeaderTip>
+                </div>
+              </div>
+              {(() => {
+                const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
+
+                const activeMode =
+                  PROJECT_AGENT_PUBLIC_MODES.find((mode) => mode.id === activePublicMode) ??
+                  PROJECT_AGENT_PUBLIC_MODES[0];
+
+                return (
+                  <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
+                    <div
+                      className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
+                      role="tablist"
+                      aria-label="Agent mode"
+                    >
+                      {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
+                        const isActive = activePublicMode === mode.id;
+
+                        return (
+                          <HeaderTip key={mode.id} label={mode.description}>
+                            <button
+                              type="button"
+                              role="tab"
+                              aria-pressed={isActive}
+                              aria-selected={isActive}
+                              onClick={() => {
+                                const execution = PROJECT_AGENT_EXECUTION_MODES.find(
+                                  (entry) => entry.id === mode.execution,
+                                );
+                                setProjectAgentExecutionMode(mode.execution);
+                                setChatMode?.(execution?.chatMode ?? 'build');
+                              }}
+                            >
+                              {mode.label}
+                            </button>
+                          </HeaderTip>
+                        );
+                      })}
+                    </div>
+                    <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
+                      <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
+                        <label
+                          className="bolt-project-agent-plan-first"
+                          data-active={projectPlanFirst ? 'true' : 'false'}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={projectPlanFirst}
+                            onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
+                            aria-label="Plan first"
+                          />
+                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                            <span className="bolt-project-agent-plan-first-thumb" />
+                          </span>
+                          <span className="bolt-project-agent-plan-first-label">Plan first</span>
+                        </label>
+                      </HeaderTip>
+                      <HeaderTip label="When on, the agent applies safe file edits silently and offers Undo. Dependency manifests, config and .env files still surface for review.">
+                        <label
+                          className="bolt-project-agent-plan-first"
+                          data-active={projectAutoApply ? 'true' : 'false'}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={projectAutoApply}
+                            onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
+                            aria-label="Auto-apply"
+                          />
+                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                            <span className="bolt-project-agent-plan-first-thumb" />
+                          </span>
+                          <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
+                        </label>
+                      </HeaderTip>
+                    </div>
+                    <p className="bolt-project-agent-mode-description">
+                      {activeMode.description}
+                      {projectPlanFirst ? ' Plan first is on — the agent will draft a plan and wait for approval.' : ''}
+                      {projectAutoApply
+                        ? ' Auto-apply is on — safe file edits land silently with Undo. Risky files still need review.'
+                        : ''}
+                    </p>
+                  </div>
+                );
+              })()}
+              {conversationHistoryOpen && (
+                <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
+                  <div className="bolt-project-conversation-history-head">
+                    <div>
+                      <strong>Agent history</strong>
+                      <span>
+                        {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
+                        checkpoints
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button"
+                      aria-label="Close history"
+                      onClick={() => setConversationHistoryOpen(false)}
+                    >
+                      <span className="i-ph:x" aria-hidden />
+                    </button>
+                  </div>
+                  <label className="bolt-project-conversation-history-search">
+                    <span className="i-ph:magnifying-glass" aria-hidden />
+                    <input
+                      type="search"
+                      value={conversationHistoryQuery}
+                      placeholder="Search checkpoints, commits, prompts, or agent replies"
+                      aria-label="Search agent checkpoints"
+                      onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
+                    />
+                    {conversationHistoryQuery && (
+                      <button
+                        type="button"
+                        aria-label="Clear history search"
+                        onClick={() => setConversationHistoryQuery('')}
+                      >
+                        <span className="i-ph:x" aria-hidden />
+                      </button>
+                    )}
+                  </label>
+                  <div className="bolt-project-conversation-history-list">
+                    {filteredProjectConversationCheckpoints.map((checkpoint) => {
+                      const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+
+                      return (
+                        <article key={checkpoint.id} className="bolt-project-history-checkpoint">
+                          <div className="bolt-project-history-checkpoint-main">
+                            <strong>{checkpoint.title}</strong>
+                            <span>{checkpoint.description}</span>
+                            <small>
+                              {checkpoint.ageLabel}
+                              {checkpoint.commitSha ? ` • ${checkpoint.commitSha}` : ''}
+                            </small>
+                          </div>
+                          <div className="bolt-project-history-checkpoint-actions">
+                            <button
+                              type="button"
+                              aria-label={`View chat at checkpoint ${checkpoint.title}`}
+                              onClick={() => viewProjectCheckpoint(checkpoint)}
+                            >
+                              View Chat
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!rollbackAvailable}
+                              aria-label={`Rollback to checkpoint ${checkpoint.title}`}
+                              onClick={() => {
+                                setRollbackDatabase(false);
+                                setRollbackTarget(checkpoint);
+                              }}
+                            >
+                              Rollback here
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Review diff for checkpoint ${checkpoint.title}`}
+                              onClick={() => openCheckpointChanges(checkpoint)}
+                            >
+                              Review diff
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                    {!projectConversationCheckpoints.length && (
+                      <div className="bolt-project-history-empty">No project agent history yet.</div>
+                    )}
+                    {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
+                      <div className="bolt-project-history-empty">No checkpoints match this search.</div>
+                    )}
                   </div>
                 </div>
               )}
-            </div>
-          </section>
-        </div>
-        {rightPanelOpen && (
-          <aside
-            className="bolt-project-right-panel-shell"
-            aria-label={rightPanelMode === 'files' ? 'Project files panel' : 'Preview logs panel'}
-            style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
+              <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+            </section>
+          </Panel>
+          <PanelResizeHandle
+            className="bolt-project-panel-resize-handle"
+            aria-label="Resize AI agent panel"
+            title="Resize AI agent panel"
+          />
+          <Panel
+            id="project-workspace-panel"
+            order={2}
+            defaultSize={rightPanelOpen ? 58 : 75}
+            minSize={35}
+            className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >
-            <div
-              className="bolt-project-right-resize-handle"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize right panel"
-              onMouseDown={startRightPanelResize}
-            />
-            <div className="bolt-project-right-files-header">
-              <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
-              <span>{rightPanelMode === 'files' ? 'Files' : 'Preview logs'}</span>
-              <button
-                type="button"
-                className="bolt-project-ide-icon-button ml-auto"
-                aria-label="Close right panel"
-                onClick={() => {
+            <div className="bolt-project-workspace-shell">
+              <section className="bolt-project-ide-panel" aria-label="Editor and preview">
+                <div className="bolt-project-main-stack">
+                  <div
+                    className="bolt-project-main-panes"
+                    style={
+                      {
+                        '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
+                      } as React.CSSProperties
+                    }
+                  >
+                    {renderPaneNode(paneTree)}
+                  </div>
+                  {terminalBottomOpen && (
+                    <div
+                      className="bolt-project-bottom-terminal-shell"
+                      style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                    >
+                      <div
+                        className="bolt-project-terminal-resize-handle"
+                        role="separator"
+                        aria-orientation="horizontal"
+                        aria-label="Resize pinned terminal"
+                        onMouseDown={startTerminalResize}
+                      />
+                      <div className="bolt-project-bottom-terminal-frame">
+                        <ProjectBottomTerminal
+                          projectId={projectId}
+                          active={bottomTerminalView}
+                          runtimeWorkspace={projectRuntimeState.workspace}
+                          initialIdePanels={initialIdePanels}
+                          onActiveChange={setBottomTerminalView}
+                          onClose={() => setTerminalBottomOpen(false)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          </Panel>
+          {rightPanelOpen && (
+            <>
+              <PanelResizeHandle
+                className="bolt-project-panel-resize-handle"
+                aria-label="Resize files panel"
+                title="Resize files panel"
+              />
+              <Panel
+                id="project-right-panel"
+                order={3}
+                defaultSize={17}
+                minSize={12}
+                maxSize={28}
+                collapsible
+                collapsedSize={0}
+                className="bolt-project-panel-slot bolt-project-panel-slot-right"
+                onCollapse={() => {
                   setRightPanelOpen(false);
                   setSearchParams({});
                 }}
+                onResize={(size) => {
+                  const nextWidth = Math.min(
+                    MAX_RIGHT_PANEL_WIDTH,
+                    Math.max(MIN_RIGHT_PANEL_WIDTH, panelPercentToPixels(size)),
+                  );
+                  setRightPanelWidth(nextWidth);
+                }}
               >
-                <span className="i-ph:x" aria-hidden />
-              </button>
-            </div>
-            <div className="bolt-project-right-panel-content">
-              {rightPanelMode === 'files' ? (
-                <ProjectFilesTool
-                  files={projectFiles}
-                  selectedFile={selectedFile}
-                  unsavedFiles={unsavedFiles}
-                  openEditors={flattenTabs(paneTree)
-                    .filter((tab) => tab.filePath)
-                    .map((tab) => ({
-                      id: tab.id,
-                      filePath: tab.filePath,
-                      dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
-                      pinned: Boolean(tab.pinned),
-                    }))}
-                  changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
-                  onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                  onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                />
-              ) : (
-                <ProjectIdeServicePanel projectId={projectId} panel="logs" initialPayload={initialIdePanels?.logs} />
-              )}
-            </div>
-          </aside>
-        )}
+                <aside
+                  className="bolt-project-right-panel-shell"
+                  aria-label={rightPanelMode === 'files' ? 'Project files panel' : 'Preview logs panel'}
+                  style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
+                >
+                  <div className="bolt-project-right-files-header">
+                    <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
+                    <span>{rightPanelMode === 'files' ? 'Files' : 'Preview logs'}</span>
+                    <button
+                      type="button"
+                      className="bolt-project-ide-icon-button ml-auto"
+                      aria-label="Close right panel"
+                      onClick={() => {
+                        setRightPanelOpen(false);
+                        setSearchParams({});
+                      }}
+                    >
+                      <span className="i-ph:x" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="bolt-project-right-panel-content">
+                    {rightPanelMode === 'files' ? (
+                      <ProjectFilesTool
+                        files={projectFiles}
+                        selectedFile={selectedFile}
+                        unsavedFiles={unsavedFiles}
+                        openEditors={flattenTabs(paneTree)
+                          .filter((tab) => tab.filePath)
+                          .map((tab) => ({
+                            id: tab.id,
+                            filePath: tab.filePath,
+                            dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
+                            pinned: Boolean(tab.pinned),
+                          }))}
+                        changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
+                        onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                        onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+                      />
+                    ) : (
+                      <ProjectIdeServicePanel
+                        projectId={projectId}
+                        panel="logs"
+                        initialPayload={initialIdePanels?.logs}
+                      />
+                    )}
+                  </div>
+                </aside>
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </div>
     );
 
