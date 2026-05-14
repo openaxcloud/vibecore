@@ -2608,6 +2608,26 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
 }
 
+.bolt-agent-tool-progress {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-border-visible), transparent 30%);
+}
+
+.bolt-agent-tool-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--vc-ide-accent-primary), var(--vc-ide-accent-success));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--vc-ide-accent-primary), transparent 35%);
+  transition: width 220ms ease;
+}
+
 .bolt-agent-tool-calls-chevron {
   justify-self: end;
   color: var(--vc-ide-text-muted);
