@@ -7990,9 +7990,176 @@ body :where(.lucide, svg[data-lucide]) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.bolt-project-database-onboarding {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  box-shadow: var(--vc-ui-shadow-md);
+  padding: 14px;
+}
+
+.bolt-project-database-onboarding-hero {
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 68%);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%), transparent 62%),
+    var(--vc-ide-bg-card);
+  padding: 14px;
+}
+
+.bolt-project-database-onboarding-hero > div {
+  display: grid;
+  gap: 6px;
+  max-width: 760px;
+}
+
+.bolt-project-database-onboarding-hero span {
+  width: 34px;
+  height: 34px;
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-project-database-onboarding h3,
+.bolt-project-database-onboarding h4 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-weight: 700;
+}
+
+.bolt-project-database-onboarding h3 {
+  font-size: 16px;
+}
+
+.bolt-project-database-onboarding h4 {
+  font-size: 13px;
+}
+
+.bolt-project-database-onboarding p,
+.bolt-project-database-onboarding small {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-project-database-steps {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bolt-project-database-steps article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-database-steps strong {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
+  color: var(--vc-ide-accent-action);
+  font-size: 12px;
+}
+
+.bolt-project-database-wizard {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 12px;
+}
+
+.bolt-project-database-wizard label {
+  display: grid;
+  gap: 6px;
+}
+
+.bolt-project-database-wizard label > span {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bolt-project-database-docs {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-database-docs summary {
+  cursor: pointer;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bolt-project-database-docs > div {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bolt-project-database-docs article {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  padding: 10px;
+}
+
+.bolt-project-database-docs article > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bolt-project-database-docs strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-project-database-docs article span {
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  padding: 2px 7px;
+}
+
+.bolt-project-database-docs code {
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-family: 'JetBrains Mono', 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 1100px) {
   .bolt-project-collaboration-tool,
-  .bolt-project-collaboration-grid {
+  .bolt-project-collaboration-grid,
+  .bolt-project-database-steps,
+  .bolt-project-database-docs > div {
     grid-template-columns: 1fr;
   }
 }

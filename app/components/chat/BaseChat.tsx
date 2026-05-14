@@ -11124,15 +11124,7 @@ function ProjectDatabasePanel({
         ))}
       </div>
 
-      {connections.length === 0 ? (
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">No database connection configured</h3>
-          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-            Add a Postgres, MySQL, MongoDB or Redis URL as an environment variable or secret. Secret values are used
-            server-side and never returned to the browser.
-          </p>
-        </div>
-      ) : null}
+      {connections.length === 0 ? <DatabaseConnectionOnboarding onSubmit={onSubmit} busy={busy} /> : null}
 
       {activeTab === 'explorer' && (
         <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
@@ -11303,6 +11295,119 @@ function ProjectDatabasePanel({
         </div>
       )}
     </div>
+  );
+}
+
+function DatabaseConnectionOnboarding({ onSubmit, busy }: { onSubmit: any; busy: boolean }) {
+  const providerExamples = [
+    {
+      provider: 'Neon / Supabase Postgres',
+      key: 'DATABASE_URL',
+      value: 'postgresql://user:password@host.neon.tech/db?sslmode=require',
+      note: 'Use this for Drizzle, Prisma, SQL migrations and Postgres query browsing.',
+    },
+    {
+      provider: 'PlanetScale / MySQL',
+      key: 'MYSQL_URL',
+      value: 'mysql://user:password@aws.connect.psdb.cloud/app?ssl={"rejectUnauthorized":true}',
+      note: 'Use a MySQL connection URL when your app runs mysql2, Prisma or server-side SQL.',
+    },
+    {
+      provider: 'MongoDB Atlas',
+      key: 'MONGODB_URI',
+      value: 'mongodb+srv://user:password@cluster.mongodb.net/app?retryWrites=true&w=majority',
+      note: 'Use this for document collections and MongoDB query inspection.',
+    },
+    {
+      provider: 'Upstash Redis',
+      key: 'REDIS_URL',
+      value: 'redis://default:password@host.upstash.io:6379',
+      note: 'Use Redis for queues, cache, sessions and rate limits.',
+    },
+  ];
+
+  return (
+    <section className="bolt-project-database-onboarding" aria-label="Database connection setup">
+      <div className="bolt-project-database-onboarding-hero">
+        <div>
+          <span className="i-ph:database-duotone" aria-hidden />
+          <h3>Add your first database</h3>
+          <p>
+            Connect a real provider by saving its connection string as an encrypted project secret. Vibecore detects
+            Postgres, MySQL, MongoDB and Redis URLs from secrets and uses them for schema browsing, backups and
+            read-only queries.
+          </p>
+        </div>
+      </div>
+
+      <div className="bolt-project-database-steps" aria-label="Database setup steps">
+        {[
+          [
+            '1',
+            'Create or open a hosted database',
+            'Use Neon, Supabase, PlanetScale, MongoDB Atlas, Upstash or any compatible provider.',
+          ],
+          [
+            '2',
+            'Copy the connection string',
+            'Keep the password in the URL. It will be stored server-side as a secret, not displayed back.',
+          ],
+          [
+            '3',
+            'Save it below',
+            'Use DATABASE_URL for the primary database, then reload this panel to inspect schema and run queries.',
+          ],
+        ].map(([step, title, description]) => (
+          <article key={step}>
+            <strong>{step}</strong>
+            <div>
+              <h4>{title}</h4>
+              <p>{description}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <form onSubmit={onSubmit} className="bolt-project-database-wizard">
+        <input name="intent" value="upsert-secret" type="hidden" />
+        <div>
+          <h4>Connection secret</h4>
+          <p>Paste the provider URL exactly as given by your database dashboard.</p>
+        </div>
+        <label>
+          <span>Secret name</span>
+          <PanelInput name="key" placeholder="DATABASE_URL" defaultValue="DATABASE_URL" required />
+          <small>Recommended: DATABASE_URL, MYSQL_URL, MONGODB_URI or REDIS_URL.</small>
+        </label>
+        <label>
+          <span>Connection string</span>
+          <PanelInput
+            name="value"
+            type="password"
+            placeholder="postgresql://user:password@host/db?sslmode=require"
+            required
+          />
+          <small>Stored as an encrypted secret. The value is never returned to the browser after saving.</small>
+        </label>
+        <PanelButton disabled={busy}>Add your first database</PanelButton>
+      </form>
+
+      <details className="bolt-project-database-docs" open>
+        <summary>Connection string examples by provider</summary>
+        <div>
+          {providerExamples.map((example) => (
+            <article key={example.provider}>
+              <div>
+                <strong>{example.provider}</strong>
+                <span>{example.key}</span>
+              </div>
+              <code>{example.value}</code>
+              <p>{example.note}</p>
+            </article>
+          ))}
+        </div>
+      </details>
+    </section>
   );
 }
 
