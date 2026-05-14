@@ -15,6 +15,7 @@ import {
   Files,
   GitBranch,
   Home,
+  MoreHorizontal,
   PenLine,
   Play,
   Rocket,
@@ -202,6 +203,8 @@ function IdeProjectTopBar({
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
+  const overflowMenuRef = useRef<HTMLDivElement>(null);
   const [displayProjectName, setDisplayProjectName] = useState(project.name);
   const [renamingProject, setRenamingProject] = useState(false);
   const [renameValue, setRenameValue] = useState(project.name);
@@ -295,6 +298,37 @@ function IdeProjectTopBar({
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    if (!overflowMenuOpen) {
+      return undefined;
+    }
+
+    const closeOnOutside = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && overflowMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setOverflowMenuOpen(false);
+    };
+
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setOverflowMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOnOutside);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [overflowMenuOpen]);
+
   const startInlineRename = () => {
     setProjectMenuOpen(false);
     setRenameError(null);
@@ -356,7 +390,7 @@ function IdeProjectTopBar({
   };
 
   return (
-    <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex h-9 w-screen items-center justify-between border-b px-2 text-[12px]">
+    <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
       <div className="bolt-project-topbar-left">
         <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="VibeCore dashboard">
           <Home className="h-4 w-4" aria-hidden />
@@ -526,9 +560,12 @@ function IdeProjectTopBar({
           <span className="bolt-project-runtime-status-action">Logs</span>
         </Link>
       </div>
-      <div aria-hidden className="flex-1" />
       <div className="bolt-project-topbar-actions">
-        <div className="bolt-project-action-group bolt-project-action-group--utility" aria-label="Support and alerts">
+        <div
+          className="bolt-project-action-group bolt-project-action-group--utility"
+          data-priority="low"
+          aria-label="Support and alerts"
+        >
           <Link to="/support" className="bolt-project-topbar-icon-button" aria-label="Help" title="Help">
             <CircleHelp className="h-3.5 w-3.5" aria-hidden />
           </Link>
@@ -604,7 +641,11 @@ function IdeProjectTopBar({
             )}
           </div>
         </div>
-        <div className="bolt-project-action-group bolt-project-action-group--collaboration" aria-label="Collaboration">
+        <div
+          className="bolt-project-action-group bolt-project-action-group--collaboration"
+          data-priority="medium"
+          aria-label="Collaboration"
+        >
           <div className="bolt-project-collaborator-stack" aria-label="Collaborators">
             {visibleCollaborators.slice(0, 3).map((collaborator) => {
               const collaboratorName = collaborator.userId === 'you' ? 'You' : (collaborator.userId ?? 'User');
@@ -642,7 +683,55 @@ function IdeProjectTopBar({
             Share
           </Link>
         </div>
-        <div className="bolt-project-action-group bolt-project-action-group--primary" aria-label="Run and publish">
+        <div
+          ref={overflowMenuRef}
+          className="bolt-project-action-group bolt-project-action-group--overflow"
+          data-priority="overflow"
+          aria-label="More actions"
+        >
+          <button
+            type="button"
+            className="bolt-project-topbar-icon-button"
+            aria-label="More topbar actions"
+            aria-haspopup="menu"
+            aria-expanded={overflowMenuOpen}
+            title="More actions"
+            onClick={() => setOverflowMenuOpen((value) => !value)}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          {overflowMenuOpen && (
+            <div
+              role="menu"
+              aria-label="Topbar overflow"
+              className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border p-1.5"
+            >
+              <Link
+                to="/support"
+                role="menuitem"
+                className="bolt-project-overflow-item"
+                onClick={() => setOverflowMenuOpen(false)}
+              >
+                <CircleHelp className="h-3.5 w-3.5" aria-hidden />
+                <span>Help &amp; support</span>
+              </Link>
+              <Link
+                to={`/projects/${projectId}/ide?panel=collaborators`}
+                role="menuitem"
+                className="bolt-project-overflow-item"
+                onClick={() => setOverflowMenuOpen(false)}
+              >
+                <Share2 className="h-3.5 w-3.5" aria-hidden />
+                <span>Share &amp; collaborators</span>
+              </Link>
+            </div>
+          )}
+        </div>
+        <div
+          className="bolt-project-action-group bolt-project-action-group--primary"
+          data-priority="high"
+          aria-label="Run and publish"
+        >
           <button
             type="button"
             data-testid="button-run-stop"
@@ -678,6 +767,7 @@ function IdeProjectTopBar({
         </div>
         <div
           className="bolt-project-action-group bolt-project-action-group--workspace"
+          data-priority="high"
           aria-label="Workspace and account"
         >
           <button
