@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { MissingImportError, resolveImport, validateGeneratedFiles, validateImports } from './post-validate';
+import {
+  GeneratedFileJsonError,
+  GeneratedFileParseError,
+  MissingImportError,
+  resolveImport,
+  validateGeneratedFiles,
+  validateImports,
+} from './post-validate';
 
 describe('agent post-generation import validation', () => {
   it('resolves extensionless relative imports to generated tsx files', () => {
@@ -51,5 +58,27 @@ describe('agent post-generation import validation', () => {
         },
       ]),
     ).resolves.toBeUndefined();
+  });
+
+  it('rejects syntactically invalid generated source files before they can be applied', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'src/components/AboutSection.tsx',
+          content: "export function AboutSection() {\n  return 'unterminated;\n}\n",
+        },
+      ]),
+    ).rejects.toBeInstanceOf(GeneratedFileParseError);
+  });
+
+  it('rejects invalid generated JSON before package parsing reaches preview startup', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'package.json',
+          content: '{ "scripts": { "dev": "vite' + String.fromCharCode(7) + '" } }',
+        },
+      ]),
+    ).rejects.toBeInstanceOf(GeneratedFileJsonError);
   });
 });

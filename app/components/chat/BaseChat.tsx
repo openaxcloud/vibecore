@@ -1654,19 +1654,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectPlanFirst]);
 
     /*
-     * Auto-apply default: matches Replit, JetBrains Copilot Chat and Cursor
-     * "agent mode" — apply edits silently and give the user an Undo. Risky
-     * paths (package.json, *.config.*, .env*, …) still surface in the manual
-     * review queue regardless of the toggle.
+     * Auto-apply is opt-in. The default is review-first because applying AI
+     * patches silently can turn a malformed generation into a broken preview.
      */
     const [projectAutoApply, setProjectAutoApply] = useState(() => {
       if (typeof window === 'undefined') {
-        return true;
+        return false;
       }
 
       const stored = window.localStorage.getItem('vibecore:agent-auto-apply');
 
-      return stored === null ? true : stored === 'true';
+      return stored === 'true';
     });
 
     useEffect(() => {
@@ -4588,7 +4586,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </button>
                         </HeaderTip>
                       </div>
-                      <HeaderTip label="When on, the agent applies safe file edits silently and offers Undo. Dependency manifests, config and .env files still surface for review.">
+                      <HeaderTip
+                        label={
+                          projectAutoApply
+                            ? 'Risk: patches apply without review. Generated code is still validated before write, but review is safer.'
+                            : 'Off by default. Leave this off to review diffs before the agent writes files.'
+                        }
+                      >
                         <label
                           className="bolt-project-agent-plan-first"
                           data-active={projectAutoApply ? 'true' : 'false'}

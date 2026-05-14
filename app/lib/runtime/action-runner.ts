@@ -9,6 +9,7 @@ import { unreachable } from '~/utils/unreachable';
 
 const logger = createScopedLogger('ActionRunner');
 const TOOL_TIMEOUT_MS = 60_000;
+const FILE_TOOL_TIMEOUT_MS = 120_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
 
@@ -289,7 +290,7 @@ export class ActionRunner {
       } catch (error) {
         lastError = error;
 
-        if (action.abortSignal.aborted || error instanceof ActionCommandError) {
+        if (action.abortSignal.aborted || error instanceof ActionCommandError || error instanceof ToolTimeoutError) {
           throw error;
         }
 
@@ -312,10 +313,12 @@ export class ActionRunner {
   async #withTimeout<T>(action: ActionState, promise: Promise<T>): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
+    const timeoutMs = this.#timeoutMsForAction(action);
+
     const timeout = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new ToolTimeoutError(action.type, TOOL_TIMEOUT_MS));
-      }, TOOL_TIMEOUT_MS);
+        reject(new ToolTimeoutError(action.type, timeoutMs));
+      }, timeoutMs);
     });
 
     try {
@@ -329,6 +332,10 @@ export class ActionRunner {
 
   async #delay(ms: number) {
     await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  #timeoutMsForAction(action: Pick<ActionState, 'type'>) {
+    return action.type === 'file' ? FILE_TOOL_TIMEOUT_MS : TOOL_TIMEOUT_MS;
   }
 
   #formatActionError(error: unknown) {
@@ -462,6 +469,9 @@ export class ActionRunner {
   #scheduleActionWatchdog(actionId: string) {
     this.#clearActionWatchdog(actionId);
 
+    const initialAction = this.actions.get()[actionId];
+    const timeoutMs = initialAction ? this.#timeoutMsForAction(initialAction) : TOOL_TIMEOUT_MS;
+
     const timeoutId = setTimeout(() => {
       const action = this.actions.get()[actionId];
 
@@ -469,13 +479,13 @@ export class ActionRunner {
         return;
       }
 
-      const error = new ToolTimeoutError(action.type, TOOL_TIMEOUT_MS);
+      const error = new ToolTimeoutError(action.type, timeoutMs);
       logger.error(`[${action.type}]:Action timed out`, error);
       this.#updateAction(actionId, {
         status: 'failed',
         error: error.message,
       });
-    }, TOOL_TIMEOUT_MS);
+    }, timeoutMs);
 
     this.#actionWatchdogs.set(actionId, timeoutId);
   }

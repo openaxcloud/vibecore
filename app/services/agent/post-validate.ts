@@ -28,7 +28,19 @@ export class GeneratedFileParseError extends Error {
   }
 }
 
+export class GeneratedFileJsonError extends Error {
+  readonly filePath: string;
+
+  constructor(filePath: string, cause: unknown) {
+    const message = cause instanceof Error ? cause.message : 'Invalid JSON.';
+    super(`Invalid JSON in ${filePath}: ${message}`);
+    this.name = 'GeneratedFileJsonError';
+    this.filePath = filePath;
+  }
+}
+
 const SOURCE_FILE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
+const JSON_FILE_EXTENSIONS = new Set(['.json']);
 
 const RESOLVABLE_EXTENSIONS = [
   '',
@@ -93,6 +105,10 @@ function extensionOf(filePath: string) {
 
 function isSourceFile(filePath: string) {
   return SOURCE_FILE_EXTENSIONS.has(extensionOf(filePath));
+}
+
+function isJsonFile(filePath: string) {
+  return JSON_FILE_EXTENSIONS.has(extensionOf(filePath));
 }
 
 function isRelativeOrRootImport(specifier: string) {
@@ -166,6 +182,22 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
   }
 }
 
+export async function validateGeneratedFile(file: GeneratedFile, allFiles: Map<string, string>) {
+  const normalizedPath = normalizeGeneratedPath(file.path);
+
+  if (isJsonFile(normalizedPath)) {
+    try {
+      JSON.parse(file.content);
+    } catch (error) {
+      throw new GeneratedFileJsonError(normalizedPath, error);
+    }
+
+    return;
+  }
+
+  await validateImports(file, allFiles);
+}
+
 export async function validateGeneratedFiles(files: GeneratedFile[], existingFiles = new Map<string, string>()) {
   const allFiles = new Map<string, string>();
 
@@ -177,5 +209,5 @@ export async function validateGeneratedFiles(files: GeneratedFile[], existingFil
     allFiles.set(normalizeGeneratedPath(file.path), file.content);
   }
 
-  await Promise.all(files.map((file) => validateImports(file, allFiles)));
+  await Promise.all(files.map((file) => validateGeneratedFile(file, allFiles)));
 }

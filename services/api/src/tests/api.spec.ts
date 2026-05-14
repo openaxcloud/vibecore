@@ -2839,7 +2839,22 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
   it('rolls back, redeploys and cancels deployment records', async () => {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
+    const app = await buildTestApiApp({
+      store,
+      staticBuildRunner: async (input) => {
+        const root = await mkdtemp(join(tmpdir(), `vibecore-static-build-${input.projectId}-`));
+        const outputDir = join(root, 'dist');
+
+        await mkdir(outputDir, { recursive: true });
+        await writeFile(join(outputDir, 'index.html'), '<!doctype html><h1>Deploy ops</h1>', 'utf8');
+
+        return {
+          ok: true,
+          outputDir,
+          logs: [{ timestamp: new Date().toISOString(), level: 'info', message: 'Static deploy: test build OK' }],
+        };
+      },
+    });
     const auth = await register(app, { email: 'deploy-ops@example.com', organizationName: 'Deploy Ops Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
 

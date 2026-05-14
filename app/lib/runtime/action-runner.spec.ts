@@ -53,14 +53,14 @@ describe('ActionRunner tool timeout handling', () => {
 
     expect(runner.actions.get()[data.actionId]?.status).toBe('running');
 
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(120_000);
 
     const action = runner.actions.get()[data.actionId];
     expect(action?.status).toBe('failed');
-    expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 60 seconds');
+    expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 120 seconds');
   });
 
-  it('retries timed-out file writes three times before failing the action', async () => {
+  it('fails timed-out file writes without multiplying blocked filesystem calls', async () => {
     vi.useFakeTimers();
 
     const writeFile = vi.fn(() => new Promise<void>(() => undefined));
@@ -76,17 +76,13 @@ describe('ActionRunner tool timeout handling', () => {
 
     const runPromise = runner.runAction(data, false);
 
-    await vi.advanceTimersByTimeAsync(60_000);
-    await vi.advanceTimersByTimeAsync(250);
-    await vi.advanceTimersByTimeAsync(60_000);
-    await vi.advanceTimersByTimeAsync(500);
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(120_000);
     await runPromise;
 
-    expect(writeFile).toHaveBeenCalledTimes(3);
+    expect(writeFile).toHaveBeenCalledTimes(1);
 
     const action = runner.actions.get()[data.actionId];
     expect(action?.status).toBe('failed');
-    expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 60 seconds');
+    expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 120 seconds');
   });
 });

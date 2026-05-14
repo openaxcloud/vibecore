@@ -16,7 +16,7 @@ import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { validateGeneratedFiles, validateImports, type GeneratedFile } from '~/services/agent/post-validate';
+import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
 import { unreachable } from '~/utils/unreachable';
@@ -1045,7 +1045,7 @@ export class WorkbenchStore {
         acceptedHunkIds: acceptedIds,
       });
 
-      await this.#validateAgentPatchImports(proposal, acceptedContent);
+      await this.#validateAgentPatchProposal(proposal, acceptedContent);
 
       const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
 
@@ -1583,13 +1583,13 @@ export class WorkbenchStore {
     return files;
   }
 
-  async #validateAgentPatchImports(proposal: AgentPatchProposal, proposedContent: string) {
+  async #validateAgentPatchProposal(proposal: AgentPatchProposal, proposedContent: string) {
     const generatedFile = {
       path: proposal.relativePath,
       content: proposedContent,
     };
 
-    await validateImports(generatedFile, this.#agentPatchValidationFiles(proposal.artifactId, generatedFile));
+    await validateGeneratedFile(generatedFile, this.#agentPatchValidationFiles(proposal.artifactId, generatedFile));
   }
 
   async #validatePendingAgentPatchProposalsForArtifact(artifactId: string) {
@@ -1601,25 +1601,43 @@ export class WorkbenchStore {
       return;
     }
 
-    await Promise.all(
-      proposals.map(async (proposal) => {
-        try {
-          await this.#validateAgentPatchImports(proposal, proposal.proposedContent);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Generated file import validation failed.';
-          const artifact = this.#getArtifact(proposal.artifactId);
+    const validationFiles = this.#workspaceImportValidationFiles();
 
-          artifact?.runner.skipAction(proposal.actionId);
-          this.agentPatchProposals.setKey(proposal.id, {
-            ...proposal,
-            status: 'failed',
-            updatedAt: new Date().toISOString(),
-            error: message,
-          });
-          this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
+    for (const proposal of proposals) {
+      validationFiles.set(this.#relativeWorkbenchPath(proposal.relativePath), proposal.proposedContent);
+    }
+
+    try {
+      await validateGeneratedFiles(
+        proposals.map((proposal) => ({
+          path: proposal.relativePath,
+          content: proposal.proposedContent,
+        })),
+        validationFiles,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generated file validation failed.';
+      const failedPath = error instanceof Error && 'filePath' in error ? String(error.filePath) : null;
+
+      for (const proposal of proposals) {
+        const proposalPath = this.#relativeWorkbenchPath(proposal.relativePath);
+
+        if (failedPath && proposalPath !== failedPath) {
+          continue;
         }
-      }),
-    );
+
+        const artifact = this.#getArtifact(proposal.artifactId);
+
+        artifact?.runner.skipAction(proposal.actionId);
+        this.agentPatchProposals.setKey(proposal.id, {
+          ...proposal,
+          status: 'failed',
+          updatedAt: new Date().toISOString(),
+          error: message,
+        });
+        this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
+      }
+    }
   }
 
   #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
