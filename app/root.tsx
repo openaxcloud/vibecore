@@ -131,7 +131,9 @@ function AppToastContainer() {
       position="bottom-right"
       pauseOnFocusLoss
       transition={toastAnimation}
-      autoClose={3000}
+      autoClose={4000}
+      limit={3}
+      newestOnTop
     />
   );
 }
