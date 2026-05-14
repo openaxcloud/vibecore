@@ -1,14 +1,6 @@
 import { useStore } from '@nanostores/react';
 import type { MetaFunction } from '@remix-run/cloudflare';
-import {
-  Form,
-  isRouteErrorResponse,
-  Link,
-  useActionData,
-  useLoaderData,
-  useNavigation,
-  useRouteError,
-} from '@remix-run/react';
+import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError } from '@remix-run/react';
 import {
   BarChart3,
   Code2,
@@ -62,6 +54,7 @@ import type { ModelInfo } from '~/lib/modules/llm/types';
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
 
@@ -966,35 +959,10 @@ export default function NewProjectPage() {
   );
 }
 
-export function ErrorBoundary() {
-  const error = useRouteError();
-
-  const message = isRouteErrorResponse(error)
-    ? error.data?.error || error.statusText || 'Project creation is unavailable.'
-    : error instanceof Error
-      ? error.message
-      : 'Project creation is unavailable.';
-
-  return (
-    <AppShell
-      title="Create project"
-      description="Sign in to create a project."
-      hideHeader
-      hideTopBar
-      mainClassName="vc-new-project-page"
-      contentClassName="vc-new-project-content"
-    >
-      <div className="vc-new-project-hero">
-        <span className="vc-new-project-glow" aria-hidden />
-        <header className="vc-new-project-header">
-          <h1 className="vc-new-project-title">Sign in to create a project</h1>
-          <p className="vc-new-project-subtitle">
-            Vibecore needs your authenticated workspace and configured AI providers before it can create a real project.
-          </p>
-        </header>
-        <p className="vc-new-project-error" role="alert">
-          {message}
-        </p>
+function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorDescriptor }) {
+  switch (descriptor.kind) {
+    case 'auth':
+      return (
         <div className="vc-new-project-error-actions">
           <Link to="/login" className="vc-new-project-submit">
             <Sparkles className="h-4 w-4" aria-hidden />
@@ -1004,6 +972,105 @@ export function ErrorBoundary() {
             Back to homepage
           </Link>
         </div>
+      );
+
+    case 'network':
+      return (
+        <div className="vc-new-project-error-actions">
+          <button
+            type="button"
+            className="vc-new-project-submit"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+            }}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden />
+            <span>Retry</span>
+          </button>
+          <Link to="/" className="vc-new-project-example">
+            Back to homepage
+          </Link>
+        </div>
+      );
+
+    case 'server':
+      return (
+        <div className="vc-new-project-error-actions">
+          <button
+            type="button"
+            className="vc-new-project-submit"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+            }}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden />
+            <span>Try again</span>
+          </button>
+          <Link to="/" className="vc-new-project-example">
+            Back to homepage
+          </Link>
+        </div>
+      );
+
+    case 'unknown':
+    default:
+      return (
+        <div className="vc-new-project-error-actions">
+          <button
+            type="button"
+            className="vc-new-project-submit"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+              }
+            }}
+          >
+            <RefreshCw className="h-4 w-4" aria-hidden />
+            <span>Retry</span>
+          </button>
+          <Link to="/" className="vc-new-project-example">
+            Back to homepage
+          </Link>
+        </div>
+      );
+  }
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const descriptor = categorizeProjectsNewError(error);
+
+  const shellDescription =
+    descriptor.kind === 'auth' ? 'Sign in to create a project.' : 'Project creation is temporarily unavailable.';
+
+  return (
+    <AppShell
+      title="Create project"
+      description={shellDescription}
+      hideHeader
+      hideTopBar
+      mainClassName="vc-new-project-page"
+      contentClassName="vc-new-project-content"
+    >
+      <div className="vc-new-project-hero">
+        <span className="vc-new-project-glow" aria-hidden />
+        <header className="vc-new-project-header">
+          <h1 className="vc-new-project-title">{descriptor.title}</h1>
+          <p className="vc-new-project-subtitle">{descriptor.subtitle}</p>
+        </header>
+        {descriptor.detail ? (
+          <details className="vc-new-project-error-details">
+            <summary>Technical details</summary>
+            <p className="vc-new-project-error" role="alert">
+              {descriptor.detail}
+            </p>
+          </details>
+        ) : null}
+        <ProjectsNewErrorActions descriptor={descriptor} />
       </div>
     </AppShell>
   );
