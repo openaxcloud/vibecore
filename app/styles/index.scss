@@ -988,9 +988,32 @@ body
 }
 
 .bolt-project-agent-panel .bolt-user-message-bubble {
+  min-width: 0 !important;
+  max-width: min(100%, 680px) !important;
+  overflow-x: hidden !important;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%) !important;
   background-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-card) 88%) !important;
   color: var(--vc-ide-text-primary) !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.bolt-project-agent-panel .bolt-user-message-bubble :where(.MarkdownContent, p, li, span):not([class*='i-']) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.bolt-project-agent-panel .bolt-user-message-bubble :where(pre, pre:has(> code), code, .shiki) {
+  max-width: 100%;
+  white-space: pre-wrap !important;
+  overflow-x: hidden !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.bolt-project-agent-panel .bolt-user-message-bubble :where(pre code, .shiki code) {
+  white-space: inherit !important;
 }
 
 body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette) {
