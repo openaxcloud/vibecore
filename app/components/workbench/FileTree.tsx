@@ -22,6 +22,33 @@ const logger = createScopedLogger('FileTree');
 
 const NODE_PADDING_LEFT = 16;
 
+function splitNameForMiddleTruncation(name: string) {
+  const parts = name.split('.');
+
+  if (parts.length >= 3 && parts[0]) {
+    return { start: parts[0], end: `.${parts.slice(1).join('.')}` };
+  }
+
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    return { start: parts[0], end: `.${parts[1]}` };
+  }
+
+  const midpoint = Math.ceil(name.length / 2);
+
+  return { start: name.slice(0, midpoint), end: name.slice(midpoint) };
+}
+
+function MiddleTruncatedName({ name, className }: { name: string; className?: string }) {
+  const { start, end } = splitNameForMiddleTruncation(name);
+
+  return (
+    <span className={classNames('bolt-middle-truncate', className)} title={name}>
+      <span className="bolt-middle-truncate-start">{start}</span>
+      <span className="bolt-middle-truncate-end">{end}</span>
+    </span>
+  );
+}
+
 const DEFAULT_HIDDEN_FILES = [
   /\/node_modules\//,
   /\/\.next/,
@@ -295,7 +322,7 @@ export const FileTree = memo(
         >
           <span className={classNames('size-4 shrink-0', icon.icon)} style={{ color: icon.color }} aria-hidden />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium">{label}</span>
+            <MiddleTruncatedName name={label} className="block text-xs font-medium" />
             <span className="block truncate text-[11px] text-bolt-elements-textTertiary">
               {meta?.detail ?? relativePath}
             </span>
@@ -1013,10 +1040,11 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-down scale-98': !collapsed,
         })}
         iconStyle={{ color: 'var(--vc-ide-accent-warning)' }}
+        title={folder.fullPath}
         onClick={onClick}
       >
         <div className="flex items-center w-full">
-          <div className="flex-1 truncate pr-2">{folder.name}</div>
+          <MiddleTruncatedName name={folder.name} className="flex-1 pr-2" />
           {isLocked && (
             <span
               className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
@@ -1121,6 +1149,7 @@ function File({
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
         iconStyle={{ color: materialFileIcon(name).color }}
+        title={fullPath}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
       >
@@ -1129,7 +1158,7 @@ function File({
             'group-hover:text-bolt-elements-item-contentActive': !selected,
           })}
         >
-          <div className="flex-1 truncate pr-2">{name}</div>
+          <MiddleTruncatedName name={name} className="flex-1 pr-2" />
           <div className="flex items-center gap-1">
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
@@ -1235,13 +1264,23 @@ interface ButtonProps {
   depth: number;
   iconClasses: string;
   iconStyle?: CSSProperties;
+  title?: string;
   children: ReactNode;
   className?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
 }
 
-function NodeButton({ depth, iconClasses, iconStyle, onClick, onDoubleClick, className, children }: ButtonProps) {
+function NodeButton({
+  depth,
+  iconClasses,
+  iconStyle,
+  title,
+  onClick,
+  onDoubleClick,
+  className,
+  children,
+}: ButtonProps) {
   return (
     <button
       className={classNames(
@@ -1249,6 +1288,7 @@ function NodeButton({ depth, iconClasses, iconStyle, onClick, onDoubleClick, cla
         className,
       )}
       style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      title={title}
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
     >

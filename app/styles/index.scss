@@ -2509,21 +2509,49 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-panel-resize-handle {
-  width: 4px;
-  flex: 0 0 4px;
+  position: relative;
+  width: 8px;
+  flex: 0 0 8px;
   cursor: col-resize;
-  background: var(--vc-ide-border-subtle);
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 2px,
+      var(--vc-ide-border-visible) 2px,
+      var(--vc-ide-border-visible) 4px,
+      transparent 4px
+    ),
+    var(--vc-ide-bg-app);
   transition:
     background 150ms ease-out,
     box-shadow 150ms ease-out;
+}
+
+.bolt-project-panel-resize-handle::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 38px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-text-muted), transparent 35%);
+  content: '';
+  transform: translate(-50%, -50%);
 }
 
 .bolt-project-panel-resize-handle:hover,
 .bolt-project-panel-resize-handle[data-resize-handle-active],
 .bolt-project-panel-resize-handle:focus-visible {
   outline: 0;
-  background: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-app) 78%);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%);
+}
+
+.bolt-project-panel-resize-handle:hover::after,
+.bolt-project-panel-resize-handle[data-resize-handle-active]::after,
+.bolt-project-panel-resize-handle:focus-visible::after {
+  background: var(--vc-ide-accent-action);
 }
 
 .bolt-project-agent-panel {
@@ -4827,6 +4855,33 @@ body :where(.lucide, svg[data-lucide]) {
   width: 14px;
   height: 14px;
   font-size: 14px;
+}
+
+.bolt-middle-truncate {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: baseline;
+  overflow: hidden;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.bolt-middle-truncate-start,
+.bolt-middle-truncate-end {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-middle-truncate-start {
+  flex: 1 1 auto;
+}
+
+.bolt-middle-truncate-end {
+  flex: 0 1 auto;
+  max-width: 68%;
 }
 
 .bolt-project-editor-tool,
