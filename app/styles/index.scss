@@ -7858,6 +7858,20 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: inset 0 2px 0 var(--vc-ide-accent-action);
 }
 
+.bolt-project-bottom-terminal-tab-badge {
+  display: inline-flex;
+  min-width: 28px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-muted);
+  color: var(--vc-ide-text-primary);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+
 .bolt-project-bottom-terminal-status,
 .bolt-project-bottom-terminal-size {
   display: inline-flex;
@@ -7915,6 +7929,182 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-bottom-terminal-content > .panel-boundary,
 .bolt-project-bottom-terminal-content > div {
   min-height: 0;
+}
+
+.bolt-project-problems-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-problems-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-panel);
+  padding: 14px 16px;
+}
+
+.bolt-project-problems-header h3 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bolt-project-problems-header p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-problems-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-project-problems-count {
+  display: inline-flex;
+  min-width: 30px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bolt-project-problems-count-error {
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-problems-count-warning {
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
+  color: var(--vc-ide-accent-warning);
+}
+
+.bolt-project-problems-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+}
+
+.bolt-project-problems-empty [class*='i-ph:'] {
+  color: var(--vc-ide-accent-success);
+  font-size: 28px;
+}
+
+.bolt-project-problems-empty h4 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+}
+
+.bolt-project-problems-empty p {
+  max-width: 420px;
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.bolt-project-problems-list {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+}
+
+.bolt-project-problem-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
+}
+
+.bolt-project-problem-item[data-severity='error'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 70%);
+}
+
+.bolt-project-problem-item[data-severity='warning'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 70%);
+}
+
+.bolt-project-problem-item > [class*='i-ph:'] {
+  margin-top: 2px;
+  font-size: 16px;
+}
+
+.bolt-project-problem-item[data-severity='error'] > [class*='i-ph:'] {
+  color: var(--vc-ide-accent-error);
+}
+
+.bolt-project-problem-item[data-severity='warning'] > [class*='i-ph:'] {
+  color: var(--vc-ide-accent-warning);
+}
+
+.bolt-project-problem-body {
+  min-width: 0;
+}
+
+.bolt-project-problem-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+.bolt-project-problem-title strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-project-problem-title span {
+  border-radius: 999px;
+  background: var(--vc-ide-bg-muted);
+  padding: 2px 6px;
+}
+
+.bolt-project-problem-body p {
+  margin: 6px 0 0;
+  color: var(--vc-ide-text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.bolt-project-problem-body pre {
+  overflow: auto;
+  margin: 8px 0 0;
+  border-radius: 6px;
+  background: var(--vc-ide-bg-app);
+  padding: 8px;
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
 
 .bolt-project-conversation-history {

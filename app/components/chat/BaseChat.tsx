@@ -32,6 +32,7 @@ import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import type { FileMap } from '~/lib/stores/files';
+import { buildRuntimeDiagnostics, useDiagnosticsStore } from '~/lib/stores/diagnostics';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { themeStore } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
@@ -1726,6 +1727,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rollbackDatabase, setRollbackDatabase] = useState(false);
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
+    const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
+    const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
+    const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
 
     const [cursorPositions, setCursorPositions] = useState<
       Record<string, { line: number; column: number; offset?: number }>
@@ -1851,17 +1855,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           .join(' | '),
       [billingUpgradePrompt, quotaWarning, workspaceError, workspaceLogs.length, workspaceStatusLabel],
     );
-    const statusbarDiagnostics = useMemo(() => {
-      const errorPattern = /\b(error|failed|exception|crash|fatal)\b/i;
-      const warningPattern = /\b(warn|warning|deprecated)\b/i;
-      const logErrors = workspaceLogs.filter((line) => errorPattern.test(line)).length;
-      const logWarnings = workspaceLogs.filter((line) => warningPattern.test(line) && !errorPattern.test(line)).length;
+    useEffect(() => {
+      setDiagnosticsForSource(
+        'runtime',
+        projectIdeMode
+          ? buildRuntimeDiagnostics({
+              workspaceError,
+              workspaceLogs,
+            })
+          : [],
+      );
+    }, [projectIdeMode, setDiagnosticsForSource, workspaceError, workspaceLogs]);
 
-      return {
-        errors: logErrors + (workspaceError ? 1 : 0),
-        warnings: logWarnings,
-      };
-    }, [workspaceError, workspaceLogs]);
+    const statusbarDiagnostics = useMemo(
+      () => ({
+        errors: diagnosticErrorCount,
+        warnings: diagnosticWarningCount,
+      }),
+      [diagnosticErrorCount, diagnosticWarningCount],
+    );
 
     const statusbarChangedFiles = projectBackendState.git?.changedFiles?.length ?? 0;
 
@@ -5612,6 +5624,8 @@ function ProjectBottomTerminal({
   onClose: () => void;
 }) {
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
+  const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
+  const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
   const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
   const workspaceLabel = workspaceStatus ? `${workspaceStatus.status} workspace` : 'No backend workspace';
 
@@ -5631,10 +5645,20 @@ function ProjectBottomTerminal({
               key={id}
               type="button"
               aria-current={active === id ? 'page' : undefined}
+              aria-label={
+                id === 'problems'
+                  ? `Open Problems. ${diagnosticErrorCount} errors and ${diagnosticWarningCount} warnings.`
+                  : undefined
+              }
               onClick={() => onActiveChange(id)}
             >
               <span className={icon} aria-hidden />
               {label}
+              {id === 'problems' && diagnosticErrorCount + diagnosticWarningCount > 0 ? (
+                <span className="bolt-project-bottom-terminal-tab-badge">
+                  {diagnosticErrorCount}E {diagnosticWarningCount}W
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -5677,11 +5701,60 @@ function ProjectBottomTerminal({
         ) : active === 'output' ? (
           <ProjectIdeServicePanel projectId={projectId} panel="logs" initialPayload={initialIdePanels?.logs} />
         ) : active === 'problems' ? (
-          <ProjectIdeServicePanel projectId={projectId} panel="activity" initialPayload={initialIdePanels?.activity} />
+          <ProjectProblemsPanel />
         ) : (
           <ProjectIdeServicePanel projectId={projectId} panel="debugger" initialPayload={initialIdePanels?.debugger} />
         )}
       </div>
+    </section>
+  );
+}
+
+function ProjectProblemsPanel() {
+  const diagnostics = useDiagnosticsStore((state) => state.diagnostics);
+  const errors = useDiagnosticsStore((state) => state.errors);
+  const warnings = useDiagnosticsStore((state) => state.warnings);
+
+  return (
+    <section className="bolt-project-problems-panel" aria-label="Problems" aria-live="polite">
+      <header className="bolt-project-problems-header">
+        <div>
+          <h3>Problems</h3>
+          <p>
+            {errors} errors · {warnings} warnings in the current workspace
+          </p>
+        </div>
+        <div className="bolt-project-problems-counts" aria-label={`${errors} errors and ${warnings} warnings`}>
+          <span className="bolt-project-problems-count bolt-project-problems-count-error">{errors}</span>
+          <span className="bolt-project-problems-count bolt-project-problems-count-warning">{warnings}</span>
+        </div>
+      </header>
+      {diagnostics.length === 0 ? (
+        <div className="bolt-project-problems-empty">
+          <span className="i-ph:check-circle" aria-hidden />
+          <h4>No problems detected</h4>
+          <p>Runtime diagnostics, preview errors, and warnings will appear here when they are reported.</p>
+        </div>
+      ) : (
+        <ul className="bolt-project-problems-list">
+          {diagnostics.map((diagnostic) => (
+            <li key={diagnostic.id} className="bolt-project-problem-item" data-severity={diagnostic.severity}>
+              <span className={diagnostic.severity === 'error' ? 'i-ph:x-circle' : 'i-ph:warning-circle'} aria-hidden />
+              <div className="bolt-project-problem-body">
+                <div className="bolt-project-problem-title">
+                  <strong>{diagnostic.severity === 'error' ? 'Error' : 'Warning'}</strong>
+                  <span>{diagnostic.source}</span>
+                  {diagnostic.occurrences && diagnostic.occurrences > 1 ? (
+                    <span>{diagnostic.occurrences} occurrences</span>
+                  ) : null}
+                </div>
+                <p>{diagnostic.message}</p>
+                {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
