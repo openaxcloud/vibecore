@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { generateKeyPairSync, createHmac, createSign } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
@@ -3155,6 +3158,77 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     } finally {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
       await app.close();
+    }
+  });
+
+  it('runs runtime commands through a local workspace fallback when the manager is unavailable', async () => {
+    const previousManager = process.env.WORKSPACE_MANAGER_URL;
+    const previousFallback = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+    const previousFallbackRoot = process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+    const localRuntimeRoot = await mkdtemp(join(tmpdir(), 'vibecore-local-runtime-'));
+    process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:9';
+    process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = 'true';
+    process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = localRuntimeRoot;
+
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store: new TestApiStore(), projectStorage });
+    const auth = await register(app, {
+      email: 'runtime-local-fallback@example.com',
+      organizationName: 'Runtime Local Fallback Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Local Fallback Project' },
+    });
+    const projectId = project.json().project.id as string;
+    await projectStorage.writeFiles(projectId, [
+      { path: 'package.json', content: '{\n  "name": "debugger-fallback"\n}\n' },
+    ]);
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { command: 'sh', args: ['-lc', 'cat package.json | head -1'], timeoutMs: 5000 },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ exitCode: 0, localRuntime: true });
+      expect(response.json().output).toContain('{');
+
+      const status = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/status`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(status.statusCode).toBe(200);
+      expect(status.json()).toMatchObject({
+        id: projectId,
+        status: 'running',
+        runtimeMode: 'local-dev',
+        metadata: { localRuntime: true },
+      });
+    } finally {
+      if (previousManager === undefined) {
+        delete process.env.WORKSPACE_MANAGER_URL;
+      } else {
+        process.env.WORKSPACE_MANAGER_URL = previousManager;
+      }
+      if (previousFallback === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = previousFallback;
+      }
+      if (previousFallbackRoot === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
+      }
+      await app.close();
+      await rm(localRuntimeRoot, { recursive: true, force: true });
     }
   });
 

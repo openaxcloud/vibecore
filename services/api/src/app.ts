@@ -1,7 +1,10 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import websocket from '@fastify/websocket';
 import WebSocket from 'ws';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { Client as PgClient } from 'pg';
 import { Redis } from 'ioredis';
@@ -2546,6 +2549,16 @@ interface RuntimeFileNode {
   children?: RuntimeFileNode[];
 }
 
+interface LocalRuntimeProcess {
+  id: string;
+  command: string;
+  startedAt: string;
+  status: 'running' | 'exited' | 'killed';
+  process: ChildProcessWithoutNullStreams;
+  output: string;
+  exitCode?: number;
+}
+
 function runtimeNamespace() {
   return process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 }
@@ -3096,6 +3109,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const collaborationBroker = createCollaborationBroker();
   const metrics = createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
+  const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -4260,6 +4274,215 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
+  const localRuntimeFallbackEnabled = () => {
+    const explicit = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+
+    if (explicit !== undefined) {
+      return explicit === '1' || explicit.toLowerCase() === 'true';
+    }
+
+    return !isProduction;
+  };
+
+  const isRuntimeManagerUnavailable = (error: unknown) =>
+    (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
+    (error instanceof Error && error.message === 'Workspace manager is unavailable');
+
+  const localRuntimeRoot = (workspaceId: string) => {
+    const safeId = workspaceId.replace(/[^A-Za-z0-9_.-]/g, '_');
+    return resolve(process.env.WORKSPACE_LOCAL_RUNTIME_ROOT ?? '.vibecore/local-runtime', safeId);
+  };
+
+  const localRuntimeFilePath = (root: string, projectPath: string) => {
+    const normalizedPath = normalizeProjectPath(projectPath);
+
+    if (!normalizedPath) {
+      throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+    }
+
+    const target = resolve(root, normalizedPath);
+
+    if (target !== root && !target.startsWith(`${root}${sep}`)) {
+      throw Object.assign(new Error('Invalid project path'), { statusCode: 400, code: 'INVALID_PROJECT_PATH' });
+    }
+
+    return target;
+  };
+
+  const ensureLocalRuntimeWorkspace = async (authorized: {
+    workspaceId: string;
+    projectId: string;
+    organizationId?: string;
+  }) => {
+    if (!localRuntimeFallbackEnabled()) {
+      throw Object.assign(new Error('Workspace manager is unavailable'), {
+        statusCode: 502,
+        code: 'WORKSPACE_MANAGER_UNAVAILABLE',
+      });
+    }
+
+    const root = localRuntimeRoot(authorized.workspaceId);
+    await mkdir(root, { recursive: true });
+
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId);
+
+    for (const file of files) {
+      const target = localRuntimeFilePath(root, file.path);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, file.content, 'utf8');
+    }
+
+    return root;
+  };
+
+  const localRuntimeProcessMap = (workspaceId: string) => {
+    const existing = localRuntimeProcesses.get(workspaceId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const created = new Map<string, LocalRuntimeProcess>();
+    localRuntimeProcesses.set(workspaceId, created);
+    return created;
+  };
+
+  const runLocalRuntimeCommand = async (
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    body: z.infer<typeof runtimeCommandSchema>,
+  ) => {
+    const root = await ensureLocalRuntimeWorkspace(authorized);
+    const args = body.args ?? [];
+    const id = createHash('sha256')
+      .update(`local:${authorized.workspaceId}:${body.command}:${args.join('\0')}:${Date.now()}`)
+      .digest('hex')
+      .slice(0, 12);
+    const child = spawn(body.command, args, { cwd: root, shell: false, env: process.env });
+    const record: LocalRuntimeProcess = {
+      id,
+      command: [body.command, ...args].join(' '),
+      startedAt: new Date().toISOString(),
+      status: 'running',
+      process: child,
+      output: '',
+    };
+    localRuntimeProcessMap(authorized.workspaceId).set(id, record);
+
+    let stdout = '';
+    let stderr = '';
+    const maxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
+    const timeoutMs = Math.min(body.timeoutMs ?? 30_000, Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000));
+    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+    const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
+      const value = chunk.toString('utf8');
+
+      if (target === 'stdout') {
+        stdout = `${stdout}${value}`.slice(-maxOutputBytes);
+      } else {
+        stderr = `${stderr}${value}`.slice(-maxOutputBytes);
+      }
+
+      record.output = `${stdout}${stderr}`.slice(-maxOutputBytes);
+    };
+
+    child.stdout.on('data', (chunk) => append('stdout', chunk));
+    child.stderr.on('data', (chunk) => append('stderr', chunk));
+
+    const code = await new Promise<number>((resolvePromise) => {
+      child.on('error', (error) => {
+        clearTimeout(timer);
+        stderr = `${stderr}${error.message}\n`.slice(-maxOutputBytes);
+        record.output = `${stdout}${stderr}`.slice(-maxOutputBytes);
+        record.status = 'exited';
+        record.exitCode = 127;
+        resolvePromise(127);
+      });
+      child.on('close', (exitCode) => {
+        clearTimeout(timer);
+        record.status = 'exited';
+        record.exitCode = exitCode ?? 0;
+        resolvePromise(exitCode ?? 0);
+      });
+    });
+
+    return { code, stdout, stderr, localRuntime: true };
+  };
+
+  const listLocalRuntimeProcesses = (workspaceId: string) => ({
+    processes: [...(localRuntimeProcesses.get(workspaceId)?.values() ?? [])].map((record) => ({
+      id: record.id,
+      command: record.command,
+      startedAt: record.startedAt,
+      pid: record.process.pid,
+      status: record.status,
+      exitCode: record.exitCode,
+    })),
+  });
+
+  const stopLocalRuntimeProcess = (workspaceId: string, processId: string) => {
+    const processes = localRuntimeProcesses.get(workspaceId);
+    const record = processes?.get(processId);
+
+    if (record) {
+      record.process.kill('SIGTERM');
+      record.status = 'killed';
+      processes?.delete(processId);
+      return { killed: true, id: processId, localRuntime: true };
+    }
+
+    const pid = Number(processId);
+
+    if (Number.isInteger(pid) && pid > 0) {
+      try {
+        process.kill(pid, 'SIGTERM');
+        return { killed: true, id: processId, localRuntime: true };
+      } catch {
+        return { killed: false, id: processId, localRuntime: true };
+      }
+    }
+
+    return { killed: false, id: processId, localRuntime: true };
+  };
+
+  const localRuntimeLogsSnapshot = async (authorized: {
+    workspaceId: string;
+    projectId: string;
+    organizationId?: string;
+  }) => {
+    const root = await ensureLocalRuntimeWorkspace(authorized);
+    const processLogs = [...(localRuntimeProcesses.get(authorized.workspaceId)?.values() ?? [])].flatMap((record) =>
+      record.output
+        ? [
+            {
+              timestamp: record.startedAt,
+              level: record.exitCode && record.exitCode !== 0 ? 'error' : 'info',
+              source: 'console',
+              message: record.output,
+              context: record.command,
+            },
+          ]
+        : [],
+    );
+    const debugDir = resolve(root, '.vibecore/debug');
+    const debugLogs = await readdir(debugDir)
+      .then(async (entries) =>
+        Promise.all(
+          entries
+            .filter((entry) => entry.endsWith('.log'))
+            .map(async (entry) => ({
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              source: 'console',
+              message: await readFile(resolve(debugDir, entry), 'utf8'),
+              context: entry,
+            })),
+        ),
+      )
+      .catch(() => []);
+
+    return { logs: [...processLogs, ...debugLogs], localRuntime: true };
+  };
+
   const aiGatewayCompletion = async (input: {
     project: ProjectRecord;
     content: string;
@@ -4729,7 +4952,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/status', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}`);
+    let managerWorkspace: any;
+
+    try {
+      managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}`);
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      await ensureLocalRuntimeWorkspace(authorized);
+      return {
+        ...runtimeSession(authorized.workspaceId, 'running', { localRuntime: true }),
+        runtimeMode: 'local-dev',
+      };
+    }
+
     return runtimeSession(
       authorized.workspaceId,
       managerWorkspace?.status === 'FAILED' ? 'failed' : managerWorkspace?.status === 'STOPPED' ? 'stopped' : 'running',
@@ -4891,15 +5129,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: `ABUSE_${signal.type.toUpperCase()}`,
       });
     }
-    const result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
-      authorized.workspaceId,
-      '/commands/run',
-      { method: 'POST', body: JSON.stringify(body) },
-    );
+    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+
+    try {
+      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+        authorized.workspaceId,
+        '/commands/run',
+        { method: 'POST', body: JSON.stringify(body) },
+      );
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      result = await runLocalRuntimeCommand(authorized, body);
+    }
+
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
     return {
       exitCode: result.code ?? 0,
       output,
+      localRuntime: result.localRuntime === true,
       events: [
         ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
         ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),
@@ -4910,17 +5160,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/processes', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const result = await agentRequest<{ processes: Array<{ id: string; command: string; startedAt: string }> }>(
-      authorized.workspaceId,
-      '/processes',
-    );
-    return result.processes.map((process) => ({ ...process, status: 'running' }));
+    let result: { processes: Array<{ id: string; command: string; startedAt: string; status?: string }> };
+
+    try {
+      result = await agentRequest<{ processes: Array<{ id: string; command: string; startedAt: string }> }>(
+        authorized.workspaceId,
+        '/processes',
+      );
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      result = listLocalRuntimeProcesses(authorized.workspaceId);
+    }
+
+    return result.processes.map((process) => ({ ...process, status: process.status ?? 'running' }));
   });
   app.post('/api/runtime/workspaces/:workspaceId/processes/:id/kill', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const id = (request.params as { id: string }).id;
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
+    try {
+      await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      stopLocalRuntimeProcess(authorized.workspaceId, id);
+    }
+
     return reply.code(204).send();
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
@@ -5163,7 +5433,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+    let logs: { logs: string[] };
+
+    try {
+      logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+    } catch (error) {
+      if (!isRuntimeManagerUnavailable(error)) {
+        throw error;
+      }
+
+      return {
+        workspaceId: authorized.workspaceId,
+        ...(await localRuntimeLogsSnapshot(authorized)),
+      };
+    }
 
     return {
       workspaceId: authorized.workspaceId,

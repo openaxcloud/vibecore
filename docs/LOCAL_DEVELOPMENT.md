@@ -84,6 +84,22 @@ pnpm run runtime:validate:api-kubernetes
 
 Cette commande cree un vrai utilisateur, un vrai projet PostgreSQL, demarre un vrai Pod `workspace-agent` via `workspace-manager`, puis valide fichiers, terminal WebSocket, preview, snapshots et zip via `RemoteKubernetesRuntimeAdapter`.
 
+### Fallback runtime local pour le developpement
+
+En developpement uniquement, l'API SaaS peut executer les commandes runtime directement dans un workspace local si `workspace-manager` est indisponible. Ce chemin evite que les panneaux IDE comme Debugger, Processes et Logs restent bloques sur `Workspace manager is unavailable` pendant le travail local.
+
+Variables utiles :
+
+```bash
+# Active par defaut hors production. Mettre false/0 pour forcer l'erreur manager.
+WORKSPACE_LOCAL_RUNTIME_FALLBACK=true
+
+# Racine des copies locales de workspaces. Par defaut: .vibecore/local-runtime
+WORKSPACE_LOCAL_RUNTIME_ROOT=.vibecore/local-runtime
+```
+
+Ce fallback synchronise les fichiers projet stockes par Vibecore vers `WORKSPACE_LOCAL_RUNTIME_ROOT/<workspaceId>` avant d'executer la commande. En production, garder `WORKSPACE_MANAGER_URL` configure et ne pas s'appuyer sur ce mode local.
+
 ## Verification
 
 ```bash
