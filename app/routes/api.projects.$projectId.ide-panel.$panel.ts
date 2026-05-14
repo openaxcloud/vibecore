@@ -89,14 +89,18 @@ function panelErrorMessage(error: unknown) {
 
 async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
   try {
-    const [dashboard, collaborators] = await Promise.all([
+    const [dashboard, collaborators, envVars] = await Promise.all([
       apiRequest(request, `/projects/${projectId}/dashboard`),
       apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
+      apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({ envVars: [] })),
     ]);
 
     return panelEnvelope('overview', project, {
       ...(dashboard as any),
       collaborators: (collaborators as any)?.collaborators ?? [],
+      workflowsState: readWorkflowsState(envVars),
+      terminalState: readTerminalState(envVars),
+      packagesState: readPackagesState(envVars),
     });
   } catch (error) {
     return panelEnvelopeError('overview', project, error);

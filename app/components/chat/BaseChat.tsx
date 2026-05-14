@@ -20,6 +20,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { shouldAutoAcceptAgentProposals } from '~/utils/agent-auto-accept';
 import { isRiskyAgentPatchPath, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
@@ -352,6 +353,9 @@ type ProjectIdeBackendState = {
   files?: Array<{ path: string; sizeBytes?: number }>;
   recentActivity?: Array<{ action: string; createdAt?: string }>;
   collaborators?: Array<{ id?: string; userId?: string; roleKey?: string }>;
+  workflowsState?: { runs?: any[] };
+  terminalState?: { scriptRuns?: any[] };
+  packagesState?: { runs?: any[] };
 };
 type IdePaneLeaf = { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?: string };
 type IdePaneSplit = {
@@ -1674,6 +1678,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.localStorage.setItem('vibecore:agent-auto-apply', String(projectAutoApply));
     }, [projectAutoApply]);
 
+    const [projectAutoAccept, setProjectAutoAccept] = useState(() => {
+      if (typeof window === 'undefined') {
+        return false;
+      }
+
+      return window.localStorage.getItem('vibecore:agent-auto-accept') === 'true';
+    });
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      window.localStorage.setItem('vibecore:agent-auto-accept', String(projectAutoAccept));
+    }, [projectAutoAccept]);
+
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
@@ -1750,6 +1770,61 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
     const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
     const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
+
+    const newestPendingProposalUpdatedAt = useMemo(() => {
+      return pendingAgentPatchProposals.reduce<string | null>((newest, proposal) => {
+        const timestamp = proposal.updatedAt ?? proposal.createdAt;
+
+        if (!timestamp) {
+          return newest;
+        }
+
+        if (!newest || Date.parse(timestamp) > Date.parse(newest)) {
+          return timestamp;
+        }
+
+        return newest;
+      }, null);
+    }, [pendingAgentPatchProposals]);
+    const autoAcceptDecision = useMemo(
+      () =>
+        shouldAutoAcceptAgentProposals({
+          autoAcceptEnabled: projectAutoAccept,
+          diagnosticsErrors: diagnosticErrorCount,
+          backendState: projectBackendState,
+          requiredAfter: newestPendingProposalUpdatedAt,
+        }),
+      [diagnosticErrorCount, newestPendingProposalUpdatedAt, projectAutoAccept, projectBackendState],
+    );
+
+    const autoAcceptingRef = useRef(false);
+
+    useEffect(() => {
+      if (!autoAcceptDecision.ok || autoAcceptingRef.current) {
+        return;
+      }
+
+      const pendingProposals = Object.values(agentPatchProposals).filter((proposal) => proposal.status === 'pending');
+
+      if (!pendingProposals.length) {
+        return;
+      }
+
+      autoAcceptingRef.current = true;
+      void workbenchStore
+        .acceptAllAgentPatchProposals(pendingProposals.map((proposal) => proposal.id))
+        .then(() => {
+          toast.success(
+            `Auto-accepted ${pendingProposals.length} AI file proposal${pendingProposals.length === 1 ? '' : 's'} after green tests.`,
+            {
+              autoClose: 6_000,
+            },
+          );
+        })
+        .finally(() => {
+          autoAcceptingRef.current = false;
+        });
+    }, [agentPatchProposals, autoAcceptDecision.ok]);
 
     const [cursorPositions, setCursorPositions] = useState<
       Record<string, { line: number; column: number; offset?: number }>
@@ -4602,6 +4677,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
                         </label>
                       </HeaderTip>
+                      <HeaderTip
+                        label={`When on, all pending AI file proposals are accepted automatically only after the latest real test run is green. Current gate: ${autoAcceptDecision.reason}`}
+                      >
+                        <label
+                          className="bolt-project-agent-plan-first"
+                          data-active={projectAutoAccept ? 'true' : 'false'}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={projectAutoAccept}
+                            onChange={(event) => setProjectAutoAccept(event.currentTarget.checked)}
+                            aria-label="Auto-accept after green tests"
+                          />
+                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                            <span className="bolt-project-agent-plan-first-thumb" />
+                          </span>
+                          <span className="bolt-project-agent-plan-first-label">Auto-accept</span>
+                        </label>
+                      </HeaderTip>
                     </div>
                     <p className="bolt-project-agent-mode-description">
                       {activeMode.description}
@@ -4609,6 +4703,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       {projectAutoApply
                         ? ' Auto-apply is on — safe file edits land silently with Undo. Risky files still need review.'
                         : ''}
+                      {projectAutoAccept ? ` Auto-accept gate: ${autoAcceptDecision.reason}` : ''}
                     </p>
                   </div>
                 );

@@ -1111,6 +1111,20 @@ export class WorkbenchStore {
     }
   }
 
+  async acceptAllAgentPatchProposals(proposalIds?: string[]) {
+    const proposals = this.agentPatchProposals.get();
+
+    const ids = proposalIds?.length
+      ? proposalIds
+      : Object.values(proposals)
+          .filter((proposal) => proposal.status === 'pending')
+          .map((proposal) => proposal.id);
+
+    for (const proposalId of ids) {
+      await this.acceptAgentPatchProposal(proposalId);
+    }
+  }
+
   /**
    * Revert an already-accepted agent patch by re-running the original file
    * content through the artifact action runner. Lets the "Undo" toast button
