@@ -2362,6 +2362,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
+  --project-agent-min-width: 340px;
   --project-ide-rail-width: 48px;
   position: fixed;
   inset: 0;
@@ -3302,6 +3303,7 @@ body :where(.lucide, svg[data-lucide]) {
   left: var(--project-ide-rail-width);
   z-index: 35;
   width: var(--project-agent-width);
+  min-width: var(--project-agent-min-width);
   height: calc(100vh - 36px);
   border-right: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
@@ -3570,6 +3572,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-title {
   flex: 1 1 auto;
   min-width: 0;
+  max-width: 100%;
   color: var(--vc-ide-text-primary);
   font-size: 13px;
   font-weight: 600;

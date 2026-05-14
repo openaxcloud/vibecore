@@ -31,6 +31,11 @@ import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
+import {
+  PROJECT_AGENT_PANEL_MIN_WIDTH,
+  clampProjectAgentPanelWidth,
+  defaultProjectAgentPanelWidth,
+} from '~/lib/project-agent-layout';
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore } from '~/lib/stores/diagnostics';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -1341,7 +1346,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
             <article key={proposal.id} className="bolt-project-agent-patch-card" data-status={proposal.status}>
               <div className="bolt-project-agent-patch-card-head">
                 <div>
-                  <strong>{proposal.relativePath}</strong>
+                  <strong title={proposal.relativePath}>{proposal.relativePath}</strong>
                   <span>
                     {proposal.hunks.length} hunk{proposal.hunks.length === 1 ? '' : 's'} · {selectedCount} selected
                   </span>
@@ -1607,7 +1612,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
-    const [agentWidth, setAgentWidth] = useState(420);
+
+    const [agentWidth, setAgentWidth] = useState(() =>
+      defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
+    );
+
     const initialBottomTerminalUiState = useMemo(readProjectBottomTerminalUiState, []);
     const [terminalBottomOpen, setTerminalBottomOpen] = useState<boolean>(initialBottomTerminalUiState.open);
     const [terminalBottomHeight, setTerminalBottomHeight] = useState<number>(initialBottomTerminalUiState.height);
@@ -2319,7 +2328,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setActivePaneId('pane-main');
 
           if (typeof ui?.agentWidth === 'number') {
-            setAgentWidth(Math.min(640, Math.max(360, ui.agentWidth)));
+            setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
           }
 
           const localBottomTerminalUiState = readProjectBottomTerminalUiState();
@@ -2859,7 +2868,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const startWidth = agentWidth;
 
         const onMove = (moveEvent: MouseEvent) => {
-          const nextWidth = Math.min(640, Math.max(360, startWidth + moveEvent.clientX - startX));
+          const nextWidth = clampProjectAgentPanelWidth(startWidth + moveEvent.clientX - startX);
           setAgentWidth(nextWidth);
         };
 
@@ -4459,6 +4468,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         style={
           {
             '--project-agent-width': `${agentWidth}px`,
+            '--project-agent-min-width': `${PROJECT_AGENT_PANEL_MIN_WIDTH}px`,
             '--project-right-panel-width': rightPanelOpen ? `${rightPanelWidth}px` : '0px',
           } as React.CSSProperties
         }
@@ -4948,7 +4958,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         })}
         style={
           projectIdeMode && !useMobileIde
-            ? ({ '--project-agent-width': `${agentWidth}px` } as React.CSSProperties)
+            ? ({
+                '--project-agent-width': `${agentWidth}px`,
+                '--project-agent-min-width': `${PROJECT_AGENT_PANEL_MIN_WIDTH}px`,
+              } as React.CSSProperties)
             : undefined
         }
         data-chat-visible={showChat}
