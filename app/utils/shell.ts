@@ -1,6 +1,7 @@
 import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract';
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
+import { normalizeShellCommand } from './shell-normalizer';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import type { ITerminal } from '~/types/terminal';
 
@@ -216,8 +217,15 @@ export class BoltShell {
       await state.executionPrms;
     }
 
+    /*
+     * Defensively normalize known jsh/BusyBox quirks (e.g. obsolete
+     * `head -20` flag form) before injecting the command into the terminal.
+     * See app/utils/shell-normalizer.ts.
+     */
+    const normalizedCommand = normalizeShellCommand(command.trim());
+
     //start a new execution
-    this.terminal.input(command.trim() + '\n');
+    this.terminal.input(normalizedCommand + '\n');
 
     //wait for the execution to finish
     const executionPromise = this.getCurrentExecutionResult();
