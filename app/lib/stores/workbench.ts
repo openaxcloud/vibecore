@@ -15,6 +15,7 @@ import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { validateGeneratedFiles, validateImports, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
 import { unreachable } from '~/utils/unreachable';
@@ -1008,6 +1009,8 @@ export class WorkbenchStore {
         acceptedHunkIds: acceptedIds,
       });
 
+      await this.#validateAgentPatchImports(proposal, acceptedContent);
+
       const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
 
       if (fileExistsInEditor) {
@@ -1386,6 +1389,7 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
 
     if (state.closed && !wasClosed) {
+      void this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
       this.addToExecutionQueue(() => this.#refreshPreviewAfterArtifactClose(artifactId));
     }
   }
@@ -1473,6 +1477,89 @@ export class WorkbenchStore {
     }
   }
 
+  #workspaceImportValidationFiles() {
+    const files = new Map<string, string>();
+
+    for (const [filePath, file] of Object.entries(this.#filesStore.files.get())) {
+      if (file?.type === 'file' && !file.isBinary) {
+        files.set(this.#relativeWorkbenchPath(filePath), file.content);
+      }
+    }
+
+    for (const [filePath, document] of Object.entries(this.#editorStore.documents.get())) {
+      if (!document.isBinary) {
+        files.set(this.#relativeWorkbenchPath(filePath), document.value);
+      }
+    }
+
+    return files;
+  }
+
+  #relativeWorkbenchPath(filePath: string) {
+    return filePath.replaceAll('\\', '/').replace(this.#runtime.workdir, '').replace(/^\/+/, '');
+  }
+
+  #agentPatchValidationFiles(artifactId: string, currentFile?: GeneratedFile) {
+    const files = this.#workspaceImportValidationFiles();
+
+    for (const proposal of Object.values(this.agentPatchProposals.get())) {
+      if (proposal.artifactId !== artifactId) {
+        continue;
+      }
+
+      if (proposal.status === 'rejected' || proposal.status === 'failed' || proposal.status === 'reverted') {
+        continue;
+      }
+
+      files.set(this.#relativeWorkbenchPath(proposal.relativePath), proposal.proposedContent);
+    }
+
+    if (currentFile) {
+      files.set(this.#relativeWorkbenchPath(currentFile.path), currentFile.content);
+    }
+
+    return files;
+  }
+
+  async #validateAgentPatchImports(proposal: AgentPatchProposal, proposedContent: string) {
+    const generatedFile = {
+      path: proposal.relativePath,
+      content: proposedContent,
+    };
+
+    await validateImports(generatedFile, this.#agentPatchValidationFiles(proposal.artifactId, generatedFile));
+  }
+
+  async #validatePendingAgentPatchProposalsForArtifact(artifactId: string) {
+    const proposals = Object.values(this.agentPatchProposals.get()).filter(
+      (proposal) => proposal.artifactId === artifactId && proposal.status === 'pending',
+    );
+
+    if (!proposals.length) {
+      return;
+    }
+
+    await Promise.all(
+      proposals.map(async (proposal) => {
+        try {
+          await this.#validateAgentPatchImports(proposal, proposal.proposedContent);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Generated file import validation failed.';
+          const artifact = this.#getArtifact(proposal.artifactId);
+
+          artifact?.runner.skipAction(proposal.actionId);
+          this.agentPatchProposals.setKey(proposal.id, {
+            ...proposal,
+            status: 'failed',
+            updatedAt: new Date().toISOString(),
+            error: message,
+          });
+          this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
+        }
+      }),
+    );
+  }
+
   #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
     if (data.action.type !== 'file') {
       return;
@@ -1530,6 +1617,10 @@ export class WorkbenchStore {
       );
     });
 
+    if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {
+      return;
+    }
+
     if (!this.#findPackageJsonEntry()) {
       await this.#persistRuntimeFilesToProjectStorage(artifactId);
       return;
@@ -1553,6 +1644,34 @@ export class WorkbenchStore {
           : `Preview restart skipped after ${artifactId}`,
       );
     });
+  }
+
+  async #validateWorkspaceImportsAfterArtifactClose(artifactId: string) {
+    const files = this.#workspaceImportValidationFiles();
+
+    const generatedFiles: GeneratedFile[] = [...files.entries()].map(([filePath, content]) => ({
+      path: filePath,
+      content,
+    }));
+
+    try {
+      await validateGeneratedFiles(generatedFiles);
+
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generated file import validation failed.';
+
+      this.actionAlert.set({
+        type: 'error',
+        title: 'AI generated an invalid file import',
+        description: message,
+        content: message,
+        source: 'preview',
+      });
+      this.appendWorkspaceLog(`Preview restart blocked after ${artifactId}: ${message}`);
+
+      return false;
+    }
   }
 
   async #syncPackageJsonDependenciesFromRuntimeImports() {
