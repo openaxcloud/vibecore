@@ -921,6 +921,9 @@ importers:
       '@vibecore/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@vibecore/runtime-contract':
+        specifier: workspace:*
+        version: link:../../packages/runtime-contract
       '@vibecore/security':
         specifier: workspace:*
         version: link:../../packages/security

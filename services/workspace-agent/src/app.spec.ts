@@ -66,6 +66,27 @@ describe('workspace-agent', () => {
     expect(response.json()).toMatchObject({ code: 0, stdout: 'ok\n' });
   });
 
+  it('normalizes shell pipeline shorthand before spawning workspace commands', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
+    const headers = { authorization: `Bearer ${token}` };
+    const runningCommand = app.inject({
+      method: 'POST',
+      url: '/commands/run',
+      headers,
+      payload: { command: 'sh', args: ['-lc', 'printf "ok\\n" | head -20; sleep 1'] },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const processes = await app.inject({ method: 'GET', url: '/processes', headers });
+    expect(processes.json()).toEqual({
+      processes: [expect.objectContaining({ command: expect.stringContaining('head -n 20') })],
+    });
+
+    const result = await runningCommand;
+    expect(result.json()).toMatchObject({ code: 0, stdout: 'ok\n' });
+  });
+
   it('detects preview ports from running command output', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
     const headers = { authorization: `Bearer ${token}` };

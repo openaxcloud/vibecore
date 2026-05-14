@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "vitest --run src",
+    "test": "vitest --run --config vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"runtime-contract lint delegated to root\""
   }

@@ -191,3 +191,192 @@ export interface RuntimeAdapter {
   exportZip(path?: string): Promise<Uint8Array>;
   importZip(data: Uint8Array, targetPath?: string): Promise<void>;
 }
+
+const HEAD_TAIL_OBSOLETE = /\b(head|tail)\s+-(\d+)(?=[\s;|&)]|$)/g;
+const POSIX_SHELLS = new Set(['ash', 'bash', 'jsh', 'sh', 'zsh']);
+
+/**
+ * Normalize known shell dialect quirks before commands reach WebContainer jsh,
+ * BusyBox, or the remote workspace-agent. The rewrite is intentionally narrow:
+ * obsolete `head -20` / `tail -20` syntax is converted to the POSIX form while
+ * quoted user text remains byte-for-byte unchanged.
+ */
+export function normalizeShellCommand(command: string): string {
+  if (!command || typeof command !== 'string') {
+    return command;
+  }
+
+  let normalized = '';
+  let unquoted = '';
+  let quote: '"' | "'" | null = null;
+  let escape = false;
+
+  const flushUnquoted = () => {
+    normalized += unquoted.replace(HEAD_TAIL_OBSOLETE, (_match, utility: string, count: string) => `${utility} -n ${count}`);
+    unquoted = '';
+  };
+
+  for (const char of command) {
+    if (escape) {
+      if (quote) {
+        normalized += char;
+      } else {
+        unquoted += char;
+      }
+      escape = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      if (quote) {
+        normalized += char;
+      } else {
+        unquoted += char;
+      }
+      escape = true;
+      continue;
+    }
+
+    if (quote) {
+      normalized += char;
+
+      if (char === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      flushUnquoted();
+      quote = char;
+      normalized += char;
+      continue;
+    }
+
+    unquoted += char;
+  }
+
+  flushUnquoted();
+
+  return normalized;
+}
+
+export function splitPipeSegments(command: string): string[] {
+  const segments: string[] = [];
+
+  let buffer = '';
+  let quote: '"' | "'" | null = null;
+  let escape = false;
+
+  for (const char of command) {
+    if (escape) {
+      buffer += char;
+      escape = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      buffer += char;
+      escape = true;
+      continue;
+    }
+
+    if (quote) {
+      buffer += char;
+
+      if (char === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+      buffer += char;
+      continue;
+    }
+
+    if (char === '|') {
+      segments.push(buffer.trim());
+      buffer = '';
+      continue;
+    }
+
+    buffer += char;
+  }
+
+  if (buffer.trim()) {
+    segments.push(buffer.trim());
+  }
+
+  return segments;
+}
+
+export function normalizeShellCommandArgs(command: string, args: string[] = []): string[] {
+  if (!args.length) {
+    return args;
+  }
+
+  const shellIndex = findShellInvocationIndex(command, args);
+
+  if (shellIndex === null) {
+    return args;
+  }
+
+  const commandFlagIndex = args.findIndex((arg, index) => index >= shellIndex && /^-[A-Za-z]*c[A-Za-z]*$/.test(arg));
+
+  if (commandFlagIndex === -1 || typeof args[commandFlagIndex + 1] !== 'string') {
+    return args;
+  }
+
+  const normalizedCommand = normalizeShellCommand(args[commandFlagIndex + 1]);
+
+  if (normalizedCommand === args[commandFlagIndex + 1]) {
+    return args;
+  }
+
+  const normalizedArgs = [...args];
+  normalizedArgs[commandFlagIndex + 1] = normalizedCommand;
+  return normalizedArgs;
+}
+
+export function normalizeShellCommandRequest<T extends { command: string; args?: string[] }>(request: T): T {
+  const originalArgs = request.args ?? [];
+  const normalizedArgs = normalizeShellCommandArgs(request.command, originalArgs);
+
+  if (normalizedArgs === originalArgs) {
+    return request;
+  }
+
+  return { ...request, args: normalizedArgs };
+}
+
+function findShellInvocationIndex(command: string, args: string[]): number | null {
+  const commandName = baseCommandName(command);
+
+  if (POSIX_SHELLS.has(commandName)) {
+    return 0;
+  }
+
+  if (commandName !== 'env') {
+    return null;
+  }
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (!arg || arg === '-' || arg.startsWith('-') || /^[A-Za-z_][A-Za-z0-9_]*=/.test(arg)) {
+      continue;
+    }
+
+    return POSIX_SHELLS.has(baseCommandName(arg)) ? index : null;
+  }
+
+  return null;
+}
+
+function baseCommandName(command: string): string {
+  return command.split(/[\\/]/).pop()?.toLowerCase() ?? command.toLowerCase();
+}

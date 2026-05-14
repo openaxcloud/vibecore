@@ -1,5 +1,6 @@
 import {
   RuntimeError,
+  normalizeShellCommandRequest,
   type CommandEvent,
   type CommandRequest,
   type CommandResult,
@@ -590,18 +591,19 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
   }
 
   async #spawnTracked(request: CommandRequest): Promise<WebContainerProcessLike> {
+    const normalizedRequest = normalizeShellCommandRequest(request);
     const webcontainer = await this.#getWebContainer();
     const id = `process-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const process = await webcontainer.spawn(request.command, request.args ?? [], {
-      cwd: request.cwd,
-      env: request.env,
-      terminal: request.terminal,
+    const process = await webcontainer.spawn(normalizedRequest.command, normalizedRequest.args ?? [], {
+      cwd: normalizedRequest.cwd,
+      env: normalizedRequest.env,
+      terminal: normalizedRequest.terminal,
     });
     this.#processes.set(id, {
       id,
-      command: request.command,
-      args: request.args,
-      cwd: request.cwd,
+      command: normalizedRequest.command,
+      args: normalizedRequest.args,
+      cwd: normalizedRequest.cwd,
       status: 'running',
       startedAt: new Date().toISOString(),
       process,

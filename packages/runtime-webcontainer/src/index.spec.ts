@@ -138,6 +138,19 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(changes).toEqual(['update:src/App.tsx']);
   });
 
+  it('normalizes jsh pipeline commands before spawning them', async () => {
+    const webcontainer = createWebContainer();
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+
+    await adapter.runCommand({ command: '/bin/jsh', args: ['-c', 'cat package.json | head -20'] });
+
+    expect(webcontainer.spawn).toHaveBeenCalledWith(
+      '/bin/jsh',
+      ['-c', 'cat package.json | head -n 20'],
+      expect.any(Object),
+    );
+  });
+
   it('imports real zip archives into the workspace filesystem', async () => {
     const webcontainer = createWebContainer();
     const adapter = new WebContainerRuntimeAdapter({ webcontainer });

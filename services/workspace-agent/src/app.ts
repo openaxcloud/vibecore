@@ -1,5 +1,6 @@
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
+import { normalizeShellCommand, normalizeShellCommandArgs } from '@vibecore/runtime-contract';
 import { detectCommandAbuse } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -499,7 +500,8 @@ async function runCommand(
   if (options.processes.size >= options.maxProcesses) {
     throw new Error('Process limit reached');
   }
-  const signal = detectCommandAbuse(command, args);
+  const normalizedArgs = normalizeShellCommandArgs(command, args);
+  const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
     throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
@@ -508,9 +510,9 @@ async function runCommand(
     });
   }
 
-  const id = createHash('sha256').update(`${command}:${args.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
-  const child = spawn(command, args, { cwd, shell: false, env: process.env });
-  const record = { id, command: [command, ...args].join(' '), startedAt: new Date().toISOString(), process: child, output: '' };
+  const id = createHash('sha256').update(`${command}:${normalizedArgs.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
+  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env });
+  const record = { id, command: [command, ...normalizedArgs].join(' '), startedAt: new Date().toISOString(), process: child, output: '' };
   options.processes.set(id, record);
 
   let stdout = '';
@@ -567,7 +569,8 @@ async function runTerminalCommand(
     throw new Error('Process limit reached');
   }
 
-  const signal = detectCommandAbuse('/bin/sh', ['-lc', command]);
+  const normalizedCommand = normalizeShellCommand(command);
+  const signal = detectCommandAbuse('/bin/sh', ['-lc', normalizedCommand]);
 
   if (signal) {
     throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
@@ -576,11 +579,11 @@ async function runTerminalCommand(
     });
   }
 
-  const id = createHash('sha256').update(`terminal:${command}:${Date.now()}`).digest('hex').slice(0, 12);
-  const child = spawn('/bin/sh', ['-lc', command], { cwd, shell: false, env: process.env });
+  const id = createHash('sha256').update(`terminal:${normalizedCommand}:${Date.now()}`).digest('hex').slice(0, 12);
+  const child = spawn('/bin/sh', ['-lc', normalizedCommand], { cwd, shell: false, env: process.env });
   const record: ProcessRecord = {
     id,
-    command,
+    command: normalizedCommand,
     startedAt: new Date().toISOString(),
     process: child,
     output: '',
@@ -625,7 +628,8 @@ async function runCommandStream(
     throw new Error('Process limit reached');
   }
 
-  const signal = detectCommandAbuse(command, args);
+  const normalizedArgs = normalizeShellCommandArgs(command, args);
+  const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
     throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
@@ -634,11 +638,11 @@ async function runCommandStream(
     });
   }
 
-  const id = createHash('sha256').update(`stream:${command}:${args.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
-  const child = spawn(command, args, { cwd, shell: false, env: process.env });
+  const id = createHash('sha256').update(`stream:${command}:${normalizedArgs.join('\0')}:${Date.now()}`).digest('hex').slice(0, 12);
+  const child = spawn(command, normalizedArgs, { cwd, shell: false, env: process.env });
   const record: ProcessRecord = {
     id,
-    command: [command, ...args].join(' '),
+    command: [command, ...normalizedArgs].join(' '),
     startedAt: new Date().toISOString(),
     process: child,
     output: '',
