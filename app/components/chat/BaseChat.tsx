@@ -518,7 +518,7 @@ function previewPortText(input: {
   const activePreview = input.previews.find((preview) => preview.ready !== false) ?? input.previews[0];
 
   if (activePreview) {
-    return `Port :${activePreview.port}`;
+    return `Port ${activePreview.port}`;
   }
 
   if (input.workspaceError) {
@@ -526,6 +526,25 @@ function previewPortText(input: {
   }
 
   return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Port: detecting' : 'Port: none';
+}
+
+function previewPortCompactText(input: {
+  previews: Array<{ port: number; ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  previewServerState: { status: string };
+}) {
+  const activePreview = input.previews.find((preview) => preview.ready !== false) ?? input.previews[0];
+
+  if (activePreview) {
+    return String(activePreview.port);
+  }
+
+  if (input.workspaceError) {
+    return 'Unavailable';
+  }
+
+  return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Detecting' : 'No port';
 }
 
 function previewCommandFromLogs(logs: string[]) {
@@ -2068,6 +2087,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runtimePortSummary = useMemo(
       () =>
         previewPortText({
+          previews: runtimePreviews,
+          workspaceLoading,
+          workspaceError,
+          previewServerState,
+        }),
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading],
+    );
+    const runtimePortCompactSummary = useMemo(
+      () =>
+        previewPortCompactText({
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
@@ -5494,7 +5523,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {workspaceLogs.length > 0 ? (
                 <button
                   type="button"
-                  className="bolt-project-statusbar-pill bolt-project-statusbar-logs"
+                  className="bolt-project-statusbar-pill bolt-project-statusbar-logs bolt-project-statusbar-tier-secondary"
                   onClick={() => {
                     setBottomTerminalView('output');
 
@@ -5511,9 +5540,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         ? 'Hide workspace logs'
                         : 'Show workspace logs'
                   }
+                  aria-label={`${terminalBottomOpen ? 'Hide' : 'Show'} workspace logs. ${workspaceLogs.length} log lines.`}
                 >
                   <span className="i-ph:list-magnifying-glass" aria-hidden />
-                  <span>{!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Logs'}</span>
+                  <span className="bolt-project-statusbar-label">
+                    {!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Logs'}
+                  </span>
                   <span className="bolt-project-statusbar-count">{workspaceLogs.length}</span>
                 </button>
               ) : null}
@@ -5542,7 +5574,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <span className="i-ph:monitor-play" aria-hidden />
                 <span className="bolt-project-statusbar-label">Preview</span>
-                <span className="bolt-project-statusbar-muted">{runtimePortSummary}</span>
+                <span className="bolt-project-statusbar-muted">{runtimePortCompactSummary}</span>
                 <span className="bolt-project-statusbar-muted bolt-project-statusbar-optional">
                   {runtimeDevServerSummary}
                 </span>

@@ -9504,8 +9504,18 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+@container statusbar (max-width: 840px) {
+  .bolt-project-statusbar-tier-secondary {
+    display: none !important;
+  }
+}
+
 @container statusbar (max-width: 780px) {
   .bolt-project-statusbar-editor-pill--tier-2 {
+    display: none !important;
+  }
+
+  .bolt-project-statusbar-primary .bolt-project-statusbar-label {
     display: none !important;
   }
 }
@@ -9523,12 +9533,6 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 @container statusbar (max-width: 560px) {
-  .bolt-project-statusbar-primary .bolt-project-statusbar-label {
-    display: none !important;
-  }
-}
-
-@container statusbar (max-width: 480px) {
   .bolt-project-statusbar-primary .bolt-project-statusbar-muted {
     display: none !important;
   }
@@ -9548,12 +9552,15 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
+  justify-content: flex-start;
 }
 
 .bolt-project-statusbar-secondary {
   gap: 4px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   margin-left: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .bolt-project-statusbar button,
@@ -9572,6 +9579,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 5px;
   padding: 0 6px;
   white-space: nowrap;
+  min-width: max-content;
   transition:
     background-color 140ms ease,
     color 140ms ease,
@@ -9660,13 +9668,13 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-runtime {
-  flex: 0 1 190px;
-  max-width: min(24vw, 260px);
+  flex: 0 1 112px;
+  max-width: min(18vw, 150px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-workspace {
-  flex: 0 1 180px;
-  max-width: min(22vw, 220px);
+  flex: 0 1 124px;
+  max-width: min(18vw, 158px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
@@ -9739,11 +9747,31 @@ button.bolt-project-statusbar-pill:focus-visible,
   }
 
   .bolt-project-statusbar .bolt-project-statusbar-workspace {
-    max-width: 150px;
+    max-width: 118px;
   }
 
   .bolt-project-statusbar .bolt-project-statusbar-runtime {
-    max-width: 130px;
+    max-width: 92px;
+  }
+}
+
+@container statusbar (max-width: 620px) {
+  .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child strong {
+    max-width: 72px;
+  }
+
+  .bolt-project-statusbar .bolt-project-statusbar-workspace {
+    flex-basis: 86px;
+  }
+
+  .bolt-project-statusbar .bolt-project-statusbar-runtime {
+    flex-basis: 64px;
+  }
+}
+
+@container statusbar (max-width: 520px) {
+  .bolt-project-statusbar-secondary {
+    display: none !important;
   }
 }
 
