@@ -60,7 +60,7 @@ export type ProjectFilesPanelRequest = {
   open?: boolean;
   requestId: number;
 };
-export type AgentPatchProposalStatus = 'pending' | 'applying' | 'accepted' | 'rejected' | 'failed';
+export type AgentPatchProposalStatus = 'pending' | 'applying' | 'accepted' | 'rejected' | 'failed' | 'reverted';
 export interface AgentPatchProposal {
   id: string;
   artifactId: string;
@@ -1065,6 +1065,59 @@ export class WorkbenchStore {
         error: message,
       });
       this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
+    }
+  }
+
+  /**
+   * Revert an already-accepted agent patch by re-running the original file
+   * content through the artifact action runner. Lets the "Undo" toast button
+   * roll back a silent auto-apply without going through the snapshots panel.
+   */
+  async revertAgentPatchProposal(proposalId: string) {
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal || proposal.status !== 'accepted') {
+      return;
+    }
+
+    const artifact = this.#getArtifact(proposal.artifactId);
+
+    if (!artifact) {
+      this.appendWorkspaceLog(`AI patch revert skipped (artifact gone): ${proposal.relativePath}`);
+      return;
+    }
+
+    try {
+      const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
+
+      if (fileExistsInEditor) {
+        this.#editorStore.updateFile(proposal.filePath, proposal.originalContent);
+        await this.saveFile(proposal.filePath);
+      }
+
+      await artifact.runner.runAction(
+        {
+          artifactId: proposal.artifactId,
+          messageId: proposal.messageId,
+          actionId: `${proposal.actionId}-revert`,
+          action: {
+            type: 'file',
+            filePath: proposal.relativePath,
+            content: proposal.originalContent,
+          },
+        },
+        false,
+      );
+
+      this.agentPatchProposals.setKey(proposalId, {
+        ...proposal,
+        status: 'reverted',
+        updatedAt: new Date().toISOString(),
+      });
+      this.appendWorkspaceLog(`AI patch reverted: ${proposal.relativePath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to revert AI patch.';
+      this.appendWorkspaceLog(`AI patch revert failed: ${proposal.relativePath}: ${message}`);
     }
   }
 

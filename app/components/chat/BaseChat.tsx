@@ -20,6 +20,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { isRiskyAgentPatchPath, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -1210,8 +1211,22 @@ function HeaderTip({
   );
 }
 
-function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
+function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any[]; autoApplyEnabled?: boolean }) {
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
+
+  /*
+   * When auto-apply is on, non-risky proposals are silently accepted by the
+   * caller; we only surface the ones the user must still review (risky files,
+   * or proposals that failed to auto-apply). When auto-apply is off, show
+   * every proposal as before.
+   */
+  const visibleProposals = useMemo(() => {
+    if (!autoApplyEnabled) {
+      return proposals;
+    }
+
+    return proposals.filter((proposal) => proposal.status === 'failed' || isRiskyAgentPatchPath(proposal.relativePath));
+  }, [proposals, autoApplyEnabled]);
 
   useEffect(() => {
     setSelectedHunksByProposal((current) => {
@@ -1219,7 +1234,7 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
 
       const next = { ...current };
 
-      for (const proposal of proposals) {
+      for (const proposal of visibleProposals) {
         if (!next[proposal.id]) {
           next[proposal.id] = new Set(proposal.hunks.map((hunk: any) => hunk.id));
           changed = true;
@@ -1227,7 +1242,7 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
       }
 
       for (const proposalId of Object.keys(next)) {
-        if (!proposals.some((proposal) => proposal.id === proposalId)) {
+        if (!visibleProposals.some((proposal) => proposal.id === proposalId)) {
           delete next[proposalId];
           changed = true;
         }
@@ -1235,9 +1250,9 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
 
       return changed ? next : current;
     });
-  }, [proposals]);
+  }, [visibleProposals]);
 
-  if (!proposals.length) {
+  if (!visibleProposals.length) {
     return null;
   }
 
@@ -1255,7 +1270,7 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
     });
   };
 
-  const pendingForBulk = proposals.filter((proposal) => proposal.status !== 'applying');
+  const pendingForBulk = visibleProposals.filter((proposal) => proposal.status !== 'applying');
 
   const acceptAll = () => {
     for (const proposal of pendingForBulk) {
@@ -1280,7 +1295,9 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
         <div>
           <strong>Review AI changes</strong>
           <span>
-            {proposals.length} file proposal{proposals.length === 1 ? '' : 's'} waiting before apply
+            {autoApplyEnabled
+              ? `${visibleProposals.length} risky file proposal${visibleProposals.length === 1 ? '' : 's'} need your review`
+              : `${visibleProposals.length} file proposal${visibleProposals.length === 1 ? '' : 's'} waiting before apply`}
           </span>
         </div>
         <div className="bolt-project-agent-patch-review-bulk">
@@ -1303,7 +1320,7 @@ function AgentPatchReviewQueue({ proposals }: { proposals: any[] }) {
         </div>
       </div>
       <div className="bolt-project-agent-patch-review-list">
-        {proposals.map((proposal) => {
+        {visibleProposals.map((proposal) => {
           const selectedHunks =
             selectedHunksByProposal[proposal.id] ?? new Set(proposal.hunks.map((hunk: any) => hunk.id));
 
@@ -1612,6 +1629,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.localStorage.setItem('vibecore:agent-plan-first-default', String(projectPlanFirst));
     }, [projectPlanFirst]);
 
+    /*
+     * Auto-apply default: matches Replit, JetBrains Copilot Chat and Cursor
+     * "agent mode" — apply edits silently and give the user an Undo. Risky
+     * paths (package.json, *.config.*, .env*, …) still surface in the manual
+     * review queue regardless of the toggle.
+     */
+    const [projectAutoApply, setProjectAutoApply] = useState(() => {
+      if (typeof window === 'undefined') {
+        return true;
+      }
+
+      const stored = window.localStorage.getItem('vibecore:agent-auto-apply');
+
+      return stored === null ? true : stored === 'true';
+    });
+
+    useEffect(() => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      window.localStorage.setItem('vibecore:agent-auto-apply', String(projectAutoApply));
+    }, [projectAutoApply]);
+
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
@@ -1623,6 +1664,59 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)),
       [agentPatchProposals],
     );
+
+    /*
+     * Auto-apply effect — silently accept any pending non-risky proposal as
+     * soon as it lands. Risky paths (package.json, .env*, *.config.*, …) are
+     * left in the review queue so the user still has the last word on those.
+     * Each silent accept fires a toast with an Undo action.
+     */
+    const autoAppliedRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+      if (!projectAutoApply) {
+        return;
+      }
+
+      for (const proposal of Object.values(agentPatchProposals)) {
+        if (autoAppliedRef.current.has(proposal.id)) {
+          continue;
+        }
+
+        if (
+          !shouldAutoApplyPatch({
+            autoApplyEnabled: true,
+            relativePath: proposal.relativePath,
+            status: proposal.status,
+          })
+        ) {
+          continue;
+        }
+
+        autoAppliedRef.current.add(proposal.id);
+
+        const filePath = proposal.relativePath;
+        void workbenchStore.acceptAgentPatchProposal(proposal.id).then(() => {
+          toast.success(`Applied ${filePath}`, {
+            autoClose: 5_000,
+            closeButton: ({ closeToast }) => (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void workbenchStore.revertAgentPatchProposal(proposal.id);
+                  closeToast?.(event);
+                }}
+                className="bolt-toast-undo-action"
+                aria-label={`Undo change to ${filePath}`}
+              >
+                Undo
+              </button>
+            ),
+          });
+        });
+      }
+    }, [agentPatchProposals, projectAutoApply]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
@@ -3371,7 +3465,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     />
                     {projectIdeMode && pendingAgentPatchProposals.length > 0 && (
                       <div className="w-full max-w-chat mx-auto px-0 pb-4">
-                        <AgentPatchReviewQueue proposals={pendingAgentPatchProposals} />
+                        <AgentPatchReviewQueue
+                          proposals={pendingAgentPatchProposals}
+                          autoApplyEnabled={projectAutoApply}
+                        />
                       </div>
                     )}
                   </>
@@ -4374,10 +4471,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <span className="bolt-project-agent-plan-first-label">Plan first</span>
                     </label>
                   </HeaderTip>
+                  <HeaderTip label="When on, the agent applies safe file edits silently and offers Undo. Dependency manifests, config and .env files still surface for review.">
+                    <label className="bolt-project-agent-plan-first" data-active={projectAutoApply ? 'true' : 'false'}>
+                      <input
+                        type="checkbox"
+                        checked={projectAutoApply}
+                        onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
+                        aria-label="Auto-apply"
+                      />
+                      <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                        <span className="bolt-project-agent-plan-first-thumb" />
+                      </span>
+                      <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
+                    </label>
+                  </HeaderTip>
                 </div>
                 <p className="bolt-project-agent-mode-description">
                   {activeMode.description}
                   {projectPlanFirst ? ' Plan first is on — the agent will draft a plan and wait for approval.' : ''}
+                  {projectAutoApply
+                    ? ' Auto-apply is on — safe file edits land silently with Undo. Risky files still need review.'
+                    : ''}
                 </p>
               </div>
             );
