@@ -7157,26 +7157,50 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 12px;
 }
 
-.bolt-project-package-manager-header,
+.bolt-project-package-summary-header,
+.bolt-project-package-action-header,
 .bolt-project-package-install-form,
 .bolt-project-package-command-row {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.bolt-project-package-manager-header strong {
+.bolt-project-package-summary-header span,
+.bolt-project-package-action-header span {
   display: block;
+  color: var(--vc-ide-accent-action);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bolt-project-package-summary-header strong {
+  display: block;
+  margin-top: 3px;
   color: var(--vc-ide-text-primary);
   font-size: 15px;
   text-transform: uppercase;
 }
 
-.bolt-project-package-manager-header span,
+.bolt-project-package-summary-header small,
+.bolt-project-package-action-header p,
 .bolt-project-package-sidebar p {
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
+}
+
+.bolt-project-package-action-header h4 {
+  margin: 4px 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.bolt-project-package-action-header p {
+  margin: 0;
 }
 
 .bolt-project-package-manager-options,
@@ -7239,6 +7263,10 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-package-install-form {
   flex-wrap: wrap;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  padding: 10px;
 }
 
 .bolt-project-package-install-form label {
@@ -7268,6 +7296,35 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   gap: 8px;
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-package-actions {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 72%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 91%), transparent 58%),
+    var(--vc-ide-bg-panel);
+}
+
+.bolt-project-package-command-row {
+  justify-content: flex-start;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  padding-top: 10px;
+}
+
+.bolt-project-package-command-row form {
+  display: contents;
+}
+
+.bolt-project-package-command-row button {
+  min-height: 36px;
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card);
+  font-weight: 750;
+}
+
+.bolt-project-package-command-row button:not(:disabled):hover {
+  border-color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, var(--vc-ide-bg-card));
 }
 
 .bolt-project-package-content {
@@ -7353,7 +7410,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 @media (max-width: 960px) {
   .bolt-project-packages-hero,
-  .bolt-project-package-manager-header,
+  .bolt-project-package-summary-header,
+  .bolt-project-package-action-header,
   .bolt-project-package-install-form,
   .bolt-project-package-command-row {
     align-items: stretch;

@@ -9620,23 +9620,12 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
       </section>
 
       <section className="bolt-project-package-manager-card">
-        <div className="bolt-project-package-manager-header">
+        <div className="bolt-project-package-summary-header">
           <div>
+            <span>Workspace package summary</span>
             <strong>{packageManager}</strong>
-            <span>{lockfiles.length ? `${lockfiles.length} lockfile(s) detected` : 'No lockfile detected yet'}</span>
           </div>
-          <div className="bolt-project-package-manager-options" role="group" aria-label="Package manager">
-            {managerOptions.map((manager) => (
-              <button
-                key={manager}
-                type="button"
-                className={manager === packageManager ? 'selected' : undefined}
-                onClick={() => setPackageManager(manager)}
-              >
-                {manager}
-              </button>
-            ))}
-          </div>
+          <small>{lockfiles.length ? `${lockfiles.length} lockfile(s) detected` : 'No lockfile detected yet'}</small>
         </div>
         <div className="bolt-project-package-stat-grid">
           <article>
@@ -9666,7 +9655,26 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
         </div>
       </section>
 
-      <section className="bolt-project-package-actions">
+      <section className="bolt-project-package-actions" aria-label="Package install and maintenance actions">
+        <div className="bolt-project-package-action-header">
+          <div>
+            <span>Add package</span>
+            <h4>Install into the real workspace</h4>
+            <p>Choose the detected package manager, then install one or more packages against this project.</p>
+          </div>
+          <div className="bolt-project-package-manager-options" role="group" aria-label="Package manager">
+            {managerOptions.map((manager) => (
+              <button
+                key={manager}
+                type="button"
+                className={manager === packageManager ? 'selected' : undefined}
+                onClick={() => setPackageManager(manager)}
+              >
+                {manager}
+              </button>
+            ))}
+          </div>
+        </div>
         <form onSubmit={onSubmit} className="bolt-project-package-install-form">
           <input name="intent" value="install-package" type="hidden" />
           <input name="packageManager" value={packageManager} type="hidden" />
@@ -9691,7 +9699,7 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           </label>
           <PanelButton disabled={busy || !packageInput.trim()}>Install package</PanelButton>
         </form>
-        <div className="bolt-project-package-command-row">
+        <div className="bolt-project-package-command-row" aria-label="Package health checks">
           <form onSubmit={onSubmit}>
             <input name="intent" value="audit" type="hidden" />
             <input name="packageManager" value={packageManager} type="hidden" />
