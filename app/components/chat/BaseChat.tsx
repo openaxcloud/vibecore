@@ -7623,14 +7623,55 @@ function ProjectIdePanelContent({
               <option value="production">Production</option>
             </select>
           </label>
-          <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} />
-          <PanelInput name="outputDirectory" defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY} />
-          <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} />
-          <PanelInput name="branch" placeholder={project.gitDefaultBranch ?? 'main'} />
-          <PanelInput name="repositoryUrl" defaultValue={project.gitRepositoryUrl ?? ''} />
-          <PanelInput name="customDomain" />
-          <textarea name="envVars" placeholder={'KEY=value\nANOTHER_KEY=value'} />
-          <PanelInput name="injectSecrets" placeholder="DATABASE_URL,STRIPE_SECRET_KEY" />
+          <label title="Command executed before deployment to generate production assets.">
+            <span>Build command</span>
+            <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} aria-label="Build command" />
+            <small>Example: npm run build, pnpm build, or yarn build.</small>
+          </label>
+          <label title="Directory containing the built static assets or server bundle to deploy.">
+            <span>Output directory</span>
+            <PanelInput
+              name="outputDirectory"
+              defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
+              aria-label="Output directory"
+            />
+            <small>For Vite this is usually dist.</small>
+          </label>
+          <label title="Detected framework used to choose provider defaults. Leave empty to keep auto-detection.">
+            <span>Framework detected</span>
+            <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} aria-label="Framework detected" />
+            <small>Leave blank to let Vibecore infer the framework from package scripts and config files.</small>
+          </label>
+          <label title="Git branch or workspace branch used as the deployment source.">
+            <span>Branch</span>
+            <PanelInput name="branch" placeholder={project.gitDefaultBranch ?? 'main'} aria-label="Deployment branch" />
+            <small>Defaults to the project branch when no branch is provided.</small>
+          </label>
+          <label title="Optional Git remote URL used by providers that deploy from a repository.">
+            <span>Repository URL</span>
+            <PanelInput
+              name="repositoryUrl"
+              defaultValue={project.gitRepositoryUrl ?? ''}
+              aria-label="Repository URL"
+            />
+          </label>
+          <label title="Optional domain to attach to the deployment after DNS verification.">
+            <span>Custom domain</span>
+            <PanelInput name="customDomain" aria-label="Custom domain" placeholder="app.example.com" />
+          </label>
+          <label title="Plain environment variables added for this deployment. Do not paste secrets here.">
+            <span>Environment variables</span>
+            <textarea name="envVars" placeholder={'KEY=value\nANOTHER_KEY=value'} aria-label="Environment variables" />
+            <small>Use KEY=value pairs, one per line. Store sensitive values as secrets.</small>
+          </label>
+          <label title="Comma-separated names of existing project secrets to inject at deploy time.">
+            <span>Secrets to inject</span>
+            <PanelInput
+              name="injectSecrets"
+              placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
+              aria-label="Secrets to inject"
+            />
+          </label>
           <label className="bolt-project-checkbox-row">
             <input name="previewDeployment" type="checkbox" defaultChecked />
             Create preview URL for non-production deploys

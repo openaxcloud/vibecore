@@ -7969,9 +7969,26 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-deploy-summary span,
 .bolt-project-deploy-card span,
 .bolt-project-deploy-wizard p,
-.bolt-project-deploy-wizard label {
+.bolt-project-deploy-wizard label,
+.bolt-project-deploy-wizard small {
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
+}
+
+.bolt-project-deploy-wizard label {
+  display: grid;
+  gap: 6px;
+}
+
+.bolt-project-deploy-wizard label > span {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bolt-project-deploy-wizard small {
+  color: var(--vc-ide-text-muted);
+  line-height: 1.45;
 }
 
 .bolt-project-deploy-summary strong,
@@ -8072,7 +8089,7 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
   font-size: 13px;
-  margin-top: 6px;
+  margin-top: 0;
   padding: 8px 10px;
 }
 
