@@ -440,12 +440,34 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
         panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
       ]);
 
+      const workspaceId = (dashboard as any)?.workspace?.id ?? projectId;
+
+      const [runtimeStatus, runtimePorts] =
+        panel === 'monitoring'
+          ? await Promise.all([
+              apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch(
+                (error) => ({
+                  error: panelErrorMessage(error),
+                }),
+              ),
+              apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch(
+                (error) => ({
+                  error: panelErrorMessage(error),
+                  ports: [],
+                }),
+              ),
+            ])
+          : [{}, { ports: [] }];
+
       return json(
         panelEnvelope(panel, project.project, {
           ...(dashboard as any),
           ...(envVars as any),
           ...(deployments as any),
           ...(snapshots as any),
+          workspaceId,
+          runtimeStatus,
+          runtimePorts,
         }),
       );
     } catch (error) {

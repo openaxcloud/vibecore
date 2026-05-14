@@ -476,6 +476,26 @@ function runtimeStatusText(input: {
   return 'Runtime: Not started';
 }
 
+function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (Array.isArray(payload?.ports)) {
+    return payload.ports;
+  }
+
+  return [];
+}
+
+function runtimeWorkspaceFromPanelData(data: any) {
+  if (data?.runtimeStatus && !data.runtimeStatus.error) {
+    return data.runtimeStatus;
+  }
+
+  return data?.workspace ?? null;
+}
+
 function previewPortText(input: {
   previews: Array<{ port: number; ready?: boolean }>;
   workspaceLoading: boolean;
@@ -1993,10 +2013,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const backendDeletedPaths = useMemo(() => workbenchStore.getDeletedPaths(), [projectFiles]);
 
     const projectRuntimeState = useMemo<ProjectIdeBackendState>(() => {
-      if (!runtimePreviews.length) {
-        return projectBackendState;
-      }
-
       const runtimePorts = runtimePreviews.map((preview) => ({
         port: preview.port,
         ready: preview.ready,
@@ -2004,20 +2020,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         url: preview.baseUrl,
       }));
 
+      const effectiveWorkspace = runtimeWorkspaceStatus ?? projectBackendState.workspace ?? null;
+
       return {
         ...projectBackendState,
-        workspace: projectBackendState.workspace
+        workspace: effectiveWorkspace
           ? {
-              ...projectBackendState.workspace,
-              ports: projectBackendState.workspace.ports ?? runtimePorts,
+              ...effectiveWorkspace,
+              ports: 'ports' in effectiveWorkspace ? (effectiveWorkspace.ports ?? runtimePorts) : runtimePorts,
             }
-          : runtimeWorkspaceStatus
-            ? {
-                ...runtimeWorkspaceStatus,
-                ports: runtimePorts,
-              }
-            : null,
-        ports: runtimePorts,
+          : null,
+        ports: runtimePorts.length ? runtimePorts : (projectBackendState.ports ?? []),
       };
     }, [projectBackendState, runtimePreviews, runtimeWorkspaceStatus]);
 
@@ -6199,10 +6212,22 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
   const terminalState = data.terminalState ?? {};
   const sshConnections = terminalState.sshConnections ?? [];
   const scriptRuns = terminalState.scriptRuns ?? [];
-  const runtimeFiles = Array.isArray(data.runtimeFiles) ? data.runtimeFiles : [];
-  const runtimeProcesses = Array.isArray(data.runtimeProcesses) ? data.runtimeProcesses : [];
-  const runtimePorts = Array.isArray(data.runtimePorts) ? data.runtimePorts : [];
-  const workspace = data.workspace ?? data.runtimeStatus;
+
+  const runtimeFiles = Array.isArray(data.runtimeFiles?.files)
+    ? data.runtimeFiles.files
+    : Array.isArray(data.runtimeFiles)
+      ? data.runtimeFiles
+      : [];
+  const runtimeProcesses = Array.isArray(data.runtimeProcesses?.processes)
+    ? data.runtimeProcesses.processes
+    : Array.isArray(data.runtimeProcesses)
+      ? data.runtimeProcesses
+      : [];
+  const runtimePorts = runtimePortsFromPayload(data.runtimePorts).length
+    ? runtimePortsFromPayload(data.runtimePorts)
+    : runtimePortsFromPayload(data.ports);
+
+  const workspace = runtimeWorkspaceFromPanelData(data);
   const workspaceId = data.workspaceId ?? workspace?.id ?? projectId;
 
   const loadPanel = useCallback(async () => {
@@ -6415,7 +6440,15 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             <PanelRows
               rows={[
                 ['Workspace', workspaceId ?? 'none'],
-                ['Status', workspace?.status ?? data.runtimeStatus?.status ?? 'unknown'],
+                [
+                  'Status',
+                  runtimeStatusText({
+                    workspaceStatus: workspace,
+                    ports: runtimePorts,
+                    workspaceLoading: Boolean(workspace && !workspace.status),
+                    workspaceError: workspace?.error,
+                  }).replace(/^Runtime:\s*/, ''),
+                ],
                 ['Ports', runtimePorts.length ? runtimePorts.map((port: any) => `:${port.port}`).join(', ') : 'none'],
                 ['Processes', String(runtimeProcesses.length)],
               ]}
@@ -9698,10 +9731,12 @@ function ProjectMonitoringPanel({
 
   const { userFacingEvents, hiddenRoutineCount } = partitionMonitoringEventsHelper(windowed);
 
-  const workspace = data.workspace ?? data.runtimeStatus;
+  const runtimePorts = runtimePortsFromPayload(data.runtimePorts);
+  const workspace = runtimeWorkspaceFromPanelData(data);
 
   const workspaceLabel = runtimeStatusText({
     workspaceStatus: workspace,
+    ports: runtimePorts,
     workspaceLoading: Boolean(workspace && !workspace.status),
     workspaceError: workspace?.error,
   });
@@ -12100,8 +12135,16 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   const [query, setQuery] = useState('');
   const [regexEnabled, setRegexEnabled] = useState(false);
   const [liveTail, setLiveTail] = useState(true);
-  const workspace = data.workspace ?? data.runtimeStatus;
-  const workspaceStatus = workspace?.status ?? data.runtimeStatus?.status ?? 'unknown';
+  const runtimePorts = runtimePortsFromPayload(data.runtimePorts);
+  const workspace = runtimeWorkspaceFromPanelData(data);
+
+  const workspaceStatus = runtimeStatusText({
+    workspaceStatus: workspace,
+    ports: runtimePorts,
+    workspaceLoading: Boolean(workspace && !workspace.status),
+    workspaceError: workspace?.error,
+  }).replace(/^Runtime:\s*/, '');
+
   const runtimeLogs = Array.isArray(data.runtimeLogs?.logs) ? data.runtimeLogs.logs : [];
 
   const deploymentLogs = (data.deployments ?? []).flatMap((deployment: any) =>

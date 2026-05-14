@@ -233,6 +233,7 @@ function IdeProjectTopBar({
   const loading = useStore(workbenchStore.workspaceLoading);
   const error = useStore(workbenchStore.workspaceError);
   const previews = useStore(workbenchStore.previews);
+  const runtimeWorkspaceStatus = useStore(workbenchStore.workspaceStatus);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
@@ -243,9 +244,10 @@ function IdeProjectTopBar({
   const [renameError, setRenameError] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
-  const isReallyRunning = isWorkspaceReallyRunning(workspace, previews);
+  const effectiveWorkspace = runtimeWorkspaceStatus ?? workspace;
+  const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
   const previewRunning = isReallyRunning;
-  const workspaceState = workspaceUiState(workspace, { ports: previews, loading, error });
+  const workspaceState = workspaceUiState(effectiveWorkspace, { ports: previews, loading, error });
 
   const state =
     workspaceState === 'starting'
