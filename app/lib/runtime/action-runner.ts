@@ -16,6 +16,8 @@ export type BaseActionState = BoltAction & {
   abort: () => void;
   executed: boolean;
   abortSignal: AbortSignal;
+  startedAt?: number;
+  finishedAt?: number;
 };
 
 export type FailedActionState = BoltAction &
@@ -26,7 +28,7 @@ export type FailedActionState = BoltAction &
 
 export type ActionState = BaseActionState | FailedActionState;
 
-type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed'>>;
+type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed' | 'startedAt' | 'finishedAt'>>;
 
 export type ActionStateUpdate =
   | BaseActionUpdate
@@ -362,8 +364,24 @@ export class ActionRunner {
 
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();
+    const current = actions[id];
+    const merged = { ...current, ...newState } as ActionState;
 
-    this.actions.setKey(id, { ...actions[id], ...newState });
+    if (newState.status && newState.status !== current?.status) {
+      const now = Date.now();
+
+      if (newState.status === 'running' && !merged.startedAt) {
+        merged.startedAt = now;
+      }
+
+      const terminal = newState.status === 'complete' || newState.status === 'failed' || newState.status === 'aborted';
+
+      if (terminal && !merged.finishedAt) {
+        merged.finishedAt = now;
+      }
+    }
+
+    this.actions.setKey(id, merged);
   }
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {

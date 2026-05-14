@@ -193,6 +193,80 @@ export function openArtifactInWorkbench(filePath: any) {
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
 }
 
+function formatActionDuration(ms?: number) {
+  if (!Number.isFinite(ms) || !ms || ms <= 0) {
+    return undefined;
+  }
+
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+
+  if (ms < 60_000) {
+    const seconds = ms / 1000;
+    return `${seconds >= 10 ? Math.round(seconds) : seconds.toFixed(1)}s`;
+  }
+
+  const minutes = Math.floor(ms / 60_000);
+  const seconds = Math.round((ms % 60_000) / 1000);
+
+  return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`;
+}
+
+function statusLabel(status: ActionState['status']) {
+  switch (status) {
+    case 'pending':
+      return 'Queued';
+    case 'running':
+      return 'Running';
+    case 'complete':
+      return 'Done';
+    case 'failed':
+      return 'Failed';
+    case 'aborted':
+      return 'Stopped';
+    default:
+      return undefined;
+  }
+}
+
+function ActionDurationBadge({ action }: { action: ActionState }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (action.status !== 'running' || !action.startedAt) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => setNow(Date.now()), 500);
+
+    return () => window.clearInterval(interval);
+  }, [action.status, action.startedAt]);
+
+  let durationMs: number | undefined;
+
+  if (action.status === 'running' && action.startedAt) {
+    durationMs = now - action.startedAt;
+  } else if (action.startedAt && action.finishedAt) {
+    durationMs = action.finishedAt - action.startedAt;
+  }
+
+  const label = formatActionDuration(durationMs);
+
+  if (!label) {
+    return null;
+  }
+
+  return (
+    <span
+      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textSecondary"
+      aria-label={`Duration ${label}`}
+    >
+      {label}
+    </span>
+  );
+}
+
 const ActionList = memo(({ actions }: ActionListProps) => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -200,6 +274,8 @@ const ActionList = memo(({ actions }: ActionListProps) => {
         {actions.map((action, index) => {
           const { status, type, content } = action;
           const isLast = index === actions.length - 1;
+          const hasShellPreview = type === 'shell' || type === 'start';
+          const statusText = statusLabel(status);
 
           return (
             <motion.li
@@ -211,9 +287,15 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 duration: 0.2,
                 ease: cubicEasingFn,
               }}
+              className="bolt-action-row"
+              data-status={status}
             >
               <div className="flex items-center gap-1.5 text-sm">
-                <div className={classNames('text-lg', getIconColor(action.status))}>
+                <div
+                  className={classNames('text-lg', getIconColor(action.status))}
+                  role="status"
+                  aria-label={statusText ?? status}
+                >
                   {status === 'running' ? (
                     <>
                       {type !== 'start' ? (
@@ -230,40 +312,61 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                     <div className="i-ph:x"></div>
                   ) : null}
                 </div>
-                {type === 'file' ? (
-                  <div>
-                    Create{' '}
-                    <code
-                      className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
-                      onClick={() => openArtifactInWorkbench(action.filePath)}
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  {type === 'file' ? (
+                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span className="shrink-0">Create</span>
+                      <code
+                        className="truncate bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                        onClick={() => openArtifactInWorkbench(action.filePath)}
+                      >
+                        {action.filePath}
+                      </code>
+                    </div>
+                  ) : type === 'shell' ? (
+                    <span className="flex-1 min-h-[28px] flex items-center">Run command</span>
+                  ) : type === 'start' ? (
+                    <a
+                      onClick={(e) => {
+                        e.preventDefault();
+                        workbenchStore.currentView.set('preview');
+                      }}
+                      className="flex flex-1 items-center min-h-[28px]"
                     >
-                      {action.filePath}
-                    </code>
-                  </div>
-                ) : type === 'shell' ? (
-                  <div className="flex items-center w-full min-h-[28px]">
-                    <span className="flex-1">Run command</span>
-                  </div>
-                ) : type === 'start' ? (
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      workbenchStore.currentView.set('preview');
-                    }}
-                    className="flex items-center w-full min-h-[28px]"
+                      Start Application
+                    </a>
+                  ) : null}
+                </div>
+                {statusText ? (
+                  <span
+                    className={classNames(
+                      'shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-4',
+                      'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
+                      status === 'complete'
+                        ? 'text-bolt-elements-icon-success'
+                        : status === 'failed'
+                          ? 'text-bolt-elements-icon-error'
+                          : status === 'running'
+                            ? 'text-bolt-elements-loader-progress'
+                            : 'text-bolt-elements-textSecondary',
+                    )}
                   >
-                    <span className="flex-1">Start Application</span>
-                  </a>
+                    {statusText}
+                  </span>
                 ) : null}
+                <ActionDurationBadge action={action} />
               </div>
-              {(type === 'shell' || type === 'start') && (
-                <ShellCodeBlock
-                  classsName={classNames('mt-1', {
-                    'mb-3.5': !isLast,
-                  })}
-                  code={content}
-                />
-              )}
+              {hasShellPreview && content ? (
+                <details
+                  className={classNames('bolt-action-row-details mt-1', { 'mb-3.5': !isLast })}
+                  open={status === 'running' || status === 'failed'}
+                >
+                  <summary className="cursor-pointer select-none text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary">
+                    {status === 'failed' ? 'Show command (failed)' : 'Show command'}
+                  </summary>
+                  <ShellCodeBlock classsName="mt-1" code={content} />
+                </details>
+              ) : null}
             </motion.li>
           );
         })}
