@@ -95,11 +95,12 @@ body {
   --vc-ide-bg-panel: #0e1525;
   --vc-ide-bg-card: #1a2030;
   --vc-ide-bg-hover: #2b3245;
+  --vc-ide-bg-muted: #20283a;
   --vc-ide-border-subtle: #1a2030;
   --vc-ide-border-visible: #2b3245;
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
-  --vc-ide-text-muted: #6e7681;
+  --vc-ide-text-muted: #a3adba;
   --vc-ide-accent-ai-start: #7b61ff;
   --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
@@ -237,11 +238,12 @@ body {
   --vc-ide-bg-panel: #ffffff;
   --vc-ide-bg-card: #eef2f7;
   --vc-ide-bg-hover: #e2e8f0;
-  --vc-ide-border-subtle: #d8dee8;
-  --vc-ide-border-visible: #c4ccd8;
+  --vc-ide-bg-muted: #e2e8f0;
+  --vc-ide-border-subtle: #cfd7e3;
+  --vc-ide-border-visible: #9aa8bb;
   --vc-ide-text-primary: #111827;
-  --vc-ide-text-secondary: #4b5563;
-  --vc-ide-text-muted: #6b7280;
+  --vc-ide-text-secondary: #334155;
+  --vc-ide-text-muted: #475569;
   --vc-ide-accent-ai-start: #6d5dfc;
   --vc-ide-accent-ai-end: #d9467e;
   --vc-ide-accent-success: #17803d;
@@ -322,6 +324,7 @@ body {
   --vc-ui-shadow-xl: 0 24px 64px rgb(15 23 42 / 0.16);
   --vc-ui-overlay-bg: rgb(255 255 255 / 0.85);
   --vc-ui-tooltip-bg: #ffffff;
+  --vc-ui-focus-ring: #005fcc;
   --vc-ui-tooltip-border: var(--vc-ide-border-visible);
   --vc-ui-scrollbar-thumb: rgb(148 163 184 / 0.6);
   --vc-ui-scrollbar-thumb-hover: #94a3b8;
@@ -1121,6 +1124,18 @@ body
   ):focus-visible {
   outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ui-focus-ring), transparent 78%);
+}
+
+.bolt-responsive-ide
+  :where(button, [role='button'], [role='tab'], [role='menuitem'], input, textarea, select, summary):focus-visible {
+  outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ui-focus-ring), transparent 78%) !important;
+}
+
+.bolt-responsive-ide :where(button, [role='button'], [role='tab'], [role='menuitem'], summary) {
+  touch-action: manipulation;
 }
 
 .sr-only,
@@ -2312,7 +2327,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-publish-button,
 .bolt-project-runtime-status {
   display: inline-flex;
-  height: 30px;
+  min-height: 32px;
   align-items: center;
   justify-content: center;
   gap: 6px;
@@ -2327,7 +2342,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-topbar-icon-button {
-  width: 30px;
+  width: 32px;
+  min-width: 32px;
   color: var(--vc-ide-text-muted) !important;
 }
 
@@ -2423,8 +2439,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-user-menu-trigger {
   appearance: none;
   display: inline-flex;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   cursor: pointer;
   list-style: none;
   align-items: center;
@@ -3560,7 +3576,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item {
   position: relative;
-  min-height: 38px;
+  min-height: 40px;
   flex-direction: column;
   gap: 0;
   padding: 0;
@@ -3636,7 +3652,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-more-trigger {
-  min-height: 28px;
+  min-height: 32px;
   gap: 4px;
   font-size: 9px;
   font-weight: 700;
@@ -3647,7 +3663,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-item-compact {
-  min-height: 38px;
+  min-height: 40px;
 }
 
 .bolt-project-workspace-shell {
@@ -4010,8 +4026,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tabbar,
 .bolt-project-right-tabs {
   display: flex;
-  height: 36px;
-  min-height: 36px;
+  height: 40px;
+  min-height: 40px;
   min-width: 0;
   align-items: stretch;
   overflow: hidden;
@@ -4200,9 +4216,9 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-close,
 .bolt-project-tab-save {
   display: inline-flex;
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -4241,8 +4257,9 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-tab-action {
   display: inline-flex;
-  width: 30px;
-  height: 100%;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   align-self: center;
@@ -4264,14 +4281,14 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-tabbar > .bolt-project-tool-popover .bolt-project-tab-action {
-  width: 30px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 1px solid transparent;
 }
 
 .bolt-project-add-tab-action {
-  width: 30px;
-  min-width: 30px;
+  width: 32px;
+  min-width: 32px;
   gap: 0;
   border-left: 0;
   border-radius: 6px;
@@ -4728,7 +4745,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-console-header button,
 .bolt-project-secret-row button {
   display: inline-flex;
-  height: 24px;
+  min-width: 32px;
+  min-height: 32px;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
@@ -4758,9 +4776,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-webview-toolbar button {
-  width: 22px;
-  min-width: 22px;
-  height: 22px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
   padding: 0;
 }
 
@@ -4788,7 +4806,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-file-tree button {
-  min-height: 24px;
+  min-height: 32px;
   border-width: 0 0 0 2px;
   border-left-color: transparent;
   border-radius: 0;
@@ -4844,7 +4862,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-console-header button {
-  min-height: 28px;
+  min-height: 32px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -8833,12 +8851,12 @@ body :where(.lucide, svg[data-lucide]) {
   left: calc(var(--project-agent-width, 420px) + var(--project-ide-rail-width, 72px));
   z-index: 40;
   display: flex;
-  height: 28px;
+  min-height: 32px;
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: color-mix(in srgb, var(--vc-ide-bg-panel), var(--vc-ide-bg-app) 14%);
-  color: var(--vc-ide-text-secondary);
+  color: var(--vc-ide-text-primary);
   font-size: 11px;
   line-height: 1;
   padding: 0 10px;
@@ -8959,7 +8977,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar button,
 .bolt-project-statusbar-pill {
-  height: 22px;
+  min-height: 28px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -9009,12 +9027,12 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar-label {
-  color: var(--vc-ide-text-muted);
+  color: var(--vc-ide-text-secondary);
   font-weight: 600;
 }
 
 .bolt-project-statusbar-muted {
-  color: var(--vc-ide-text-muted);
+  color: var(--vc-ide-text-secondary);
 }
 
 .bolt-project-statusbar-count,
@@ -9072,6 +9090,61 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
   flex: 0 0 auto;
+}
+
+@media (pointer: coarse), (max-width: 768px) {
+  .bolt-project-ide-shell
+    :is(
+      .bolt-project-topbar-icon-button,
+      .bolt-project-topbar-outline-button,
+      .bolt-project-run-button,
+      .bolt-project-publish-button,
+      .bolt-project-runtime-status,
+      .bolt-project-user-menu-trigger,
+      .bolt-project-tab-action,
+      .bolt-project-tab-pin,
+      .bolt-project-tab-close,
+      .bolt-project-tab-save,
+      .bolt-project-ide-rail-item,
+      .bolt-project-ide-rail-more-trigger,
+      .bolt-project-files-header button,
+      .bolt-project-editor-toolbar button,
+      .bolt-project-webview-toolbar button,
+      .bolt-project-console-header button,
+      .bolt-project-secret-row button,
+      .bolt-project-statusbar button,
+      .bolt-project-statusbar-pill
+    ),
+  .bolt-responsive-ide
+    :is(
+      .bolt-project-tab-action,
+      .bolt-project-tab-pin,
+      .bolt-project-tab-close,
+      .bolt-project-tab-save,
+      .bolt-project-ide-rail-item,
+      .bolt-project-ide-rail-more-trigger,
+      .bolt-project-files-header button,
+      .bolt-project-editor-toolbar button,
+      .bolt-project-webview-toolbar button,
+      .bolt-project-console-header button,
+      .bolt-project-secret-row button,
+      .bolt-project-statusbar button,
+      .bolt-project-statusbar-pill
+    ) {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .bolt-project-tabbar,
+  .bolt-project-right-tabs {
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .bolt-project-statusbar {
+    min-height: 44px;
+  }
 }
 
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child,
