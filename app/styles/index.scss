@@ -3807,8 +3807,6 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab,
 .bolt-project-right-tab {
   display: inline-flex;
-  min-width: 92px;
-  max-width: 168px;
   align-items: center;
   gap: 6px;
   border-right: 1px solid var(--vc-ide-border-subtle);
@@ -3826,10 +3824,16 @@ body :where(.lucide, svg[data-lucide]) {
   user-select: none;
 }
 
+/*
+ * Tabs size to content so short labels like "Git" / "Terminal" don't get
+ * padded out to 168 px of dead space. A tiny min-width keeps each tab
+ * comfortably clickable; the max caps long file names which then truncate
+ * via .bolt-project-tab-label's text-overflow: ellipsis.
+ */
 .bolt-project-tab {
-  flex: 0 0 clamp(168px, 18vw, 240px);
-  min-width: 168px;
-  max-width: 280px;
+  flex: 0 0 auto;
+  min-width: 84px;
+  max-width: clamp(180px, 18vw, 240px);
   scroll-snap-align: start;
 }
 
@@ -3877,9 +3881,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-right-tab {
-  min-width: 116px;
-  max-width: none;
-  flex: 1 1 0;
+  flex: 0 0 auto;
+  min-width: 84px;
+  max-width: clamp(180px, 18vw, 240px);
   padding: 0 10px;
 }
 
