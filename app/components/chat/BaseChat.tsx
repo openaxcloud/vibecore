@@ -12511,6 +12511,53 @@ function ProjectSecretsPanel({
   );
 }
 
+function describeGitFileStatus(input: unknown) {
+  const code = String(input ?? 'M').trim() || 'M';
+  const normalized = code.replace(/\s+/g, '');
+  const primary = normalized === '??' ? '??' : normalized[0] || 'M';
+
+  const descriptions: Record<string, { label: string; description: string }> = {
+    '??': {
+      label: 'Untracked file',
+      description:
+        'Untracked file. Git sees this file in the workspace, but it has not been added to the repository yet.',
+    },
+    M: {
+      label: 'Modified file',
+      description: 'Modified file. This file is tracked by Git and has local changes that are not committed yet.',
+    },
+    A: {
+      label: 'Added file',
+      description: 'Added file. This is a new file staged or prepared to become part of the repository.',
+    },
+    D: {
+      label: 'Deleted file',
+      description: 'Deleted file. This tracked file was removed from the workspace.',
+    },
+    R: {
+      label: 'Renamed file',
+      description: 'Renamed file. Git detected that this tracked file moved or changed names.',
+    },
+    C: {
+      label: 'Copied file',
+      description: 'Copied file. Git detected this file as a copy of an existing tracked file.',
+    },
+    U: {
+      label: 'Unmerged file',
+      description: 'Unmerged file. This file has a merge conflict that must be resolved before committing.',
+    },
+  };
+
+  return {
+    code,
+    ...(descriptions[normalized] ??
+      descriptions[primary] ?? {
+        label: 'Changed file',
+        description: 'Changed file. This status comes from Git porcelain output for the workspace repository.',
+      }),
+  };
+}
+
 function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project: any; onSubmit: any; busy: boolean }) {
   const status = data.status ?? data;
   const branch = status.branch ?? project.gitDefaultBranch ?? 'main';
@@ -12617,16 +12664,38 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
       </div>
 
       {!hasRemote && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-          <span className="text-amber-600 dark:text-amber-300">
-            No remote configured for this workspace repository.
-          </span>
-          <a
-            href={`/projects/${project.id}/settings`}
-            className="rounded-md border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-200"
-          >
-            Connect GitHub
-          </a>
+        <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <strong className="block text-amber-700 dark:text-amber-200">No remote connected yet</strong>
+              <p className="mt-1 max-w-2xl text-amber-700/85 dark:text-amber-100/85">
+                A remote is the hosted copy of this repository. Connect one when you want to push commits, pull updates,
+                or open pull/merge requests from this workspace.
+              </p>
+            </div>
+            <a
+              href={`/projects/${project.id}/settings`}
+              className="rounded-md border border-amber-500/40 px-3 py-1.5 font-semibold text-amber-700 hover:bg-amber-500/15 dark:text-amber-200"
+            >
+              Configure remote
+            </a>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Supported Git remote providers">
+            {[
+              ['GitHub', 'Connect through the GitHub integration or paste a GitHub HTTPS/SSH URL.'],
+              ['GitLab', 'Use a GitLab project remote URL for push, pull and merge-request workflows.'],
+              ['Bitbucket', 'Paste a Bitbucket Git remote URL to sync this workspace repository.'],
+              ['Custom remote', 'Use any HTTPS or SSH Git remote your workspace credentials can access.'],
+            ].map(([provider, description]) => (
+              <div
+                key={provider}
+                className="rounded-md border border-amber-500/25 bg-bolt-elements-background-depth-1 p-3"
+              >
+                <div className="text-xs font-semibold text-bolt-elements-textPrimary">{provider}</div>
+                <p className="mt-1 text-[11px] leading-4 text-bolt-elements-textSecondary">{description}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -12634,12 +12703,18 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
         <section className="grid gap-4">
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
-              <span className="text-xs text-bolt-elements-textSecondary">Click a file to preview its diff</span>
+              <div>
+                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Working tree</h3>
+                <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                  Files changed in this workspace. Click a file to preview its diff, then stage it for commit.
+                </p>
+              </div>
             </div>
             {changedFiles.length ? (
               changedFiles.map((file: any) => {
                 const path = String(file.path ?? file);
+                const status = describeGitFileStatus(file.status ?? 'M');
+
                 return (
                   <label
                     key={path}
@@ -12661,8 +12736,13 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
                     >
                       {path}
                     </button>
-                    <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
-                      {String(file.status ?? 'M')}
+                    <span
+                      className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
+                      title={status.description}
+                      aria-label={`Git status ${status.code}: ${status.label}. ${status.description}`}
+                    >
+                      {status.code}
+                      <span className="sr-only"> {status.label}</span>
                     </span>
                     <span className="text-xs font-semibold text-bolt-elements-item-contentAccent">
                       {staged.has(path) ? 'Staged' : 'Stage'}
@@ -12673,6 +12753,12 @@ function ProjectGitPanel({ data, project, onSubmit, busy }: { data: any; project
             ) : (
               <div className="bolt-project-empty-panel">No changed files.</div>
             )}
+            {changedFiles.length ? (
+              <div className="mt-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-xs text-bolt-elements-textSecondary">
+                <strong className="text-bolt-elements-textPrimary">Status guide:</strong> `??` means untracked file, `M`
+                means modified, `A` means added, `D` means deleted, and `R` means renamed.
+              </div>
+            ) : null}
           </div>
 
           {conflicts.length > 0 && (
