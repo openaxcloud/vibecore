@@ -4457,9 +4457,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <Panel
             id="project-agent-panel"
             order={1}
-            defaultSize={25}
-            minSize={20}
-            maxSize={40}
+            defaultSize={30}
+            minSize={28}
+            maxSize={44}
             className="bolt-project-panel-slot bolt-project-panel-slot-agent"
             onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
           >
@@ -4715,7 +4715,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <Panel
             id="project-workspace-panel"
             order={2}
-            defaultSize={rightPanelOpen ? 58 : 75}
+            defaultSize={rightPanelOpen ? 53 : 70}
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >

@@ -1,5 +1,5 @@
 export const PROJECT_AGENT_PANEL_DEFAULT_WIDTH = 420;
-export const PROJECT_AGENT_PANEL_MIN_WIDTH = 340;
+export const PROJECT_AGENT_PANEL_MIN_WIDTH = 400;
 export const PROJECT_AGENT_PANEL_MAX_WIDTH = 640;
 
 export function clampProjectAgentPanelWidth(width: number) {
@@ -11,7 +11,7 @@ export function defaultProjectAgentPanelWidth(viewportWidth?: number) {
     return PROJECT_AGENT_PANEL_DEFAULT_WIDTH;
   }
 
-  return clampProjectAgentPanelWidth(viewportWidth * 0.25);
+  return clampProjectAgentPanelWidth(viewportWidth * 0.3);
 }
 
 export function projectAgentStopLabel(providerName?: string, model?: string) {

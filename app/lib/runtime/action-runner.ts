@@ -4,6 +4,7 @@ import type { ActionCallbackData } from './message-parser';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { path as nodePath } from '~/utils/path';
+import { JsonValidationError, sanitizeFileContent } from '~/utils/sanitize-file-content';
 import type { BoltShell } from '~/utils/shell';
 import { unreachable } from '~/utils/unreachable';
 
@@ -429,8 +430,30 @@ export class ActionRunner {
       }
     }
 
+    let payload: string;
+
     try {
-      await this.#runtime.writeFile(relativePath, action.content);
+      const sanitized = sanitizeFileContent(action.content, relativePath);
+
+      if (sanitized.stripped > 0) {
+        logger.warn(
+          `Sanitized ${sanitized.stripped} stray control characters from ${relativePath} before writing`,
+        );
+      }
+
+      payload = sanitized.sanitized;
+    } catch (error) {
+      if (error instanceof JsonValidationError) {
+        logger.error(error.message);
+      } else {
+        logger.error('Failed to sanitize file content\n\n', error);
+      }
+
+      throw error;
+    }
+
+    try {
+      await this.#runtime.writeFile(relativePath, payload);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
