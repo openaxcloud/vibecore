@@ -8452,6 +8452,34 @@ function ProjectSettingsPanel({
   const billing = data.billing ?? {};
   const aiUsage = data.aiUsage?.usage ?? [];
 
+  const settingsSections: Array<{
+    group: string;
+    description: string;
+    items: Array<[string, string, string]>;
+  }> = [
+    {
+      group: 'Workspace settings',
+      description: 'Shared project configuration and governance.',
+      items: [
+        ['project', 'Project', 'Metadata, repository and export controls'],
+        ['security', 'Security', 'Password policy, sessions and account protection'],
+        ['usage', 'Usage', 'Plan, limits, usage events and quotas'],
+        ['ai', 'AI', 'Provider routing, model defaults and keys'],
+      ],
+    },
+    {
+      group: 'Personal settings',
+      description: 'Your profile, agent memory and IDE preferences.',
+      items: [
+        ['account', 'Account', 'Profile and connected accounts'],
+        ['memory', 'Memory', 'Persistent agent memory'],
+        ['preferences', 'Preferences', 'Theme, keyboard and notifications'],
+      ],
+    },
+  ];
+
+  const activeSettingsItem = settingsSections.flatMap((section) => section.items).find(([id]) => id === settingsTab);
+
   const providers: Array<{ id: string; label: string; secretKey: string; models: string[] }> = [
     {
       id: 'openai',
@@ -8789,732 +8817,760 @@ function ProjectSettingsPanel({
         </a>
       </header>
 
-      <nav aria-label="Settings sections">
-        {[
-          ['project', 'Project'],
-          ['account', 'Account'],
-          ['security', 'Security'],
-          ['usage', 'Usage'],
-          ['ai', 'AI'],
-          ['memory', 'Memory'],
-          ['preferences', 'Preferences'],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            aria-current={settingsTab === id ? 'page' : undefined}
-            onClick={() => setSettingsTab(id)}
-            data-testid={`button-settings-tab-${id}`}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      {settingsTab === 'project' && (
-        <form onSubmit={submitWithNotice('Project settings saved to backend.')} className="bolt-project-settings-card">
-          <div className="bolt-project-settings-card-title">
-            <h4>Project Metadata</h4>
-            <small>These fields update `/projects/:id/settings` and are reflected in the IDE breadcrumb.</small>
-          </div>
-          <label>
-            Project name
-            <PanelInput
-              name="name"
-              value={draft.name}
-              onChange={updateDraft('name')}
-              required
-              aria-label="Project name"
-            />
-          </label>
-          <label>
-            Description
-            <PanelInput
-              name="description"
-              value={draft.description}
-              onChange={updateDraft('description')}
-              aria-label="Project description"
-            />
-          </label>
-          <label>
-            Git repository URL
-            <PanelInput
-              name="gitRepositoryUrl"
-              type="url"
-              value={draft.gitRepositoryUrl}
-              onChange={updateDraft('gitRepositoryUrl')}
-              placeholder="https://github.com/org/repo"
-              aria-label="Git repository URL"
-            />
-          </label>
-          <label>
-            Default branch
-            <PanelInput
-              name="gitDefaultBranch"
-              value={draft.gitDefaultBranch}
-              onChange={updateDraft('gitDefaultBranch')}
-              aria-label="Default Git branch"
-            />
-          </label>
-          <PanelButton disabled={busy || !draft.name.trim()}>Save settings</PanelButton>
-        </form>
-      )}
-
-      {settingsTab === 'account' && (
-        <div className="bolt-project-settings-grid">
-          <form onSubmit={submitWithNotice('Profile saved to account API.')} className="bolt-project-settings-card">
-            <input name="intent" value="profile" type="hidden" />
-            <div className="bolt-project-settings-card-title">
-              <h4>Profile</h4>
-              <small>Visible identity used by comments, audit events and collaboration surfaces.</small>
-            </div>
-            <div className="bolt-project-settings-profile">
-              <span>{initials}</span>
+      <div className="bolt-project-settings-layout">
+        <nav aria-label="Settings sections" className="bolt-project-settings-sidebar">
+          {settingsSections.map((section) => (
+            <section key={section.group}>
               <div>
-                <strong>{accountUser.name ?? 'User'}</strong>
-                <small>{accountUser.email ?? 'No email returned by API'}</small>
+                <strong>{section.group}</strong>
+                <small>{section.description}</small>
               </div>
-            </div>
-            <label>
-              Display name
-              <PanelInput name="name" defaultValue={accountUser.name ?? ''} required aria-label="Display name" />
-            </label>
-            <label>
-              Email address
-              <PanelInput
-                name="email"
-                type="email"
-                defaultValue={accountUser.email ?? ''}
-                required
-                aria-label="Email address"
-              />
-            </label>
-            <PanelButton disabled={busy}>Save profile</PanelButton>
-          </form>
+              {section.items.map(([id, label, description]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-current={settingsTab === id ? 'page' : undefined}
+                  onClick={() => setSettingsTab(id)}
+                  data-testid={`button-settings-tab-${id}`}
+                >
+                  <span>{label}</span>
+                  <small>{description}</small>
+                </button>
+              ))}
+            </section>
+          ))}
+        </nav>
 
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Connected Accounts & Data</h4>
-              <small>Only actions backed by platform routes are shown here.</small>
+        <main className="bolt-project-settings-main">
+          {activeSettingsItem ? (
+            <div className="bolt-project-settings-active-heading">
+              <span>{activeSettingsItem[1]}</span>
+              <p>{activeSettingsItem[2]}</p>
             </div>
-            <div className="bolt-project-account-connectors">
-              <div>
-                <strong>Email verification</strong>
-                <small>{accountUser.emailVerifiedAt ? 'Verified' : 'Not verified yet'}</small>
-              </div>
-              <div>
-                <strong>GitHub OAuth</strong>
-                <small>Use OAuth to import repositories and unlock GitHub project flows.</small>
-              </div>
-              <div>
-                <strong>Account export</strong>
-                <small>Profile, sessions, organizations, projects, usage and AI costs as JSON.</small>
-              </div>
-            </div>
-            {!accountUser.emailVerifiedAt && (
-              <form onSubmit={submitWithNotice('Verification email requested.')} className="bolt-project-inline-action">
-                <input name="intent" value="send-verification" type="hidden" />
-                <PanelButton disabled={busy} variant="outline">
-                  Send verification email
-                </PanelButton>
-              </form>
-            )}
-            <a href="/auth/oauth/github">Connect GitHub</a>
-            <a href="/api/auth/export" target="_blank" rel="noreferrer">
-              Export account JSON
-            </a>
-          </section>
-        </div>
-      )}
+          ) : null}
 
-      {settingsTab === 'security' && (
-        <div className="bolt-project-settings-grid">
-          <form onSubmit={submitWithNotice('Password update submitted.')} className="bolt-project-settings-card">
-            <input name="intent" value="change-password" type="hidden" />
-            <div className="bolt-project-settings-card-title">
-              <h4>Change Password</h4>
-              <small>Password changes are processed by `/auth/password` and audited.</small>
-            </div>
-            <label>
-              Current password
-              <PanelInput
-                name="currentPassword"
-                type="password"
-                autoComplete="current-password"
-                required
-                aria-label="Current password"
-              />
-            </label>
-            <label>
-              New password
-              <PanelInput
-                name="newPassword"
-                type="password"
-                autoComplete="new-password"
-                placeholder="Minimum 8 characters"
-                required
-                aria-label="New password"
-              />
-            </label>
-            <PanelButton disabled={busy}>Update password</PanelButton>
-            <small>Successful password changes revoke other sessions through the API.</small>
-          </form>
-
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Sign-in Protection</h4>
-              <small>Security controls currently backed by the authentication service.</small>
-            </div>
-            <div className="bolt-project-security-methods">
-              <a href="/mfa-setup">
-                <strong>Multi-factor authentication</strong>
-                <small>
-                  {accountUser.mfaEnabled ? 'Enabled for this account' : 'Set up TOTP MFA and recovery codes'}
-                </small>
-              </a>
-              <a href="/security-settings">
-                <strong>Security rules</strong>
-                <small>Review MFA policy, recovery and security settings.</small>
-              </a>
-              <a href="/enterprise-sso-settings">
-                <strong>Enterprise SSO</strong>
-                <small>Configure SAML or OIDC for organizations that require SSO.</small>
-              </a>
-            </div>
-          </section>
-
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Active Sessions</h4>
-              <small>Session names are normalized from user-agent data returned by `/auth/sessions`.</small>
-            </div>
-            <div className="bolt-project-settings-list">
-              {sessions.length ? (
-                sessions.slice(0, 8).map((session: any) => (
-                  <form key={session.id} onSubmit={submitWithNotice('Session revoke submitted.')}>
-                    <input name="intent" value="revoke-session" type="hidden" />
-                    <input name="sessionId" value={session.id} type="hidden" />
-                    <span>
-                      <strong>{formatSessionDevice(session)}</strong>
-                      <small>{formatSessionDetail(session)}</small>
-                    </span>
-                    <button disabled={busy} aria-label={`Revoke ${formatSessionDevice(session)}`}>
-                      Revoke
-                    </button>
-                  </form>
-                ))
-              ) : (
-                <div className="bolt-project-empty-panel">No active sessions returned by API.</div>
-              )}
-            </div>
+          {settingsTab === 'project' && (
             <form
-              onSubmit={submitWithNotice('Other sessions sign-out submitted.')}
-              className="bolt-project-inline-action"
+              onSubmit={submitWithNotice('Project settings saved to backend.')}
+              className="bolt-project-settings-card"
             >
-              <input name="intent" value="logout-all" type="hidden" />
-              <PanelButton disabled={busy} variant="outline">
-                Sign out other sessions
-              </PanelButton>
-            </form>
-          </section>
-
-          <section className="bolt-project-settings-card danger">
-            <h4>Danger Zone</h4>
-            <p>
-              Permanently delete this account. The API audits the request, deletes the user, and clears this session.
-            </p>
-            <form
-              onSubmit={submitWithNotice('Account deletion request submitted.')}
-              className="bolt-project-danger-form"
-            >
-              <input name="intent" value="delete-account" type="hidden" />
+              <div className="bolt-project-settings-card-title">
+                <h4>Project Metadata</h4>
+                <small>These fields update `/projects/:id/settings` and are reflected in the IDE breadcrumb.</small>
+              </div>
               <label>
-                Type DELETE MY ACCOUNT to confirm
-                <input
-                  name="confirmation"
-                  placeholder="DELETE MY ACCOUNT"
+                Project name
+                <PanelInput
+                  name="name"
+                  value={draft.name}
+                  onChange={updateDraft('name')}
                   required
-                  aria-label="Delete account confirmation"
+                  aria-label="Project name"
                 />
               </label>
-              <PanelButton disabled={busy} variant="outline">
-                Delete account
-              </PanelButton>
+              <label>
+                Description
+                <PanelInput
+                  name="description"
+                  value={draft.description}
+                  onChange={updateDraft('description')}
+                  aria-label="Project description"
+                />
+              </label>
+              <label>
+                Git repository URL
+                <PanelInput
+                  name="gitRepositoryUrl"
+                  type="url"
+                  value={draft.gitRepositoryUrl}
+                  onChange={updateDraft('gitRepositoryUrl')}
+                  placeholder="https://github.com/org/repo"
+                  aria-label="Git repository URL"
+                />
+              </label>
+              <label>
+                Default branch
+                <PanelInput
+                  name="gitDefaultBranch"
+                  value={draft.gitDefaultBranch}
+                  onChange={updateDraft('gitDefaultBranch')}
+                  aria-label="Default Git branch"
+                />
+              </label>
+              <PanelButton disabled={busy || !draft.name.trim()}>Save settings</PanelButton>
             </form>
-          </section>
-        </div>
-      )}
+          )}
 
-      {settingsTab === 'usage' && (
-        <div className="bolt-project-settings-grid">
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Billing & Plan</h4>
-              <small>Limits are rendered from the billing API instead of a flat comma-separated string.</small>
-            </div>
-            <PanelRows
-              rows={[
-                ['Plan', billing.plan?.name ?? billing.plan?.key ?? 'No billing plan returned'],
-                ['Subscription', billing.subscription?.status ?? billing.error ?? 'No active subscription'],
-                ['Usage events', String(billing.usage?.length ?? 0)],
-              ]}
-            />
-            {limitEntries.length ? (
-              <div className="bolt-project-usage-limits" role="table" aria-label="Billing limits">
-                <div role="row">
-                  <span role="columnheader">Limit</span>
-                  <span role="columnheader">Used</span>
-                  <span role="columnheader">Quota</span>
+          {settingsTab === 'account' && (
+            <div className="bolt-project-settings-grid">
+              <form onSubmit={submitWithNotice('Profile saved to account API.')} className="bolt-project-settings-card">
+                <input name="intent" value="profile" type="hidden" />
+                <div className="bolt-project-settings-card-title">
+                  <h4>Profile</h4>
+                  <small>Visible identity used by comments, audit events and collaboration surfaces.</small>
                 </div>
-                {limitEntries.map(([key, value]: any) => {
-                  const limit = Number(value?.limit ?? value?.max ?? value ?? 0);
-                  const used = Number(usageByKey.get(key) ?? value?.used ?? 0);
-                  const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                <div className="bolt-project-settings-profile">
+                  <span>{initials}</span>
+                  <div>
+                    <strong>{accountUser.name ?? 'User'}</strong>
+                    <small>{accountUser.email ?? 'No email returned by API'}</small>
+                  </div>
+                </div>
+                <label>
+                  Display name
+                  <PanelInput name="name" defaultValue={accountUser.name ?? ''} required aria-label="Display name" />
+                </label>
+                <label>
+                  Email address
+                  <PanelInput
+                    name="email"
+                    type="email"
+                    defaultValue={accountUser.email ?? ''}
+                    required
+                    aria-label="Email address"
+                  />
+                </label>
+                <PanelButton disabled={busy}>Save profile</PanelButton>
+              </form>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Connected Accounts & Data</h4>
+                  <small>Only actions backed by platform routes are shown here.</small>
+                </div>
+                <div className="bolt-project-account-connectors">
+                  <div>
+                    <strong>Email verification</strong>
+                    <small>{accountUser.emailVerifiedAt ? 'Verified' : 'Not verified yet'}</small>
+                  </div>
+                  <div>
+                    <strong>GitHub OAuth</strong>
+                    <small>Use OAuth to import repositories and unlock GitHub project flows.</small>
+                  </div>
+                  <div>
+                    <strong>Account export</strong>
+                    <small>Profile, sessions, organizations, projects, usage and AI costs as JSON.</small>
+                  </div>
+                </div>
+                {!accountUser.emailVerifiedAt && (
+                  <form
+                    onSubmit={submitWithNotice('Verification email requested.')}
+                    className="bolt-project-inline-action"
+                  >
+                    <input name="intent" value="send-verification" type="hidden" />
+                    <PanelButton disabled={busy} variant="outline">
+                      Send verification email
+                    </PanelButton>
+                  </form>
+                )}
+                <a href="/auth/oauth/github">Connect GitHub</a>
+                <a href="/api/auth/export" target="_blank" rel="noreferrer">
+                  Export account JSON
+                </a>
+              </section>
+            </div>
+          )}
+
+          {settingsTab === 'security' && (
+            <div className="bolt-project-settings-grid">
+              <form onSubmit={submitWithNotice('Password update submitted.')} className="bolt-project-settings-card">
+                <input name="intent" value="change-password" type="hidden" />
+                <div className="bolt-project-settings-card-title">
+                  <h4>Change Password</h4>
+                  <small>Password changes are processed by `/auth/password` and audited.</small>
+                </div>
+                <label>
+                  Current password
+                  <PanelInput
+                    name="currentPassword"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    aria-label="Current password"
+                  />
+                </label>
+                <label>
+                  New password
+                  <PanelInput
+                    name="newPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Minimum 8 characters"
+                    required
+                    aria-label="New password"
+                  />
+                </label>
+                <PanelButton disabled={busy}>Update password</PanelButton>
+                <small>Successful password changes revoke other sessions through the API.</small>
+              </form>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Sign-in Protection</h4>
+                  <small>Security controls currently backed by the authentication service.</small>
+                </div>
+                <div className="bolt-project-security-methods">
+                  <a href="/mfa-setup">
+                    <strong>Multi-factor authentication</strong>
+                    <small>
+                      {accountUser.mfaEnabled ? 'Enabled for this account' : 'Set up TOTP MFA and recovery codes'}
+                    </small>
+                  </a>
+                  <a href="/security-settings">
+                    <strong>Security rules</strong>
+                    <small>Review MFA policy, recovery and security settings.</small>
+                  </a>
+                  <a href="/enterprise-sso-settings">
+                    <strong>Enterprise SSO</strong>
+                    <small>Configure SAML or OIDC for organizations that require SSO.</small>
+                  </a>
+                </div>
+              </section>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Active Sessions</h4>
+                  <small>Session names are normalized from user-agent data returned by `/auth/sessions`.</small>
+                </div>
+                <div className="bolt-project-settings-list">
+                  {sessions.length ? (
+                    sessions.slice(0, 8).map((session: any) => (
+                      <form key={session.id} onSubmit={submitWithNotice('Session revoke submitted.')}>
+                        <input name="intent" value="revoke-session" type="hidden" />
+                        <input name="sessionId" value={session.id} type="hidden" />
+                        <span>
+                          <strong>{formatSessionDevice(session)}</strong>
+                          <small>{formatSessionDetail(session)}</small>
+                        </span>
+                        <button disabled={busy} aria-label={`Revoke ${formatSessionDevice(session)}`}>
+                          Revoke
+                        </button>
+                      </form>
+                    ))
+                  ) : (
+                    <div className="bolt-project-empty-panel">No active sessions returned by API.</div>
+                  )}
+                </div>
+                <form
+                  onSubmit={submitWithNotice('Other sessions sign-out submitted.')}
+                  className="bolt-project-inline-action"
+                >
+                  <input name="intent" value="logout-all" type="hidden" />
+                  <PanelButton disabled={busy} variant="outline">
+                    Sign out other sessions
+                  </PanelButton>
+                </form>
+              </section>
+
+              <section className="bolt-project-settings-card danger">
+                <h4>Danger Zone</h4>
+                <p>
+                  Permanently delete this account. The API audits the request, deletes the user, and clears this
+                  session.
+                </p>
+                <form
+                  onSubmit={submitWithNotice('Account deletion request submitted.')}
+                  className="bolt-project-danger-form"
+                >
+                  <input name="intent" value="delete-account" type="hidden" />
+                  <label>
+                    Type DELETE MY ACCOUNT to confirm
+                    <input
+                      name="confirmation"
+                      placeholder="DELETE MY ACCOUNT"
+                      required
+                      aria-label="Delete account confirmation"
+                    />
+                  </label>
+                  <PanelButton disabled={busy} variant="outline">
+                    Delete account
+                  </PanelButton>
+                </form>
+              </section>
+            </div>
+          )}
+
+          {settingsTab === 'usage' && (
+            <div className="bolt-project-settings-grid">
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Billing & Plan</h4>
+                  <small>Limits are rendered from the billing API instead of a flat comma-separated string.</small>
+                </div>
+                <PanelRows
+                  rows={[
+                    ['Plan', billing.plan?.name ?? billing.plan?.key ?? 'No billing plan returned'],
+                    ['Subscription', billing.subscription?.status ?? billing.error ?? 'No active subscription'],
+                    ['Usage events', String(billing.usage?.length ?? 0)],
+                  ]}
+                />
+                {limitEntries.length ? (
+                  <div className="bolt-project-usage-limits" role="table" aria-label="Billing limits">
+                    <div role="row">
+                      <span role="columnheader">Limit</span>
+                      <span role="columnheader">Used</span>
+                      <span role="columnheader">Quota</span>
+                    </div>
+                    {limitEntries.map(([key, value]: any) => {
+                      const limit = Number(value?.limit ?? value?.max ?? value ?? 0);
+                      const used = Number(usageByKey.get(key) ?? value?.used ?? 0);
+                      const percent = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+                      return (
+                        <div key={key} role="row">
+                          <span role="cell">{key.replaceAll('.', ' ')}</span>
+                          <span role="cell">{used.toLocaleString()}</span>
+                          <span role="cell">
+                            {limit ? limit.toLocaleString() : 'Unlimited'}
+                            <em style={{ inlineSize: `${percent}%` }} aria-hidden />
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bolt-project-empty-panel">No billing limits returned by API.</div>
+                )}
+                <a href="/billing" target="_blank" rel="noreferrer">
+                  Open billing management
+                </a>
+              </section>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>AI Usage & Costs</h4>
+                  <small>Token totals are calculated from the real `/ai/usage` response.</small>
+                </div>
+                <div className="bolt-project-usage-metrics">
+                  <span>
+                    <strong>{aiUsageTotals.inputTokens.toLocaleString()}</strong>
+                    <small>Input tokens</small>
+                  </span>
+                  <span>
+                    <strong>{aiUsageTotals.outputTokens.toLocaleString()}</strong>
+                    <small>Output tokens</small>
+                  </span>
+                  <span>
+                    <strong>${aiUsageTotals.cost.toFixed(4)}</strong>
+                    <small>Estimated cost</small>
+                  </span>
+                </div>
+                <PanelRows
+                  rows={
+                    aiUsage.length
+                      ? aiUsage
+                          .slice(0, 10)
+                          .map((item: any) => [
+                            item.provider ?? item.model ?? item.type ?? 'AI call',
+                            `${item.inputTokens ?? item.promptTokens ?? 0} in / ${item.outputTokens ?? item.completionTokens ?? 0} out`,
+                          ])
+                      : [['Usage', data.aiUsage?.error ?? 'No AI usage recorded yet']]
+                  }
+                />
+              </section>
+            </div>
+          )}
+
+          {settingsTab === 'ai' && (
+            <section className="bolt-project-settings-card">
+              <div className="bolt-project-settings-card-title">
+                <h4>AI Provider Controls</h4>
+                <small>Provider modes, keys and routing are persisted in project secrets and IDE settings state.</small>
+              </div>
+              <form onSubmit={submitWithNotice('AI routing preferences saved.')} className="bolt-project-ai-routing">
+                <input name="intent" value="ai-routing" type="hidden" />
+                <label>
+                  Default provider
+                  <select name="defaultProvider" defaultValue={aiRouting.defaultProvider}>
+                    {providers.map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Default model
+                  <select name="defaultModel" defaultValue={aiRouting.defaultModel}>
+                    {providers.flatMap((provider) =>
+                      provider.models.map((model) => (
+                        <option key={`${provider.id}:${model}`} value={`${provider.id}:${model}`}>
+                          {provider.label} - {model}
+                        </option>
+                      )),
+                    )}
+                  </select>
+                </label>
+                <label>
+                  Fallback provider
+                  <select name="fallbackProvider" defaultValue={aiRouting.fallbackProvider}>
+                    {providers.map((provider) => (
+                      <option key={provider.id} value={provider.id}>
+                        {provider.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="bolt-project-checkbox-row">
+                  <input
+                    name="fallbackEnabled"
+                    type="checkbox"
+                    value="true"
+                    defaultChecked={aiRouting.fallbackEnabled !== false}
+                  />
+                  <span>Use fallback when the primary provider errors or exceeds quota</span>
+                </label>
+                <PanelButton disabled={busy}>Save AI routing</PanelButton>
+              </form>
+              <div className="bolt-project-settings-provider-grid">
+                {providers.map((provider) => {
+                  const configured = secrets.some((secret: any) => secret.key === provider.secretKey);
+                  const mode = state.aiCredentials?.[provider.id]?.mode ?? 'managed';
 
                   return (
-                    <div key={key} role="row">
-                      <span role="cell">{key.replaceAll('.', ' ')}</span>
-                      <span role="cell">{used.toLocaleString()}</span>
-                      <span role="cell">
-                        {limit ? limit.toLocaleString() : 'Unlimited'}
-                        <em style={{ inlineSize: `${percent}%` }} aria-hidden />
-                      </span>
-                    </div>
+                    <article key={provider.id}>
+                      <div className="bolt-project-provider-header">
+                        <span>
+                          <strong>{provider.label}</strong>
+                          <small>
+                            {mode === 'byok'
+                              ? configured
+                                ? 'BYOK key configured'
+                                : 'BYOK enabled, key missing'
+                              : 'Managed credits'}
+                          </small>
+                        </span>
+                        <em title="Managed credits use VibeCore platform billing. BYOK stores a project secret and routes calls through your provider key.">
+                          {mode === 'byok' ? 'BYOK' : 'Managed'}
+                        </em>
+                      </div>
+                      <form onSubmit={submitWithNotice(`${provider.label} provider mode saved.`)}>
+                        <input name="intent" value="ai-credential-mode" type="hidden" />
+                        <input name="provider" value={provider.id} type="hidden" />
+                        <label>
+                          Credential mode
+                          <select name="mode" defaultValue={mode}>
+                            <option value="managed">Managed platform credits</option>
+                            <option value="byok">Bring your own key</option>
+                          </select>
+                        </label>
+                        <button disabled={busy}>Save mode</button>
+                      </form>
+                      <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
+                        <input name="intent" value="save-ai-key" type="hidden" />
+                        <input name="provider" value={provider.id} type="hidden" />
+                        <label>
+                          API key secret
+                          <input
+                            name="apiKey"
+                            type="password"
+                            placeholder={`${provider.secretKey}`}
+                            required
+                            aria-label={`${provider.label} API key`}
+                          />
+                        </label>
+                        <button disabled={busy}>Save key</button>
+                      </form>
+                      {configured && (
+                        <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
+                          <input name="intent" value="delete-ai-key" type="hidden" />
+                          <input name="provider" value={provider.id} type="hidden" />
+                          <button disabled={busy}>Remove key</button>
+                        </form>
+                      )}
+                    </article>
                   );
                 })}
               </div>
-            ) : (
-              <div className="bolt-project-empty-panel">No billing limits returned by API.</div>
-            )}
-            <a href="/billing" target="_blank" rel="noreferrer">
-              Open billing management
-            </a>
-          </section>
+            </section>
+          )}
 
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>AI Usage & Costs</h4>
-              <small>Token totals are calculated from the real `/ai/usage` response.</small>
-            </div>
-            <div className="bolt-project-usage-metrics">
-              <span>
-                <strong>{aiUsageTotals.inputTokens.toLocaleString()}</strong>
-                <small>Input tokens</small>
-              </span>
-              <span>
-                <strong>{aiUsageTotals.outputTokens.toLocaleString()}</strong>
-                <small>Output tokens</small>
-              </span>
-              <span>
-                <strong>${aiUsageTotals.cost.toFixed(4)}</strong>
-                <small>Estimated cost</small>
-              </span>
-            </div>
-            <PanelRows
-              rows={
-                aiUsage.length
-                  ? aiUsage
-                      .slice(0, 10)
-                      .map((item: any) => [
-                        item.provider ?? item.model ?? item.type ?? 'AI call',
-                        `${item.inputTokens ?? item.promptTokens ?? 0} in / ${item.outputTokens ?? item.completionTokens ?? 0} out`,
-                      ])
-                  : [['Usage', data.aiUsage?.error ?? 'No AI usage recorded yet']]
-              }
-            />
-          </section>
-        </div>
-      )}
-
-      {settingsTab === 'ai' && (
-        <section className="bolt-project-settings-card">
-          <div className="bolt-project-settings-card-title">
-            <h4>AI Provider Controls</h4>
-            <small>Provider modes, keys and routing are persisted in project secrets and IDE settings state.</small>
-          </div>
-          <form onSubmit={submitWithNotice('AI routing preferences saved.')} className="bolt-project-ai-routing">
-            <input name="intent" value="ai-routing" type="hidden" />
-            <label>
-              Default provider
-              <select name="defaultProvider" defaultValue={aiRouting.defaultProvider}>
-                {providers.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Default model
-              <select name="defaultModel" defaultValue={aiRouting.defaultModel}>
-                {providers.flatMap((provider) =>
-                  provider.models.map((model) => (
-                    <option key={`${provider.id}:${model}`} value={`${provider.id}:${model}`}>
-                      {provider.label} - {model}
-                    </option>
-                  )),
-                )}
-              </select>
-            </label>
-            <label>
-              Fallback provider
-              <select name="fallbackProvider" defaultValue={aiRouting.fallbackProvider}>
-                {providers.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="bolt-project-checkbox-row">
-              <input
-                name="fallbackEnabled"
-                type="checkbox"
-                value="true"
-                defaultChecked={aiRouting.fallbackEnabled !== false}
-              />
-              <span>Use fallback when the primary provider errors or exceeds quota</span>
-            </label>
-            <PanelButton disabled={busy}>Save AI routing</PanelButton>
-          </form>
-          <div className="bolt-project-settings-provider-grid">
-            {providers.map((provider) => {
-              const configured = secrets.some((secret: any) => secret.key === provider.secretKey);
-              const mode = state.aiCredentials?.[provider.id]?.mode ?? 'managed';
-
-              return (
-                <article key={provider.id}>
-                  <div className="bolt-project-provider-header">
-                    <span>
-                      <strong>{provider.label}</strong>
-                      <small>
-                        {mode === 'byok'
-                          ? configured
-                            ? 'BYOK key configured'
-                            : 'BYOK enabled, key missing'
-                          : 'Managed credits'}
-                      </small>
-                    </span>
-                    <em title="Managed credits use VibeCore platform billing. BYOK stores a project secret and routes calls through your provider key.">
-                      {mode === 'byok' ? 'BYOK' : 'Managed'}
-                    </em>
-                  </div>
-                  <form onSubmit={submitWithNotice(`${provider.label} provider mode saved.`)}>
-                    <input name="intent" value="ai-credential-mode" type="hidden" />
-                    <input name="provider" value={provider.id} type="hidden" />
-                    <label>
-                      Credential mode
-                      <select name="mode" defaultValue={mode}>
-                        <option value="managed">Managed platform credits</option>
-                        <option value="byok">Bring your own key</option>
-                      </select>
-                    </label>
-                    <button disabled={busy}>Save mode</button>
-                  </form>
-                  <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
-                    <input name="intent" value="save-ai-key" type="hidden" />
-                    <input name="provider" value={provider.id} type="hidden" />
-                    <label>
-                      API key secret
-                      <input
-                        name="apiKey"
-                        type="password"
-                        placeholder={`${provider.secretKey}`}
-                        required
-                        aria-label={`${provider.label} API key`}
-                      />
-                    </label>
-                    <button disabled={busy}>Save key</button>
-                  </form>
-                  {configured && (
-                    <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
-                      <input name="intent" value="delete-ai-key" type="hidden" />
-                      <input name="provider" value={provider.id} type="hidden" />
-                      <button disabled={busy}>Remove key</button>
-                    </form>
-                  )}
-                </article>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {settingsTab === 'memory' && (
-        <div className="bolt-project-settings-grid">
-          <form onSubmit={saveMemory} className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Persistent Agent Memory</h4>
-              <small>
-                Project-scoped memories are embedded with the configured backend provider and retrieved before future
-                IDE agent runs.
-              </small>
-            </div>
-            <label className="bolt-project-memory-toggle">
-              <input
-                type="checkbox"
-                checked={memoryEnabled}
-                onChange={(event) => void toggleMemoryEnabled(event.target.checked)}
-                disabled={memoryLoading}
-              />
-              <span>
-                <strong>Use memory in future agent responses</strong>
-                <small>
-                  {memoryEnabled
-                    ? 'Retrieval and automatic capture are enabled.'
-                    : 'Stored memories stay visible but are not injected.'}
-                </small>
-              </span>
-            </label>
-            <label>
-              New memory
-              <textarea
-                value={memoryDraft}
-                onChange={(event) => setMemoryDraft(event.target.value)}
-                placeholder="Example: Always push to main after validation checks pass."
-                rows={5}
-              />
-            </label>
-            {memoryDraft.trim() ? (
-              <details className="bolt-project-memory-preview">
-                <summary>Preview memory payload</summary>
-                <pre>
-                  {JSON.stringify(
-                    {
-                      scope: 'project',
-                      projectId: settings.id,
-                      memoryType,
-                      tags: parseMemoryTags(memoryTags),
-                      content: memoryDraft,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              </details>
-            ) : null}
-            <div className="bolt-project-memory-fields">
-              <label>
-                Type
-                <select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}>
-                  <option value="semantic">Semantic</option>
-                  <option value="procedural">Procedural</option>
-                  <option value="episodic">Episodic</option>
-                  <option value="working">Working</option>
-                  <option value="cache">Cache</option>
-                </select>
-              </label>
-              <label>
-                Tags
-                <input
-                  value={memoryTags}
-                  onChange={(event) => setMemoryTags(event.target.value)}
-                  placeholder="validation, workflow"
-                />
-              </label>
-            </div>
-            <div className="bolt-project-form-actions">
-              <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>Save memory</PanelButton>
-              <button
-                type="button"
-                onClick={() => {
-                  setMemoryDraft('');
-                  setMemoryTags('');
-                  setMemoryType('semantic');
-                }}
-                disabled={memoryLoading || (!memoryDraft && !memoryTags)}
-              >
-                Reset draft
-              </button>
-            </div>
-            {memoryError ? (
-              <div className="bolt-project-settings-memory-error" role="alert">
-                <span>{memoryError}</span>
-                <button type="button" onClick={() => void loadMemories()} disabled={memoryLoading}>
-                  Retry
-                </button>
-              </div>
-            ) : null}
-          </form>
-
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-memory-card-header">
-              <h4>Stored Memories</h4>
-              <a
-                href={`/api/agent-memory/export?projectId=${encodeURIComponent(settings.id)}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Export JSON
-              </a>
-            </div>
-            {memoryLoading && !memories.length ? (
-              <div className="bolt-project-memory-skeleton" role="status">
-                <span />
-                <span />
-                <span />
-              </div>
-            ) : memories.length ? (
-              <div className="bolt-project-settings-list">
-                {memories.map((memory) => (
-                  <article key={memory.id} className="bolt-project-memory-row">
-                    {memoryEditId === memory.id ? (
-                      <div className="bolt-project-memory-edit">
-                        <label>
-                          Memory content
-                          <textarea
-                            value={memoryEditDraft}
-                            onChange={(event) => setMemoryEditDraft(event.target.value)}
-                            rows={4}
-                          />
-                        </label>
-                        <div className="bolt-project-memory-fields">
-                          <label>
-                            Type
-                            <select value={memoryEditType} onChange={(event) => setMemoryEditType(event.target.value)}>
-                              <option value="semantic">Semantic</option>
-                              <option value="procedural">Procedural</option>
-                              <option value="episodic">Episodic</option>
-                              <option value="working">Working</option>
-                              <option value="cache">Cache</option>
-                            </select>
-                          </label>
-                          <label>
-                            Tags
-                            <input
-                              value={memoryEditTags}
-                              onChange={(event) => setMemoryEditTags(event.target.value)}
-                              placeholder="validation, workflow"
-                            />
-                          </label>
-                        </div>
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => void saveEditedMemory(memory.id)}
-                            disabled={memoryLoading || !memoryEditDraft.trim()}
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMemoryEditId(undefined);
-                              setMemoryEditDraft('');
-                              setMemoryEditTags('');
-                            }}
-                            disabled={memoryLoading}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <span>
-                          <strong>{memory.summary}</strong>
-                          <small>
-                            {memory.scope} - {memory.memoryType ?? 'semantic'} - importance{' '}
-                            {Math.round((memory.importance ?? 0) * 100)}% - used {memory.accessCount ?? 0}x -{' '}
-                            {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
-                          </small>
-                          {Array.isArray(memory.tags) && memory.tags.length ? (
-                            <span className="bolt-project-memory-tags">
-                              {memory.tags.map((tag: string) => (
-                                <em key={tag}>{tag}</em>
-                              ))}
-                            </span>
-                          ) : null}
-                        </span>
-                        <div className="bolt-project-memory-actions">
-                          <button type="button" onClick={() => startEditMemory(memory)} disabled={memoryLoading}>
-                            Edit
-                          </button>
-                          <button type="button" onClick={() => void deleteMemory(memory.id)} disabled={memoryLoading}>
-                            Delete
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="bolt-project-empty-panel">No persistent memories stored for this project yet.</div>
-            )}
-          </section>
-        </div>
-      )}
-
-      {settingsTab === 'preferences' && (
-        <div className="bolt-project-settings-grid">
-          <form onSubmit={submitWithNotice('IDE preferences saved.')} className="bolt-project-settings-card">
-            <input name="intent" value="preferences" type="hidden" />
-            <div className="bolt-project-settings-card-title">
-              <h4>Appearance & Keyboard</h4>
-              <small>Workspace preferences are stored per project and default to dark mode.</small>
-            </div>
-            <label>
-              Theme
-              <select name="theme" defaultValue={preferences.theme}>
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="system">System</option>
-              </select>
-            </label>
-            <label>
-              Keyboard mode
-              <select name="keyboardMode" defaultValue={String(Boolean(preferences.keyboardMode))}>
-                <option value="false">Standard browser shortcuts</option>
-                <option value="true">Hardware keyboard IDE shortcuts</option>
-              </select>
-            </label>
-            <label>
-              Credit alert threshold
-              <input
-                name="creditAlertThreshold"
-                type="number"
-                min="10"
-                max="100"
-                defaultValue={preferences.creditAlertThreshold ?? 80}
-              />
-            </label>
-            <PanelButton disabled={busy}>Save preferences</PanelButton>
-          </form>
-
-          <section className="bolt-project-settings-card">
-            <div className="bolt-project-settings-card-title">
-              <h4>Notification Preferences</h4>
-              <small>In-app toggles are persisted here. Email and push delivery are managed by account channels.</small>
-            </div>
-            <div className="bolt-project-settings-list">
-              {notificationRows.map(([key, label, desc]) => {
-                const enabled = notifications[key] !== false;
-
-                return (
-                  <form key={key} onSubmit={submitWithNotice(`${label} notification preference saved.`)}>
-                    <input name="intent" value="notification" type="hidden" />
-                    <input name="key" value={key} type="hidden" />
-                    <input name="enabled" value={String(!enabled)} type="hidden" />
-                    <span>
-                      <strong>{label}</strong>
-                      <small>{desc}</small>
-                      <span className="bolt-project-notification-channels">
-                        <em data-enabled={enabled}>In-app {enabled ? 'on' : 'off'}</em>
-                        <em>Email via account</em>
-                        <em>Push via native runtime</em>
-                      </span>
-                    </span>
-                    <button disabled={busy} aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}>
-                      {enabled ? 'On' : 'Off'}
+          {settingsTab === 'memory' && (
+            <div className="bolt-project-settings-grid">
+              <form onSubmit={saveMemory} className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Persistent Agent Memory</h4>
+                  <small>
+                    Project-scoped memories are embedded with the configured backend provider and retrieved before
+                    future IDE agent runs.
+                  </small>
+                </div>
+                <label className="bolt-project-memory-toggle">
+                  <input
+                    type="checkbox"
+                    checked={memoryEnabled}
+                    onChange={(event) => void toggleMemoryEnabled(event.target.checked)}
+                    disabled={memoryLoading}
+                  />
+                  <span>
+                    <strong>Use memory in future agent responses</strong>
+                    <small>
+                      {memoryEnabled
+                        ? 'Retrieval and automatic capture are enabled.'
+                        : 'Stored memories stay visible but are not injected.'}
+                    </small>
+                  </span>
+                </label>
+                <label>
+                  New memory
+                  <textarea
+                    value={memoryDraft}
+                    onChange={(event) => setMemoryDraft(event.target.value)}
+                    placeholder="Example: Always push to main after validation checks pass."
+                    rows={5}
+                  />
+                </label>
+                {memoryDraft.trim() ? (
+                  <details className="bolt-project-memory-preview">
+                    <summary>Preview memory payload</summary>
+                    <pre>
+                      {JSON.stringify(
+                        {
+                          scope: 'project',
+                          projectId: settings.id,
+                          memoryType,
+                          tags: parseMemoryTags(memoryTags),
+                          content: memoryDraft,
+                        },
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </details>
+                ) : null}
+                <div className="bolt-project-memory-fields">
+                  <label>
+                    Type
+                    <select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}>
+                      <option value="semantic">Semantic</option>
+                      <option value="procedural">Procedural</option>
+                      <option value="episodic">Episodic</option>
+                      <option value="working">Working</option>
+                      <option value="cache">Cache</option>
+                    </select>
+                  </label>
+                  <label>
+                    Tags
+                    <input
+                      value={memoryTags}
+                      onChange={(event) => setMemoryTags(event.target.value)}
+                      placeholder="validation, workflow"
+                    />
+                  </label>
+                </div>
+                <div className="bolt-project-form-actions">
+                  <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>Save memory</PanelButton>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMemoryDraft('');
+                      setMemoryTags('');
+                      setMemoryType('semantic');
+                    }}
+                    disabled={memoryLoading || (!memoryDraft && !memoryTags)}
+                  >
+                    Reset draft
+                  </button>
+                </div>
+                {memoryError ? (
+                  <div className="bolt-project-settings-memory-error" role="alert">
+                    <span>{memoryError}</span>
+                    <button type="button" onClick={() => void loadMemories()} disabled={memoryLoading}>
+                      Retry
                     </button>
-                  </form>
-                );
-              })}
+                  </div>
+                ) : null}
+              </form>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-memory-card-header">
+                  <h4>Stored Memories</h4>
+                  <a
+                    href={`/api/agent-memory/export?projectId=${encodeURIComponent(settings.id)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Export JSON
+                  </a>
+                </div>
+                {memoryLoading && !memories.length ? (
+                  <div className="bolt-project-memory-skeleton" role="status">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                ) : memories.length ? (
+                  <div className="bolt-project-settings-list">
+                    {memories.map((memory) => (
+                      <article key={memory.id} className="bolt-project-memory-row">
+                        {memoryEditId === memory.id ? (
+                          <div className="bolt-project-memory-edit">
+                            <label>
+                              Memory content
+                              <textarea
+                                value={memoryEditDraft}
+                                onChange={(event) => setMemoryEditDraft(event.target.value)}
+                                rows={4}
+                              />
+                            </label>
+                            <div className="bolt-project-memory-fields">
+                              <label>
+                                Type
+                                <select
+                                  value={memoryEditType}
+                                  onChange={(event) => setMemoryEditType(event.target.value)}
+                                >
+                                  <option value="semantic">Semantic</option>
+                                  <option value="procedural">Procedural</option>
+                                  <option value="episodic">Episodic</option>
+                                  <option value="working">Working</option>
+                                  <option value="cache">Cache</option>
+                                </select>
+                              </label>
+                              <label>
+                                Tags
+                                <input
+                                  value={memoryEditTags}
+                                  onChange={(event) => setMemoryEditTags(event.target.value)}
+                                  placeholder="validation, workflow"
+                                />
+                              </label>
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                onClick={() => void saveEditedMemory(memory.id)}
+                                disabled={memoryLoading || !memoryEditDraft.trim()}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMemoryEditId(undefined);
+                                  setMemoryEditDraft('');
+                                  setMemoryEditTags('');
+                                }}
+                                disabled={memoryLoading}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <span>
+                              <strong>{memory.summary}</strong>
+                              <small>
+                                {memory.scope} - {memory.memoryType ?? 'semantic'} - importance{' '}
+                                {Math.round((memory.importance ?? 0) * 100)}% - used {memory.accessCount ?? 0}x -{' '}
+                                {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
+                              </small>
+                              {Array.isArray(memory.tags) && memory.tags.length ? (
+                                <span className="bolt-project-memory-tags">
+                                  {memory.tags.map((tag: string) => (
+                                    <em key={tag}>{tag}</em>
+                                  ))}
+                                </span>
+                              ) : null}
+                            </span>
+                            <div className="bolt-project-memory-actions">
+                              <button type="button" onClick={() => startEditMemory(memory)} disabled={memoryLoading}>
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteMemory(memory.id)}
+                                disabled={memoryLoading}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bolt-project-empty-panel">No persistent memories stored for this project yet.</div>
+                )}
+              </section>
             </div>
-          </section>
-        </div>
-      )}
+          )}
+
+          {settingsTab === 'preferences' && (
+            <div className="bolt-project-settings-grid">
+              <form onSubmit={submitWithNotice('IDE preferences saved.')} className="bolt-project-settings-card">
+                <input name="intent" value="preferences" type="hidden" />
+                <div className="bolt-project-settings-card-title">
+                  <h4>Appearance & Keyboard</h4>
+                  <small>Workspace preferences are stored per project and default to dark mode.</small>
+                </div>
+                <label>
+                  Theme
+                  <select name="theme" defaultValue={preferences.theme}>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="system">System</option>
+                  </select>
+                </label>
+                <label>
+                  Keyboard mode
+                  <select name="keyboardMode" defaultValue={String(Boolean(preferences.keyboardMode))}>
+                    <option value="false">Standard browser shortcuts</option>
+                    <option value="true">Hardware keyboard IDE shortcuts</option>
+                  </select>
+                </label>
+                <label>
+                  Credit alert threshold
+                  <input
+                    name="creditAlertThreshold"
+                    type="number"
+                    min="10"
+                    max="100"
+                    defaultValue={preferences.creditAlertThreshold ?? 80}
+                  />
+                </label>
+                <PanelButton disabled={busy}>Save preferences</PanelButton>
+              </form>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Notification Preferences</h4>
+                  <small>
+                    In-app toggles are persisted here. Email and push delivery are managed by account channels.
+                  </small>
+                </div>
+                <div className="bolt-project-settings-list">
+                  {notificationRows.map(([key, label, desc]) => {
+                    const enabled = notifications[key] !== false;
+
+                    return (
+                      <form key={key} onSubmit={submitWithNotice(`${label} notification preference saved.`)}>
+                        <input name="intent" value="notification" type="hidden" />
+                        <input name="key" value={key} type="hidden" />
+                        <input name="enabled" value={String(!enabled)} type="hidden" />
+                        <span>
+                          <strong>{label}</strong>
+                          <small>{desc}</small>
+                          <span className="bolt-project-notification-channels">
+                            <em data-enabled={enabled}>In-app {enabled ? 'on' : 'off'}</em>
+                            <em>Email via account</em>
+                            <em>Push via native runtime</em>
+                          </span>
+                        </span>
+                        <button disabled={busy} aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}>
+                          {enabled ? 'On' : 'Off'}
+                        </button>
+                      </form>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

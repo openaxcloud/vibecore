@@ -10248,7 +10248,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   color: var(--bolt-elements-textPrimary);
 
   header,
-  nav,
+  .bolt-project-settings-sidebar,
   .bolt-project-settings-card {
     border: 1px solid var(--bolt-elements-borderColor);
     background: var(--bolt-elements-background-depth-2);
@@ -10304,26 +10304,100 @@ button.bolt-project-statusbar-pill:focus-visible,
     }
   }
 
-  nav {
-    display: flex;
+  .bolt-project-settings-layout {
+    display: grid;
+    align-items: start;
+    gap: 16px;
+    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  }
+
+  .bolt-project-settings-sidebar {
+    display: grid;
+    position: sticky;
+    top: 8px;
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .bolt-project-settings-sidebar section {
+    display: grid;
     gap: 6px;
-    overflow-x: auto;
-    padding: 8px;
+  }
 
-    button {
-      min-height: 36px;
-      white-space: nowrap;
-      border-radius: 8px;
-      padding: 0 12px;
-      color: var(--bolt-elements-textSecondary);
-      font-size: 12px;
-    }
+  .bolt-project-settings-sidebar section > div {
+    display: grid;
+    gap: 3px;
+    padding: 2px 4px 6px;
+  }
 
-    button:hover,
-    button[aria-current='page'] {
-      background: var(--bolt-elements-background-depth-3);
-      color: var(--bolt-elements-textPrimary);
-    }
+  .bolt-project-settings-sidebar strong {
+    color: var(--bolt-elements-textPrimary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .bolt-project-settings-sidebar small,
+  .bolt-project-settings-active-heading p {
+    margin: 0;
+    color: var(--bolt-elements-textSecondary);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .bolt-project-settings-sidebar button {
+    display: grid;
+    min-height: 52px;
+    gap: 2px;
+    text-align: left;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--bolt-elements-textSecondary);
+    font-size: 11px;
+  }
+
+  .bolt-project-settings-sidebar button span {
+    color: var(--bolt-elements-textPrimary);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .bolt-project-settings-sidebar button small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bolt-project-settings-sidebar button:hover,
+  .bolt-project-settings-sidebar button[aria-current='page'] {
+    background: var(--bolt-elements-background-depth-3);
+    color: var(--bolt-elements-textPrimary);
+  }
+
+  .bolt-project-settings-sidebar button[aria-current='page'] {
+    box-shadow: inset 3px 0 0 var(--vc-ide-accent-action);
+  }
+
+  .bolt-project-settings-main {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .bolt-project-settings-active-heading {
+    display: grid;
+    gap: 3px;
+    border: 1px solid var(--bolt-elements-borderColor);
+    border-radius: 12px;
+    background: var(--bolt-elements-background-depth-2);
+    padding: 12px 14px;
+  }
+
+  .bolt-project-settings-active-heading span {
+    color: var(--bolt-elements-textPrimary);
+    font-size: 15px;
+    font-weight: 760;
   }
 
   .bolt-project-settings-grid {
@@ -10816,10 +10890,15 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   .bolt-project-settings-hub {
     header,
+    .bolt-project-settings-layout,
     .bolt-project-settings-grid,
     .bolt-project-settings-provider-grid,
     .bolt-project-ai-routing {
       grid-template-columns: 1fr;
+    }
+
+    .bolt-project-settings-sidebar {
+      position: static;
     }
 
     header {
