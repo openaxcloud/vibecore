@@ -6259,9 +6259,14 @@ body :where(.lucide, svg[data-lucide]) {
 
   header {
     display: flex;
-    align-items: baseline;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
+  }
+
+  header > div:first-child {
+    display: grid;
+    gap: 3px;
   }
 
   header strong {
@@ -6281,8 +6286,45 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
-.bolt-project-monitoring-sparkline svg {
-  height: 36px;
+.bolt-project-monitoring-chart {
+  height: 220px;
+  min-height: 220px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card), transparent 8%);
+  padding: 10px;
+}
+
+.bolt-project-chart-loading {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-monitoring-zoom {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.bolt-project-monitoring-zoom button {
+  min-height: 28px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.bolt-project-monitoring-zoom button.selected {
+  border-color: var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 13%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-text-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
 }
 
 .bolt-project-monitoring-routine-note {

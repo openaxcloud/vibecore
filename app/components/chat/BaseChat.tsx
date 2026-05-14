@@ -6,9 +6,19 @@
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
+import {
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Title,
+  Tooltip as ChartTooltip,
+} from 'chart.js';
 import type { JSONValue, Message } from 'ai';
 import Cookies from 'js-cookie';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
@@ -81,6 +91,8 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
 const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
@@ -9956,6 +9968,8 @@ function ProjectMonitoringActivitySparkline({
   windowMs: number;
   emptyLabel: string;
 }) {
+  const [zoomLevel, setZoomLevel] = useState<'fit' | '2x' | '4x'>('fit');
+
   if (events.length === 0) {
     return (
       <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
@@ -9967,38 +9981,132 @@ function ProjectMonitoringActivitySparkline({
     );
   }
 
+  const zoomFactor = zoomLevel === '4x' ? 4 : zoomLevel === '2x' ? 2 : 1;
+  const visibleWindowMs = Math.max(60_000, windowMs / zoomFactor);
   const buckets = 24;
-  const counts = bucketEventsByTimeHelper(events, windowMs, buckets);
+  const now = Date.now();
+  const counts = bucketEventsByTimeHelper(events, visibleWindowMs, buckets, now);
   const max = Math.max(1, ...counts);
-  const width = 100;
-  const barWidth = width / buckets;
+  const bucketSizeMs = visibleWindowMs / buckets;
+
+  const visibleEvents = events.filter((event) => {
+    const ts = event?.createdAt ? new Date(event.createdAt).getTime() : NaN;
+
+    return Number.isFinite(ts) && now - ts >= 0 && now - ts <= visibleWindowMs;
+  });
+  const labels = counts.map((_, index) => {
+    const bucketStart = now - visibleWindowMs + index * bucketSizeMs;
+    const bucketEnd = bucketStart + bucketSizeMs;
+
+    const formatBucketTime = (timestamp: number) =>
+      visibleWindowMs <= 60 * 60_000
+        ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : new Date(timestamp).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit' });
+
+    return `${formatBucketTime(bucketStart)}-${formatBucketTime(bucketEnd)}`;
+  });
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: 'Events',
+        data: counts,
+        borderColor: 'rgba(56, 189, 248, 0.95)',
+        backgroundColor: 'rgba(56, 189, 248, 0.32)',
+        borderWidth: 1,
+        borderRadius: 4,
+        hoverBackgroundColor: 'rgba(56, 189, 248, 0.58)',
+      },
+    ],
+  };
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
+    plugins: {
+      legend: {
+        display: true,
+        labels: {
+          color: 'rgb(148, 163, 184)',
+          boxWidth: 10,
+          usePointStyle: true,
+        },
+      },
+      tooltip: {
+        callbacks: {
+          title: (items: any[]) => items[0]?.label ?? 'Bucket',
+          label: (item: any) => `${item.raw} event${item.raw === 1 ? '' : 's'}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: 'Time',
+          color: 'rgb(148, 163, 184)',
+        },
+        ticks: {
+          color: 'rgb(148, 163, 184)',
+          maxRotation: 0,
+          autoSkip: true,
+          maxTicksLimit: 6,
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.14)',
+        },
+      },
+      y: {
+        beginAtZero: true,
+        suggestedMax: max,
+        title: {
+          display: true,
+          text: 'Count',
+          color: 'rgb(148, 163, 184)',
+        },
+        ticks: {
+          color: 'rgb(148, 163, 184)',
+          precision: 0,
+          stepSize: Math.max(1, Math.ceil(max / 4)),
+        },
+        grid: {
+          color: 'rgba(148, 163, 184, 0.14)',
+        },
+      },
+    },
+  };
 
   return (
     <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
       <header>
-        <strong>Activity rate</strong>
-        <small>
-          {events.length} event{events.length === 1 ? '' : 's'} across {buckets} buckets · peak {max}/bucket
-        </small>
-      </header>
-      <svg viewBox={`0 0 ${width} 24`} preserveAspectRatio="none" role="img" aria-label="Activity events per bucket">
-        {counts.map((count, index) => {
-          const height = (count / max) * 22;
-
-          return (
-            <rect
-              key={index}
-              x={index * barWidth + barWidth * 0.1}
-              y={24 - height}
-              width={Math.max(barWidth * 0.8, 0.5)}
-              height={height}
-              fill="var(--vc-status-info, #38bdf8)"
+        <div>
+          <strong>Activity rate</strong>
+          <small>
+            {visibleEvents.length} of {events.length} event{events.length === 1 ? '' : 's'} · {buckets} buckets · peak{' '}
+            {max}/bucket
+          </small>
+        </div>
+        <div className="bolt-project-monitoring-zoom" aria-label="Activity chart zoom">
+          {(['fit', '2x', '4x'] as const).map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={zoomLevel === level ? 'selected' : ''}
+              onClick={() => setZoomLevel(level)}
             >
-              <title>{`${count} event${count === 1 ? '' : 's'}`}</title>
-            </rect>
-          );
-        })}
-      </svg>
+              {level === 'fit' ? 'Fit' : level}
+            </button>
+          ))}
+        </div>
+      </header>
+      <div className="bolt-project-monitoring-chart" role="img" aria-label="Activity events by time bucket">
+        <ClientOnly fallback={<div className="bolt-project-chart-loading">Loading chart...</div>}>
+          {() => <Bar data={chartData} options={chartOptions} />}
+        </ClientOnly>
+      </div>
     </section>
   );
 }
