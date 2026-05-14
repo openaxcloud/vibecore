@@ -7772,15 +7772,55 @@ function ProjectIdePanelContent({
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
-            <PanelInput name="userId" placeholder="User ID" required />
-            <select name="roleKey" defaultValue="member">
-              {['viewer', 'member', 'admin', 'owner'].map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
+            <label className="bolt-project-collaboration-field">
+              <span>Collaborator</span>
+              <PanelInput
+                name="userId"
+                placeholder="email or username"
+                autoComplete="username email"
+                required
+                pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
+                title="Enter a valid email address or username. Usernames can contain letters, numbers, dots, underscores and hyphens."
+                aria-describedby="collaborator-identity-help"
+              />
+              <small id="collaborator-identity-help">
+                Invite by email or username. The backend resolves this value before granting project access.
+              </small>
+            </label>
+            <label className="bolt-project-collaboration-field">
+              <span>Role</span>
+              <select
+                name="roleKey"
+                defaultValue="member"
+                title="Viewer can inspect the project, member can edit, admin can manage collaborators. Owner is reserved for project ownership transfers."
+                aria-describedby="collaborator-role-help"
+              >
+                {['viewer', 'member', 'admin', 'owner'].map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+              <small id="collaborator-role-help">
+                Viewer: read-only access. Member: edit and comment. Admin: manage project access. Owner: ownership-level
+                access.
+              </small>
+            </label>
+            <div className="bolt-project-collaboration-role-guide" aria-label="Role permissions">
+              {[
+                ['viewer', 'Can view files, preview and comments without editing.'],
+                ['member', 'Can edit files, comment, and collaborate in the workspace.'],
+                ['admin', 'Can manage collaborators, sharing, comments and access settings.'],
+              ].map(([role, description]) => (
+                <span key={role} title={description}>
+                  <strong>{role}</strong>
+                  {description}
+                </span>
               ))}
-            </select>
-            <PanelButton disabled={busy}>Invite to project</PanelButton>
+            </div>
+            <div>
+              <PanelButton disabled={busy}>Invite to project</PanelButton>
+            </div>
           </form>
         </section>
 

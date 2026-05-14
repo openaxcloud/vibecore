@@ -7845,6 +7845,23 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
 }
 
+.bolt-project-collaboration-field {
+  display: grid;
+  gap: 6px;
+}
+
+.bolt-project-collaboration-field > span {
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.bolt-project-collaboration-field small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .bolt-project-collaboration-user,
 .bolt-project-collaboration-row,
 .bolt-project-collaboration-comment {
@@ -7925,6 +7942,15 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 10px;
 }
 
+.bolt-project-collaboration-form input:invalid:not(:placeholder-shown) {
+  border-color: var(--vc-ide-accent-error);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-error), transparent 82%);
+}
+
+.bolt-project-collaboration-form input:valid:not(:placeholder-shown) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-border-visible) 35%);
+}
+
 .bolt-project-collaboration-form select option {
   background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
@@ -7932,6 +7958,30 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-collaboration-form input::placeholder {
   color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-collaboration-role-guide {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bolt-project-collaboration-role-guide span {
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+  padding: 8px;
+}
+
+.bolt-project-collaboration-role-guide strong {
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  text-transform: capitalize;
 }
 
 .bolt-project-collaboration-grid {
