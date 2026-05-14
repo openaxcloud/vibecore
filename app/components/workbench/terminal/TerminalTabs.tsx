@@ -357,7 +357,11 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 <span className="i-ph:caret-down" aria-hidden />
               </button>
             </div>
-            <div className="bolt-terminal-runtime-meta" aria-label="Terminal PTY size">
+            <div
+              className="bolt-terminal-runtime-meta"
+              aria-label="Terminal PTY size"
+              title="Terminal PTY size. Shows the current pseudo-terminal columns and rows."
+            >
               <span className="bolt-terminal-runtime-dot" aria-hidden />
               <span>PTY</span>
               {terminalSize.cols > 0 && terminalSize.rows > 0 ? (
@@ -368,7 +372,12 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
             </div>
             <div className="bolt-terminal-actions">
               {terminalCount < MAX_TERMINALS && (
-                <button type="button" className="bolt-terminal-action-button" onClick={addTerminal}>
+                <button
+                  type="button"
+                  className="bolt-terminal-action-button"
+                  title="New terminal. Open another shell session."
+                  onClick={addTerminal}
+                >
                   <span className="i-ph:plus" aria-hidden />
                   New
                 </button>
@@ -376,20 +385,36 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
               <button
                 type="button"
                 className="bolt-terminal-action-button"
+                title="Split terminal. Show two terminal sessions side by side."
                 onClick={() => setSplitView((value) => !value)}
               >
                 <span className="i-ph:columns" aria-hidden />
                 {splitView ? 'Unsplit' : 'Split'}
               </button>
-              <button type="button" className="bolt-terminal-action-button" onClick={clearActiveTerminal}>
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                title="Clear terminal. Remove visible scrollback for the active shell."
+                onClick={clearActiveTerminal}
+              >
                 <span className="i-ph:eraser" aria-hidden />
                 Clear
               </button>
-              <button type="button" className="bolt-terminal-action-button" onClick={killActiveTerminal}>
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                title="Kill terminal. Stop the active shell process."
+                onClick={killActiveTerminal}
+              >
                 <span className="i-ph:stop" aria-hidden />
                 Kill
               </button>
-              <button type="button" className="bolt-terminal-action-button" onClick={restartActiveTerminal}>
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                title="Restart terminal. Kill and recreate the active shell session."
+                onClick={restartActiveTerminal}
+              >
                 <span className="i-ph:arrow-clockwise" aria-hidden />
                 Restart
               </button>

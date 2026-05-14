@@ -1149,6 +1149,57 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   fill: var(--vc-ui-tooltip-bg);
 }
 
+.bolt-responsive-ide :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip] {
+  position: relative;
+}
+
+.bolt-responsive-ide
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(:hover, :focus-visible)::after {
+  position: absolute;
+  z-index: 2500;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  border: 1px solid var(--vc-ui-tooltip-border);
+  border-radius: 8px;
+  background: var(--vc-ui-tooltip-bg);
+  color: var(--vc-ide-text-primary);
+  padding: 8px 10px;
+  box-shadow: var(--vc-ui-shadow-lg);
+  content: attr(data-vc-tooltip);
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  font-weight: 650;
+  line-height: 1.35;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.bolt-responsive-ide
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(:hover, :focus-visible)::before {
+  position: absolute;
+  z-index: 2501;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid var(--vc-ui-tooltip-border);
+  border-bottom: 1px solid var(--vc-ui-tooltip-border);
+  background: var(--vc-ui-tooltip-bg);
+  content: '';
+  pointer-events: none;
+}
+
+[data-vc-tour-active='true'] {
+  position: relative;
+  z-index: 60 !important;
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action), white 10%);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%) !important;
+}
+
 .vc-app-shell-grid {
   transition: grid-template-columns 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -9038,6 +9089,132 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-statusbar-mobile .bolt-project-statusbar-logs {
   flex: 0 0 auto;
+}
+
+.bolt-project-guided-tour {
+  position: fixed;
+  right: 24px;
+  bottom: 48px;
+  z-index: 120;
+  max-width: min(380px, calc(100vw - 32px));
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-guided-tour-card {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-border-visible) 58%);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%), transparent 44%),
+    var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 16px;
+}
+
+.bolt-project-guided-tour-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vc-ide-accent-action);
+  font-size: 10px !important;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.bolt-project-guided-tour-card h2 {
+  margin: 10px 0 6px;
+  color: var(--vc-ide-text-primary);
+  font-size: 18px !important;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.bolt-project-guided-tour-card p {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+
+.bolt-project-guided-tour-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-panel);
+  padding: 5px 8px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px !important;
+  font-weight: 700;
+}
+
+.bolt-project-guided-tour-shortcut kbd {
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 5px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  padding: 2px 5px;
+  font-size: 10px !important;
+}
+
+.bolt-project-guided-tour-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.bolt-project-guided-tour-progress span {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--vc-ide-border-subtle);
+}
+
+.bolt-project-guided-tour-progress span[data-active='true'] {
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-project-guided-tour-card footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.bolt-project-guided-tour-card footer div {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.bolt-project-guided-tour-card button {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px !important;
+  font-weight: 750;
+}
+
+.bolt-project-guided-tour-card button:hover,
+.bolt-project-guided-tour-card button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-project-guided-tour-card footer div button:last-child {
+  background: var(--vc-ide-accent-action);
+  color: white;
+}
+
+.bolt-project-guided-tour-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .bolt-project-ide-shell

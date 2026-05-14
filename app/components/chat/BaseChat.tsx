@@ -83,6 +83,77 @@ import { useSearchParams } from '@remix-run/react';
 
 const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
+const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
+
+const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
+  'Add tab': { description: 'Open another editor, terminal, preview or project panel.', shortcut: 'Ctrl+T' },
+  'Close terminal panel': {
+    description: 'Hide the bottom terminal drawer without stopping the workspace.',
+    shortcut: 'Esc',
+  },
+  'Close split': { description: 'Return logs to a single stream view.' },
+  'Copy preview URL': { description: 'Copy the current preview address to your clipboard.', shortcut: 'Cmd+Shift+C' },
+  'Enable inspect to code': {
+    description: 'Click an element in preview and jump to its source file.',
+    shortcut: 'Cmd+Shift+I',
+  },
+  'Exit Full Screen': { description: 'Leave full-screen preview mode.', shortcut: 'Esc' },
+  'Focus agent composer': { description: 'Jump back to the AI prompt input.', shortcut: 'Cmd+J' },
+  'Full Screen': { description: 'Expand the preview to inspect the app without panels.', shortcut: 'F' },
+  'Go to definition': {
+    description: 'Jump to the symbol definition from the current editor context.',
+    shortcut: 'F12',
+  },
+  'Hide minimap': { description: 'Hide the code overview strip in the editor.' },
+  'More editor status': { description: 'Show cursor, indentation, encoding and language details.' },
+  'Open in browser': { description: 'Open the preview URL in a separate browser tab.', shortcut: 'Cmd+Enter' },
+  'Open refactor menu': { description: 'Show available code actions and refactors.', shortcut: 'Ctrl+.' },
+  'Preview window options': { description: 'Adjust preview window and device display options.' },
+  'Refresh preview': { description: 'Reload the embedded web preview.', shortcut: 'Cmd+R' },
+  'Refresh runtime logs': { description: 'Refresh terminal and runtime state from the workspace.', shortcut: 'R' },
+  'Rename symbol': { description: 'Rename the current symbol across references.', shortcut: 'F2' },
+  'Resize AI agent panel': { description: 'Drag to give the agent or workbench more room.' },
+  'Resize files panel': { description: 'Drag to resize the file browser and project tools.' },
+  'Show editor status details': { description: 'Open the full editor status list.' },
+  'Show QR': { description: 'Open a QR code for testing the preview on a mobile device.' },
+  'Show minimap': { description: 'Show the code overview strip in the editor.' },
+  'Split view': { description: 'Show another log stream beside the current one.', shortcut: 'Cmd+\\' },
+  'Toggle split log view': { description: 'Show another log stream beside the current one.', shortcut: 'Cmd+\\' },
+  'Tab actions': { description: 'Open tab actions such as close, split and pin.' },
+  'Toggle live tail': { description: 'Keep logs pinned to the newest entry while output streams.', shortcut: 'T' },
+  'Toggle terminal': { description: 'Show or hide the pinned terminal drawer.', shortcut: 'Ctrl+`' },
+};
+
+const PROJECT_IDE_TOUR_STEPS = [
+  {
+    selector: '.bolt-project-agent-panel',
+    title: 'Project assistant',
+    description:
+      'Describe what you want to build, fix or refactor. Use Plan first when you want approval before edits.',
+    shortcut: 'Cmd+J',
+  },
+  {
+    selector: '.bolt-project-ide-rail',
+    title: 'IDE rail',
+    description: 'Switch between files, editor, terminal, preview and publishing. Hover any icon for its purpose.',
+  },
+  {
+    selector: '.bolt-project-tabbar',
+    title: 'Workspace tabs',
+    description: 'Pin, split and reorder your active work surfaces without losing context.',
+    shortcut: 'Ctrl+T',
+  },
+  {
+    selector: '.bolt-project-statusbar',
+    title: 'Status bar',
+    description: 'Runtime, Git, Problems and Preview state live here. Details move into menus as space gets tight.',
+  },
+  {
+    selector: '.bolt-project-topbar-actions',
+    title: 'Topbar actions',
+    description: 'Run, Publish and Share stay visible. Secondary actions and notifications are under More.',
+  },
+] as const;
 
 function readProjectBottomTerminalUiState() {
   if (typeof window === 'undefined') {
@@ -1677,6 +1748,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectAutoApply]);
 
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
+    const [guidedTourOpen, setGuidedTourOpen] = useState(false);
+    const [guidedTourStepIndex, setGuidedTourStepIndex] = useState(0);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
 
@@ -2477,6 +2550,49 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      if (window.localStorage.getItem(PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY) === 'complete') {
+        return undefined;
+      }
+
+      const timer = window.setTimeout(() => setGuidedTourOpen(true), 900);
+
+      return () => window.clearTimeout(timer);
+    }, [projectIdeMode]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !guidedTourOpen) {
+        return undefined;
+      }
+
+      const selector = PROJECT_IDE_TOUR_STEPS[guidedTourStepIndex]?.selector;
+      const target = selector ? document.querySelector<HTMLElement>(selector) : null;
+
+      if (!target) {
+        return undefined;
+      }
+
+      target.setAttribute('data-vc-tour-active', 'true');
+      target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+
+      return () => {
+        target.removeAttribute('data-vc-tour-active');
+      };
+    }, [guidedTourOpen, guidedTourStepIndex, projectIdeMode]);
+
+    const closeGuidedTour = useCallback(() => {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY, 'complete');
+      }
+
+      setGuidedTourOpen(false);
+      setGuidedTourStepIndex(0);
+    }, []);
+
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
       const syncIconTitles = () => {
         const tooltipTargets = document.querySelectorAll<HTMLElement>(
           [
@@ -2485,23 +2601,51 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             '.bolt-responsive-ide [role="separator"][aria-label]',
             '.bolt-responsive-ide input[aria-label]',
             '.bolt-responsive-ide select[aria-label]',
+            '.bolt-responsive-ide button[title]',
+            '.bolt-responsive-ide [role="button"][title]',
           ].join(','),
         );
 
         tooltipTargets.forEach((target) => {
-          const label = target.getAttribute('aria-label')?.trim();
+          const label = (target.getAttribute('aria-label') || target.getAttribute('title') || '').trim();
 
           if (!label) {
             return;
           }
 
+          const normalizedLabel = label.replace(/\s+/g, ' ');
+          const directHelp = IDE_TOOLTIP_HELP[normalizedLabel];
+
+          const contextualHelp =
+            directHelp ||
+            (normalizedLabel.startsWith('Pin ') || normalizedLabel.startsWith('Unpin ')
+              ? { description: 'Keep this tab visible in the tab strip while you switch context.', shortcut: 'Alt+P' }
+              : normalizedLabel.startsWith('Close ')
+                ? {
+                    description: 'Close this view without deleting files or stopping the workspace.',
+                    shortcut: 'Cmd+W',
+                  }
+                : normalizedLabel.startsWith('Save ')
+                  ? {
+                      description: 'Save the current file immediately. Autosave still handles normal edits.',
+                      shortcut: 'Cmd+S',
+                    }
+                  : undefined);
+          const tooltip = contextualHelp
+            ? `${normalizedLabel}. ${contextualHelp.description}${
+                contextualHelp.shortcut ? ` Shortcut: ${contextualHelp.shortcut}.` : ''
+              }`
+            : normalizedLabel;
+
           const currentTitle = target.getAttribute('title');
           const autoTitle = target.getAttribute('data-vc-auto-title') === 'true';
 
           if (!currentTitle || autoTitle) {
-            target.setAttribute('title', label);
+            target.setAttribute('title', tooltip);
             target.setAttribute('data-vc-auto-title', 'true');
           }
+
+          target.setAttribute('data-vc-tooltip', tooltip);
         });
       };
 
@@ -5349,6 +5493,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </footer>
         )}
+        {projectIdeMode && guidedTourOpen ? (
+          <ProjectIdeGuidedTour
+            step={PROJECT_IDE_TOUR_STEPS[guidedTourStepIndex]}
+            stepIndex={guidedTourStepIndex}
+            totalSteps={PROJECT_IDE_TOUR_STEPS.length}
+            onBack={() => setGuidedTourStepIndex((current) => Math.max(0, current - 1))}
+            onNext={() => {
+              if (guidedTourStepIndex >= PROJECT_IDE_TOUR_STEPS.length - 1) {
+                closeGuidedTour();
+
+                return;
+              }
+
+              setGuidedTourStepIndex((current) => Math.min(PROJECT_IDE_TOUR_STEPS.length - 1, current + 1));
+            }}
+            onSkip={closeGuidedTour}
+          />
+        ) : null}
         {rollbackTarget && (
           <div
             className="bolt-project-rollback-overlay"
@@ -5422,6 +5584,61 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     return <Tooltip.Provider delayDuration={500}>{baseChat}</Tooltip.Provider>;
   },
 );
+
+function ProjectIdeGuidedTour({
+  step,
+  stepIndex,
+  totalSteps,
+  onBack,
+  onNext,
+  onSkip,
+}: {
+  step: (typeof PROJECT_IDE_TOUR_STEPS)[number];
+  stepIndex: number;
+  totalSteps: number;
+  onBack: () => void;
+  onNext: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <div className="bolt-project-guided-tour" role="dialog" aria-modal="false" aria-labelledby="ide-tour-title">
+      <div className="bolt-project-guided-tour-card">
+        <div className="bolt-project-guided-tour-kicker">
+          Guided tour
+          <span>
+            {stepIndex + 1}/{totalSteps}
+          </span>
+        </div>
+        <h2 id="ide-tour-title">{step.title}</h2>
+        <p>{step.description}</p>
+        {'shortcut' in step && step.shortcut ? (
+          <div className="bolt-project-guided-tour-shortcut">
+            <span>Shortcut</span>
+            <kbd>{step.shortcut}</kbd>
+          </div>
+        ) : null}
+        <div className="bolt-project-guided-tour-progress" aria-hidden>
+          {Array.from({ length: totalSteps }).map((_, index) => (
+            <span key={index} data-active={index <= stepIndex ? 'true' : undefined} />
+          ))}
+        </div>
+        <footer>
+          <button type="button" onClick={onSkip}>
+            Skip tour
+          </button>
+          <div>
+            <button type="button" onClick={onBack} disabled={stepIndex === 0}>
+              Back
+            </button>
+            <button type="button" onClick={onNext}>
+              {stepIndex === totalSteps - 1 ? 'Finish' : 'Next'}
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
 
 function ProjectIdeServicePanel({
   projectId,
