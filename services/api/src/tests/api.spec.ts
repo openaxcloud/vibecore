@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
 import { generateKeyPairSync, createHmac, createSign } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
+import { describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
@@ -233,9 +233,11 @@ class MemoryProjectStorage implements ProjectStorage {
 async function startRuntimeServices(options: { logs?: string[]; commandStdout?: string; commandStderr?: string } = {}) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
+
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
     calls.push(`${request.method} ${url.pathname}`);
+
     let body = '';
     request.on('data', (chunk) => {
       body += chunk.toString();
@@ -288,6 +290,7 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
   });
 
   await new Promise<void>((resolve) => agent.listen(0, '127.0.0.1', resolve));
+
   const agentAddress = agent.address();
 
   if (!agentAddress || typeof agentAddress === 'string') {
@@ -308,6 +311,7 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
   });
 
   await new Promise<void>((resolve) => manager.listen(0, '127.0.0.1', resolve));
+
   const managerAddress = manager.address();
 
   if (!managerAddress || typeof managerAddress === 'string') {
@@ -374,6 +378,7 @@ async function reauth(app: Awaited<ReturnType<typeof buildTestApiApp>>, token: s
 function stripeSignature(payload: string, secret: string) {
   const timestamp = Math.floor(Date.now() / 1000);
   const signature = createHmac('sha256', secret).update(`${timestamp}.${payload}`).digest('hex');
+
   return `t=${timestamp},v1=${signature}`;
 }
 
@@ -414,6 +419,7 @@ describe('SaaS API', () => {
 
   it('enforces strict CORS and CSRF for cookie-authenticated mutations', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore(), allowedOrigins: ['http://localhost:5173'] });
+
     const registered = await app.inject({
       method: 'POST',
       url: '/auth/register',
@@ -424,6 +430,7 @@ describe('SaaS API', () => {
       },
     });
     expect(registered.statusCode).toBe(201);
+
     const cookie = registered.headers['set-cookie'];
     expect(cookie).toBeDefined();
 
@@ -459,6 +466,7 @@ describe('SaaS API', () => {
   it('exposes request ids, correlation ids, synthetic health, and Prometheus metrics', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'observability@example.com', organizationName: 'Observability Org' });
+
     const me = await app.inject({
       method: 'GET',
       url: '/auth/me',
@@ -537,6 +545,7 @@ describe('SaaS API', () => {
     expect(createProject.statusCode).toBe(201);
 
     const projectId = createProject.json().project.id;
+
     const blocked = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}`,
@@ -640,7 +649,9 @@ describe('SaaS API', () => {
       payload: { email: 'verify@example.com' },
     });
     expect(emailProvider.messages.some((message) => message.subject === 'Reset your password')).toBe(true);
+
     const resetToken = resetRequest.json().resetToken as string;
+
     const reset = await app.inject({
       method: 'POST',
       url: '/auth/password-reset/confirm',
@@ -677,6 +688,7 @@ describe('SaaS API', () => {
       payload: { email: 'duration@example.com', password: 'password123' },
     });
     expect(login.statusCode).toBe(200);
+
     const session = await store.findSessionByToken(login.json().token);
     expect(new Date(session!.expiresAt).getTime() - Date.now()).toBeLessThanOrEqual(5 * 60_000 + 5000);
     await app.close();
@@ -700,6 +712,7 @@ describe('SaaS API', () => {
     expect(emailProvider.messages.some((message) => message.subject === 'You have been invited')).toBe(true);
 
     const inviteId = created.json().invitation.id as string;
+
     const resent = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/invitations/${inviteId}/resend`,
@@ -734,10 +747,12 @@ describe('SaaS API', () => {
   it('enforces team member quota across invitation acceptance', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
+
     const owner = await register(app, {
       email: 'quota-invite-owner@example.com',
       organizationName: 'Quota Invite Org',
     });
+
     const invitee = await register(app, { email: 'quota-invitee@example.com', organizationName: 'Quota Invitee Org' });
 
     const created = await app.inject({
@@ -764,6 +779,7 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store });
     const owner = await register(app, { email: 'team-owner@example.com', organizationName: 'Team Org' });
     const teammate = await register(app, { email: 'team-member@example.com', organizationName: 'Team Member Org' });
+
     const memberManager = await register(app, {
       email: 'team-manager@example.com',
       organizationName: 'Team Manager Org',
@@ -829,6 +845,7 @@ describe('SaaS API', () => {
     expect(cannotCreateProject.statusCode).toBe(403);
 
     await store.addMember({ organizationId: owner.organization.id, userId: secondOwner.user.id, roleKey: 'owner' });
+
     const demote = await app.inject({
       method: 'PATCH',
       url: `/orgs/${owner.organization.id}/memberships/${secondOwner.user.id}`,
@@ -876,9 +893,11 @@ describe('SaaS API', () => {
 
     const owner = await register(app, { email: 'saml-owner@example.com', organizationName: 'SAML Org' });
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
     await reauth(app, owner.token);
+
     const samlConfig = await app.inject({
       method: 'PUT',
       url: `/orgs/${owner.organization.id}/sso/saml`,
@@ -886,9 +905,12 @@ describe('SaaS API', () => {
       payload: { entityId: 'urn:test:idp', ssoUrl: 'https://idp.example.com/sso', x509Certificate: certificate },
     });
     expect(samlConfig.statusCode).toBe(200);
+
     const assertionXml =
       '<Assertion><Subject><NameID>saml-user@example.com</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>saml_1</AttributeValue></Attribute><Attribute Name="name"><AttributeValue>SAML User</AttributeValue></Attribute></AttributeStatement></Assertion>';
+
     const signature = createSign('RSA-SHA256').update(assertionXml).end().sign(privateKey, 'base64');
+
     const assertion = Buffer.from(
       `<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
       'utf8',
@@ -905,6 +927,7 @@ describe('SaaS API', () => {
 
   it('bootstraps and manages platform administrators with MFA and re-authentication', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'platform@example.com';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const platform = await register(app, { email: 'platform@example.com', organizationName: 'Platform Org' });
@@ -923,6 +946,7 @@ describe('SaaS API', () => {
       url: '/auth/mfa/setup',
       headers: { authorization: `Bearer ${platform.token}` },
     });
+
     const code = createTotpCode(setup.json().secret);
     await app.inject({
       method: 'POST',
@@ -931,6 +955,7 @@ describe('SaaS API', () => {
       payload: { code },
     });
     await reauth(app, platform.token);
+
     const promoted = await app.inject({
       method: 'PATCH',
       url: `/admin/users/${target.user.id}/platform-admin`,
@@ -959,7 +984,9 @@ describe('SaaS API', () => {
     expect(denied.statusCode).toBe(403);
 
     process.env.PLATFORM_ADMIN_EMAILS = 'console-admin@example.com';
+
     const admin = await register(app, { email: 'console-admin@example.com', organizationName: 'Admin Org' });
+
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -986,9 +1013,11 @@ describe('SaaS API', () => {
 
   it('lists real billing subscriptions and supports audited admin plan overrides', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'billing-admin@example.com';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'billing-admin@example.com', organizationName: 'Billing Admin Org' });
+
     const customer = await register(app, {
       email: 'billing-customer@example.com',
       organizationName: 'Billing Customer Org',
@@ -1037,9 +1066,11 @@ describe('SaaS API', () => {
 
   it('requires re-authentication and records admin audit logs for manual abuse events', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'abuse-admin@example.com';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'abuse-admin@example.com', organizationName: 'Abuse Admin Org' });
+
     const customer = await register(app, {
       email: 'abuse-customer@example.com',
       organizationName: 'Abuse Customer Org',
@@ -1071,6 +1102,7 @@ describe('SaaS API', () => {
     expect(staleSession.json().code).toBe('ADMIN_REAUTH_REQUIRED');
 
     await reauth(app, admin.token);
+
     const created = await app.inject({
       method: 'POST',
       url: '/admin/abuse-events',
@@ -1092,8 +1124,10 @@ describe('SaaS API', () => {
 
   it('requires re-authentication for dangerous admin actions', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'danger-admin@example.com';
+
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const admin = await register(app, { email: 'danger-admin@example.com', organizationName: 'Danger Org' });
+
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1119,9 +1153,11 @@ describe('SaaS API', () => {
 
   it('suspend org blocks workspace start and admin stop workspace action persists state', async () => {
     process.env.PLATFORM_ADMIN_EMAILS = 'ops-admin@example.com';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const admin = await register(app, { email: 'ops-admin@example.com', organizationName: 'Ops Org' });
+
     const setup = await app.inject({
       method: 'POST',
       url: '/auth/mfa/setup',
@@ -1134,19 +1170,23 @@ describe('SaaS API', () => {
       payload: { code: createTotpCode(setup.json().secret) },
     });
     await reauth(app, admin.token);
+
     const projectResponse = await app.inject({
       method: 'POST',
       url: `/orgs/${admin.organization.id}/projects`,
       headers: { authorization: `Bearer ${admin.token}` },
       payload: { name: 'Admin Runtime Project' },
     });
+
     const project = projectResponse.json().project;
+
     const workspaceResponse = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/workspaces`,
       headers: { authorization: `Bearer ${admin.token}` },
       payload: { name: 'Main workspace' },
     });
+
     const workspace = workspaceResponse.json().workspace;
 
     const stopped = await app.inject({
@@ -1163,6 +1203,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${admin.token}` },
     });
     expect(suspended.statusCode).toBe(200);
+
     const blocked = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/workspaces`,
@@ -1180,19 +1221,23 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'workspace-files@example.com', organizationName: 'Workspace Files Org' });
+
     const projectResponse = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Workspace Files Project' },
     });
+
     const project = projectResponse.json().project;
+
     const workspaceResponse = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/workspaces`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Main workspace' },
     });
+
     const workspace = workspaceResponse.json().workspace;
 
     const metadata = await app.inject({
@@ -1227,7 +1272,9 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(setup.statusCode).toBe(200);
+
     const code = createTotpCode(setup.json().secret);
+
     const verify = await app.inject({
       method: 'POST',
       url: '/auth/mfa/verify',
@@ -1258,7 +1305,9 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(setup.statusCode).toBe(200);
+
     const code = createTotpCode(setup.json().secret);
+
     const verify = await app.inject({
       method: 'POST',
       url: '/auth/mfa/verify',
@@ -1266,11 +1315,13 @@ describe('SaaS API', () => {
       payload: { code },
     });
     expect(verify.statusCode).toBe(200);
+
     const recovery = await app.inject({
       method: 'POST',
       url: '/auth/recovery-codes',
       headers: { authorization: `Bearer ${auth.token}` },
     });
+
     const recoveryCode = recovery.json().codes[0];
 
     const missingMfa = await app.inject({
@@ -1327,6 +1378,7 @@ describe('SaaS API', () => {
       userId: auth.user.id,
       mfaSecretEncrypted: 'not-a-valid-encrypted-secret',
     });
+
     const corruptedSecretLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -1341,6 +1393,7 @@ describe('SaaS API', () => {
   it('lists sessions and revokes all other devices', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'sessions@example.com' });
+
     const secondLogin = await app.inject({
       method: 'POST',
       url: '/auth/login',
@@ -1361,6 +1414,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(revoke.statusCode).toBe(200);
+
     const blocked = await app.inject({
       method: 'GET',
       url: '/auth/me',
@@ -1407,6 +1461,7 @@ describe('SaaS API', () => {
     expect(denied.statusCode).toBe(403);
 
     await reauth(app, auth.token);
+
     const saved = await app.inject({
       method: 'PUT',
       url: `/orgs/${auth.organization.id}/sso/oidc`,
@@ -1414,6 +1469,7 @@ describe('SaaS API', () => {
       payload: { issuer: 'https://login.example.com', clientId: 'client', clientSecret: 'secret' },
     });
     expect(saved.statusCode).toBe(200);
+
     const stored = await store.getSsoConfig(auth.organization.id, 'oidc');
     expect(stored?.encryptedConfig).not.toContain('secret');
     expect(decryptJson<{ clientSecret: string }>(stored!.encryptedConfig).clientSecret).toBe('secret');
@@ -1434,6 +1490,7 @@ describe('SaaS API', () => {
       payload: { name: 'Okta production' },
     });
     expect(tokenResponse.statusCode).toBe(201);
+
     const token = tokenResponse.json().token as string;
     expect([...store.scimTokens.values()][0].tokenHash).not.toBe(token);
 
@@ -1479,9 +1536,11 @@ describe('SaaS API', () => {
     const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret';
     process.env.STRIPE_PRO_PRICE_ID = 'price_pro_test';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'billing-webhook@example.com', organizationName: 'Billing Webhook Org' });
+
     const payload = JSON.stringify({
       id: 'evt_subscription_updated',
       type: 'customer.subscription.updated',
@@ -1545,6 +1604,7 @@ describe('SaaS API', () => {
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'free', status: 'ACTIVE' });
 
     const projectNames = ['One', 'Two', 'Three'];
+
     for (const name of projectNames) {
       const response = await app.inject({
         method: 'POST',
@@ -1573,6 +1633,7 @@ describe('SaaS API', () => {
     expect(usageBeforeOverride.json().quotaUsage['workspaces.active']).toBe(0);
 
     await reauth(app, auth.token);
+
     const override = await app.inject({
       method: 'POST',
       url: `/admin/orgs/${auth.organization.id}/quota-overrides`,
@@ -1588,6 +1649,7 @@ describe('SaaS API', () => {
       payload: { name: 'Four' },
     });
     expect(allowed.statusCode).toBe(201);
+
     const usageAfterOverride = await app.inject({
       method: 'GET',
       url: `/orgs/${auth.organization.id}/usage`,
@@ -1603,6 +1665,7 @@ describe('SaaS API', () => {
     const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_upgrade_secret';
     process.env.STRIPE_PRO_PRICE_ID = 'price_pro_upgrade';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'upgrade@example.com', organizationName: 'Upgrade Org' });
@@ -1655,6 +1718,7 @@ describe('SaaS API', () => {
     process.env.STRIPE_PRO_PRICE_ID = 'price_checkout_pro';
 
     const requests: Array<{ url?: string; body: Record<string, string> }> = [];
+
     const stripeServer = createServer((request, response) => {
       let raw = '';
       request.on('data', (chunk) => {
@@ -1664,24 +1728,30 @@ describe('SaaS API', () => {
         const body = Object.fromEntries(new URLSearchParams(raw).entries());
         requests.push({ url: request.url, body });
         response.setHeader('content-type', 'application/json');
+
         if (request.url === '/v1/customers') {
           response.end(JSON.stringify({ id: 'cus_checkout' }));
           return;
         }
+
         if (request.url === '/v1/checkout/sessions') {
           response.end(JSON.stringify({ id: 'cs_checkout', url: 'https://checkout.stripe.local/session' }));
           return;
         }
+
         response.statusCode = 404;
         response.end(JSON.stringify({ error: { message: 'not found' } }));
       });
     });
 
     await new Promise<void>((resolve) => stripeServer.listen(0, '127.0.0.1', () => resolve()));
+
     const address = stripeServer.address();
+
     if (typeof address !== 'object' || !address) {
       throw new Error('Local billing endpoint did not start');
     }
+
     process.env.STRIPE_API_BASE_URL = `http://127.0.0.1:${address.port}`;
 
     const store = new TestApiStore();
@@ -1727,6 +1797,7 @@ describe('SaaS API', () => {
     process.env.STRIPE_SECRET_KEY = 'sk_test_portal';
 
     const requests: Array<{ url?: string; body: Record<string, string> }> = [];
+
     const stripeServer = createServer((request, response) => {
       let raw = '';
       request.on('data', (chunk) => {
@@ -1741,10 +1812,13 @@ describe('SaaS API', () => {
     });
 
     await new Promise<void>((resolve) => stripeServer.listen(0, '127.0.0.1', () => resolve()));
+
     const address = stripeServer.address();
+
     if (typeof address !== 'object' || !address) {
       throw new Error('Local billing endpoint did not start');
     }
+
     process.env.STRIPE_API_BASE_URL = `http://127.0.0.1:${address.port}`;
 
     const store = new TestApiStore();
@@ -1783,8 +1857,10 @@ describe('SaaS API', () => {
     const previousTeamPrice = process.env.STRIPE_TEAM_PRICE_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_checkout_completed';
     process.env.STRIPE_TEAM_PRICE_ID = 'price_team_checkout';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
+
     const auth = await register(app, {
       email: 'checkout-webhook@example.com',
       organizationName: 'Checkout Webhook Org',
@@ -1830,10 +1906,12 @@ describe('SaaS API', () => {
   it('records cancellation behavior from Stripe subscription deletion', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_cancel_secret';
+
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'cancel@example.com', organizationName: 'Cancel Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
     const payload = JSON.stringify({
       id: 'evt_cancel',
       type: 'customer.subscription.deleted',
@@ -1859,6 +1937,7 @@ describe('SaaS API', () => {
       });
       expect(response.statusCode).toBe(200);
       expect((await store.getSubscription(auth.organization.id))?.status).toBe('CANCELED');
+
       const billing = await app.inject({
         method: 'GET',
         url: `/orgs/${auth.organization.id}/billing`,
@@ -1885,6 +1964,7 @@ describe('SaaS API', () => {
       payload: { name: 'Template App', templateName: 'react-basic-starter' },
     });
     expect(create.statusCode).toBe(201);
+
     const projectId = create.json().project.id as string;
 
     const dashboard = await app.inject({
@@ -1936,6 +2016,7 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(activityAfterChatSave.statusCode).toBe(200);
+
     const ideSaveEventsBeforeUiOnly = activityAfterChatSave
       .json()
       .activity.filter((event: { action: string }) => event.action === 'project.ide_state.save').length;
@@ -2046,6 +2127,7 @@ describe('SaaS API', () => {
       payload: { name: 'Realtime App', templateName: 'react-basic-starter' },
     });
     expect(create.statusCode).toBe(201);
+
     const projectId = create.json().project.id as string;
 
     const outsiderCollaborator = await app.inject({
@@ -2174,6 +2256,7 @@ describe('SaaS API', () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const owner = await register(app, { email: 'collab-ws-owner@example.com', organizationName: 'Collab WS Org' });
+
     const create = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/projects`,
@@ -2181,6 +2264,7 @@ describe('SaaS API', () => {
       payload: { name: 'Collaboration Socket Project' },
     });
     expect(create.statusCode).toBe(201);
+
     const projectId = create.json().project.id as string;
 
     const ticket = await app.inject({
@@ -2193,6 +2277,7 @@ describe('SaaS API', () => {
     expect(ticket.json().ticket).toEqual(expect.any(String));
 
     const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
     const socket = new WebSocket(
       `${address.replace(/^http/, 'ws')}/projects/${projectId}/collaboration/ws?ticket=${encodeURIComponent(
         ticket.json().ticket,
@@ -2232,6 +2317,7 @@ describe('SaaS API', () => {
     const zip = new JSZip();
     zip.file('README.md', '# Zip import\n');
     zip.file('src/index.ts', 'export const value = 1;\n');
+
     const zipBase64 = (await zip.generateAsync({ type: 'nodebuffer' })).toString('base64');
 
     const imported = await app.inject({
@@ -2253,7 +2339,9 @@ describe('SaaS API', () => {
 
     const replacementZip = new JSZip();
     replacementZip.file('README.md', '# Replaced project\n');
+
     const replacementZipBase64 = (await replacementZip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+
     const replaced = await app.inject({
       method: 'POST',
       url: `/projects/${imported.json().project.id}/files/import/zip`,
@@ -2270,13 +2358,16 @@ describe('SaaS API', () => {
   it('creates and restores snapshots without exposing runtime secrets', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'snapshots@example.com', organizationName: 'Snapshot Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { prompt: 'Build a dashboard', name: 'AI Dashboard' },
     });
+
     const projectId = project.json().project.id as string;
+
     const createdFiles = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/files`,
@@ -2316,6 +2407,7 @@ describe('SaaS API', () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'ai-builder@example.com', organizationName: 'AI Builder Org' });
     const prompt = 'build a saas platform a clone of bolt';
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-ai`,
@@ -2349,6 +2441,7 @@ describe('SaaS API', () => {
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
     const auth = await register(app, { email: 'ide-recovery@example.com', organizationName: 'IDE Recovery Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
@@ -2356,6 +2449,7 @@ describe('SaaS API', () => {
       payload: { name: 'Recovered Preview App' },
     });
     expect(project.statusCode).toBe(201);
+
     const projectId = project.json().project.id;
     projectStorage.files.delete(projectId);
 
@@ -2412,6 +2506,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
+
     const auth = await register(app, {
       email: 'package-index@example.com',
       organizationName: 'Package Index Org',
@@ -2422,6 +2517,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Package Index App' },
     });
+
     const projectId = project.json().project.id;
     await projectStorage.writeFiles(projectId, [{ path: 'README.md', content: '# Existing project\n' }]);
 
@@ -2471,15 +2567,45 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
   it('deploys projects through static, Vercel and Cloud Run providers with redacted logs', async () => {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
+    const tempStaticRoot = await mkdtemp(join(tmpdir(), 'vibecore-static-deploy-'));
+    const previous = process.env.STATIC_DEPLOY_STORAGE_DIR;
+    process.env.STATIC_DEPLOY_STORAGE_DIR = tempStaticRoot;
+
+    let fakeOutputDir: string | undefined;
+
+    const app = await buildTestApiApp({
+      store,
+      staticBuildRunner: async (input) => {
+        const root = await mkdtemp(join(tmpdir(), `vibecore-static-build-${input.projectId}-`));
+        fakeOutputDir = join(root, 'dist');
+        await mkdir(fakeOutputDir, { recursive: true });
+        await writeFile(
+          join(fakeOutputDir, 'index.html'),
+          '<!doctype html><html><head><title>Deployed</title><link rel="stylesheet" href="/assets/main.css"></head><body><h1>Hello Vibecore</h1><script src="/assets/main.js"></script></body></html>',
+          'utf8',
+        );
+        await mkdir(join(fakeOutputDir, 'assets'), { recursive: true });
+        await writeFile(join(fakeOutputDir, 'assets', 'main.js'), 'console.log("vibecore");', 'utf8');
+        await writeFile(join(fakeOutputDir, 'assets', 'main.css'), 'body { color: tomato; }', 'utf8');
+
+        return {
+          ok: true,
+          outputDir: fakeOutputDir,
+          logs: [{ timestamp: new Date().toISOString(), level: 'info', message: 'Static deploy: fake build OK' }],
+        };
+      },
+    });
+
     const auth = await register(app, { email: 'deployments@example.com', organizationName: 'Deployments Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Deployable App', templateName: 'react-basic-starter' },
     });
+
     const projectId = project.json().project.id as string;
 
     const staticDeploy = await app.inject({
@@ -2496,7 +2622,47 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(staticDeploy.statusCode).toBe(201);
     expect(staticDeploy.json().deployment.status).toBe('READY');
-    expect(staticDeploy.json().deployment.url).toContain('static.vibecore.local');
+    expect(staticDeploy.json().deployment.url).toContain('/static-deployments/');
+    expect(staticDeploy.json().deployment.url).toMatch(/\/$/);
+
+    const deploymentId = staticDeploy.json().deployment.id as string;
+
+    const indexResponse = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/`,
+    });
+    expect(indexResponse.statusCode).toBe(200);
+    expect(indexResponse.headers['content-type']).toContain('text/html');
+    expect(indexResponse.body).toContain('Hello Vibecore');
+    expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.css`);
+    expect(indexResponse.body).toContain(`/static-deployments/${deploymentId}/assets/main.js`);
+
+    const cssResponse = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/assets/main.css`,
+    });
+    expect(cssResponse.statusCode).toBe(200);
+    expect(cssResponse.headers['content-type']).toContain('text/css');
+    expect(cssResponse.body).toContain('tomato');
+
+    const spaResponse = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/nested/route/that/does/not/exist`,
+    });
+    expect(spaResponse.statusCode).toBe(200);
+    expect(spaResponse.headers['content-type']).toContain('text/html');
+
+    const traversal = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}/..%2F..%2F..%2Fetc%2Fpasswd`,
+    });
+    expect([403, 404]).toContain(traversal.statusCode);
+
+    const missing = await app.inject({
+      method: 'GET',
+      url: `/static-deployments/${deploymentId}-does-not-exist/`,
+    });
+    expect(missing.statusCode).toBe(404);
 
     const vercel = await app.inject({
       method: 'POST',
@@ -2535,6 +2701,79 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(logs.statusCode).toBe(200);
     expect(JSON.stringify(logs.json())).not.toContain('super-secret-token');
     expect(JSON.stringify(logs.json())).toContain('[REDACTED]');
+
+    if (previous === undefined) {
+      delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    } else {
+      process.env.STATIC_DEPLOY_STORAGE_DIR = previous;
+    }
+
+    await app.close();
+    await rm(tempStaticRoot, { recursive: true, force: true });
+
+    if (fakeOutputDir) {
+      await rm(join(fakeOutputDir, '..'), { recursive: true, force: true });
+    }
+  });
+
+  it('marks static deployments as FAILED with no URL when the build fails', async () => {
+    const store = new TestApiStore();
+    const tempStaticRoot = await mkdtemp(join(tmpdir(), 'vibecore-static-deploy-fail-'));
+    const previous = process.env.STATIC_DEPLOY_STORAGE_DIR;
+    process.env.STATIC_DEPLOY_STORAGE_DIR = tempStaticRoot;
+
+    const app = await buildTestApiApp({
+      store,
+      staticBuildRunner: async () => ({
+        ok: false,
+        error: 'BUILD_FAILED',
+        logs: [{ timestamp: new Date().toISOString(), level: 'error', message: '[build] vite: missing dependency' }],
+      }),
+    });
+
+    const auth = await register(app, { email: 'failed-deploy@example.com', organizationName: 'Failed Deploy Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Broken App', templateName: 'react-basic-starter' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { provider: 'static', environment: 'preview', buildCommand: 'npm run build', outputDirectory: 'dist' },
+    });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().deployment.status).toBe('FAILED');
+    expect(response.json().deployment.url ?? null).toBeNull();
+    expect(JSON.stringify(response.json().deployment.logs)).toContain('vite: missing dependency');
+
+    if (previous === undefined) {
+      delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    } else {
+      process.env.STATIC_DEPLOY_STORAGE_DIR = previous;
+    }
+
+    await app.close();
+    await rm(tempStaticRoot, { recursive: true, force: true });
+  });
+
+  it('returns 400 for invalid deployment ids and 404 for unknown deployments on the static serve route', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const invalid = await app.inject({ method: 'GET', url: '/static-deployments/not%20valid!/' });
+    expect(invalid.statusCode).toBe(400);
+
+    const missing = await app.inject({ method: 'GET', url: '/static-deployments/abcdef1234/' });
+    expect(missing.statusCode).toBe(404);
+
     await app.close();
   });
 
@@ -2603,19 +2842,23 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'deploy-ops@example.com', organizationName: 'Deploy Ops Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Deploy Ops App', templateName: 'react-basic-starter' },
     });
+
     const projectId = project.json().project.id as string;
+
     const deploy = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { provider: 'static', environment: 'preview', buildCommand: 'npm run build', outputDirectory: 'dist' },
     });
+
     const deploymentId = deploy.json().deployment.id as string;
 
     const redeploy = await app.inject({
@@ -2655,6 +2898,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { repositoryUrl: 'https://github.com/acme/app', branch: 'main' },
     });
     expect(imported.statusCode).toBe(201);
+
     const projectId = imported.json().project.id as string;
 
     const status = await app.inject({
@@ -2663,6 +2907,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(status.statusCode).toBe(200);
+
     const commit = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/commit`,
@@ -2670,6 +2915,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { message: 'Initial import' },
     });
     expect(commit.statusCode).toBe(200);
+
     const branch = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/branches/checkout`,
@@ -2678,12 +2924,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(branch.statusCode).toBe(200);
     expect(branch.json().branch).toBe('feature/git-panel');
+
     const branches = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/git/branches`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(branches.json().branches).toContain('feature/git-panel');
+
     const graph = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/git/graph`,
@@ -2691,6 +2939,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(graph.statusCode).toBe(200);
     expect(graph.json().commits[0].message).toBe('Initial import');
+
     const stash = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/stash`,
@@ -2698,6 +2947,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { message: 'WIP from test' },
     });
     expect(stash.statusCode).toBe(200);
+
     const cherryPick = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/cherry-pick`,
@@ -2705,6 +2955,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { sha: 'abcd1234' },
     });
     expect(cherryPick.statusCode).toBe(200);
+
     const resolveConflict = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/conflicts/resolve`,
@@ -2712,12 +2963,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { filePath: 'README.md', strategy: 'ours' },
     });
     expect(resolveConflict.statusCode).toBe(200);
+
     const blame = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/git/blame?filePath=README.md`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(blame.statusCode).toBe(200);
+
     const push = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/push`,
@@ -2725,6 +2978,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { branch: 'main' },
     });
     expect(push.json().pushed).toBe(true);
+
     const pullRequest = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/git/pull-requests`,
@@ -2738,12 +2992,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   it('discovers database connections without exposing secret values and blocks unsafe queries', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Database Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     const secret = await app.inject({
@@ -2782,6 +3038,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const owner = await register(app, { email: 'project-owner@example.com', organizationName: 'Project Owner Org' });
+
     const outsider = await register(app, {
       email: 'project-outsider@example.com',
       organizationName: 'Project Outsider Org',
@@ -2792,6 +3049,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${owner.token}` },
       payload: { name: 'Private Project' },
     });
+
     const projectId = create.json().project.id as string;
 
     const denied = await app.inject({
@@ -2808,12 +3066,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'ai-tools@example.com', organizationName: 'AI Tools Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'AI Tool Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -2838,12 +3098,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'ai-security@example.com', organizationName: 'AI Security Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'AI Security Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -2876,12 +3138,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'ai-guardrails@example.com', organizationName: 'AI Guardrails Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'AI Guardrails Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -2917,19 +3181,23 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   it('redacts canary secrets from AI runtime tool responses and persisted tool output', async () => {
     const canary = 'canary_runtimeAiToolLeakProbe_1234567890';
     const store = new TestApiStore();
+
     const runtime = await startRuntimeServices({
       logs: [`workspace ready`, `terminal leaked ${canary}`, `provider token sk_live_${'A'.repeat(20)}`],
       commandStdout: `stdout leaked ${canary} and ghp_${'B'.repeat(20)}`,
       commandStderr: `stderr leaked ya29.${'C'.repeat(20)}`,
     });
+
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'ai-canary@example.com', organizationName: 'AI Canary Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'AI Canary Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -2972,12 +3240,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'runtime-abuse@example.com', organizationName: 'Runtime Abuse Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime Abuse Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -2991,6 +3261,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(response.statusCode).toBe(409);
       expect(response.json().code).toBe('ABUSE_PORT_SCANNING');
       expect(runtime.calls).not.toContain('POST /commands/run');
+
       const abuseEvents = await store.listAbuseEvents();
       expect(abuseEvents).toHaveLength(1);
       expect(abuseEvents[0]).toMatchObject({
@@ -3009,14 +3280,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const previousPreviewTemplate = process.env.PREVIEW_URL_TEMPLATE;
     process.env.PREVIEW_URL_TEMPLATE = 'https://{workspaceId}-{port}.preview.example.com';
+
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'runtime-preview@example.com', organizationName: 'Runtime Preview Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime Preview Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -3046,14 +3320,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices({
       logs: ['vite ready in 120ms', 'GET /api/health 200', 'runtime port 5173 opened', 'Error: build failed'],
     });
+
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'runtime-logs@example.com', organizationName: 'Runtime Logs Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime Logs Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -3087,12 +3364,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const editor = await register(app, { email: 'runtime-editor@example.com' });
     await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
     await store.addMember({ organizationId: owner.organization.id, userId: editor.user.id, roleKey: 'editor' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${owner.organization.id}/projects`,
       headers: { authorization: `Bearer ${owner.token}` },
       payload: { name: 'Shared Runtime Project' },
     });
+
     const projectId = project.json().project.id as string;
     await app.inject({
       method: 'POST',
@@ -3131,7 +3410,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   it('returns a controlled 502 when the workspace manager is unavailable', async () => {
     const previousManager = process.env.WORKSPACE_MANAGER_URL;
     process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:9';
+
     const app = await buildTestApiApp({ store: new TestApiStore() });
+
     const auth = await register(app, {
       email: 'runtime-manager-down@example.com',
       organizationName: 'Runtime Manager Down Org',
@@ -3142,6 +3423,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime Manager Down Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {
@@ -3172,6 +3454,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store: new TestApiStore(), projectStorage });
+
     const auth = await register(app, {
       email: 'runtime-local-fallback@example.com',
       organizationName: 'Runtime Local Fallback Org',
@@ -3182,6 +3465,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime Local Fallback Project' },
     });
+
     const projectId = project.json().project.id as string;
     await projectStorage.writeFiles(projectId, [
       { path: 'package.json', content: '{\n  "name": "debugger-fallback"\n}\n' },
@@ -3217,16 +3501,19 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       } else {
         process.env.WORKSPACE_MANAGER_URL = previousManager;
       }
+
       if (previousFallback === undefined) {
         delete process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
       } else {
         process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = previousFallback;
       }
+
       if (previousFallbackRoot === undefined) {
         delete process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
       } else {
         process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
       }
+
       await app.close();
       await rm(localRuntimeRoot, { recursive: true, force: true });
     }
@@ -3237,12 +3524,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'ai-snapshot@example.com', organizationName: 'AI Snapshot Org' });
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'AI Snapshot Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {

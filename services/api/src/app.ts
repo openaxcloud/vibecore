@@ -1,24 +1,14 @@
-import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
-import websocket from '@fastify/websocket';
-import WebSocket from 'ws';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, sep, resolve } from 'node:path';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, extname, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { Client as PgClient } from 'pg';
-import { Redis } from 'ioredis';
-import mysql from 'mysql2/promise';
-import { MongoClient } from 'mongodb';
-import JSZip from 'jszip';
-import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
-import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
-import { SignedXml } from 'xml-crypto';
-import { DOMParser } from '@xmldom/xmldom';
+import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import { z, type ZodSchema } from 'zod';
 import {
   createOpaqueToken,
@@ -56,15 +46,16 @@ import {
   type PlanKey,
   type QuotaKey,
 } from '@vibecore/billing';
-import {
-  type ApiStore,
-  type CollaborationPresenceRecord,
-  type ProjectIdeStateRecord,
-  type ProjectRecord,
-  type SessionRecord,
-  type WorkspaceRecord,
-} from './store.js';
-import { PrismaApiStore } from './prisma-store.js';
+import { DOMParser } from '@xmldom/xmldom';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
+import { Redis } from 'ioredis';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload, type JWTVerifyGetKey } from 'jose';
+import JSZip from 'jszip';
+import { MongoClient } from 'mongodb';
+import mysql from 'mysql2/promise';
+import { Client as PgClient } from 'pg';
+import WebSocket from 'ws';
+import { SignedXml } from 'xml-crypto';
 import {
   AgentMemoryConfigurationError,
   AgentMemoryService,
@@ -72,6 +63,22 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import {
+  assertDeploymentRequestAllowed,
+  buildDeploymentUrl,
+  createDeploymentLogs,
+  runStaticBuild,
+  sanitizeDeploymentEnvVars,
+  snapshotStaticBuild,
+  staticDeploymentSnapshotDir,
+  triggerProviderDeployHook,
+  triggerProviderRollback,
+  createDeploymentSchema,
+  deploymentProviders,
+  detectFramework,
+  redactDeploymentLog,
+} from './deployments.js';
+import { createEmailProvider, type EmailProvider } from './email.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -83,6 +90,7 @@ import {
   installPatchSchema,
   createDefaultMcpMarketplaceService,
 } from './mcp-marketplace.js';
+import { PrismaApiStore } from './prisma-store.js';
 import {
   GitCliProvider,
   LocalProjectStorage,
@@ -90,19 +98,14 @@ import {
   type ProjectFile,
   type ProjectStorage,
 } from './project-storage.js';
-import { createEmailProvider, type EmailProvider } from './email.js';
 import {
-  assertDeploymentRequestAllowed,
-  buildDeploymentUrl,
-  createDeploymentLogs,
-  sanitizeDeploymentEnvVars,
-  triggerProviderDeployHook,
-  triggerProviderRollback,
-  createDeploymentSchema,
-  deploymentProviders,
-  detectFramework,
-  redactDeploymentLog,
-} from './deployments.js';
+  type ApiStore,
+  type CollaborationPresenceRecord,
+  type ProjectIdeStateRecord,
+  type ProjectRecord,
+  type SessionRecord,
+  type WorkspaceRecord,
+} from './store.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -128,6 +131,13 @@ export interface ApiAppOptions {
   isProduction?: boolean;
   aiGatewayUrl?: string;
   loggerStream?: { write(line: string): void };
+
+  /**
+   * Override the static build orchestrator. Production uses the default
+   * exported from `./deployments`, which spawns `npm install` + the user's
+   * build command on the host. Tests inject a deterministic fake.
+   */
+  staticBuildRunner?: typeof runStaticBuild;
 }
 
 function createDefaultStore() {
@@ -180,6 +190,7 @@ const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8),
 });
+
 const deleteAccountSchema = z.object({ confirmation: z.literal('DELETE MY ACCOUNT') });
 const tokenSchema = z.object({ token: z.string().min(16) });
 const passwordResetRequestSchema = z.object({ email: z.string().email() });
@@ -193,12 +204,15 @@ const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
+
 const createProjectSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(2).optional(),
   description: z.string().optional(),
 });
+
 const createProjectFromTemplateSchema = createProjectSchema.extend({ templateName: z.string().min(1) });
+
 const createProjectFromAiSchema = z.object({
   prompt: z.string().min(1),
   name: z.string().min(1).optional(),
@@ -237,8 +251,10 @@ const projectActivityQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(100),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
+
 const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
 const agentMemoryTypeSchema = z.enum(['episodic', 'semantic', 'procedural', 'working', 'cache']);
+
 const agentMemoryWriteSchema = z.object({
   scope: agentMemoryScopeSchema.default('user'),
   content: z.string().min(1).max(12000),
@@ -288,6 +304,7 @@ const agentMemoryPreferencePatchSchema = z.object({
   projectId: z.string().min(1).optional(),
   enabled: z.boolean(),
 });
+
 const agentMemoryParams = z.object({ memoryId: z.string().min(1) });
 
 function ideStateRecord(value: unknown): Record<string, any> {
@@ -341,6 +358,7 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
   const existingChat = ideStateRecord(existing.chat);
   const incomingChat = ideStateRecord(incoming.chat);
   const clearMessages = incomingChat.clearMessages === true;
+
   const mergedChat =
     incoming.chat === undefined
       ? existing.chat
@@ -363,6 +381,7 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
   };
 }
+
 const projectKeyValueSchema = z.object({
   key: z
     .string()
@@ -370,8 +389,10 @@ const projectKeyValueSchema = z.object({
     .regex(/^[A-Z0-9_]+$/),
   value: z.string(),
 });
+
 const projectKeySchema = projectKeyValueSchema.pick({ key: true });
 const databaseConnectionQuerySchema = z.object({ key: z.string().min(1).max(160) });
+
 const databaseQuerySchema = z.object({
   key: z.string().min(1).max(160),
   query: z.string().min(1).max(12000),
@@ -429,9 +450,11 @@ const collaborationAiSharingSchema = z.object({
 const collaborationWebSocketTicketSchema = z.object({
   sessionId: z.string().min(1).optional(),
 });
+
 const transferProjectSchema = z.object({ targetOrganizationId: z.string().min(1) });
 const duplicateProjectSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
 const templateFromProjectSchema = z.object({ name: z.string().min(1), description: z.string().optional() });
+
 const createWorkspaceSchema = z.object({
   name: z.string().min(1),
   runtimeMode: z.enum(['webcontainer', 'remote-kubernetes']).default('remote-kubernetes'),
@@ -441,22 +464,28 @@ const createSnapshotSchema = z.object({
   kind: z.enum(['manual', 'automatic', 'before-ai-change']).default('manual'),
   manifest: z.unknown().default({}),
 });
+
 const snapshotParams = z.object({ snapshotId: z.string().min(1) });
 const gitCommitSchema = z.object({ message: z.string().min(1), files: z.array(z.string().min(1)).optional() });
 const gitBranchSchema = z.object({ branch: z.string().min(1).default('main') });
+
 const gitCheckoutBranchSchema = z.object({
   branch: z.string().min(1),
   create: z.boolean().default(false),
   startPoint: z.string().min(1).optional(),
 });
+
 const gitStashSchema = z.object({ message: z.string().optional() });
 const gitStashApplySchema = z.object({ stashRef: z.string().min(1), drop: z.boolean().default(false) });
 const gitCherryPickSchema = z.object({ sha: z.string().min(4) });
+
 const gitConflictResolutionSchema = z.object({
   filePath: z.string().min(1),
   strategy: z.enum(['ours', 'theirs']),
 });
+
 const gitDiffQuerySchema = z.object({ filePath: z.string().optional() });
+
 const gitBlameQuerySchema = z.object({
   filePath: z.string().min(1),
   startLine: z.coerce.number().int().positive().optional(),
@@ -468,9 +497,11 @@ const pullRequestSchema = z.object({
   sourceBranch: z.string().min(1),
   targetBranch: z.string().min(1).default('main'),
 });
+
 const deploymentActionParams = projectParams.extend({ deploymentId: z.string().min(1) });
 const createTicketSchema = z.object({ subject: z.string().min(1) });
 const featureFlagSchema = z.object({ key: z.string().min(1), enabled: z.boolean() });
+
 const addMemberSchema = z.object({
   userId: z.string().min(1),
   roleKey: roleKeySchema,
@@ -503,12 +534,16 @@ const runtimeWorkspaceSchema = z.object({
   projectId: z.string().min(1).optional(),
   metadata: z.record(z.unknown()).optional(),
 });
+
 const runtimeFileWriteSchema = z.object({ path: z.string().min(1), content: z.string() });
+
 const runtimeFileCreateSchema = runtimeFileWriteSchema
   .partial({ content: true })
   .extend({ path: z.string().min(1), directory: z.boolean().optional() });
+
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
 const runtimeSearchSchema = z.object({ query: z.string(), options: z.record(z.unknown()).optional() });
+
 const runtimePatchSchema = z.object({
   operations: z.array(
     z.object({
@@ -554,13 +589,17 @@ const samlConfigSchema = z.object({
   x509Certificate: z.string().min(32),
   enabled: z.boolean().default(true),
 });
+
 const scimTokenSchema = z.object({ name: z.string().min(1) });
+
 const scimUserSchema = z.object({
   userName: z.string().email(),
   name: z.object({ givenName: z.string().optional(), familyName: z.string().optional() }).optional(),
   active: z.boolean().default(true),
 });
+
 const scimUserParams = z.object({ orgId: z.string().min(1), userId: z.string().min(1) });
+
 const scimPatchOpSchema = z.object({
   op: z.enum(['add', 'replace', 'Add', 'Replace', 'remove', 'Remove']).optional(),
   path: z.string().optional(),
@@ -586,8 +625,10 @@ const inviteSchema = z.object({
   email: z.string().email(),
   roleKey: roleKeySchema.default('member'),
 });
+
 const inviteParams = orgParams.extend({ inviteId: z.string().min(1) });
 const acceptInviteSchema = z.object({ token: z.string().min(16) });
+
 const oauthCallbackSchema = z.object({
   code: z.string().min(1).optional(),
   state: z.string().min(1).optional(),
@@ -597,6 +638,7 @@ const oauthCallbackSchema = z.object({
   accessToken: z.string().min(1).optional(),
   refreshToken: z.string().optional(),
 });
+
 const oidcCallbackSchema = oauthCallbackSchema.extend({ orgId: z.string().optional() });
 const samlAcsSchema = z.object({ SAMLResponse: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
@@ -606,12 +648,15 @@ const adminOrgParams = z.object({ orgId: z.string().min(1) });
 const adminWorkspaceParams = z.object({ workspaceId: z.string().min(1) });
 const adminTicketParams = z.object({ ticketId: z.string().min(1) });
 const adminAbuseParams = z.object({ abuseEventId: z.string().min(1) });
+
 const adminPlanOverrideSchema = z.object({
   organizationId: z.string().min(1),
   planKey: z.enum(['free', 'pro', 'team', 'enterprise']),
   reason: z.string().min(1),
 });
+
 const adminRefundNoteSchema = z.object({ organizationId: z.string().min(1), note: z.string().min(1) });
+
 const adminSupportResponseSchema = z.object({
   response: z.string().min(1),
   status: z.enum(['OPEN', 'PENDING', 'RESOLVED', 'CLOSED']).default('PENDING'),
@@ -620,7 +665,9 @@ const adminFeatureFlagSchema = featureFlagSchema.extend({
   organizationId: z.string().optional(),
   rolloutPercent: z.number().int().min(0).max(100).optional(),
 });
+
 const adminMaintenanceSchema = z.object({ enabled: z.boolean(), message: z.string().optional() });
+
 const adminAnnouncementSchema = z.object({
   message: z.string().min(1),
   severity: z.enum(['info', 'warning', 'critical']).default('info'),
@@ -637,15 +684,19 @@ const billingCheckoutSchema = z.object({
   cancelUrl: z.string().url(),
   trialDays: z.number().int().min(1).max(365).optional(),
 });
+
 const billingPortalSchema = z.object({ returnUrl: z.string().url() });
+
 const quotaOverrideSchema = z.object({
   key: z.string().min(1),
   limit: z.number().int().min(0),
   reason: z.string().min(1),
   expiresAt: z.string().datetime().optional(),
 });
+
 const adminQuotaOverrideSchema = quotaOverrideSchema.extend({ organizationId: z.string().min(1) });
 const aiConversationSchema = z.object({ title: z.string().min(1).optional() });
+
 const aiMessageSchema = z.object({
   content: z.string().min(1),
   provider: z.string().optional(),
@@ -692,6 +743,57 @@ function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
 }
 
+async function pathExistsAsync(targetPath: string) {
+  try {
+    await stat(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readableFileOrUndefined(targetPath: string) {
+  try {
+    const info = await stat(targetPath);
+    return info.isFile() ? targetPath : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const STATIC_DEPLOYMENT_MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html; charset=utf-8',
+  '.htm': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.cjs': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.wasm': 'application/wasm',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.pdf': 'application/pdf',
+};
+
+function staticDeploymentMimeType(filePath: string) {
+  return STATIC_DEPLOYMENT_MIME_TYPES[extname(filePath).toLowerCase()] ?? 'application/octet-stream';
+}
+
 function bearerToken(request: FastifyRequest) {
   const authorization = request.headers.authorization;
 
@@ -704,6 +806,7 @@ function bearerToken(request: FastifyRequest) {
   }
 
   const queryToken = new URL(request.url, 'http://vibecore.local').searchParams.get('token');
+
   if (queryToken) {
     return queryToken;
   }
@@ -728,6 +831,7 @@ function createCollaborationWebSocketTicket(input: { projectId: string; userId: 
       expiresAt: Date.now() + 60_000,
     }),
   ).toString('base64url');
+
   const signature = signCollaborationTicket(payload);
 
   return `${payload}.${signature}`;
@@ -897,6 +1001,7 @@ function assertReadOnlySql(query: string) {
 
 function assertReadOnlyRedis(query: string) {
   const command = query.trim().split(/\s+/)[0]?.toUpperCase();
+
   const allowed = new Set([
     'GET',
     'MGET',
@@ -931,6 +1036,7 @@ function serializeDbRows(rows: unknown) {
 async function listDatabaseConnections(store: ApiStore, projectId: string): Promise<DatabaseConnectionCandidate[]> {
   const envVars = await store.listProjectEnvVars(projectId);
   const secrets = await store.listProjectSecrets(projectId);
+
   const secretValues = await Promise.all(
     secrets.map(async (secret) => {
       const full = await store.getProjectSecret(projectId, secret.key);
@@ -1024,9 +1130,11 @@ async function inspectMongoSchema(connectionString: string) {
   try {
     const database = client.db();
     const collections = await database.listCollections({}, { nameOnly: true }).toArray();
+
     const details = await Promise.all(
       collections.slice(0, 80).map(async (collection) => {
         const handle = database.collection(collection.name);
+
         const [indexes, sample] = await Promise.all([
           handle.indexes().catch(() => []),
           handle.findOne().catch(() => null),
@@ -1050,6 +1158,7 @@ async function inspectRedisSchema(connectionString: string) {
   try {
     const [info, keys] = await Promise.all([redis.info().catch(() => ''), redis.scan(0, 'COUNT', 100)]);
     const sampledKeys = keys[1] ?? [];
+
     const keyDetails = await Promise.all(
       sampledKeys.slice(0, 50).map(async (key) => ({ key, type: await redis.type(key), ttl: await redis.ttl(key) })),
     );
@@ -1068,6 +1177,7 @@ async function runDatabaseQuery(
 ) {
   if (connection.kind === 'postgres') {
     assertReadOnlySql(query);
+
     const client = new PgClient({ connectionString: connection.value });
 
     await client.connect();
@@ -1087,6 +1197,7 @@ async function runDatabaseQuery(
 
   if (connection.kind === 'mysql') {
     assertReadOnlySql(query);
+
     const client = await mysql.createConnection(connection.value);
 
     try {
@@ -1104,6 +1215,7 @@ async function runDatabaseQuery(
 
   if (connection.kind === 'redis') {
     assertReadOnlyRedis(query);
+
     const redis = new Redis(connection.value, { lazyConnect: true, maxRetriesPerRequest: 1 });
 
     await redis.connect();
@@ -1139,6 +1251,7 @@ async function runDatabaseQuery(
 
     const filter = typeof parsed.filter === 'object' && parsed.filter ? parsed.filter : {};
     const projection = typeof parsed.projection === 'object' && parsed.projection ? parsed.projection : undefined;
+
     const rows = await database
       .collection(targetCollection)
       .find(filter, { projection })
@@ -1277,6 +1390,7 @@ async function permissionsForOrganizationRole(store: ApiStore, organizationId: s
   }
 
   const customRole = (await store.listCustomRoles(organizationId)).find((role) => role.key === roleKey);
+
   return customRole?.permissions ?? [];
 }
 
@@ -1340,6 +1454,7 @@ function ideStateObject(state?: ProjectIdeStateRecord) {
 
 function collaborationDocuments(state?: ProjectIdeStateRecord) {
   const root = ideStateObject(state);
+
   const collaboration =
     root.collaboration && typeof root.collaboration === 'object' && !Array.isArray(root.collaboration)
       ? ({ ...(root.collaboration as Record<string, unknown>) } as Record<string, unknown>)
@@ -1354,10 +1469,12 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
 
 function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array<{ path: string; content: string }> {
   const root = ideStateObject(state);
+
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
       : {};
+
   const messages = Array.isArray(chat.messages) ? chat.messages : [];
   const files = new Map<string, string>();
 
@@ -1398,6 +1515,7 @@ function persistedIdeMessageContent(message: unknown) {
       }
 
       const text = (part as Record<string, unknown>).text;
+
       return typeof text === 'string' ? text : '';
     })
     .filter(Boolean)
@@ -1407,6 +1525,7 @@ function persistedIdeMessageContent(message: unknown) {
 function boltFileActionsFromContent(content: string) {
   const files: Array<{ path: string; content: string }> = [];
   const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
+
   let match: RegExpExecArray | null;
 
   while ((match = actionPattern.exec(content))) {
@@ -1431,6 +1550,7 @@ function boltFileActionsFromContent(content: string) {
 function boltActionAttributes(source: string) {
   const attributes: Record<string, string> = {};
   const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
+
   let match: RegExpExecArray | null;
 
   while ((match = attributePattern.exec(source))) {
@@ -1675,6 +1795,7 @@ async function sessionExpiresAt(store: ApiStore, organizationId?: string) {
   }
 
   const settings = await store.getEnterpriseSettings(organizationId);
+
   return new Date(Date.now() + settings.sessionDurationMinutes * 60_000);
 }
 
@@ -1696,6 +1817,7 @@ async function createLoginSession(input: {
 
 function auditEventsToCsv(events: Awaited<ReturnType<ApiStore['listAuditLogs']>>) {
   const header = ['createdAt', 'organizationId', 'actorUserId', 'action', 'resourceType', 'resourceId', 'ipAddress'];
+
   const lines = events.map((event) =>
     header
       .map((key) => {
@@ -1710,6 +1832,7 @@ function auditEventsToCsv(events: Awaited<ReturnType<ApiStore['listAuditLogs']>>
 
 function adminAuditLogsToCsv(events: Awaited<ReturnType<ApiStore['listAdminAuditLogs']>>) {
   const header = ['createdAt', 'actorUserId', 'action', 'ipAddress'];
+
   const lines = events.map((event) =>
     header
       .map((key) => {
@@ -1826,6 +1949,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
   const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
   const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
+
   const tokenPayload: Record<string, string> = {
     grant_type: 'authorization_code',
     code: body.code,
@@ -1882,6 +2006,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     name?: string;
     login?: string;
   };
+
   const email = profile.email;
   const externalId = profile.id ?? profile.sub ?? profile.login;
 
@@ -1911,6 +2036,7 @@ function pemFromCertificate(certificate: string) {
       .replace(/\s+/g, '')
       .match(/.{1,64}/g)
       ?.join('\n') ?? certificate;
+
   return `-----BEGIN CERTIFICATE-----\n${body}\n-----END CERTIFICATE-----`;
 }
 
@@ -1935,6 +2061,7 @@ function verifySamlXmlSignature(xml: string, certificate: string): boolean {
       idMode: 'wssecurity',
     });
     verifier.loadSignature(signatureNode as any);
+
     return verifier.checkSignature(xml);
   } catch {
     return false;
@@ -1956,6 +2083,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string) {
 
   if (!signatureValid) {
     const signatureValue = xmlText(xml, /<SignatureValue[^>]*>([\s\S]*?)<\/(?:\w+:)?SignatureValue>/);
+
     if (signatureValue) {
       const verifier = createVerify('RSA-SHA256');
       verifier.update(assertionXml);
@@ -1963,6 +2091,7 @@ function parseSamlXmlAssertion(xml: string, certificate: string) {
       signatureValid = verifier.verify(pemFromCertificate(certificate), signatureValue, 'base64');
     }
   }
+
   const email =
     xmlText(assertionXml, /<NameID[^>]*>([\s\S]*?)<\/(?:\w+:)?NameID>/) ??
     xmlText(
@@ -2213,6 +2342,7 @@ function viteAppTsx(name: string, prompt: string) {
 
 function projectProductName(name: string, prompt: string) {
   const source = name || prompt || 'VibeCore';
+
   const cleaned = source
     .replace(/\b(build|create|make|clone|of|the|a|an|app|platform|saas|application)\b/gi, ' ')
     .replace(/[^a-zA-Z0-9\s-]/g, ' ')
@@ -2441,10 +2571,21 @@ function safeJsonObject(value: string): Record<string, any> | null {
 function packageManagerFromValue(value?: string): ProjectPackageManager | undefined {
   const normalized = value?.toLowerCase() ?? '';
 
-  if (normalized.startsWith('pnpm') || normalized.includes('/pnpm@')) return 'pnpm';
-  if (normalized.startsWith('yarn') || normalized.includes('/yarn@')) return 'yarn';
-  if (normalized.startsWith('bun') || normalized.includes('/bun@')) return 'bun';
-  if (normalized.startsWith('npm') || normalized.includes('/npm@')) return 'npm';
+  if (normalized.startsWith('pnpm') || normalized.includes('/pnpm@')) {
+    return 'pnpm';
+  }
+
+  if (normalized.startsWith('yarn') || normalized.includes('/yarn@')) {
+    return 'yarn';
+  }
+
+  if (normalized.startsWith('bun') || normalized.includes('/bun@')) {
+    return 'bun';
+  }
+
+  if (normalized.startsWith('npm') || normalized.includes('/npm@')) {
+    return 'npm';
+  }
 
   return undefined;
 }
@@ -2452,10 +2593,21 @@ function packageManagerFromValue(value?: string): ProjectPackageManager | undefi
 function detectPackageManager(files: ProjectFile[], manifests: ProjectPackageManifest[]): ProjectPackageManager {
   const paths = new Set(files.map((file) => file.path.split('/').pop()));
 
-  if (paths.has('pnpm-lock.yaml')) return 'pnpm';
-  if (paths.has('yarn.lock')) return 'yarn';
-  if (paths.has('bun.lock') || paths.has('bun.lockb')) return 'bun';
-  if (paths.has('package-lock.json')) return 'npm';
+  if (paths.has('pnpm-lock.yaml')) {
+    return 'pnpm';
+  }
+
+  if (paths.has('yarn.lock')) {
+    return 'yarn';
+  }
+
+  if (paths.has('bun.lock') || paths.has('bun.lockb')) {
+    return 'bun';
+  }
+
+  if (paths.has('package-lock.json')) {
+    return 'npm';
+  }
 
   for (const manifest of manifests) {
     const manager = packageManagerFromValue(manifest.packageManager);
@@ -2656,6 +2808,7 @@ function flattenRuntimeFiles(nodes: AgentNode[]): AgentNode[] {
 
 function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
   const socket = (rawSocket as { socket?: unknown }).socket ?? rawSocket;
+
   const candidate = socket as {
     send?: (message: string) => void;
     close?: () => void;
@@ -2837,6 +2990,7 @@ async function recordAbuseSignal(
   },
 ) {
   request.observabilityMetrics?.increment?.('abuse_events_total', { type: input.type, severity: input.severity });
+
   const abuseEvent = await store.createAbuseEvent({
     organizationId: input.organizationId,
     userId: input.userId,
@@ -2903,7 +3057,9 @@ async function deliverSiemAbuseSignal(
   const webhooks = await store.listSiemWebhooks(payload.organizationId).catch(() => []);
   const enabled = webhooks.filter((webhook) => webhook.enabled);
 
-  if (enabled.length === 0) return;
+  if (enabled.length === 0) {
+    return;
+  }
 
   const body = JSON.stringify({
     schema: 'vibecore.abuse.v1',
@@ -2921,14 +3077,17 @@ async function deliverSiemAbuseSignal(
   await Promise.allSettled(
     enabled.map(async (webhook) => {
       let secret: string;
+
       try {
         ({ secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext));
       } catch {
         return;
       }
+
       const signature = createHmac('sha256', secret).update(body).digest('hex');
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
+
       try {
         await fetch(webhook.url, {
           method: 'POST',
@@ -2997,6 +3156,7 @@ function ensureAiCommandAllowed(command = '', args: string[] = []) {
   const abuseSignal = detectCommandAbuse(command, args);
   const allowList = configuredAiCommandAllowList();
   const primaryCommand = line.split(/\s+/)[0]?.split('/').pop()?.toLowerCase();
+
   const blocked = [
     /\brm\s+-rf\s+(\/|\*)/,
     /\bsudo\b/,
@@ -3044,7 +3204,10 @@ let gptTokenEncoder: ((text: string) => Uint32Array) | undefined;
 let gptTokenizerLoadFailed = false;
 
 export async function ensureGptTokenizer() {
-  if (gptTokenEncoder || gptTokenizerLoadFailed) return;
+  if (gptTokenEncoder || gptTokenizerLoadFailed) {
+    return;
+  }
+
   try {
     const tokenizer = (await import('gpt-tokenizer')) as {
       encode: (text: string) => number[] | Uint32Array;
@@ -3065,6 +3228,7 @@ export async function estimateAiTokens(content: string) {
       // fall through to length/4 fallback
     }
   }
+
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
@@ -3086,13 +3250,17 @@ async function seedBillingPlans(store: ApiStore) {
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
+
   const mcpMarketplace =
     options.mcpMarketplace ??
     (store instanceof PrismaApiStore ? createDefaultMcpMarketplaceService(store.prisma) : undefined);
+
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
+  const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+
   const allowedOrigins =
     options.allowedOrigins ?? (process.env.API_CORS_ORIGINS?.split(',').filter(Boolean) || ['http://localhost:5173']);
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(
@@ -3106,6 +3274,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           baseUrl: process.env.STRIPE_API_BASE_URL,
         })
       : undefined;
+
   const collaborationBroker = createCollaborationBroker();
   const metrics = createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
@@ -3176,12 +3345,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     keyGenerator(request) {
       const org = (request.headers['x-org-id'] as string | undefined) ?? 'no-org';
       const authorization = request.headers.authorization;
+
       const sessionKey =
         typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
           : request.cookies.session
             ? hashToken(request.cookies.session).slice(0, 16)
             : 'anonymous';
+
       return `${request.ip}:${request.currentUser?.id ?? sessionKey}:${org}`;
     },
   });
@@ -3190,6 +3361,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.addContentTypeParser('application/zip', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.addHook('onRequest', async (request, reply) => {
     const correlationHeader = request.headers['x-correlation-id'];
+
     const correlationId =
       typeof correlationHeader === 'string' && correlationHeader.length > 0 ? correlationHeader : request.id;
     request.observability = { startedAt: nowSeconds(), correlationId };
@@ -3203,9 +3375,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const startedAt = request.observability?.startedAt ?? nowSeconds();
     metrics.increment('api_requests_total', labels);
     metrics.observe('api_request_duration_seconds', labels, durationSeconds(startedAt));
+
     if (reply.statusCode >= 500) {
       metrics.increment('api_errors_total', labels);
     }
+
     request.log.info(
       redactSecrets({
         event: 'request.completed',
@@ -3222,13 +3396,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.addHook('preParsing', async (request, _reply, payload) => {
     if (request.url.startsWith('/billing/stripe/webhook')) {
       const chunks: Buffer[] = [];
+
       for await (const chunk of payload as AsyncIterable<Buffer>) {
         chunks.push(Buffer.from(chunk));
       }
+
       const body = Buffer.concat(chunks);
       request.rawBody = body.toString('utf8');
+
       const stream = Readable.from([body]);
       (stream as any).receivedEncodedLength = body.length;
+
       return stream;
     }
 
@@ -3241,6 +3419,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
+
     if (statusCode >= 500) {
       metrics.increment('api_errors_total', {
         method: request.method,
@@ -3255,6 +3434,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         route: request.routeOptions.url,
       });
     }
+
     if (request.url.startsWith('/billing/stripe/webhook')) {
       metrics.increment('stripe_webhook_failures_total', { code: error.code ?? 'STRIPE_WEBHOOK_ERROR' });
     }
@@ -3266,12 +3446,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
+
+  /*
+   * Public static-deployment serve route.
+   *
+   * The deploymentId itself acts as the capability — it's a 25+ char cuid
+   * minted by the store and only handed back to the deployment owner. We do
+   * NOT call requireProject() here because static previews are share-by-URL.
+   * Revocation is handled by deleting the deployment (which removes the
+   * snapshot dir below).
+   *
+   * Security: every requested path is resolved via path.resolve and must
+   * stay strictly inside the snapshot directory; anything that would
+   * escape (../, absolute paths, symlinks pointing outside) returns 403.
+   * SPA routes (anything that does not resolve to a real file) fall back
+   * to index.html so client-side routers work.
+   */
+  app.get('/static-deployments/:deploymentId/*', async (request, reply) => {
+    const params = request.params as { deploymentId?: string; '*'?: string };
+    const deploymentId = (params.deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: 'Invalid deployment id', code: 'STATIC_DEPLOY_INVALID_ID' });
+    }
+
+    const snapshotRoot = staticDeploymentSnapshotDir(deploymentId);
+
+    if (!(await pathExistsAsync(snapshotRoot))) {
+      return reply
+        .code(404)
+        .send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    const rawPath = decodeURIComponent(params['*'] ?? '').replace(/\\/g, '/');
+    const normalizedRequest = rawPath.replace(/^\/+/, '');
+    const requested = normalizedRequest === '' ? 'index.html' : normalizedRequest;
+    const resolved = resolve(snapshotRoot, requested);
+
+    if (!resolved.startsWith(`${snapshotRoot}${sep}`) && resolved !== snapshotRoot) {
+      return reply
+        .code(403)
+        .send({ error: 'Path is outside the deployment artifact', code: 'STATIC_DEPLOY_FORBIDDEN' });
+    }
+
+    const fallbackIndex = resolve(snapshotRoot, 'index.html');
+    const filePath = (await readableFileOrUndefined(resolved)) ?? (await readableFileOrUndefined(fallbackIndex));
+
+    if (!filePath) {
+      return reply.code(404).send({ error: 'File not found in deployment', code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+    }
+
+    const body = await readFile(filePath);
+    reply.header('cache-control', 'public, max-age=60, must-revalidate');
+    reply.header('x-vibecore-static-deployment', deploymentId);
+    reply.type(staticDeploymentMimeType(filePath));
+
+    return reply.send(body);
+  });
   app.get('/ready', async (_request, reply) => {
     const checks: Record<string, { status: 'ok' | 'unconfigured' | 'down'; latencyMs?: number; detail?: string }> = {};
+
     let degraded = false;
 
     if (process.env.DATABASE_URL) {
       const started = Date.now();
+
       try {
         await store.findUserById('__readiness_probe__');
         checks.database = { status: 'ok', latencyMs: Date.now() - started };
@@ -3289,20 +3528,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (process.env.REDIS_URL) {
       const started = Date.now();
+
       const probe = new Redis(process.env.REDIS_URL, {
         lazyConnect: true,
         maxRetriesPerRequest: 1,
         connectTimeout: 1500,
       });
+
       try {
         await probe.connect();
+
         const pong = await probe.ping();
         checks.redis = {
           status: pong === 'PONG' ? 'ok' : 'down',
           latencyMs: Date.now() - started,
           detail: pong,
         };
-        if (pong !== 'PONG') degraded = true;
+
+        if (pong !== 'PONG') {
+          degraded = true;
+        }
       } catch (error) {
         degraded = true;
         checks.redis = {
@@ -3370,17 +3615,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         passwordHash: hashPassword(body.password),
         platformAdmin: bootstrapPlatformAdmin(body.email),
       });
+
       const verificationToken = createOpaqueToken('verify');
       await store.createEmailVerification({
         userId: user.id,
         token: verificationToken,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
       });
+
       const organization = await store.createOrganization({
         name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
         slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
+
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
       reply.setCookie('session', token, authCookieOptions(isProduction));
@@ -3426,6 +3674,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         const totpValid = verifyEncryptedTotpCode(encryptedSecret, body.mfaCode);
+
         const recoveryValid = totpValid
           ? false
           : await store.consumeRecoveryCode(user.id, hashRecoveryCode(body.mfaCode));
@@ -3528,37 +3777,62 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nonce = randomUUID();
     const payload = `${provider}.${expiresAt}.${nonce}`;
     const signature = createHmac('sha256', oauthStateSecret()).update(payload).digest('hex');
+
     return Buffer.from(`${payload}.${signature}`, 'utf8').toString('base64url');
   }
 
   function verifyOauthState(state: string, provider: string): boolean {
     let decoded: string;
+
     try {
       decoded = Buffer.from(state, 'base64url').toString('utf8');
     } catch {
       return false;
     }
+
     const lastDot = decoded.lastIndexOf('.');
-    if (lastDot < 0) return false;
+
+    if (lastDot < 0) {
+      return false;
+    }
+
     const payload = decoded.slice(0, lastDot);
     const signature = decoded.slice(lastDot + 1);
     const expected = createHmac('sha256', oauthStateSecret()).update(payload).digest('hex');
-    if (signature.length !== expected.length) return false;
+
+    if (signature.length !== expected.length) {
+      return false;
+    }
+
     try {
       const a = Buffer.from(signature, 'hex');
       const b = Buffer.from(expected, 'hex');
-      if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
+        return false;
+      }
     } catch {
       return false;
     }
+
     const segments = payload.split('.');
-    if (segments.length < 3) return false;
+
+    if (segments.length < 3) {
+      return false;
+    }
+
     const [statedProvider, expiresAtStr] = segments;
-    if (statedProvider !== provider) return false;
+
+    if (statedProvider !== provider) {
+      return false;
+    }
+
     const expiresAt = Number(expiresAtStr);
+
     if (!Number.isFinite(expiresAt) || expiresAt <= Math.floor(Date.now() / 1000)) {
       return false;
     }
+
     return true;
   }
 
@@ -3566,6 +3840,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorizationUrl =
       process.env[`${provider.toUpperCase()}_OAUTH_AUTHORIZATION_URL`] ??
       process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`];
+
     const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
     const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
     const scope = process.env[`${provider.toUpperCase()}_SCOPE`] ?? 'openid email profile';
@@ -3603,10 +3878,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const provider = (request.params as { provider: string }).provider;
       const body = parse(oauthCallbackSchema, request.body);
+
       if (body.code && body.state && !verifyOauthState(body.state, provider)) {
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
+
       const profile = await resolveOAuthProfile(provider, body);
+
       const user =
         (await store.findUserByEmail(profile.email)) ??
         (await store.createUser({
@@ -3621,6 +3899,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         accessToken: profile.accessToken,
         refreshToken: profile.refreshToken,
       });
+
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
       reply.setCookie('session', token, authCookieOptions(isProduction));
@@ -3643,10 +3922,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
     async (request, reply) => {
       const body = parse(oidcCallbackSchema, request.body);
+
       if (body.code && body.state && !verifyOauthState(body.state, 'oidc')) {
         return reply.code(401).send({ error: 'Invalid or expired OIDC state', code: 'OAUTH_STATE_INVALID' });
       }
+
       const profile = await resolveOAuthProfile('oidc', body);
+
       const user =
         (await store.findUserByEmail(profile.email)) ??
         (await store.createUser({
@@ -3661,6 +3943,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         accessToken: profile.accessToken,
         refreshToken: profile.refreshToken,
       });
+
       const token = createOpaqueToken('session');
       await createLoginSession({
         store,
@@ -3717,8 +4000,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         externalId: assertion.externalId,
         accessToken: body.SAMLResponse,
       });
+
       const roleKey = assertion.roleKey ?? 'member';
       await requireAssignableOrganizationRole(store, orgId, roleKey);
+
       const existingMembership = await store.getMembership(user.id, orgId);
 
       if (!existingMembership) {
@@ -3726,9 +4011,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       await store.addMember({ organizationId: orgId, userId: user.id, roleKey });
+
       if (!existingMembership) {
         await recordUsage(request, orgId, 'team.members');
       }
+
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgId, token, request });
       reply.setCookie('session', token, authCookieOptions(isProduction));
@@ -3752,6 +4039,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const key = `${request.ip}:${request.url.split('?')[0]}`;
       const now = Date.now();
       const bucket = adminRateBuckets.get(key);
+
       if (!bucket || bucket.resetAt <= now) {
         adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
       } else if (bucket.count >= adminRateLimit) {
@@ -3781,7 +4069,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/billing/stripe/webhook') ||
-      request.url.startsWith('/scim/')
+      request.url.startsWith('/scim/') ||
+      request.url.startsWith('/static-deployments/')
     ) {
       return;
     }
@@ -3830,11 +4119,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(agentMemoryListQuerySchema.omit({ limit: true }), request.query);
     const service = requireAgentMemoryService(agentMemory);
     const authorized = await authorizeAgentMemoryScope(request, store, query, 'projects:read');
+
     const memories = await service.export({
       userId: request.currentUser!.id,
       organizationId: authorized.organizationId,
       projectId: authorized.projectId,
     });
+
     const exportedAt = new Date().toISOString();
 
     await audit(request, store, {
@@ -3876,6 +4167,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(agentMemoryPreferencePatchSchema, request.body);
     const service = requireAgentMemoryService(agentMemory);
     const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:write');
+
     const preference = await service.setPreference({
       userId: request.currentUser!.id,
       organizationId: authorized.organizationId ?? body.organizationId,
@@ -3898,6 +4190,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(agentMemoryWriteSchema, request.body);
     const service = requireAgentMemoryService(agentMemory);
     const authorized = await authorizeAgentMemoryScope(request, store, body, 'projects:write');
+
     const result = await service.remember({
       userId: request.currentUser!.id,
       organizationId: authorized.organizationId ?? body.organizationId,
@@ -4002,9 +4295,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
+
       if (mapped) {
         return reply.code(mapped.statusCode).send(mapped.payload);
       }
+
       throw error;
     }
   });
@@ -4022,9 +4317,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { entry: await service.getCatalogEntry(slug) };
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
+
       if (mapped) {
         return reply.code(mapped.statusCode).send(mapped.payload);
       }
+
       throw error;
     }
   });
@@ -4073,9 +4370,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(201).send({ install });
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
+
       if (mapped) {
         return reply.code(mapped.statusCode).send(mapped.payload);
       }
+
       throw error;
     }
   });
@@ -4108,9 +4407,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { install };
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
+
       if (mapped) {
         return reply.code(mapped.statusCode).send(mapped.payload);
       }
+
       throw error;
     }
   });
@@ -4133,9 +4434,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { install: removed };
     } catch (error) {
       const mapped = mapMcpMarketplaceError(error);
+
       if (mapped) {
         return reply.code(mapped.statusCode).send(mapped.payload);
       }
+
       throw error;
     }
   });
@@ -4144,6 +4447,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { memoryId } = parse(agentMemoryParams, request.params);
     const body = parse(agentMemoryPatchSchema, request.body);
     const service = requireAgentMemoryService(agentMemory);
+
     const memory = await service.replace({
       id: memoryId,
       userId: request.currentUser!.id,
@@ -4245,10 +4549,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (workspace) {
       const record = await requireWorkspace(request, store, workspaceId, permission);
       const project = await store.getProject(record.projectId);
+
       return { workspaceId: record.id, projectId: record.projectId, organizationId: project?.organizationId };
     }
 
     const project = await requireProject(request, store, workspaceId, permission);
+
     return { workspaceId: project.id, projectId: project.id, organizationId: project.organizationId };
   };
 
@@ -4344,6 +4650,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const created = new Map<string, LocalRuntimeProcess>();
     localRuntimeProcesses.set(workspaceId, created);
+
     return created;
   };
 
@@ -4353,11 +4660,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   ) => {
     const root = await ensureLocalRuntimeWorkspace(authorized);
     const args = body.args ?? [];
+
     const id = createHash('sha256')
       .update(`local:${authorized.workspaceId}:${body.command}:${args.join('\0')}:${Date.now()}`)
       .digest('hex')
       .slice(0, 12);
+
     const child = spawn(body.command, args, { cwd: root, shell: false, env: process.env });
+
     const record: LocalRuntimeProcess = {
       id,
       command: [body.command, ...args].join(' '),
@@ -4370,9 +4680,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let stdout = '';
     let stderr = '';
+
     const maxOutputBytes = Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);
     const timeoutMs = Math.min(body.timeoutMs ?? 30_000, Number(process.env.WORKSPACE_COMMAND_TIMEOUT_MS ?? 30_000));
     const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+
     const append = (target: 'stdout' | 'stderr', chunk: Buffer) => {
       const value = chunk.toString('utf8');
 
@@ -4427,6 +4739,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       record.process.kill('SIGTERM');
       record.status = 'killed';
       processes?.delete(processId);
+
       return { killed: true, id: processId, localRuntime: true };
     }
 
@@ -4450,6 +4763,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId?: string;
   }) => {
     const root = await ensureLocalRuntimeWorkspace(authorized);
+
     const processLogs = [...(localRuntimeProcesses.get(authorized.workspaceId)?.values() ?? [])].flatMap((record) =>
       record.output
         ? [
@@ -4463,7 +4777,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ]
         : [],
     );
+
     const debugDir = resolve(root, '.vibecore/debug');
+
     const debugLogs = await readdir(debugDir)
       .then(async (entries) =>
         Promise.all(
@@ -4525,6 +4841,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const billingState = async (organizationId: string) => {
     const subscription = await store.getSubscription(organizationId);
+
     const entitledPlanKey =
       subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
     const plan = (await store.getBillingPlan(entitledPlanKey)) ??
@@ -4534,6 +4851,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
 
     const catalogPlan = planByKey(plan.key);
+
     return {
       subscription,
       plan: {
@@ -4553,6 +4871,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (key === 'workspaces.active') {
       const projects = await store.listProjects(organizationId);
       const workspaces = (await Promise.all(projects.map((project) => store.listWorkspaces(project.id)))).flat();
+
       return workspaces.filter((workspace) => ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status)).length;
     }
 
@@ -4574,13 +4893,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const usageForQuota = async (organizationId: string, key: QuotaKey, request?: any) => {
-    if (!request) return computeUsageForQuota(organizationId, key);
+    if (!request) {
+      return computeUsageForQuota(organizationId, key);
+    }
+
     const cache: Map<string, Promise<number>> = (request.__quotaUsageCache ??= new Map());
     const cacheKey = `${organizationId}:${key}`;
     const cached = cache.get(cacheKey);
-    if (cached) return cached;
+
+    if (cached) {
+      return cached;
+    }
+
     const promise = computeUsageForQuota(organizationId, key);
     cache.set(cacheKey, promise);
+
     return promise;
   };
 
@@ -4602,14 +4929,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const scimTokenMaxAgeDays = Math.max(1, Number(process.env.SCIM_TOKEN_MAX_AGE_DAYS ?? 365));
 
   const isScimTokenExpired = (token: { createdAt: string } | undefined) => {
-    if (!token) return true;
+    if (!token) {
+      return true;
+    }
+
     const ageMs = Date.now() - new Date(token.createdAt).getTime();
+
     return ageMs > scimTokenMaxAgeDays * 24 * 60 * 60 * 1000;
   };
 
   const isQuotaOverrideActive = (override: { expiresAt?: string } | undefined) => {
-    if (!override) return false;
-    if (!override.expiresAt) return true;
+    if (!override) {
+      return false;
+    }
+
+    if (!override.expiresAt) {
+      return true;
+    }
+
     return new Date(override.expiresAt).getTime() > Date.now();
   };
 
@@ -4619,6 +4956,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const activeOverride = isQuotaOverrideActive(override) ? override : undefined;
     const limit = activeOverride?.limit ?? limits[key] ?? 0;
     const used = await usageForQuota(organizationId, key, request);
+
     try {
       assertQuota({ key, used, limit, increment });
     } catch (error: any) {
@@ -4652,13 +4990,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceCreations,
         failedAuthAttempts,
       });
-      if (!signal) return;
+
+      if (!signal) {
+        return;
+      }
+
       const recent = abuseEvents
         .filter((event) => event.organizationId === organizationId && event.type === signal.type)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
       if (recent && Date.now() - new Date(recent.createdAt).getTime() < 60 * 60 * 1000) {
         return;
       }
+
       await recordAbuseSignal(request, store, {
         organizationId,
         userId: request.currentUser?.id,
@@ -4681,6 +5025,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   ) => {
     await store.recordUsageEvent({ organizationId, userId: request.currentUser?.id, type, quantity, metadata });
     invalidateQuotaUsageCache(request, organizationId, type);
+
     if (usageAbuseTriggerTypes.has(type)) {
       await evaluateUsageAbuse(request, organizationId, type);
     }
@@ -4688,6 +5033,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const ensureAiQuota = async (request: any, organizationId: string, inputTokens: number, outputTokens = 0) => {
     await ensureQuota(request, organizationId, 'ai.inputTokens', inputTokens);
+
     if (outputTokens) {
       await ensureQuota(request, organizationId, 'ai.outputTokens', outputTokens);
     }
@@ -4696,6 +5042,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const createBeforeAiSnapshot = async (request: any, project: ProjectRecord, reason: string) => {
     const files = await projectStorage.listFiles(project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
+
     return store.createSnapshot({
       projectId: project.id,
       label: reason,
@@ -4714,6 +5061,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     input: z.infer<typeof aiToolSchema>,
   ) => {
     const workspaceId = input.workspaceId ?? project.id;
+
     const writeTools = new Set([
       'write_file',
       'create_file',
@@ -4730,6 +5078,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const path = input.path ? normalizeAiPath(input.path) : undefined;
     const newPath = input.newPath ? normalizeAiPath(input.newPath) : undefined;
+
     let snapshotId: string | undefined;
     let output: unknown;
 
@@ -4767,8 +5116,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const nodes = await agentRequest<AgentNode[]>(workspaceId, '/files/tree');
       const query = input.query ?? '';
       const matches = [];
+
       for (const file of flattenRuntimeFiles(nodes)) {
         const content = await agentFileContent(workspaceId, file.path);
+
         if (query && content.includes(query)) {
           matches.push({ path: file.path, preview: content.split('\n').find((line) => line.includes(query)) });
         }
@@ -4782,6 +5133,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       output = { applied: true, snapshotId };
     } else if (toolName === 'run_command') {
       const signal = detectCommandAbuse(input.command, input.args);
+
       if (signal) {
         await recordAbuseSignal(request, store, {
           organizationId: project.organizationId,
@@ -4793,6 +5145,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           action: signal.action,
         });
       }
+
       ensureAiCommandAllowed(input.command, input.args);
       output = await agentRequest(workspaceId, '/commands/run', {
         method: 'POST',
@@ -4833,6 +5186,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     await recordUsage(request, project.organizationId, 'ai.toolCalls', 1, { toolName });
+
     return { output: redactAiValue(output), snapshotId };
   };
 
@@ -4849,19 +5203,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const project = await requireProject(request, store, projectId, 'workspaces:write');
     const requestedWorkspaceId = body.workspaceId;
+
     const workspaceId =
       !requestedWorkspaceId || requestedWorkspaceId === project.id
         ? runtimeWorkspaceId(project.id, request.currentUser!.id)
         : requestedWorkspaceId;
+
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
     await requireOrganizationNotSuspended(store, authorized.organizationId);
+
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
+
     if (authorized.organizationId) {
       await ensureQuota(request, authorized.organizationId, 'workspaces.active');
     }
+
     const workspaceRecord = await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
+
     const workspaceStartAt = nowSeconds();
+
     const managerWorkspace = await managerRequest<any>('/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
@@ -4890,6 +5251,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       { plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free' },
       durationSeconds(workspaceStartAt),
     );
+
     if (managerWorkspace?.status === 'FAILED') {
       metrics.increment('workspace_failures_total', { reason: 'manager_failed' });
     }
@@ -4901,6 +5263,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: authorized.workspaceId,
       metadata: { runtimeMode: 'remote-kubernetes' },
     });
+
     if (authorized.organizationId) {
       await recordUsage(request, authorized.organizationId, 'workspaces.active');
     }
@@ -4921,11 +5284,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'workspace',
       resourceId: authorized.workspaceId,
     });
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/restart', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
     const managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
       method: 'POST',
       body: JSON.stringify({
@@ -4945,6 +5310,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'workspace',
       resourceId: authorized.workspaceId,
     });
+
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
       managerWorkspace,
     });
@@ -4952,6 +5318,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/status', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     let managerWorkspace: any;
 
     try {
@@ -4962,6 +5329,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       await ensureLocalRuntimeWorkspace(authorized);
+
       return {
         ...runtimeSession(authorized.workspaceId, 'running', { localRuntime: true }),
         runtimeMode: 'local-dev',
@@ -4978,16 +5346,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path = '.' } = parse(z.object({ path: z.string().default('.') }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     const nodes = await agentRequest<AgentNode[]>(
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
     );
+
     return mapRuntimeNodes(nodes);
   });
   app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     return { path, content: await agentFileContent(authorized.workspaceId, path) };
   });
   app.put('/api/runtime/workspaces/:workspaceId/files/write', async (request, reply) => {
@@ -5001,6 +5372,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceType: 'workspaceFile',
       resourceId: body.path,
     });
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files', async (request, reply) => {
@@ -5008,6 +5380,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentRequest(authorized.workspaceId, '/files/create', { method: 'POST', body: JSON.stringify(body) });
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/directories', async (request, reply) => {
@@ -5018,6 +5391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({ ...body, directory: true }),
     });
+
     return reply.code(204).send();
   });
   app.delete('/api/runtime/workspaces/:workspaceId/files', async (request, reply) => {
@@ -5025,6 +5399,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentRequest(authorized.workspaceId, '/files/delete', { method: 'POST', body: JSON.stringify({ path }) });
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files/move', async (request, reply) => {
@@ -5035,6 +5410,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({ from: body.path, to: body.newPath }),
     });
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files/search', async (request) => {
@@ -5046,8 +5422,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const file of flattenRuntimeFiles(nodes)) {
       const content = await agentFileContent(authorized.workspaceId, file.path);
+
       for (const [index, line] of content.split('\n').entries()) {
         const start = line.indexOf(body.query);
+
         if (start >= 0) {
           matches.push({
             path: file.path,
@@ -5107,6 +5485,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: authorized.workspaceId,
       metadata: { files: changes.map((change) => change.path) },
     });
+
     return changes;
   });
   app.post('/api/runtime/workspaces/:workspaceId/commands', async (request) => {
@@ -5114,6 +5493,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(runtimeCommandSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     const signal = detectCommandAbuse(body.command, body.args);
+
     if (signal) {
       await recordAbuseSignal(request, store, {
         organizationId: authorized.organizationId,
@@ -5129,6 +5509,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: `ABUSE_${signal.type.toUpperCase()}`,
       });
     }
+
     let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
@@ -5146,6 +5527,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+
     return {
       exitCode: result.code ?? 0,
       output,
@@ -5160,6 +5542,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/processes', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     let result: { processes: Array<{ id: string; command: string; startedAt: string; status?: string }> };
 
     try {
@@ -5181,6 +5564,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const id = (request.params as { id: string }).id;
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
     try {
       await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
     } catch (error) {
@@ -5196,10 +5580,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
       authorized.workspaceId,
       '/ports',
     );
+
     return result.ports.map((port) => ({
       ...port,
       type: 'open',
@@ -5211,6 +5597,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const port = Number((request.params as { port: string }).port);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     if (authorized.organizationId) {
       await ensureQuota(request, authorized.organizationId, 'previews.public');
       await recordUsage(request, authorized.organizationId, 'previews.public', 1, {
@@ -5218,8 +5605,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         port,
       });
     }
+
     metrics.increment('preview_requests_total', { port });
+
     const url = previewUrlForWorkspacePort(authorized.workspaceId, port);
+
     return { port, url, ready: true };
   });
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', async (request, reply) => {
@@ -5270,11 +5660,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/api/runtime/workspaces/:workspaceId/snapshots', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
     const snapshot = await agentRequest<{
       id: string;
       createdAt: string;
       files: Array<{ path: string; sha256?: string; size?: number }>;
     }>(authorized.workspaceId, '/snapshots/create', { method: 'POST' });
+
     return {
       id: snapshot.id,
       workspaceId: authorized.workspaceId,
@@ -5294,6 +5686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({ snapshotId: (request.params as { snapshotId: string }).snapshotId }),
     });
+
     return reply.code(204).send();
   });
   app.get('/api/runtime/workspaces/:workspaceId/export', async (request, reply) => {
@@ -5301,9 +5694,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
     const zip = new JSZip();
+
     for (const file of flattenRuntimeFiles(nodes)) {
       zip.file(file.path, await agentFileContent(authorized.workspaceId, file.path));
     }
+
     return reply.header('content-type', 'application/zip').send(await zip.generateAsync({ type: 'nodebuffer' }));
   });
   app.post('/api/runtime/workspaces/:workspaceId/import', async (request, reply) => {
@@ -5311,6 +5706,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { targetPath = '.' } = parse(z.object({ targetPath: z.string().default('.') }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     const zip = await JSZip.loadAsync(request.body as Buffer);
+
     for (const [path, entry] of Object.entries(zip.files)) {
       if (!entry.dir) {
         const prefix = targetPath === '.' ? '' : `${targetPath.replace(/\/+$/, '')}/`;
@@ -5320,6 +5716,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
     }
+
     return reply.code(204).send();
   });
 
@@ -5331,11 +5728,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
+
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
         .replace(/^http:/, 'ws:')
         .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}`,
     );
+
     const pendingMessages: string[] = [];
 
     upstream.addEventListener('open', () => {
@@ -5391,6 +5790,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (isReadOnlyProjectRole(role)) {
       const state = await store.getProjectIdeState(authorized.projectId);
       const { collaboration } = collaborationDocuments(state);
+
       const permissions =
         collaboration.terminalPermissions &&
         typeof collaboration.terminalPermissions === 'object' &&
@@ -5408,6 +5808,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }),
         );
         client.close();
+
         return;
       }
     }
@@ -5418,6 +5819,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: authorized.workspaceId,
       });
     }
+
     await proxyRuntimeSocket(socket, authorized.workspaceId, '/terminal');
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
@@ -5425,6 +5827,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
     const logs = await managerRequest<{ logs: string[] }>(`/workspaces/${authorized.workspaceId}/logs`);
+
     for (const line of logs.logs) {
       client.send(JSON.stringify({ type: 'stdout', data: line, timestamp: new Date().toISOString() }));
     }
@@ -5433,6 +5836,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/logs/snapshot', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
     let logs: { logs: string[] };
 
     try {
@@ -5474,10 +5878,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
+
     const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
       authorized.workspaceId,
       '/ports',
     );
+
     for (const port of result.ports) {
       client.send(
         JSON.stringify({
@@ -5509,6 +5915,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.patch('/auth/me', async (request) => {
     const body = parse(userProfileSchema, request.body);
+
     const user = await store.updateUser({
       userId: request.currentUser!.id,
       email: body.email,
@@ -5539,6 +5946,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         userId: request.currentUser!.id,
         passwordHash: hashPassword(body.newPassword),
       });
+
       const revoked = await store.revokeAllSessions(user.id, request.currentSession?.id);
       await audit(request, store, {
         action: 'auth.password.update',
@@ -5594,6 +6002,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const organizations = await store.listOrganizations(user.id);
+
     const organizationExports = await Promise.all(
       organizations.map(async (organization) => {
         const [projects, usage, aiCosts] = await Promise.all([
@@ -5605,6 +6014,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return { organization, projects, usage, aiCosts };
       }),
     );
+
     const agentMemories = agentMemory ? await agentMemory.export({ userId: user.id }) : [];
 
     await audit(request, store, { action: 'auth.data_export', resourceType: 'user', resourceId: user.id });
@@ -5626,6 +6036,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.delete('/auth/me', async (request, reply) => {
     parse(deleteAccountSchema, request.body);
+
     const userId = request.currentUser!.id;
     const organizations = await store.listOrganizations(userId);
 
@@ -5777,6 +6188,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await requireAdminMfaForSensitiveAction(request);
     await requireRecentAdminReauth(request);
+
     const user = await store.updateUser({ userId, platformAdmin: body.platformAdmin });
     await audit(request, store, {
       action: body.platformAdmin ? 'admin.platform_admin.grant' : 'admin.platform_admin.revoke',
@@ -5794,6 +6206,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs', async (request) => ({ organizations: await store.listOrganizations(request.currentUser!.id) }));
   app.post('/orgs', async (request, reply) => {
     const body = parse(createOrgSchema, request.body);
+
     const organization = await store.createOrganization({
       name: body.name,
       slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -5839,9 +6252,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const membership = await store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
+
     if (!existing) {
       await recordUsage(request, orgId, 'team.members');
     }
+
     await audit(request, store, {
       organizationId: orgId,
       action: existing ? 'member.updateRole' : 'member.add',
@@ -5886,6 +6301,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.delete('/orgs/:orgId/memberships/:userId', async (request, reply) => {
     const { orgId, userId } = parse(membershipParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
+
     const existing = await store.getMembership(userId, orgId);
 
     if (!existing) {
@@ -5921,9 +6337,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(inviteSchema, request.body);
     await requireOrg(request, store, orgId, 'members:manage');
+
     const roleKey = body.roleKey ?? 'member';
     await requireAssignableOrganizationRole(store, orgId, roleKey);
+
     const token = createOpaqueToken('invite');
+
     const invitation = await store.createOrganizationInvite({
       organizationId: orgId,
       email: body.email,
@@ -5950,7 +6369,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/invitations/:inviteId/resend', async (request, reply) => {
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
+
     const token = createOpaqueToken('invite');
+
     const invitation = await store.resendOrganizationInvite(
       inviteId,
       token,
@@ -5978,6 +6399,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/invitations/:inviteId/expire', async (request, reply) => {
     const { orgId, inviteId } = parse(inviteParams, request.params);
     await requireOrg(request, store, orgId, 'members:manage');
+
     const invitation = await store.expireOrganizationInvite(inviteId);
 
     if (!invitation || invitation.organizationId !== orgId) {
@@ -6038,6 +6460,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(enterpriseSettingsSchema, request.body);
     await requireOrg(request, store, orgId, 'enterprise:write');
     await requireRecentAdminReauth(request);
+
     const settings = await store.updateEnterpriseSettings({ organizationId: orgId, ...body });
     await audit(request, store, {
       organizationId: orgId,
@@ -6058,6 +6481,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(domainSchema, request.body);
     await requireOrg(request, store, orgId, 'enterprise:write');
+
     const domain = await store.createDomainVerification({
       organizationId: orgId,
       domain: body.domain,
@@ -6078,6 +6502,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId, domain } = parse(domainParams, request.params);
     const body = parse(domainConfigSchema, request.body ?? {});
     await requireOrg(request, store, orgId, 'enterprise:write');
+
     const updated = await store.updateDomainVerificationConfig({
       organizationId: orgId,
       domain,
@@ -6102,6 +6527,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs/:orgId/domains/:domain/verify', async (request, reply) => {
     const { orgId, domain } = parse(domainParams, request.params);
     await requireOrg(request, store, orgId, 'enterprise:write');
+
     const verified = await store.verifyDomain({ organizationId: orgId, domain });
 
     if (!verified) {
@@ -6152,6 +6578,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(oidcConfigSchema, request.body);
     await requireOrg(request, store, orgId, 'security:manage');
     await requireRecentAdminReauth(request);
+
     const config = await store.upsertSsoConfig({
       organizationId: orgId,
       type: 'oidc',
@@ -6172,6 +6599,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(samlConfigSchema, request.body);
     await requireOrg(request, store, orgId, 'security:manage');
     await requireRecentAdminReauth(request);
+
     const config = await store.upsertSsoConfig({
       organizationId: orgId,
       type: 'saml',
@@ -6192,6 +6620,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(scimTokenSchema, request.body);
     await requireOrg(request, store, orgId, 'scim:manage');
     await requireRecentAdminReauth(request);
+
     const token = createOpaqueToken('scim');
     const scimToken = await store.createScimToken({ organizationId: orgId, name: body.name, token });
     await audit(request, store, {
@@ -6208,7 +6637,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/scim/tokens', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'scim:manage');
+
     const tokens = await store.listScimTokens(orgId);
+
     return {
       scimTokens: tokens.map((token) => {
         const expiresAt = new Date(
@@ -6229,27 +6660,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const params = parse(z.object({ orgId: z.string().min(1), tokenId: z.string().min(1) }), request.params);
     await requireOrg(request, store, params.orgId, 'scim:manage');
     await requireRecentAdminReauth(request);
+
     const revoked = await store.revokeScimToken(params.tokenId);
+
     if (!revoked || revoked.organizationId !== params.orgId) {
       return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
     }
+
     await audit(request, store, {
       organizationId: params.orgId,
       action: 'scim.token.revoke',
       resourceType: 'scimToken',
       resourceId: revoked.id,
     });
+
     return reply.code(204).send();
   });
   app.post('/orgs/:orgId/scim/tokens/:tokenId/rotate', async (request, reply) => {
     const params = parse(z.object({ orgId: z.string().min(1), tokenId: z.string().min(1) }), request.params);
     await requireOrg(request, store, params.orgId, 'scim:manage');
     await requireRecentAdminReauth(request);
+
     const existing = await store.revokeScimToken(params.tokenId);
+
     if (!existing || existing.organizationId !== params.orgId) {
       return reply.code(404).send({ error: 'SCIM token not found', code: 'SCIM_TOKEN_NOT_FOUND' });
     }
+
     const token = createOpaqueToken('scim');
+
     const scimToken = await store.createScimToken({
       organizationId: params.orgId,
       name: existing.name,
@@ -6262,6 +6701,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: scimToken.id,
       metadata: { previousTokenId: existing.id },
     });
+
     return reply
       .code(201)
       .send({ token, scimToken: { id: scimToken.id, name: scimToken.name, createdAt: scimToken.createdAt } });
@@ -6271,6 +6711,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(siemWebhookSchema, request.body);
     await requireOrg(request, store, orgId, 'audit:export');
     await requireRecentAdminReauth(request);
+
     const webhook = await store.createSiemWebhook({
       organizationId: orgId,
       url: body.url,
@@ -6301,6 +6742,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await ensureQuota(request, orgId, 'projects.count');
+
     const project = await store.createProject({
       organizationId: orgId,
       name: body.name,
@@ -6331,6 +6773,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectFromTemplateSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await ensureQuota(request, orgId, 'projects.count');
+
     const project = await store.createProject({
       organizationId: orgId,
       name: body.name,
@@ -6366,7 +6809,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createProjectFromAiSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await ensureQuota(request, orgId, 'projects.count');
+
     const name = body.name ?? body.prompt.slice(0, 60);
+
     const project = await store.createProject({
       organizationId: orgId,
       name,
@@ -6405,7 +6850,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await ensureQuota(request, orgId, 'projects.count');
+
     const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+
     const name =
       body.name ??
       body.repositoryUrl
@@ -6444,13 +6891,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(zipImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await ensureQuota(request, orgId, 'projects.count');
+
     const name = body.name ?? 'Imported zip project';
+
     const project = await store.createProject({
       organizationId: orgId,
       name,
       slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       sourceType: 'zip',
     });
+
     const files = await projectStorage.importZip(project.id, body.zipBase64);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
@@ -6480,6 +6930,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     return {
@@ -6497,6 +6948,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const workspace = (await store.listWorkspaces(project.id))[0] ?? null;
     const storageFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const filesByPath = new Map(storageFiles.map((file) => [file.path, file]));
@@ -6504,6 +6956,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (workspace) {
       try {
         const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree');
+
         const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
           const basename = file.path.split('/').pop() ?? '';
           return (
@@ -6575,14 +7028,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectIdeStateSchema, request.body ?? {});
     const existingState = await store.getProjectIdeState(project.id);
     const state = mergeProjectIdeState(existingState?.state, body.state);
+
     const ideState = await store.upsertProjectIdeState({
       projectId: project.id,
       state,
       updatedByUserId: request.currentUser!.id,
     });
+
     const persistedKeys = Object.keys(body.state);
     const shouldRecordActivity = persistedKeys.some((key) => key !== 'ui');
 
@@ -6617,6 +7073,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectSettingsSchema, request.body);
     const updated = await store.updateProject({ projectId: project.id, ...body });
     await store.recordProjectActivity({
@@ -6640,6 +7097,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     return {
@@ -6654,7 +7112,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
+
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
     });
@@ -6682,6 +7142,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
     await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
+
     const archive = await projectStorage.exportZip(project.id);
     await store.recordProjectActivity({
       projectId: project.id,
@@ -6716,6 +7177,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectKeyValueSchema, request.body);
     const envVar = await store.upsertProjectEnvVar({ projectId: project.id, key: body.key, value: body.value });
     await store.recordProjectActivity({
@@ -6741,6 +7203,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectKeySchema, request.body);
     const envVar = await store.deleteProjectEnvVar(project.id, body.key);
 
@@ -6771,10 +7234,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = request.query as { reveal?: string; key?: string };
 
     if (query.reveal === 'true' && query.key) {
       await requireOrg(request, store, project.organizationId, 'security:manage');
+
       const secret = await store.getProjectSecret(project.id, query.key);
 
       return {
@@ -6799,7 +7264,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectKeyValueSchema, request.body);
+
     const secret = await store.upsertProjectSecret({
       projectId: project.id,
       key: body.key,
@@ -6836,6 +7303,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(projectKeySchema, request.body);
     const secret = await store.deleteProjectSecret(project.id, body.key);
 
@@ -6874,6 +7342,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const connections = await listDatabaseConnections(store, project.id);
 
     return {
@@ -6896,8 +7365,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(databaseConnectionQuerySchema, request.query ?? {});
     const connection = await requireDatabaseConnection(store, project.id, query.key);
+
     const schema =
       connection.kind === 'postgres'
         ? await inspectPostgresSchema(connection.value)
@@ -6923,6 +7394,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(databaseQuerySchema, request.body ?? {});
     const connection = await requireDatabaseConnection(store, project.id, body.key);
     const result = await runDatabaseQuery(connection, body.query, body.collection, body.limit);
@@ -6960,6 +7432,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(collaboratorSchema, request.body);
     const targetUser = await store.findUserById(body.userId);
 
@@ -7002,8 +7475,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const ideState = await store.getProjectIdeState(project.id);
     const state = ideStateObject(ideState);
+
     const collaborationState =
       state.collaboration && typeof state.collaboration === 'object' && !Array.isArray(state.collaboration)
         ? (state.collaboration as Record<string, unknown>)
@@ -7031,8 +7506,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const body = parse(collaborationPresenceSchema, request.body);
     const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
+
     const presence = await store.upsertCollaborationPresence({
       projectId: project.id,
       userId: request.currentUser!.id,
@@ -7055,6 +7532,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const sessionId = z.object({ sessionId: z.string().min(1) }).parse(request.params).sessionId;
     const removed = await store.removeCollaborationPresence(project.id, sessionId);
     collaborationBroker.publish(project.id, { type: 'presence.leave', sessionId });
@@ -7068,7 +7546,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const body = parse(collaborationCommentSchema, request.body);
+
     const comment = await store.createCollaborationComment({
       projectId: project.id,
       userId: request.currentUser!.id,
@@ -7101,6 +7581,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const role = await projectCollaborationRole(store, project.id, request.currentUser!.id);
 
     if (isReadOnlyProjectRole(role)) {
@@ -7111,11 +7592,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filePath = normalizeProjectPath(body.filePath)!;
     const existingState = await store.getProjectIdeState(project.id);
     const { root, collaboration, documents } = collaborationDocuments(existingState);
+
     const existingDocument = (
       documents[filePath] && typeof documents[filePath] === 'object'
         ? (documents[filePath] as Record<string, unknown>)
         : {}
     ) as { version?: number };
+
     const currentVersion = Number(existingDocument.version ?? 0);
 
     if (typeof body.baseVersion === 'number' && body.baseVersion !== currentVersion) {
@@ -7170,9 +7653,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(collaborationTerminalPermissionSchema, request.body);
     const existingState = await store.getProjectIdeState(project.id);
     const { root, collaboration } = collaborationDocuments(existingState);
+
     const terminalPermissions =
       collaboration.terminalPermissions &&
       typeof collaboration.terminalPermissions === 'object' &&
@@ -7184,6 +7669,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       grantedByUserId: request.currentUser!.id,
       grantedAt: new Date().toISOString(),
     };
+
     const ideState = await store.upsertProjectIdeState({
       projectId: project.id,
       updatedByUserId: request.currentUser!.id,
@@ -7228,10 +7714,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(collaborationShareLinkSchema, request.body);
     const token = createOpaqueToken('share');
     const roleKey = body.roleKey ?? 'viewer';
     const expiresInMinutes = body.expiresInMinutes ?? 60 * 24;
+
     const link = await store.createProjectShareLink({
       projectId: project.id,
       tokenHash: hashToken(token),
@@ -7254,6 +7742,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const { tokenHash: _tokenHash, ...safeLink } = link;
+
     return reply.code(201).send({ shareLink: safeLink, token });
   });
   app.post('/projects/:projectId/collaboration/ai-conversation', async (request) => {
@@ -7263,9 +7752,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(collaborationAiSharingSchema, request.body);
     const existingState = await store.getProjectIdeState(project.id);
     const { root, collaboration } = collaborationDocuments(existingState);
+
     const aiConversation = {
       shared: body.shared,
       mode: body.mode,
@@ -7294,8 +7785,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(collaborationWebSocketTicketSchema, request.query ?? {});
     const sessionId = query.sessionId ?? request.currentSession?.id ?? `ws:${request.currentUser!.id}`;
+
     const ticket = createCollaborationWebSocketTicket({
       projectId: project.id,
       userId: request.currentUser!.id,
@@ -7316,9 +7809,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const client = normalizeRuntimeApiWebSocket(socket);
     const query = request.query as { sessionId?: string };
     const sessionId = query.sessionId || request.currentSession?.id || `ws:${request.currentUser!.id}`;
+
     const presence = await store.upsertCollaborationPresence({
       projectId: project.id,
       userId: request.currentUser!.id,
@@ -7357,11 +7852,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             terminalAccess: body.terminalAccess,
           });
           collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+
           return;
         }
 
         if (event.type === 'comment.create') {
           const body = parse(collaborationCommentSchema, event.payload ?? {});
+
           const comment = await store.createCollaborationComment({
             projectId: project.id,
             userId: request.currentUser!.id,
@@ -7371,6 +7868,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             body: body.body,
           });
           collaborationBroker.publish(project.id, { type: 'comment.create', comment }, client);
+
           return;
         }
 
@@ -7394,6 +7892,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(projectActivityQuerySchema, request.query ?? {});
     const activity = await store.listProjectActivity(project.id, query);
     const actions = Array.from(new Set(activity.map((event) => event.action))).sort();
@@ -7415,6 +7914,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const deleted = await store.softDeleteProject(project.id);
     await store.recordProjectActivity({
       projectId: project.id,
@@ -7437,6 +7937,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const restored = await store.restoreProject(project.id);
     await store.recordProjectActivity({
       projectId: project.id,
@@ -7459,8 +7960,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(transferProjectSchema, request.body);
     await requireOrg(request, store, body.targetOrganizationId, 'projects:write');
+
     const transferred = await store.transferProject({
       projectId: project.id,
       targetOrganizationId: body.targetOrganizationId,
@@ -7487,7 +7990,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(duplicateProjectSchema, request.body);
+
     const duplicate = await store.duplicateProject({
       projectId: project.id,
       name: body.name,
@@ -7517,7 +8022,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const body = parse(templateFromProjectSchema, request.body);
+
     const template = await store.createProjectTemplate({
       sourceProjectId: project.id,
       organizationId: project.organizationId,
@@ -7551,9 +8058,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'workspaces:write',
     );
+
     const body = parse(createWorkspaceSchema, request.body);
     await requireOrganizationNotSuspended(store, project.organizationId);
     await ensureQuota(request, project.organizationId, 'workspaces.active');
+
     const workspace = await store.createWorkspace({
       projectId: project.id,
       name: body.name,
@@ -7585,6 +8094,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(workspaceParams, request.params).workspaceId,
       'workspaces:read',
     );
+
     const project = await requireProject(request, store, workspace.projectId, 'projects:read');
 
     return {
@@ -7600,6 +8110,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(workspaceParams, request.params).workspaceId,
       'workspaces:read',
     );
+
     const project = await requireProject(request, store, workspace.projectId, 'projects:read');
 
     return {
@@ -7626,10 +8137,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(createSnapshotSchema, request.body);
     await ensureQuota(request, project.organizationId, 'snapshots.count');
+
     const files = await projectStorage.listFiles(project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
+
     const snapshot = await store.createSnapshot({
       projectId: project.id,
       label: body.label,
@@ -7673,7 +8187,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
     await ensureQuota(request, project.organizationId, 'snapshots.count');
+
     const files = await projectStorage.listFiles(project.id);
+
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
       label: 'Before AI large change',
@@ -7717,6 +8233,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const { snapshotId } = parse(snapshotParams, request.params);
     const snapshot = await store.getSnapshot(snapshotId);
 
@@ -7759,7 +8276,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(aiConversationSchema, request.body ?? {});
+
     const conversation = await store.createAiConversation({
       projectId: project.id,
       userId: request.currentUser!.id,
@@ -7781,6 +8300,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const conversationId = (request.params as { conversationId: string }).conversationId;
     const conversation = await store.getAiConversation(conversationId);
 
@@ -7791,7 +8311,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(aiMessageSchema, request.body);
     const inputTokens = await estimateAiTokens(body.content);
     await ensureAiQuota(request, project.organizationId, inputTokens);
+
     const userMessage = await store.createAiMessage({ conversationId, role: 'user', content: body.content });
+
     const completion = await aiGatewayCompletion({
       project,
       content: body.content,
@@ -7863,6 +8385,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const conversationId = (request.params as { conversationId: string }).conversationId;
     const conversation = await store.getAiConversation(conversationId);
 
@@ -7879,6 +8402,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { projectId, toolName } = parse(aiToolParams, request.params);
     const project = await requireProject(request, store, projectId, 'workspaces:read');
     const body = parse(aiToolSchema, request.body ?? {});
+
     const toolMessage = await store.createAiMessage({
       conversationId: (
         await store.createAiConversation({
@@ -7890,7 +8414,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       role: 'tool',
       content: toolName,
     });
+
     const result = await executeAiTool(request, project, toolName, body);
+
     const toolCall = await store.createAiToolCall({
       messageId: toolMessage.id,
       name: toolName,
@@ -7915,6 +8441,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/billing', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'billing:read');
+
     const state = await billingState(orgId);
 
     return {
@@ -7933,6 +8460,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingCheckoutSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
+
     const plan = await store.getBillingPlan(body.planKey);
 
     if (!plan?.stripePriceId) {
@@ -7948,6 +8476,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const organization = await store.getOrganization(orgId);
     const existingCustomer = await store.getBillingCustomer(orgId);
+
     const customer =
       existingCustomer ??
       (await store.upsertBillingCustomer({
@@ -7970,12 +8499,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       organizationId: orgId,
       trialDays: body.trialDays,
     });
+
     if (!session.url) {
       throw Object.assign(new Error('Stripe checkout session did not include a redirect URL'), {
         statusCode: 502,
         code: 'STRIPE_CHECKOUT_URL_MISSING',
       });
     }
+
     await audit(request, store, {
       organizationId: orgId,
       action: 'billing.checkout.create',
@@ -7990,6 +8521,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingPortalSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
+
     const customer = await store.getBillingCustomer(orgId);
 
     if (!customer) {
@@ -8007,12 +8539,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       customerId: customer.externalId,
       returnUrl: body.returnUrl,
     });
+
     if (!session.url) {
       throw Object.assign(new Error('Stripe portal session did not include a redirect URL'), {
         statusCode: 502,
         code: 'STRIPE_PORTAL_URL_MISSING',
       });
     }
+
     await audit(request, store, {
       organizationId: orgId,
       action: 'billing.portal.create',
@@ -8048,6 +8582,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       signatureHeader: request.headers['stripe-signature'] as string | undefined,
       secret: webhookSecret,
     });
+
     const event = JSON.parse(payload) as any;
     const organizationId = event.data?.object?.metadata?.organizationId;
     const persisted = await store.recordStripeEvent({ id: event.id, organizationId, type: event.type, payload: event });
@@ -8127,6 +8662,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/overview', async (request) => {
     await requirePlatformAdmin(request);
+
     const [
       users,
       organizations,
@@ -8207,7 +8743,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/terminals', async (request) => {
     await requirePlatformAdmin(request);
+
     const workspaces = await store.listAdminWorkspaces();
+
     return {
       terminals: workspaces
         .filter((workspace) => ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status))
@@ -8217,7 +8755,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/previews', async (request) => {
     await requirePlatformAdmin(request);
+
     const workspaces = await store.listAdminWorkspaces();
+
     return {
       previews: workspaces.map((workspace) => ({
         workspaceId: workspace.id,
@@ -8254,7 +8794,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/quotas', async (request) => {
     await requirePlatformAdmin(request);
+
     const organizations = await store.listAdminOrganizations();
+
     return {
       quotas: await Promise.all(
         organizations.map(async (organization) => ({
@@ -8274,6 +8816,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/abuse-events', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(abuseEventSchema, request.body);
     const abuseEvent = await store.createAbuseEvent(body);
     await audit(request, store, {
@@ -8302,23 +8845,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/audit-logs', async (request, reply) => {
     await requirePlatformAdmin(request);
+
     const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
     const auditLogs = await store.listAuditLogs();
+
     if (format === 'csv') {
       reply.header('content-type', 'text/csv');
       return auditEventsToCsv(auditLogs);
     }
+
     return { auditLogs };
   });
 
   app.get('/admin/admin-audit-logs', async (request, reply) => {
     await requirePlatformAdmin(request);
+
     const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
     const adminAuditLogs = await store.listAdminAuditLogs();
+
     if (format === 'csv') {
       reply.header('content-type', 'text/csv');
       return adminAuditLogsToCsv(adminAuditLogs);
     }
+
     return { adminAuditLogs };
   });
 
@@ -8335,6 +8884,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/feature-flags', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminFeatureFlagSchema, request.body);
     const flag = await store.setFeatureFlag(body);
     await audit(request, store, {
@@ -8360,6 +8910,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/admin/system-settings', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(systemSettingSchema, request.body);
     const setting = await store.setSystemSetting(body);
     await audit(request, store, {
@@ -8379,14 +8930,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.get('/admin/costs', async (request) => {
     await requirePlatformAdmin(request);
+
     const aiCosts = await store.listAdminAiCosts();
     const usage = await store.listAdminUsageEvents();
+
     return { aiCostCents: aiCosts.reduce((sum, item) => sum + item.costCents, 0), aiCosts, usage };
   });
 
   app.post('/admin/users/:userId/suspend', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { userId } = parse(adminUserParams, request.params);
     await writeSettingIds(store, 'admin.suspendedUserIds', [
       ...(await listSettingIds(store, 'admin.suspendedUserIds')),
@@ -8394,12 +8948,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     ]);
     await store.revokeAllSessions(userId);
     await recordAdminAction(request, store, { action: 'admin.user.suspend', metadata: { userId } });
+
     return { suspended: true };
   });
 
   app.post('/admin/users/:userId/unsuspend', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { userId } = parse(adminUserParams, request.params);
     await writeSettingIds(
       store,
@@ -8407,15 +8963,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       (await listSettingIds(store, 'admin.suspendedUserIds')).filter((id) => id !== userId),
     );
     await recordAdminAction(request, store, { action: 'admin.user.unsuspend', metadata: { userId } });
+
     return { suspended: false };
   });
 
   app.post('/admin/users/:userId/force-logout', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { userId } = parse(adminUserParams, request.params);
     const revoked = await store.revokeAllSessions(userId);
     await recordAdminAction(request, store, { action: 'admin.user.force_logout', metadata: { userId, revoked } });
+
     return { revoked };
   });
 
@@ -8423,56 +8982,68 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
     await requireAdminMfaForSensitiveAction(request);
     await requireRecentAdminReauth(request, 60);
+
     const { userId } = parse(adminUserParams, request.params);
     const user = await store.updateUser({ userId, mfaEnabled: false, mfaSecretEncrypted: '' });
     await store.setRecoveryCodes(userId, []);
     await recordAdminAction(request, store, { action: 'admin.user.reset_mfa', metadata: { userId } });
+
     return { user: { id: user.id, email: user.email, mfaEnabled: user.mfaEnabled } };
   });
 
   app.post('/admin/orgs/:orgId/suspend', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { orgId } = parse(adminOrgParams, request.params);
     await writeSettingIds(store, 'admin.suspendedOrganizationIds', [
       ...(await listSettingIds(store, 'admin.suspendedOrganizationIds')),
       orgId,
     ]);
     await recordAdminAction(request, store, { action: 'admin.org.suspend', metadata: { orgId } });
+
     return { suspended: true };
   });
 
   app.post('/admin/workspaces/:workspaceId/stop', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
     const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
     await recordAdminAction(request, store, { action: 'admin.workspace.stop', metadata: { workspaceId } });
+
     return { workspace };
   });
 
   app.post('/admin/workspaces/:workspaceId/restart', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
     const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'RUNNING' });
     await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId } });
+
     return { workspace };
   });
 
   app.delete('/admin/workspaces/:workspaceId', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
     const workspace = await store.updateWorkspaceStatus({ workspaceId, status: 'STOPPED' });
     await recordAdminAction(request, store, { action: 'admin.workspace.delete', metadata: { workspaceId } });
+
     return { workspace, deleted: true };
   });
 
   app.post('/admin/quota-overrides', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminQuotaOverrideSchema, request.body);
+
     const override = await store.createQuotaOverride({
       organizationId: body.organizationId,
       key: body.key as QuotaKey,
@@ -8485,13 +9056,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.quota.override',
       metadata: { organizationId: body.organizationId, key: body.key, limit: body.limit },
     });
+
     return reply.code(201).send({ override });
   });
 
   app.post('/admin/plan-overrides', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminPlanOverrideSchema, request.body);
+
     const subscription = await store.upsertSubscription({
       organizationId: body.organizationId,
       planKey: body.planKey,
@@ -8501,13 +9075,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.plan.override',
       metadata: { organizationId: body.organizationId, planKey: body.planKey, reason: body.reason },
     });
+
     return { subscription };
   });
 
   app.post('/admin/refund-notes', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminRefundNoteSchema, request.body);
+
     const event = await store.recordUsageEvent({
       organizationId: body.organizationId,
       type: 'billing.refund_note',
@@ -8518,6 +9095,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.billing.refund_note',
       metadata: { organizationId: body.organizationId },
     });
+
     return reply.code(201).send({ event });
   });
 
@@ -8525,23 +9103,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
     await recordAdminAction(request, store, { action: 'admin.logs.redact', metadata: { requested: true } });
+
     return { redacted: true };
   });
 
   app.post('/admin/abuse-events/:abuseEventId/resolve', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { abuseEventId } = parse(adminAbuseParams, request.params);
     const abuseEvent = await store.updateAbuseEvent({ abuseEventId, resolved: true });
     await recordAdminAction(request, store, { action: 'admin.abuse_event.resolve', metadata: { abuseEventId } });
+
     return { abuseEvent };
   });
 
   app.post('/admin/support-tickets/:ticketId/respond', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const { ticketId } = parse(adminTicketParams, request.params);
     const body = parse(adminSupportResponseSchema, request.body);
+
     const ticket = await store.updateSupportTicket({
       ticketId,
       status: body.status ?? 'PENDING',
@@ -8551,42 +9134,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'admin.support.respond',
       metadata: { ticketId, status: body.status },
     });
+
     return { ticket };
   });
 
   app.post('/admin/maintenance-mode', async (request) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminMaintenanceSchema, request.body);
     const setting = await store.setSystemSetting({ key: 'admin.maintenanceMode', value: body });
     await recordAdminAction(request, store, {
       action: 'admin.maintenance_mode.set',
       metadata: { enabled: body.enabled },
     });
+
     return { setting };
   });
 
   app.post('/admin/announcements', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminAnnouncementSchema, request.body);
     const setting = await store.setSystemSetting({ key: 'admin.announcement', value: body });
     await recordAdminAction(request, store, {
       action: 'admin.announcement.set',
       metadata: { severity: body.severity, active: body.active },
     });
+
     return reply.code(201).send({ setting });
   });
 
   app.post('/admin/incident-banner', async (request, reply) => {
     await requirePlatformAdmin(request);
     await requireRecentAdminReauth(request);
+
     const body = parse(adminIncidentSchema, request.body);
     const setting = await store.setSystemSetting({ key: 'admin.incidentBanner', value: body });
     await recordAdminAction(request, store, {
       action: 'admin.incident_banner.set',
       metadata: { status: body.status, active: body.active },
     });
+
     return reply.code(201).send({ setting });
   });
 
@@ -8595,6 +9185,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(quotaOverrideSchema, request.body);
     await requireOrg(request, store, orgId, 'admin:write');
     await requireRecentAdminReauth(request);
+
     const override = await store.createQuotaOverride({
       organizationId: orgId,
       key: body.key as QuotaKey,
@@ -8616,6 +9207,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/orgs/:orgId/usage', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'usage:read');
+
     const state = await billingState(orgId);
     const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
@@ -8631,6 +9223,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/usage/:orgId', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'usage:read');
+
     const state = await billingState(orgId);
     const quotaUsage = await quotaUsageSnapshot(orgId, state.limits, request);
 
@@ -8660,7 +9253,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitCommitSchema, request.body);
+
     const commit = await gitProvider.commit({
       projectId: project.id,
       message: body.message,
@@ -8690,6 +9285,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
     const result = await gitProvider.push({ projectId: project.id, branch });
@@ -8716,6 +9312,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
     const result = await gitProvider.pull({ projectId: project.id, branch });
@@ -8752,7 +9349,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitCheckoutBranchSchema, request.body ?? {});
+
     const result = await gitProvider.checkoutBranch({
       projectId: project.id,
       branch: body.branch,
@@ -8802,6 +9401,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitStashSchema, request.body ?? {});
     const result = await gitProvider.stashPush({ projectId: project.id, message: body.message });
     await store.recordProjectActivity({
@@ -8820,7 +9420,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitStashApplySchema, request.body ?? {});
+
     const result = await gitProvider.stashApply({
       projectId: project.id,
       stashRef: body.stashRef,
@@ -8842,6 +9444,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitCherryPickSchema, request.body ?? {});
     const result = await gitProvider.cherryPick({ projectId: project.id, sha: body.sha });
     await store.recordProjectActivity({
@@ -8860,7 +9463,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(gitConflictResolutionSchema, request.body ?? {});
+
     const result = await gitProvider.resolveConflict({
       projectId: project.id,
       filePath: body.filePath,
@@ -8889,6 +9494,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(gitDiffQuerySchema, request.query ?? {});
 
     return { diff: await gitProvider.diff(project.id, query.filePath) };
@@ -8900,6 +9506,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+
     const query = parse(gitBlameQuerySchema, request.query ?? {});
 
     return {
@@ -8918,7 +9525,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
     const body = parse(pullRequestSchema, request.body);
+
     const pullRequest = await gitProvider.createPullRequest({
       projectId: project.id,
       title: body.title,
@@ -8972,9 +9581,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       injectSecrets: [],
       ...parse(createDeploymentSchema, request.body),
     };
+
     const { subscription } = await billingState(project.organizationId);
     assertDeploymentRequestAllowed(body, subscription?.planKey ?? 'free');
     await ensureQuota(request, project.organizationId, 'deployments.count');
+
     const queued = await store.createDeployment({
       projectId: project.id,
       provider: body.provider,
@@ -8996,28 +9607,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
       startedAt: new Date().toISOString(),
     });
+
     const hookResult = await triggerProviderDeployHook(body.provider);
+
+    let staticBuildFailed = false;
+    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+
+    if (body.provider === 'static') {
+      const staticBuild = await staticBuildRunner({
+        projectId: project.id,
+        buildCommand: body.buildCommand,
+        outputDirectory: body.outputDirectory,
+        envVars: body.envVars,
+        timeoutSeconds: body.timeoutSeconds,
+        artifactSizeLimitMb: body.artifactSizeLimitMb,
+      });
+
+      staticBuildLogs = staticBuild.logs;
+
+      if (staticBuild.ok && staticBuild.outputDir) {
+        try {
+          await snapshotStaticBuild(queued.id, staticBuild.outputDir);
+          staticBuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: `Static deploy: snapshot stored at ${staticDeploymentSnapshotDir(queued.id)}`,
+          });
+        } catch (error) {
+          staticBuildFailed = true;
+          staticBuildLogs.push({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: `Static deploy: snapshot failed (${(error as Error).message ?? 'unknown error'}).`,
+          });
+        }
+      } else {
+        staticBuildFailed = true;
+      }
+    }
+
     const url = hookResult?.url ?? buildDeploymentUrl(project, queued);
     const baseLogs = createDeploymentLogs(body, { ...queued, url }, project);
-    const augmentedLogs = hookResult
-      ? [
-          ...baseLogs,
-          {
-            timestamp: new Date().toISOString(),
-            level: hookResult.status === 'failed' ? ('error' as const) : ('info' as const),
-            message: hookResult.log,
-          },
-        ]
-      : baseLogs;
+
+    const augmentedLogs = [
+      ...baseLogs,
+      ...staticBuildLogs,
+      ...(hookResult
+        ? [
+            {
+              timestamp: new Date().toISOString(),
+              level: hookResult.status === 'failed' ? ('error' as const) : ('info' as const),
+              message: hookResult.log,
+            },
+          ]
+        : []),
+    ];
+
+    const failed = hookResult?.status === 'failed' || staticBuildFailed;
+
     const ready = await store.updateDeployment(project.id, queued.id, {
-      status: hookResult?.status === 'failed' ? 'FAILED' : 'READY',
-      url,
-      previewUrl: body.environment === 'production' ? undefined : url,
-      productionUrl: body.environment === 'production' ? url : undefined,
+      status: failed ? 'FAILED' : 'READY',
+      url: failed ? undefined : url,
+      previewUrl: failed ? undefined : body.environment === 'production' ? undefined : url,
+      productionUrl: failed ? undefined : body.environment === 'production' ? url : undefined,
       metadata: {
         ...(queued.metadata as Record<string, unknown>),
         providerBuildId: hookResult?.buildId,
         hookStatus: hookResult?.status,
+        staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
       },
       logs: augmentedLogs,
       finishedAt: new Date().toISOString(),
@@ -9086,6 +9743,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     await ensureQuota(request, project.organizationId, 'deployments.count');
+
     const redeploy = await store.createDeployment({
       projectId: project.id,
       provider: source.provider,
@@ -9166,7 +9824,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           (target.metadata as Record<string, unknown>)?.providerBuildId as string | undefined,
         )
       : undefined;
+
     let finalDeployment = rollback;
+
     if (providerRollback) {
       finalDeployment = await store.updateDeployment(project.id, rollback.id, {
         status: providerRollback.status === 'failed' ? 'FAILED' : rollback.status,
@@ -9184,6 +9844,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       });
     }
+
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'deployment.rollback',
@@ -9212,6 +9873,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(createTicketSchema, request.body);
     await requireOrg(request, store, orgId, 'support:write');
+
     const ticket = await store.createSupportTicket({
       organizationId: orgId,
       userId: request.currentUser!.id,
@@ -9243,6 +9905,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const format = ((request.query as { format?: string }).format ?? 'json').toLowerCase();
     await requireOrg(request, store, orgId, 'audit:export');
+
     const auditLogs = await store.listAuditLogs(orgId);
     await audit(request, store, {
       organizationId: orgId,
@@ -9293,6 +9956,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(scimUserSchema, request.body);
     const existing = await store.findUserByEmail(body.userName);
+
     const user =
       existing ??
       (await store.createUser({
@@ -9300,6 +9964,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         name: [body.name?.givenName, body.name?.familyName].filter(Boolean).join(' ') || body.userName,
         passwordHash: hashPassword(createOpaqueToken('provisioned')),
       }));
+
     const existingMembership = await store.getMembership(user.id, orgId);
 
     if (!existingMembership) {
@@ -9307,9 +9972,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const membership = await store.addMember({ organizationId: orgId, userId: user.id, roleKey: 'member' });
+
     if (!existingMembership) {
       await recordUsage(request, orgId, 'team.members');
     }
+
     await store.recordAudit({
       organizationId: orgId,
       action: 'scim.user.provision',
@@ -9344,17 +10011,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let active: boolean | undefined;
+
     for (const op of body.Operations) {
       const operation = (op.op ?? 'replace').toLowerCase();
       const path = (op.path ?? '').toLowerCase();
+
       if (operation === 'remove' && path === 'active') {
         active = false;
         continue;
       }
+
       if (path === 'active') {
         active = typeof op.value === 'boolean' ? op.value : op.value === 'true';
         continue;
       }
+
       if (
         path === '' &&
         op.value &&
