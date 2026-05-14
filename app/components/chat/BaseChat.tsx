@@ -100,6 +100,7 @@ const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
+  Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
   'Add tab': { description: 'Open another editor, terminal, preview or project panel.', shortcut: 'Ctrl+T' },
   'Close terminal panel': {
     description: 'Hide the bottom terminal drawer without stopping the workspace.',
@@ -136,6 +137,23 @@ const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string 
   'Tab actions': { description: 'Open tab actions such as close, split and pin.' },
   'Toggle live tail': { description: 'Keep logs pinned to the newest entry while output streams.', shortcut: 'T' },
   'Toggle terminal': { description: 'Show or hide the pinned terminal drawer.', shortcut: 'Ctrl+`' },
+};
+
+const IDE_RAIL_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
+  Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
+  Files: { description: 'Open the project file browser and workspace views.', shortcut: 'Cmd+Shift+E' },
+  Editor: { description: 'Return to the active code editor tab.', shortcut: 'Cmd+E' },
+  Terminal: { description: 'Open the workspace terminal drawer.', shortcut: 'Ctrl+`' },
+  Preview: { description: 'Open the live web preview panel.', shortcut: 'Cmd+Enter' },
+  Publish: { description: 'Open deployments, domains and publishing tools.', shortcut: 'Cmd+Shift+P' },
+  Search: { description: 'Search project files and symbols.', shortcut: 'Cmd+P' },
+  Git: { description: 'Open version control, branches and changes.', shortcut: 'Ctrl+Shift+G' },
+  Database: { description: 'Open database connections, query tools and schema browser.' },
+  Packages: { description: 'Manage dependencies, manifests and package audits.' },
+  Monitoring: { description: 'Inspect runtime health, activity and metrics.' },
+  Security: { description: 'Run scans and review vulnerabilities.' },
+  Activity: { description: 'Open the project audit timeline and workspace events.' },
+  Settings: { description: 'Open workspace and personal IDE settings.', shortcut: 'Cmd+,' },
 };
 
 const PROJECT_IDE_TOUR_STEPS = [
@@ -1125,8 +1143,15 @@ function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
 
-function formatRailItemTitle(title: string, badgeLabel?: string) {
-  return badgeLabel ? `${title} · ${badgeLabel}` : title;
+function formatRailItemTooltip(label: string, fallbackDescription: string, badgeLabel?: string) {
+  const help = IDE_RAIL_TOOLTIP_HELP[label];
+  const description = help?.description ?? fallbackDescription;
+
+  const details = [label, description, badgeLabel, help?.shortcut ? `Shortcut: ${help.shortcut}` : undefined].filter(
+    Boolean,
+  );
+
+  return details.join('. ');
 }
 
 function isIdeHiddenPath(filePath: string) {
@@ -4691,6 +4716,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailPrimaryItem = (item: (typeof ideRailPrimaryItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
+      const tooltip = formatRailItemTooltip(item.label, item.title, badgeLabel);
 
       return (
         <button
@@ -4699,7 +4725,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           className="bolt-project-ide-rail-item"
           aria-current={item.active ? 'page' : undefined}
           aria-label={formatRailItemLabel(item.label, badgeLabel)}
-          title={formatRailItemTitle(item.title, badgeLabel)}
+          title={tooltip}
+          data-vc-tooltip={tooltip}
           data-tone={item.badgeTone}
           onClick={item.action}
         >
@@ -4716,6 +4743,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailMoreItem = (item: (typeof ideRailMoreItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
+      const tooltip = formatRailItemTooltip(item.label, IDE_TOOL_DESCRIPTIONS[item.panel], badgeLabel);
 
       return (
         <button
@@ -4724,7 +4752,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           className="bolt-project-ide-rail-item bolt-project-ide-rail-item-compact"
           aria-current={activeWorkspacePanel === item.panel ? 'page' : undefined}
           aria-label={formatRailItemLabel(item.label, badgeLabel)}
-          title={formatRailItemTitle(IDE_TOOL_DESCRIPTIONS[item.panel], badgeLabel)}
+          title={tooltip}
+          data-vc-tooltip={tooltip}
           data-tone={item.tone}
           onClick={() => openIdeTool(item.panel)}
         >

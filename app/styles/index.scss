@@ -1164,6 +1164,12 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   fill: var(--vc-ui-tooltip-bg);
 }
 
+.bolt-responsive-ide :where(button, [role='button'], [role='tab'], [role='separator'], input, select, textarea):focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
+}
+
 .bolt-responsive-ide :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip] {
   position: relative;
 }
@@ -3604,7 +3610,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item {
   position: relative;
-  min-height: 40px;
+  min-height: 44px;
   flex-direction: column;
   gap: 0;
   padding: 0;
@@ -3635,6 +3641,29 @@ body :where(.lucide, svg[data-lucide]) {
   border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 20%);
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-ide-rail
+  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:where(
+    :hover,
+    :focus-visible
+  )::after {
+  top: 50%;
+  bottom: auto;
+  left: calc(100% + 10px);
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+.bolt-project-ide-rail
+  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:where(
+    :hover,
+    :focus-visible
+  )::before {
+  top: 50%;
+  bottom: auto;
+  left: calc(100% + 5px);
+  transform: translateY(-50%) rotate(135deg);
 }
 
 .bolt-project-ide-rail-item[aria-current='page'] {
@@ -3680,7 +3709,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-more-trigger {
-  min-height: 32px;
+  min-height: 36px;
   gap: 4px;
   font-size: 9px;
   font-weight: 700;
@@ -3691,7 +3720,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail-item-compact {
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .bolt-project-workspace-shell {
@@ -4131,7 +4160,7 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
   color: inherit;
   font: inherit;
-  padding: 0;
+  padding: 0 2px;
   text-align: left;
 }
 
@@ -4244,9 +4273,9 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-close,
 .bolt-project-tab-save {
   display: inline-flex;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -4285,9 +4314,9 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-tab-action {
   display: inline-flex;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
   align-items: center;
   justify-content: center;
   align-self: center;
@@ -4302,6 +4331,16 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-action:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-tab-main:focus-visible,
+.bolt-project-tab-pin:focus-visible,
+.bolt-project-tab-close:focus-visible,
+.bolt-project-tab-save:focus-visible,
+.bolt-project-tab-action:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 20%);
 }
 
 .bolt-project-tabbar > .bolt-project-tool-popover {
@@ -9565,7 +9604,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar button,
 .bolt-project-statusbar-pill {
-  min-height: 28px;
+  min-height: 32px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -9616,12 +9655,12 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar-label {
-  color: var(--vc-ide-text-secondary);
+  color: color-mix(in srgb, var(--vc-ide-text-primary), var(--vc-ide-text-secondary) 28%);
   font-weight: 600;
 }
 
 .bolt-project-statusbar-muted {
-  color: var(--vc-ide-text-secondary);
+  color: color-mix(in srgb, var(--vc-ide-text-primary), var(--vc-ide-text-secondary) 42%);
 }
 
 .bolt-project-statusbar-count,
@@ -9797,7 +9836,8 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar-icon-button {
-  width: 22px;
+  width: 32px;
+  min-width: 32px;
   justify-content: center;
   border-radius: 5px;
   padding: 0;
