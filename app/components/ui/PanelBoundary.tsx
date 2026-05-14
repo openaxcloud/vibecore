@@ -59,8 +59,23 @@ export function PanelLoading({ title }: { title: string }) {
       aria-busy="true"
       aria-live="polite"
     >
-      <div className="h-9 w-9 animate-spin rounded-full border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary" />
-      <p className="text-sm text-bolt-elements-textSecondary">{title}</p>
+      <div className="w-full max-w-xs space-y-4">
+        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-bolt-elements-borderColor border-t-bolt-elements-textPrimary" />
+        <div>
+          <p className="text-sm font-medium text-bolt-elements-textPrimary">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
+            Preparing panels, runtime signals and workspace data.
+          </p>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-bolt-elements-background-depth-3">
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-bolt-elements-loader-progress" />
+        </div>
+        <div className="grid gap-2" aria-hidden>
+          <div className="h-2 rounded bg-bolt-elements-background-depth-3" />
+          <div className="h-2 w-5/6 rounded bg-bolt-elements-background-depth-3" />
+          <div className="h-2 w-2/3 rounded bg-bolt-elements-background-depth-3" />
+        </div>
+      </div>
     </section>
   );
 }

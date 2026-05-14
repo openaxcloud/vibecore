@@ -1593,6 +1593,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
     const runtimePreviews = useStore(workbenchStore.previews);
+    const runtimeWorkspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
     const workspaceError = useStore(workbenchStore.workspaceError);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
@@ -1817,10 +1818,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ...projectBackendState.workspace,
               ports: projectBackendState.workspace.ports ?? runtimePorts,
             }
-          : null,
+          : runtimeWorkspaceStatus
+            ? {
+                ...runtimeWorkspaceStatus,
+                ports: runtimePorts,
+              }
+            : null,
         ports: runtimePorts,
       };
-    }, [projectBackendState, runtimePreviews]);
+    }, [projectBackendState, runtimePreviews, runtimeWorkspaceStatus]);
 
     const runtimePorts = projectRuntimeState.ports ?? [];
     const isRuntimeReallyRunning = isWorkspaceReallyRunning(projectRuntimeState.workspace, runtimePorts);
@@ -5090,7 +5096,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ClientOnly>
                   {() => (
                     <PanelBoundary title="Workbench">
-                      <Suspense fallback={<PanelLoading title="Loading workspace panels..." />}>
+                      <Suspense fallback={<PanelLoading title="Loading workspace panels" />}>
                         <LazyWorkbench
                           chatStarted={chatStarted || useMobileIde}
                           isStreaming={isStreaming}
@@ -5242,13 +5248,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }}
                 title={`Open preview | ${runtimeStatusSummary} | ${runtimePortSummary} | ${runtimeDevServerSummary}`}
               >
-                <span
-                  className="bolt-project-statusbar-runtime-dot"
-                  data-state={workspaceError ? 'error' : workspaceLoading ? 'starting' : runtimeUiState}
-                  aria-hidden
-                />
                 <span className="bolt-project-statusbar-label">Preview</span>
-                <strong>{runtimeStatusSummary}</strong>
                 <span className="bolt-project-statusbar-muted">{runtimePortSummary}</span>
                 <span className="bolt-project-statusbar-muted">{runtimeDevServerSummary}</span>
               </button>
@@ -5687,11 +5687,12 @@ function ProjectBottomTerminal({
   const runtimePreviews = useStore(workbenchStore.previews);
   const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
   const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
-  const backendSessionId = workspaceStatus?.id ?? projectId ?? 'no-workspace';
-  const runtimeUiState = workspaceUiState(runtimeWorkspace, { ports: runtimePreviews });
+  const effectiveWorkspace = runtimeWorkspace ?? workspaceStatus ?? null;
+  const backendSessionId = effectiveWorkspace?.id ?? projectId ?? 'no-workspace';
+  const runtimeUiState = workspaceUiState(effectiveWorkspace, { ports: runtimePreviews });
 
-  const workspaceLabel = runtimeWorkspace
-    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : runtimeWorkspace.status} workspace`
+  const workspaceLabel = effectiveWorkspace
+    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : (effectiveWorkspace.status ?? 'unknown')} workspace`
     : 'No backend workspace';
 
   const terminalTabs = [
@@ -5741,7 +5742,7 @@ function ProjectBottomTerminal({
         <div className="bolt-project-bottom-terminal-meta">
           <span
             className="bolt-project-bottom-terminal-status"
-            data-state={runtimeWorkspace ? runtimeUiState : 'offline'}
+            data-state={effectiveWorkspace ? runtimeUiState : 'offline'}
           >
             <span aria-hidden />
             {workspaceLabel}
@@ -11795,13 +11796,19 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
 
   const systemEvents = buildSystemLogEvents(data);
   const logs = cleared ? [] : [...runtimeLogs, ...deploymentLogs, ...systemEvents];
+  const activeStreamLogs = logs.filter((entry: any) => entry.source === activeStream);
+  const filtersActive = level !== 'all' || query.trim().length > 0;
 
-  const filteredLogs = filterLogEntries(
-    logs.filter((entry: any) => entry.source === activeStream),
-    level,
-    query,
-    regexEnabled,
-  );
+  const filteredLogs = filterLogEntries(activeStreamLogs, level, query, regexEnabled);
+
+  const activeStreamEmptyMessage = cleared
+    ? 'Visible logs were cleared for this session. Reload to fetch the latest runtime output.'
+    : activeStreamLogs.length === 0
+      ? `No ${activeStream} logs have been recorded yet.`
+      : filtersActive
+        ? `No ${activeStream} logs match the current filter.`
+        : `No ${activeStream} logs to display.`;
+
   const secondaryLogs = split
     ? filterLogEntries(
         logs.filter((entry: any) => entry.source !== activeStream),
@@ -11828,7 +11835,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
       .map((entry: any) => `${entry.timestamp ?? new Date().toISOString()} [${entry.level}] ${entry.message}`)
       .join('\n');
 
-    const blob = new Blob([payload || 'No log lines in the current filter.'], { type: 'text/plain' });
+    const blob = new Blob([payload || activeStreamEmptyMessage], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const anchor = document.createElement('a');
 
@@ -11906,8 +11913,17 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
           {busy ? 'Refreshing' : 'Reload'}
         </button>
       </div>
-      <LogStreamView logs={filteredLogs} empty={`No ${activeStream} logs match the current filter.`} />
-      {split && <LogStreamView logs={secondaryLogs} empty="No secondary stream logs match the current filter." />}
+      <LogStreamView logs={filteredLogs} empty={activeStreamEmptyMessage} />
+      {split && (
+        <LogStreamView
+          logs={secondaryLogs}
+          empty={
+            filtersActive
+              ? 'No secondary stream logs match the current filter.'
+              : 'No secondary stream logs have been recorded yet.'
+          }
+        />
+      )}
     </div>
   );
 }

@@ -574,36 +574,6 @@ function IdeProjectTopBar({
             <span className="bolt-project-breadcrumb-value truncate">{branchLabel}</span>
           </Link>
         </nav>
-        <Link
-          to={`/projects/${projectId}/ide?panel=logs`}
-          className="bolt-project-runtime-status"
-          aria-label={`Runtime status is ${statusLabel}. Open runtime logs.`}
-          title={`Runtime status: ${statusLabel}. Open logs.`}
-        >
-          <span className="relative flex h-2 w-2">
-            {state === 'building' && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D29922] opacity-75" />
-            )}
-            <span
-              className="relative inline-flex h-1.5 w-1.5 rounded-full"
-              style={{
-                backgroundColor:
-                  state === 'running'
-                    ? '#3FB950'
-                    : state === 'building'
-                      ? '#D29922'
-                      : state === 'crashed'
-                        ? '#F85149'
-                        : '#6E7681',
-              }}
-            />
-          </span>
-          <span className="bolt-project-runtime-status-text">
-            <span className="bolt-project-runtime-status-prefix">Runtime</span>
-            <span>{statusLabel}</span>
-          </span>
-          <span className="bolt-project-runtime-status-action">Logs</span>
-        </Link>
       </div>
       <div className="bolt-project-topbar-actions">
         <div
