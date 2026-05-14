@@ -10,6 +10,8 @@ import {
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
+const OVERVIEW_STREAM_INTERVAL_MS = 15_000;
+
 export interface IdePanelEnvelope<T = unknown> {
   panel: string;
   project: unknown;
@@ -85,6 +87,97 @@ function panelErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Runtime request failed';
 }
 
+async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
+  try {
+    const [dashboard, collaborators] = await Promise.all([
+      apiRequest(request, `/projects/${projectId}/dashboard`),
+      apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
+    ]);
+
+    return panelEnvelope('overview', project, {
+      ...(dashboard as any),
+      collaborators: (collaborators as any)?.collaborators ?? [],
+    });
+  } catch (error) {
+    return panelEnvelopeError('overview', project, error);
+  }
+}
+
+function encodeServerSentEvent(eventName: string, data: unknown) {
+  return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+function streamOverviewPanel(request: Request, projectId: string, project: unknown) {
+  const encoder = new TextEncoder();
+
+  let interval: ReturnType<typeof setInterval> | undefined;
+  let closed = false;
+  let sending = false;
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const close = () => {
+        closed = true;
+
+        if (interval) {
+          clearInterval(interval);
+          interval = undefined;
+        }
+
+        try {
+          controller.close();
+        } catch {
+          // The client may already have closed the stream.
+        }
+      };
+
+      const send = async () => {
+        if (closed || sending) {
+          return;
+        }
+
+        sending = true;
+
+        try {
+          const envelope = await loadOverviewPanelEnvelope(request, projectId, project);
+
+          if (!closed) {
+            controller.enqueue(encoder.encode(encodeServerSentEvent('overview', envelope)));
+          }
+        } catch (error) {
+          if (!closed) {
+            controller.enqueue(
+              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error))),
+            );
+          }
+        } finally {
+          sending = false;
+        }
+      };
+
+      request.signal.addEventListener('abort', close, { once: true });
+      void send();
+      interval = setInterval(() => void send(), OVERVIEW_STREAM_INTERVAL_MS);
+    },
+    cancel() {
+      closed = true;
+
+      if (interval) {
+        clearInterval(interval);
+        interval = undefined;
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
 const panelEndpoints: Record<string, (projectId: string) => string> = {
   overview: (projectId) => `/projects/${projectId}/dashboard`,
   database: (projectId) => `/projects/${projectId}/dashboard`,
@@ -118,6 +211,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const project = await apiRequest<{ project: unknown }>(request, `/projects/${projectId}`);
   const url = new URL(request.url);
+
+  if (
+    panel === 'overview' &&
+    (url.searchParams.get('stream') === '1' || request.headers.get('accept')?.includes('text/event-stream'))
+  ) {
+    return streamOverviewPanel(request, projectId, project.project);
+  }
 
   if (panel === 'domains') {
     try {

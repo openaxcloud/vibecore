@@ -2093,6 +2093,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       let cancelled = false;
+      let eventSource: EventSource | undefined;
+      let fallbackInterval: number | undefined;
+
+      const applyOverviewData = (data?: ProjectIdeBackendState | null) => {
+        if (cancelled || !data) {
+          return;
+        }
+
+        setProjectBackendState({
+          ...(data ?? {}),
+          collaborators: data.collaborators ?? [],
+        });
+      };
 
       async function loadProjectBackendState() {
         try {
@@ -2121,13 +2134,51 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       }
 
-      void loadProjectBackendState();
+      function startFallbackPolling() {
+        if (fallbackInterval || cancelled) {
+          return;
+        }
 
-      const interval = window.setInterval(loadProjectBackendState, 15000);
+        void loadProjectBackendState();
+        fallbackInterval = window.setInterval(loadProjectBackendState, 30_000);
+      }
+
+      if (typeof EventSource === 'undefined') {
+        startFallbackPolling();
+      } else {
+        eventSource = new EventSource(`/api/projects/${projectId}/ide-panel/overview?stream=1`);
+
+        eventSource.addEventListener('overview', (event) => {
+          try {
+            const envelope = JSON.parse((event as MessageEvent<string>).data) as {
+              data?: ProjectIdeBackendState;
+              status?: string;
+            };
+
+            if (envelope.status !== 'error') {
+              applyOverviewData(envelope.data);
+            }
+          } catch (error) {
+            console.error('Failed to parse project IDE overview stream', error);
+          }
+        });
+
+        eventSource.onerror = () => {
+          if (!cancelled) {
+            console.error('Project IDE overview stream disconnected; falling back to slow refresh.');
+            eventSource?.close();
+            startFallbackPolling();
+          }
+        };
+      }
 
       return () => {
         cancelled = true;
-        window.clearInterval(interval);
+        eventSource?.close();
+
+        if (fallbackInterval) {
+          window.clearInterval(fallbackInterval);
+        }
       };
     }, [projectIdeMode, projectId]);
 
