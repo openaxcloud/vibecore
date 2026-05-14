@@ -55,6 +55,7 @@ import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
+import { estimatePromptCost, formatEstimatedCost } from '~/utils/prompt-cost';
 import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validation';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
@@ -717,7 +718,20 @@ export default function NewProjectPage() {
   const promptWordCount = promptValidation.wordCount;
   const promptCharacterCount = promptValidation.characterCount;
   const promptHasBlockingError = promptValidation.errors.length > 0;
+
+  const promptCostEstimate = useMemo(
+    () => estimatePromptCost(promptValidation.value, selectedModel),
+    [promptValidation.value, selectedModel],
+  );
+
   const canSubmit = !isSubmitting && promptWordCount >= 3 && !promptHasBlockingError;
+
+  const isAppleHost = useMemo(
+    () => (typeof navigator !== 'undefined' ? /Mac|iPhone|iPad/.test(navigator.platform) : false),
+    [],
+  );
+
+  const submitShortcutLabel = isAppleHost ? '⌘↵' : 'Ctrl+↵';
 
   const configuredProviderCount = availableProviders.filter((provider) =>
     enabledProviderNames.has(provider.name),
@@ -818,6 +832,33 @@ export default function NewProjectPage() {
               name="prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                /*
+                 * Power-user shortcut: Cmd-Enter on macOS / Ctrl-Enter elsewhere
+                 * submits without reaching for the mouse. Plain Enter still
+                 * inserts a newline because the textarea is for long briefs.
+                 * IME composition (Japanese / Chinese / Korean) must be allowed
+                 * to commit its first Enter without firing submit.
+                 */
+                if (event.key !== 'Enter') {
+                  return;
+                }
+
+                if (!(event.metaKey || event.ctrlKey)) {
+                  return;
+                }
+
+                if (event.nativeEvent.isComposing) {
+                  return;
+                }
+
+                if (!canSubmit) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }}
               placeholder={ROTATING_PLACEHOLDERS[placeholderIndex]}
               rows={6}
               maxLength={PROMPT_MAX_CHARS}
@@ -845,13 +886,23 @@ export default function NewProjectPage() {
                   );
                 })}
               </div>
-              <button type="submit" disabled={!canSubmit} className="vc-new-project-submit" aria-label="Create project">
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="vc-new-project-submit"
+                aria-label="Create project"
+                aria-keyshortcuts={isAppleHost ? 'Meta+Enter' : 'Control+Enter'}
+                title={`Create project (${submitShortcutLabel})`}
+              >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
                   <Sparkles className="h-4 w-4" aria-hidden />
                 )}
                 <span>Create</span>
+                <kbd className="vc-new-project-submit-shortcut" aria-hidden>
+                  {submitShortcutLabel}
+                </kbd>
               </button>
             </div>
           </div>
@@ -862,10 +913,26 @@ export default function NewProjectPage() {
             data-state={promptHasBlockingError ? 'error' : promptValidation.warnings.length ? 'warn' : 'ok'}
           >
             {promptWordCount === 0
-              ? 'Write a few sentences to unlock Create.'
+              ? `Write a few sentences to unlock Create — press ${submitShortcutLabel} to send.`
               : promptWordCount < 3
                 ? `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
                 : `${promptWordCount} words · ${promptCharacterCount.toLocaleString()}/${PROMPT_MAX_CHARS.toLocaleString()} chars`}
+            {promptWordCount >= 3 && promptCostEstimate.tokens > 0 ? (
+              <span
+                className="vc-new-project-prompt-estimate"
+                title={
+                  promptCostEstimate.hasPricing
+                    ? `Estimate: ~${promptCostEstimate.tokens.toLocaleString()} input tokens at $${promptCostEstimate.pricing!.inputPer1MUsd}/M for ${selectedModel}`
+                    : 'No published pricing for this model — only the token estimate is shown.'
+                }
+              >
+                {' · '}
+                {`~${promptCostEstimate.tokens.toLocaleString()} tokens`}
+                {promptCostEstimate.hasPricing && promptCostEstimate.inputUsd !== null
+                  ? ` · ~${formatEstimatedCost(promptCostEstimate.inputUsd)} input`
+                  : ' · pricing unknown'}
+              </span>
+            ) : null}
             {promptValidation.errors.map((issue) => (
               <span key={issue.code} className="vc-new-project-prompt-issue" role="alert">
                 {' · '}

@@ -12517,11 +12517,50 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container--bottom-right {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vc-ide-accent-action) 35%, transparent);
 }
 
+.vc-new-project-submit-shortcut {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  margin-left: 4px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 0.18);
+  color: inherit;
+  font-family: var(--vc-ide-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.vc-new-project-submit:disabled .vc-new-project-submit-shortcut {
+  background: rgb(0 0 0 / 0.06);
+}
+
 .vc-new-project-word-count {
   margin: 0;
   text-align: center;
   font-size: 11px;
   color: var(--bolt-elements-textTertiary);
+}
+
+.vc-new-project-prompt-estimate {
+  color: var(--bolt-elements-textTertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.vc-new-project-word-count[data-state='error'] {
+  color: var(--vc-status-error, #ef4444);
+}
+
+.vc-new-project-word-count[data-state='warn'] {
+  color: var(--vc-status-warn, #f59e0b);
+}
+
+.vc-new-project-prompt-issue {
+  font-size: 11px;
+}
+
+.vc-new-project-prompt-issue[data-kind='warn'] {
+  color: var(--vc-status-warn, #f59e0b);
 }
 
 .vc-new-project-meta {
