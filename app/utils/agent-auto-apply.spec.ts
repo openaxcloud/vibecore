@@ -78,45 +78,17 @@ describe('isRiskyAgentPatchPath', () => {
 });
 
 describe('shouldAutoApplyPatch', () => {
-  it('approves a pending non-risky patch when the toggle is on', () => {
-    expect(
-      shouldAutoApplyPatch({
-        autoApplyEnabled: true,
-        relativePath: 'src/components/Button.tsx',
-        status: 'pending',
-      }),
-    ).toBe(true);
+  it('approves a pending patch when the toggle is on, regardless of path', () => {
+    expect(shouldAutoApplyPatch({ autoApplyEnabled: true, status: 'pending' })).toBe(true);
   });
 
   it('refuses when the toggle is off', () => {
-    expect(
-      shouldAutoApplyPatch({
-        autoApplyEnabled: false,
-        relativePath: 'src/components/Button.tsx',
-        status: 'pending',
-      }),
-    ).toBe(false);
-  });
-
-  it('refuses risky paths even when the toggle is on', () => {
-    expect(
-      shouldAutoApplyPatch({
-        autoApplyEnabled: true,
-        relativePath: 'package.json',
-        status: 'pending',
-      }),
-    ).toBe(false);
+    expect(shouldAutoApplyPatch({ autoApplyEnabled: false, status: 'pending' })).toBe(false);
   });
 
   it('refuses anything other than a pending status', () => {
     for (const status of ['applying', 'accepted', 'rejected', 'failed', 'reverted']) {
-      expect(
-        shouldAutoApplyPatch({
-          autoApplyEnabled: true,
-          relativePath: 'src/index.ts',
-          status,
-        }),
-      ).toBe(false);
+      expect(shouldAutoApplyPatch({ autoApplyEnabled: true, status })).toBe(false);
     }
   });
 });

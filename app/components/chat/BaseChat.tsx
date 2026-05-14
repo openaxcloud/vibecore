@@ -20,8 +20,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
-import { shouldAutoAcceptAgentProposals } from '~/utils/agent-auto-accept';
-import { isRiskyAgentPatchPath, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
+import { shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -1235,17 +1234,17 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
   /*
-   * When auto-apply is on, non-risky proposals are silently accepted by the
-   * caller; we only surface the ones the user must still review (risky files,
-   * or proposals that failed to auto-apply). When auto-apply is off, show
-   * every proposal as before.
+   * When auto-apply is on, the caller has already accepted every pending
+   * proposal silently — the queue only needs to surface proposals that
+   * failed and require a manual retry / reject. When auto-apply is off,
+   * show every proposal as before.
    */
   const visibleProposals = useMemo(() => {
     if (!autoApplyEnabled) {
       return proposals;
     }
 
-    return proposals.filter((proposal) => proposal.status === 'failed' || isRiskyAgentPatchPath(proposal.relativePath));
+    return proposals.filter((proposal) => proposal.status === 'failed');
   }, [proposals, autoApplyEnabled]);
 
   useEffect(() => {
@@ -1316,7 +1315,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
           <strong>Review AI changes</strong>
           <span>
             {autoApplyEnabled
-              ? `${visibleProposals.length} risky file proposal${visibleProposals.length === 1 ? '' : 's'} need your review`
+              ? `${visibleProposals.length} proposal${visibleProposals.length === 1 ? '' : 's'} failed and need a manual decision`
               : `${visibleProposals.length} file proposal${visibleProposals.length === 1 ? '' : 's'} waiting before apply`}
           </span>
         </div>
@@ -1678,22 +1677,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.localStorage.setItem('vibecore:agent-auto-apply', String(projectAutoApply));
     }, [projectAutoApply]);
 
-    const [projectAutoAccept, setProjectAutoAccept] = useState(() => {
-      if (typeof window === 'undefined') {
-        return false;
-      }
-
-      return window.localStorage.getItem('vibecore:agent-auto-accept') === 'true';
-    });
-
-    useEffect(() => {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
-      window.localStorage.setItem('vibecore:agent-auto-accept', String(projectAutoAccept));
-    }, [projectAutoAccept]);
-
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
     const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
@@ -1707,9 +1690,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     /*
-     * Auto-apply effect — silently accept any pending non-risky proposal as
-     * soon as it lands. Risky paths (package.json, .env*, *.config.*, …) are
-     * left in the review queue so the user still has the last word on those.
+     * Auto-apply effect — when the toggle is on, every pending proposal
+     * (future or already in the queue when the user flipped the switch) is
+     * accepted silently. The effect runs again whenever the toggle flips or
+     * a new proposal lands, so existing items get picked up immediately.
      * Each silent accept fires a toast with an Undo action.
      */
     const autoAppliedRef = useRef<Set<string>>(new Set());
@@ -1724,13 +1708,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (
-          !shouldAutoApplyPatch({
-            autoApplyEnabled: true,
-            relativePath: proposal.relativePath,
-            status: proposal.status,
-          })
-        ) {
+        if (!shouldAutoApplyPatch({ autoApplyEnabled: true, status: proposal.status })) {
           continue;
         }
 
@@ -1770,61 +1748,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
     const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
     const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
-
-    const newestPendingProposalUpdatedAt = useMemo(() => {
-      return pendingAgentPatchProposals.reduce<string | null>((newest, proposal) => {
-        const timestamp = proposal.updatedAt ?? proposal.createdAt;
-
-        if (!timestamp) {
-          return newest;
-        }
-
-        if (!newest || Date.parse(timestamp) > Date.parse(newest)) {
-          return timestamp;
-        }
-
-        return newest;
-      }, null);
-    }, [pendingAgentPatchProposals]);
-    const autoAcceptDecision = useMemo(
-      () =>
-        shouldAutoAcceptAgentProposals({
-          autoAcceptEnabled: projectAutoAccept,
-          diagnosticsErrors: diagnosticErrorCount,
-          backendState: projectBackendState,
-          requiredAfter: newestPendingProposalUpdatedAt,
-        }),
-      [diagnosticErrorCount, newestPendingProposalUpdatedAt, projectAutoAccept, projectBackendState],
-    );
-
-    const autoAcceptingRef = useRef(false);
-
-    useEffect(() => {
-      if (!autoAcceptDecision.ok || autoAcceptingRef.current) {
-        return;
-      }
-
-      const pendingProposals = Object.values(agentPatchProposals).filter((proposal) => proposal.status === 'pending');
-
-      if (!pendingProposals.length) {
-        return;
-      }
-
-      autoAcceptingRef.current = true;
-      void workbenchStore
-        .acceptAllAgentPatchProposals(pendingProposals.map((proposal) => proposal.id))
-        .then(() => {
-          toast.success(
-            `Auto-accepted ${pendingProposals.length} AI file proposal${pendingProposals.length === 1 ? '' : 's'} after green tests.`,
-            {
-              autoClose: 6_000,
-            },
-          );
-        })
-        .finally(() => {
-          autoAcceptingRef.current = false;
-        });
-    }, [agentPatchProposals, autoAcceptDecision.ok]);
 
     const [cursorPositions, setCursorPositions] = useState<
       Record<string, { line: number; column: number; offset?: number }>
@@ -4680,25 +4603,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             <span className="bolt-project-agent-plan-first-thumb" />
                           </span>
                           <span className="bolt-project-agent-plan-first-label">Auto-apply</span>
-                        </label>
-                      </HeaderTip>
-                      <HeaderTip
-                        label={`When on, all pending AI file proposals are accepted automatically only after the latest real test run is green. Current gate: ${autoAcceptDecision.reason}`}
-                      >
-                        <label
-                          className="bolt-project-agent-plan-first"
-                          data-active={projectAutoAccept ? 'true' : 'false'}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={projectAutoAccept}
-                            onChange={(event) => setProjectAutoAccept(event.currentTarget.checked)}
-                            aria-label="Auto-accept after green tests"
-                          />
-                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                            <span className="bolt-project-agent-plan-first-thumb" />
-                          </span>
-                          <span className="bolt-project-agent-plan-first-label">Auto-accept</span>
                         </label>
                       </HeaderTip>
                     </div>

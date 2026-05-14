@@ -2,16 +2,16 @@
  * Decide whether an AI-generated file patch can be applied automatically
  * (Replit-style auto-apply) or whether the user must still review it.
  *
- * Two reasons block auto-apply:
+ * Contract: a single toggle. When the user enables auto-apply, every
+ * pending proposal — future and existing — is accepted silently. The
+ * `isRiskyAgentPatchPath` predicate stays exported as a passive signal
+ * (callers can label which files would have been "risky" in the review
+ * queue), but it does NOT short-circuit the auto-accept; making the
+ * setting half-on / half-off forces users to reason about a second knob
+ * that does not exist.
  *
- *  1. The user has explicitly turned the auto-apply toggle off.
- *  2. The target file is structurally sensitive — dependency manifests,
- *     build configuration, secrets — where a silent change is much harder
- *     to recover from. These always surface in the review queue regardless
- *     of the toggle, so the user can sanity-check before they land.
- *
- * The predicate is pure so it stays cheap to call from React effects and
- * has full unit-test coverage.
+ * The predicates are pure so they stay cheap to call from React effects
+ * and have full unit-test coverage.
  */
 
 /**
@@ -81,7 +81,6 @@ export function isRiskyAgentPatchPath(relativePath: string | null | undefined): 
 export interface AutoApplyDecisionInput {
   /** Current value of the `vibecore:agent-auto-apply` user setting. */
   autoApplyEnabled: boolean;
-  relativePath: string | null | undefined;
 
   /** Current proposal status — only `'pending'` is eligible for auto-apply. */
   status: string;
@@ -89,16 +88,10 @@ export interface AutoApplyDecisionInput {
 
 /**
  * Returns true only when every condition for a silent auto-apply is met:
- * setting on, status pending, path not risky.
+ * setting on AND proposal still pending. Once the toggle is on, every
+ * pending proposal — including ones that were already in the queue when
+ * the user flipped the switch — gets accepted on the next effect tick.
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
-  if (!input.autoApplyEnabled) {
-    return false;
-  }
-
-  if (input.status !== 'pending') {
-    return false;
-  }
-
-  return !isRiskyAgentPatchPath(input.relativePath);
+  return input.autoApplyEnabled && input.status === 'pending';
 }
