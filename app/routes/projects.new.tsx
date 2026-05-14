@@ -56,6 +56,8 @@ import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
 import { estimatePromptCost, formatEstimatedCost } from '~/utils/prompt-cost';
+import { detectPromptLanguage } from '~/utils/prompt-language';
+import { describeFlaggedCategories, moderateProjectPrompt } from '~/utils/prompt-moderation.server';
 import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validation';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
@@ -495,7 +497,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
   });
 }
 
-export async function action({ request }: EnterpriseActionArgs) {
+export async function action({ request, context }: EnterpriseActionArgs) {
   const organization = await requireFirstOrganization(request);
 
   const body = formObject(await request.formData()) as {
@@ -520,12 +522,46 @@ export async function action({ request }: EnterpriseActionArgs) {
 
   const prompt = promptValidation.value || undefined;
 
+  /*
+   * Server-side content moderation via OpenAI's free `/v1/moderations`. The
+   * helper fail-opens when no key is configured / OpenAI is unreachable so a
+   * provider outage never blocks every project creation, but it returns
+   * `checked: false` with a reason code we can log to telemetry. On a real
+   * policy hit we surface the flagged category in the user-facing message.
+   */
+  const serverEnv = (context?.cloudflare?.env ?? {}) as unknown as Record<string, string | undefined>;
+  const moderation = prompt ? await moderateProjectPrompt(prompt, { serverEnv }) : undefined;
+
+  if (moderation && !moderation.allowed) {
+    return {
+      error: `Your prompt was flagged for ${describeFlaggedCategories(moderation.flaggedCategories)} and can't be used. Rephrase and try again.`,
+      moderation: {
+        flaggedCategories: moderation.flaggedCategories,
+        checked: moderation.checked,
+      },
+    };
+  }
+
   const artifactCategory =
     artifactCategories.find((category) => category.id === body.artifactType) ?? artifactCategories[0];
 
   const selectedProvider = knownProviderForName(body.provider).name;
   const selectedModel = body.model?.trim() || fallbackModel?.name || DEFAULT_MODEL;
-  const generationPrompt = prompt ? projectPromptForArtifact(prompt, artifactCategory) : '';
+
+  /*
+   * Detect the user's language so the agent answers in it. Only the
+   * "reliable" branch — known language + enough characters — feeds the
+   * hint, so we don't push the agent toward Esperanto on borderline
+   * inputs.
+   */
+  const detectedLanguage = prompt ? detectPromptLanguage(prompt) : undefined;
+
+  const languagePrefix =
+    detectedLanguage && detectedLanguage.reliable && detectedLanguage.name
+      ? `[Language: ${detectedLanguage.name}]\n\n`
+      : '';
+
+  const generationPrompt = prompt ? `${languagePrefix}${projectPromptForArtifact(prompt, artifactCategory)}` : '';
   const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt) : '');
 
   if (!name) {
