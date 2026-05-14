@@ -55,6 +55,7 @@ import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
+import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validation';
 
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
 
@@ -504,7 +505,19 @@ export async function action({ request }: EnterpriseActionArgs) {
     provider?: string;
   };
 
-  const prompt = body.prompt?.trim();
+  /*
+   * Defense in depth: even though the client form enforces maxLength and
+   * surfaces validation warnings, the action re-runs the validator against
+   * the submitted body. This protects against direct API hits and against
+   * stale client bundles that pre-date a stricter limit.
+   */
+  const promptValidation = validateProjectPrompt(body.prompt, { allowEmpty: true });
+
+  if (promptValidation.errors.length > 0) {
+    return { error: promptValidation.errors[0].message };
+  }
+
+  const prompt = promptValidation.value || undefined;
 
   const artifactCategory =
     artifactCategories.find((category) => category.id === body.artifactType) ?? artifactCategories[0];
@@ -700,8 +713,11 @@ export default function NewProjectPage() {
   const ActiveProviderIcon = providerIconByName[activeProvider?.name ?? ''] ?? Sparkles;
   const ActiveCategoryIcon = activeCategory.icon;
 
-  const promptWordCount = prompt.trim() ? prompt.trim().split(/\s+/).length : 0;
-  const canSubmit = !isSubmitting && promptWordCount >= 3;
+  const promptValidation = useMemo(() => validateProjectPrompt(prompt, { allowEmpty: true }), [prompt]);
+  const promptWordCount = promptValidation.wordCount;
+  const promptCharacterCount = promptValidation.characterCount;
+  const promptHasBlockingError = promptValidation.errors.length > 0;
+  const canSubmit = !isSubmitting && promptWordCount >= 3 && !promptHasBlockingError;
 
   const configuredProviderCount = availableProviders.filter((provider) =>
     enabledProviderNames.has(provider.name),
@@ -804,9 +820,12 @@ export default function NewProjectPage() {
               onChange={(event) => setPrompt(event.currentTarget.value)}
               placeholder={ROTATING_PLACEHOLDERS[placeholderIndex]}
               rows={6}
+              maxLength={PROMPT_MAX_CHARS}
               className="vc-new-project-textarea"
               disabled={isSubmitting}
               aria-label="Describe your idea"
+              aria-invalid={promptHasBlockingError || undefined}
+              aria-describedby="vc-new-project-prompt-status"
             />
             <div className="vc-new-project-composer-footer">
               <div className="vc-new-project-attach-row" role="group" aria-label="Attach context">
@@ -836,12 +855,29 @@ export default function NewProjectPage() {
               </button>
             </div>
           </div>
-          <p className="vc-new-project-word-count" aria-live="polite">
+          <p
+            id="vc-new-project-prompt-status"
+            className="vc-new-project-word-count"
+            aria-live="polite"
+            data-state={promptHasBlockingError ? 'error' : promptValidation.warnings.length ? 'warn' : 'ok'}
+          >
             {promptWordCount === 0
               ? 'Write a few sentences to unlock Create.'
               : promptWordCount < 3
                 ? `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
-                : `${promptWordCount} words · ready when you are.`}
+                : `${promptWordCount} words · ${promptCharacterCount.toLocaleString()}/${PROMPT_MAX_CHARS.toLocaleString()} chars`}
+            {promptValidation.errors.map((issue) => (
+              <span key={issue.code} className="vc-new-project-prompt-issue" role="alert">
+                {' · '}
+                {issue.message}
+              </span>
+            ))}
+            {promptValidation.warnings.map((issue) => (
+              <span key={issue.code} className="vc-new-project-prompt-issue" data-kind="warn">
+                {' · '}
+                {issue.message}
+              </span>
+            ))}
           </p>
 
           <section className="vc-new-project-meta" aria-label="Generation context">
