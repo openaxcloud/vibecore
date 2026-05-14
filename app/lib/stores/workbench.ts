@@ -214,6 +214,7 @@ export class WorkbenchStore {
   #previewStartPromise: Promise<string> | undefined;
   #previewCommandRunning = false;
   #projectId: string | undefined;
+  #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -842,6 +843,31 @@ export class WorkbenchStore {
     }
   }
 
+  scheduleFileAutosave(filePath: string, content: string, delayMs = 800) {
+    const previousTimer = this.#autosaveTimers.get(filePath);
+
+    if (previousTimer) {
+      clearTimeout(previousTimer);
+    }
+
+    const timer = setTimeout(() => {
+      this.#autosaveTimers.delete(filePath);
+
+      const document = this.#editorStore.documents.get()[filePath];
+      const persistedFile = this.#filesStore.getFile(filePath);
+
+      if (!document || document.value !== content || persistedFile?.content === content) {
+        return;
+      }
+
+      this.saveFile(filePath).catch((error) => {
+        console.error(`Autosave failed for ${filePath}`, error);
+      });
+    }, delayMs);
+
+    this.#autosaveTimers.set(filePath, timer);
+  }
+
   setCurrentDocumentScrollPosition(position: ScrollPosition) {
     const editorDocument = this.currentDocument.get();
 
@@ -859,6 +885,13 @@ export class WorkbenchStore {
   }
 
   async saveFile(filePath: string) {
+    const pendingAutosave = this.#autosaveTimers.get(filePath);
+
+    if (pendingAutosave) {
+      clearTimeout(pendingAutosave);
+      this.#autosaveTimers.delete(filePath);
+    }
+
     const documents = this.#editorStore.documents.get();
     const document = documents[filePath];
 
@@ -878,6 +911,7 @@ export class WorkbenchStore {
     newUnsavedFiles.delete(filePath);
 
     this.unsavedFiles.set(newUnsavedFiles);
+    this.#emitFileApplied(filePath, 'user');
   }
 
   async writeFileContent(filePath: string, content: string) {
@@ -892,6 +926,7 @@ export class WorkbenchStore {
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
     this.unsavedFiles.set(newUnsavedFiles);
+    this.#emitFileApplied(filePath, 'user');
   }
 
   async saveCurrentDocument() {

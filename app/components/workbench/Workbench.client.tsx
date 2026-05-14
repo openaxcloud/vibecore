@@ -346,6 +346,12 @@ export const Workbench = memo(
 
     const onEditorChange = useCallback<OnEditorChange>((update) => {
       workbenchStore.setCurrentDocumentContent(update.content);
+
+      const filePath = workbenchStore.currentDocument.get()?.filePath;
+
+      if (filePath) {
+        workbenchStore.scheduleFileAutosave(filePath, update.content);
+      }
     }, []);
 
     const onEditorScroll = useCallback<OnEditorScroll>((position) => {

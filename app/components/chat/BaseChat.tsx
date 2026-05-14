@@ -3962,6 +3962,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     workbenchStore.setCurrentDocumentContent(update.value);
 
                     const filePath = currentDocument.filePath;
+                    workbenchStore.scheduleFileAutosave(filePath, update.value);
 
                     let line = 1;
                     let lastLineStart = 0;
