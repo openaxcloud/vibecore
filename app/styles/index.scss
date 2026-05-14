@@ -3581,6 +3581,42 @@ body :where(.lucide, svg[data-lucide]) {
   text-overflow: ellipsis;
 }
 
+.bolt-project-agent-stop-button {
+  display: inline-flex;
+  min-width: max-content;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 34%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%);
+  color: var(--vc-ide-accent-error);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 9px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+.bolt-project-agent-stop-button:hover:not(:disabled),
+.bolt-project-agent-stop-button:focus-visible:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 12%);
+  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 76%);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-stop-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.bolt-project-agent-stop-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .bolt-project-agent-mode {
   display: inline-flex;
   height: 24px;

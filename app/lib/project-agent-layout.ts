@@ -13,3 +13,9 @@ export function defaultProjectAgentPanelWidth(viewportWidth?: number) {
 
   return clampProjectAgentPanelWidth(viewportWidth * 0.25);
 }
+
+export function projectAgentStopLabel(providerName?: string, model?: string) {
+  const target = `${providerName ?? ''} ${model ?? ''}`.toLowerCase();
+
+  return target.includes('anthropic') || target.includes('claude') ? 'Stop Claude' : 'Stop agent';
+}

@@ -5,6 +5,7 @@ import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
   defaultProjectAgentPanelWidth,
+  projectAgentStopLabel,
 } from './project-agent-layout';
 
 describe('project agent panel layout', () => {
@@ -19,5 +20,11 @@ describe('project agent panel layout', () => {
     expect(defaultProjectAgentPanelWidth(960)).toBe(PROJECT_AGENT_PANEL_MIN_WIDTH);
     expect(defaultProjectAgentPanelWidth(3200)).toBe(PROJECT_AGENT_PANEL_MAX_WIDTH);
     expect(defaultProjectAgentPanelWidth()).toBe(PROJECT_AGENT_PANEL_DEFAULT_WIDTH);
+  });
+
+  it('names the running agent stop action from the active provider or model', () => {
+    expect(projectAgentStopLabel('Anthropic', 'claude-sonnet-4.5')).toBe('Stop Claude');
+    expect(projectAgentStopLabel('OpenRouter', 'anthropic/claude-sonnet-4.5')).toBe('Stop Claude');
+    expect(projectAgentStopLabel('OpenAI', 'gpt-5.4')).toBe('Stop agent');
   });
 });

@@ -35,6 +35,7 @@ import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
   defaultProjectAgentPanelWidth,
+  projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore } from '~/lib/stores/diagnostics';
@@ -1630,6 +1631,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
+    const isAgentRunning = projectIdeMode && isStreaming;
+    const stopAgentLabel = projectAgentStopLabel(provider?.name, model);
 
     const [projectPlanFirst, setProjectPlanFirst] = useState(() => {
       if (typeof window === 'undefined') {
@@ -4481,6 +4484,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
               {description?.trim() || 'New chat'}
             </span>
+            {isAgentRunning && (
+              <button
+                type="button"
+                className="bolt-project-agent-stop-button"
+                aria-label={stopAgentLabel}
+                title={stopAgentLabel}
+                disabled={!handleStop}
+                onClick={() => handleStop?.()}
+              >
+                <span className="i-ph:stop-circle-bold" aria-hidden />
+                <span>{stopAgentLabel}</span>
+              </button>
+            )}
             <div className="ml-auto flex items-center gap-1">
               <HeaderTip label="Switch light / dark theme">
                 <ThemeSwitch size="lg" title="" className="bolt-project-ide-icon-button" iconClassName="text-[14px]" />
