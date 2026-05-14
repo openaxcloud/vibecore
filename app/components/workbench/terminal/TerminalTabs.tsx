@@ -3,7 +3,6 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { Terminal, type TerminalRef } from './Terminal';
 import { TerminalManager } from './TerminalManager';
-import { IconButton } from '~/components/ui/IconButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -72,6 +71,8 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
   const [profile, setProfile] = useState<TerminalProfile>(initialUiState.profile);
   const [splitView, setSplitView] = useState(initialUiState.splitView);
   const [searchQuery, setSearchQuery] = useState('');
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const activeProfile = terminalProfiles.find((item) => item.id === profile) ?? terminalProfiles[0];
 
@@ -258,6 +259,32 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
     };
   }, []);
 
+  useEffect(() => {
+    if (!moreMenuOpen) {
+      return undefined;
+    }
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMoreMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('keydown', closeOnEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [moreMenuOpen]);
+
   return (
     <Panel
       ref={terminalPanelRef}
@@ -320,57 +347,43 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 );
               })}
             </div>
-            <label className="bolt-terminal-profile-select">
-              <span>Profile</span>
-              <select
-                aria-label="Terminal profile"
-                value={profile}
-                onChange={(event) => setProfile(event.target.value as TerminalProfile)}
-              >
-                {terminalProfiles.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="bolt-terminal-search" role="search">
-              <input
-                aria-label="Search terminal scrollback"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    findInActiveTerminal(event.shiftKey ? 'previous' : 'next');
-                  }
-                }}
-                placeholder="Search terminal"
-              />
-              <button
-                type="button"
-                aria-label="Find previous terminal match"
-                onClick={() => findInActiveTerminal('previous')}
-              >
-                <span className="i-ph:caret-up" aria-hidden />
-              </button>
-              <button type="button" aria-label="Find next terminal match" onClick={() => findInActiveTerminal('next')}>
-                <span className="i-ph:caret-down" aria-hidden />
-              </button>
-            </div>
             <div
-              className="bolt-terminal-runtime-meta"
-              aria-label="Terminal PTY size"
-              title="Terminal PTY size. Shows the current pseudo-terminal columns and rows."
+              className="bolt-terminal-toolbar-section"
+              data-section="search"
+              role="search"
+              aria-label="Search terminal"
             >
-              <span className="bolt-terminal-runtime-dot" aria-hidden />
-              <span>PTY</span>
-              {terminalSize.cols > 0 && terminalSize.rows > 0 ? (
-                <span>
-                  {terminalSize.cols}x{terminalSize.rows}
-                </span>
-              ) : null}
+              <span className="bolt-terminal-toolbar-label">Search</span>
+              <div className="bolt-terminal-search">
+                <input
+                  aria-label="Search terminal scrollback"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      findInActiveTerminal(event.shiftKey ? 'previous' : 'next');
+                    }
+                  }}
+                  placeholder="Find in terminal"
+                />
+                <button
+                  type="button"
+                  aria-label="Find previous terminal match"
+                  onClick={() => findInActiveTerminal('previous')}
+                >
+                  <span className="i-ph:caret-up" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Find next terminal match"
+                  onClick={() => findInActiveTerminal('next')}
+                >
+                  <span className="i-ph:caret-down" aria-hidden />
+                </button>
+              </div>
             </div>
-            <div className="bolt-terminal-actions">
+            <div className="bolt-terminal-toolbar-section" data-section="process" aria-label="Terminal process actions">
+              <span className="bolt-terminal-toolbar-label">Process</span>
               {terminalCount < MAX_TERMINALS && (
                 <button
                   type="button"
@@ -382,24 +395,6 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                   New
                 </button>
               )}
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Split terminal. Show two terminal sessions side by side."
-                onClick={() => setSplitView((value) => !value)}
-              >
-                <span className="i-ph:columns" aria-hidden />
-                {splitView ? 'Unsplit' : 'Split'}
-              </button>
-              <button
-                type="button"
-                className="bolt-terminal-action-button"
-                title="Clear terminal. Remove visible scrollback for the active shell."
-                onClick={clearActiveTerminal}
-              >
-                <span className="i-ph:eraser" aria-hidden />
-                Clear
-              </button>
               <button
                 type="button"
                 className="bolt-terminal-action-button"
@@ -418,12 +413,83 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                 <span className="i-ph:arrow-clockwise" aria-hidden />
                 Restart
               </button>
-              <IconButton
-                icon="i-ph:caret-down"
-                title="Close"
-                size="md"
-                onClick={() => workbenchStore.toggleTerminal(false)}
-              />
+            </div>
+            <div className="bolt-terminal-toolbar-section" data-section="view" aria-label="Terminal view actions">
+              <span className="bolt-terminal-toolbar-label">View</span>
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                title="Split terminal. Show two terminal sessions side by side."
+                onClick={() => setSplitView((value) => !value)}
+              >
+                <span className="i-ph:columns" aria-hidden />
+                {splitView ? 'Unsplit' : 'Split'}
+              </button>
+              <button
+                type="button"
+                className="bolt-terminal-action-button"
+                title="Clear terminal. Remove visible scrollback for the active shell."
+                onClick={clearActiveTerminal}
+              >
+                <span className="i-ph:eraser" aria-hidden />
+                Clear
+              </button>
+            </div>
+            <div className="bolt-terminal-more" ref={moreMenuRef}>
+              <button
+                type="button"
+                className="bolt-terminal-more-button"
+                aria-haspopup="dialog"
+                aria-expanded={moreMenuOpen}
+                aria-label="More terminal options"
+                title="More terminal options"
+                onClick={() => setMoreMenuOpen((value) => !value)}
+              >
+                <span className="i-ph:dots-three-vertical-bold" aria-hidden />
+                More
+              </button>
+              {moreMenuOpen ? (
+                <div className="bolt-terminal-more-menu" role="group" aria-label="More terminal options">
+                  <label className="bolt-terminal-profile-select">
+                    <span>Profile</span>
+                    <select
+                      aria-label="Terminal profile"
+                      value={profile}
+                      onChange={(event) => setProfile(event.target.value as TerminalProfile)}
+                    >
+                      {terminalProfiles.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div
+                    className="bolt-terminal-runtime-meta"
+                    aria-label="Terminal PTY size"
+                    title="Terminal PTY size. Shows the current pseudo-terminal columns and rows."
+                  >
+                    <span className="bolt-terminal-runtime-dot" aria-hidden />
+                    <span>PTY size</span>
+                    <strong>
+                      {terminalSize.cols > 0 && terminalSize.rows > 0
+                        ? `${terminalSize.cols}x${terminalSize.rows}`
+                        : 'Detecting'}
+                    </strong>
+                  </div>
+                  <button
+                    type="button"
+                    className="bolt-terminal-menu-item"
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      workbenchStore.toggleTerminal(false);
+                    }}
+                  >
+                    <span className="i-ph:caret-down" aria-hidden />
+                    Close terminal
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
           <div className={classNames('bolt-terminal-viewports', { 'is-split': splitView })}>
