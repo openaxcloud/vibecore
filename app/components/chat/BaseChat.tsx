@@ -267,7 +267,7 @@ const PROJECT_AGENT_PUBLIC_MODES: Array<{
   {
     id: 'agent',
     label: 'Agent',
-    description: 'Autonomously edits files and runs commands. Plan first will require your approval.',
+    description: 'Run the selected task end to end.',
     execution: 'agent',
   },
   {
@@ -4607,10 +4607,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {(() => {
                 const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
 
-                const activeMode =
-                  PROJECT_AGENT_PUBLIC_MODES.find((mode) => mode.id === activePublicMode) ??
-                  PROJECT_AGENT_PUBLIC_MODES[0];
-
                 return (
                   <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
                     <div
@@ -4643,7 +4639,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       })}
                     </div>
                     <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
-                      <HeaderTip label="When enabled, the agent must return a plan and wait for approval before executing changes.">
+                      <div className="bolt-project-agent-toggle-group">
                         <label
                           className="bolt-project-agent-plan-first"
                           data-active={projectPlanFirst ? 'true' : 'false'}
@@ -4659,7 +4655,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </span>
                           <span className="bolt-project-agent-plan-first-label">Plan first</span>
                         </label>
-                      </HeaderTip>
+                        <HeaderTip label="Autonomously edits files and runs commands. Plan first will require your approval.">
+                          <button
+                            type="button"
+                            className="bolt-project-agent-toggle-info"
+                            aria-label="About Plan first"
+                          >
+                            i
+                          </button>
+                        </HeaderTip>
+                      </div>
                       <HeaderTip label="When on, the agent applies safe file edits silently and offers Undo. Dependency manifests, config and .env files still surface for review.">
                         <label
                           className="bolt-project-agent-plan-first"
@@ -4697,14 +4702,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </label>
                       </HeaderTip>
                     </div>
-                    <p className="bolt-project-agent-mode-description">
-                      {activeMode.description}
-                      {projectPlanFirst ? ' Plan first is on — the agent will draft a plan and wait for approval.' : ''}
-                      {projectAutoApply
-                        ? ' Auto-apply is on — safe file edits land silently with Undo. Risky files still need review.'
-                        : ''}
-                      {projectAutoAccept ? ` Auto-accept gate: ${autoAcceptDecision.reason}` : ''}
-                    </p>
                   </div>
                 );
               })()}

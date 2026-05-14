@@ -3707,7 +3707,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 10px 12px 12px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 4%);
 }
@@ -3737,6 +3737,45 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 11px;
   line-height: 1.45;
   color: var(--vc-ide-text-muted);
+}
+
+.bolt-project-agent-toggle-group {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 3px;
+}
+
+.bolt-project-agent-toggle-info {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background-color 120ms ease-out,
+    border-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-project-agent-toggle-info:hover,
+.bolt-project-agent-toggle-info:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 46%, var(--vc-ide-border-subtle));
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-agent-toggle-info:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 60%, transparent);
+  outline-offset: 2px;
 }
 
 .bolt-project-agent-plan-first {
