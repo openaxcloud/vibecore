@@ -5,7 +5,6 @@ import { Link } from '@remix-run/react';
 import {
   Activity,
   AlertTriangle,
-  Bell,
   CheckCircle2,
   ChevronDown,
   CircleHelp,
@@ -29,7 +28,6 @@ import {
   lazy,
   Suspense,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
@@ -236,8 +234,6 @@ function IdeProjectTopBar({
   const error = useStore(workbenchStore.workspaceError);
   const previews = useStore(workbenchStore.previews);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [overflowMenuOpen, setOverflowMenuOpen] = useState(false);
   const overflowMenuRef = useRef<HTMLDivElement>(null);
   const [displayProjectName, setDisplayProjectName] = useState(project.name);
@@ -246,8 +242,6 @@ function IdeProjectTopBar({
   const [renameSaving, setRenameSaving] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const userMenuId = useId();
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const isReallyRunning = isWorkspaceReallyRunning(workspace, previews);
   const previewRunning = isReallyRunning;
@@ -311,37 +305,6 @@ function IdeProjectTopBar({
       });
     }
   }, [renamingProject]);
-
-  useEffect(() => {
-    if (!userMenuOpen) {
-      return undefined;
-    }
-
-    const closeOnOutsideInteraction = (event: PointerEvent) => {
-      const target = event.target;
-
-      if (target instanceof Node && userMenuRef.current?.contains(target)) {
-        return;
-      }
-
-      setUserMenuOpen(false);
-    };
-
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setUserMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('pointerdown', closeOnOutsideInteraction);
-    document.addEventListener('keydown', closeOnEscape);
-
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutsideInteraction);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [userMenuOpen]);
 
   useEffect(() => {
     if (!overflowMenuOpen) {
@@ -577,41 +540,40 @@ function IdeProjectTopBar({
       </div>
       <div className="bolt-project-topbar-actions">
         <div
-          className="bolt-project-action-group bolt-project-action-group--utility"
-          data-priority="low"
-          aria-label="Support and alerts"
+          ref={overflowMenuRef}
+          className="bolt-project-action-group bolt-project-action-group--overflow"
+          data-priority="overflow"
+          aria-label="More actions"
         >
-          <Link to="/support" className="bolt-project-topbar-icon-button" aria-label="Help" title="Help">
-            <CircleHelp className="h-3.5 w-3.5" aria-hidden />
-          </Link>
-          <div className="relative">
-            <button
-              type="button"
-              className="bolt-project-topbar-icon-button relative"
-              aria-label="Notifications"
-              aria-expanded={notificationsOpen}
-              title="Notifications"
-              onClick={() => setNotificationsOpen((value) => !value)}
+          <button
+            type="button"
+            className="bolt-project-topbar-icon-button"
+            aria-label="More topbar actions"
+            aria-haspopup="menu"
+            aria-expanded={overflowMenuOpen}
+            title="More actions"
+            onClick={() => setOverflowMenuOpen((value) => !value)}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+            {notificationItems.length > 0 && (
+              <span
+                className="bolt-project-notification-dot"
+                data-urgent={actionableNotificationCount > 0 ? 'true' : 'false'}
+                aria-hidden
+              />
+            )}
+          </button>
+          {overflowMenuOpen && (
+            <div
+              role="dialog"
+              aria-label="More IDE actions"
+              className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
             >
-              <Bell className="h-3.5 w-3.5" aria-hidden />
-              {notificationItems.length > 0 && (
-                <span
-                  className="bolt-project-notification-dot"
-                  data-urgent={actionableNotificationCount > 0 ? 'true' : 'false'}
-                  aria-hidden
-                />
-              )}
-            </button>
-            {notificationsOpen && (
-              <div
-                className="bolt-project-notification-popover absolute right-0 top-full z-50 mt-1 w-[360px] max-w-[calc(100vw-1rem)] rounded-xl border p-3"
-                role="dialog"
-                aria-label="Project notifications"
-              >
+              <div className="bolt-project-overflow-section">
                 <div className="bolt-project-notification-header">
                   <div>
                     <strong>IDE notifications</strong>
-                    <span>Project activity and live workspace signals</span>
+                    <span>Project activity and workspace signals</span>
                   </div>
                   <span className="bolt-project-notification-count">
                     {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
@@ -619,15 +581,16 @@ function IdeProjectTopBar({
                 </div>
                 {notificationItems.length ? (
                   <div className="bolt-project-notification-list">
-                    {notificationItems.slice(0, 10).map((notification) => {
+                    {notificationItems.slice(0, 5).map((notification) => {
                       const Icon = notificationIcon(notification.kind);
+
                       return (
                         <Link
                           key={notification.id}
                           to={notification.href}
                           className="bolt-project-notification-item"
                           data-kind={notification.kind}
-                          onClick={() => setNotificationsOpen(false)}
+                          onClick={() => setOverflowMenuOpen(false)}
                         >
                           <span className="bolt-project-notification-icon" aria-hidden>
                             <Icon className="h-3.5 w-3.5" />
@@ -653,94 +616,65 @@ function IdeProjectTopBar({
                   </div>
                 )}
               </div>
-            )}
-          </div>
+              <div className="bolt-project-overflow-section bolt-project-overflow-section--grid">
+                <Link to="/support" className="bolt-project-overflow-item" onClick={() => setOverflowMenuOpen(false)}>
+                  <CircleHelp className="h-3.5 w-3.5" aria-hidden />
+                  <span>Help &amp; support</span>
+                </Link>
+                <Link
+                  to={`/projects/${projectId}/ide?panel=collaborators`}
+                  className="bolt-project-overflow-item"
+                  onClick={() => setOverflowMenuOpen(false)}
+                >
+                  <Share2 className="h-3.5 w-3.5" aria-hidden />
+                  <span>
+                    {visibleCollaborators.length} collaborator{visibleCollaborators.length === 1 ? '' : 's'}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className="bolt-project-overflow-item"
+                  onClick={() => {
+                    const detail = { open: !filesPanelOpen };
+                    workbenchStore.requestProjectFilesPanel(detail.open);
+                    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
+                    setOverflowMenuOpen(false);
+                  }}
+                >
+                  <Files className="h-3.5 w-3.5" aria-hidden />
+                  <span>{filesPanelOpen ? 'Close files panel' : 'Open files panel'}</span>
+                </button>
+                <Link
+                  to="/account-settings"
+                  className="bolt-project-overflow-item"
+                  onClick={() => setOverflowMenuOpen(false)}
+                >
+                  <User className="h-3.5 w-3.5" aria-hidden />
+                  <span>Account</span>
+                </Link>
+              </div>
+              <form method="post" action="/logout">
+                <button type="submit" className="bolt-project-overflow-item bolt-project-overflow-item--danger">
+                  <User className="h-3.5 w-3.5" aria-hidden />
+                  <span>Sign out</span>
+                </button>
+              </form>
+            </div>
+          )}
         </div>
         <div
-          className="bolt-project-action-group bolt-project-action-group--collaboration"
-          data-priority="medium"
-          aria-label="Collaboration"
+          className="bolt-project-action-group bolt-project-action-group--share"
+          data-priority="high"
+          aria-label="Share"
         >
-          <div className="bolt-project-collaborator-stack" aria-label="Collaborators">
-            {visibleCollaborators.slice(0, 3).map((collaborator) => {
-              const collaboratorName = collaborator.userId === 'you' ? 'You' : (collaborator.userId ?? 'User');
-              const collaboratorRole = collaborator.roleKey ?? 'member';
-              const collaboratorLabel = `${collaboratorName}, ${collaboratorRole}`;
-
-              return (
-                <span
-                  key={collaborator.id ?? collaborator.userId}
-                  role="img"
-                  aria-label={collaboratorLabel}
-                  title={collaboratorLabel}
-                  className="bolt-project-collaborator-avatar"
-                >
-                  {collaborator.userId === 'you' ? 'ME' : (collaborator.userId ?? 'U').slice(0, 1).toUpperCase()}
-                </span>
-              );
-            })}
-            {collaborators.length > 3 && (
-              <span
-                className="bolt-project-collaborator-overflow"
-                aria-label={`${collaborators.length - 3} more collaborators`}
-                title={`${collaborators.length - 3} more collaborators`}
-              >
-                +{collaborators.length - 3}
-              </span>
-            )}
-          </div>
           <Link
             to={`/projects/${projectId}/ide?panel=collaborators`}
             className="bolt-project-topbar-outline-button"
-            title="Open collaborators and live presence"
+            title="Open share, collaborators and live presence"
           >
             <Share2 className="h-3 w-3" aria-hidden />
             Share
           </Link>
-        </div>
-        <div
-          ref={overflowMenuRef}
-          className="bolt-project-action-group bolt-project-action-group--overflow"
-          data-priority="overflow"
-          aria-label="More actions"
-        >
-          <button
-            type="button"
-            className="bolt-project-topbar-icon-button"
-            aria-label="More topbar actions"
-            aria-haspopup="menu"
-            aria-expanded={overflowMenuOpen}
-            title="More actions"
-            onClick={() => setOverflowMenuOpen((value) => !value)}
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
-          </button>
-          {overflowMenuOpen && (
-            <div
-              role="menu"
-              aria-label="Topbar overflow"
-              className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border p-1.5"
-            >
-              <Link
-                to="/support"
-                role="menuitem"
-                className="bolt-project-overflow-item"
-                onClick={() => setOverflowMenuOpen(false)}
-              >
-                <CircleHelp className="h-3.5 w-3.5" aria-hidden />
-                <span>Help &amp; support</span>
-              </Link>
-              <Link
-                to={`/projects/${projectId}/ide?panel=collaborators`}
-                role="menuitem"
-                className="bolt-project-overflow-item"
-                onClick={() => setOverflowMenuOpen(false)}
-              >
-                <Share2 className="h-3.5 w-3.5" aria-hidden />
-                <span>Share &amp; collaborators</span>
-              </Link>
-            </div>
-          )}
         </div>
         <div
           className="bolt-project-action-group bolt-project-action-group--primary"
@@ -779,61 +713,6 @@ function IdeProjectTopBar({
             <Rocket className="h-3 w-3" aria-hidden />
             Publish
           </Link>
-        </div>
-        <div
-          className="bolt-project-action-group bolt-project-action-group--workspace"
-          data-priority="high"
-          aria-label="Workspace and account"
-        >
-          <button
-            type="button"
-            data-testid="ide-files-panel-toggle"
-            className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
-            aria-label={filesPanelOpen ? 'Close right panel' : 'Open right panel'}
-            aria-pressed={filesPanelOpen}
-            title={filesPanelOpen ? 'Close files' : 'Open files'}
-            onClick={() => {
-              const detail = { open: !filesPanelOpen };
-              workbenchStore.requestProjectFilesPanel(detail.open);
-              window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
-            }}
-          >
-            <Files className="h-3.5 w-3.5" aria-hidden />
-          </button>
-          <div className="relative" ref={userMenuRef}>
-            <button
-              type="button"
-              className="bolt-project-user-menu-trigger"
-              aria-label="Open user menu"
-              aria-haspopup="menu"
-              aria-expanded={userMenuOpen}
-              aria-controls={userMenuOpen ? userMenuId : undefined}
-              title="User menu"
-              onClick={() => setUserMenuOpen((open) => !open)}
-            >
-              <User className="h-3.5 w-3.5" aria-hidden />
-            </button>
-            {userMenuOpen && (
-              <div
-                id={userMenuId}
-                role="menu"
-                aria-label="User account menu"
-                className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-[var(--vc-ide-border-visible)] bg-[var(--vc-ide-bg-card)] p-1.5 shadow-[var(--vc-ui-shadow-xl)]"
-              >
-                <ProjectMenuItem to="/account-settings">Profile</ProjectMenuItem>
-                <ProjectMenuItem to="/settings">Settings</ProjectMenuItem>
-                <ProjectMenuItem to="/billing">Billing</ProjectMenuItem>
-                <form method="post" action="/logout">
-                  <button
-                    type="submit"
-                    className="flex h-8 w-full items-center rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)]"
-                  >
-                    Sign out
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </header>

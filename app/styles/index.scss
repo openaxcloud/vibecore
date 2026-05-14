@@ -2097,21 +2097,38 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 4px;
 }
 
-/*
- * Overflow menu (More button + popover). Hidden by default at wide viewports;
- * a media query reveals it when low/medium priority groups collapse so the
- * collapsed items remain reachable.
- */
 .bolt-project-action-group--overflow {
   position: relative;
-  display: none;
+  display: inline-flex;
+}
+
+.bolt-project-action-group--overflow .bolt-project-topbar-icon-button {
+  position: relative;
 }
 
 .bolt-project-overflow-popover {
   border-color: var(--vc-ide-border-visible) !important;
-  background: var(--vc-ide-bg-card) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 3%), var(--vc-ide-bg-card)),
+    var(--vc-ide-bg-card) !important;
   color: var(--vc-ide-text-primary) !important;
   box-shadow: var(--vc-ui-shadow-xl) !important;
+}
+
+.bolt-project-overflow-section {
+  display: grid;
+  gap: 8px;
+  padding: 4px;
+}
+
+.bolt-project-overflow-section + .bolt-project-overflow-section {
+  margin-top: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  padding-top: 10px;
+}
+
+.bolt-project-overflow-section--grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .bolt-project-overflow-item {
@@ -2123,6 +2140,20 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 6px;
   font-size: 12px;
   color: var(--vc-ide-text-primary) !important;
+  text-align: left;
+}
+
+.bolt-project-overflow-item span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-overflow-item--danger {
+  width: 100%;
+  margin-top: 4px;
+  color: var(--vc-ide-accent-error) !important;
 }
 
 .bolt-project-overflow-item:hover,
@@ -2141,14 +2172,8 @@ body :where(.lucide, svg[data-lucide]) {
     max-width: min(14vw, 120px);
   }
 
-  /* Hide the low-priority utility group (Help icon); Bell stays so alerts
-   * remain visible. The More menu surfaces the hidden Help entry. */
-  .bolt-project-topbar-actions [data-priority='low'] > a:first-child {
-    display: none;
-  }
-
-  .bolt-project-action-group--overflow {
-    display: inline-flex;
+  .bolt-project-topbar-outline-button {
+    padding-inline: 8px;
   }
 }
 
@@ -2156,12 +2181,6 @@ body :where(.lucide, svg[data-lucide]) {
   .bolt-project-breadcrumb-kicker,
   .bolt-project-breadcrumb-workspace,
   .bolt-project-breadcrumb-separator:first-of-type {
-    display: none;
-  }
-
-  /* Drop the collaborator avatar stack but keep the Share button accessible
-   * via the overflow menu (which already includes a Share entry). */
-  .bolt-project-topbar-actions [data-priority='medium'] {
     display: none;
   }
 
@@ -8811,14 +8830,14 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-statusbar-primary {
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
 }
 
 .bolt-project-statusbar-secondary {
-  gap: 6px;
+  gap: 4px;
   flex: 0 0 auto;
   margin-left: 8px;
 }
@@ -8837,7 +8856,7 @@ body :where(.lucide, svg[data-lucide]) {
   max-width: 100%;
   flex: 0 1 auto;
   border-radius: 5px;
-  padding: 0 7px;
+  padding: 0 6px;
   white-space: nowrap;
   transition:
     background-color 140ms ease,
@@ -8895,8 +8914,8 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar-count {
-  background: var(--vc-ide-bg-muted);
-  color: var(--vc-ide-text-secondary);
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%);
+  color: var(--vc-ide-accent-action);
 }
 
 .bolt-project-statusbar-error-count {
@@ -8927,13 +8946,13 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-runtime {
-  flex: 1 1 240px;
-  max-width: min(36vw, 420px);
+  flex: 0 1 190px;
+  max-width: min(24vw, 260px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-workspace {
-  flex: 0 1 260px;
-  max-width: min(24vw, 300px);
+  flex: 0 1 180px;
+  max-width: min(22vw, 220px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
@@ -8943,6 +8962,20 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child,
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:nth-child(2) {
   flex: 0 0 auto;
+}
+
+@container statusbar (max-width: 760px) {
+  .bolt-project-statusbar-optional {
+    display: none !important;
+  }
+
+  .bolt-project-statusbar .bolt-project-statusbar-workspace {
+    max-width: 150px;
+  }
+
+  .bolt-project-statusbar .bolt-project-statusbar-runtime {
+    max-width: 130px;
+  }
 }
 
 .bolt-project-statusbar-runtime-dot {

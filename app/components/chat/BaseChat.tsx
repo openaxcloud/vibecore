@@ -1886,7 +1886,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return 'Starting';
       }
 
-      return projectRuntimeState.workspace?.status ?? 'Not started';
+      return projectRuntimeState.workspace?.status ?? 'Stopped';
     }, [isRuntimeReallyRunning, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
     const workspaceStatusTitle = useMemo(
       () =>
@@ -4270,7 +4270,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           statusbarChangedFiles > 0
             ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
             : undefined,
-        badgeTone: statusbarChangedFiles > 0 ? 'warning' : 'neutral',
+        badgeTone: 'neutral',
         title: `${projectFilePaths.length} indexed files${statusbarChangedFiles ? `, ${statusbarChangedFiles} changed` : ''}`,
         action: () => openIdeTool('files'),
       },
@@ -4339,7 +4339,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           statusbarChangedFiles > 0
             ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
             : undefined,
-        tone: 'warning',
+        tone: 'neutral',
       },
       { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
       { panel: 'packages', label: 'Packages', icon: 'i-ph:cube', badge: undefined, tone: 'neutral' },
@@ -5160,7 +5160,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <span className="i-ph:git-branch" aria-hidden />
                 <span className="bolt-project-statusbar-label">Git</span>
                 <strong>{projectBackendState.git?.branch ?? 'main'}</strong>
-                <span className="bolt-project-statusbar-muted">
+                <span className="bolt-project-statusbar-muted bolt-project-statusbar-optional">
                   {projectBackendState.git?.ahead ?? 0}↑ {projectBackendState.git?.behind ?? 0}↓
                 </span>
                 {statusbarChangedFiles > 0 ? (
@@ -5195,9 +5195,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
                 <span className="bolt-project-statusbar-label">Workspace</span>
                 <strong>{workspaceStatusLabel}</strong>
-                {quotaWarning ? <span>{quotaWarning}</span> : null}
-                {billingUpgradePrompt ? <span>{billingUpgradePrompt}</span> : null}
-                {workspaceError ? <span>{workspaceError}</span> : null}
+                {workspaceError ? <span className="bolt-project-statusbar-error-count">!</span> : null}
+                {quotaWarning || billingUpgradePrompt ? (
+                  <span className="bolt-project-statusbar-warning-count">!</span>
+                ) : null}
               </button>
               {workspaceLogs.length > 0 ? (
                 <button
@@ -5248,9 +5249,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }}
                 title={`Open preview | ${runtimeStatusSummary} | ${runtimePortSummary} | ${runtimeDevServerSummary}`}
               >
+                <span className="i-ph:monitor-play" aria-hidden />
                 <span className="bolt-project-statusbar-label">Preview</span>
                 <span className="bolt-project-statusbar-muted">{runtimePortSummary}</span>
-                <span className="bolt-project-statusbar-muted">{runtimeDevServerSummary}</span>
+                <span className="bolt-project-statusbar-muted bolt-project-statusbar-optional">
+                  {runtimeDevServerSummary}
+                </span>
               </button>
             </div>
             <div className="bolt-project-statusbar-secondary" aria-label="Editor status">
