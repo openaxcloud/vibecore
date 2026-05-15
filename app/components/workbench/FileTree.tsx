@@ -23,29 +23,10 @@ const logger = createScopedLogger('FileTree');
 const NODE_BASE_PADDING_LEFT = 2;
 const NODE_PADDING_LEFT = 6;
 
-function splitNameForMiddleTruncation(name: string) {
-  const parts = name.split('.');
-
-  if (parts.length >= 3 && parts[0]) {
-    return { start: parts[0], end: `.${parts.slice(1).join('.')}` };
-  }
-
-  if (parts.length === 2 && parts[0] && parts[1]) {
-    return { start: parts[0], end: `.${parts[1]}` };
-  }
-
-  const midpoint = Math.ceil(name.length / 2);
-
-  return { start: name.slice(0, midpoint), end: name.slice(midpoint) };
-}
-
-function MiddleTruncatedName({ name, className }: { name: string; className?: string }) {
-  const { start, end } = splitNameForMiddleTruncation(name);
-
+function FileTreeName({ name, className }: { name: string; className?: string }) {
   return (
-    <span className={classNames('bolt-middle-truncate', className)} title={name}>
-      <span className="bolt-middle-truncate-start">{start}</span>
-      <span className="bolt-middle-truncate-end">{end}</span>
+    <span className={classNames('bolt-file-tree-name', className)} title={name}>
+      {name}
     </span>
   );
 }
@@ -323,7 +304,7 @@ export const FileTree = memo(
         >
           <span className={classNames('size-4 shrink-0', icon.icon)} style={{ color: icon.color }} aria-hidden />
           <span className="min-w-0 flex-1">
-            <MiddleTruncatedName name={label} className="block text-xs font-medium" />
+            <FileTreeName name={label} className="block text-xs font-medium" />
             <span className="block truncate text-[11px] text-bolt-elements-textTertiary">
               {meta?.detail ?? relativePath}
             </span>
@@ -1045,7 +1026,7 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
         onClick={onClick}
       >
         <div className="flex w-full min-w-0 items-center pr-1">
-          <MiddleTruncatedName name={folder.name} className="flex-1 pr-2" />
+          <FileTreeName name={folder.name} className="flex-1 pr-2" />
           {isLocked && (
             <span
               className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
@@ -1159,7 +1140,7 @@ function File({
             'group-hover:text-bolt-elements-item-contentActive': !selected,
           })}
         >
-          <MiddleTruncatedName name={name} className="flex-1 pr-2" />
+          <FileTreeName name={name} className="flex-1 pr-2" />
           <div className="flex items-center gap-1">
             {showStats && (
               <div className="flex items-center gap-1 text-xs">

@@ -4936,31 +4936,13 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 14px;
 }
 
-.bolt-middle-truncate {
-  display: inline-flex;
+.bolt-file-tree-name {
+  display: block;
   min-width: 0;
   max-width: 100%;
-  align-items: baseline;
-  overflow: hidden;
-  vertical-align: bottom;
-  white-space: nowrap;
-}
-
-.bolt-middle-truncate-start,
-.bolt-middle-truncate-end {
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.bolt-middle-truncate-start {
-  flex: 1 1 auto;
-}
-
-.bolt-middle-truncate-end {
-  flex: 0 0 auto;
-  max-width: 72%;
 }
 
 .bolt-project-editor-tool,
