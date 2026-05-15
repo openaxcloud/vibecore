@@ -128,19 +128,54 @@ Provides `pods_list`, `pods_log`, `pods_exec`, `resources_get`,
 **Prerequisites already wired on this machine:**
 
   - `gcloud` CLI (homebrew) — authenticated as `groupequaliwatt@gmail.com`
-    on project `vibecore-495216`.
+    on project `vibecore-495216`. The account holds `roles/owner` on the
+    project.
   - `kubectl` CLI.
   - `gke-gcloud-auth-plugin` — installed via
     `gcloud components install gke-gcloud-auth-plugin` and symlinked into
-    `/opt/homebrew/bin/` so it's on PATH for kubectl.
-  - kubeconfig entries for both clusters via
-    `gcloud container clusters get-credentials vibecore-prod-app --region europe-west9` and
-    `gcloud container clusters get-credentials vibecore-prod-workspaces --region europe-west9`.
+    `/opt/homebrew/bin/`.
+  - **Connect Gateway** is the path that makes `kubectl` work from this
+    Mac. Both clusters are GKE-private with `privateEndpointEnforcementEnabled`,
+    so the public master endpoint is firewall-blocked. Connect Gateway
+    routes `kubectl` through a Google-managed proxy authenticated with IAM
+    — no VPN, no authorized-network exception, no bastion.
 
-**Network access caveat.** The clusters are private endpoints. If `kubectl get
-ns` hangs on this Mac, the IP isn't on the GKE authorized networks list —
-either get added there or connect via the corporate VPN before the MCP can
-talk to the clusters.
+    One-time setup (already done):
+
+    ```sh
+    gcloud services enable gkehub.googleapis.com connectgateway.googleapis.com
+    gcloud container fleet memberships register vibecore-prod-app \
+      --gke-cluster=europe-west9/vibecore-prod-app --enable-workload-identity
+    gcloud container fleet memberships register vibecore-prod-workspaces \
+      --gke-cluster=europe-west9/vibecore-prod-workspaces --enable-workload-identity
+    gcloud projects add-iam-policy-binding vibecore-495216 \
+      --member=user:groupequaliwatt@gmail.com \
+      --role=roles/gkehub.gatewayAdmin
+    ```
+
+    Day-to-day kubeconfig refresh (re-run when your gcloud auth token
+    expires or you switch clusters):
+
+    ```sh
+    gcloud container fleet memberships get-credentials vibecore-prod-app
+    # or
+    gcloud container fleet memberships get-credentials vibecore-prod-workspaces
+    ```
+
+    This sets the current `kubectl` context to
+    `connectgateway_vibecore-495216_europe-west9_<cluster>`.
+
+**Cost.** Connect Gateway is free for Standard-tier GKE clusters when used
+from inside the same project. Anthos Enterprise tier billing (~$0.10/h per
+cluster) only kicks in if you enable Anthos features (Service Mesh, Config
+Sync, Policy Controller, …) which we have not enabled.
+
+**Cluster state at the time of setup.** Both clusters were 10 days old and
+contained only the GKE-managed namespaces (`default`, `gke-managed-*`,
+`gmp-*`, `kube-*`). No application namespace yet — the infrastructure is
+provisioned but waiting for the first `v*` tag to fire the docker build +
+helm install pipeline. Once vibecore deploys, the kubernetes MCP becomes
+useful for tailing the `vibecore` namespace pods.
 
 ### `claude.ai Cloudflare Developer Platform`
 
@@ -247,12 +282,18 @@ Take a screenshot of http://localhost:5173 at viewport 1446x900 and save it
 to /tmp/vibecore-large.png
 ```
 
-**Kubernetes smoke** (only works once you're on the GKE authorized network
-or VPN):
+**Kubernetes smoke** (now works from this Mac via Connect Gateway):
 
 ```text
-Use the kubernetes MCP to list pods in the vibecore namespace on context
-gke_vibecore-495216_europe-west9_vibecore-prod-app
+Use the kubernetes MCP to list namespaces on context
+connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
 ```
+
+Expected: the 10 GKE-managed namespaces. Once vibecore deploys, also list
+pods in `vibecore` to confirm application-side access.
+
+If `kubectl` returns `error: You must be logged in to the server
+(Unauthorized)` later, refresh the Connect Gateway kubeconfig with
+`gcloud container fleet memberships get-credentials <cluster>`.
 
 If either smoke fails, capture the error and we troubleshoot from there.
