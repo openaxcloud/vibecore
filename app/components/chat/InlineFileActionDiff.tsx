@@ -12,11 +12,11 @@
  * The component is rendered in two states:
  *   - streaming: the closing `</boltAction>` hasn't arrived yet, so we show
  *     a partial-diff indicator and hide every decision affordance.
- *   - settled: full hunks + per-hunk accept/reject buttons + a header
- *     "Accept all" / "Reject all" + "Apply" footer.
+ *   - settled: file-level Accept / Reject actions plus optional per-hunk
+ *     checkboxes for excluding hunks before accepting the file.
  */
 
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useFileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import { useFileActionReview } from '~/lib/hooks/useFileActionReview';
@@ -68,14 +68,21 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
     review.reset(hunkIdsRef.current);
   }, [hunkIdsKey, review.reset]);
 
-  const { isFullyDecided, hasAccepted, acceptedCount, rejectedCount, pendingCount } = review.summary;
+  const { isFullyDecided, rejectedCount } = review.summary;
 
-  const handleApply = useCallback(() => {
+  const acceptedHunkIdsForApply = useMemo(
+    () => hunkIds.filter((hunkId) => review.state.decisions[hunkId] !== 'rejected'),
+    [hunkIds, review.state.decisions],
+  );
+
+  const acceptedCountForApply = acceptedHunkIdsForApply.length;
+
+  const handleAcceptFile = useCallback(() => {
     if (!onApply) {
       return;
     }
 
-    const acceptedHunkIds = [...review.summary.acceptedIds];
+    const acceptedHunkIds = acceptedHunkIdsForApply;
     const rejectedHunkIds = [...review.summary.rejectedIds];
 
     const acceptedContent = applyReviewableDiffHunks({
@@ -92,7 +99,11 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
       acceptedHunkIds,
       rejectedHunkIds,
     });
-  }, [diff, onApply, review.summary.acceptedIds, review.summary.rejectedIds]);
+  }, [acceptedHunkIdsForApply, diff, onApply, review.summary.rejectedIds]);
+
+  const handleRejectFile = useCallback(() => {
+    review.rejectAll();
+  }, [review]);
 
   const summaryPill = (
     <span className="bolt-file-action-diff-summary" data-has-changes={diff.summary.hasChanges ? 'true' : 'false'}>
@@ -121,32 +132,24 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
           <span className="bolt-file-action-diff-status">{headerLabel}</span>
         </div>
         {summaryPill}
-        {!action.streaming && diff.summary.hasChanges ? (
-          <div className="bolt-file-action-diff-bulk-actions" role="group" aria-label="Bulk hunk decisions">
+        {!action.streaming && diff.summary.hasChanges && onApply ? (
+          <div className="bolt-file-action-diff-file-actions" role="group" aria-label="File decision">
             <button
               type="button"
-              className="bolt-file-action-diff-bulk-action"
-              onClick={review.acceptAll}
-              aria-label="Accept all hunks"
+              className="bolt-file-action-diff-file-action bolt-file-action-diff-file-action-accept"
+              onClick={handleAcceptFile}
+              disabled={acceptedCountForApply === 0}
+              aria-label="Accept file"
             >
-              Accept all
+              Accept file
             </button>
             <button
               type="button"
-              className="bolt-file-action-diff-bulk-action"
-              onClick={review.rejectAll}
-              aria-label="Reject all hunks"
+              className="bolt-file-action-diff-file-action"
+              onClick={handleRejectFile}
+              aria-label="Reject file"
             >
-              Reject all
-            </button>
-            <button
-              type="button"
-              className="bolt-file-action-diff-bulk-action"
-              onClick={review.clearAll}
-              aria-label="Clear all decisions"
-              disabled={acceptedCount === 0 && rejectedCount === 0}
-            >
-              Clear
+              Reject file
             </button>
           </div>
         ) : null}
@@ -162,10 +165,14 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
             <HunkView
               key={hunk.id}
               hunk={hunk}
-              decision={review.state.decisions[hunk.id] ?? 'pending'}
-              onAccept={() => review.accept(hunk.id)}
-              onReject={() => review.reject(hunk.id)}
-              onClear={() => review.clear(hunk.id)}
+              checked={review.state.decisions[hunk.id] !== 'rejected'}
+              onToggle={(checked) => {
+                if (checked) {
+                  review.accept(hunk.id);
+                } else {
+                  review.reject(hunk.id);
+                }
+              }}
             />
           ))}
         </ul>
@@ -176,20 +183,9 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
       )}
 
       {!action.streaming && onApply && diff.summary.hasChanges ? (
-        <footer className="bolt-file-action-diff-footer">
-          <span className="bolt-file-action-diff-footer-status">
-            {acceptedCount} accepted · {rejectedCount} rejected · {pendingCount} pending
-          </span>
-          <button
-            type="button"
-            className="bolt-file-action-diff-apply"
-            onClick={handleApply}
-            disabled={!hasAccepted}
-            aria-label="Apply accepted hunks"
-          >
-            Apply{acceptedCount > 0 ? ` (${acceptedCount})` : ''}
-          </button>
-        </footer>
+        <div className="bolt-file-action-diff-footer" role="status">
+          {acceptedCountForApply} selected · {rejectedCount} excluded
+        </div>
       ) : null}
     </section>
   );
@@ -199,47 +195,36 @@ InlineFileActionDiff.displayName = 'InlineFileActionDiff';
 
 interface HunkViewProps {
   hunk: ReviewableDiffHunk;
-  decision: 'pending' | 'accepted' | 'rejected';
-  onAccept: () => void;
-  onReject: () => void;
-  onClear: () => void;
+  checked: boolean;
+  onToggle: (checked: boolean) => void;
 }
 
-const HunkView = memo(({ hunk, decision, onAccept, onReject, onClear }: HunkViewProps) => {
+const HunkView = memo(({ hunk, checked, onToggle }: HunkViewProps) => {
   return (
-    <li className="bolt-file-action-diff-hunk" data-decision={decision} aria-label={`Hunk ${hunk.id}`}>
-      <div className="bolt-file-action-diff-hunk-header">
-        <span className="bolt-file-action-diff-hunk-range">
-          @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
-        </span>
-        <span className="bolt-file-action-diff-hunk-actions" role="group" aria-label="Hunk decision">
-          <button
-            type="button"
-            className="bolt-file-action-diff-hunk-action"
-            data-active={decision === 'accepted' ? 'true' : 'false'}
-            onClick={decision === 'accepted' ? onClear : onAccept}
-            aria-pressed={decision === 'accepted'}
-            aria-label="Accept hunk"
-          >
-            <span className="i-ph:check" aria-hidden /> Accept
-          </button>
-          <button
-            type="button"
-            className="bolt-file-action-diff-hunk-action"
-            data-active={decision === 'rejected' ? 'true' : 'false'}
-            onClick={decision === 'rejected' ? onClear : onReject}
-            aria-pressed={decision === 'rejected'}
-            aria-label="Reject hunk"
-          >
-            <span className="i-ph:x" aria-hidden /> Reject
-          </button>
-        </span>
-      </div>
-      <pre className="bolt-file-action-diff-hunk-body">
-        {hunk.lines.map((line) => (
-          <DiffLineRow key={line.id} line={line} />
-        ))}
-      </pre>
+    <li
+      className="bolt-file-action-diff-hunk"
+      data-decision={checked ? 'accepted' : 'rejected'}
+      aria-label={`Hunk ${hunk.id}`}
+    >
+      <details className="bolt-file-action-diff-hunk-details">
+        <summary className="bolt-file-action-diff-hunk-header">
+          <label className="bolt-file-action-diff-hunk-checkbox" onClick={(event) => event.stopPropagation()}>
+            <input type="checkbox" checked={checked} onChange={(event) => onToggle(event.currentTarget.checked)} />
+            <span className="bolt-file-action-diff-hunk-range">
+              @@ -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
+            </span>
+          </label>
+          <span className="bolt-file-action-diff-hunk-show">
+            Show diff
+            <span className="i-ph:caret-down" aria-hidden />
+          </span>
+        </summary>
+        <pre className="bolt-file-action-diff-hunk-body">
+          {hunk.lines.map((line) => (
+            <DiffLineRow key={line.id} line={line} />
+          ))}
+        </pre>
+      </details>
     </li>
   );
 });

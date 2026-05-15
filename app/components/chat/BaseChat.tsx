@@ -1512,7 +1512,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                     disabled={busy || selectedCount === 0}
                     onClick={() => workbenchStore.acceptAgentPatchProposal(proposal.id, Array.from(selectedHunks))}
                   >
-                    Accept selected
+                    Accept file
                   </button>
                   <button
                     type="button"

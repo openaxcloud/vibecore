@@ -85,6 +85,7 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
 
   const [isOpen, setIsOpen] = useState(true);
   const [isApplyingAll, setIsApplyingAll] = useState(false);
+  const [isRejected, setIsRejected] = useState(false);
 
   const applyHandler = onApply ?? defaultApplyHandler;
 
@@ -134,7 +135,7 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
     }
   }, [applyHandler, fileActions, files, isApplyingAll]);
 
-  if (autoApplyEnabled || fileActions.length === 0) {
+  if (autoApplyEnabled || fileActions.length === 0 || isRejected) {
     return null;
   }
 
@@ -164,15 +165,26 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
           ) : null}
         </button>
         {aggregate.filesWithChanges > 0 ? (
-          <button
-            type="button"
-            className="bolt-message-patch-review-apply-all"
-            onClick={handleApplyAll}
-            disabled={isApplyingAll}
-            aria-label={`Apply all ${aggregate.filesWithChanges} files`}
-          >
-            {isApplyingAll ? 'Applying…' : `Apply all (${aggregate.filesWithChanges})`}
-          </button>
+          <div className="bolt-message-patch-review-actions" role="group" aria-label="Patch review decisions">
+            <button
+              type="button"
+              className="bolt-message-patch-review-apply-all"
+              onClick={handleApplyAll}
+              disabled={isApplyingAll}
+              aria-label={`Accept all ${aggregate.filesWithChanges} files`}
+            >
+              {isApplyingAll ? 'Accepting…' : `Accept all (${aggregate.filesWithChanges})`}
+            </button>
+            <button
+              type="button"
+              className="bolt-message-patch-review-reject-all"
+              onClick={() => setIsRejected(true)}
+              disabled={isApplyingAll}
+              aria-label={`Reject all ${aggregate.filesWithChanges} files`}
+            >
+              Reject all
+            </button>
+          </div>
         ) : null}
       </header>
       {isOpen ? (

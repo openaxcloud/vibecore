@@ -111,16 +111,16 @@ describe('<MessagePatchReview />', () => {
     expect(screen.getByLabelText(/2 added, 0 removed across 2 files/)).toBeTruthy();
   });
 
-  it('Apply all bulk-applies every file action with changes', async () => {
+  it('Accept all bulk-applies every file action with changes', async () => {
     const onApply = vi.fn().mockResolvedValue(undefined);
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
 
-    const applyAll = screen.getByRole('button', { name: /Apply all 2 files/ });
+    const applyAll = screen.getByRole('button', { name: /Accept all 2 files/ });
     fireEvent.click(applyAll);
 
     /*
-     * The handler is async; wait for the Apply-all button to leave the
-     * "Applying…" state by polling for both onApply invocations.
+     * The handler is async; wait for the Accept-all button to leave the
+     * "Accepting…" state by polling for both onApply invocations.
      */
     await vi.waitFor(() => {
       expect(onApply).toHaveBeenCalledTimes(2);
@@ -134,13 +134,21 @@ describe('<MessagePatchReview />', () => {
     expect(onApply.mock.calls[0][0].rejectedHunkIds).toEqual([]);
   });
 
+  it('Reject all dismisses the review without applying files', () => {
+    const onApply = vi.fn();
+    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Reject all 2 files/ }));
+
+    expect(onApply).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('Patch review for assistant message')).toBeNull();
+  });
+
   it('forwards onApply for each file action card', () => {
     const onApply = vi.fn();
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
 
-    // Accept one hunk in the first card, click its Apply button.
-    fireEvent.click(screen.getAllByRole('button', { name: 'Accept hunk' })[0]);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Apply accepted hunks' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Accept file' })[0]);
 
     expect(onApply).toHaveBeenCalledTimes(1);
     expect(onApply.mock.calls[0][0].filePath).toBe('src/one.ts');
