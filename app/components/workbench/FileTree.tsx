@@ -316,7 +316,7 @@ export const FileTree = memo(
 
     return (
       <div
-        className={classNames('text-sm', className, 'overflow-y-auto modern-scrollbar relative')}
+        className={classNames('bolt-project-file-tree text-sm', className, 'overflow-y-auto modern-scrollbar relative')}
         onDragOver={(event) => {
           event.preventDefault();
           setDropActive(true);
@@ -1021,12 +1021,12 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-right scale-98': collapsed,
           'i-ph:caret-down scale-98': !collapsed,
         })}
-        iconStyle={{ color: 'var(--vc-ide-accent-warning)' }}
+        iconStyle={{ color: '#36373B' }}
         title={folder.fullPath}
         onClick={onClick}
       >
-        <div className="flex w-full min-w-0 items-center pr-1">
-          <FileTreeName name={folder.name} className="flex-1 pr-2" />
+        <div className="flex w-full min-w-0 items-center">
+          <FileTreeName name={folder.name} className="flex-1" />
           {isLocked && (
             <span
               className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
@@ -1130,17 +1130,17 @@ function File({
         iconClasses={classNames(materialFileIcon(name).icon, 'scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
-        iconStyle={{ color: materialFileIcon(name).color }}
+        iconStyle={{ color: '#36373B' }}
         title={fullPath}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
       >
         <div
-          className={classNames('flex w-full min-w-0 items-center pr-1', {
+          className={classNames('flex w-full min-w-0 items-center', {
             'group-hover:text-bolt-elements-item-contentActive': !selected,
           })}
         >
-          <FileTreeName name={name} className="flex-1 pr-2" />
+          <FileTreeName name={name} className="flex-1" />
           <div className="flex items-center gap-1">
             {showStats && (
               <div className="flex items-center gap-1 text-xs">
@@ -1265,17 +1265,18 @@ function NodeButton({
 }: ButtonProps) {
   return (
     <button
-      className={classNames(
-        'flex items-center gap-1.5 w-full pr-2 border-2 border-transparent text-faded py-0.5',
-        className,
-      )}
-      style={{ paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` }}
+      className={classNames('bolt-file-tree-node flex items-center border-transparent text-faded', className)}
       title={title}
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
     >
-      <div className={classNames('scale-120 shrink-0', iconClasses)} style={iconStyle}></div>
-      <div className="truncate w-full text-left">{children}</div>
+      <span
+        className="bolt-file-tree-icon-wrap"
+        style={{ paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` }}
+      >
+        <span className={classNames('shrink-0', iconClasses)} style={iconStyle} aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1 truncate text-left">{children}</span>
     </button>
   );
 }

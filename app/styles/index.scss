@@ -4902,44 +4902,65 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   min-height: 0;
   background: var(--vc-ide-bg-panel);
-  color: var(--vc-ide-text-secondary);
-  font-size: 13px;
-  padding-right: 14px;
+  color: #36373b;
+  font-size: 14px;
+  font-weight: 400;
+  padding-right: 10px;
   box-sizing: border-box;
 }
 
-.bolt-project-file-tree button {
-  width: calc(100% - 8px);
-  min-height: 32px;
-  margin-right: 8px;
-  border-width: 0 0 0 2px;
-  border-left-color: transparent;
-  border-radius: 0;
-  padding-right: 14px;
+.bolt-project-file-tree .bolt-file-tree-node {
+  display: flex;
+  width: min(240px, calc(100% - 20px));
+  height: 28px;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  margin: 0 10px;
+  border-width: 0;
+  border-radius: 4px;
+  padding: 0;
   box-sizing: border-box;
+  color: #36373b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
 }
 
-.bolt-project-file-tree button:hover {
+.bolt-project-file-tree .bolt-file-tree-node:hover {
   background: var(--vc-ide-bg-hover);
-  color: var(--vc-ide-text-primary);
+  color: #36373b;
 }
 
 .bolt-project-file-tree .bolt-project-file-selected {
-  border-left-color: var(--vc-ide-accent-orange);
   background: color-mix(in srgb, var(--vc-ide-bg-hover), var(--vc-ide-accent-orange) 8%);
-  color: var(--vc-ide-text-primary);
+  color: #36373b;
 }
 
-.bolt-project-file-tree [class*='i-ph:'] {
-  width: 14px;
-  height: 14px;
-  font-size: 14px;
+.bolt-file-tree-icon-wrap {
+  display: inline-flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  color: #36373b;
+  box-sizing: content-box;
+}
+
+.bolt-file-tree-icon-wrap [class*='i-ph:'] {
+  width: 16px;
+  height: 16px;
+  color: #36373b;
+  font-size: 16px;
 }
 
 .bolt-file-tree-name {
   display: block;
   min-width: 0;
   max-width: 100%;
+  color: #36373b;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
