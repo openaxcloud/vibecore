@@ -3145,7 +3145,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-run-button {
   border: 0;
-  min-height: 34px;
+  min-height: 30px;
   border-radius: 8px;
   background: linear-gradient(180deg, hsl(142deg 72% 43%), hsl(142deg 72% 34%));
   color: white !important;
@@ -3171,6 +3171,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-publish-button {
+  min-height: 30px;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-ai-start), white 18%);
   background: color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 91%);
   color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 22%) !important;
