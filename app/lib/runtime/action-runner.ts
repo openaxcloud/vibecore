@@ -1,5 +1,6 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
+import { validateAndFormatHunk } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
@@ -452,6 +453,26 @@ export class ActionRunner {
       }
 
       throw error;
+    }
+
+    /*
+     * Phase 0 #2 — pre-write AST validation. For JS/TS/JSX/TSX/JSON we
+     * parse the proposed content and log a warning on failure so the
+     * user sees the issue in the workspace log. We still write the
+     * file (so they can edit it in place) but the formatted version is
+     * preferred when validation succeeds. The LLM self-repair retry
+     * loop is wired one layer up — this is just the per-file check.
+     */
+    try {
+      const validation = await validateAndFormatHunk(relativePath, payload);
+
+      if (validation.kind === 'error') {
+        logger.warn(`Pre-write validation failed for ${relativePath} (${validation.language}): ${validation.message}`);
+      } else if (validation.kind === 'ok' && validation.formatted !== payload) {
+        payload = validation.formatted;
+      }
+    } catch (error) {
+      logger.warn(`Pre-write validation crashed for ${relativePath}; continuing with sanitized payload`, error);
     }
 
     try {

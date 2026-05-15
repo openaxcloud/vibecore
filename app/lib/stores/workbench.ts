@@ -14,6 +14,7 @@ import { description } from '~/lib/persistence';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
@@ -1127,7 +1128,33 @@ export class WorkbenchStore {
           .filter((proposal) => proposal.status === 'pending')
           .map((proposal) => proposal.id);
 
-    for (const proposalId of ids) {
+    /*
+     * Phase 0 #3 — apply patches in topological order so an imported
+     * sibling lands before its importer. The pure helper scans imports
+     * with a regex and falls back to source order on cycles, so a
+     * worst case here is the same one we had before.
+     */
+    const orderedProposals = topologicallySortFileActions(
+      ids.flatMap((id) => {
+        const proposal = proposals[id];
+
+        if (!proposal) {
+          return [];
+        }
+
+        return [{ filePath: proposal.relativePath, content: proposal.proposedContent, id }];
+      }),
+    );
+
+    const orderedIds = orderedProposals.ordered.map((entry) => entry.id);
+
+    if (orderedProposals.cyclic && orderedProposals.cycleParticipants.length > 0) {
+      this.appendWorkspaceLog(
+        `AI patch bulk apply: import cycle detected (${orderedProposals.cycleParticipants.join(', ')}) — falling back to source order`,
+      );
+    }
+
+    for (const proposalId of orderedIds) {
       await this.acceptAgentPatchProposal(proposalId);
     }
   }
