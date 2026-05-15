@@ -20,7 +20,8 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_PADDING_LEFT = 10;
+const NODE_BASE_PADDING_LEFT = 2;
+const NODE_PADDING_LEFT = 6;
 
 function splitNameForMiddleTruncation(name: string) {
   const parts = name.split('.');
@@ -578,7 +579,7 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
   return (
     <div
       className="flex items-center w-full px-2 bg-bolt-elements-background-depth-4 border border-bolt-elements-item-contentAccent py-0.5 text-bolt-elements-textPrimary"
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      style={{ paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` }}
     >
       <div className="scale-120 shrink-0 i-ph:file-plus text-bolt-elements-textTertiary" />
       <input
@@ -1287,7 +1288,7 @@ function NodeButton({
         'flex items-center gap-1.5 w-full pr-2 border-2 border-transparent text-faded py-0.5',
         className,
       )}
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+      style={{ paddingLeft: `${NODE_BASE_PADDING_LEFT + depth * NODE_PADDING_LEFT}px` }}
       title={title}
       onClick={() => onClick?.()}
       onDoubleClick={() => onDoubleClick?.()}
