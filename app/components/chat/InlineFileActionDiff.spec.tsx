@@ -83,49 +83,19 @@ describe('<InlineFileActionDiff />', () => {
     render(<InlineFileActionDiff action={fileBlock('src/Streaming.tsx', 'new\n', true)} />);
 
     expect(screen.getByText(/Streaming patch/)).toBeTruthy();
-    expect(screen.queryByLabelText('Accept all hunks')).toBeNull();
-    expect(screen.queryByLabelText('Accept hunk')).toBeNull();
+    expect(screen.queryByLabelText('Accept file')).toBeNull();
   });
 
-  it('flips the per-hunk accept/reject decision when the buttons are clicked', () => {
+  it('toggles per-hunk inclusion with a checkbox', () => {
     setFixture('act-src/Decide.tsx', { original: 'one\n', isNewFile: false });
 
     render(<InlineFileActionDiff action={fileBlock('src/Decide.tsx', 'one\ntwo\n')} />);
 
-    const acceptButton = screen.getByRole('button', { name: 'Accept hunk' });
-    expect(acceptButton.getAttribute('aria-pressed')).toBe('false');
+    const checkbox = screen.getByRole<HTMLInputElement>('checkbox');
+    expect(checkbox.checked).toBe(true);
 
-    fireEvent.click(acceptButton);
-    expect(acceptButton.getAttribute('aria-pressed')).toBe('true');
-
-    const rejectButton = screen.getByRole('button', { name: 'Reject hunk' });
-    fireEvent.click(rejectButton);
-    expect(rejectButton.getAttribute('aria-pressed')).toBe('true');
-    expect(acceptButton.getAttribute('aria-pressed')).toBe('false');
-  });
-
-  it('Accept all marks every hunk accepted', () => {
-    const original = ['line-a-0', 'line-a-1', 'line-a-2', 'line-a-3', 'line-a-4', 'line-a-5', '', ''].join('\n');
-    setFixture('act-src/Bulk.tsx', { original, isNewFile: false });
-
-    render(
-      <InlineFileActionDiff
-        action={fileBlock(
-          'src/Bulk.tsx',
-          ['line-a-0', 'line-a-1', 'line-a-2', 'line-a-3', 'line-a-4', 'line-a-5', 'line-z'].join('\n'),
-        )}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Accept all hunks' }));
-
-    const acceptButtons = screen.getAllByRole('button', { name: 'Accept hunk' });
-
-    for (const button of acceptButtons) {
-      expect(button.getAttribute('aria-pressed')).toBe('true');
-    }
-
-    expect(screen.getByRole('button', { name: 'Clear all decisions' }).hasAttribute('disabled')).toBe(false);
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(false);
   });
 
   it('emits onApply with the accepted content built from selected hunks', () => {
@@ -135,13 +105,7 @@ describe('<InlineFileActionDiff />', () => {
 
     render(<InlineFileActionDiff action={fileBlock('src/Apply.tsx', 'new\n')} onApply={onApply} />);
 
-    const applyButton = screen.getByRole('button', { name: 'Apply accepted hunks' });
-    expect(applyButton.hasAttribute('disabled')).toBe(true);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Accept hunk' }));
-    expect(applyButton.hasAttribute('disabled')).toBe(false);
-
-    fireEvent.click(applyButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Accept file' }));
 
     expect(onApply).toHaveBeenCalledTimes(1);
 
@@ -161,7 +125,7 @@ describe('<InlineFileActionDiff />', () => {
     render(<InlineFileActionDiff action={fileBlock('src/Same.tsx', text)} />);
 
     expect(screen.getByText('Content is identical to the file on disk.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Accept all hunks' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Accept file' })).toBeNull();
   });
 
   it('marks the file as a new file when the workbench has no matching path', () => {
