@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyKeybindingOverrides,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
   findKeybinding,
   formatKeybindingCombo,
   normalizeCombo,
+  serializeKeybindingOverrides,
   serializeKeyEvent,
 } from './keybindings';
 
@@ -62,5 +64,24 @@ describe('keybindings', () => {
   it('formats combos for mac and non-mac displays', () => {
     expect(formatKeybindingCombo('cmd+shift+p', true)).toBe('⌘⇧P');
     expect(formatKeybindingCombo('cmd+shift+p', false)).toBe('Ctrl+⇧+P');
+  });
+
+  it('applies user overrides without mutating the default registry', () => {
+    const customized = applyKeybindingOverrides(defaultProjectKeybindings, {
+      'file.quickOpen': 'cmd+alt+p',
+    });
+
+    expect(defaultProjectKeybindings.find((binding) => binding.action === 'file.quickOpen')?.combo).toBe('cmd+p');
+    expect(customized.find((binding) => binding.action === 'file.quickOpen')?.combo).toBe('cmd+alt+p');
+  });
+
+  it('serializes only changed keybinding overrides', () => {
+    expect(
+      serializeKeybindingOverrides(defaultProjectKeybindings, {
+        'file.save': 'cmd+s',
+        'file.quickOpen': 'cmd+alt+p',
+        'unknown.action': 'cmd+u',
+      }),
+    ).toEqual({ 'file.quickOpen': 'cmd+alt+p' });
   });
 });

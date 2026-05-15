@@ -7,6 +7,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
 
@@ -996,6 +997,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       return json({ ok: true }, { headers: { 'Set-Cookie': clearSessionCookie() } });
     } else if (
       intent === 'preferences' ||
+      intent === 'keybindings' ||
       intent === 'notification' ||
       intent === 'ai-credential-mode' ||
       intent === 'ai-routing'
@@ -1009,6 +1011,16 @@ export async function action({ request, params }: EnterpriseActionArgs) {
           theme: body.theme === 'light' ? 'light' : body.theme === 'system' ? 'system' : 'dark',
           keyboardMode: body.keyboardMode === 'true',
           creditAlertThreshold: Number(body.creditAlertThreshold) || state.preferences.creditAlertThreshold,
+        };
+      } else if (intent === 'keybindings') {
+        const keybindingValues = Object.fromEntries(
+          Object.entries(body)
+            .filter(([key]) => key.startsWith('keybinding:'))
+            .map(([key, value]) => [key.slice('keybinding:'.length), value]),
+        );
+
+        state.keybindings = {
+          overrides: serializeKeybindingOverrides(defaultProjectKeybindings, keybindingValues),
         };
       } else if (intent === 'notification') {
         const key = body.key;
@@ -1791,6 +1803,9 @@ function defaultIdeSettingsState() {
       fallbackProvider: 'openrouter',
       fallbackEnabled: true,
     },
+    keybindings: {
+      overrides: {},
+    },
   };
 }
 
@@ -1814,6 +1829,11 @@ function normalizeIdeSettingsState(input: any) {
   const notifications = { ...fallback.notifications, ...(input?.notifications ?? {}) };
   const aiCredentials = { ...fallback.aiCredentials, ...(input?.aiCredentials ?? {}) };
   const providerKeys = Object.keys(SETTINGS_BYOK_SECRET_KEY_MAP);
+
+  const keybindingOverrides =
+    input?.keybindings?.overrides && typeof input.keybindings.overrides === 'object'
+      ? serializeKeybindingOverrides(defaultProjectKeybindings, input.keybindings.overrides)
+      : {};
 
   const defaultProvider = providerKeys.includes(input?.aiRouting?.defaultProvider)
     ? input.aiRouting.defaultProvider
@@ -1853,6 +1873,9 @@ function normalizeIdeSettingsState(input: any) {
       defaultModel,
       fallbackProvider,
       fallbackEnabled: input?.aiRouting?.fallbackEnabled !== false,
+    },
+    keybindings: {
+      overrides: keybindingOverrides,
     },
   };
 }

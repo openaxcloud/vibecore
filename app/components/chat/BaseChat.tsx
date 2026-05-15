@@ -94,10 +94,12 @@ import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/worksp
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
+  applyKeybindingOverrides,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
   formatKeybindingCombo,
   type Keybinding,
+  type KeybindingOverrideMap,
 } from '~/lib/keybindings';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
@@ -1841,6 +1843,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
     const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
+    const [projectKeybindingOverrides, setProjectKeybindingOverrides] = useState<KeybindingOverrideMap>({});
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
@@ -3316,6 +3319,46 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.setTimeout(() => textareaRef?.current?.focus(), 0);
     }, [textareaRef]);
 
+    const loadProjectKeybindingOverrides = useCallback(async () => {
+      if (!projectIdeMode || !projectId) {
+        setProjectKeybindingOverrides({});
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/settings`, {
+          headers: { accept: 'application/json' },
+        });
+
+        const payload = (await response.json().catch(() => ({}))) as any;
+        const overrides = payload?.data?.settingsState?.keybindings?.overrides;
+
+        setProjectKeybindingOverrides(
+          overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {},
+        );
+      } catch {
+        setProjectKeybindingOverrides({});
+      }
+    }, [projectId, projectIdeMode]);
+
+    useEffect(() => {
+      void loadProjectKeybindingOverrides();
+    }, [loadProjectKeybindingOverrides]);
+
+    useEffect(() => {
+      function handleKeybindingSettingsSaved(event: Event) {
+        const detail = (event as CustomEvent).detail ?? {};
+
+        if (detail.panel === 'settings' && detail.intent === 'keybindings' && detail.ok) {
+          void loadProjectKeybindingOverrides();
+        }
+      }
+
+      window.addEventListener('vibecore:ide-panel-action', handleKeybindingSettingsSaved);
+
+      return () => window.removeEventListener('vibecore:ide-panel-action', handleKeybindingSettingsSaved);
+    }, [loadProjectKeybindingOverrides]);
+
     const runProjectKeybindingAction = useCallback(
       (action: string, _binding: Keybinding, event: KeyboardEvent) => {
         if (action === 'overlay.close') {
@@ -3426,26 +3469,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const projectKeybindings = useMemo(
-      () => [
-        ...PROJECT_KEYBINDINGS,
-        ...Array.from({ length: 9 }, (_, index) => ({
-          combo: `cmd+${index + 1}`,
-          action: `tab.focus.${index + 1}`,
-          label: `Focus tab ${index + 1}`,
-          description: `Focus workspace tab ${index + 1}.`,
-          category: 'Workbench' as const,
-          preventDefault: true,
-        })),
-        {
-          combo: 'cmd+tab',
-          action: 'tab.next',
-          label: 'Next tab',
-          description: 'Cycle to the next open workspace tab.',
-          category: 'Workbench' as const,
-          preventDefault: true,
-        },
-      ],
-      [],
+      () =>
+        applyKeybindingOverrides(
+          [
+            ...PROJECT_KEYBINDINGS,
+            ...Array.from({ length: 9 }, (_, index) => ({
+              combo: `cmd+${index + 1}`,
+              action: `tab.focus.${index + 1}`,
+              label: `Focus tab ${index + 1}`,
+              description: `Focus workspace tab ${index + 1}.`,
+              category: 'Workbench' as const,
+              preventDefault: true,
+            })),
+            {
+              combo: 'cmd+tab',
+              action: 'tab.next',
+              label: 'Next tab',
+              description: 'Cycle to the next open workspace tab.',
+              category: 'Workbench' as const,
+              preventDefault: true,
+            },
+          ],
+          projectKeybindingOverrides,
+        ),
+      [projectKeybindingOverrides],
     );
 
     useKeybindings({
@@ -8655,6 +8702,9 @@ function ProjectSettingsPanel({
   const preferences = state.preferences ?? { theme: 'dark', keyboardMode: false, creditAlertThreshold: 80 };
   const notifications = state.notifications ?? {};
 
+  const keybindingOverrides: KeybindingOverrideMap =
+    state.keybindings?.overrides && typeof state.keybindings.overrides === 'object' ? state.keybindings.overrides : {};
+
   const aiRouting = state.aiRouting ?? {
     defaultProvider: 'openai',
     defaultModel: 'openai:managed-default',
@@ -8726,11 +8776,15 @@ function ProjectSettingsPanel({
   const keyboardSections = (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
     .map((category) => ({
       category,
-      bindings: PROJECT_KEYBINDINGS.filter((binding) => binding.category === category),
+      bindings: applyKeybindingOverrides(PROJECT_KEYBINDINGS, keybindingOverrides).filter(
+        (binding) => binding.category === category,
+      ),
     }))
     .filter((section) => section.bindings.length > 0);
 
-  const keyboardConflicts = detectKeybindingConflicts(PROJECT_KEYBINDINGS);
+  const keyboardConflicts = detectKeybindingConflicts(
+    applyKeybindingOverrides(PROJECT_KEYBINDINGS, keybindingOverrides),
+  );
 
   const initials =
     String(accountUser.name ?? accountUser.email ?? settings.name ?? 'VC')
@@ -9757,11 +9811,13 @@ function ProjectSettingsPanel({
                 <PanelButton disabled={busy}>Save preferences</PanelButton>
               </form>
 
-              <section className="bolt-project-settings-card">
+              <form onSubmit={submitWithNotice('Keyboard shortcuts saved.')} className="bolt-project-settings-card">
+                <input name="intent" value="keybindings" type="hidden" />
                 <div className="bolt-project-settings-card-title">
                   <h4>Keyboard Shortcuts</h4>
                   <small>
-                    Generated from the active keybinding registry. Contextual editor shortcuts win over globals.
+                    Edit shortcuts with combos like cmd+s, cmd+shift+p or f12. Contextual editor shortcuts win over
+                    globals.
                   </small>
                 </div>
                 {keyboardConflicts.length > 0 ? (
@@ -9784,13 +9840,24 @@ function ProjectSettingsPanel({
                             <strong>{binding.label}</strong>
                             <small>{binding.description}</small>
                           </span>
+                          <label>
+                            <span className="sr-only">{binding.label} shortcut</span>
+                            <input
+                              name={`keybinding:${binding.action}`}
+                              defaultValue={binding.combo}
+                              spellCheck={false}
+                              autoCapitalize="none"
+                              aria-label={`${binding.label} shortcut`}
+                            />
+                          </label>
                           <kbd>{formatKeybindingCombo(binding.combo)}</kbd>
                         </div>
                       ))}
                     </section>
                   ))}
                 </div>
-              </section>
+                <PanelButton disabled={busy}>Save keyboard shortcuts</PanelButton>
+              </form>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">

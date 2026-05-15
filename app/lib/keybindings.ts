@@ -21,6 +21,8 @@ export type KeybindingConflict = {
   actions: string[];
 };
 
+export type KeybindingOverrideMap = Record<string, string>;
+
 export const defaultProjectKeybindings: Keybinding[] = [
   {
     combo: 'cmd+s',
@@ -276,6 +278,49 @@ export function detectKeybindingConflicts(bindings: Keybinding[]): KeybindingCon
   return Array.from(byCombo.entries())
     .filter(([, actions]) => new Set(actions).size > 1)
     .map(([combo, actions]) => ({ combo, actions }));
+}
+
+export function applyKeybindingOverrides(
+  bindings: Keybinding[],
+  overrides: KeybindingOverrideMap | undefined,
+): Keybinding[] {
+  if (!overrides || typeof overrides !== 'object') {
+    return bindings;
+  }
+
+  return bindings.map((binding) => {
+    const override = overrides[binding.action];
+
+    if (typeof override !== 'string' || !override.trim()) {
+      return binding;
+    }
+
+    return { ...binding, combo: normalizeCombo(override) };
+  });
+}
+
+export function serializeKeybindingOverrides(
+  bindings: Keybinding[],
+  values: Record<string, FormDataEntryValue | string | undefined>,
+): KeybindingOverrideMap {
+  const defaultsByAction = new Map(bindings.map((binding) => [binding.action, normalizeCombo(binding.combo)]));
+  const overrides: KeybindingOverrideMap = {};
+
+  for (const [action, defaultCombo] of defaultsByAction) {
+    const value = values[action];
+
+    if (typeof value !== 'string') {
+      continue;
+    }
+
+    const normalized = normalizeCombo(value);
+
+    if (normalized && normalized !== defaultCombo) {
+      overrides[action] = normalized;
+    }
+  }
+
+  return overrides;
 }
 
 export function findKeybinding(bindings: Keybinding[], combo: string, ctx: KeybindingContext): Keybinding | undefined {

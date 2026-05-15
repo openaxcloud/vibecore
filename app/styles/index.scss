@@ -10342,12 +10342,32 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-keybinding-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 160px) auto;
   align-items: center;
   gap: 16px;
   min-height: 44px;
   border-radius: 8px;
   padding: 8px;
+}
+
+.bolt-project-keybindings-list .bolt-project-keybinding-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.bolt-project-keybinding-row label {
+  min-width: 0;
+}
+
+.bolt-project-keybinding-row input {
+  width: 100%;
+  min-height: 32px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  padding: 6px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .bolt-project-keybinding-row:hover {
