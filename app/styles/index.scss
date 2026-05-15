@@ -872,6 +872,337 @@ body
   color: var(--vc-ide-accent-success);
 }
 
+/*
+ * Sprint 2 — inline patch review card under each assistant message.
+ * The colours intentionally lean on the existing IDE tokens so the panel
+ * matches the agent panel and the workbench diff view.
+ */
+.bolt-message-patch-review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-elevated);
+  overflow: hidden;
+}
+
+.bolt-message-patch-review-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--vc-ide-bg-subtle);
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-message-patch-review-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vc-ide-text-primary);
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bolt-message-patch-review-toggle:hover,
+.bolt-message-patch-review-toggle:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  outline: none;
+}
+
+.bolt-message-patch-review-count {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  background: var(--vc-ide-bg-overlay);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.bolt-message-patch-review-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.bolt-file-action-diff {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-base);
+  overflow: hidden;
+}
+
+.bolt-file-action-diff[data-decided='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 40%, transparent);
+}
+
+.bolt-file-action-diff-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--vc-ide-bg-subtle);
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  flex-wrap: wrap;
+}
+
+.bolt-file-action-diff-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bolt-file-action-diff-icon {
+  color: var(--vc-ide-text-secondary);
+  font-size: 16px;
+}
+
+.bolt-file-action-diff-path {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  color: var(--vc-ide-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-file-action-diff-status {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.bolt-file-action-diff-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bolt-file-action-diff-added {
+  color: var(--vc-ide-accent-success, #16a34a);
+  font-weight: 600;
+}
+
+.bolt-file-action-diff-removed {
+  color: var(--vc-ide-accent-danger, #dc2626);
+  font-weight: 600;
+}
+
+.bolt-file-action-diff-bulk-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.bolt-file-action-diff-bulk-action {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  background: var(--vc-ide-bg-overlay);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.bolt-file-action-diff-bulk-action:hover:not(:disabled),
+.bolt-file-action-diff-bulk-action:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-file-action-diff-bulk-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bolt-file-action-diff-streaming-indicator,
+.bolt-file-action-diff-noop {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-file-action-diff-hunks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bolt-file-action-diff-hunk {
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-file-action-diff-hunk:first-child {
+  border-top: none;
+}
+
+.bolt-file-action-diff-hunk[data-decision='accepted'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 8%, transparent);
+}
+
+.bolt-file-action-diff-hunk[data-decision='rejected'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 8%, transparent);
+  opacity: 0.8;
+}
+
+.bolt-file-action-diff-hunk-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--vc-ide-bg-subtle);
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-file-action-diff-hunk-range {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-file-action-diff-hunk-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.bolt-file-action-diff-hunk-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  background: var(--vc-ide-bg-overlay);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.bolt-file-action-diff-hunk-action:hover,
+.bolt-file-action-diff-hunk-action:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  outline: none;
+}
+
+.bolt-file-action-diff-hunk-action[data-active='true'][aria-pressed='true']:has(.i-ph\:check) {
+  background: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 22%, transparent);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 50%, transparent);
+  color: var(--vc-ide-accent-success, #16a34a);
+}
+
+.bolt-file-action-diff-hunk-action[data-active='true'][aria-pressed='true']:has(.i-ph\:x) {
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 22%, transparent);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 50%, transparent);
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-file-action-diff-hunk-body {
+  margin: 0;
+  padding: 6px 12px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.bolt-file-action-diff-line {
+  display: flex;
+}
+
+.bolt-file-action-diff-line[data-line-type='add'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 12%, transparent);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-file-action-diff-line[data-line-type='remove'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 12%, transparent);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-file-action-diff-line-marker {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  color: var(--vc-ide-text-secondary);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.bolt-file-action-diff-line[data-line-type='add'] .bolt-file-action-diff-line-marker {
+  color: var(--vc-ide-accent-success, #16a34a);
+}
+
+.bolt-file-action-diff-line[data-line-type='remove'] .bolt-file-action-diff-line-marker {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-file-action-diff-line-content {
+  flex: 1 1 auto;
+  white-space: pre;
+}
+
+.bolt-file-action-diff-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-subtle);
+}
+
+.bolt-file-action-diff-footer-status {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-file-action-diff-apply {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vc-ide-text-on-accent, #fff);
+  background: var(--vc-ide-accent-action);
+  border: 1px solid var(--vc-ide-accent-action);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.bolt-file-action-diff-apply:hover:not(:disabled),
+.bolt-file-action-diff-apply:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+
+.bolt-file-action-diff-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .bolt-assistant-message-action-divider {
   width: 1px;
   height: 14px;
