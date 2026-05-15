@@ -3263,6 +3263,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const allowedOrigins =
     options.allowedOrigins ?? (process.env.API_CORS_ORIGINS?.split(',').filter(Boolean) || ['http://localhost:5173']);
+
+  /*
+   * Production must boot with an explicit HTTPS allowlist. The dev fallback
+   * (`http://localhost:5173`) silently shipping into a public deployment is
+   * a documented Security Gate concern — fail fast at boot rather than
+   * accept requests from origins the operator never approved.
+   */
+  if (isProduction) {
+    const unsafeOrigins = allowedOrigins.filter(
+      (origin) => !origin.startsWith('https://') || /(?:^|[/@])(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\b|\/)/i.test(origin),
+    );
+
+    if (allowedOrigins.length === 0 || unsafeOrigins.length > 0) {
+      throw new Error(
+        `Production startup blocked: API_CORS_ORIGINS must list explicit HTTPS origins (got: ${
+          allowedOrigins.length === 0 ? '<empty>' : JSON.stringify(allowedOrigins)
+        }). Set API_CORS_ORIGINS=https://app.example.com,https://admin.example.com before boot.`,
+      );
+    }
+  }
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(
     /\/+$/,
     '',
