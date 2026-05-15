@@ -11,12 +11,12 @@ import {
 describe('project agent panel layout', () => {
   it('keeps the agent panel wide enough to remain readable', () => {
     expect(clampProjectAgentPanelWidth(240)).toBe(PROJECT_AGENT_PANEL_MIN_WIDTH);
-    expect(clampProjectAgentPanelWidth(400)).toBe(400);
+    expect(clampProjectAgentPanelWidth(360)).toBe(360);
     expect(clampProjectAgentPanelWidth(900)).toBe(PROJECT_AGENT_PANEL_MAX_WIDTH);
   });
 
-  it('uses 28 percent of the viewport as the desktop default with hard bounds', () => {
-    expect(defaultProjectAgentPanelWidth(1440)).toBe(403);
+  it('uses 25 percent of the viewport as the desktop default with hard bounds', () => {
+    expect(defaultProjectAgentPanelWidth(1440)).toBe(360);
     expect(defaultProjectAgentPanelWidth(960)).toBe(PROJECT_AGENT_PANEL_MIN_WIDTH);
     expect(defaultProjectAgentPanelWidth(3200)).toBe(PROJECT_AGENT_PANEL_MAX_WIDTH);
     expect(defaultProjectAgentPanelWidth()).toBe(PROJECT_AGENT_PANEL_DEFAULT_WIDTH);

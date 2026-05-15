@@ -4897,16 +4897,18 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-secondary);
   font-size: 13px;
-  padding-right: 8px;
+  padding-right: 14px;
   box-sizing: border-box;
 }
 
 .bolt-project-file-tree button {
+  width: calc(100% - 8px);
   min-height: 32px;
+  margin-right: 8px;
   border-width: 0 0 0 2px;
   border-left-color: transparent;
   border-radius: 0;
-  padding-right: 12px;
+  padding-right: 14px;
   box-sizing: border-box;
 }
 
@@ -4950,8 +4952,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-middle-truncate-end {
-  flex: 0 1 auto;
-  max-width: 68%;
+  flex: 0 0 auto;
+  max-width: 72%;
 }
 
 .bolt-project-editor-tool,

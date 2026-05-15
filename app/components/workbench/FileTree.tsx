@@ -1043,7 +1043,7 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
         title={folder.fullPath}
         onClick={onClick}
       >
-        <div className="flex items-center w-full">
+        <div className="flex w-full min-w-0 items-center pr-1">
           <MiddleTruncatedName name={folder.name} className="flex-1 pr-2" />
           {isLocked && (
             <span
@@ -1154,7 +1154,7 @@ function File({
         onDoubleClick={onDoubleClick}
       >
         <div
-          className={classNames('flex items-center', {
+          className={classNames('flex w-full min-w-0 items-center pr-1', {
             'group-hover:text-bolt-elements-item-contentActive': !selected,
           })}
         >
