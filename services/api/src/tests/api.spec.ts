@@ -2110,6 +2110,90 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('protects concurrent ide-state writes with If-Match / 412 (Phase 0 #4)', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'idestate-etag@example.com', organizationName: 'IDE State Etag Org' });
+
+    const create = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects/from-template`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Etag Concurrency App', templateName: 'react-basic-starter' },
+    });
+    expect(create.statusCode).toBe(201);
+
+    const projectId = create.json().project.id as string;
+
+    // Initial PUT without If-Match seeds version 1 and surfaces the etag header.
+    const firstSave = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { state: { ui: { agentWidth: 480 } } },
+    });
+    expect(firstSave.statusCode).toBe(200);
+    expect(firstSave.json().ideState.version).toBe(1);
+    expect(firstSave.headers.etag).toBe('"1"');
+
+    // GET also surfaces the etag so the client can seed its If-Match state.
+    const initialFetch = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(initialFetch.statusCode).toBe(200);
+    expect(initialFetch.headers.etag).toBe('"1"');
+
+    // PUT with matching If-Match → success, version bumps to 2, new etag.
+    const matchingSave = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      payload: { state: { ui: { agentWidth: 520 } } },
+    });
+    expect(matchingSave.statusCode).toBe(200);
+    expect(matchingSave.json().ideState.version).toBe(2);
+    expect(matchingSave.headers.etag).toBe('"2"');
+
+    // Stale If-Match → 412 with the current state in the body so the client can re-merge.
+    const staleSave = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      payload: { state: { ui: { agentWidth: 999 } } },
+    });
+    expect(staleSave.statusCode).toBe(412);
+    expect(staleSave.headers.etag).toBe('"2"');
+
+    const staleBody = staleSave.json();
+    expect(staleBody.code).toBe('IDE_STATE_PRECONDITION_FAILED');
+    expect(staleBody.ideState.version).toBe(2);
+    expect(staleBody.ideState.state.ui.agentWidth).toBe(520);
+
+    // The rejected write must not bump the version or land its payload.
+    const afterStale = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(afterStale.json().ideState.version).toBe(2);
+    expect(afterStale.json().ideState.state.ui.agentWidth).toBe(520);
+
+    // Backward compatibility: requests without an If-Match header still work.
+    const headerlessSave = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { state: { ui: { agentWidth: 540 } } },
+    });
+    expect(headerlessSave.statusCode).toBe(200);
+    expect(headerlessSave.json().ideState.version).toBe(3);
+    expect(headerlessSave.headers.etag).toBe('"3"');
+
+    await app.close();
+  });
+
   it('supports realtime collaboration presence, edits, comments, terminal permissions and cleanup', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -2839,6 +2923,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
   it('rolls back, redeploys and cancels deployment records', async () => {
     const store = new TestApiStore();
+
     const app = await buildTestApiApp({
       store,
       staticBuildRunner: async (input) => {
@@ -2855,6 +2940,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         };
       },
     });
+
     const auth = await register(app, { email: 'deploy-ops@example.com', organizationName: 'Deploy Ops Org' });
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
 

@@ -9,7 +9,6 @@ import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
-import { z, type ZodSchema } from 'zod';
 import {
   createOpaqueToken,
   createRecoveryCodes,
@@ -23,8 +22,17 @@ import {
   authCookieOptions,
   type AuthenticatedUser,
 } from '@vibecore/auth';
-import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  StripeBillingClient,
+  assertQuota,
+  billingPlans,
+  planByKey,
+  verifyStripeSignature,
+  type PlanKey,
+  type QuotaKey,
+} from '@vibecore/billing';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
+import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import {
   redactSecrets,
   redactSecretString,
@@ -37,15 +45,6 @@ import {
   isIpAllowed,
   requireCsrfToken,
 } from '@vibecore/security';
-import {
-  StripeBillingClient,
-  assertQuota,
-  billingPlans,
-  planByKey,
-  verifyStripeSignature,
-  type PlanKey,
-  type QuotaKey,
-} from '@vibecore/billing';
 import { DOMParser } from '@xmldom/xmldom';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { Redis } from 'ioredis';
@@ -56,6 +55,7 @@ import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
 import WebSocket from 'ws';
 import { SignedXml } from 'xml-crypto';
+import { z, type ZodSchema } from 'zod';
 import {
   AgentMemoryConfigurationError,
   AgentMemoryService,
@@ -7011,7 +7011,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .header('cache-control', 'private, max-age=60')
       .send(svg);
   });
-  app.get('/projects/:projectId/ide-state', async (request) => {
+  app.get('/projects/:projectId/ide-state', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
@@ -7019,9 +7019,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    return { ideState: (await store.getProjectIdeState(project.id)) ?? null };
+    const ideState = (await store.getProjectIdeState(project.id)) ?? null;
+
+    if (ideState) {
+      reply.header('etag', `"${ideState.version}"`);
+    }
+
+    return { ideState };
   });
-  app.put('/projects/:projectId/ide-state', async (request) => {
+  app.put('/projects/:projectId/ide-state', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
@@ -7031,6 +7037,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(projectIdeStateSchema, request.body ?? {});
     const existingState = await store.getProjectIdeState(project.id);
+
+    /*
+     * Phase 0 #4 — optimistic concurrency via If-Match against the
+     * existing row's `version` integer. When two tabs / two windows save
+     * concurrently the second writer hits 412 Precondition Failed and gets
+     * the current state in the body so the client can re-merge instead of
+     * silently clobbering the other tab's changes.
+     */
+    const ifMatchHeader = request.headers['if-match'];
+
+    const ifMatch =
+      typeof ifMatchHeader === 'string' ? ifMatchHeader.replace(/^W\//, '').replace(/"/g, '').trim() : undefined;
+
+    if (ifMatch && existingState && String(existingState.version) !== ifMatch) {
+      reply.header('etag', `"${existingState.version}"`);
+      return reply.code(412).send({
+        error: 'IDE state was modified by another session',
+        code: 'IDE_STATE_PRECONDITION_FAILED',
+        ideState: existingState,
+      });
+    }
+
     const state = mergeProjectIdeState(existingState?.state, body.state);
 
     const ideState = await store.upsertProjectIdeState({
@@ -7038,6 +7066,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       state,
       updatedByUserId: request.currentUser!.id,
     });
+
+    reply.header('etag', `"${ideState.version}"`);
 
     const persistedKeys = Object.keys(body.state);
     const shouldRecordActivity = persistedKeys.some((key) => key !== 'ui');

@@ -4,9 +4,24 @@ import {
   flushProjectIdeMemorySaves,
   getProjectIdeMemory,
   getProjectIdeMemoryStorageKey,
+  getProjectIdeMemoryVersionForTest,
   saveProjectIdeMemory,
   setProjectIdeMemorySaveDebounceMsForTest,
 } from './projectIdeMemory';
+
+function makeHeaders(entries: Record<string, string> = {}) {
+  const normalized = new Map<string, string>();
+
+  for (const [key, value] of Object.entries(entries)) {
+    normalized.set(key.toLowerCase(), value);
+  }
+
+  return {
+    get(name: string): string | null {
+      return normalized.get(name.toLowerCase()) ?? null;
+    },
+  };
+}
 
 function installLocalStorage() {
   const store = new Map<string, string>();
@@ -476,5 +491,127 @@ describe('project IDE memory save debouncing', () => {
     await vi.advanceTimersByTimeAsync(12_000);
 
     await expect(observed).resolves.toMatch(/Failed to save project IDE memory/);
+  });
+});
+
+/*
+ * Phase 0 #4 — optimistic concurrency. These specs live in their own
+ * describe so they can run with real timers (the retry-on-412 path issues
+ * back-to-back fetches and shouldn't be coupled to the debounce suite's
+ * fake clock).
+ */
+describe('project IDE memory ETag / If-Match', () => {
+  beforeEach(() => {
+    clearProjectIdeMemoryCacheForTest();
+    setProjectIdeMemorySaveDebounceMsForTest(0);
+    installLocalStorage();
+  });
+
+  afterEach(() => {
+    clearProjectIdeMemoryCacheForTest();
+    vi.unstubAllGlobals();
+  });
+
+  it('captures the server etag on GET and sends it as If-Match on the next PUT', async () => {
+    const fetchMock = vi.fn(async (_url: unknown, init?: { method?: string; headers?: Record<string, string> }) => {
+      if (!init || (init.method ?? 'GET').toUpperCase() === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          headers: makeHeaders({ etag: '"7"' }),
+          json: async () => ({ ideState: { state: { ui: { agentWidth: 480 } }, version: 7 } }),
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: makeHeaders({ etag: '"8"' }),
+        clone() {
+          return this;
+        },
+        json: async () => ({ ideState: { state: { ui: { agentWidth: 600 } }, version: 8 } }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-etag-roundtrip';
+
+    await getProjectIdeMemory(projectId);
+    expect(getProjectIdeMemoryVersionForTest(projectId)).toBe(7);
+
+    await saveProjectIdeMemory(projectId, { ui: { agentWidth: 600 } });
+
+    const putCall = fetchMock.mock.calls.find(
+      ([, init]) => (init as { method?: string } | undefined)?.method === 'PUT',
+    );
+
+    if (!putCall) {
+      throw new Error('expected a PUT call');
+    }
+
+    const putHeaders = (putCall[1] as { headers: Record<string, string> }).headers;
+    expect(putHeaders['if-match']).toBe('"7"');
+    expect(getProjectIdeMemoryVersionForTest(projectId)).toBe(8);
+  });
+
+  it('recovers from a 412 by adopting the server state and retrying with the new If-Match', async () => {
+    const putHeaderHistory: Array<string | undefined> = [];
+
+    const fetchMock = vi.fn(async (_url: unknown, init?: { method?: string; headers?: Record<string, string> }) => {
+      if (!init || (init.method ?? 'GET').toUpperCase() === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          headers: makeHeaders({ etag: '"3"' }),
+          json: async () => ({ ideState: { state: { ui: { agentWidth: 200 } }, version: 3 } }),
+        };
+      }
+
+      putHeaderHistory.push(init.headers?.['if-match']);
+
+      if (putHeaderHistory.length === 1) {
+        return {
+          ok: false,
+          status: 412,
+          headers: makeHeaders({ etag: '"5"' }),
+          json: async () => ({
+            error: 'IDE state was modified by another session',
+            code: 'IDE_STATE_PRECONDITION_FAILED',
+            ideState: { state: { ui: { agentWidth: 999, terminalBottomHeight: 222 } }, version: 5 },
+          }),
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: makeHeaders({ etag: '"6"' }),
+        clone() {
+          return this;
+        },
+        json: async () => ({ ideState: { state: { ui: { agentWidth: 800 } }, version: 6 } }),
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const projectId = 'project-etag-412';
+
+    await getProjectIdeMemory(projectId);
+    expect(getProjectIdeMemoryVersionForTest(projectId)).toBe(3);
+
+    await saveProjectIdeMemory(projectId, { ui: { agentWidth: 800 } });
+
+    expect(putHeaderHistory).toEqual(['"3"', '"5"']);
+    expect(getProjectIdeMemoryVersionForTest(projectId)).toBe(6);
+
+    /*
+     * After the 412 recovery, the cache holds the merged result: the local
+     * patch (agentWidth: 800) layered on top of the server state we
+     * adopted (terminalBottomHeight: 222 from the conflicting tab).
+     */
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored.ui?.agentWidth).toBe(800);
+    expect(restored.ui?.terminalBottomHeight).toBe(222);
   });
 });

@@ -115,6 +115,15 @@ const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
 
+/*
+ * Phase 0 #4 — last-known server `version` per project. The server returns
+ * it via the `etag` response header on GET/PUT (and as `ideState.version`
+ * in the body). We send it back as `If-Match` on the next PUT so a second
+ * tab with a stale version is rejected with 412 instead of silently
+ * clobbering the other tab's writes.
+ */
+const versionByProject = new Map<string, number>();
+
 /**
  * Coalesce rapid-fire saves (one per chat-stream tick, drag-resize, scroll, …)
  * into a single network PUT. The cache + localStorage writes stay synchronous
@@ -289,6 +298,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
     pendingSaves.delete(projectId);
     pendingDirty.delete(projectId);
     crossTabListeners.delete(projectId);
+    versionByProject.delete(projectId);
 
     const debounced = pendingDebouncedSaves.get(projectId);
 
@@ -304,6 +314,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
   pendingSaves.clear();
   pendingDirty.clear();
   crossTabListeners.clear();
+  versionByProject.clear();
 
   for (const entry of pendingDebouncedSaves.values()) {
     clearTimeout(entry.timer);
@@ -320,6 +331,40 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string) {
  */
 export function setProjectIdeMemorySaveDebounceMsForTest(ms: number) {
   saveDebounceMs = ms;
+}
+
+/**
+ * Tests-only read of the last known server version (the ETag we'll send as
+ * `If-Match` on the next PUT).
+ */
+export function getProjectIdeMemoryVersionForTest(projectId: string): number | undefined {
+  return versionByProject.get(projectId);
+}
+
+function parseEtagHeader(header: string | null | undefined): number | undefined {
+  if (!header) {
+    return undefined;
+  }
+
+  const stripped = header.replace(/^W\//, '').replace(/"/g, '').trim();
+  const parsed = Number.parseInt(stripped, 10);
+
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+/*
+ * The real `fetch` Response always has a `Headers` instance, but the unit
+ * tests stub `fetch` with plain objects that omit `headers`. We tolerate
+ * that here instead of forcing every existing mock to grow a headers shim.
+ */
+function readResponseHeader(response: Response, name: string): string | null {
+  const headers = (response as { headers?: { get?: (name: string) => string | null } }).headers;
+
+  if (!headers || typeof headers.get !== 'function') {
+    return null;
+  }
+
+  return headers.get(name) ?? null;
 }
 
 export function subscribeProjectIdeMemory(projectId: string, listener: (memory: ProjectIdeMemory) => void) {
@@ -449,6 +494,12 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
     const serverMemory = payload.ideState?.state ?? {};
     const memory = newerMemory(serverMemory, localMemory);
 
+    const version = parseEtagHeader(readResponseHeader(response, 'etag')) ?? payload.ideState?.version;
+
+    if (typeof version === 'number' && Number.isFinite(version)) {
+      versionByProject.set(projectId, version);
+    }
+
     memoryCache.set(projectId, memory);
     writeLocalProjectIdeMemory(projectId, memory);
 
@@ -569,16 +620,80 @@ async function persistWithRetry(projectId: string): Promise<void> {
       return;
     }
 
+    /*
+     * Phase 0 #4 — send the last-known server version as `If-Match`.
+     * A concurrent writer that bumped the version on the server will
+     * trigger a 412; we handle that below by adopting the server's
+     * current state and looping with the fresh version so our local
+     * patch still lands instead of being silently dropped.
+     */
+    const headers: Record<string, string> = {
+      accept: 'application/json',
+      'content-type': 'application/json',
+    };
+
+    const knownVersion = versionByProject.get(projectId);
+
+    if (typeof knownVersion === 'number') {
+      headers['if-match'] = `"${knownVersion}"`;
+    }
+
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
         method: 'PUT',
         credentials: 'include',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ state: dirty }),
       });
+
+      if (response.status === 412) {
+        /*
+         * Another tab/session moved the version forward. Adopt the
+         * server's current state from the response body, capture the
+         * new version, and immediately retry with `If-Match: <new>`.
+         * The server's own merge logic combines our dirty patch with
+         * the freshly-fetched state, so no edits are lost.
+         */
+        let serverEnvelope: IdeStateEnvelope = {};
+
+        try {
+          serverEnvelope = (await response.json()) as IdeStateEnvelope;
+        } catch {
+          serverEnvelope = {};
+        }
+
+        const serverVersion = parseEtagHeader(readResponseHeader(response, 'etag')) ?? serverEnvelope.ideState?.version;
+
+        if (typeof serverVersion === 'number' && Number.isFinite(serverVersion)) {
+          versionByProject.set(projectId, serverVersion);
+        } else {
+          versionByProject.delete(projectId);
+        }
+
+        const serverMemory = serverEnvelope.ideState?.state;
+
+        if (serverMemory && typeof serverMemory === 'object') {
+          /*
+           * Re-merge: take the server's current state as the base and
+           * layer our pending local patch back on top. This preserves
+           * the user's in-flight edits instead of letting the server
+           * silently overwrite them, while still keeping anything the
+           * conflicting session added (so a second tab's terminal-open
+           * toggle isn't lost when we save a panel resize, for example).
+           */
+          const merged = mergeProjectIdeMemory(serverMemory, dirty);
+          memoryCache.set(projectId, merged);
+          pendingDirty.set(projectId, merged);
+          writeLocalProjectIdeMemory(projectId, merged);
+          notifyCrossTabListeners(projectId, merged);
+        }
+
+        const conflictError = new Error('IDE state was modified by another session');
+        (conflictError as { status?: number }).status = 412;
+        lastError = conflictError;
+
+        continue;
+      }
 
       if (!response.ok) {
         const error = new Error(`Failed to save project IDE memory (${response.status})`);
@@ -590,6 +705,23 @@ async function persistWithRetry(projectId: string): Promise<void> {
 
         lastError = error;
       } else {
+        const newVersion = parseEtagHeader(readResponseHeader(response, 'etag'));
+
+        if (typeof newVersion === 'number') {
+          versionByProject.set(projectId, newVersion);
+        } else {
+          try {
+            const payload = (await response.clone().json()) as IdeStateEnvelope;
+            const payloadVersion = payload.ideState?.version;
+
+            if (typeof payloadVersion === 'number' && Number.isFinite(payloadVersion)) {
+              versionByProject.set(projectId, payloadVersion);
+            }
+          } catch {
+            // ignore — version stays as-is; next GET will reseed it.
+          }
+        }
+
         if (pendingDirty.get(projectId) === dirty) {
           pendingDirty.delete(projectId);
         }
