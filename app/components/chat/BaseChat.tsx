@@ -4609,14 +4609,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         panel: 'files',
         label: 'Files',
         icon: 'i-ph:files',
-        badge: statusbarChangedFiles || undefined,
+        badge: projectFilePaths.length || undefined,
         badgeLabel:
-          statusbarChangedFiles > 0
-            ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
+          projectFilePaths.length > 0
+            ? `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`
             : undefined,
         tone: 'neutral',
         active: rightPanelOpen && rightPanelMode === 'files',
-        title: `${projectFilePaths.length} indexed files${statusbarChangedFiles ? `, ${statusbarChangedFiles} changed` : ''}`,
+        title: `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`,
       },
       { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
       {
