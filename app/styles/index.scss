@@ -3249,7 +3249,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-panel-slot-agent {
+  order: -3;
   min-width: var(--project-agent-min-width);
+}
+
+.bolt-project-agent-resize-handle {
+  order: -2;
 }
 
 .bolt-project-panel-slot-right {
@@ -4479,7 +4484,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-agent-panel-toggle {
   position: fixed;
   top: 48px;
-  right: 12px;
+  left: calc(var(--project-ide-rail-width) + 12px);
   z-index: 39;
   display: inline-flex;
   min-height: 34px;
@@ -10275,9 +10280,11 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar {
   position: fixed;
-  right: var(--project-agent-statusbar-offset, 0px);
+  right: 0;
   bottom: 0;
-  left: calc(var(--project-ide-rail-width, 72px) + 1px);
+  left: calc(
+    var(--project-ide-rail-width, 72px) + var(--project-agent-statusbar-left-offset, 0px) + 1px
+  );
   z-index: 40;
   display: flex;
   min-height: 32px;

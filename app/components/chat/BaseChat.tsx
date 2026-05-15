@@ -4690,7 +4690,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         style={
           {
             '--project-agent-width': `${agentWidth}px`,
-            '--project-agent-statusbar-offset': projectAgentPanelOpen ? `${agentWidth}px` : '0px',
+            '--project-agent-statusbar-left-offset': projectAgentPanelOpen ? `${agentWidth}px` : '0px',
             '--project-agent-min-width': `${PROJECT_AGENT_PANEL_MIN_WIDTH}px`,
             '--project-right-panel-width': rightPanelOpen ? `${rightPanelWidth}px` : '0px',
           } as React.CSSProperties
@@ -4702,7 +4702,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
           <Panel
             id="project-workspace-panel"
-            order={1}
+            order={projectAgentPanelOpen ? 2 : 1}
             defaultSize={rightPanelOpen ? (projectAgentPanelOpen ? 62 : 84) : projectAgentPanelOpen ? 76 : 100}
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
@@ -4757,7 +4757,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               />
               <Panel
                 id="project-right-panel"
-                order={2}
+                order={projectAgentPanelOpen ? 3 : 2}
                 defaultSize={14}
                 minSize={10}
                 maxSize={22}
@@ -4829,13 +4829,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           {projectAgentPanelOpen && (
             <>
               <PanelResizeHandle
-                className="bolt-project-panel-resize-handle"
+                className="bolt-project-panel-resize-handle bolt-project-agent-resize-handle"
                 aria-label="Resize AI agent panel"
                 title="Resize AI agent panel"
               />
               <Panel
                 id="project-agent-panel"
-                order={3}
+                order={1}
                 defaultSize={24}
                 minSize={20}
                 maxSize={36}
