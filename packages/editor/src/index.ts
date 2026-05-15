@@ -933,6 +933,7 @@ export function DesktopCodeEditor({
         findReferences: 'editor.action.goToReferences',
         renameSymbol: 'editor.action.rename',
         refactor: 'editor.action.refactor',
+        toggleComment: 'editor.action.commentLine',
         quickFix: 'editor.action.quickFix',
         inlineSuggest: 'editor.action.inlineSuggest.trigger',
       };

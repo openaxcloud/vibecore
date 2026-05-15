@@ -10279,6 +10279,102 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 8px 14px;
 }
 
+.bolt-project-keybindings-palette {
+  width: min(760px, calc(100vw - 24px));
+}
+
+.bolt-project-keybindings-head {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--vc-ide-border-visible);
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), transparent 35%);
+  padding: 10px 14px;
+}
+
+.bolt-project-keybindings-head > div,
+.bolt-project-keybinding-row > span {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-keybindings-head button {
+  display: inline-flex;
+  min-height: 30px;
+  width: 30px;
+  justify-content: center;
+  padding: 0;
+}
+
+.bolt-project-keybindings-conflicts {
+  display: grid;
+  gap: 3px;
+  border-bottom: 1px solid color-mix(in srgb, var(--vc-ide-accent-warning), transparent 65%);
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 88%);
+  color: var(--vc-ide-text-primary);
+  padding: 10px 14px;
+}
+
+.bolt-project-keybindings-list {
+  display: grid;
+  max-height: min(500px, calc(100dvh - 190px));
+  overflow: auto;
+  padding: 8px;
+}
+
+.bolt-project-keybindings-list section {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0 8px;
+}
+
+.bolt-project-keybindings-list h3 {
+  margin: 0;
+  padding: 8px 8px 4px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
+.bolt-project-keybinding-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.bolt-project-keybinding-row:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-project-settings-keybindings {
+  display: grid;
+  gap: 12px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.bolt-project-settings-keybindings section {
+  display: grid;
+  gap: 4px;
+}
+
+.bolt-project-settings-keybindings h5 {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: var(--vc-type-label-letter-spacing);
+  text-transform: uppercase;
+}
+
 .bolt-project-statusbar {
   position: fixed;
   right: 0;

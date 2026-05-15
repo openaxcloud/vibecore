@@ -1,6 +1,7 @@
 export * from './useMessageParser';
 export * from './usePromptEnhancer';
 export * from './useShortcuts';
+export * from './useKeybindings';
 export * from './StickToBottom';
 export * from './useEditChatDescription';
 export { default } from './useViewport';

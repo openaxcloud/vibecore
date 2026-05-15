@@ -22,6 +22,7 @@ import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
+
 import { getApiKeysFromCookies } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
 import ChatAlert from './ChatAlert';
@@ -80,7 +81,7 @@ import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
-import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -92,6 +93,12 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import {
+  defaultProjectKeybindings,
+  detectKeybindingConflicts,
+  formatKeybindingCombo,
+  type Keybinding,
+} from '~/lib/keybindings';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
@@ -99,6 +106,7 @@ const TEXTAREA_MIN_HEIGHT = 76;
 const PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY = 'vibecore-project-bottom-terminal-ui-v1';
 const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1';
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
+const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
@@ -1832,6 +1840,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+    const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
     const [conversationHistoryOpen, setConversationHistoryOpen] = useState(false);
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
@@ -3260,103 +3269,106 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [useMobileIde],
     );
 
-    useEffect(() => {
-      if (!projectIdeMode || useMobileIde) {
-        return undefined;
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+      setCommandPaletteMode(mode);
+      setCommandPaletteQuery('');
+      setCommandPaletteIndex(0);
+      setCommandPaletteOpen(true);
+    }, []);
+
+    const reopenLastClosedTab = useCallback(() => {
+      const [tab, ...rest] = closedTabs;
+
+      if (!tab) {
+        return;
       }
 
-      const onKeyDown = (event: KeyboardEvent) => {
-        const command = event.metaKey || event.ctrlKey;
+      const reopenedId = `${tab.id}-reopen-${Date.now()}`;
+      setClosedTabs(rest);
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, activePaneId, (leaf) => ({
+          ...leaf,
+          tabs: [...leaf.tabs, { ...tab, id: reopenedId }],
+          activeTabId: reopenedId,
+        })),
+      );
+      setActiveWorkspacePanel(tab.panel);
+      setRecentTabIds((ids) => [reopenedId, ...ids.filter((id) => id !== reopenedId)].slice(0, 20));
 
-        if (!command) {
+      if (tab.filePath) {
+        workbenchStore.setSelectedFile(tab.filePath);
+      }
+    }, [activePaneId, closedTabs]);
+
+    const closeActivePaneTab = useCallback(() => {
+      const leaf = findLeaf(paneTree, activePaneId) ?? findFirstLeaf(paneTree);
+      const tab = leaf?.tabs.find((item) => item.id === leaf.activeTabId);
+
+      if (leaf && tab) {
+        setClosedTabs((items) => [tab, ...items.filter((item) => item.id !== tab.id)].slice(0, 20));
+        closeWorkspacePanel(tab.panel, leaf.id, tab.id);
+      }
+    }, [activePaneId, closeWorkspacePanel, paneTree]);
+
+    const focusAgentPanel = useCallback(() => {
+      setProjectAgentPanelOpen(true);
+      setAgentWidth((width) => Math.min(640, Math.max(420, width)));
+      window.setTimeout(() => textareaRef?.current?.focus(), 0);
+    }, [textareaRef]);
+
+    const runProjectKeybindingAction = useCallback(
+      (action: string, _binding: Keybinding, event: KeyboardEvent) => {
+        if (action === 'overlay.close') {
+          if (keyboardShortcutsOpen) {
+            setKeyboardShortcutsOpen(false);
+          } else if (commandPaletteOpen) {
+            setCommandPaletteOpen(false);
+          }
+
           return;
         }
 
-        const key = event.key.toLowerCase();
-
-        if (event.shiftKey && key === 't') {
-          event.preventDefault();
-
-          const [tab, ...rest] = closedTabs;
-
-          if (tab) {
-            const reopenedId = `${tab.id}-reopen-${Date.now()}`;
-            setClosedTabs(rest);
-            setPaneTree((currentTree) =>
-              updateLeaf(currentTree, activePaneId, (leaf) => ({
-                ...leaf,
-                tabs: [...leaf.tabs, { ...tab, id: reopenedId }],
-                activeTabId: reopenedId,
-              })),
-            );
-            setActiveWorkspacePanel(tab.panel);
-            setRecentTabIds((ids) => [reopenedId, ...ids.filter((id) => id !== reopenedId)].slice(0, 20));
-
-            if (tab.filePath) {
-              workbenchStore.setSelectedFile(tab.filePath);
-            }
-          }
-        } else if (key === 'k' || (event.shiftKey && key === 'p')) {
-          event.preventDefault();
-          setCommandPaletteMode('all');
-          setCommandPaletteQuery('');
-          setCommandPaletteIndex(0);
-          setCommandPaletteOpen(true);
-        } else if (key === 't') {
-          event.preventDefault();
-          setCommandPaletteMode('tools');
-          setCommandPaletteQuery('');
-          setCommandPaletteIndex(0);
-          setCommandPaletteOpen(true);
-        } else if (key === 'p') {
-          event.preventDefault();
-          setCommandPaletteMode('files');
-          setCommandPaletteQuery('');
-          setCommandPaletteIndex(0);
-          setCommandPaletteOpen(true);
-        } else if (key === 'w') {
-          event.preventDefault();
-
-          const leaf = findLeaf(paneTree, activePaneId) ?? findFirstLeaf(paneTree);
-          const tab = leaf?.tabs.find((item) => item.id === leaf.activeTabId);
-
-          if (leaf && tab) {
-            setClosedTabs((items) => [tab, ...items.filter((item) => item.id !== tab.id)].slice(0, 20));
-            closeWorkspacePanel(tab.panel, leaf.id, tab.id);
-          }
-        } else if (key === 'j') {
-          event.preventDefault();
-          setTerminalBottomOpen((value) => !value);
-        } else if (key === '`') {
-          event.preventDefault();
-          setTerminalBottomOpen(true);
-        } else if (key === 'b') {
-          event.preventDefault();
-          textareaRef?.current?.focus();
-          setProjectAgentPanelOpen(true);
-          setAgentWidth((width) => Math.min(640, Math.max(420, width)));
-        } else if (key === 'l') {
-          event.preventDefault();
-          setProjectAgentPanelOpen((open) => {
-            const nextOpen = !open;
-
-            if (nextOpen) {
-              window.setTimeout(() => textareaRef?.current?.focus(), 0);
-            }
-
-            return nextOpen;
-          });
-        } else if (key === ',') {
-          event.preventDefault();
-          openWorkspacePanel('settings');
-        } else if (key === 's') {
-          event.preventDefault();
+        if (action === 'file.save') {
           onProjectEditorSave();
-        } else if (/^[1-9]$/.test(key)) {
-          event.preventDefault();
-
+        } else if (action === 'file.quickOpen') {
+          openCommandPalette('files');
+        } else if (action === 'command.palette') {
+          openCommandPalette('all');
+        } else if (action === 'workbench.tools') {
+          openCommandPalette('tools');
+        } else if (action === 'tab.close') {
+          closeActivePaneTab();
+        } else if (action === 'tab.reopenClosed') {
+          reopenLastClosedTab();
+        } else if (action === 'sidebar.toggle') {
+          setRightPanelOpen((open) => !open);
+        } else if (action === 'terminal.toggle') {
+          setTerminalBottomOpen((value) => !value);
+        } else if (action === 'terminal.focus') {
+          openBottomTerminal('terminal');
+        } else if (action === 'workspace.run') {
+          openWorkspacePanel('preview');
+          void workbenchStore.startPreviewServer();
+        } else if (action === 'agent.focus') {
+          focusAgentPanel();
+        } else if (action === 'settings.open') {
+          openWorkspacePanel('settings');
+        } else if (action === 'editor.toggleComment') {
+          runProjectEditorCommand('toggleComment');
+        } else if (action === 'editor.rename') {
+          runProjectEditorCommand('renameSymbol');
+        } else if (action === 'editor.goToDefinition') {
+          runProjectEditorCommand('goToDefinition');
+        } else if (action === 'editor.findReferences') {
+          runProjectEditorCommand('findReferences');
+        } else if (action === 'editor.quickFix') {
+          runProjectEditorCommand('quickFix');
+        } else if (action === 'help.keyboard') {
+          setKeyboardShortcutsOpen(true);
+        } else if (/^tab\\.focus\\.[1-9]$/.test(action)) {
+          const index = Number(action.at(-1)) - 1;
           const leaf = findLeaf(paneTree, activePaneId) ?? findFirstLeaf(paneTree);
-          const tab = leaf?.tabs[Number(key) - 1];
+          const tab = leaf?.tabs[index];
 
           if (leaf && tab) {
             setPaneTree((currentTree) =>
@@ -3366,9 +3378,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setActiveWorkspacePanel(tab.panel);
             setRecentTabIds((ids) => [tab.id, ...ids.filter((id) => id !== tab.id)].slice(0, 20));
           }
-        } else if (key === 'tab') {
-          event.preventDefault();
-
+        } else if (action === 'tab.next') {
           const tabs = flattenTabs(paneTree);
           const currentIndex = tabs.findIndex((tab) => tab.id === recentTabIds[0]);
           const nextTab = tabs[(currentIndex + 1) % Math.max(tabs.length, 1)];
@@ -3386,23 +3396,73 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
           }
         }
-      };
 
-      window.addEventListener('keydown', onKeyDown);
+        window.dispatchEvent(
+          new CustomEvent('vibecore:keybinding-run', {
+            detail: {
+              action,
+              combo: event.key,
+              activePanel: activeWorkspacePanel,
+            },
+          }),
+        );
+      },
+      [
+        activePaneId,
+        activeWorkspacePanel,
+        closeActivePaneTab,
+        commandPaletteOpen,
+        focusAgentPanel,
+        keyboardShortcutsOpen,
+        onProjectEditorSave,
+        openBottomTerminal,
+        openCommandPalette,
+        openWorkspacePanel,
+        paneTree,
+        recentTabIds,
+        reopenLastClosedTab,
+        runProjectEditorCommand,
+      ],
+    );
 
-      return () => window.removeEventListener('keydown', onKeyDown);
-    }, [
-      activePaneId,
-      closedTabs,
-      closeWorkspacePanel,
-      onProjectEditorSave,
-      openWorkspacePanel,
-      paneTree,
-      projectIdeMode,
-      recentTabIds,
-      textareaRef,
-      useMobileIde,
-    ]);
+    const projectKeybindings = useMemo(
+      () => [
+        ...PROJECT_KEYBINDINGS,
+        ...Array.from({ length: 9 }, (_, index) => ({
+          combo: `cmd+${index + 1}`,
+          action: `tab.focus.${index + 1}`,
+          label: `Focus tab ${index + 1}`,
+          description: `Focus workspace tab ${index + 1}.`,
+          category: 'Workbench' as const,
+          preventDefault: true,
+        })),
+        {
+          combo: 'cmd+tab',
+          action: 'tab.next',
+          label: 'Next tab',
+          description: 'Cycle to the next open workspace tab.',
+          category: 'Workbench' as const,
+          preventDefault: true,
+        },
+      ],
+      [],
+    );
+
+    useKeybindings({
+      enabled: projectIdeMode && !useMobileIde,
+      bindings: projectKeybindings,
+      getContext: useCallback(
+        () => ({
+          activePanel: activeWorkspacePanel,
+          commandPaletteOpen,
+          focusTarget:
+            activeWorkspacePanel === 'terminal' ? 'terminal' : activeWorkspacePanel === 'editor' ? 'editor' : 'none',
+          useMobileIde,
+        }),
+        [activeWorkspacePanel, commandPaletteOpen, useMobileIde],
+      ),
+      runAction: runProjectKeybindingAction,
+    });
 
     useEffect(() => {
       if (expoUrl) {
@@ -5180,7 +5240,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             <span className="i-ph:sparkle" aria-hidden />
             <span>Agent</span>
-            <kbd>⌘L</kbd>
+            <kbd>{formatKeybindingCombo('cmd+l')}</kbd>
           </button>
         )}
       </div>
@@ -5194,16 +5254,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             section: 'Files',
             title: filePath.replace(WORK_DIR, '') || filePath,
             description: 'Open project file',
-            shortcut: '⌘P',
+            shortcut: formatKeybindingCombo('cmd+p'),
             icon: 'i-ph:file-code',
             kind: 'file' as const,
             filePath,
           })),
           ...[
-            ['files', 'Files', 'Browse project files', '⌘P'],
+            ['files', 'Files', 'Browse project files', formatKeybindingCombo('cmd+p')],
             ['search', 'Search', 'Find in files', ''],
-            ['terminal', 'Terminal', 'Workspace shell', '⌘`'],
-            ['preview', 'Webview', 'App preview', '⌘⇧V'],
+            ['terminal', 'Terminal', 'Workspace shell', formatKeybindingCombo('cmd+`')],
+            ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
             ['database', 'Database', 'SQL browser', ''],
             ['object-storage', 'Object Storage', 'File storage', ''],
             ['env', 'Env vars', 'Environment variables', ''],
@@ -5217,7 +5277,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['monitoring', 'Monitoring', 'App metrics', ''],
             ['extensions', 'Extensions', 'Marketplace', ''],
             ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
-            ['settings', 'Settings', 'Project settings', '⌘,'],
+            ['settings', 'Settings', 'Project settings', formatKeybindingCombo('cmd+,')],
           ].map(([panel, title, description, shortcut]) => ({
             id: `tool:${panel}`,
             section: 'Tools',
@@ -5323,6 +5383,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [commandPaletteEntries],
     );
 
+    const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
+
+    const keybindingSections = useMemo(
+      () =>
+        (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
+          .map((category) => ({
+            category,
+            bindings: projectKeybindings.filter((binding) => binding.category === category),
+          }))
+          .filter((section) => section.bindings.length > 0),
+      [projectKeybindings],
+    );
+
     const baseChat = (
       <div
         ref={ref}
@@ -5405,6 +5478,56 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             )}
             <footer>↑↓ navigate · ↵ select · esc close</footer>
+          </div>
+        )}
+        {keyboardShortcutsOpen && (
+          <div
+            className="bolt-project-command-palette bolt-project-keybindings-palette"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Keyboard shortcuts"
+          >
+            <header className="bolt-project-keybindings-head">
+              <div>
+                <strong>Keyboard shortcuts</strong>
+                <span>{projectKeybindings.length} active bindings in this workspace</span>
+              </div>
+              <button
+                type="button"
+                className="bolt-project-ide-icon-button"
+                aria-label="Close keyboard shortcuts"
+                onClick={() => setKeyboardShortcutsOpen(false)}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
+            </header>
+            {keybindingConflicts.length > 0 ? (
+              <div className="bolt-project-keybindings-conflicts" role="alert">
+                <strong>Shortcut conflicts detected</strong>
+                <span>
+                  {keybindingConflicts
+                    .map((conflict) => `${formatKeybindingCombo(conflict.combo)}: ${conflict.actions.join(', ')}`)
+                    .join(' · ')}
+                </span>
+              </div>
+            ) : null}
+            <div className="bolt-project-keybindings-list">
+              {keybindingSections.map((section) => (
+                <section key={section.category} aria-label={`${section.category} shortcuts`}>
+                  <h3>{section.category}</h3>
+                  {section.bindings.map((binding) => (
+                    <div key={`${binding.combo}-${binding.action}`} className="bolt-project-keybinding-row">
+                      <span>
+                        <strong>{binding.label}</strong>
+                        <small>{binding.description}</small>
+                      </span>
+                      <kbd>{formatKeybindingCombo(binding.combo)}</kbd>
+                    </div>
+                  ))}
+                </section>
+              ))}
+            </div>
+            <footer>Press Esc to close</footer>
           </div>
         )}
         <div
@@ -7417,10 +7540,10 @@ function ProjectWelcomeState({
   onOpenFile?: (filePath: string) => void;
 }) {
   const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
-    ['i-ph:files', 'Open Files', '⌘P', 'files'],
-    ['i-ph:terminal-window', 'Open Terminal', '⌘`', 'terminal'],
-    ['i-ph:browser', 'View Preview', '⌘⇧V', 'preview'],
-    ['i-ph:command', 'All Commands', '⌘K', 'settings'],
+    ['i-ph:files', 'Open Files', formatKeybindingCombo('cmd+p'), 'files'],
+    ['i-ph:terminal-window', 'Open Terminal', formatKeybindingCombo('cmd+`'), 'terminal'],
+    ['i-ph:browser', 'View Preview', formatKeybindingCombo('cmd+enter'), 'preview'],
+    ['i-ph:command', 'All Commands', formatKeybindingCombo('cmd+k'), 'settings'],
   ];
 
   return (
@@ -8600,6 +8723,15 @@ function ProjectSettingsPanel({
     ['team', 'Team', 'Team invitations and member changes'],
     ['system', 'System', 'System updates and maintenance notices'],
   ];
+  const keyboardSections = (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
+    .map((category) => ({
+      category,
+      bindings: PROJECT_KEYBINDINGS.filter((binding) => binding.category === category),
+    }))
+    .filter((section) => section.bindings.length > 0);
+
+  const keyboardConflicts = detectKeybindingConflicts(PROJECT_KEYBINDINGS);
+
   const initials =
     String(accountUser.name ?? accountUser.email ?? settings.name ?? 'VC')
       .slice(0, 2)
@@ -9624,6 +9756,41 @@ function ProjectSettingsPanel({
                 </label>
                 <PanelButton disabled={busy}>Save preferences</PanelButton>
               </form>
+
+              <section className="bolt-project-settings-card">
+                <div className="bolt-project-settings-card-title">
+                  <h4>Keyboard Shortcuts</h4>
+                  <small>
+                    Generated from the active keybinding registry. Contextual editor shortcuts win over globals.
+                  </small>
+                </div>
+                {keyboardConflicts.length > 0 ? (
+                  <div className="bolt-project-keybindings-conflicts" role="alert">
+                    <strong>Shortcut conflicts detected</strong>
+                    <span>
+                      {keyboardConflicts
+                        .map((conflict) => `${formatKeybindingCombo(conflict.combo)}: ${conflict.actions.join(', ')}`)
+                        .join(' · ')}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="bolt-project-settings-keybindings">
+                  {keyboardSections.map((section) => (
+                    <section key={section.category} aria-label={`${section.category} shortcuts`}>
+                      <h5>{section.category}</h5>
+                      {section.bindings.map((binding) => (
+                        <div key={`${binding.combo}-${binding.action}`} className="bolt-project-keybinding-row">
+                          <span>
+                            <strong>{binding.label}</strong>
+                            <small>{binding.description}</small>
+                          </span>
+                          <kbd>{formatKeybindingCombo(binding.combo)}</kbd>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+              </section>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
