@@ -11,6 +11,7 @@ import type { Message } from 'ai';
 import { memo, Fragment, useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
+import { MessagePatchReview } from './MessagePatchReview';
 import { ToolInvocations } from './ToolInvocations';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
@@ -19,7 +20,7 @@ import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
 import type { ProviderInfo } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
 
-interface AssistantMessageProps {
+export interface AssistantMessageProps {
   content: string;
   annotations?: JSONValue[];
   messageId?: string;
@@ -384,6 +385,7 @@ export const AssistantMessage = memo(
         <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
           {content}
         </Markdown>
+        {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}
