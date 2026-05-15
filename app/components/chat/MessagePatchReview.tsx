@@ -25,6 +25,7 @@ import { messageToBlocks } from '~/lib/runtime/message-blocks';
 import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { aggregateReviewableDiffSummaries } from '~/utils/diff';
+import { batchFileApplied } from '~/utils/toast-batcher';
 
 type SnapshotInput = Pick<AssistantMessageProps, 'parts'> & {
   messageId: string;
@@ -34,9 +35,16 @@ type SnapshotInput = Pick<AssistantMessageProps, 'parts'> & {
 async function defaultApplyHandler(detail: InlineFileActionDiffApplyDetail) {
   try {
     await workbenchStore.writeFileContent(detail.absolutePath, detail.acceptedContent);
-    toast.success(
-      `Applied ${detail.acceptedHunkIds.length} hunk${detail.acceptedHunkIds.length === 1 ? '' : 's'} to ${detail.filePath}`,
-    );
+
+    /*
+     * Coalesce per-file applies into a single "N files applied · Undo all"
+     * toast rather than spamming one toast per Apply click. Undo writes
+     * the captured originalContent back through the same path.
+     */
+    batchFileApplied({
+      filePath: detail.filePath,
+      undo: () => workbenchStore.writeFileContent(detail.absolutePath, detail.originalContent),
+    });
   } catch (error) {
     toast.error(`Failed to apply ${detail.filePath}: ${(error as Error).message}`);
   }
@@ -128,9 +136,12 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
 
     setIsApplyingAll(false);
 
-    if (appliedCount > 0 && failedCount === 0) {
-      toast.success(`Applied ${appliedCount} file${appliedCount === 1 ? '' : 's'}`);
-    } else if (failedCount > 0) {
+    /*
+     * Per-file success toasts are coalesced by `batchFileApplied` inside
+     * the default handler (see `defaultApplyHandler`). Surface only the
+     * failure summary here — the batcher has no signal for failures.
+     */
+    if (failedCount > 0) {
       toast.error(`Applied ${appliedCount} file${appliedCount === 1 ? '' : 's'}, ${failedCount} failed`);
     }
   }, [applyHandler, fileActions, files, isApplyingAll]);

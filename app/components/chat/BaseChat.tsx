@@ -23,6 +23,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
+import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+
 import { getApiKeysFromCookies } from './APIKeyManager';
 import styles from './BaseChat.module.scss';
 import ChatAlert from './ChatAlert';
@@ -1584,55 +1586,6 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   );
 }
 
-const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
-
-function AppliedFilesToast({
-  files,
-  onDismissAll,
-  onUndoAll,
-}: {
-  files: string[];
-  onDismissAll: () => void;
-  onUndoAll: () => void;
-}) {
-  const visibleFiles = files.slice(0, 8);
-  const remainingCount = Math.max(files.length - visibleFiles.length, 0);
-
-  return (
-    <div className="bolt-agent-applied-toast">
-      <div className="bolt-agent-applied-toast-head">
-        <strong>
-          {files.length} file{files.length === 1 ? '' : 's'} applied
-        </strong>
-        <span>Successful agent patches were written.</span>
-      </div>
-      <details>
-        <summary>View details</summary>
-        <ul>
-          {visibleFiles.map((file) => (
-            <li key={file} title={file}>
-              {file}
-            </li>
-          ))}
-          {remainingCount > 0 ? (
-            <li>
-              {remainingCount} more file{remainingCount === 1 ? '' : 's'}
-            </li>
-          ) : null}
-        </ul>
-      </details>
-      <div className="bolt-agent-applied-toast-actions">
-        <button type="button" onClick={onUndoAll}>
-          Undo all
-        </button>
-        <button type="button" onClick={onDismissAll}>
-          Dismiss all
-        </button>
-      </div>
-    </div>
-  );
-}
-
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
@@ -1925,34 +1878,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       appliedToastBufferRef.current.clear();
 
-      const content = (
-        <AppliedFilesToast
-          files={files}
-          onDismissAll={() => toast.dismiss()}
-          onUndoAll={() => {
-            for (const proposalId of proposalIds) {
-              void workbenchStore.revertAgentPatchProposal(proposalId);
-            }
+      showCoalescedAppliedToast(files, {
+        onUndoAll: () => {
+          for (const proposalId of proposalIds) {
+            void workbenchStore.revertAgentPatchProposal(proposalId);
+          }
 
-            toast.dismiss(AGENT_APPLIED_TOAST_ID);
-          }}
-        />
-      );
-
-      if (toast.isActive(AGENT_APPLIED_TOAST_ID)) {
-        toast.update(AGENT_APPLIED_TOAST_ID, {
-          render: content,
-          type: 'success',
-          autoClose: 3000,
-          closeButton: true,
-        });
-      } else {
-        toast.success(content, {
-          toastId: AGENT_APPLIED_TOAST_ID,
-          autoClose: 3000,
-          closeButton: true,
-        });
-      }
+          toast.dismiss(AGENT_APPLIED_TOAST_ID);
+        },
+      });
     }, []);
 
     const scheduleAppliedFilesToast = useCallback(
