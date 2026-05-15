@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { WORK_DIR } from './constants';
-import { applyReviewableDiffHunks, buildReviewableDiffHunks, extractRelativePath } from './diff';
+import {
+  aggregateReviewableDiffSummaries,
+  applyReviewableDiffHunks,
+  buildReviewableDiffHunks,
+  extractRelativePath,
+  summarizeReviewableDiffHunks,
+} from './diff';
 
 describe('Diff', () => {
   it('should strip out Work_dir', () => {
@@ -36,6 +42,42 @@ describe('Diff', () => {
     expect(applyReviewableDiffHunks({ originalContent: original, hunks, acceptedHunkIds: [hunks[0].id] })).toBe(
       proposed,
     );
+  });
+
+  it('summarizes a reviewable diff into added/removed line counts and hunk count', () => {
+    const original = ['line a', 'line b', 'line c', ''].join('\n');
+    const proposed = ['line a', 'line b prime', 'line c', 'line d', ''].join('\n');
+
+    const hunks = buildReviewableDiffHunks('src/sum.ts', original, proposed);
+    const summary = summarizeReviewableDiffHunks(hunks);
+
+    expect(summary.hunkCount).toBe(hunks.length);
+    expect(summary.addedLines).toBe(2);
+    expect(summary.removedLines).toBe(1);
+    expect(summary.hasChanges).toBe(true);
+  });
+
+  it('reports a no-op summary when proposed content matches original', () => {
+    const text = ['identical', 'content', ''].join('\n');
+    const hunks = buildReviewableDiffHunks('src/noop.ts', text, text);
+
+    const summary = summarizeReviewableDiffHunks(hunks);
+    expect(summary.hunkCount).toBe(0);
+    expect(summary.addedLines).toBe(0);
+    expect(summary.removedLines).toBe(0);
+    expect(summary.hasChanges).toBe(false);
+  });
+
+  it('aggregates per-file diff summaries for a multi-file patch', () => {
+    const a = summarizeReviewableDiffHunks(buildReviewableDiffHunks('a.ts', 'one\n', 'one\ntwo\n'));
+    const b = summarizeReviewableDiffHunks(buildReviewableDiffHunks('b.ts', 'x\ny\n', 'x\nyy\n'));
+    const noop = summarizeReviewableDiffHunks(buildReviewableDiffHunks('c.ts', 'same\n', 'same\n'));
+
+    const totals = aggregateReviewableDiffSummaries([a, b, noop]);
+    expect(totals.filesWithChanges).toBe(2);
+    expect(totals.addedLines).toBe(a.addedLines + b.addedLines);
+    expect(totals.removedLines).toBe(a.removedLines + b.removedLines);
+    expect(totals.hunkCount).toBe(a.hunkCount + b.hunkCount);
   });
 
   it('can reject one hunk while accepting another', () => {

@@ -182,6 +182,83 @@ export function applyReviewableDiffHunks(input: {
   return `${outputLines.join('\n')}${newline}`;
 }
 
+export interface ReviewableDiffSummary {
+  /** Number of `+` lines across every hunk. */
+  addedLines: number;
+
+  /** Number of `-` lines across every hunk. */
+  removedLines: number;
+
+  /** Number of hunks in the set. */
+  hunkCount: number;
+
+  /** True when at least one hunk has at least one added or removed line. */
+  hasChanges: boolean;
+}
+
+/**
+ * Aggregate add/remove counts across a set of reviewable hunks. Used by the
+ * Sprint 2 inline-diff renderer to show an at-a-glance "+N / -M" pill on
+ * each file action card, and by the agent panel's "Apply all" summary to
+ * total up the impact of a multi-file patch before the user accepts it.
+ *
+ * Pure, allocation-light, safe to call on every render.
+ */
+export function summarizeReviewableDiffHunks(hunks: readonly ReviewableDiffHunk[]): ReviewableDiffSummary {
+  let addedLines = 0;
+  let removedLines = 0;
+
+  for (const hunk of hunks) {
+    for (const line of hunk.lines) {
+      if (line.type === 'add') {
+        addedLines += 1;
+      } else if (line.type === 'remove') {
+        removedLines += 1;
+      }
+    }
+  }
+
+  return {
+    addedLines,
+    removedLines,
+    hunkCount: hunks.length,
+    hasChanges: addedLines > 0 || removedLines > 0,
+  };
+}
+
+/**
+ * Sum a per-file diff summary into the aggregate counters used by the
+ * "Apply N files · +A / -R" toast and the agent panel's Accept-all header.
+ * Tracks how many files actually carry changes (no-op modifications still
+ * round-trip through this path because the proposer can re-emit identical
+ * content while streaming).
+ */
+export interface AggregatedDiffSummary {
+  filesWithChanges: number;
+  addedLines: number;
+  removedLines: number;
+  hunkCount: number;
+}
+
+export function aggregateReviewableDiffSummaries(summaries: readonly ReviewableDiffSummary[]): AggregatedDiffSummary {
+  let filesWithChanges = 0;
+  let addedLines = 0;
+  let removedLines = 0;
+  let hunkCount = 0;
+
+  for (const summary of summaries) {
+    if (summary.hasChanges) {
+      filesWithChanges += 1;
+    }
+
+    addedLines += summary.addedLines;
+    removedLines += summary.removedLines;
+    hunkCount += summary.hunkCount;
+  }
+
+  return { filesWithChanges, addedLines, removedLines, hunkCount };
+}
+
 const regex = new RegExp(`^${WORK_DIR}\/`);
 
 /**
