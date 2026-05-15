@@ -100,6 +100,29 @@ describe('<MessagePatchReview />', () => {
     expect(screen.getByLabelText(/2 added, 0 removed across 2 files/)).toBeTruthy();
   });
 
+  it('Apply all bulk-applies every file action with changes', async () => {
+    const onApply = vi.fn().mockResolvedValue(undefined);
+    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);
+
+    const applyAll = screen.getByRole('button', { name: /Apply all 2 files/ });
+    fireEvent.click(applyAll);
+
+    /*
+     * The handler is async; wait for the Apply-all button to leave the
+     * "Applying…" state by polling for both onApply invocations.
+     */
+    await vi.waitFor(() => {
+      expect(onApply).toHaveBeenCalledTimes(2);
+    });
+
+    expect(onApply.mock.calls[0][0].filePath).toBe('src/one.ts');
+    expect(onApply.mock.calls[1][0].filePath).toBe('src/two.ts');
+
+    // Each detail carries the full proposed content as acceptedContent.
+    expect(onApply.mock.calls[0][0].acceptedHunkIds.length).toBeGreaterThan(0);
+    expect(onApply.mock.calls[0][0].rejectedHunkIds).toEqual([]);
+  });
+
   it('forwards onApply for each file action card', () => {
     const onApply = vi.fn();
     render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} onApply={onApply} />);

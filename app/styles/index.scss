@@ -934,6 +934,29 @@ body
   margin-left: 4px;
 }
 
+.bolt-message-patch-review-apply-all {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vc-ide-text-on-accent, #fff);
+  background: var(--vc-ide-accent-action);
+  border: 1px solid var(--vc-ide-accent-action);
+  border-radius: 6px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.bolt-message-patch-review-apply-all:hover:not(:disabled),
+.bolt-message-patch-review-apply-all:focus-visible {
+  filter: brightness(1.05);
+  outline: none;
+}
+
+.bolt-message-patch-review-apply-all:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .bolt-message-patch-review-body {
   display: flex;
   flex-direction: column;

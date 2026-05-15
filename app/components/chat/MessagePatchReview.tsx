@@ -13,7 +13,7 @@
  */
 
 import { useStore } from '@nanostores/react';
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import type { AssistantMessageProps } from './AssistantMessage';
@@ -75,12 +75,59 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
   }, [files, fileActions]);
 
   const [isOpen, setIsOpen] = useState(true);
+  const [isApplyingAll, setIsApplyingAll] = useState(false);
+
+  const applyHandler = onApply ?? defaultApplyHandler;
+
+  const handleApplyAll = useCallback(async () => {
+    if (isApplyingAll || fileActions.length === 0) {
+      return;
+    }
+
+    setIsApplyingAll(true);
+
+    let appliedCount = 0;
+    let failedCount = 0;
+
+    /*
+     * Apply each file action sequentially so that ETag-style writes that
+     * recompute the on-disk state see the previous one's effects. This
+     * preserves the same UX as a chain of single-card Apply clicks.
+     */
+    for (const action of fileActions) {
+      const diff = computeFileActionDiff(files, action);
+
+      if (!diff.summary.hasChanges) {
+        continue;
+      }
+
+      try {
+        await applyHandler({
+          absolutePath: diff.absolutePath,
+          filePath: diff.filePath,
+          originalContent: diff.originalContent,
+          acceptedContent: diff.proposedContent,
+          acceptedHunkIds: diff.hunks.map((hunk) => hunk.id),
+          rejectedHunkIds: [],
+        });
+        appliedCount += 1;
+      } catch {
+        failedCount += 1;
+      }
+    }
+
+    setIsApplyingAll(false);
+
+    if (appliedCount > 0 && failedCount === 0) {
+      toast.success(`Applied ${appliedCount} file${appliedCount === 1 ? '' : 's'}`);
+    } else if (failedCount > 0) {
+      toast.error(`Applied ${appliedCount} file${appliedCount === 1 ? '' : 's'}, ${failedCount} failed`);
+    }
+  }, [applyHandler, fileActions, files, isApplyingAll]);
 
   if (fileActions.length === 0) {
     return null;
   }
-
-  const applyHandler = onApply ?? defaultApplyHandler;
 
   return (
     <section className="bolt-message-patch-review" aria-label="Patch review for assistant message">
@@ -107,6 +154,17 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
             </span>
           ) : null}
         </button>
+        {aggregate.filesWithChanges > 0 ? (
+          <button
+            type="button"
+            className="bolt-message-patch-review-apply-all"
+            onClick={handleApplyAll}
+            disabled={isApplyingAll}
+            aria-label={`Apply all ${aggregate.filesWithChanges} files`}
+          >
+            {isApplyingAll ? 'Applying…' : `Apply all (${aggregate.filesWithChanges})`}
+          </button>
+        ) : null}
       </header>
       {isOpen ? (
         <div id={`patch-review-body-${messageId}`} className="bolt-message-patch-review-body">
