@@ -344,8 +344,8 @@ export const FileTree = memo(
         onDrop={(event) => void uploadDroppedFiles(event)}
       >
         {enableWorkspaceViews && (
-          <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 p-2 backdrop-blur">
-            <div className="grid grid-cols-5 gap-1 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-1">
+          <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/95 px-1.5 py-2 pr-3 backdrop-blur">
+            <div className="grid grid-cols-5 gap-0.5 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-0.5">
               {[
                 ['files', 'Files', 'i-ph:files'],
                 ['open', 'Open editors', 'i-ph:tabs'],
@@ -359,7 +359,7 @@ export const FileTree = memo(
                   aria-label={label}
                   title={label}
                   className={classNames(
-                    'flex h-7 items-center justify-center rounded-md text-bolt-elements-textTertiary',
+                    'flex h-7 min-w-0 items-center justify-center rounded-md text-bolt-elements-textTertiary',
                     {
                       'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm':
                         activeView === view,

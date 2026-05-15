@@ -4791,9 +4791,9 @@ body :where(.lucide, svg[data-lucide]) {
   height: 32px;
   min-height: 32px;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   border-bottom: 1px solid var(--vc-ide-border-subtle);
-  padding: 0 8px;
+  padding: 0 10px 0 6px;
 }
 
 .bolt-project-files-count {
@@ -4849,6 +4849,13 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
   padding: 0 6px;
+}
+
+.bolt-project-files-header button {
+  min-width: 26px;
+  width: 26px;
+  min-height: 28px;
+  padding: 0;
 }
 
 .bolt-project-files-header button:hover,
