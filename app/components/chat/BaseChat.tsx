@@ -1466,8 +1466,8 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
           <strong>Review AI changes</strong>
           <span>
             {autoApplyEnabled
-              ? `${visibleProposals.length} proposal${visibleProposals.length === 1 ? '' : 's'} failed and need a manual decision`
-              : `${visibleProposals.length} file proposal${visibleProposals.length === 1 ? '' : 's'} waiting before apply`}
+              ? `${visibleProposals.length} AI change${visibleProposals.length === 1 ? '' : 's'} failed and need a manual decision`
+              : `${visibleProposals.length} AI change${visibleProposals.length === 1 ? '' : 's'} to review`}
           </span>
         </div>
         <div className="bolt-project-agent-patch-review-bulk">
