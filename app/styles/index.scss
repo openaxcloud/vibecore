@@ -12514,24 +12514,38 @@ button.bolt-project-statusbar-pill:focus-visible,
   }
 
   .bolt-responsive-ide-mobile .Toastify__toast-container {
+    top: calc(56px + env(safe-area-inset-top, 0px));
     right: 8px;
-    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    bottom: auto;
     left: 8px;
     width: auto;
+    max-height: calc(100dvh - 72px - env(safe-area-inset-top, 0px));
   }
 }
 
 /*
- * Lift the bottom-right toast stack so it never overlaps the IDE statusbar.
- * :has() targets the layout only when the statusbar is rendered, so pages
- * without it (landing, account, etc.) keep the default bottom position.
+ * Keep transient IDE notifications above the workspace chrome. Toastify owns
+ * the queue semantics; this constrains the visible stack away from the statusbar.
  */
-body:has(.bolt-project-statusbar) .Toastify__toast-container--bottom-right {
-  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+.Toastify__toast-container--top-right {
+  position: fixed;
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  right: 16px;
+  bottom: auto;
+  left: auto;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 body:has(.bolt-project-statusbar) .Toastify__toast-container {
-  width: min(360px, calc(100vw - 24px));
+  top: calc(60px + env(safe-area-inset-top, 0px));
+  right: 16px;
+  bottom: auto;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
 }
 
 .bolt-agent-applied-toast {

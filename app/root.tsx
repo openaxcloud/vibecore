@@ -128,12 +128,12 @@ function AppToastContainer() {
 
         return undefined;
       }}
-      position="bottom-right"
+      position="top-right"
       pauseOnFocusLoss
       transition={toastAnimation}
-      autoClose={3000}
-      limit={3}
-      newestOnTop
+      autoClose={4000}
+      limit={5}
+      newestOnTop={false}
     />
   );
 }
