@@ -4812,9 +4812,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <Panel
             id="project-agent-panel"
             order={1}
-            defaultSize={30}
-            minSize={28}
-            maxSize={44}
+            defaultSize={28}
+            minSize={24}
+            maxSize={40}
             className="bolt-project-panel-slot bolt-project-panel-slot-agent"
             onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
           >
