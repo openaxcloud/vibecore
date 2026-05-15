@@ -20,7 +20,7 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_PADDING_LEFT = 16;
+const NODE_PADDING_LEFT = 10;
 
 function splitNameForMiddleTruncation(name: string) {
   const parts = name.split('.');
