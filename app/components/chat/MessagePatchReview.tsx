@@ -18,6 +18,7 @@ import { toast } from 'react-toastify';
 
 import type { AssistantMessageProps } from './AssistantMessage';
 import { InlineFileActionDiff, type InlineFileActionDiffApplyDetail } from './InlineFileActionDiff';
+import { useAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { computeFileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import { summarizeAssistantMessage } from '~/lib/runtime/message-block-summary';
 import { messageToBlocks } from '~/lib/runtime/message-blocks';
@@ -51,6 +52,14 @@ export interface MessagePatchReviewProps extends SnapshotInput {
 }
 
 export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: MessagePatchReviewProps) => {
+  /*
+   * When auto-apply is on the existing ActionRunner path applies file
+   * actions silently — surfacing a redundant Accept/Apply UI here would
+   * confuse the user and risk double-writes. Hide the panel entirely;
+   * the existing artifact card still narrates what landed.
+   */
+  const autoApplyEnabled = useAutoApplyEnabled();
+
   const blocks = useMemo(() => {
     /*
      * `messageToBlocks` reads `id`, `content`, `parts`, `experimental_attachments`.
@@ -125,7 +134,7 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
     }
   }, [applyHandler, fileActions, files, isApplyingAll]);
 
-  if (fileActions.length === 0) {
+  if (autoApplyEnabled || fileActions.length === 0) {
     return null;
   }
 

@@ -2372,17 +2372,34 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-action-group--primary {
-  gap: 6px;
+  gap: 8px;
 }
 
-.bolt-project-action-group--primary::after {
-  position: absolute;
-  inset: 2px -5px;
-  z-index: -1;
-  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 94%);
-  content: '';
+.bolt-project-collaborate-menu {
+  position: relative;
+}
+
+.bolt-project-collaborate-menu summary {
+  list-style: none;
+}
+
+.bolt-project-collaborate-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.bolt-project-collaborate-menu[open] summary {
+  border: 1px solid var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-hover) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+.bolt-project-collaborate-popover {
+  border-color: var(--vc-ide-border-visible) !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-card), white 3%), var(--vc-ide-bg-card)),
+    var(--vc-ide-bg-card) !important;
+  color: var(--vc-ide-text-primary) !important;
+  box-shadow: var(--vc-ui-shadow-xl) !important;
 }
 
 .bolt-project-collaborator-stack {
@@ -2794,13 +2811,20 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-run-button {
   border: 0;
-  background: hsl(142deg 72% 38%);
+  min-height: 34px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, hsl(142deg 72% 43%), hsl(142deg 72% 34%));
   color: white !important;
-  padding: 0 12px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, hsl(142deg 72% 50%), white 18%),
+    0 8px 18px color-mix(in srgb, hsl(142deg 72% 31%), transparent 70%);
 }
 
 .bolt-project-run-button:hover {
-  background: hsl(142deg 72% 34%) !important;
+  background: linear-gradient(180deg, hsl(142deg 72% 47%), hsl(142deg 72% 36%)) !important;
   transform: translateY(-1px);
 }
 
@@ -2813,18 +2837,16 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-publish-button {
-  background: linear-gradient(135deg, var(--vc-ide-accent-ai-start) 0%, var(--vc-ide-accent-action) 100%);
-  color: white !important;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-ai-start), white 18%);
+  background: color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 91%);
+  color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 22%) !important;
   padding: 0 12px;
 }
 
 .bolt-project-publish-button:hover {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--vc-ide-accent-ai-start), white 8%) 0%,
-    color-mix(in srgb, var(--vc-ide-accent-action), white 8%) 100%
-  ) !important;
-  filter: brightness(1.08);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 34%);
+  background: color-mix(in srgb, var(--vc-ide-accent-ai-start), transparent 84%) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-ai-start), white 34%) !important;
   transform: translateY(-1px);
 }
 

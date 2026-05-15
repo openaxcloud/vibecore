@@ -62,6 +62,17 @@ describe('<MessagePatchReview />', () => {
     cleanup();
   });
 
+  it('renders nothing when auto-apply is enabled', () => {
+    window.localStorage.setItem('vibecore:agent-auto-apply', 'true');
+
+    const { container } = render(
+      <MessagePatchReview messageId="m-auto" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />,
+    );
+    expect(container.firstChild).toBeNull();
+
+    window.localStorage.removeItem('vibecore:agent-auto-apply');
+  });
+
   it('renders nothing when the message has no file actions', () => {
     const { container } = render(
       <MessagePatchReview messageId="m-empty" content="Just narration, no actions." parts={undefined} />,

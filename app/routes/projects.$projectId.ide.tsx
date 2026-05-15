@@ -23,6 +23,7 @@ import {
   Square,
   Trash2,
   User,
+  UserPlus,
 } from 'lucide-react';
 import {
   lazy,
@@ -664,19 +665,31 @@ function IdeProjectTopBar({
             </div>
           )}
         </div>
-        <div
-          className="bolt-project-action-group bolt-project-action-group--share"
-          data-priority="high"
-          aria-label="Share"
-        >
-          <Link
-            to={`/projects/${projectId}/ide?panel=collaborators`}
-            className="bolt-project-topbar-outline-button"
-            title="Open share, collaborators and live presence"
-          >
-            <Share2 className="h-3 w-3" aria-hidden />
-            Share
-          </Link>
+        <div className="bolt-project-action-group bolt-project-action-group--collaborate" data-priority="high">
+          <details className="bolt-project-collaborate-menu">
+            <summary
+              className="bolt-project-topbar-icon-button"
+              aria-label="Collaborate"
+              title="Collaborate: share or invite"
+              data-vc-tooltip="Collaborate"
+            >
+              <Share2 className="h-3.5 w-3.5" aria-hidden />
+            </summary>
+            <div
+              role="menu"
+              aria-label="Collaborate"
+              className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border p-2"
+            >
+              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+                <Share2 className="h-3.5 w-3.5" aria-hidden />
+                <span>Share project</span>
+              </Link>
+              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+                <UserPlus className="h-3.5 w-3.5" aria-hidden />
+                <span>Invite collaborators</span>
+              </Link>
+            </div>
+          </details>
         </div>
         <div
           className="bolt-project-action-group bolt-project-action-group--primary"

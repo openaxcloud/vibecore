@@ -30,6 +30,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
@@ -1872,7 +1873,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      window.localStorage.setItem('vibecore:agent-auto-apply', String(projectAutoApply));
+      setAutoApplyEnabled(projectAutoApply);
     }, [projectAutoApply]);
 
     const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
