@@ -4395,7 +4395,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (panel === 'terminal') {
-          return <ProjectTerminalPanel projectId={projectId} />;
+          return <ProjectInteractiveTerminalPanel projectId={projectId} />;
         }
 
         return (
@@ -6264,6 +6264,35 @@ function ProjectProblemsPanel() {
           ))}
         </ul>
       )}
+    </section>
+  );
+}
+
+function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) {
+  const [toolsOpen, setToolsOpen] = useState(false);
+
+  return (
+    <section className="bolt-project-terminal-direct-panel" aria-label="Interactive terminal">
+      <div className="bolt-project-terminal-direct-shell">
+        <ClientOnly fallback={<PanelLoading title="Loading terminal..." />}>
+          {() => (
+            <PanelBoundary title="Terminal">
+              <Suspense fallback={<PanelLoading title="Loading terminal..." />}>
+                <PanelGroup direction="vertical" className="h-full">
+                  <LazyTerminalTabs panelDefaultSize={100} />
+                </PanelGroup>
+              </Suspense>
+            </PanelBoundary>
+          )}
+        </ClientOnly>
+      </div>
+      <div className="bolt-project-terminal-direct-tools">
+        <button type="button" aria-expanded={toolsOpen} onClick={() => setToolsOpen((value) => !value)}>
+          <span className="i-ph:sliders-horizontal" aria-hidden />
+          Runtime panels
+        </button>
+      </div>
+      {toolsOpen ? <ProjectTerminalPanel projectId={projectId} /> : null}
     </section>
   );
 }

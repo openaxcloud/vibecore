@@ -1454,8 +1454,11 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
 
     if (state.closed && !wasClosed) {
-      void this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
-      this.addToExecutionQueue(() => this.#refreshPreviewAfterArtifactClose(artifactId));
+      this.addToExecutionQueue(async () => {
+        await artifact.runner.waitForIdle();
+        await this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
+        await this.#refreshPreviewAfterArtifactClose(artifactId);
+      });
     }
   }
   addAction(data: ActionCallbackData) {

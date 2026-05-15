@@ -10332,6 +10332,54 @@ button.bolt-project-statusbar-pill:focus-visible,
   padding: 14px;
 }
 
+.bolt-project-terminal-direct-panel {
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-project-terminal-direct-shell {
+  min-height: 220px;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.bolt-project-terminal-direct-shell > .panel-boundary,
+.bolt-project-terminal-direct-shell > div {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.bolt-project-terminal-direct-tools {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  border-top: 1px solid var(--vc-ide-border);
+  background: var(--vc-ide-surface-0);
+  padding: 6px 8px;
+}
+
+.bolt-project-terminal-direct-tools button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-project-terminal-direct-tools button:hover,
+.bolt-project-terminal-direct-tools button[aria-expanded='true'] {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
 .bolt-project-settings-hub {
   display: grid;
   gap: 16px;

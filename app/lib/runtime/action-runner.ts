@@ -156,6 +156,10 @@ export class ActionRunner {
     this.#updateAction(actionId, { status: 'complete', executed: true });
   }
 
+  async waitForIdle() {
+    await this.#currentExecutionPromise;
+  }
+
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
     const { actionId } = data;
     const action = this.actions.get()[actionId];

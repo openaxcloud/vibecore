@@ -85,4 +85,48 @@ describe('ActionRunner tool timeout handling', () => {
     expect(action?.status).toBe('failed');
     expect(action?.status === 'failed' ? action.error : '').toContain('timed out after 120 seconds');
   });
+
+  it('waits for queued file actions before post-generation validation can continue', async () => {
+    let releaseWrite!: () => void;
+
+    const writeStarted = vi.fn();
+
+    const writeFile = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          writeStarted();
+          releaseWrite = resolve;
+        }),
+    );
+
+    const runner = new ActionRunner(
+      createRuntime({ writeFile } as Partial<RuntimeAdapter>),
+      () => createShell() as any,
+    );
+
+    const data = createActionData();
+
+    runner.addAction(data);
+
+    const runPromise = runner.runAction(data, false);
+    const idlePromise = runner.waitForIdle();
+
+    let idleResolved = false;
+
+    void idlePromise.then(() => {
+      idleResolved = true;
+    });
+
+    await vi.waitFor(() => expect(writeStarted).toHaveBeenCalledTimes(1));
+    await Promise.resolve();
+
+    expect(idleResolved).toBe(false);
+
+    releaseWrite();
+    await runPromise;
+    await idlePromise;
+
+    expect(idleResolved).toBe(true);
+    expect(runner.actions.get()[data.actionId]?.status).toBe('complete');
+  });
 });
