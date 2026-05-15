@@ -463,6 +463,51 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('refuses to boot in production when the CORS allowlist is missing or dev-default', async () => {
+    await expect(
+      buildTestApiApp({
+        store: new TestApiStore(),
+        isProduction: true,
+        allowedOrigins: ['http://localhost:5173'],
+      }),
+    ).rejects.toThrow(/API_CORS_ORIGINS/);
+
+    await expect(
+      buildTestApiApp({
+        store: new TestApiStore(),
+        isProduction: true,
+        allowedOrigins: [],
+      }),
+    ).rejects.toThrow(/API_CORS_ORIGINS/);
+
+    await expect(
+      buildTestApiApp({
+        store: new TestApiStore(),
+        isProduction: true,
+        allowedOrigins: ['http://app.example.com'],
+      }),
+    ).rejects.toThrow(/API_CORS_ORIGINS/);
+  });
+
+  it('boots in production when the CORS allowlist is explicit HTTPS origins', async () => {
+    const app = await buildTestApiApp({
+      store: new TestApiStore(),
+      isProduction: true,
+      allowedOrigins: ['https://app.example.com', 'https://admin.example.com'],
+    });
+
+    const cors = await app.inject({
+      method: 'OPTIONS',
+      url: '/auth/me',
+      headers: {
+        origin: 'https://app.example.com',
+        'access-control-request-method': 'GET',
+      },
+    });
+    expect(cors.headers['access-control-allow-origin']).toBe('https://app.example.com');
+    await app.close();
+  });
+
   it('exposes request ids, correlation ids, synthetic health, and Prometheus metrics', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'observability@example.com', organizationName: 'Observability Org' });

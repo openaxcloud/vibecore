@@ -94,7 +94,10 @@ describe('HSTS in production', () => {
   });
 
   it('emits Strict-Transport-Security with includeSubDomains and preload when NODE_ENV=production', async () => {
-    const app = await buildApp({ store: new TestApiStore() });
+    const app = await buildApp({
+      store: new TestApiStore(),
+      allowedOrigins: ['https://app.example.com'],
+    });
     const response = await app.inject({ method: 'GET', url: '/health' });
     const header = response.headers['strict-transport-security'];
     expect(header).toBeDefined();
