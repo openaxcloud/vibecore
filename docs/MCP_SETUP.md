@@ -1,86 +1,181 @@
-# MCP servers — what's wired, what's optional, what's vestigial
+# MCP servers + stack reality
 
-Vibecore deploys to **Google Cloud Platform on GKE** (see `infra/gcp/bootstrap.sh`,
-`infra/helm/platform/`, `.github/workflows/deploy-prod.yml`). The
-`wrangler.toml`, `@remix-run/cloudflare-pages`, and `pages_build_output_dir`
-files are **leftovers from the Bolt.diy fork** and are not on the prod path —
-they pre-date the move to GKE and should eventually be removed.
+This file does two jobs at once:
 
-Three classes of work where Claude Code currently flies blind:
+  1. Document the **production stack** so Claude Code never gets confused
+     again about where vibecore actually runs.
+  2. List which MCP servers are wired, which need authentication, which are
+     opt-in, and which were removed.
 
-  1. **Visual / frontend** — no headed browser, no screenshots, every UI fix
-     is reasoned about from source instead of seen.
-  2. **Production observability** — runtime errors and pod logs live in
-     **Cloud Logging on GCP**, not in Cloudflare. Without a binding into
-     them we ship and pray.
-  3. **Multi-agent coordination** — concurrent agents racing on the same
-     files (we hit this 5+ times in one week) ate roughly a third of every
-     session in stash / pop / retry.
+---
 
-This file lists the MCP servers that close each gap, which one is wired
-today and what's left to enable.
+## 1. Stack reality
 
-## Installed (auto-active)
+### Production = GKE on Google Cloud Platform
+
+Authoritative sources in this repo:
+
+| Path | Role |
+|---|---|
+| `infra/gcp/bootstrap.sh` | Enables every required GCP API on the project: Artifact Registry, GKE, Cloud SQL, Memorystore Redis, GCS, Secret Manager, KMS, Cloud DNS, Cloud Logging, Cloud Monitoring, IAM, ServiceNetworking, CloudBuild. Provisions the `vibecore-terraform` service account. |
+| `infra/helm/platform/` | Helm chart for the application services running on GKE: `web`, `admin`, `api`, `worker`, `aiGateway`, `workspaceManager`, `previewProxy`. Wired to nginx ingress, cert-manager DNS-01 LE, Workload Identity. |
+| `infra/helm/workspaces-runtime/` | Separate Helm chart for the **user-project sandbox** using gVisor RuntimeClass — this is what isolates the projects vibecore users create. |
+| `infra/kubernetes/` | Raw manifests (PodSecurity namespaces, network policies, admission policies, resource quotas, limit ranges). |
+| `infra/terraform/` | The IaC. |
+| `.github/workflows/docker.yml` | Builds every service image (`Dockerfile` for `web`; `infra/docker/node-service.Dockerfile` for `admin`/`api`/`worker`/`aiGateway`/`workspaceManager`/`previewProxy`; `services/workspace-agent/Dockerfile` for the agent that runs in user pods), pushes to `${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/${image}`. Triggered by `push: tags: ['v*']`. |
+| `.github/workflows/deploy-prod.yml` | Manual gated deploy. `workflow_dispatch` requires an `image_tag`, a `staging_runtime_run_id`, and the literal string `READY` typed in. Runs `helm upgrade --install vibecore infra/helm/platform --set global.imageTag=…`. |
+
+Active GCP project: **`vibecore-495216`**.
+Active GCP account: **`groupequaliwatt@gmail.com`**.
+GKE clusters (`europe-west9` = Paris):
+
+  - `vibecore-prod-app` — runs the `platform` chart.
+  - `vibecore-prod-workspaces` — runs the `workspaces-runtime` chart.
+
+### Local dev = Docker compose + pnpm dev
+
+`docker-compose.dev.yml` boots the local services the app needs:
+
+  - **PostgreSQL** with `pgvector/pgvector:pg16` (the prod DB is Cloud SQL,
+    same Postgres + pgvector).
+  - **Redis 7** (prod uses Memorystore).
+  - **Mailpit** for outbound email capture during dev.
+
+Application code itself runs via `pnpm run dev` → Vite + Remix. There is also
+a `docker-compose.yaml` with `app-prod` / `app-dev` targets — those are for
+Coolify-style self-hosting, **not** the GKE path.
+
+### The Cloudflare bits are vestigial Bolt.diy leftovers
+
+Vibecore forked from Bolt.diy, which was designed for Cloudflare Pages. These
+files remain in the tree but **do not run in production**:
+
+  - `wrangler.toml` — references `bolt` Pages project, `pages_build_output_dir`.
+  - `package.json` scripts: `deploy`, `start:windows`, `start:unix`,
+    `dockerstart`, `typegen` (all call `wrangler`).
+  - dev-deps: `@remix-run/cloudflare`, `@remix-run/cloudflare-pages`,
+    `@cloudflare/workers-types`, `wrangler`.
+  - `vite.config.ts` `cloudflareDevProxyVitePlugin` — only used in `pnpm dev`.
+  - `app/lib/enterprise-api.server.ts` and route loaders read
+    `context.cloudflare.env` — works locally because of the Vite plugin,
+    not used by the Node runtime inside the GKE pods.
+
+A clean-up commit would replace `@remix-run/cloudflare` with
+`@remix-run/node`, swap `context.cloudflare.env` for the equivalent process
+env (Workload Identity injects secrets), strip wrangler and the Vite plugin.
+Not blocking — the current setup builds and runs because the Cloudflare bits
+only fire when `wrangler pages deploy` runs, which `deploy-prod.yml` never
+invokes.
+
+---
+
+## 2. Common mistakes to avoid
+
+If a future Claude Code session is about to:
+
+  - **Recommend the Cloudflare Developer Platform MCP**: stop. Vibecore
+    prod runs on GKE/GCP, not Cloudflare. The Cloudflare MCP can stay
+    authenticated for the user's *other* projects but is useless here.
+
+  - **Edit `wrangler.toml` or any `wrangler pages` script**: stop. None of
+    those run in the deploy path. Modifying them changes nothing prod-side.
+
+  - **Add Cloudflare Workers KV / R2 / D1 bindings**: stop. The prod uses
+    Cloud SQL (Postgres + pgvector), Memorystore Redis, GCS, KMS, Secret
+    Manager. None of those map to Cloudflare primitives.
+
+  - **Assume `context.cloudflare.env` works in prod**: only the Vite local
+    proxy fills it in. In the GKE pod, env comes from the Node runtime
+    (Workload Identity + Secret Manager + `process.env`).
+
+  - **Recommend Cloudflare Workers Logpush for vibecore observability**:
+    use Cloud Logging instead. The pod logs land there.
+
+---
+
+## 3. Installed MCP servers (auto-active)
+
+Registered in **`~/.claude.json` top-level `mcpServers`**. Loaded by every
+Claude Code session at user level — no per-project trust dialog.
 
 ### `playwright` (stdio)
 
-Source: [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp).
-Registered in **`~/.claude.json` top-level `mcpServers`**:
-
 ```json
-{
-  "mcpServers": {
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
-    }
-  }
+"playwright": {
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "@playwright/mcp@latest"]
 }
 ```
 
-Loaded automatically by every Claude Code session at user level — no per-
-project trust dialog. Provides `browser_navigate`, `browser_take_screenshot`,
-`browser_resize`, `browser_click`, `browser_snapshot` and the rest of the
-Playwright API as MCP tools.
+Visual validation of CSS / UI changes at any viewport (1446 / 800 / 500 px),
+screenshots, accessibility snapshots, real Chromium. Bundled chromium binaries
+already cached at `~/Library/Caches/ms-playwright/`.
 
-**What it unlocks**: visual validation of CSS/UI changes at multiple
-viewports (1446 / 800 / 500 px), before/after screenshots, accessibility
-snapshots from real Chromium. Bundled chromium binaries are already cached at
-`~/Library/Caches/ms-playwright/`.
+### `kubernetes` (stdio)
 
-**Restart**: a new Claude Code session is required for the server to pick up.
+```json
+"kubernetes": {
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "kubernetes-mcp-server@latest"]
+}
+```
 
-## Not the right MCP for vibecore prod ops
+Provides `pods_list`, `pods_log`, `pods_exec`, `resources_get`,
+`resources_list`, `helm_install`, etc. Reads the current kubectl context.
+
+**Prerequisites already wired on this machine:**
+
+  - `gcloud` CLI (homebrew) — authenticated as `groupequaliwatt@gmail.com`
+    on project `vibecore-495216`.
+  - `kubectl` CLI.
+  - `gke-gcloud-auth-plugin` — installed via
+    `gcloud components install gke-gcloud-auth-plugin` and symlinked into
+    `/opt/homebrew/bin/` so it's on PATH for kubectl.
+  - kubeconfig entries for both clusters via
+    `gcloud container clusters get-credentials vibecore-prod-app --region europe-west9` and
+    `gcloud container clusters get-credentials vibecore-prod-workspaces --region europe-west9`.
+
+**Network access caveat.** The clusters are private endpoints. If `kubectl get
+ns` hangs on this Mac, the IP isn't on the GKE authorized networks list —
+either get added there or connect via the corporate VPN before the MCP can
+talk to the clusters.
 
 ### `claude.ai Cloudflare Developer Platform`
 
-Already in the user's `claude.ai` catalogue and currently authenticated
-(`mcpsrv_013QKg5y5UfoW2uCwuKiASod`). **But vibecore does not run on
-Cloudflare** — the prod stack is GKE on GCP. Keeping the connector
-authenticated is harmless but does not surface vibecore's logs, pods or
-databases. Disconnect via `/mcp` if it's not used for any of your other
-projects.
+Currently authenticated in the user's `claude.ai` catalogue, but **disconnect
+it** — it's not the right tool for vibecore. See section 4.
 
-## Opt-in (you provide credentials, then add to `~/.claude.json`)
+---
 
-### `gcp` — GKE pods, Cloud Logging, Cloud SQL, GCS
+## 4. User actions still pending
 
-This is the one that actually maps to vibecore's prod. There is no single
-official Google-Cloud-wide MCP yet — viable options as of 2026-05:
+### Disconnect the Cloudflare MCP
 
-  - [`@google-cloud/mcp-gke`](https://github.com/GoogleCloudPlatform/mcp-gke)
-    when it's stable enough — `kubectl get pods`, `kubectl logs`,
-    deployment status, pod restart.
-  - [`cloud-logging-mcp`](https://github.com/GoogleCloudPlatform/cloud-logging-mcp)
-    — `gcloud logging read`, query the Cloud Logging API for any
-    severity / resource type. This is where vibecore's prod traces live.
-  - In the meantime: bare `gcloud` and `kubectl` via Bash on this machine
-    if you've authenticated locally (`gcloud auth login`).
+I can't disconnect a `claude.ai`-catalogue MCP programmatically. To do it
+yourself:
 
-If you want, drop the GCP project ID + the workload service account into
-the MCP block once the official servers stabilise. Today the realistic move
-is the Bash route plus the GitHub Actions logs from `.github/workflows/`.
+  1. Type `/mcp` in any Claude Code prompt.
+  2. Scroll to `claude.ai Cloudflare Developer Platform`.
+  3. Pick "Disconnect" (or "Sign out" depending on the version).
+
+The 25 Cloudflare tools (`workers_list`, `d1_databases_list`, `r2_*`, etc.)
+will be removed from the deferred-tools list on the next session.
+
+### Restart Claude Code
+
+After the new `mcpServers` entries (`playwright`, `kubernetes`) are present
+in `~/.claude.json`, Claude Code needs a fresh session to pick them up.
+Quit + relaunch, then run `/mcp` to verify both show as **connected**.
+
+---
+
+## 5. Opt-in MCPs (you provide credentials, then add to `~/.claude.json`)
+
+The two below are not installed yet because they need a credential or
+account you haven't shared. When you do, drop the block next to `playwright`
+and `kubernetes`.
 
 ### `sentry` — production error tracking
 
@@ -98,10 +193,7 @@ is the Bash route plus the GitHub Actions logs from `.github/workflows/`.
 }
 ```
 
-**What it unlocks**: when a screenshot in `#bugs` says "white screen at
-/projects/new", I can fetch the exception, stack trace, breadcrumbs and
-release tag without you copy-pasting from the dashboard. Pairs naturally
-with Cloud Logging for a full request → trace correlation.
+Pairs with Cloud Logging for a full request → trace correlation.
 
 ### `linear` — multi-agent task serialisation
 
@@ -116,58 +208,51 @@ with Cloud Logging for a full request → trace correlation.
 }
 ```
 
-**What it unlocks**: a single source of truth for "agent A is editing
-`app/components/chat/BaseChat.tsx` until 18:00" so concurrent agents don't
-keep stashing each other's WIP. Free for teams under 250 issues; substitute
-the GitHub Issues MCP if you prefer staying on GitHub.
+Single source of truth for "agent A is editing `BaseChat.tsx` until 18:00"
+so concurrent agents don't keep stashing each other's WIP. Substitute the
+GitHub Issues MCP if you'd rather stay on GitHub.
 
-## What about the Cloudflare leftovers in the repo?
+### `gcp-logging` — Cloud Logging for non-K8s resources
 
-These come from the Bolt.diy fork and are not in the GKE deployment path:
+Cloud SQL slow-query logs, Cloud DNS query logs, Cloud Run jobs if any
+appear, and any other GCP resource that emits to Cloud Logging:
 
-  - `wrangler.toml` — references `bolt` as the Pages project name.
-  - `pages_build_output_dir = "./build/client"` in `wrangler.toml`.
-  - `"deploy": "npm run build && wrangler pages deploy"` script in
-    `package.json` — won't be used by `deploy-prod.yml`.
-  - `@remix-run/cloudflare`, `@remix-run/cloudflare-pages`,
-    `@cloudflare/workers-types`, `wrangler` dev dependencies.
-  - `cloudflareDevProxyVitePlugin` in `vite.config.ts` — only used by
-    `pnpm dev` locally.
+```json
+"gcp-logging": {
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "@google-cloud/cloud-logging-mcp@latest"]
+}
+```
 
-If you confirm Cloudflare is never going to come back as a deploy target,
-a clean-up commit would:
+This server is **preview as of 2026-05** — pin the version once stable.
+The kubernetes MCP above already covers pod logs.
 
-  1. Replace `@remix-run/cloudflare` with `@remix-run/node` in the route
-     types and `enterprise-api.server.ts`.
-  2. Remove `wrangler.toml`, the deploy / start / typegen scripts that
-     call `wrangler`, and the `wrangler` dev dependency.
-  3. Strip `cloudflareDevProxyVitePlugin` from `vite.config.ts`.
-  4. Replace `context.cloudflare.env` reads with `process.env` (or whatever
-     the GKE pod uses for secret injection — Workload Identity + Secret
-     Manager).
+---
 
-That's a sensible follow-up but not blocking — the current setup builds
-and runs because the Cloudflare bits are only loaded when `wrangler pages
-deploy` is invoked, which `deploy-prod.yml` does not do.
+## 6. Smoke tests after restart
 
-## Verifying after restart
-
-Open any Claude Code session and run:
+After `Cmd+Q` → relaunch, run:
 
 ```text
 /mcp
 ```
 
-The list should show `playwright` as connected. The Cloudflare entry will
-also be listed and authenticated, but as noted above it is not the right
-tool for vibecore's prod ops. The Sentry / Linear / GCP ones only appear
-once their blocks are added and credentials present.
+Expect: `playwright` and `kubernetes` connected.
 
-To smoke-test Playwright without leaving Claude Code:
+**Playwright smoke**:
 
 ```text
 Take a screenshot of http://localhost:5173 at viewport 1446x900 and save it
 to /tmp/vibecore-large.png
 ```
 
-If the screenshot appears at the path, the visual-validation gap is closed.
+**Kubernetes smoke** (only works once you're on the GKE authorized network
+or VPN):
+
+```text
+Use the kubernetes MCP to list pods in the vibecore namespace on context
+gke_vibecore-495216_europe-west9_vibecore-prod-app
+```
+
+If either smoke fails, capture the error and we troubleshoot from there.
