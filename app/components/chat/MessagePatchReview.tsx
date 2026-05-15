@@ -12,14 +12,18 @@
  * while the new diff cards add per-hunk Accept/Reject affordances.
  */
 
+import { useStore } from '@nanostores/react';
 import { memo, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import type { AssistantMessageProps } from './AssistantMessage';
 import { InlineFileActionDiff, type InlineFileActionDiffApplyDetail } from './InlineFileActionDiff';
+import { computeFileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import { summarizeAssistantMessage } from '~/lib/runtime/message-block-summary';
 import { messageToBlocks } from '~/lib/runtime/message-blocks';
+import type { FileMap } from '~/lib/stores/files';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { aggregateReviewableDiffSummaries } from '~/utils/diff';
 
 type SnapshotInput = Pick<AssistantMessageProps, 'parts'> & {
   messageId: string;
@@ -58,6 +62,18 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
   const summary = useMemo(() => summarizeAssistantMessage(blocks), [blocks]);
   const fileActions = summary.fileActions;
 
+  /*
+   * Subscribe to the workbench file map so the aggregate +N/−M badge
+   * recomputes when an external write changes the on-disk content. We
+   * still let each card's hook recompute its own hunks independently —
+   * the aggregate stays in source order with the cards below.
+   */
+  const files = useStore(workbenchStore.files) as FileMap;
+
+  const aggregate = useMemo(() => {
+    return aggregateReviewableDiffSummaries(fileActions.map((action) => computeFileActionDiff(files, action).summary));
+  }, [files, fileActions]);
+
   const [isOpen, setIsOpen] = useState(true);
 
   if (fileActions.length === 0) {
@@ -81,6 +97,15 @@ export const MessagePatchReview = memo(({ messageId, content, parts, onApply }: 
           <span className="bolt-message-patch-review-count" aria-label={`${fileActions.length} files`}>
             {fileActions.length}
           </span>
+          {aggregate.addedLines + aggregate.removedLines > 0 ? (
+            <span
+              className="bolt-message-patch-review-aggregate"
+              aria-label={`${aggregate.addedLines} added, ${aggregate.removedLines} removed across ${aggregate.filesWithChanges} files`}
+            >
+              <span className="bolt-file-action-diff-added">+{aggregate.addedLines}</span>
+              <span className="bolt-file-action-diff-removed">−{aggregate.removedLines}</span>
+            </span>
+          ) : null}
         </button>
       </header>
       {isOpen ? (

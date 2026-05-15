@@ -15,26 +15,36 @@ import { buildReviewableDiffHunks, summarizeReviewableDiffHunks } from '~/utils/
  * webcontainer in the test. We also stub the workbenchStore write path so
  * the default apply handler doesn't try to reach disk.
  */
-vi.mock('~/lib/hooks/useFileActionDiff', () => ({
-  useFileActionDiff: (action: FileActionBlock): FileActionDiff => {
-    const absolutePath = action.filePath.startsWith('/') ? action.filePath : `/home/project/${action.filePath}`;
-    const original = '';
-    const hunks = buildReviewableDiffHunks(absolutePath, original, action.content);
+function buildFakeDiff(action: FileActionBlock): FileActionDiff {
+  const absolutePath = action.filePath.startsWith('/') ? action.filePath : `/home/project/${action.filePath}`;
+  const original = '';
+  const hunks = buildReviewableDiffHunks(absolutePath, original, action.content);
 
-    return {
-      absolutePath,
-      filePath: action.filePath,
-      originalContent: original,
-      proposedContent: action.content,
-      isNewFile: true,
-      hunks,
-      summary: summarizeReviewableDiffHunks(hunks),
-    };
-  },
+  return {
+    absolutePath,
+    filePath: action.filePath,
+    originalContent: original,
+    proposedContent: action.content,
+    isNewFile: true,
+    hunks,
+    summary: summarizeReviewableDiffHunks(hunks),
+  };
+}
+
+vi.mock('~/lib/hooks/useFileActionDiff', () => ({
+  useFileActionDiff: buildFakeDiff,
+  computeFileActionDiff: (_files: unknown, action: FileActionBlock) => buildFakeDiff(action),
 }));
+
+const { filesMock } = vi.hoisted(() => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- needed to stay inside the hoisted closure
+  const { map } = require('nanostores') as typeof import('nanostores');
+  return { filesMock: map<Record<string, { type: 'file'; content: string; isBinary: false }>>({}) };
+});
 
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
+    files: filesMock,
     writeFileContent: vi.fn(async () => undefined),
   },
 }));
@@ -81,6 +91,13 @@ describe('<MessagePatchReview />', () => {
 
     fireEvent.click(toggle);
     expect(screen.queryByLabelText('File action diff for src/one.ts')).toBeTruthy();
+  });
+
+  it('shows aggregate +N / −M counts in the panel header', () => {
+    render(<MessagePatchReview messageId="m1" content={MESSAGE_WITH_TWO_FILES} parts={undefined} />);
+
+    // Both files are new → 1 added line each (no prior content), 0 removed.
+    expect(screen.getByLabelText(/2 added, 0 removed across 2 files/)).toBeTruthy();
   });
 
   it('forwards onApply for each file action card', () => {

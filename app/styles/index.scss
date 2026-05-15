@@ -925,6 +925,15 @@ body
   padding: 1px 6px;
 }
 
+.bolt-message-patch-review-aggregate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+
 .bolt-message-patch-review-body {
   display: flex;
   flex-direction: column;
