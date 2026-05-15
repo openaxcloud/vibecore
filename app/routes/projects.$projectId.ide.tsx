@@ -39,7 +39,7 @@ import {
 } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
+import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
@@ -175,6 +175,9 @@ export default function ProjectIdeRoute() {
     initialIdePanels,
     projectApiError,
   } = useLoaderData<typeof loader>();
+  const optimisticShell = (
+    <BaseChat chatStarted projectIdeMode projectId={projectId} initialIdePanels={initialIdePanels} />
+  );
 
   return (
     <ProjectWorkspaceProvider projectId={projectId} initialError={projectApiError}>
@@ -190,12 +193,10 @@ export default function ProjectIdeRoute() {
           projectApiError={projectApiError}
         />
         <main className="h-dvh pt-9">
-          <ClientOnly
-            fallback={<BaseChat chatStarted projectIdeMode projectId={projectId} initialIdePanels={initialIdePanels} />}
-          >
+          <ClientOnly fallback={optimisticShell}>
             {() => (
               <PanelBoundary title="Bolt IDE">
-                <Suspense fallback={<PanelLoading title="Loading Bolt IDE..." />}>
+                <Suspense fallback={optimisticShell}>
                   <ProjectIdeChat
                     forceWorkbench
                     projectIdeMode
