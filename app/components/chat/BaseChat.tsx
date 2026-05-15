@@ -1805,9 +1805,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const DEFAULT_RIGHT_PANEL_WIDTH = 240;
-    const MIN_RIGHT_PANEL_WIDTH = 180;
-    const MAX_RIGHT_PANEL_WIDTH = 300;
+    const DEFAULT_RIGHT_PANEL_WIDTH = 220;
+    const MIN_RIGHT_PANEL_WIDTH = 160;
+    const MAX_RIGHT_PANEL_WIDTH = 260;
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
@@ -5125,9 +5125,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <Panel
                 id="project-right-panel"
                 order={3}
-                defaultSize={17}
-                minSize={12}
-                maxSize={28}
+                defaultSize={14}
+                minSize={10}
+                maxSize={22}
                 collapsible
                 collapsedSize={0}
                 className="bolt-project-panel-slot bolt-project-panel-slot-right"
