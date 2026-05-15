@@ -1,0 +1,135 @@
+/**
+ * Presentational @file-mention palette for the chat composer.
+ *
+ * Sprint 3 — given the current query (the text typed after the `@`) the
+ * palette renders the top fuzzy matches from `useFileMentions` and lets
+ * the user pick one with arrow keys + Enter, mouse click, or Escape to
+ * dismiss. It does NOT own the composer's text input — the parent decides
+ * where to anchor and how to splice the selected path into the prompt.
+ */
+
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+
+import { useFileMentions, type FileMentionCandidate } from '~/lib/hooks/useFileMentions';
+
+export interface FileMentionsPaletteProps {
+  /** Free-text query, typically what the user typed after `@`. */
+  query: string;
+
+  /** Called when the user picks a candidate. Returns the selected file. */
+  onSelect: (candidate: FileMentionCandidate) => void;
+
+  /** Called when the user presses Escape or the palette wants to close. */
+  onDismiss?: () => void;
+
+  /** Optional max number of results; defaults to 12. */
+  limit?: number;
+}
+
+export const FileMentionsPalette = memo(({ query, onSelect, onDismiss, limit }: FileMentionsPaletteProps) => {
+  const candidates = useFileMentions(query, { limit });
+  const [activeIndex, setActiveIndex] = useState(0);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  /*
+   * Clamp the active index when the candidate list shrinks (e.g. typing
+   * narrows the matches). Also reset to the top whenever the query
+   * changes — that's the standard palette UX.
+   */
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [query]);
+
+  useEffect(() => {
+    if (activeIndex >= candidates.length) {
+      setActiveIndex(Math.max(0, candidates.length - 1));
+    }
+  }, [activeIndex, candidates.length]);
+
+  const select = useCallback(
+    (candidate: FileMentionCandidate | undefined) => {
+      if (!candidate) {
+        return;
+      }
+
+      onSelect(candidate);
+    },
+    [onSelect],
+  );
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          setActiveIndex((idx) => Math.min(idx + 1, candidates.length - 1));
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setActiveIndex((idx) => Math.max(idx - 1, 0));
+          break;
+        case 'Enter':
+        case 'Tab':
+          event.preventDefault();
+          select(candidates[activeIndex]);
+          break;
+        case 'Escape':
+          event.preventDefault();
+          onDismiss?.();
+          break;
+        default:
+          break;
+      }
+    },
+    [activeIndex, candidates, onDismiss, select],
+  );
+
+  if (candidates.length === 0) {
+    return (
+      <div
+        className="bolt-file-mentions-palette"
+        role="listbox"
+        aria-label="File mentions"
+        data-empty="true"
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+      >
+        <p className="bolt-file-mentions-empty">No matching files</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="bolt-file-mentions-palette"
+      role="listbox"
+      aria-label="File mentions"
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+    >
+      <ul ref={listRef} className="bolt-file-mentions-list">
+        {candidates.map((candidate, index) => {
+          const isActive = index === activeIndex;
+
+          return (
+            <li
+              key={candidate.absolutePath}
+              role="option"
+              aria-selected={isActive}
+              data-active={isActive ? 'true' : 'false'}
+              className="bolt-file-mentions-item"
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => select(candidate)}
+            >
+              <span className="i-ph:file-code bolt-file-mentions-icon" aria-hidden />
+              <span className="bolt-file-mentions-basename">{candidate.basename}</span>
+              <span className="bolt-file-mentions-path">{candidate.displayPath}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+});
+
+FileMentionsPalette.displayName = 'FileMentionsPalette';

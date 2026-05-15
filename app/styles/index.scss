@@ -934,27 +934,312 @@ body
   margin-left: 4px;
 }
 
-.bolt-message-patch-review-apply-all {
+.bolt-message-patch-review-actions {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bolt-message-patch-review-apply-all,
+.bolt-message-patch-review-reject-all {
   font-size: 12px;
   font-weight: 500;
-  color: var(--vc-ide-text-on-accent, #fff);
-  background: var(--vc-ide-accent-action);
-  border: 1px solid var(--vc-ide-accent-action);
   border-radius: 6px;
   padding: 4px 12px;
   cursor: pointer;
 }
 
+.bolt-message-patch-review-apply-all {
+  color: var(--vc-ide-text-on-accent, #fff);
+  background: var(--vc-ide-accent-action);
+  border: 1px solid var(--vc-ide-accent-action);
+}
+
+.bolt-message-patch-review-reject-all {
+  color: var(--vc-ide-text-secondary);
+  background: var(--vc-ide-bg-overlay);
+  border: 1px solid var(--vc-ide-border-subtle);
+}
+
 .bolt-message-patch-review-apply-all:hover:not(:disabled),
+.bolt-message-patch-review-reject-all:hover:not(:disabled),
+.bolt-message-patch-review-reject-all:focus-visible,
 .bolt-message-patch-review-apply-all:focus-visible {
   filter: brightness(1.05);
   outline: none;
 }
 
-.bolt-message-patch-review-apply-all:disabled {
+.bolt-message-patch-review-apply-all:disabled,
+.bolt-message-patch-review-reject-all:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/*
+ * Sprint 3 — @file-mention palette. Lives outside the message list, so
+ * we lean on similar IDE tokens but add a shadow so it visually floats
+ * above the composer.
+ */
+.bolt-file-mentions-palette {
+  display: block;
+  min-width: 280px;
+  max-width: 420px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--vc-ide-bg-elevated);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.bolt-file-mentions-palette[data-empty='true'] {
+  padding: 12px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-file-mentions-empty {
+  margin: 0;
+}
+
+.bolt-file-mentions-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+
+.bolt-file-mentions-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-file-mentions-item[data-active='true'] {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-file-mentions-icon {
+  color: var(--vc-ide-text-secondary);
+  font-size: 16px;
+}
+
+.bolt-file-mentions-basename {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-file-mentions-path {
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sprint 4 — slash commands palette. */
+.bolt-slash-commands-palette {
+  display: block;
+  min-width: 280px;
+  max-width: 460px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--vc-ide-bg-elevated);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.bolt-slash-commands-palette[data-empty='true'] {
+  padding: 12px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+.bolt-slash-commands-empty {
+  margin: 0;
+}
+
+.bolt-slash-commands-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+}
+
+.bolt-slash-commands-item {
+  display: grid;
+  grid-template-columns: minmax(80px, auto) 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.bolt-slash-commands-item[data-active='true'] {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-slash-commands-keyword {
+  grid-row: 1 / span 2;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-weight: 500;
+  align-self: start;
+}
+
+.bolt-slash-commands-label {
+  font-weight: 500;
+  align-self: end;
+}
+
+.bolt-slash-commands-description {
+  grid-column: 2 / span 2;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+.bolt-slash-commands-shortcut {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.bolt-slash-commands-footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+/* Sprint 5 — plan-first checklist. */
+.bolt-plan-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-elevated);
+}
+
+.bolt-plan-checklist-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bolt-plan-checklist-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-plan-checklist-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bolt-plan-checklist-progress-label {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-plan-checklist-progress-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-overlay);
+  overflow: hidden;
+}
+
+.bolt-plan-checklist-progress-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--vc-ide-accent-action);
+  transition: width 0.2s ease-out;
+}
+
+.bolt-plan-checklist-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bolt-plan-checklist-item {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: start;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--vc-ide-bg-base);
+}
+
+.bolt-plan-checklist-item[data-status='completed'] .bolt-plan-checklist-description {
+  text-decoration: line-through;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-plan-checklist-item[data-status='failed'] .bolt-plan-checklist-status {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-plan-checklist-item[data-status='in_progress'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 6%, transparent);
+}
+
+.bolt-plan-checklist-icon {
+  font-size: 16px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-plan-checklist-item[data-status='completed'] .bolt-plan-checklist-icon {
+  color: var(--vc-ide-accent-success, #16a34a);
+}
+
+.bolt-plan-checklist-item[data-status='failed'] .bolt-plan-checklist-icon {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-plan-checklist-item[data-status='in_progress'] .bolt-plan-checklist-icon {
+  color: var(--vc-ide-accent-action);
+}
+
+.bolt-plan-checklist-description {
+  font-size: 12px;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-plan-checklist-status {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-plan-checklist-result {
+  grid-column: 2 / span 2;
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
 }
 
 .bolt-message-patch-review-body {
@@ -1035,6 +1320,7 @@ body
   font-weight: 600;
 }
 
+.bolt-file-action-diff-file-actions,
 .bolt-file-action-diff-bulk-actions {
   display: inline-flex;
   align-items: center;
@@ -1042,6 +1328,7 @@ body
   margin-left: auto;
 }
 
+.bolt-file-action-diff-file-action,
 .bolt-file-action-diff-bulk-action {
   font-size: 11px;
   color: var(--vc-ide-text-secondary);
@@ -1052,6 +1339,14 @@ body
   cursor: pointer;
 }
 
+.bolt-file-action-diff-file-action-accept {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 42%, transparent);
+  background: color-mix(in srgb, var(--vc-ide-accent-success, #16a34a) 14%, transparent);
+  color: var(--vc-ide-accent-success, #16a34a);
+}
+
+.bolt-file-action-diff-file-action:hover:not(:disabled),
+.bolt-file-action-diff-file-action:focus-visible,
 .bolt-file-action-diff-bulk-action:hover:not(:disabled),
 .bolt-file-action-diff-bulk-action:focus-visible {
   background: var(--vc-ide-bg-hover);
@@ -1059,6 +1354,7 @@ body
   outline: none;
 }
 
+.bolt-file-action-diff-file-action:disabled,
 .bolt-file-action-diff-bulk-action:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1102,16 +1398,52 @@ body
 .bolt-file-action-diff-hunk-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 6px 12px;
   background: var(--vc-ide-bg-subtle);
+  cursor: pointer;
+  list-style: none;
+}
+
+.bolt-file-action-diff-hunk-header::-webkit-details-marker {
+  display: none;
+}
+
+.bolt-file-action-diff-hunk-details[open] .bolt-file-action-diff-hunk-header {
   border-bottom: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-file-action-diff-hunk-checkbox {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.bolt-file-action-diff-hunk-checkbox input {
+  accent-color: var(--vc-ide-accent-success, #16a34a);
 }
 
 .bolt-file-action-diff-hunk-range {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
   color: var(--vc-ide-text-secondary);
+}
+
+.bolt-file-action-diff-hunk-show {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bolt-file-action-diff-hunk-details[open] .bolt-file-action-diff-hunk-show [class*='i-ph:'] {
+  transform: rotate(180deg);
 }
 
 .bolt-file-action-diff-hunk-actions {
@@ -1205,6 +1537,8 @@ body
   padding: 8px 12px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-subtle);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
 }
 
 .bolt-file-action-diff-footer-status {
