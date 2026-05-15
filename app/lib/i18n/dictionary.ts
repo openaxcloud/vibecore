@@ -14,6 +14,7 @@
 
 import { detectUserLanguage, type SupportedLanguage } from './language';
 import { en } from './messages/en';
+import { fr } from './messages/fr';
 
 /**
  * Bundled translation tables. New languages are added by importing
@@ -21,11 +22,11 @@ import { en } from './messages/en';
  * identical to the English seed keeps `t()` strongly typed.
  */
 export type TranslationKey = keyof typeof en;
-type TranslationBundle = Partial<Record<TranslationKey, string>>;
+export type TranslationBundle = Partial<Record<TranslationKey, string>>;
 
 const MESSAGES: Record<SupportedLanguage, TranslationBundle> = {
   en,
-  fr: {},
+  fr,
 };
 
 let currentLanguage: SupportedLanguage = detectUserLanguage();
