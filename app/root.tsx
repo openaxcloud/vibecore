@@ -17,6 +17,8 @@ import { ClientOnly } from 'remix-utils/client-only';
 
 import 'virtual:uno.css';
 
+import { AppErrorBoundary } from './components/ui/PanelBoundary';
+
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
@@ -211,7 +213,9 @@ export default function App() {
 
   return (
     <Layout>
-      <Outlet />
+      <AppErrorBoundary title="VibeCore" boundaryId="app-root">
+        <Outlet />
+      </AppErrorBoundary>
     </Layout>
   );
 }

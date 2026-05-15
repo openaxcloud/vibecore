@@ -1,54 +1,204 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
+import { logStore } from '~/lib/stores/logs';
+
 interface PanelBoundaryProps {
   title: string;
+  level?: 'app' | 'zone' | 'panel';
+  boundaryId?: string;
+  projectId?: string;
+  userId?: string | null;
+  sessionId?: string | null;
+  autoRetry?: boolean;
+  maxAutoRetries?: number;
+  retryDelayMs?: number;
+  getSnapshot?: () => Record<string, unknown>;
   children: ReactNode;
 }
 
 interface PanelBoundaryState {
   error?: Error;
+  retryCount: number;
+  reported: boolean;
 }
 
 export class PanelBoundary extends Component<PanelBoundaryProps, PanelBoundaryState> {
-  state: PanelBoundaryState = {};
+  state: PanelBoundaryState = { retryCount: 0, reported: false };
+  #retryTimer?: number;
 
-  static getDerivedStateFromError(error: Error): PanelBoundaryState {
-    return { error };
+  static getDerivedStateFromError(error: Error): Partial<PanelBoundaryState> {
+    return { error, reported: false };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error(`[PanelBoundary] ${this.props.title} failed`, error, errorInfo);
+    this.#report(error, errorInfo, 'caught');
+
+    const maxAutoRetries = this.props.maxAutoRetries ?? 1;
+    const shouldAutoRetry = this.props.autoRetry !== false && this.state.retryCount < maxAutoRetries;
+
+    if (shouldAutoRetry && typeof window !== 'undefined') {
+      this.#retryTimer = window.setTimeout(() => {
+        this.setState((state) => ({
+          error: undefined,
+          retryCount: state.retryCount + 1,
+          reported: false,
+        }));
+      }, this.props.retryDelayMs ?? 1000);
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.#retryTimer && typeof window !== 'undefined') {
+      window.clearTimeout(this.#retryTimer);
+    }
+  }
+
+  #boundaryLevel() {
+    return this.props.level ?? 'panel';
+  }
+
+  #report(error: Error, errorInfo?: ErrorInfo, source: 'caught' | 'manual' = 'manual') {
+    const level = this.#boundaryLevel();
+    const boundaryId = this.props.boundaryId ?? this.props.title.toLowerCase().replace(/\s+/g, '-');
+    const snapshot = safeSnapshot(this.props.getSnapshot);
+    const sessionId = this.props.sessionId ?? getBrowserSessionId();
+
+    console.error(`[${level}Boundary] ${this.props.title} crashed`, error, errorInfo);
+    logStore.logError(`${this.props.title} ${level} boundary crashed`, error, {
+      boundaryId,
+      level,
+      projectId: this.props.projectId,
+      userId: this.props.userId ?? undefined,
+      sessionId,
+      source,
+      retryCount: this.state.retryCount,
+      componentStack: errorInfo?.componentStack,
+      snapshot,
+    });
   }
 
   render() {
     if (this.state.error) {
+      const level = this.#boundaryLevel();
+      const noun = level === 'app' ? 'application' : level;
+
       return (
         <section
           className="flex h-full min-h-0 flex-col items-center justify-center gap-3 bg-bolt-elements-background-depth-1 p-6 text-center"
           role="alert"
           aria-live="polite"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-bolt-elements-borderColor text-bolt-elements-textSecondary">
-            <span className="i-ph:warning-duotone text-xl" aria-hidden />
+          <div className="flex h-12 w-12 items-center justify-center rounded-md border border-orange-400/30 bg-orange-400/10 text-orange-300">
+            <span className="i-ph:warning-duotone text-2xl" aria-hidden />
           </div>
           <div className="max-w-sm">
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">{this.props.title} failed to load</h2>
+            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">
+              The {this.props.title} {noun} crashed
+            </h2>
             <p className="mt-1 text-xs leading-5 text-bolt-elements-textSecondary">
-              The panel state was isolated so the rest of the workspace can keep running.
+              {this.state.error.message || 'The error was isolated so the rest of the workspace can keep running.'}
             </p>
           </div>
-          <button
-            type="button"
-            className="h-8 rounded-md border border-bolt-elements-borderColor px-3 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
-            onClick={() => this.setState({ error: undefined })}
-          >
-            Retry panel
-          </button>
+          {this.state.retryCount === 0 && this.props.autoRetry !== false ? (
+            <p className="text-[11px] text-bolt-elements-textTertiary">Retrying once automatically...</p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              className="h-8 rounded-md border border-bolt-elements-borderColor px-3 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
+              onClick={() => this.setState({ error: undefined, reported: false })}
+            >
+              Reload {level}
+            </button>
+            <button
+              type="button"
+              className="h-8 rounded-md px-3 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2"
+              onClick={() => {
+                if (this.state.error) {
+                  this.#report(this.state.error, undefined, 'manual');
+                  this.setState({ reported: true });
+                }
+              }}
+            >
+              {this.state.reported ? 'Bug report logged' : 'Report bug'}
+            </button>
+          </div>
         </section>
       );
     }
 
     return this.props.children;
+  }
+}
+
+export function AppErrorBoundary(props: Omit<PanelBoundaryProps, 'level'>) {
+  return <PanelBoundary {...props} level="app" />;
+}
+
+export function ZoneErrorBoundary({
+  zone,
+  ...props
+}: Omit<PanelBoundaryProps, 'level' | 'title'> & { zone: string; title?: string }) {
+  return <PanelBoundary {...props} title={props.title ?? zone} level="zone" boundaryId={props.boundaryId ?? zone} />;
+}
+
+export function PanelErrorBoundary({
+  panel,
+  ...props
+}: Omit<PanelBoundaryProps, 'level' | 'title'> & { panel: string; title?: string }) {
+  return <PanelBoundary {...props} title={props.title ?? panel} level="panel" boundaryId={props.boundaryId ?? panel} />;
+}
+
+function safeSnapshot(getSnapshot?: () => Record<string, unknown>) {
+  if (!getSnapshot) {
+    return undefined;
+  }
+
+  try {
+    return sanitizeSnapshot(getSnapshot());
+  } catch (error) {
+    return {
+      snapshotError: error instanceof Error ? error.message : 'Unable to capture boundary snapshot',
+    };
+  }
+}
+
+function sanitizeSnapshot(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.slice(0, 50).map((item) => sanitizeSnapshot(item));
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([key]) => !/token|secret|password|api[-_]?key|authorization/i.test(key))
+      .slice(0, 50)
+      .map(([key, entry]) => [key, typeof entry === 'object' ? sanitizeSnapshot(entry) : entry]),
+  );
+}
+
+function getBrowserSessionId() {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  try {
+    const key = 'vibecore-error-boundary-session-id';
+    const existing = window.sessionStorage.getItem(key);
+
+    if (existing) {
+      return existing;
+    }
+
+    const next = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.sessionStorage.setItem(key, next);
+
+    return next;
+  } catch {
+    return undefined;
   }
 }
 

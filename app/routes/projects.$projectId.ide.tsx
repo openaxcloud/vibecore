@@ -39,7 +39,7 @@ import {
 } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { PanelBoundary } from '~/components/ui/PanelBoundary';
+import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
@@ -195,7 +195,7 @@ export default function ProjectIdeRoute() {
         <main className="h-dvh pt-9">
           <ClientOnly fallback={optimisticShell}>
             {() => (
-              <PanelBoundary title="Bolt IDE">
+              <ZoneErrorBoundary zone="editor" title="Bolt IDE" boundaryId={`project:${projectId}:ide`}>
                 <Suspense fallback={optimisticShell}>
                   <ProjectIdeChat
                     forceWorkbench
@@ -204,7 +204,7 @@ export default function ProjectIdeRoute() {
                     initialIdePanels={initialIdePanels}
                   />
                 </Suspense>
-              </PanelBoundary>
+              </ZoneErrorBoundary>
             )}
           </ClientOnly>
         </main>

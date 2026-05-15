@@ -36,7 +36,7 @@ import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
-import { PanelBoundary, PanelLoading } from '~/components/ui/PanelBoundary';
+import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
@@ -4556,7 +4556,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }}
             >
               {activeTab ? (
-                renderPaneContent(activeTab.panel)
+                <PanelErrorBoundary
+                  panel={panelTitle(activeTab.panel)}
+                  boundaryId={`project:${projectId}:pane:${leaf.id}:${activeTab.panel}`}
+                  projectId={projectId}
+                  getSnapshot={() => ({
+                    paneId: leaf.id,
+                    activeTabId: activeTab.id,
+                    panel: activeTab.panel,
+                    filePath: activeTab.filePath,
+                    unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
+                  })}
+                >
+                  {renderPaneContent(activeTab.panel)}
+                </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState
                   files={recentProjectFiles}
@@ -4577,6 +4590,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         onProjectEditorSave,
         openIdeTool,
         paneDropTarget,
+        projectId,
         recentProjectFiles,
         renderPaneContent,
         selectPaneTab,
@@ -4696,9 +4710,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           } as React.CSSProperties
         }
       >
-        <aside className="bolt-project-ide-rail" aria-label="Workspace tools">
-          <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
-        </aside>
+        <ZoneErrorBoundary
+          zone="sidebar"
+          title="Workspace tools"
+          boundaryId={`project:${projectId}:sidebar`}
+          projectId={projectId}
+          getSnapshot={() => ({
+            activeWorkspacePanel,
+            rightPanelMode,
+            rightPanelOpen,
+            changedFiles: statusbarChangedFiles,
+          })}
+        >
+          <aside className="bolt-project-ide-rail" aria-label="Workspace tools">
+            <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
+          </aside>
+        </ZoneErrorBoundary>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
           <Panel
             id="project-workspace-panel"
@@ -4707,46 +4734,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >
-            <div className="bolt-project-workspace-shell">
-              <section className="bolt-project-ide-panel" aria-label="Editor and preview">
-                <div className="bolt-project-main-stack">
-                  <div
-                    className="bolt-project-main-panes"
-                    style={
-                      {
-                        '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
-                      } as React.CSSProperties
-                    }
-                  >
-                    {renderPaneNode(paneTree)}
-                  </div>
-                  {terminalBottomOpen && (
+            <ZoneErrorBoundary
+              zone="editor"
+              title="Workspace"
+              boundaryId={`project:${projectId}:workspace`}
+              projectId={projectId}
+              getSnapshot={() => ({
+                activeWorkspacePanel,
+                activePaneId,
+                terminalBottomOpen,
+                bottomTerminalView,
+                tabCount: flattenTabs(paneTree).length,
+              })}
+            >
+              <div className="bolt-project-workspace-shell">
+                <section className="bolt-project-ide-panel" aria-label="Editor and preview">
+                  <div className="bolt-project-main-stack">
                     <div
-                      className="bolt-project-bottom-terminal-shell"
-                      style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                      className="bolt-project-main-panes"
+                      style={
+                        {
+                          '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
+                        } as React.CSSProperties
+                      }
                     >
-                      <div
-                        className="bolt-project-terminal-resize-handle"
-                        role="separator"
-                        aria-orientation="horizontal"
-                        aria-label="Resize pinned terminal"
-                        onMouseDown={startTerminalResize}
-                      />
-                      <div className="bolt-project-bottom-terminal-frame">
-                        <ProjectBottomTerminal
-                          projectId={projectId}
-                          active={bottomTerminalView}
-                          runtimeWorkspace={projectRuntimeState.workspace}
-                          initialIdePanels={initialIdePanels}
-                          onActiveChange={setBottomTerminalView}
-                          onClose={() => setTerminalBottomOpen(false)}
-                        />
-                      </div>
+                      {renderPaneNode(paneTree)}
                     </div>
-                  )}
-                </div>
-              </section>
-            </div>
+                    {terminalBottomOpen && (
+                      <div
+                        className="bolt-project-bottom-terminal-shell"
+                        style={{ '--project-terminal-height': `${terminalBottomHeight}px` } as React.CSSProperties}
+                      >
+                        <div
+                          className="bolt-project-terminal-resize-handle"
+                          role="separator"
+                          aria-orientation="horizontal"
+                          aria-label="Resize pinned terminal"
+                          onMouseDown={startTerminalResize}
+                        />
+                        <div className="bolt-project-bottom-terminal-frame">
+                          <ProjectBottomTerminal
+                            projectId={projectId}
+                            active={bottomTerminalView}
+                            runtimeWorkspace={projectRuntimeState.workspace}
+                            initialIdePanels={initialIdePanels}
+                            onActiveChange={setBottomTerminalView}
+                            onClose={() => setTerminalBottomOpen(false)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+            </ZoneErrorBoundary>
           </Panel>
           {rightPanelOpen && (
             <>
@@ -4797,30 +4838,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </button>
                   </div>
                   <div className="bolt-project-right-panel-content">
-                    {rightPanelMode === 'files' ? (
-                      <ProjectFilesTool
-                        files={projectFiles}
-                        selectedFile={selectedFile}
-                        unsavedFiles={unsavedFiles}
-                        openEditors={flattenTabs(paneTree)
-                          .filter((tab) => tab.filePath)
-                          .map((tab) => ({
-                            id: tab.id,
-                            filePath: tab.filePath,
-                            dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
-                            pinned: Boolean(tab.pinned),
-                          }))}
-                        changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
-                        onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
-                        onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
-                      />
-                    ) : (
-                      <ProjectIdeServicePanel
-                        projectId={projectId}
-                        panel="logs"
-                        initialPayload={initialIdePanels?.logs}
-                      />
-                    )}
+                    <PanelErrorBoundary
+                      panel={rightPanelMode === 'files' ? 'Files' : 'Preview logs'}
+                      boundaryId={`project:${projectId}:right:${rightPanelMode}`}
+                      projectId={projectId}
+                      getSnapshot={() => ({
+                        rightPanelMode,
+                        selectedFile,
+                        fileCount: projectFilePaths.length,
+                        changedFiles: statusbarChangedFiles,
+                      })}
+                    >
+                      {rightPanelMode === 'files' ? (
+                        <ProjectFilesTool
+                          files={projectFiles}
+                          selectedFile={selectedFile}
+                          unsavedFiles={unsavedFiles}
+                          openEditors={flattenTabs(paneTree)
+                            .filter((tab) => tab.filePath)
+                            .map((tab) => ({
+                              id: tab.id,
+                              filePath: tab.filePath,
+                              dirty: unsavedFiles instanceof Set && unsavedFiles.has(tab.filePath!),
+                              pinned: Boolean(tab.pinned),
+                            }))}
+                          changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
+                          onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
+                          onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
+                        />
+                      ) : (
+                        <ProjectIdeServicePanel
+                          projectId={projectId}
+                          panel="logs"
+                          initialPayload={initialIdePanels?.logs}
+                        />
+                      )}
+                    </PanelErrorBoundary>
                   </div>
                 </aside>
               </Panel>
@@ -5094,7 +5147,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </div>
                     </div>
                   )}
-                  <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+                  <ZoneErrorBoundary
+                    zone="agent"
+                    title="Agent"
+                    boundaryId={`project:${projectId}:agent`}
+                    projectId={projectId}
+                    getSnapshot={() => ({
+                      isAgentRunning,
+                      projectAgentExecutionMode,
+                      projectPlanFirst,
+                      projectAutoApply,
+                      pendingProposals: pendingAgentPatchProposals.length,
+                    })}
+                  >
+                    <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+                  </ZoneErrorBoundary>
                 </section>
               </Panel>
             </>
@@ -6003,16 +6070,28 @@ function ProjectIdeServicePanel({
             <div className="text-[12px]">Once your workspace produces data, it will appear here automatically.</div>
           </div>
         ) : (
-          <ProjectIdePanelContent
-            panel={panel}
-            data={data}
-            project={project}
+          <PanelErrorBoundary
+            panel={title}
+            boundaryId={`project:${projectId ?? 'unknown'}:service:${panel}`}
             projectId={projectId}
-            onSubmit={submit}
-            busy={busy}
-            reload={loadPanel}
-            lastLoadedAt={lastLoadedAt}
-          />
+            getSnapshot={() => ({
+              panel,
+              status: payload?.status,
+              busy,
+              lastLoadedAt,
+            })}
+          >
+            <ProjectIdePanelContent
+              panel={panel}
+              data={data}
+              project={project}
+              projectId={projectId}
+              onSubmit={submit}
+              busy={busy}
+              reload={loadPanel}
+              lastLoadedAt={lastLoadedAt}
+            />
+          </PanelErrorBoundary>
         )}
       </div>
     </div>
