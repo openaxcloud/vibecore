@@ -109,9 +109,9 @@ This checklist is conservative. A box is checked only when the current repo or t
 - [x] CSP script inline/eval hardening exists.
 - [x] Secret redaction tests exist.
 - [x] gVisor and restricted workspace pod manifests are asserted by tests.
-- [ ] Production CORS allowlist verified.
+- [x] Production CORS allowlist verified. Production boot now rejects empty/dev-default/HTTP allowlists in `services/api/src/app.ts` (`b9f2272`), spec covers boot-fail + happy-path reflection.
 - [ ] CSRF mutation coverage verified browser/API-wide.
-- [ ] CSP style nonce/hash strategy completed or risk-accepted for private beta.
+- [x] CSP style nonce/hash strategy completed or risk-accepted for private beta. Risk-accepted for private beta in `docs/RISK_REGISTER.md` R-019 (script-src already strict; style nonce/hash to land before GA).
 - [ ] Canary secret verified across API logs, runtime output, AI tool output, admin views, audit export and deployment logs.
 - [ ] External penetration test scheduled before paid launch.
 - [ ] Admin dangerous action browser audit passes.
