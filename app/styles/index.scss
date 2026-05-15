@@ -3981,7 +3981,6 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   width: var(--project-ide-rail-width);
   flex-direction: column;
-  justify-content: space-between;
   border-right: 1px solid var(--vc-ide-border-subtle);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel), transparent 4%), var(--vc-ide-bg-panel)),
@@ -3989,6 +3988,7 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 7px 6px;
 }
 
+.bolt-project-ide-rail-tools,
 .bolt-project-ide-rail-primary,
 .bolt-project-ide-rail-more,
 .bolt-project-ide-rail-more-list {
@@ -3996,6 +3996,13 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   flex-direction: column;
   gap: 4px;
+}
+
+.bolt-project-ide-rail-tools {
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 8px;
+  overscroll-behavior: contain;
 }
 
 .bolt-project-ide-rail-more {
@@ -4133,6 +4140,46 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item-compact {
   min-height: 44px;
+}
+
+.bolt-project-agent-panel-toggle {
+  position: fixed;
+  top: 48px;
+  right: 12px;
+  z-index: 39;
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+  font-weight: 750;
+  padding: 0 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.22);
+}
+
+.bolt-project-agent-panel-toggle:hover,
+.bolt-project-agent-panel-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 32%);
+  background: var(--vc-ide-bg-hover);
+  outline: none;
+}
+
+.bolt-project-agent-panel-toggle [class*='i-ph:'] {
+  color: var(--vc-ide-accent-action);
+  font-size: 16px;
+}
+
+.bolt-project-agent-panel-toggle kbd {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 4px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 4px;
 }
 
 .bolt-project-workspace-shell {
@@ -9894,9 +9941,9 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-statusbar {
   position: fixed;
-  right: 0;
+  right: var(--project-agent-statusbar-offset, 0px);
   bottom: 0;
-  left: calc(var(--project-agent-width, 420px) + var(--project-ide-rail-width, 72px));
+  left: calc(var(--project-ide-rail-width, 72px) + 1px);
   z-index: 40;
   display: flex;
   min-height: 32px;

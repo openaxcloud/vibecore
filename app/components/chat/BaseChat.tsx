@@ -1837,6 +1837,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
     const isAgentRunning = projectIdeMode && isStreaming;
     const stopAgentLabel = projectAgentStopLabel(provider?.name, model);
+    const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
 
     const [projectPlanFirst, setProjectPlanFirst] = useState(() => {
       if (typeof window === 'undefined') {
@@ -1876,7 +1877,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setAutoApplyEnabled(projectAutoApply);
     }, [projectAutoApply]);
 
-    const [ideRailMoreOpen, setIdeRailMoreOpen] = useState(false);
     const [guidedTourOpen, setGuidedTourOpen] = useState(false);
     const [guidedTourStepIndex, setGuidedTourStepIndex] = useState(0);
     const [projectSnapshots, setProjectSnapshots] = useState<ProjectSnapshot[]>([]);
@@ -3333,7 +3333,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (key === 'b') {
           event.preventDefault();
           textareaRef?.current?.focus();
+          setProjectAgentPanelOpen(true);
           setAgentWidth((width) => Math.min(640, Math.max(420, width)));
+        } else if (key === 'l') {
+          event.preventDefault();
+          setProjectAgentPanelOpen((open) => {
+            const nextOpen = !open;
+
+            if (nextOpen) {
+              window.setTimeout(() => textareaRef?.current?.focus(), 0);
+            }
+
+            return nextOpen;
+          });
         } else if (key === ',') {
           event.preventDefault();
           openWorkspacePanel('settings');
@@ -3388,6 +3400,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       paneTree,
       projectIdeMode,
       recentTabIds,
+      textareaRef,
       useMobileIde,
     ]);
 
@@ -4591,90 +4604,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [renderPaneLeaf],
     );
 
-    const ideRailPrimaryItems = [
+    const ideRailToolItems = [
       {
-        id: 'agent',
-        label: 'Agent',
-        icon: 'i-ph:sparkle',
-        active: true,
-        badge: statusbarDiagnostics.errors > 0 ? statusbarDiagnostics.errors : undefined,
-        badgeLabel:
-          statusbarDiagnostics.errors > 0
-            ? `${statusbarDiagnostics.errors} project error${statusbarDiagnostics.errors === 1 ? '' : 's'}`
-            : undefined,
-        badgeTone: 'danger',
-        title: 'Focus AI agent',
-        action: () => textareaRef?.current?.focus(),
-      },
-      {
-        id: 'files',
+        panel: 'files',
         label: 'Files',
         icon: 'i-ph:files',
-        active: rightPanelOpen && rightPanelMode === 'files',
         badge: statusbarChangedFiles || undefined,
         badgeLabel:
           statusbarChangedFiles > 0
             ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
             : undefined,
-        badgeTone: 'neutral',
+        tone: 'neutral',
+        active: rightPanelOpen && rightPanelMode === 'files',
         title: `${projectFilePaths.length} indexed files${statusbarChangedFiles ? `, ${statusbarChangedFiles} changed` : ''}`,
-        action: () => openIdeTool('files'),
       },
-      {
-        id: 'editor',
-        label: 'Editor',
-        icon: 'i-ph:code',
-        active: activeWorkspacePanel === 'editor',
-        badge: unsavedFiles instanceof Set && unsavedFiles.size > 0 ? unsavedFiles.size : undefined,
-        badgeLabel:
-          unsavedFiles instanceof Set && unsavedFiles.size > 0
-            ? `${unsavedFiles.size} unsaved editor${unsavedFiles.size === 1 ? '' : 's'}`
-            : undefined,
-        badgeTone: 'warning',
-        title: 'Open editor',
-        action: () => openIdeTool('editor'),
-      },
-      {
-        id: 'terminal',
-        label: 'Terminal',
-        icon: 'i-ph:terminal-window',
-        active: terminalBottomOpen && bottomTerminalView === 'terminal',
-        badge: isRuntimeReallyRunning ? runtimePorts.length : undefined,
-        badgeLabel: isRuntimeReallyRunning
-          ? `${runtimePorts.length} active preview port${runtimePorts.length === 1 ? '' : 's'}`
-          : undefined,
-        badgeTone: 'success',
-        title: 'Open terminal',
-        action: () => openBottomTerminal('terminal'),
-      },
-      {
-        id: 'preview',
-        label: 'Preview',
-        icon: 'i-ph:browser',
-        active: activeWorkspacePanel === 'preview',
-        badge: isRuntimeReallyRunning ? runtimePorts.length : undefined,
-        badgeLabel: isRuntimeReallyRunning
-          ? `${runtimePorts.length} active preview port${runtimePorts.length === 1 ? '' : 's'}`
-          : undefined,
-        badgeTone: isRuntimeReallyRunning ? 'success' : 'neutral',
-        title: isRuntimeReallyRunning
-          ? `${runtimePorts.length} preview port${runtimePorts.length === 1 ? '' : 's'}`
-          : 'Open preview',
-        action: () => openIdeTool('preview'),
-      },
-      {
-        id: 'publish',
-        label: 'Publish',
-        icon: 'i-ph:rocket-launch',
-        active: activeWorkspacePanel === 'deployments',
-        badge: undefined,
-        badgeTone: 'neutral',
-        title: 'Open deployments and publishing',
-        action: () => openIdeTool('deployments'),
-      },
-    ] as const;
-
-    const ideRailMoreItems = [
       { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
       {
         panel: 'git',
@@ -4687,8 +4630,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             : undefined,
         tone: 'neutral',
       },
-      { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
       { panel: 'packages', label: 'Packages', icon: 'i-ph:cube', badge: undefined, tone: 'neutral' },
+      { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
+      { panel: 'secrets', label: 'Secrets', icon: 'i-ph:lock', badge: undefined, tone: 'neutral' },
+      { panel: 'deployments', label: 'Deployments', icon: 'i-ph:rocket-launch', badge: undefined, tone: 'neutral' },
       {
         panel: 'monitoring',
         label: 'Monitoring',
@@ -4700,58 +4645,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             : undefined,
         tone: statusbarDiagnostics.errors > 0 ? 'danger' : 'neutral',
       },
-      { panel: 'security', label: 'Security', icon: 'i-ph:shield-check', badge: undefined, tone: 'neutral' },
-      {
-        panel: 'activity',
-        label: 'Activity',
-        icon: 'i-ph:activity',
-        badge: workspaceLogs.length || undefined,
-        badgeLabel:
-          workspaceLogs.length > 0
-            ? `${workspaceLogs.length} workspace log event${workspaceLogs.length === 1 ? '' : 's'}`
-            : undefined,
-        tone: 'neutral',
-      },
       { panel: 'settings', label: 'Settings', icon: 'i-ph:gear', badge: undefined, tone: 'neutral' },
     ] as const;
 
-    const renderIdeRailPrimaryItem = (item: (typeof ideRailPrimaryItems)[number]) => {
+    const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const tooltip = formatRailItemTooltip(item.label, item.title, badgeLabel);
-
-      return (
-        <button
-          key={item.id}
-          type="button"
-          className="bolt-project-ide-rail-item"
-          aria-current={item.active ? 'page' : undefined}
-          aria-label={formatRailItemLabel(item.label, badgeLabel)}
-          title={tooltip}
-          data-vc-tooltip={tooltip}
-          data-tone={item.badgeTone}
-          onClick={item.action}
-        >
-          <span className={item.icon} aria-hidden />
-          <span className="bolt-project-ide-rail-label">{item.label}</span>
-          {item.badge ? (
-            <span className="bolt-project-ide-rail-badge" aria-hidden>
-              {formatRailBadgeValue(item.badge)}
-            </span>
-          ) : null}
-        </button>
-      );
-    };
-
-    const renderIdeRailMoreItem = (item: (typeof ideRailMoreItems)[number]) => {
-      const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const tooltip = formatRailItemTooltip(item.label, IDE_TOOL_DESCRIPTIONS[item.panel], badgeLabel);
+      const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
+      const tooltip = formatRailItemTooltip(item.label, title, badgeLabel);
+      const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
       return (
         <button
           key={item.panel}
           type="button"
-          className="bolt-project-ide-rail-item bolt-project-ide-rail-item-compact"
-          aria-current={activeWorkspacePanel === item.panel ? 'page' : undefined}
+          className="bolt-project-ide-rail-item"
+          aria-current={active ? 'page' : undefined}
           aria-label={formatRailItemLabel(item.label, badgeLabel)}
           title={tooltip}
           data-vc-tooltip={tooltip}
@@ -4782,296 +4690,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         style={
           {
             '--project-agent-width': `${agentWidth}px`,
+            '--project-agent-statusbar-offset': projectAgentPanelOpen ? `${agentWidth}px` : '0px',
             '--project-agent-min-width': `${PROJECT_AGENT_PANEL_MIN_WIDTH}px`,
             '--project-right-panel-width': rightPanelOpen ? `${rightPanelWidth}px` : '0px',
           } as React.CSSProperties
         }
       >
-        <aside className="bolt-project-ide-rail" aria-label="IDE panels">
-          <div className="bolt-project-ide-rail-primary">{ideRailPrimaryItems.map(renderIdeRailPrimaryItem)}</div>
-          <div className="bolt-project-ide-rail-more">
-            <button
-              type="button"
-              className="bolt-project-ide-rail-more-trigger"
-              aria-expanded={ideRailMoreOpen}
-              aria-controls="ide-rail-more-views"
-              title="More views: Search, Git, Database, Packages, Monitoring, Security, Activity and Settings"
-              aria-label="More IDE views"
-              onClick={() => setIdeRailMoreOpen((open) => !open)}
-            >
-              <span className={ideRailMoreOpen ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
-              <span>More views</span>
-            </button>
-            {ideRailMoreOpen && (
-              <div id="ide-rail-more-views" className="bolt-project-ide-rail-more-list">
-                {ideRailMoreItems.map(renderIdeRailMoreItem)}
-              </div>
-            )}
-          </div>
+        <aside className="bolt-project-ide-rail" aria-label="Workspace tools">
+          <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
         </aside>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
           <Panel
-            id="project-agent-panel"
-            order={1}
-            defaultSize={24}
-            minSize={20}
-            maxSize={36}
-            className="bolt-project-panel-slot bolt-project-panel-slot-agent"
-            onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
-          >
-            <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
-              <div className="bolt-project-agent-header">
-                <div className="bolt-project-agent-avatar" aria-hidden>
-                  <span className="i-ph:sparkle" />
-                </div>
-                <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
-                  {description?.trim() || 'New chat'}
-                </span>
-                {isAgentRunning && (
-                  <button
-                    type="button"
-                    className="bolt-project-agent-stop-button"
-                    aria-label={stopAgentLabel}
-                    title={stopAgentLabel}
-                    disabled={!handleStop}
-                    onClick={() => handleStop?.()}
-                  >
-                    <span className="i-ph:stop-circle-bold" aria-hidden />
-                    <span>{stopAgentLabel}</span>
-                  </button>
-                )}
-                <div className="ml-auto flex items-center gap-1">
-                  <HeaderTip label="Switch light / dark theme">
-                    <ThemeSwitch
-                      size="lg"
-                      title=""
-                      className="bolt-project-ide-icon-button"
-                      iconClassName="text-[14px]"
-                    />
-                  </HeaderTip>
-                  <HeaderTip label="Conversation history">
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button"
-                      aria-label="Conversation history"
-                      onClick={() => setConversationHistoryOpen((value) => !value)}
-                    >
-                      <span className="i-ph:clock" aria-hidden />
-                    </button>
-                  </HeaderTip>
-                  <HeaderTip label="Start a new chat">
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button"
-                      aria-label="New chat"
-                      onClick={resetChat}
-                    >
-                      <span className="i-ph:plus" aria-hidden />
-                    </button>
-                  </HeaderTip>
-                  <HeaderTip label="Agent settings">
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button"
-                      aria-label="Agent settings"
-                      onClick={() => openWorkspacePanel('settings')}
-                    >
-                      <span className="i-ph:sliders-horizontal" aria-hidden />
-                    </button>
-                  </HeaderTip>
-                </div>
-              </div>
-              {(() => {
-                const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
-
-                return (
-                  <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
-                    <div
-                      className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
-                      role="tablist"
-                      aria-label="Agent mode"
-                    >
-                      {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
-                        const isActive = activePublicMode === mode.id;
-
-                        return (
-                          <HeaderTip key={mode.id} label={mode.description}>
-                            <button
-                              type="button"
-                              role="tab"
-                              aria-pressed={isActive}
-                              aria-selected={isActive}
-                              onClick={() => {
-                                const execution = PROJECT_AGENT_EXECUTION_MODES.find(
-                                  (entry) => entry.id === mode.execution,
-                                );
-                                setProjectAgentExecutionMode(mode.execution);
-                                setChatMode?.(execution?.chatMode ?? 'build');
-                              }}
-                            >
-                              {mode.label}
-                            </button>
-                          </HeaderTip>
-                        );
-                      })}
-                    </div>
-                    <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
-                      <div className="bolt-project-agent-toggle-group">
-                        <label
-                          className="bolt-project-agent-plan-first"
-                          data-active={projectPlanFirst ? 'true' : 'false'}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={projectPlanFirst}
-                            onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
-                            aria-label="Plan first"
-                          />
-                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                            <span className="bolt-project-agent-plan-first-thumb" />
-                          </span>
-                          <span className="bolt-project-agent-plan-first-label">Plan first</span>
-                        </label>
-                        <HeaderTip label="Autonomously edits files and runs commands. Plan first will require your approval.">
-                          <button
-                            type="button"
-                            className="bolt-project-agent-toggle-info"
-                            aria-label="About Plan first"
-                          >
-                            i
-                          </button>
-                        </HeaderTip>
-                      </div>
-                      <HeaderTip
-                        label={
-                          projectAutoApply
-                            ? 'Auto-applies patches that pass validation. Failed patches stay in manual review.'
-                            : 'Review every patch before the agent writes files.'
-                        }
-                      >
-                        <label
-                          className="bolt-project-agent-plan-first"
-                          data-active={projectAutoApply ? 'true' : 'false'}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={projectAutoApply}
-                            onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
-                            aria-label="Auto-apply successful patches"
-                          />
-                          <span className="bolt-project-agent-plan-first-track" aria-hidden>
-                            <span className="bolt-project-agent-plan-first-thumb" />
-                          </span>
-                          <span className="bolt-project-agent-plan-first-label">Auto-apply successful patches</span>
-                        </label>
-                      </HeaderTip>
-                    </div>
-                  </div>
-                );
-              })()}
-              {conversationHistoryOpen && (
-                <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
-                  <div className="bolt-project-conversation-history-head">
-                    <div>
-                      <strong>Agent history</strong>
-                      <span>
-                        {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
-                        checkpoints
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="bolt-project-ide-icon-button"
-                      aria-label="Close history"
-                      onClick={() => setConversationHistoryOpen(false)}
-                    >
-                      <span className="i-ph:x" aria-hidden />
-                    </button>
-                  </div>
-                  <label className="bolt-project-conversation-history-search">
-                    <span className="i-ph:magnifying-glass" aria-hidden />
-                    <input
-                      type="search"
-                      value={conversationHistoryQuery}
-                      placeholder="Search checkpoints, commits, prompts, or agent replies"
-                      aria-label="Search agent checkpoints"
-                      onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
-                    />
-                    {conversationHistoryQuery && (
-                      <button
-                        type="button"
-                        aria-label="Clear history search"
-                        onClick={() => setConversationHistoryQuery('')}
-                      >
-                        <span className="i-ph:x" aria-hidden />
-                      </button>
-                    )}
-                  </label>
-                  <div className="bolt-project-conversation-history-list">
-                    {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                      const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
-
-                      return (
-                        <article key={checkpoint.id} className="bolt-project-history-checkpoint">
-                          <div className="bolt-project-history-checkpoint-main">
-                            <strong>{checkpoint.title}</strong>
-                            <span>{checkpoint.description}</span>
-                            <small>
-                              {checkpoint.ageLabel}
-                              {checkpoint.commitSha ? ` • ${checkpoint.commitSha}` : ''}
-                            </small>
-                          </div>
-                          <div className="bolt-project-history-checkpoint-actions">
-                            <button
-                              type="button"
-                              aria-label={`View chat at checkpoint ${checkpoint.title}`}
-                              onClick={() => viewProjectCheckpoint(checkpoint)}
-                            >
-                              View Chat
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!rollbackAvailable}
-                              aria-label={`Rollback to checkpoint ${checkpoint.title}`}
-                              onClick={() => {
-                                setRollbackDatabase(false);
-                                setRollbackTarget(checkpoint);
-                              }}
-                            >
-                              Rollback here
-                            </button>
-                            <button
-                              type="button"
-                              aria-label={`Review diff for checkpoint ${checkpoint.title}`}
-                              onClick={() => openCheckpointChanges(checkpoint)}
-                            >
-                              Review diff
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                    {!projectConversationCheckpoints.length && (
-                      <div className="bolt-project-history-empty">No project agent history yet.</div>
-                    )}
-                    {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
-                      <div className="bolt-project-history-empty">No checkpoints match this search.</div>
-                    )}
-                  </div>
-                </div>
-              )}
-              <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
-            </section>
-          </Panel>
-          <PanelResizeHandle
-            className="bolt-project-panel-resize-handle"
-            aria-label="Resize AI agent panel"
-            title="Resize AI agent panel"
-          />
-          <Panel
             id="project-workspace-panel"
-            order={2}
-            defaultSize={rightPanelOpen ? 53 : 70}
+            order={1}
+            defaultSize={rightPanelOpen ? (projectAgentPanelOpen ? 62 : 84) : projectAgentPanelOpen ? 76 : 100}
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >
@@ -5125,7 +4757,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               />
               <Panel
                 id="project-right-panel"
-                order={3}
+                order={2}
                 defaultSize={14}
                 minSize={10}
                 maxSize={22}
@@ -5194,7 +4826,296 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </Panel>
             </>
           )}
+          {projectAgentPanelOpen && (
+            <>
+              <PanelResizeHandle
+                className="bolt-project-panel-resize-handle"
+                aria-label="Resize AI agent panel"
+                title="Resize AI agent panel"
+              />
+              <Panel
+                id="project-agent-panel"
+                order={3}
+                defaultSize={24}
+                minSize={20}
+                maxSize={36}
+                className="bolt-project-panel-slot bolt-project-panel-slot-agent"
+                onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
+              >
+                <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
+                  <div className="bolt-project-agent-header">
+                    <div className="bolt-project-agent-avatar" aria-hidden>
+                      <span className="i-ph:sparkle" />
+                    </div>
+                    <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
+                      {description?.trim() || 'New chat'}
+                    </span>
+                    {isAgentRunning && (
+                      <button
+                        type="button"
+                        className="bolt-project-agent-stop-button"
+                        aria-label={stopAgentLabel}
+                        title={stopAgentLabel}
+                        disabled={!handleStop}
+                        onClick={() => handleStop?.()}
+                      >
+                        <span className="i-ph:stop-circle-bold" aria-hidden />
+                        <span>{stopAgentLabel}</span>
+                      </button>
+                    )}
+                    <div className="ml-auto flex items-center gap-1">
+                      <HeaderTip label="Switch light / dark theme">
+                        <ThemeSwitch
+                          size="lg"
+                          title=""
+                          className="bolt-project-ide-icon-button"
+                          iconClassName="text-[14px]"
+                        />
+                      </HeaderTip>
+                      <HeaderTip label="Conversation history">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Conversation history"
+                          onClick={() => setConversationHistoryOpen((value) => !value)}
+                        >
+                          <span className="i-ph:clock" aria-hidden />
+                        </button>
+                      </HeaderTip>
+                      <HeaderTip label="Start a new chat">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="New chat"
+                          onClick={resetChat}
+                        >
+                          <span className="i-ph:plus" aria-hidden />
+                        </button>
+                      </HeaderTip>
+                      <HeaderTip label="Agent settings">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Agent settings"
+                          onClick={() => openWorkspacePanel('settings')}
+                        >
+                          <span className="i-ph:sliders-horizontal" aria-hidden />
+                        </button>
+                      </HeaderTip>
+                      <HeaderTip label="Hide agent panel (Cmd+L)">
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Hide AI agent panel"
+                          onClick={() => setProjectAgentPanelOpen(false)}
+                        >
+                          <span className="i-ph:x" aria-hidden />
+                        </button>
+                      </HeaderTip>
+                    </div>
+                  </div>
+                  {(() => {
+                    const activePublicMode = publicModeForExecution(projectAgentExecutionMode);
+
+                    return (
+                      <div className="bolt-project-agent-mode-bar" role="region" aria-label="Agent mode controls">
+                        <div
+                          className="bolt-project-agent-mode bolt-project-agent-mode--segmented"
+                          role="tablist"
+                          aria-label="Agent mode"
+                        >
+                          {PROJECT_AGENT_PUBLIC_MODES.map((mode) => {
+                            const isActive = activePublicMode === mode.id;
+
+                            return (
+                              <HeaderTip key={mode.id} label={mode.description}>
+                                <button
+                                  type="button"
+                                  role="tab"
+                                  aria-pressed={isActive}
+                                  aria-selected={isActive}
+                                  onClick={() => {
+                                    const execution = PROJECT_AGENT_EXECUTION_MODES.find(
+                                      (entry) => entry.id === mode.execution,
+                                    );
+                                    setProjectAgentExecutionMode(mode.execution);
+                                    setChatMode?.(execution?.chatMode ?? 'build');
+                                  }}
+                                >
+                                  {mode.label}
+                                </button>
+                              </HeaderTip>
+                            );
+                          })}
+                        </div>
+                        <div className="bolt-project-agent-mode-toggles" role="group" aria-label="Execution guardrails">
+                          <div className="bolt-project-agent-toggle-group">
+                            <label
+                              className="bolt-project-agent-plan-first"
+                              data-active={projectPlanFirst ? 'true' : 'false'}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={projectPlanFirst}
+                                onChange={(event) => setProjectPlanFirst(event.currentTarget.checked)}
+                                aria-label="Plan first"
+                              />
+                              <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                                <span className="bolt-project-agent-plan-first-thumb" />
+                              </span>
+                              <span className="bolt-project-agent-plan-first-label">Plan first</span>
+                            </label>
+                            <HeaderTip label="Autonomously edits files and runs commands. Plan first will require your approval.">
+                              <button
+                                type="button"
+                                className="bolt-project-agent-toggle-info"
+                                aria-label="About Plan first"
+                              >
+                                i
+                              </button>
+                            </HeaderTip>
+                          </div>
+                          <HeaderTip
+                            label={
+                              projectAutoApply
+                                ? 'Auto-applies patches that pass validation. Failed patches stay in manual review.'
+                                : 'Review every patch before the agent writes files.'
+                            }
+                          >
+                            <label
+                              className="bolt-project-agent-plan-first"
+                              data-active={projectAutoApply ? 'true' : 'false'}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={projectAutoApply}
+                                onChange={(event) => setProjectAutoApply(event.currentTarget.checked)}
+                                aria-label="Auto-apply successful patches"
+                              />
+                              <span className="bolt-project-agent-plan-first-track" aria-hidden>
+                                <span className="bolt-project-agent-plan-first-thumb" />
+                              </span>
+                              <span className="bolt-project-agent-plan-first-label">Auto-apply successful patches</span>
+                            </label>
+                          </HeaderTip>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {conversationHistoryOpen && (
+                    <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
+                      <div className="bolt-project-conversation-history-head">
+                        <div>
+                          <strong>Agent history</strong>
+                          <span>
+                            {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
+                            checkpoints
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="bolt-project-ide-icon-button"
+                          aria-label="Close history"
+                          onClick={() => setConversationHistoryOpen(false)}
+                        >
+                          <span className="i-ph:x" aria-hidden />
+                        </button>
+                      </div>
+                      <label className="bolt-project-conversation-history-search">
+                        <span className="i-ph:magnifying-glass" aria-hidden />
+                        <input
+                          type="search"
+                          value={conversationHistoryQuery}
+                          placeholder="Search checkpoints, commits, prompts, or agent replies"
+                          aria-label="Search agent checkpoints"
+                          onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
+                        />
+                        {conversationHistoryQuery && (
+                          <button
+                            type="button"
+                            aria-label="Clear history search"
+                            onClick={() => setConversationHistoryQuery('')}
+                          >
+                            <span className="i-ph:x" aria-hidden />
+                          </button>
+                        )}
+                      </label>
+                      <div className="bolt-project-conversation-history-list">
+                        {filteredProjectConversationCheckpoints.map((checkpoint) => {
+                          const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+
+                          return (
+                            <article key={checkpoint.id} className="bolt-project-history-checkpoint">
+                              <div className="bolt-project-history-checkpoint-main">
+                                <strong>{checkpoint.title}</strong>
+                                <span>{checkpoint.description}</span>
+                                <small>
+                                  {checkpoint.ageLabel}
+                                  {checkpoint.commitSha ? ` • ${checkpoint.commitSha}` : ''}
+                                </small>
+                              </div>
+                              <div className="bolt-project-history-checkpoint-actions">
+                                <button
+                                  type="button"
+                                  aria-label={`View chat at checkpoint ${checkpoint.title}`}
+                                  onClick={() => viewProjectCheckpoint(checkpoint)}
+                                >
+                                  View Chat
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!rollbackAvailable}
+                                  aria-label={`Rollback to checkpoint ${checkpoint.title}`}
+                                  onClick={() => {
+                                    setRollbackDatabase(false);
+                                    setRollbackTarget(checkpoint);
+                                  }}
+                                >
+                                  Rollback here
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Review diff for checkpoint ${checkpoint.title}`}
+                                  onClick={() => openCheckpointChanges(checkpoint)}
+                                >
+                                  Review diff
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                        {!projectConversationCheckpoints.length && (
+                          <div className="bolt-project-history-empty">No project agent history yet.</div>
+                        )}
+                        {projectConversationCheckpoints.length > 0 &&
+                          !filteredProjectConversationCheckpoints.length && (
+                            <div className="bolt-project-history-empty">No checkpoints match this search.</div>
+                          )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="min-h-0 flex-1 overflow-hidden">{agentPanel}</div>
+                </section>
+              </Panel>
+            </>
+          )}
         </PanelGroup>
+        {!projectAgentPanelOpen && (
+          <button
+            type="button"
+            className="bolt-project-agent-panel-toggle"
+            aria-label="Open AI agent panel"
+            title="Open AI agent panel (Cmd+L)"
+            onClick={() => {
+              setProjectAgentPanelOpen(true);
+              window.setTimeout(() => textareaRef?.current?.focus(), 0);
+            }}
+          >
+            <span className="i-ph:sparkle" aria-hidden />
+            <span>Agent</span>
+            <kbd>⌘L</kbd>
+          </button>
+        )}
       </div>
     );
 
