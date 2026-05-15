@@ -71,6 +71,16 @@ export interface ProjectIdeMemory {
       messages: Message[];
       createdAt?: string;
       updatedAt?: string;
+
+      /*
+       * Sprint 6 — branching. Optional so existing flat conversations
+       * stay valid. `parentId` points to another entry in the same
+       * `conversations[]` list; `branchedFromMessageId` is the message
+       * inside the parent's `messages[]` where the fork happened.
+       */
+      parentId?: string;
+      branchedFromMessageId?: string;
+      archivedFromMessageId?: string;
     }>;
   };
   ui?: {
