@@ -24,7 +24,24 @@ import {
   redirect,
   sessionCookie,
   type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+
+/*
+ * Marketing host (`e-code.ai`) shouldn't expose the sign-in form. The
+ * canonical sign-in URL is `https://app.e-code.ai/login` — visitors who
+ * hit `e-code.ai/login` (or `www.e-code.ai/login`) are 301-redirected
+ * there so OAuth callbacks, password managers and SEO all converge.
+ */
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  const host = request.headers.get('host')?.toLowerCase() ?? '';
+
+  if (host === 'e-code.ai' || host === 'www.e-code.ai') {
+    return redirect('https://app.e-code.ai/login', { status: 301 });
+  }
+
+  return null;
+}
 
 const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
 
