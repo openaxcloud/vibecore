@@ -5831,14 +5831,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"
-                aria-label={`Open Problems. ${statusbarDiagnostics.errors} errors and ${statusbarDiagnostics.warnings} warnings.`}
-                title={`Problems: ${statusbarDiagnostics.errors} errors, ${statusbarDiagnostics.warnings} warnings`}
+                aria-label={`Open Problems. ${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}, ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}.`}
+                title={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'} · ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
                 onClick={() => openBottomTerminal('problems')}
               >
-                <span className="i-ph:warning-circle" aria-hidden />
                 <span className="bolt-project-statusbar-label">Problems</span>
-                <span className="bolt-project-statusbar-error-count">{statusbarDiagnostics.errors}</span>
-                <span className="bolt-project-statusbar-warning-count">{statusbarDiagnostics.warnings}</span>
+                <span
+                  className="bolt-project-statusbar-error-count"
+                  data-empty={statusbarDiagnostics.errors === 0 ? 'true' : undefined}
+                  aria-label={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}`}
+                >
+                  <span className="i-ph:x-circle-fill" aria-hidden />
+                  {statusbarDiagnostics.errors}
+                </span>
+                <span
+                  className="bolt-project-statusbar-warning-count"
+                  data-empty={statusbarDiagnostics.warnings === 0 ? 'true' : undefined}
+                  aria-label={`${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
+                >
+                  <span className="i-ph:warning-fill" aria-hidden />
+                  {statusbarDiagnostics.warnings}
+                </span>
               </button>
               <button
                 type="button"
@@ -6555,9 +6568,26 @@ function ProjectProblemsPanel() {
             {errors} errors · {warnings} warnings in the current workspace
           </p>
         </div>
-        <div className="bolt-project-problems-counts" aria-label={`${errors} errors and ${warnings} warnings`}>
-          <span className="bolt-project-problems-count bolt-project-problems-count-error">{errors}</span>
-          <span className="bolt-project-problems-count bolt-project-problems-count-warning">{warnings}</span>
+        <div
+          className="bolt-project-problems-counts"
+          aria-label={`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`}
+        >
+          <span
+            className="bolt-project-problems-count bolt-project-problems-count-error"
+            data-empty={errors === 0 ? 'true' : undefined}
+          >
+            <span className="i-ph:x-circle-fill" aria-hidden />
+            {errors}
+            <span className="bolt-project-problems-count-suffix">{errors === 1 ? 'error' : 'errors'}</span>
+          </span>
+          <span
+            className="bolt-project-problems-count bolt-project-problems-count-warning"
+            data-empty={warnings === 0 ? 'true' : undefined}
+          >
+            <span className="i-ph:warning-fill" aria-hidden />
+            {warnings}
+            <span className="bolt-project-problems-count-suffix">{warnings === 1 ? 'warning' : 'warnings'}</span>
+          </span>
         </div>
       </header>
       {diagnostics.length === 0 ? (
