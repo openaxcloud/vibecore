@@ -28,11 +28,18 @@ export interface SlashCommandsPaletteProps {
    * takes a free-form argument and the user hasn't typed one yet.
    */
   pendingArgument?: string;
+
+  /**
+   * MRU command ids the user has executed recently — boosts those
+   * entries in the palette ranking so frequent commands surface
+   * first.
+   */
+  recentSlashCommandIds?: readonly string[];
 }
 
 export const SlashCommandsPalette = memo(
-  ({ query, onSelect, onDismiss, pendingArgument }: SlashCommandsPaletteProps) => {
-    const commands = searchSlashCommands(query);
+  ({ query, onSelect, onDismiss, pendingArgument, recentSlashCommandIds }: SlashCommandsPaletteProps) => {
+    const commands = searchSlashCommands(query, { recentSlashCommandIds });
     const [activeIndex, setActiveIndex] = useState(0);
 
     useEffect(() => {
