@@ -981,6 +981,18 @@ body
  * we lean on similar IDE tokens but add a shadow so it visually floats
  * above the composer.
  */
+/*
+ * Sprint 3 wiring — overlay container floats above the composer
+ * textarea so the mentions palette anchors at the bottom-left of
+ * the input rectangle without pushing layout.
+ */
+.bolt-composer-mentions-overlay {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 12px;
+  z-index: 40;
+}
+
 .bolt-file-mentions-palette {
   display: block;
   min-width: 280px;

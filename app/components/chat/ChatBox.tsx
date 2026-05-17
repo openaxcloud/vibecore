@@ -3,6 +3,7 @@ import React from 'react';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { APIKeyManager } from './APIKeyManager';
+import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
@@ -261,6 +262,13 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           }
           translate="no"
         />
+        {props.textareaRef ? (
+          <ComposerMentionsOverlay
+            textareaRef={props.textareaRef}
+            input={props.input}
+            handleInputChange={props.handleInputChange}
+          />
+        ) : null}
         <ClientOnly>
           {() => (
             <SendButton
