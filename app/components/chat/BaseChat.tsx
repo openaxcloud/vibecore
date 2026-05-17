@@ -33,6 +33,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
 import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
@@ -1156,10 +1157,6 @@ function formatEditorTabLabel(label: string, panel: IdeWorkspacePanel) {
   return `${pathParts.at(-2)}/${pathParts.at(-1)}`;
 }
 
-function formatRailBadgeValue(value: number) {
-  return value > 99 ? '99+' : String(value);
-}
-
 function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
@@ -2164,6 +2161,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const projectFilePaths = useMemo(
       () => Object.keys(projectFiles).filter((filePath) => projectFiles[filePath]?.type === 'file'),
       [projectFiles],
+    );
+
+    /*
+     * Visible files share the same hidden-path filter as ProjectFilesTool
+     * so the rail badge, the panel header, and the tree all agree on one
+     * count. Power tooling (search index, mention picker) keeps using
+     * `projectFilePaths` because it needs every indexed path.
+     */
+    const visibleProjectFilePaths = useMemo(
+      () => projectFilePaths.filter((filePath) => !isIdeHiddenPath(filePath)),
+      [projectFilePaths],
     );
 
     const recentProjectFiles = useMemo(() => projectFilePaths.slice(0, 5), [projectFilePaths]);
@@ -4853,14 +4861,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         panel: 'files',
         label: 'Files',
         icon: 'i-ph:files',
-        badge: projectFilePaths.length || undefined,
+        badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
-          projectFilePaths.length > 0
-            ? `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`
+          visibleProjectFilePaths.length > 0
+            ? `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'}`
             : undefined,
         tone: 'neutral',
         active: rightPanelOpen && rightPanelMode === 'files',
-        title: `${projectFilePaths.length} indexed file${projectFilePaths.length === 1 ? '' : 's'}`,
+        title: `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'} in the project`,
       },
       { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
       {
