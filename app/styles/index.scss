@@ -986,7 +986,8 @@ body
  * textarea so the mentions palette anchors at the bottom-left of
  * the input rectangle without pushing layout.
  */
-.bolt-composer-mentions-overlay {
+.bolt-composer-mentions-overlay,
+.bolt-composer-slash-overlay {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 12px;

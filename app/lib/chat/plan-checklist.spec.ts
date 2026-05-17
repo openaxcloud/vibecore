@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyPlanStatusUpdate, parsePlanChecklist, summarizePlanProgress, type PlanChecklist } from './plan-checklist';
+import {
+  applyPlanStatusUpdate,
+  extractAndStripPlanChecklist,
+  parsePlanChecklist,
+  summarizePlanProgress,
+  type PlanChecklist,
+} from './plan-checklist';
 
 describe('parsePlanChecklist', () => {
   it('returns undefined for empty input', () => {
@@ -108,5 +114,47 @@ describe('applyPlanStatusUpdate', () => {
 
     const next = applyPlanStatusUpdate(plan, { id: 'ghost', status: 'completed' });
     expect(next).toBe(plan);
+  });
+});
+
+describe('extractAndStripPlanChecklist', () => {
+  it('returns undefined when no plan is present', () => {
+    expect(extractAndStripPlanChecklist('just narration with no checkboxes')).toBeUndefined();
+    expect(extractAndStripPlanChecklist('')).toBeUndefined();
+  });
+
+  it('strips a plan block from the middle of a message', () => {
+    const source = [
+      'Sure, here is the plan:',
+      '## Plan',
+      '- [ ] Read existing files',
+      '- [x] Write the module',
+      '',
+      'Once these complete, the preview will refresh.',
+    ].join('\n');
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result).toBeDefined();
+    expect(result!.plan.items).toHaveLength(2);
+    expect(result!.plan.title).toBe('Plan');
+    expect(result!.remainingText).toContain('Sure, here is the plan:');
+    expect(result!.remainingText).toContain('the preview will refresh');
+    expect(result!.remainingText).not.toContain('[ ]');
+    expect(result!.remainingText).not.toContain('[x]');
+  });
+
+  it('absorbs indented follow-up notes attached to the last item', () => {
+    const source = ['- [x] Built the runner', '  Generated 3 files', '  Tests passed', '', 'Trailing prose.'].join(
+      '\n',
+    );
+
+    const result = extractAndStripPlanChecklist(source);
+    expect(result?.remainingText).toBe('Trailing prose.');
+    expect(result?.plan.items[0].result).toContain('Generated 3 files');
+  });
+
+  it('returns an empty remainingText when the message is the plan only', () => {
+    const result = extractAndStripPlanChecklist('- [ ] One\n- [ ] Two');
+    expect(result?.remainingText).toBe('');
   });
 });

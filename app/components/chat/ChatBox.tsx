@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { APIKeyManager } from './APIKeyManager';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
+import { ComposerSlashOverlay } from './ComposerSlashOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
@@ -61,6 +62,7 @@ interface ChatBoxProps {
   onWebSearchResult?: (result: string) => void;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+  slashContext?: import('~/lib/chat/slash-commands').SlashCommandContext;
   designScheme?: DesignScheme;
   setDesignScheme?: (scheme: DesignScheme) => void;
   selectedElement?: ElementInfo | null;
@@ -267,6 +269,18 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             textareaRef={props.textareaRef}
             input={props.input}
             handleInputChange={props.handleInputChange}
+          />
+        ) : null}
+        {props.textareaRef ? (
+          <ComposerSlashOverlay
+            textareaRef={props.textareaRef}
+            input={props.input}
+            handleInputChange={props.handleInputChange}
+            context={{
+              chatMode: props.chatMode,
+              setChatMode: props.setChatMode,
+              ...(props.slashContext ?? {}),
+            }}
           />
         ) : null}
         <ClientOnly>

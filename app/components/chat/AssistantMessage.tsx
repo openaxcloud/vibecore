@@ -12,9 +12,11 @@ import { memo, Fragment, useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
 import { MessagePatchReview } from './MessagePatchReview';
+import { PlanChecklistView } from './PlanChecklist';
 import { ToolInvocations } from './ToolInvocations';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
+import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
 import type { ProviderInfo } from '~/types/model';
@@ -382,9 +384,37 @@ export const AssistantMessage = memo(
             </div>
           </div>
         </>
-        <Markdown append={append} chatMode={chatMode} setChatMode={setChatMode} model={model} provider={provider} html>
-          {content}
-        </Markdown>
+        {(() => {
+          /*
+           * Sprint 5 wiring — if the message contains a parseable plan
+           * checklist (markdown task list), render the structured
+           * `<PlanChecklistView>` above the prose and pass only the
+           * non-plan remainder to Markdown so we don't render the same
+           * list twice. Streaming-safe: parsePlanChecklist tolerates
+           * partial input (an in-flight `- [ ]` line missing a description
+           * is just skipped).
+           */
+          const extracted = extractAndStripPlanChecklist(content);
+          const markdownBody = extracted ? extracted.remainingText : content;
+
+          return (
+            <>
+              {extracted ? <PlanChecklistView plan={extracted.plan} /> : null}
+              {markdownBody ? (
+                <Markdown
+                  append={append}
+                  chatMode={chatMode}
+                  setChatMode={setChatMode}
+                  model={model}
+                  provider={provider}
+                  html
+                >
+                  {markdownBody}
+                </Markdown>
+              ) : null}
+            </>
+          );
+        })()}
         {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations

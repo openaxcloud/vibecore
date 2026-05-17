@@ -4065,6 +4065,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               handleFileUpload={handleFileUpload}
               chatMode={chatMode}
               setChatMode={setChatMode}
+              slashContext={{
+                planFirst: projectPlanFirst,
+                setPlanFirst: setProjectPlanFirst,
+                autoApplyEnabled: projectAutoApply,
+              }}
               designScheme={designScheme}
               setDesignScheme={setDesignScheme}
               selectedElement={selectedElement}
