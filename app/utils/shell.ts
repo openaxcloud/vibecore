@@ -2,6 +2,7 @@ import type { RuntimeAdapter, TerminalSession } from '@vibecore/runtime-contract
 import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { normalizeShellCommand } from './shell-normalizer';
+import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import type { ITerminal } from '~/types/terminal';
 
@@ -38,7 +39,15 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
         }
       }
 
-      terminal.write(data);
+      /*
+       * jsh's internal `\x1b]654;…\x07` markers are part of the host
+       * handshake, not user-visible output. xterm.js usually swallows
+       * unknown OSC silently but leaks the trailing bytes (`]`, payload
+       * fragments) when the sequence straddles two data events. Strip
+       * them at ingest so the user never sees `]]]]]]]]` runs.
+       */
+      const displayData = stripInternalOscMarkers(data);
+      terminal.write(displayData);
 
       try {
         import('~/utils/debugLogger')
@@ -149,7 +158,7 @@ export class BoltShell {
           }
         }
 
-        terminal.write(data);
+        terminal.write(stripInternalOscMarkers(data));
         this.#pushOutput(data);
         this.#watchExpoUrl(data);
       }
