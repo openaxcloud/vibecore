@@ -20,6 +20,7 @@ import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { useFileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import { useFileActionReview } from '~/lib/hooks/useFileActionReview';
+import { t } from '~/lib/i18n/dictionary';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { applyReviewableDiffHunks, type ReviewableDiffHunk, type ReviewableDiffLine } from '~/utils/diff';
 
@@ -157,7 +158,7 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
 
       {action.streaming ? (
         <div className="bolt-file-action-diff-streaming-indicator" role="status" aria-live="polite">
-          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> Streaming patch…
+          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> {t('patchReview.streaming')}
         </div>
       ) : diff.summary.hasChanges ? (
         <ul className="bolt-file-action-diff-hunks">
@@ -178,7 +179,7 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
         </ul>
       ) : (
         <div className="bolt-file-action-diff-noop" role="status">
-          Content is identical to the file on disk.
+          {t('patchReview.noChanges')}
         </div>
       )}
 

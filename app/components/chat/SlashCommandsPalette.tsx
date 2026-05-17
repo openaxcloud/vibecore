@@ -11,6 +11,7 @@
 import { memo, useCallback, useEffect, useState } from 'react';
 
 import { searchSlashCommands, type SlashCommand } from '~/lib/chat/slash-commands';
+import { t } from '~/lib/i18n/dictionary';
 
 export interface SlashCommandsPaletteProps {
   /** Text typed after the leading `/` (no slash, no argument). */
@@ -87,7 +88,7 @@ export const SlashCommandsPalette = memo(
           tabIndex={-1}
           onKeyDown={handleKeyDown}
         >
-          <p className="bolt-slash-commands-empty">No matching commands</p>
+          <p className="bolt-slash-commands-empty">{t('slashCommands.empty')}</p>
         </div>
       );
     }

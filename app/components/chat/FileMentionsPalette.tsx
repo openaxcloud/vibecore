@@ -11,6 +11,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useFileMentions, type FileMentionCandidate } from '~/lib/hooks/useFileMentions';
+import { t } from '~/lib/i18n/dictionary';
 
 export interface FileMentionsPaletteProps {
   /** Free-text query, typically what the user typed after `@`. */
@@ -94,7 +95,7 @@ export const FileMentionsPalette = memo(({ query, onSelect, onDismiss, limit }: 
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
-        <p className="bolt-file-mentions-empty">No matching files</p>
+        <p className="bolt-file-mentions-empty">{t('mentions.empty')}</p>
       </div>
     );
   }

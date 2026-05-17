@@ -1242,6 +1242,155 @@ body
   color: var(--vc-ide-text-secondary);
 }
 
+/* Sprint 7 — presence avatars stacked next to the share button. */
+.bolt-presence-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.bolt-presence-avatar,
+.bolt-presence-avatar-overflow {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--vc-ide-bg-overlay);
+  border: 2px solid var(--vc-ide-bg-elevated);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--vc-ide-text-primary);
+  overflow: hidden;
+}
+
+.bolt-presence-avatar + .bolt-presence-avatar,
+.bolt-presence-avatar + .bolt-presence-avatar-overflow,
+.bolt-presence-avatar-overflow + .bolt-presence-avatar,
+.bolt-presence-avatar-overflow + .bolt-presence-avatar-overflow {
+  margin-left: -6px;
+}
+
+.bolt-presence-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bolt-presence-avatar[data-status='typing'] {
+  border-color: var(--vc-ide-accent-action);
+}
+
+.bolt-presence-avatar[data-status='idle'] {
+  opacity: 0.55;
+}
+
+.bolt-presence-avatar-typing {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 11px;
+  color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-bg-elevated);
+  border-radius: 999px;
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.bolt-presence-avatar-overflow {
+  color: var(--vc-ide-text-secondary);
+}
+
+/* Sprint 7 — public /share/:token landing. */
+.bolt-share-view {
+  max-width: 720px;
+  margin: 48px auto;
+  padding: 24px;
+  background: var(--vc-ide-bg-elevated);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 12px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-share-view-header {
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+}
+
+.bolt-share-view-header h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.bolt-share-view-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-share-view-meta code {
+  background: var(--vc-ide-bg-overlay);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+}
+
+.bolt-share-view-disclaimer {
+  font-size: 12px;
+  color: var(--vc-ide-text-secondary);
+  margin: 0 0 12px;
+}
+
+.bolt-share-view-message-list ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bolt-share-view-message-id code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-share-view-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bolt-share-view-footer button {
+  font-size: 12px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-overlay);
+  color: var(--vc-ide-text-secondary);
+  cursor: pointer;
+}
+
+.bolt-share-view-footer button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bolt-share-view-error h1 {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
 .bolt-message-patch-review-body {
   display: flex;
   flex-direction: column;
