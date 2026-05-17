@@ -1,20 +1,16 @@
 global:
-  environment: staging
-  imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore
+  environment: production
+  imageRegistry: europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers
   imageTag: latest
-  appDomain: staging.example.com
-  previewDomain: preview.staging.example.com
-  # Optional additional public hosts. Leave empty when not needed (staging).
-  # In production these split the marketing landing, raw API, and workspace
-  # manager onto their own subdomains so each can be reached without sharing
-  # the application path prefix.
-  marketingDomain: ""
-  apiDomain: ""
-  workspaceManagerDomain: ""
+  appDomain: app.e-code.ai
+  previewDomain: preview.e-code.ai
+  marketingDomain: e-code.ai
+  apiDomain: api.e-code.ai
+  workspaceManagerDomain: workspace-manager.e-code.ai
   dns01:
     enabled: true
-    project: PROJECT
-    hostedZoneName: staging-example-com
+    project: vibecore-495216
+    hostedZoneName: e-code-ai
   labels:
     app.kubernetes.io/part-of: vibecore
   workloadIdentity:
@@ -40,67 +36,67 @@ services:
     enabled: true
     image: web
     port: 3000
-    replicas: 3
+    replicas: 1
     command: []
     path: /
     resources:
-      requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
   admin:
     enabled: true
     image: admin
     port: 3000
-    replicas: 2
+    replicas: 1
     path: /admin
     resources:
-      requests: { cpu: 150m, memory: 256Mi }
-      limits: { cpu: 500m, memory: 512Mi }
+      requests: { cpu: 100m, memory: 128Mi }
+      limits: { cpu: 250m, memory: 256Mi }
   api:
     enabled: true
     image: api
     port: 3001
-    replicas: 3
+    replicas: 1
     path: /api
     resources:
-      requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
   worker:
     enabled: true
     image: worker
     port: 3002
-    replicas: 2
+    replicas: 1
     path: ""
     resources:
-      requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
   aiGateway:
     enabled: true
     image: ai-gateway
     port: 3010
-    replicas: 3
+    replicas: 1
     path: /ai
     resources:
-      requests: { cpu: 500m, memory: 1Gi }
-      limits: { cpu: "2", memory: 2Gi }
+      requests: { cpu: 250m, memory: 512Mi }
+      limits: { cpu: "1", memory: 1Gi }
   workspaceManager:
     enabled: true
     image: workspace-manager
     port: 3020
-    replicas: 2
+    replicas: 1
     path: /runtime
     resources:
-      requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
   previewProxy:
     enabled: true
     image: preview-proxy
     port: 3030
-    replicas: 3
+    replicas: 1
     path: /
-    host: "*.preview.staging.example.com"
+    host: "*.preview.e-code.ai"
     resources:
-      requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
 
 podSecurity:
   enabled: true

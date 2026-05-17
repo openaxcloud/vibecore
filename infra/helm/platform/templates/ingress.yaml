@@ -10,7 +10,17 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   tls:
-    - hosts: [{{ .Values.global.appDomain | quote }}]
+    - hosts:
+        - {{ .Values.global.appDomain | quote }}
+        {{- with .Values.global.marketingDomain }}
+        - {{ . | quote }}
+        {{- end }}
+        {{- with .Values.global.apiDomain }}
+        - {{ . | quote }}
+        {{- end }}
+        {{- with .Values.global.workspaceManagerDomain }}
+        - {{ . | quote }}
+        {{- end }}
       secretName: {{ .Values.ingress.tlsSecretName }}
   rules:
     - host: {{ .Values.global.appDomain | quote }}
@@ -37,6 +47,42 @@ spec:
                 name: {{ include "vibecore-platform.fullname" . }}-workspace-manager
                 port:
                   name: http
+    {{- with .Values.global.marketingDomain }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" $ }}-web
+                port:
+                  name: http
+    {{- end }}
+    {{- with .Values.global.apiDomain }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" $ }}-api
+                port:
+                  name: http
+    {{- end }}
+    {{- with .Values.global.workspaceManagerDomain }}
+    - host: {{ . | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "vibecore-platform.fullname" $ }}-workspace-manager
+                port:
+                  name: http
+    {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

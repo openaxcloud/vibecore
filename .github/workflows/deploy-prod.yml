@@ -193,6 +193,7 @@ jobs:
             --create-namespace \
             --atomic \
             --timeout 10m \
+            --values infra/helm/platform/values-prod.yaml \
             --set global.environment=prod \
             --set global.imageTag="${{ inputs.image_tag }}" \
             --set global.appDomain="${{ vars.PROD_APP_DOMAIN }}" \
