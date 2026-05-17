@@ -41,6 +41,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
+import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -286,15 +287,14 @@ function IdeProjectTopBar({
 
   const visibleCollaborators = collaborators.length ? collaborators : [{ userId: 'you', roleKey: 'owner' }];
 
-  const workspaceLabel =
-    organization?.name ||
-    organization?.slug ||
-    workspace?.name ||
-    workspace?.id ||
-    project.organizationId ||
-    'Workspace';
+  const workspaceLabel = pickFriendlyLabel(
+    [organization?.name, organization?.slug, workspace?.name, workspace?.id, project.organizationId],
+    'Workspace',
+  );
 
-  const branchLabel = git.branch || project.gitDefaultBranch || 'main';
+  const projectLabel = friendlyLabel(displayProjectName, 'Untitled project');
+
+  const branchLabel = pickFriendlyLabel([git.branch, project.gitDefaultBranch], 'main');
 
   useEffect(() => {
     setDisplayProjectName(project.name);
@@ -411,11 +411,19 @@ function IdeProjectTopBar({
           <Link
             to="/projects"
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-workspace"
-            aria-label={`Workspace ${workspaceLabel}`}
-            title={`Workspace: ${workspaceLabel}`}
+            aria-label={`Workspace ${workspaceLabel.display}${
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? ` (id ${workspaceLabel.full})`
+                : ''
+            }`}
+            title={
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? `Workspace: ${workspaceLabel.display} (${workspaceLabel.full})`
+                : `Workspace: ${workspaceLabel.display}`
+            }
           >
             <span className="bolt-project-breadcrumb-kicker">Workspace</span>
-            <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel}</span>
+            <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel.display}</span>
           </Link>
           <span className="bolt-project-breadcrumb-separator" aria-hidden>
             /
@@ -445,16 +453,24 @@ function IdeProjectTopBar({
               >
                 <summary
                   className="bolt-project-name-trigger"
-                  title={`Project: ${displayProjectName}`}
-                  aria-label={`Project menu for ${displayProjectName}`}
+                  title={
+                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+                      ? `Project: ${projectLabel.display} (${projectLabel.full})`
+                      : `Project: ${projectLabel.display}`
+                  }
+                  aria-label={`Project menu for ${projectLabel.display}${
+                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+                      ? ` (id ${projectLabel.full})`
+                      : ''
+                  }`}
                   onDoubleClick={(event) => {
                     event.preventDefault();
                     startInlineRename();
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">Project</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={displayProjectName}>
-                    {displayProjectName}
+                  <span className="bolt-project-breadcrumb-value truncate" title={projectLabel.display}>
+                    {projectLabel.display}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
@@ -530,15 +546,15 @@ function IdeProjectTopBar({
           <Link
             to={`/projects/${projectId}/ide?panel=git`}
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"
-            aria-label={`Branch ${branchLabel}. Open Git panel.`}
-            title={`Branch: ${branchLabel}. Open Git panel.`}
+            aria-label={`Branch ${branchLabel.display}. Open Git panel.`}
+            title={`Branch: ${branchLabel.display}. Open Git panel.`}
             onClick={() => {
               window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git' } }));
             }}
           >
             <GitBranch className="h-3.5 w-3.5" aria-hidden />
             <span className="bolt-project-breadcrumb-kicker">Branch</span>
-            <span className="bolt-project-breadcrumb-value truncate">{branchLabel}</span>
+            <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
       </div>

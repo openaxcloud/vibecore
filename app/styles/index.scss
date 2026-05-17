@@ -1433,6 +1433,184 @@ body
   color: var(--vc-ide-accent-danger, #dc2626);
 }
 
+/*
+ * Marketing — Agent features doc page (/features/agent).
+ * Designed to render meaningful on day 1 (inline SVG mockups) and
+ * to host real screenshots later by swapping each .bolt-feature-doc-svg
+ * for an <img src="/marketing/agent-<id>.png">.
+ */
+.bolt-feature-doc-hero {
+  padding: 24px 0 32px;
+}
+
+.bolt-feature-doc-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  background: var(--vc-ide-bg-overlay);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.bolt-feature-doc-hero-actions {
+  margin-top: 20px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bolt-feature-doc-prereqs {
+  margin-top: 8px;
+  margin-bottom: 32px;
+  padding: 20px 24px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 12px;
+  background: var(--vc-ide-bg-elevated);
+}
+
+.bolt-feature-doc-prereqs ul {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 768px) {
+  .bolt-feature-doc-prereqs ul {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.bolt-feature-doc-prereqs li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.bolt-feature-doc-section {
+  margin: 36px 0;
+  padding: 24px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 14px;
+  background: var(--vc-ide-bg-elevated);
+}
+
+.bolt-feature-doc-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.bolt-feature-doc-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action, #3b82f6) 14%, transparent);
+  color: var(--vc-ide-accent-action, #3b82f6);
+  flex-shrink: 0;
+}
+
+.bolt-feature-doc-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .bolt-feature-doc-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  }
+}
+
+.bolt-feature-doc-steps {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bolt-feature-doc-steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.bolt-feature-doc-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-overlay);
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.bolt-feature-doc-notes {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--vc-ide-accent-action, #3b82f6);
+  background: color-mix(in srgb, var(--vc-ide-accent-action, #3b82f6) 8%, transparent);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-feature-doc-preview {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 12px;
+  background: var(--vc-ide-bg-base);
+}
+
+.bolt-feature-doc-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.bolt-feature-doc-caption {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-feature-doc-caption code {
+  background: var(--vc-ide-bg-overlay);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+}
+
+.bolt-feature-doc-footer {
+  margin-top: 40px;
+  padding: 24px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 14px;
+  background: var(--vc-ide-bg-elevated);
+  text-align: center;
+}
+
 .bolt-share-view-thread {
   list-style: none;
   margin: 0;
@@ -3240,10 +3418,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-breadcrumb-value {
   min-width: 0;
-  color: inherit;
+  color: var(--vc-ide-text-primary) !important;
   font-size: 12px !important;
   font-weight: 720;
   letter-spacing: 0;
+}
+
+.bolt-project-breadcrumb-workspace .bolt-project-breadcrumb-value {
+  color: var(--vc-ide-accent-action) !important;
 }
 
 .bolt-project-breadcrumb-separator {
@@ -14265,6 +14447,27 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   max-width: 820px;
   gap: 16px;
   margin-bottom: 34px;
+}
+
+.vc-home-section-cta {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.vc-home-section-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vc-ide-accent-action, #3b82f6);
+  text-decoration: none;
+}
+
+.vc-home-section-cta-link:hover,
+.vc-home-section-cta-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
 }
 
 .vc-home-section-head h2,
