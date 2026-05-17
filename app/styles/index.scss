@@ -1509,6 +1509,22 @@ body
   cursor: not-allowed;
 }
 
+.bolt-file-action-diff-self-repair {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  color: var(--vc-ide-accent-action);
+  font-size: 12px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 8%, transparent);
+}
+
+.bolt-file-action-diff-self-repair-error {
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 11px;
+}
+
 .bolt-file-action-diff-streaming-indicator,
 .bolt-file-action-diff-noop {
   display: inline-flex;

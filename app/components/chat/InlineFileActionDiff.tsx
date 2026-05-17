@@ -44,12 +44,31 @@ export interface InlineFileActionDiffApplyDetail {
   rejectedHunkIds: string[];
 }
 
+/**
+ * Phase 0 #2 UI surface — when the LLM self-repair pipeline is retrying
+ * a hunk that failed AST validation, the parent can pass these counters
+ * so the card shows "Self-repair attempt 1/2…" inline. `errorMessage`
+ * surfaces the last parser error so the user knows why the agent is
+ * retrying.
+ */
+export interface SelfRepairStatus {
+  attempt: number;
+  maxAttempts: number;
+  errorMessage?: string;
+}
+
 export interface InlineFileActionDiffProps {
   action: FileActionBlock;
   onApply?: (detail: InlineFileActionDiffApplyDetail) => void;
+
+  /**
+   * Optional self-repair state. When set, an in-progress banner replaces
+   * the streaming/no-changes indicator. Undefined = no repair active.
+   */
+  selfRepair?: SelfRepairStatus;
 }
 
-export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionDiffProps) => {
+export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: InlineFileActionDiffProps) => {
   const diff = useFileActionDiff(action);
   const hunkIds = diff.hunks.map((hunk) => hunk.id);
   const review = useFileActionReview(hunkIds);
@@ -156,7 +175,20 @@ export const InlineFileActionDiff = memo(({ action, onApply }: InlineFileActionD
         ) : null}
       </header>
 
-      {action.streaming ? (
+      {selfRepair ? (
+        <div
+          className="bolt-file-action-diff-self-repair"
+          role="status"
+          aria-live="polite"
+          data-attempt={selfRepair.attempt}
+        >
+          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> Self-repair attempt {selfRepair.attempt}/
+          {selfRepair.maxAttempts}…
+          {selfRepair.errorMessage ? (
+            <span className="bolt-file-action-diff-self-repair-error">{selfRepair.errorMessage}</span>
+          ) : null}
+        </div>
+      ) : action.streaming ? (
         <div className="bolt-file-action-diff-streaming-indicator" role="status" aria-live="polite">
           <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> {t('patchReview.streaming')}
         </div>

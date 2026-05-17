@@ -137,4 +137,21 @@ describe('<InlineFileActionDiff />', () => {
     expect(within(section).getByText('New file')).toBeTruthy();
     expect(within(section).getByLabelText('1 added').textContent).toBe('+1');
   });
+
+  it('surfaces the AST self-repair banner when selfRepair is passed', () => {
+    setFixture('act-src/Repair.tsx', { original: 'old\n', isNewFile: false });
+
+    render(
+      <InlineFileActionDiff
+        action={fileBlock('src/Repair.tsx', 'new\n')}
+        selfRepair={{ attempt: 1, maxAttempts: 2, errorMessage: 'Unexpected token at line 3' }}
+      />,
+    );
+
+    expect(screen.getByText(/Self-repair attempt 1\/2/)).toBeTruthy();
+    expect(screen.getByText('Unexpected token at line 3')).toBeTruthy();
+
+    // Streaming + hunks should be replaced by the self-repair banner.
+    expect(screen.queryByText(/Streaming patch/)).toBeNull();
+  });
 });
