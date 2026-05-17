@@ -61,6 +61,27 @@ export interface SlashCommandContext {
   getLastPreviewError?: () => string | undefined;
 
   /**
+   * Open the given path in the workbench editor. Used by `/open`.
+   * Path can be absolute (`/home/project/...`) or relative — the
+   * implementation normalises against WORK_DIR.
+   */
+  openFile?: (filePath: string) => void;
+
+  /**
+   * Switch the workbench view to the inline diff for the given path
+   * (or the currently selected file when no path is provided). Used
+   * by `/diff`.
+   */
+  openDiff?: (filePath?: string) => void;
+
+  /**
+   * Execute a shell command in the project workspace. Used by `/run`.
+   * Should surface stdout/stderr in the IDE terminal panel rather than
+   * returning the output to the slash command runner.
+   */
+  runShellCommand?: (command: string) => void | Promise<void>;
+
+  /**
    * Free-form arguments parsed from after the command keyword, e.g. for
    * `/explain reactivity` the argument is `'reactivity'`.
    */
@@ -197,6 +218,48 @@ export const BUILT_IN_SLASH_COMMANDS: readonly SlashCommand[] = [
       }
 
       context.insertIntoComposer(`Fix this preview error:\n\n\`\`\`\n${error}\n\`\`\`\n`, { replace: true });
+    },
+  },
+  {
+    id: 'open',
+    label: 'Open file in editor',
+    description: 'Switch the workbench to code view and select the given file.',
+    aliases: ['edit'],
+    takesArgument: true,
+    execute(context) {
+      const path = context.argument?.trim();
+
+      if (!path || !context.openFile) {
+        return;
+      }
+
+      context.openFile(path);
+    },
+  },
+  {
+    id: 'diff',
+    label: 'Show diff for file',
+    description: 'Switch the workbench to inline diff view for the given path (or the active file).',
+    takesArgument: true,
+    execute(context) {
+      const trimmed = context.argument?.trim();
+      context.openDiff?.(trimmed || undefined);
+    },
+  },
+  {
+    id: 'run',
+    label: 'Run shell command',
+    description: 'Execute a shell command in the project workspace (output appears in the terminal).',
+    aliases: ['sh', 'shell'],
+    takesArgument: true,
+    async execute(context) {
+      const command = context.argument?.trim();
+
+      if (!command || !context.runShellCommand) {
+        return;
+      }
+
+      await context.runShellCommand(command);
     },
   },
 ];

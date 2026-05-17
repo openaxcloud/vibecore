@@ -1828,6 +1828,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return state.error;
     }, []);
 
+    /*
+     * /open <path> — switch to code view + select the file. Normalises
+     * the path against WORK_DIR so the user can pass either relative
+     * (`src/App.tsx`) or absolute (`/home/project/src/App.tsx`).
+     */
+    const openFileFromSlash = useCallback((rawPath: string) => {
+      const normalised = rawPath.startsWith('/') ? rawPath : `${WORK_DIR}/${rawPath.replace(/^\.?\//, '')}`;
+      workbenchStore.currentView.set('code');
+      workbenchStore.setSelectedFile(normalised);
+    }, []);
+
+    /*
+     * /diff <path> — switch to diff view; when no path is given, keep
+     * the currently selected file as the diff target.
+     */
+    const openDiffFromSlash = useCallback((rawPath?: string) => {
+      if (rawPath) {
+        const normalised = rawPath.startsWith('/') ? rawPath : `${WORK_DIR}/${rawPath.replace(/^\.?\//, '')}`;
+        workbenchStore.setSelectedFile(normalised);
+      }
+
+      workbenchStore.currentView.set('diff');
+    }, []);
+
+    /*
+     * /run <command> — execute a shell command via the bolt terminal.
+     * The output streams into the IDE terminal panel; we surface a
+     * toast on failure so the user knows when it crashed silently.
+     */
+    const runShellCommandFromSlash = useCallback(async (command: string) => {
+      const shell = workbenchStore.boltTerminal;
+
+      if (!shell || typeof shell.executeCommand !== 'function') {
+        toast.error('Shell unavailable — open the terminal panel first');
+        return;
+      }
+
+      try {
+        await shell.executeCommand(`slash-run:${Date.now()}`, command);
+      } catch (error) {
+        toast.error(`Shell command failed: ${(error as Error).message}`);
+      }
+    }, []);
+
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
 
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
@@ -4203,6 +4247,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 insertIntoComposer,
                 createSnapshot: projectId ? createSnapshotCommand : undefined,
                 getLastPreviewError,
+                openFile: openFileFromSlash,
+                openDiff: openDiffFromSlash,
+                runShellCommand: runShellCommandFromSlash,
               }}
               projectId={projectId}
               recentMentionedFilePaths={recentMentionedFilePaths}

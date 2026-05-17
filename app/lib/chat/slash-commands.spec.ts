@@ -17,7 +17,19 @@ function emptyContext(overrides: Partial<SlashCommandContext> = {}): SlashComman
 describe('built-in slash commands', () => {
   it('lists every built-in by id', () => {
     const ids = BUILT_IN_SLASH_COMMANDS.map((command) => command.id).sort();
-    expect(ids).toEqual(['build', 'clear', 'discuss', 'file', 'help', 'plan', 'preview-error', 'snapshot']);
+    expect(ids).toEqual([
+      'build',
+      'clear',
+      'diff',
+      'discuss',
+      'file',
+      'help',
+      'open',
+      'plan',
+      'preview-error',
+      'run',
+      'snapshot',
+    ]);
   });
 
   it('resolves an alias to its canonical command', () => {
@@ -162,6 +174,60 @@ describe('/preview-error command', () => {
     const insertIntoComposer = vi.fn();
     getSlashCommand('preview-error')?.execute(emptyContext({ insertIntoComposer }));
     expect(insertIntoComposer).not.toHaveBeenCalled();
+  });
+});
+
+describe('/open command', () => {
+  it('opens the requested file via openFile', () => {
+    const openFile = vi.fn();
+    getSlashCommand('open')?.execute(emptyContext({ argument: 'src/App.tsx', openFile }));
+    expect(openFile).toHaveBeenCalledWith('src/App.tsx');
+  });
+
+  it('no-ops when argument is empty', () => {
+    const openFile = vi.fn();
+    getSlashCommand('open')?.execute(emptyContext({ argument: '  ', openFile }));
+    expect(openFile).not.toHaveBeenCalled();
+  });
+
+  it('no-ops when openFile callback is missing (Bolt standalone)', () => {
+    expect(() => getSlashCommand('open')?.execute(emptyContext({ argument: 'src/App.tsx' }))).not.toThrow();
+  });
+});
+
+describe('/diff command', () => {
+  it('calls openDiff with the supplied path', () => {
+    const openDiff = vi.fn();
+    getSlashCommand('diff')?.execute(emptyContext({ argument: 'src/App.tsx', openDiff }));
+    expect(openDiff).toHaveBeenCalledWith('src/App.tsx');
+  });
+
+  it('calls openDiff with undefined when no argument is provided (active file)', () => {
+    const openDiff = vi.fn();
+    getSlashCommand('diff')?.execute(emptyContext({ openDiff }));
+    expect(openDiff).toHaveBeenCalledWith(undefined);
+  });
+
+  it('no-ops when openDiff callback is missing', () => {
+    expect(() => getSlashCommand('diff')?.execute(emptyContext({ argument: 'src/App.tsx' }))).not.toThrow();
+  });
+});
+
+describe('/run command', () => {
+  it('executes the supplied command via runShellCommand', async () => {
+    const runShellCommand = vi.fn().mockResolvedValue(undefined);
+    await getSlashCommand('run')?.execute(emptyContext({ argument: 'pnpm test', runShellCommand }));
+    expect(runShellCommand).toHaveBeenCalledWith('pnpm test');
+  });
+
+  it('no-ops on empty argument', async () => {
+    const runShellCommand = vi.fn();
+    await getSlashCommand('run')?.execute(emptyContext({ argument: '   ', runShellCommand }));
+    expect(runShellCommand).not.toHaveBeenCalled();
+  });
+
+  it('no-ops when runShellCommand is missing (Bolt standalone)', async () => {
+    await expect(getSlashCommand('run')?.execute(emptyContext({ argument: 'ls' }))).resolves.not.toThrow();
   });
 });
 
