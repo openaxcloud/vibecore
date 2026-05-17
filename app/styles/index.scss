@@ -992,6 +992,35 @@ body
   bottom: calc(100% + 8px);
   left: 12px;
   z-index: 40;
+  animation: bolt-composer-overlay-pop 120ms ease-out;
+  transform-origin: bottom left;
+}
+
+@keyframes bolt-composer-overlay-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bolt-branches-menu-popover {
+  animation: bolt-branches-menu-pop 120ms ease-out;
+  transform-origin: top right;
+}
+
+@keyframes bolt-branches-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .bolt-file-mentions-palette {
@@ -1402,6 +1431,191 @@ body
 
 .bolt-share-view-error h1 {
   color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-share-view-thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bolt-share-view-message {
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-base);
+  padding: 12px 16px;
+}
+
+.bolt-share-view-message[data-role='user'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 30%, var(--vc-ide-border-subtle));
+}
+
+.bolt-share-view-message[data-role='assistant'] {
+  background: var(--vc-ide-bg-elevated);
+}
+
+.bolt-share-view-message-role {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vc-ide-text-secondary);
+  margin-bottom: 8px;
+}
+
+.bolt-share-view-message-content {
+  margin: 0;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vc-ide-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sprint 6 wiring — conversation branches dropdown in the agent header. */
+.bolt-branches-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.bolt-branches-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-branches-menu-trigger:hover,
+.bolt-branches-menu-trigger[aria-expanded='true'] {
+  background: var(--vc-ide-bg-hover);
+  border-color: var(--vc-ide-border-subtle);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-branches-menu-count {
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--vc-ide-bg-overlay);
+  border-radius: 999px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.bolt-branches-menu-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 260px;
+  max-width: 360px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--vc-ide-bg-elevated);
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  padding: 4px;
+}
+
+.bolt-branches-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bolt-branches-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.bolt-branches-row[data-active='true'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
+}
+
+.bolt-branches-row:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-branches-row-switch {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: var(--vc-ide-text-primary);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.bolt-branches-row-icon {
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.bolt-branches-row-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-branches-row-count {
+  font-size: 11px;
+  color: var(--vc-ide-text-secondary);
+  background: var(--vc-ide-bg-overlay);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+
+.bolt-branches-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.4;
+  transition: opacity 120ms ease-out;
+}
+
+.bolt-branches-row:hover .bolt-branches-row-actions,
+.bolt-branches-row:focus-within .bolt-branches-row-actions {
+  opacity: 1;
+}
+
+.bolt-branches-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-branches-row-action:hover {
+  background: var(--vc-ide-bg-overlay);
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-message-patch-review-body {

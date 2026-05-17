@@ -39,6 +39,15 @@ export interface ShareLinkPayload {
   visibleMessageIds: string[];
 
   /**
+   * Optional inline message bodies — when present the share viewer
+   * renders them directly without needing a server fetch. Kept small
+   * (caller decides which to embed) so the encoded URL stays under
+   * MAX_PAYLOAD_BYTES. Each entry is a minimal AI SDK message shape:
+   * `id` + `role` + `content` (string, not parts).
+   */
+  inlineMessages?: Array<{ id: string; role: 'user' | 'assistant' | 'system'; content: string }>;
+
+  /**
    * Whether the receiver can fork the conversation when opened. False
    * by default — the share is read-only.
    */

@@ -10,12 +10,13 @@
 import { memo } from 'react';
 
 import { summarizePlanProgress, type PlanChecklist, type PlanItemStatus } from '~/lib/chat/plan-checklist';
+import { t, type TranslationKey } from '~/lib/i18n/dictionary';
 
-const STATUS_LABEL: Record<PlanItemStatus, string> = {
-  pending: 'Pending',
-  in_progress: 'In progress',
-  completed: 'Done',
-  failed: 'Failed',
+const STATUS_LABEL_KEY: Record<PlanItemStatus, TranslationKey> = {
+  pending: 'plan.statusPending',
+  in_progress: 'plan.statusInProgress',
+  completed: 'plan.statusCompleted',
+  failed: 'plan.statusFailed',
 };
 
 const STATUS_ICON: Record<PlanItemStatus, string> = {
@@ -39,8 +40,13 @@ export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
         {plan.title ? <h3 className="bolt-plan-checklist-title">{plan.title}</h3> : null}
         <div className="bolt-plan-checklist-progress" role="group" aria-label="Plan progress">
           <span className="bolt-plan-checklist-progress-label">
-            {progress.completed} / {progress.total} complete
-            {progress.failed > 0 ? ` · ${progress.failed} failed` : ''}
+            {progress.failed > 0
+              ? t('plan.progressLabelWithFailed', {
+                  completed: progress.completed,
+                  total: progress.total,
+                  failed: progress.failed,
+                })
+              : t('plan.progressLabel', { completed: progress.completed, total: progress.total })}
           </span>
           <div
             className="bolt-plan-checklist-progress-bar"
@@ -59,11 +65,11 @@ export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
             key={item.id}
             className="bolt-plan-checklist-item"
             data-status={item.status}
-            aria-label={`${item.description}, ${STATUS_LABEL[item.status]}`}
+            aria-label={`${item.description}, ${t(STATUS_LABEL_KEY[item.status])}`}
           >
             <span className={`${STATUS_ICON[item.status]} bolt-plan-checklist-icon`} aria-hidden />
             <span className="bolt-plan-checklist-description">{item.description}</span>
-            <span className="bolt-plan-checklist-status">{STATUS_LABEL[item.status]}</span>
+            <span className="bolt-plan-checklist-status">{t(STATUS_LABEL_KEY[item.status])}</span>
             {item.result ? <span className="bolt-plan-checklist-result">{item.result}</span> : null}
           </li>
         ))}

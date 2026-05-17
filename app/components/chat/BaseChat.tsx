@@ -36,6 +36,7 @@ import {
 import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
+import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { PresenceAvatars } from './PresenceAvatars';
 import { ShareConversationButton } from './ShareConversationButton';
@@ -5110,6 +5111,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           }))}
                         maxVisible={3}
                       />
+                      {projectId ? (
+                        <HeaderTip label="Browse conversation branches">
+                          <ConversationBranchesMenu projectId={projectId} className="bolt-project-ide-icon-button" />
+                        </HeaderTip>
+                      ) : null}
                       {projectId ? (
                         <HeaderTip label="Share this conversation as a read-only link">
                           <ShareConversationButton

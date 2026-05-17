@@ -17,6 +17,7 @@ import { memo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 
 import { useShareLink } from '~/lib/hooks/useShareLink';
+import { t } from '~/lib/i18n/dictionary';
 
 export interface ShareConversationButtonProps {
   conversationId: string;
@@ -51,7 +52,7 @@ export const ShareConversationButton = memo(
       });
 
       if (!url) {
-        const message = share.state.kind === 'error' ? share.state.message : 'Could not build share link';
+        const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorCouldNotBuild');
         toast.error(message);
 
         return;
@@ -60,10 +61,9 @@ export const ShareConversationButton = memo(
       const ok = await share.copyToClipboard();
 
       if (ok) {
-        toast.success('Share link copied to clipboard');
+        toast.success(t('shareButton.copiedToast'));
       } else {
-        const message =
-          share.state.kind === 'error' ? share.state.message : 'Built share link but clipboard copy failed';
+        const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorClipboard');
         toast.error(message);
       }
     }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
@@ -76,8 +76,8 @@ export const ShareConversationButton = memo(
         className={className}
         onClick={handleClick}
         disabled={disabled}
-        aria-label="Share this conversation"
-        title={disabled ? 'Send at least one message before sharing' : 'Copy a share link to this conversation'}
+        aria-label={t('shareButton.label')}
+        title={disabled ? t('shareButton.disabled') : t('shareButton.enabled')}
       >
         <span className="i-ph:share-network" aria-hidden />
       </button>

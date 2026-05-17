@@ -16,7 +16,7 @@ describe('<SlashCommandsPalette />', () => {
     render(<SlashCommandsPalette query="" onSelect={() => undefined} />);
 
     const options = screen.getAllByRole('option');
-    expect(options.length).toBe(5); // 5 built-ins
+    expect(options.length).toBe(8); // 8 built-ins (clear, discuss, build, plan, help, file, snapshot, preview-error)
     expect(screen.getByText('/clear')).toBeTruthy();
     expect(screen.getByText('/plan')).toBeTruthy();
   });
