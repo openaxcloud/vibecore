@@ -40,6 +40,27 @@ export interface SlashCommandContext {
   focusComposer?: () => void;
 
   /**
+   * Splice text into the composer. When `replace` is true the entire
+   * input is overwritten (used by `/preview-error` to pre-fill an
+   * actionable prompt); otherwise the text is appended at the caret.
+   * Wired by BaseChat through the same handleInputChange machinery
+   * the overlays use, so no separate mock is needed.
+   */
+  insertIntoComposer?: (text: string, options?: { replace?: boolean }) => void;
+
+  /**
+   * Create a manual snapshot of the current workspace. Returns a promise
+   * so the command can await it before clearing the input.
+   */
+  createSnapshot?: () => void | Promise<void>;
+
+  /**
+   * Return the most recent preview error message (e.g. dev server crash,
+   * runtime exception). When the preview is healthy returns undefined.
+   */
+  getLastPreviewError?: () => string | undefined;
+
+  /**
    * Free-form arguments parsed from after the command keyword, e.g. for
    * `/explain reactivity` the argument is `'reactivity'`.
    */
@@ -135,6 +156,47 @@ export const BUILT_IN_SLASH_COMMANDS: readonly SlashCommand[] = [
     aliases: ['?'],
     execute(context) {
       context.openHelp?.();
+    },
+  },
+  {
+    id: 'file',
+    label: 'Insert file mention',
+    description: 'Insert @<path> at the cursor without opening the @ autocomplete.',
+    takesArgument: true,
+    execute(context) {
+      const trimmed = context.argument?.trim();
+
+      if (!trimmed || !context.insertIntoComposer) {
+        return;
+      }
+
+      // Strip leading @ if the user already typed it, then re-add a single one.
+      const cleaned = trimmed.replace(/^@+/, '');
+      context.insertIntoComposer(`@${cleaned} `);
+    },
+  },
+  {
+    id: 'snapshot',
+    label: 'Create project snapshot',
+    description: 'Take a manual git-style snapshot of the workspace so you can roll back later.',
+    aliases: ['save'],
+    async execute(context) {
+      await context.createSnapshot?.();
+    },
+  },
+  {
+    id: 'preview-error',
+    label: 'Fix last preview error',
+    description: 'Pre-fill the composer with the most recent preview error so you only press Enter.',
+    aliases: ['fix-preview', 'fixerror'],
+    execute(context) {
+      const error = context.getLastPreviewError?.();
+
+      if (!error || !context.insertIntoComposer) {
+        return;
+      }
+
+      context.insertIntoComposer(`Fix this preview error:\n\n\`\`\`\n${error}\n\`\`\`\n`, { replace: true });
     },
   },
 ];

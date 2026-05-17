@@ -1757,6 +1757,76 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const recentMentionedFilePaths = paletteMemory?.ui?.recentMentionedFilePaths;
     const recentSlashCommandIds = paletteMemory?.ui?.recentSlashCommandIds;
+
+    /*
+     * Slash command callbacks. Each one is opt-in — when its hook isn't
+     * relevant (e.g. Bolt standalone has no projectId, no snapshot route),
+     * we simply leave the callback off the context and the command
+     * no-ops gracefully (verified in slash-commands.spec.ts).
+     */
+    const insertIntoComposer = useCallback(
+      (text: string, opts?: { replace?: boolean }) => {
+        if (!handleInputChange) {
+          return;
+        }
+
+        const nextValue = opts?.replace ? text : `${input ?? ''}${text}`;
+
+        const syntheticEvent = {
+          target: { value: nextValue },
+          currentTarget: { value: nextValue },
+        } as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+        handleInputChange(syntheticEvent);
+
+        window.requestAnimationFrame(() => {
+          const el = textareaRef?.current;
+
+          if (!el) {
+            return;
+          }
+
+          el.focus();
+
+          const caret = nextValue.length;
+          el.setSelectionRange(caret, caret);
+        });
+      },
+      [handleInputChange, input, textareaRef],
+    );
+
+    const createSnapshotCommand = useCallback(async () => {
+      if (!projectId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/snapshots`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { accept: 'application/json', 'content-type': 'application/json' },
+          body: JSON.stringify({ label: 'Manual checkpoint via /snapshot', kind: 'manual', manifest: {} }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Snapshot failed (${response.status})`);
+        }
+
+        toast.success('Snapshot created');
+      } catch (error) {
+        toast.error(`Snapshot failed: ${(error as Error).message}`);
+      }
+    }, [projectId]);
+
+    const getLastPreviewError = useCallback(() => {
+      const state = workbenchStore.previewServerState.get();
+
+      if (state.status !== 'error' || !state.error) {
+        return undefined;
+      }
+
+      return state.error;
+    }, []);
+
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
 
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
@@ -4129,6 +4199,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 planFirst: projectPlanFirst,
                 setPlanFirst: setProjectPlanFirst,
                 autoApplyEnabled: projectAutoApply,
+                insertIntoComposer,
+                createSnapshot: projectId ? createSnapshotCommand : undefined,
+                getLastPreviewError,
               }}
               projectId={projectId}
               recentMentionedFilePaths={recentMentionedFilePaths}

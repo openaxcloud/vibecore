@@ -17,7 +17,7 @@ function emptyContext(overrides: Partial<SlashCommandContext> = {}): SlashComman
 describe('built-in slash commands', () => {
   it('lists every built-in by id', () => {
     const ids = BUILT_IN_SLASH_COMMANDS.map((command) => command.id).sort();
-    expect(ids).toEqual(['build', 'clear', 'discuss', 'help', 'plan']);
+    expect(ids).toEqual(['build', 'clear', 'discuss', 'file', 'help', 'plan', 'preview-error', 'snapshot']);
   });
 
   it('resolves an alias to its canonical command', () => {
@@ -92,6 +92,76 @@ describe('command execution', () => {
     setPlanFirst.mockClear();
     getSlashCommand('plan')?.execute(emptyContext({ planFirst: true, setPlanFirst }));
     expect(setPlanFirst).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('/file command', () => {
+  it('inserts @<path> at the cursor when an argument is supplied', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('file')?.execute(emptyContext({ argument: 'src/App.tsx', insertIntoComposer }));
+    expect(insertIntoComposer).toHaveBeenCalledWith('@src/App.tsx ');
+  });
+
+  it('strips a leading @ the user may have typed', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('file')?.execute(emptyContext({ argument: '@src/App.tsx', insertIntoComposer }));
+    expect(insertIntoComposer).toHaveBeenCalledWith('@src/App.tsx ');
+  });
+
+  it('no-ops when the argument is empty', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('file')?.execute(emptyContext({ argument: '   ', insertIntoComposer }));
+    expect(insertIntoComposer).not.toHaveBeenCalled();
+  });
+
+  it('no-ops when the composer hook is missing (e.g. Bolt standalone)', () => {
+    // No throw, no setter — graceful no-op
+    expect(() => getSlashCommand('file')?.execute(emptyContext({ argument: 'src/App.tsx' }))).not.toThrow();
+  });
+});
+
+describe('/snapshot command', () => {
+  it('calls createSnapshot when wired', async () => {
+    const createSnapshot = vi.fn().mockResolvedValue(undefined);
+    await getSlashCommand('snapshot')?.execute(emptyContext({ createSnapshot }));
+    expect(createSnapshot).toHaveBeenCalledTimes(1);
+  });
+
+  it('no-ops gracefully when createSnapshot is absent (Bolt standalone)', async () => {
+    await expect(getSlashCommand('snapshot')?.execute(emptyContext())).resolves.not.toThrow();
+  });
+});
+
+describe('/preview-error command', () => {
+  it('pre-fills the composer with the latest preview error when present', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('preview-error')?.execute(
+      emptyContext({
+        insertIntoComposer,
+        getLastPreviewError: () => 'TypeError: undefined is not a function at App.tsx:42',
+      }),
+    );
+
+    expect(insertIntoComposer).toHaveBeenCalledTimes(1);
+
+    const [text, options] = insertIntoComposer.mock.calls[0];
+    expect(text).toContain('TypeError');
+    expect(text).toContain('Fix this preview error');
+    expect(options).toEqual({ replace: true });
+  });
+
+  it('no-ops when there is no preview error to fix', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('preview-error')?.execute(
+      emptyContext({ insertIntoComposer, getLastPreviewError: () => undefined }),
+    );
+    expect(insertIntoComposer).not.toHaveBeenCalled();
+  });
+
+  it('no-ops when getLastPreviewError is absent (Bolt standalone)', () => {
+    const insertIntoComposer = vi.fn();
+    getSlashCommand('preview-error')?.execute(emptyContext({ insertIntoComposer }));
+    expect(insertIntoComposer).not.toHaveBeenCalled();
   });
 });
 
