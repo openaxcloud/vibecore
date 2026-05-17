@@ -37,6 +37,7 @@ import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
+import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
@@ -4963,6 +4964,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </button>
                     )}
                     <div className="ml-auto flex items-center gap-1">
+                      {projectId ? (
+                        <HeaderTip label="Share this conversation as a read-only link">
+                          <ShareConversationButton
+                            conversationId={`project:${projectId}`}
+                            projectId={projectId}
+                            authorUserId="self"
+                            title={description?.trim() || undefined}
+                            messages={messages ?? []}
+                            className="bolt-project-ide-icon-button"
+                          />
+                        </HeaderTip>
+                      ) : null}
                       <HeaderTip label="Switch light / dark theme">
                         <ThemeSwitch
                           size="lg"
