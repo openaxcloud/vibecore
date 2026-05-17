@@ -58,12 +58,22 @@ export const ShareConversationButton = memo(
         return;
       }
 
-      const ok = await share.copyToClipboard();
+      /*
+       * Write directly to the clipboard with the freshly-built URL —
+       * share.copyToClipboard reads the hook's React state which is
+       * still 'idle' inside this click handler's closure (the
+       * setState in build() doesn't flush mid-callback).
+       */
+      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+        toast.error(t('shareButton.errorClipboard'));
+        return;
+      }
 
-      if (ok) {
+      try {
+        await navigator.clipboard.writeText(url);
         toast.success(t('shareButton.copiedToast'));
-      } else {
-        const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorClipboard');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : t('shareButton.errorClipboard');
         toast.error(message);
       }
     }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
