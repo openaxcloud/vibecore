@@ -108,6 +108,14 @@ export interface ProjectIdeMemory {
     editorMinimapEnabled?: boolean;
     lockedItems?: Array<{ path: string; type: 'file' | 'folder' }>;
     deletedPaths?: string[];
+
+    /*
+     * Sprint 3/4 polish — most-recently-used lists that the composer
+     * palettes boost in their fuzzy ranking. Capped to RECENT_LIMIT to
+     * keep the JSON payload reasonable; deduped MRU-first.
+     */
+    recentMentionedFilePaths?: string[];
+    recentSlashCommandIds?: string[];
   };
   updatedAt?: string;
 }
@@ -523,6 +531,41 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
 
     throw error;
   }
+}
+
+/**
+ * Sprint 3/4 — composer palette MRU. We keep the lists short so they
+ * stay snappy in the fuzzy boost and don't bloat the persisted JSON.
+ */
+export const PALETTE_RECENT_LIMIT = 20;
+
+function pushMruEntry(list: string[] | undefined, entry: string): string[] {
+  const cleaned = (list ?? []).filter((existing) => existing !== entry);
+  cleaned.unshift(entry);
+
+  return cleaned.slice(0, PALETTE_RECENT_LIMIT);
+}
+
+/**
+ * Record a file the user selected in the @-mentions palette so the
+ * next palette open prioritises it.
+ */
+export function recordMentionedFile(projectId: string, filePath: string): Promise<void> {
+  const cached = memoryCache.get(projectId);
+  const next = pushMruEntry(cached?.ui?.recentMentionedFilePaths, filePath);
+
+  return saveProjectIdeMemory(projectId, { ui: { recentMentionedFilePaths: next } });
+}
+
+/**
+ * Record a slash command id the user executed so the next palette
+ * open prioritises it.
+ */
+export function recordSlashCommand(projectId: string, commandId: string): Promise<void> {
+  const cached = memoryCache.get(projectId);
+  const next = pushMruEntry(cached?.ui?.recentSlashCommandIds, commandId);
+
+  return saveProjectIdeMemory(projectId, { ui: { recentSlashCommandIds: next } });
 }
 
 export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory): Promise<void> {

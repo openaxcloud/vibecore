@@ -37,6 +37,7 @@ import { setAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
 import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { Messages } from './Messages.client';
+import { PresenceAvatars } from './PresenceAvatars';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -92,7 +93,12 @@ import LlmErrorAlert from './LLMApiAlert';
 import { useResponsiveLayout } from '@vibecore/editor';
 import { useSwipeGesture } from '~/lib/hooks/useMobileGestures';
 import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
-import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import {
+  getProjectIdeMemory,
+  saveProjectIdeMemory,
+  subscribeProjectIdeMemory,
+  type ProjectIdeMemory,
+} from '~/lib/persistence/projectIdeMemory';
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useSearchParams } from '@remix-run/react';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
@@ -1698,6 +1704,59 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
+
+    /*
+     * Header presence — subscribe to the project collaboration channel
+     * at the root so PresenceAvatars in the agent header stays live
+     * regardless of which sidebar panel is active. (The collaborators
+     * panel currently runs its own subscription too; deduping is a
+     * follow-up — the WS handshake cost is negligible.)
+     */
+    const headerCollaboration = useProjectCollaboration({
+      projectId,
+      enabled: Boolean(projectId) && projectIdeMode,
+      mode: 'editing',
+    });
+
+    /*
+     * Sprint 3/4 polish — read the MRU palette lists from project IDE
+     * memory so the @-mentions and /-commands palettes can boost
+     * frequent entries. Updates live via subscribeProjectIdeMemory so a
+     * fresh pick from another tab also bumps the local ranking.
+     */
+    const [paletteMemory, setPaletteMemory] = useState<ProjectIdeMemory | undefined>(undefined);
+
+    useEffect(() => {
+      if (!projectId || !projectIdeMode) {
+        setPaletteMemory(undefined);
+
+        return undefined;
+      }
+
+      let cancelled = false;
+
+      getProjectIdeMemory(projectId)
+        .then((value) => {
+          if (!cancelled) {
+            setPaletteMemory(value);
+          }
+        })
+        .catch(() => undefined);
+
+      const unsubscribe = subscribeProjectIdeMemory(projectId, (next) => {
+        if (!cancelled) {
+          setPaletteMemory(next);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    }, [projectId, projectIdeMode]);
+
+    const recentMentionedFilePaths = paletteMemory?.ui?.recentMentionedFilePaths;
+    const recentSlashCommandIds = paletteMemory?.ui?.recentSlashCommandIds;
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
 
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
@@ -4071,6 +4130,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 setPlanFirst: setProjectPlanFirst,
                 autoApplyEnabled: projectAutoApply,
               }}
+              projectId={projectId}
+              recentMentionedFilePaths={recentMentionedFilePaths}
+              recentSlashCommandIds={recentSlashCommandIds}
               designScheme={designScheme}
               setDesignScheme={setDesignScheme}
               selectedElement={selectedElement}
@@ -4964,6 +5026,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </button>
                     )}
                     <div className="ml-auto flex items-center gap-1">
+                      <PresenceAvatars
+                        entries={(headerCollaboration.snapshot?.presence ?? [])
+                          .filter((entry: any) => entry?.status !== 'offline')
+                          .map((entry: any) => ({
+                            userId: String(entry.userId ?? entry.sessionId ?? ''),
+                            name: String(entry.userId ?? entry.sessionId ?? '?'),
+                            status: entry.status === 'idle' ? 'idle' : 'viewing',
+                            lastSeenAt: Date.parse(entry.updatedAt ?? '') || Date.now(),
+                          }))}
+                        maxVisible={3}
+                      />
                       {projectId ? (
                         <HeaderTip label="Share this conversation as a read-only link">
                           <ShareConversationButton

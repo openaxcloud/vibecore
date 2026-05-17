@@ -95,6 +95,34 @@ describe('command execution', () => {
   });
 });
 
+describe('searchSlashCommands with recent MRU', () => {
+  it('orders by MRU on an empty query', () => {
+    const results = searchSlashCommands('', { recentSlashCommandIds: ['plan', 'clear'] });
+    expect(results[0].id).toBe('plan');
+    expect(results[1].id).toBe('clear');
+  });
+
+  it('boosts MRU entries above ties on an empty query', () => {
+    const both = searchSlashCommands('', { recentSlashCommandIds: ['build', 'clear'] });
+    expect(both[0].id).toBe('build');
+    expect(both[1].id).toBe('clear');
+  });
+
+  it('MRU bonus lifts a matching command above its peers on a partial query', () => {
+    /*
+     * "c" fuzzy-matches both /clear (id 10) and /build (via alias 'code',
+     * id 7). With /build in MRU, the bonus pushes /build ahead — that's
+     * the desired behaviour: recently-used commands surface first
+     * whenever they fuzzy-match the query at all.
+     */
+    const noMru = searchSlashCommands('c');
+    expect(noMru[0].id).toBe('clear');
+
+    const withMru = searchSlashCommands('c', { recentSlashCommandIds: ['build'] });
+    expect(withMru[0].id).toBe('build');
+  });
+});
+
 describe('registerSlashCommand', () => {
   it('exposes the registered command via getSlashCommand and lists it', () => {
     const execute = vi.fn();

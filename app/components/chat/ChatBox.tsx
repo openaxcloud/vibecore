@@ -69,6 +69,15 @@ interface ChatBoxProps {
   setSelectedElement?: ((element: ElementInfo | null) => void) | undefined;
   projectIdeMode?: boolean;
   placeholder?: string;
+
+  /** Project id used by the composer overlays to persist MRU palettes. */
+  projectId?: string;
+
+  /** MRU file paths from projectIdeMemory; boosts ranking in @-palette. */
+  recentMentionedFilePaths?: readonly string[];
+
+  /** MRU slash command ids from projectIdeMemory; boosts ranking in /-palette. */
+  recentSlashCommandIds?: readonly string[];
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
@@ -269,6 +278,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             textareaRef={props.textareaRef}
             input={props.input}
             handleInputChange={props.handleInputChange}
+            recentMentionedFilePaths={props.recentMentionedFilePaths}
+            projectId={props.projectId}
           />
         ) : null}
         {props.textareaRef ? (
@@ -281,6 +292,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               setChatMode: props.setChatMode,
               ...(props.slashContext ?? {}),
             }}
+            recentSlashCommandIds={props.recentSlashCommandIds}
+            projectId={props.projectId}
           />
         ) : null}
         <ClientOnly>

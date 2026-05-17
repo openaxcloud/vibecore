@@ -111,9 +111,33 @@ export function scoreFileMention(needle: string, haystack: string): number {
 
 interface SearchOptions {
   limit?: number;
+
+  /**
+   * MRU file paths (displayPath form, e.g. `src/App.tsx`) to boost in
+   * the ranking. The first entry gets the biggest bonus, decaying
+   * linearly so recent picks rise to the top of the empty-query
+   * default list and earn extra weight on partial fuzzy matches.
+   */
+  recentMentionedFilePaths?: readonly string[];
 }
 
 const DEFAULT_LIMIT = 12;
+const MRU_BONUS_MAX = 200;
+const MRU_BONUS_DECAY = 8;
+
+function mruBonus(recent: readonly string[] | undefined, displayPath: string): number {
+  if (!recent || recent.length === 0) {
+    return 0;
+  }
+
+  const idx = recent.indexOf(displayPath);
+
+  if (idx < 0) {
+    return 0;
+  }
+
+  return Math.max(0, MRU_BONUS_MAX - idx * MRU_BONUS_DECAY);
+}
 
 /**
  * Pure search over a FileMap snapshot. Used by the React hook below
@@ -154,6 +178,8 @@ export function searchFileMentions(files: FileMap, query: string, options: Searc
       score = Math.max(basenameScore * 1.5, pathScore);
     }
 
+    score += mruBonus(options.recentMentionedFilePaths, displayPath);
+
     candidates.push({ absolutePath, displayPath, basename, score });
   }
 
@@ -180,6 +206,10 @@ export function searchFileMentions(files: FileMap, query: string, options: Searc
 export function useFileMentions(query: string, options: SearchOptions = {}): FileMentionCandidate[] {
   const files = useStore(workbenchStore.files) as FileMap;
   const limit = options.limit ?? DEFAULT_LIMIT;
+  const recent = options.recentMentionedFilePaths;
 
-  return useMemo(() => searchFileMentions(files, query, { limit }), [files, query, limit]);
+  return useMemo(
+    () => searchFileMentions(files, query, { limit, recentMentionedFilePaths: recent }),
+    [files, query, limit, recent],
+  );
 }

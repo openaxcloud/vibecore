@@ -25,112 +25,120 @@ export interface FileMentionsPaletteProps {
 
   /** Optional max number of results; defaults to 12. */
   limit?: number;
+
+  /**
+   * MRU display paths the user has previously mentioned — boosts those
+   * entries in the palette ranking so frequent files surface first.
+   */
+  recentMentionedFilePaths?: readonly string[];
 }
 
-export const FileMentionsPalette = memo(({ query, onSelect, onDismiss, limit }: FileMentionsPaletteProps) => {
-  const candidates = useFileMentions(query, { limit });
-  const [activeIndex, setActiveIndex] = useState(0);
-  const listRef = useRef<HTMLUListElement>(null);
+export const FileMentionsPalette = memo(
+  ({ query, onSelect, onDismiss, limit, recentMentionedFilePaths }: FileMentionsPaletteProps) => {
+    const candidates = useFileMentions(query, { limit, recentMentionedFilePaths });
+    const [activeIndex, setActiveIndex] = useState(0);
+    const listRef = useRef<HTMLUListElement>(null);
 
-  /*
-   * Clamp the active index when the candidate list shrinks (e.g. typing
-   * narrows the matches). Also reset to the top whenever the query
-   * changes — that's the standard palette UX.
-   */
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
+    /*
+     * Clamp the active index when the candidate list shrinks (e.g. typing
+     * narrows the matches). Also reset to the top whenever the query
+     * changes — that's the standard palette UX.
+     */
+    useEffect(() => {
+      setActiveIndex(0);
+    }, [query]);
 
-  useEffect(() => {
-    if (activeIndex >= candidates.length) {
-      setActiveIndex(Math.max(0, candidates.length - 1));
+    useEffect(() => {
+      if (activeIndex >= candidates.length) {
+        setActiveIndex(Math.max(0, candidates.length - 1));
+      }
+    }, [activeIndex, candidates.length]);
+
+    const select = useCallback(
+      (candidate: FileMentionCandidate | undefined) => {
+        if (!candidate) {
+          return;
+        }
+
+        onSelect(candidate);
+      },
+      [onSelect],
+    );
+
+    const handleKeyDown = useCallback(
+      (event: React.KeyboardEvent<HTMLDivElement>) => {
+        switch (event.key) {
+          case 'ArrowDown':
+            event.preventDefault();
+            setActiveIndex((idx) => Math.min(idx + 1, candidates.length - 1));
+            break;
+          case 'ArrowUp':
+            event.preventDefault();
+            setActiveIndex((idx) => Math.max(idx - 1, 0));
+            break;
+          case 'Enter':
+          case 'Tab':
+            event.preventDefault();
+            select(candidates[activeIndex]);
+            break;
+          case 'Escape':
+            event.preventDefault();
+            onDismiss?.();
+            break;
+          default:
+            break;
+        }
+      },
+      [activeIndex, candidates, onDismiss, select],
+    );
+
+    if (candidates.length === 0) {
+      return (
+        <div
+          className="bolt-file-mentions-palette"
+          role="listbox"
+          aria-label="File mentions"
+          data-empty="true"
+          tabIndex={-1}
+          onKeyDown={handleKeyDown}
+        >
+          <p className="bolt-file-mentions-empty">{t('mentions.empty')}</p>
+        </div>
+      );
     }
-  }, [activeIndex, candidates.length]);
 
-  const select = useCallback(
-    (candidate: FileMentionCandidate | undefined) => {
-      if (!candidate) {
-        return;
-      }
-
-      onSelect(candidate);
-    },
-    [onSelect],
-  );
-
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
-      switch (event.key) {
-        case 'ArrowDown':
-          event.preventDefault();
-          setActiveIndex((idx) => Math.min(idx + 1, candidates.length - 1));
-          break;
-        case 'ArrowUp':
-          event.preventDefault();
-          setActiveIndex((idx) => Math.max(idx - 1, 0));
-          break;
-        case 'Enter':
-        case 'Tab':
-          event.preventDefault();
-          select(candidates[activeIndex]);
-          break;
-        case 'Escape':
-          event.preventDefault();
-          onDismiss?.();
-          break;
-        default:
-          break;
-      }
-    },
-    [activeIndex, candidates, onDismiss, select],
-  );
-
-  if (candidates.length === 0) {
     return (
       <div
         className="bolt-file-mentions-palette"
         role="listbox"
         aria-label="File mentions"
-        data-empty="true"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
-        <p className="bolt-file-mentions-empty">{t('mentions.empty')}</p>
+        <ul ref={listRef} className="bolt-file-mentions-list">
+          {candidates.map((candidate, index) => {
+            const isActive = index === activeIndex;
+
+            return (
+              <li
+                key={candidate.absolutePath}
+                role="option"
+                aria-selected={isActive}
+                data-active={isActive ? 'true' : 'false'}
+                className="bolt-file-mentions-item"
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => select(candidate)}
+              >
+                <span className="i-ph:file-code bolt-file-mentions-icon" aria-hidden />
+                <span className="bolt-file-mentions-basename">{candidate.basename}</span>
+                <span className="bolt-file-mentions-path">{candidate.displayPath}</span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     );
-  }
-
-  return (
-    <div
-      className="bolt-file-mentions-palette"
-      role="listbox"
-      aria-label="File mentions"
-      tabIndex={-1}
-      onKeyDown={handleKeyDown}
-    >
-      <ul ref={listRef} className="bolt-file-mentions-list">
-        {candidates.map((candidate, index) => {
-          const isActive = index === activeIndex;
-
-          return (
-            <li
-              key={candidate.absolutePath}
-              role="option"
-              aria-selected={isActive}
-              data-active={isActive ? 'true' : 'false'}
-              className="bolt-file-mentions-item"
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => select(candidate)}
-            >
-              <span className="i-ph:file-code bolt-file-mentions-icon" aria-hidden />
-              <span className="bolt-file-mentions-basename">{candidate.basename}</span>
-              <span className="bolt-file-mentions-path">{candidate.displayPath}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-});
+  },
+);
 
 FileMentionsPalette.displayName = 'FileMentionsPalette';

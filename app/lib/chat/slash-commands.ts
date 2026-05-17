@@ -236,14 +236,54 @@ export function parseSlashInput(input: string): ParsedSlashCommand | undefined {
  * Filter the registered commands by a fuzzy match on the query. Empty
  * query returns every command (sorted as `listSlashCommands` does).
  */
-export function searchSlashCommands(query: string): SlashCommand[] {
-  const trimmed = query.trim().toLowerCase();
+export interface SearchSlashCommandsOptions {
+  /**
+   * MRU command-id list to boost in the ranking. First entry gets the
+   * biggest bonus, decaying linearly so the most-used commands surface
+   * at the top of the empty-query default list.
+   */
+  recentSlashCommandIds?: readonly string[];
+}
 
-  if (trimmed.length === 0) {
-    return listSlashCommands();
+const SLASH_MRU_BONUS_MAX = 30;
+const SLASH_MRU_BONUS_DECAY = 2;
+
+function slashMruBonus(recent: readonly string[] | undefined, commandId: string): number {
+  if (!recent || recent.length === 0) {
+    return 0;
   }
 
+  const idx = recent.indexOf(commandId);
+
+  if (idx < 0) {
+    return 0;
+  }
+
+  return Math.max(0, SLASH_MRU_BONUS_MAX - idx * SLASH_MRU_BONUS_DECAY);
+}
+
+export function searchSlashCommands(query: string, options: SearchSlashCommandsOptions = {}): SlashCommand[] {
+  const trimmed = query.trim().toLowerCase();
   const haystack = listSlashCommands();
+  const recent = options.recentSlashCommandIds;
+
+  if (trimmed.length === 0) {
+    if (!recent || recent.length === 0) {
+      return haystack;
+    }
+
+    // Empty query: rank purely by MRU + fall back to alphabetical.
+    return [...haystack].sort((a, b) => {
+      const bonusDiff = slashMruBonus(recent, b.id) - slashMruBonus(recent, a.id);
+
+      if (bonusDiff !== 0) {
+        return bonusDiff;
+      }
+
+      return a.id.localeCompare(b.id);
+    });
+  }
+
   const results: { command: SlashCommand; score: number }[] = [];
 
   for (const command of haystack) {
@@ -257,7 +297,7 @@ export function searchSlashCommands(query: string): SlashCommand[] {
       continue;
     }
 
-    results.push({ command, score });
+    results.push({ command, score: score + slashMruBonus(recent, command.id) });
   }
 
   results.sort((a, b) => b.score - a.score || a.command.id.localeCompare(b.command.id));
