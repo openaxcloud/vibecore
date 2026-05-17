@@ -1,5 +1,5 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { BookOpen, Boxes, CreditCard, ShieldCheck } from 'lucide-react';
+import { BookOpen, Boxes, CreditCard, ShieldCheck, Sparkles } from 'lucide-react';
 import { ActivityList, PublicShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [{ title: 'Docs - VibeCore' }];
@@ -17,6 +17,12 @@ export default function DocsLandingPage() {
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <ActivityList
             items={[
+              {
+                title: 'Agent panel features',
+                detail:
+                  'Walkthrough at /features/agent: @ mentions, / commands, plan-first checklist, per-hunk patch review, branches, share links, presence, FR/EN i18n.',
+                icon: Sparkles,
+              },
               {
                 title: 'RuntimeAdapter',
                 detail: 'Switch between WebContainer and Remote Kubernetes without changing the editor.',
@@ -39,13 +45,25 @@ export default function DocsLandingPage() {
               },
             ]}
           />
-          <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
-            <h2 className="font-semibold">Need an implementation review?</h2>
-            <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-              Use the sales channel for deployment architecture and security requirements.
-            </p>
-            <div className="mt-5">
-              <LinkButton to="/contact-sales">Contact sales</LinkButton>
+          <div className="flex flex-col gap-6">
+            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
+              <h2 className="font-semibold">Agent panel walkthrough</h2>
+              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                Visual guide to every IDE agent feature: @ mentions, slash commands, plan checklist, patch review,
+                branches, share, presence, FR/EN.
+              </p>
+              <div className="mt-5">
+                <LinkButton to="/features/agent">Open the walkthrough</LinkButton>
+              </div>
+            </div>
+            <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
+              <h2 className="font-semibold">Need an implementation review?</h2>
+              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                Use the sales channel for deployment architecture and security requirements.
+              </p>
+              <div className="mt-5">
+                <LinkButton to="/contact-sales">Contact sales</LinkButton>
+              </div>
             </div>
           </div>
         </div>
