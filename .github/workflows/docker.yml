@@ -123,7 +123,7 @@ jobs:
           output-file: sbom-${{ matrix.image }}.spdx.json
 
       - name: Vulnerability scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
           format: sarif
