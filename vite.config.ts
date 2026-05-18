@@ -65,10 +65,14 @@ export default defineConfig((config) => {
             }
 
             if (id.includes('/@codemirror/') || id.includes('/@lezer/')) {
-              if (id.includes('/@codemirror/lang-') || id.includes('/@lezer/')) {
-                return 'vendor-codemirror-languages';
-              }
-
+              /*
+               * Splitting CodeMirror core from its language packs produced a
+               * circular chunk (lang-* re-imports core helpers that re-import
+               * lang-*), which triggered "Cannot access 'dt' before
+               * initialization" at runtime and left the page on a blank
+               * shell. Keep CodeMirror + Lezer in a single chunk so module
+               * initialization is deterministic.
+               */
               return 'vendor-codemirror';
             }
 
