@@ -1611,6 +1611,55 @@ body
   text-align: center;
 }
 
+.bolt-feature-doc-walkthrough {
+  margin-top: 56px;
+  scroll-margin-top: 24px;
+}
+
+.bolt-feature-doc-walkthrough-head {
+  margin-bottom: 20px;
+}
+
+.bolt-feature-doc-anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding: 14px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 12px;
+  background: var(--vc-ide-bg-elevated);
+}
+
+.bolt-feature-doc-anchor {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vc-ide-text-primary);
+  background: var(--vc-ide-bg-base);
+  border: 1px solid var(--vc-ide-border-subtle);
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
+}
+
+.bolt-feature-doc-anchor:hover,
+.bolt-feature-doc-anchor:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  border-color: var(--vc-ide-accent-action, #3b82f6);
+  color: var(--vc-ide-accent-action, #3b82f6);
+  outline: none;
+}
+
+.bolt-feature-doc-section {
+  scroll-margin-top: 24px;
+}
+
 .bolt-share-view-thread {
   list-style: none;
   margin: 0;

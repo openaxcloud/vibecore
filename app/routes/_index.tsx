@@ -215,7 +215,7 @@ export default function LandingPage() {
             })}
           </div>
           <div className="vc-home-section-cta">
-            <Link to="/features/agent" className="vc-home-section-cta-link">
+            <Link to="/docs#agent-walkthrough" className="vc-home-section-cta-link">
               See every agent panel feature with screenshots &amp; keystrokes{' '}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
