@@ -1,15 +1,12 @@
 /**
  * Lightweight i18n dictionary + lookup for Phase 0 #7.
  *
- * The roadmap calls for a full react-i18next migration eventually, but a
- * single-file dictionary is the right shape for incremental adoption:
- * components import `t('namespace.key')` and pass interpolation params;
- * the lookup falls back to English when a key isn't translated yet so
- * partial coverage doesn't crash the UI.
- *
- * The full react-i18next runtime is wired in `app/lib/i18n/runtime.ts`
- * when we're ready to load translation bundles lazily. This file is the
- * compile-time-safe entry point.
+ * Today this is the only i18n runtime: components import `t('namespace.key')`
+ * and pass interpolation params; the lookup falls back to English when a key
+ * isn't translated yet so partial coverage doesn't crash the UI. The roadmap
+ * calls for a full react-i18next migration (lazy bundles per namespace + a
+ * `User.language` column in Prisma + cookie propagation) but no `runtime.ts`
+ * exists yet — until it does, this file is the entry point everywhere.
  */
 
 import { detectUserLanguage, type SupportedLanguage } from './language';

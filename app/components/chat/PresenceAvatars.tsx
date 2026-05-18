@@ -1,15 +1,23 @@
 /**
- * Stacked avatars for the agent panel presence indicator (Sprint 7).
+ * Stacked avatars for the agent panel presence indicator.
  *
- * Renders up to `maxVisible` avatars from the presence state; any
- * extras collapse into a `+N` chip. Pure presentational — the parent
- * subscribes to the presence channel and passes the snapshot in via
- * `listPresenceEntries(state, { now })`.
+ * Renders up to `maxVisible` avatars from the supplied entries; any
+ * extras collapse into a `+N` chip. Pure presentational — the caller
+ * (currently `BaseChat` via `useProjectCollaboration`) shapes the
+ * server snapshot into `PresenceEntry[]` and passes it in.
  */
 
 import { memo } from 'react';
 
-import type { PresenceEntry } from '~/lib/chat/presence';
+export type PresenceStatus = 'viewing' | 'typing' | 'idle';
+
+export interface PresenceEntry {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  status: PresenceStatus;
+  lastSeenAt: number;
+}
 
 export interface PresenceAvatarsProps {
   entries: readonly PresenceEntry[];

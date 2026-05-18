@@ -5,8 +5,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { PresenceAvatars } from './PresenceAvatars';
-import type { PresenceEntry } from '~/lib/chat/presence';
+import { PresenceAvatars, type PresenceEntry } from './PresenceAvatars';
 
 function entry(userId: string, name: string, status: PresenceEntry['status'] = 'viewing'): PresenceEntry {
   return { userId, name, status, lastSeenAt: Date.now() };
