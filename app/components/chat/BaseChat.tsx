@@ -257,6 +257,53 @@ const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', .
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
 
+const MOBILE_IDE_PRIMARY_NAV_ITEMS = [
+  { id: 'files', icon: 'i-ph:folder-open', label: 'Files' },
+  { id: 'editor', icon: 'i-ph:code', label: 'Editor' },
+  { id: 'preview', icon: 'i-ph:browser', label: 'Preview' },
+  { id: 'chat', icon: 'i-ph:sparkle', label: 'AI' },
+  { id: 'terminal', icon: 'i-ph:terminal-window', label: 'Terminal' },
+] as const;
+
+const MOBILE_IDE_MORE_PANEL_ITEMS = [
+  {
+    id: 'deploy',
+    icon: 'i-ph:rocket-launch',
+    label: 'Publish',
+    description: 'Build and publish the current project.',
+  },
+  {
+    id: 'files',
+    icon: 'i-ph:folder-open',
+    label: 'Files',
+    description: 'Browse project files and folders.',
+  },
+  {
+    id: 'editor',
+    icon: 'i-ph:code',
+    label: 'Editor',
+    description: 'Open the code editor workspace.',
+  },
+  {
+    id: 'preview',
+    icon: 'i-ph:browser',
+    label: 'Preview',
+    description: 'Inspect the running app preview.',
+  },
+  {
+    id: 'chat',
+    icon: 'i-ph:sparkle',
+    label: 'AI',
+    description: 'Return to the project agent.',
+  },
+  {
+    id: 'terminal',
+    icon: 'i-ph:terminal-window',
+    label: 'Terminal',
+    description: 'View shell output and logs.',
+  },
+] as const;
+
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules\//,
   /\/\.next/,
@@ -1874,6 +1921,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
       'chat',
     );
+
+    const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
+    const [mobileMoreQuery, setMobileMoreQuery] = useState('');
+
     const { state: mobileIdeLocalState, setActivePanel: persistMobilePanel } = useMobileIdePersistence(
       projectIdeMode ? projectId : undefined,
     );
@@ -1887,6 +1938,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       },
       [persistMobilePanel],
+    );
+    const filteredMobileMorePanelItems = useMemo(() => {
+      const query = mobileMoreQuery.trim().toLowerCase();
+
+      if (!query) {
+        return MOBILE_IDE_MORE_PANEL_ITEMS;
+      }
+
+      return MOBILE_IDE_MORE_PANEL_ITEMS.filter(
+        (item) =>
+          item.label.toLowerCase().includes(query) ||
+          item.description.toLowerCase().includes(query) ||
+          item.id.toLowerCase().includes(query),
+      );
+    }, [mobileMoreQuery]);
+    const openMobilePanelFromMore = useCallback(
+      (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
+        setMobileIdePanel(panel);
+        setMobileMoreOpen(false);
+        setMobileMoreQuery('');
+      },
+      [setMobileIdePanel],
     );
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
@@ -1914,6 +1987,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       threshold: 64,
       preventScroll: useMobileIde,
     });
+
+    useEffect(() => {
+      if (!useMobileIde) {
+        setMobileMoreOpen(false);
+        setMobileMoreQuery('');
+      }
+    }, [useMobileIde]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -5788,28 +5868,89 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           )}
         </div>
         <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
-          {[
-            ['files', 'i-ph:folder-open', 'Files'],
-            ['editor', 'i-ph:code', 'Editor'],
-            ['preview', 'i-ph:browser', 'Preview'],
-            ['chat', 'i-ph:sparkle', 'AI'],
-            ['terminal', 'i-ph:terminal-window', 'Terminal'],
-            ['deploy', 'i-ph:rocket-launch', 'Publish'],
-          ].map(([id, icon, label]) => (
+          {MOBILE_IDE_PRIMARY_NAV_ITEMS.map(({ id, icon, label }) => (
             <button
               key={id}
               type="button"
               aria-label={label}
               aria-current={mobilePanel === id ? 'page' : undefined}
               onClick={() => {
-                setMobileIdePanel(id as typeof mobilePanel);
+                setMobileIdePanel(id);
+                setMobileMoreOpen(false);
               }}
             >
               <span className={icon} aria-hidden />
               <span>{label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            aria-label="More panels"
+            aria-haspopup="dialog"
+            aria-expanded={mobileMoreOpen}
+            aria-current={mobilePanel === 'deploy' ? 'page' : undefined}
+            onClick={() => setMobileMoreOpen((value) => !value)}
+          >
+            <span className="i-ph:dots-three-circle" aria-hidden />
+            <span>More</span>
+          </button>
         </nav>
+        {useMobileIde && mobileMoreOpen && (
+          <>
+            <button
+              type="button"
+              className="bolt-mobile-more-backdrop"
+              aria-label="Close mobile panels menu"
+              onClick={() => setMobileMoreOpen(false)}
+            />
+            <section className="bolt-mobile-more-sheet" role="dialog" aria-modal="true" aria-label="More panels">
+              <div className="bolt-mobile-more-handle" aria-hidden />
+              <header className="bolt-mobile-more-header">
+                <div>
+                  <h2>Search for tools and files</h2>
+                  <p>Open any IDE panel without leaving mobile mode.</p>
+                </div>
+                <button type="button" className="bolt-mobile-more-close" onClick={() => setMobileMoreOpen(false)}>
+                  Close
+                </button>
+              </header>
+              <label className="bolt-mobile-more-search">
+                <span className="i-ph:magnifying-glass" aria-hidden />
+                <span className="sr-only">Search panels</span>
+                <input
+                  value={mobileMoreQuery}
+                  onChange={(event) => setMobileMoreQuery(event.target.value)}
+                  placeholder="Search panels"
+                  autoComplete="off"
+                />
+              </label>
+              <div className="bolt-mobile-more-section-label">Panels</div>
+              <div className="bolt-mobile-more-list">
+                {filteredMobileMorePanelItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="bolt-mobile-more-item"
+                    aria-label={item.label}
+                    aria-current={mobilePanel === item.id ? 'page' : undefined}
+                    onClick={() => openMobilePanelFromMore(item.id)}
+                  >
+                    <span className="bolt-mobile-more-item-icon" aria-hidden>
+                      <span className={item.icon} />
+                    </span>
+                    <span className="bolt-mobile-more-item-copy">
+                      <span>{item.label}</span>
+                      <small>{item.description}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {filteredMobileMorePanelItems.length === 0 && (
+                <div className="bolt-mobile-more-empty">No panels found for "{mobileMoreQuery}".</div>
+              )}
+            </section>
+          </>
+        )}
         {projectIdeMode && (
           <footer
             className={classNames('bolt-project-statusbar', {

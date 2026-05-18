@@ -3056,6 +3056,7 @@ body :where(.lucide, svg[data-lucide]) {
     background-color 120ms ease,
     color 120ms ease,
     transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bolt-mobile-tabbar button:hover {
@@ -3100,6 +3101,201 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-tabbar .bolt-mobile-theme-switch {
   min-height: 52px;
   justify-content: center;
+}
+
+.bolt-mobile-more-backdrop {
+  position: fixed;
+  z-index: 1001;
+  inset: 0;
+  border: 0;
+  background: rgb(2 6 23 / 0.46);
+  padding: 0;
+  backdrop-filter: blur(8px);
+}
+
+.bolt-mobile-more-sheet {
+  position: fixed;
+  right: 12px;
+  bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  z-index: 1002;
+  display: flex;
+  max-height: min(70dvh, 540px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--mobile-nav-border);
+  border-top-color: var(--mobile-nav-border-top);
+  border-radius: 24px;
+  background: var(--mobile-nav-bg);
+  box-shadow: var(--mobile-nav-shadow), 0 24px 80px rgb(0 0 0 / 0.46);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-mobile-more-handle {
+  width: 42px;
+  height: 4px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--mobile-nav-border-top);
+  margin: 10px auto 6px;
+}
+
+.bolt-mobile-more-header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 10%);
+  padding: 8px 16px 12px;
+}
+
+.bolt-mobile-more-header h2 {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.bolt-mobile-more-header p {
+  margin: 3px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.bolt-mobile-more-close {
+  min-height: 32px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-mobile-more-search {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 12px 14px 10px;
+}
+
+.bolt-mobile-more-search > span:first-child {
+  position: absolute;
+  left: 12px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.bolt-mobile-more-search input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 8%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-bg-panel), var(--mobile-nav-bg) 28%);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  outline: none;
+  padding: 0 12px 0 36px;
+}
+
+.bolt-mobile-more-search input:focus {
+  border-color: var(--ecode-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ecode-accent), transparent 76%);
+}
+
+.bolt-mobile-more-section-label {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0 16px 6px;
+  text-transform: uppercase;
+}
+
+.bolt-mobile-more-list {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 10px 14px;
+}
+
+.bolt-mobile-more-item {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  padding: 10px;
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-mobile-more-item:hover,
+.bolt-mobile-more-item:focus-visible,
+.bolt-mobile-more-item[aria-current='page'] {
+  background: color-mix(in srgb, var(--mobile-nav-active-bg), transparent 14%);
+}
+
+.bolt-mobile-more-item:focus-visible {
+  outline: 2px solid var(--ecode-accent);
+  outline-offset: 2px;
+}
+
+.bolt-mobile-more-item-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 8%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--vc-ide-bg-hover), transparent 34%);
+  color: var(--ecode-accent);
+}
+
+.bolt-mobile-more-item-icon span {
+  font-size: 20px;
+}
+
+.bolt-mobile-more-item-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.bolt-mobile-more-item-copy span {
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.bolt-mobile-more-item-copy small {
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.bolt-mobile-more-empty {
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+  padding: 4px 16px 18px;
 }
 
 .bolt-workbench-mobile-action {
