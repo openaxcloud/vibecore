@@ -24,7 +24,29 @@ This document is the single reference for the whole chantier. It supersedes the 
 
 ## 2. What already exists (reuse, don't recreate)
 
-Audit of the codebase before writing this plan revealed substantial existing infrastructure. The new work must integrate with it, not duplicate it.
+Two successive audits of the codebase revealed substantial existing infrastructure (some of it broken). The new work must integrate with what works, repair what is broken, and avoid duplication.
+
+### State of the 5 existing Settings integration tabs
+
+A live code audit found that the 5 Settings tabs (~3800 lines) are NOT uniformly production-ready:
+
+| Tab | File | Verdict | Tokens stored where | Backend routes |
+|---|---|---|---|---|
+| Netlify | `app/components/@settings/tabs/netlify/NetlifyTab.tsx` (1398 lines) | **PROD-READY** (provider integration works) | localStorage + cookie | none — direct `api.netlify.com` |
+| GitLab | `app/components/@settings/tabs/gitlab/GitLabTab.tsx` (~305 lines) | **PARTIAL** (frontend works, no server persistence) | localStorage | none — direct `gitlab.com` |
+| Vercel | `app/components/@settings/tabs/vercel/VercelTab.tsx` (910 lines) | **PARTIAL** (metrics stubbed, missing routes) | localStorage + cookie | `/api/vercel-user` **DOES NOT EXIST** in `services/api/src/app.ts` |
+| GitHub | `app/components/@settings/tabs/github/GitHubTab.tsx` (282 lines) | **STUB / UI-ONLY** | localStorage | `/api/github-user`, `/api/github-stats` **DO NOT EXIST** |
+| Supabase | `app/components/@settings/tabs/supabase/SupabaseTab.tsx` (1091 lines) | **STUB / UI-ONLY** (rich UI, 100% broken backend) | localStorage | `/api/supabase`, `/api/supabase/variables`, `/api/supabase-user` **DO NOT EXIST** |
+
+Security findings common to all 5:
+- All tokens stored in **plaintext localStorage** (XSS vector, no encryption-at-rest)
+- No server-side persistence — users lose connections when switching devices
+- No tests for any of the 5 tabs
+- No OAuth flow — manual Personal Access Token paste only
+
+This chantier repairs all 5 tabs by migrating their token storage to the new `UserConnection` table (encrypted server-side) and implementing the missing backend routes. The Replit-parity IDE panel is delivered *after* this foundation is solid.
+
+The `ConnectionsTab.tsx` (`app/components/@settings/tabs/connections/ConnectionsTab.tsx`, 106 lines) is a navigation hub that links out to the 8 sub-tabs (github, gitlab, netlify, vercel, supabase, cloud-providers, local-providers, mcp). It stays as a navigation hub.
 
 ### MCP Marketplace (reuse intact)
 - Schema: `McpCatalogEntry`, `McpInstall`, `McpDomain` enum — `packages/database/prisma/schema.prisma:902-962`
@@ -65,12 +87,44 @@ The `webhooks[]` and `apiKeys[]` structures stay as features inside the Manage s
 
 Used for every new encrypted column (`accessTokenEncrypted`, `refreshTokenEncrypted`, `clientSecretEncrypted`, `apiKeyFieldsEncrypted`, `customHeadersEnc`).
 
+### OAuth state HMAC (reuse intact, do NOT create new)
+- `signOauthState(provider, ttlSeconds=600)` — `services/api/src/app.ts:3795-3802`
+- `verifyOauthState(state, provider)` — `services/api/src/app.ts:3804-3826`
+- `oauthStateSecret()` helper reads `OAUTH_STATE_SECRET` env var
+- Already used by Google login, GitHub login, OIDC SSO flows
+
+The connector OAuth flow reuses these helpers verbatim. No new state mechanism.
+
 ### Auth + workspace middleware (reuse intact)
 - `requireProject(request, store, projectId, permission)` — `services/api/src/app.ts:1405-1416`
 - `requireWorkspace(request, store, workspaceId, permission)` — `services/api/src/app.ts:1622-1636`
 - `requireOrg(request, store, organizationId, permissions)` — `services/api/src/app.ts:1359-1380`
+- `ensureQuota(request, orgId, quotaKey)` — wraps `QuotaLedger` lookups, used for plan gating
 
 Every new route below uses these — no bypass paths.
+
+### Existing `OAuthConnection` table (DIFFERENT purpose — do NOT extend)
+- `packages/database/prisma/schema.prisma:889-900`
+- Fields: `userId`, `provider`, `externalId`, `accessHash`, `refreshHash`
+- Stores **hashed** tokens, NOT reversible — used solely for the LOGIN flow (Google login, GitHub login, OIDC SSO)
+- Cannot be used to make API calls to providers (tokens are gone)
+
+The new `UserConnection` table is genuinely needed for reversible-encrypted tokens that the sidecar proxy uses to call provider APIs. The two tables coexist and serve different purposes.
+
+### Existing `AuditLog` + automatic SIEM delivery (reuse for connector audit)
+- `AuditLog` table at `schema.prisma:534-549`
+- After every `AuditLog.create()`, the org's enabled `SiemWebhook` records are POSTed asynchronously (`app.ts:3057-3100`) with HMAC-SHA256 signature
+- New connector-related actions plug into the same surface:
+  - `connector.api_call` (one row per sidecar request)
+  - `connector.oauth.connect`, `connector.oauth.revoke`, `connector.oauth.refresh`
+  - `connector.webhook.received`
+  - `connector.scope.upgraded`
+
+This **replaces** the previously planned `ConnectionAccessLog` dedicated table. No new audit table needed.
+
+### Existing `McpInstall.projectId` (already supports per-project scoping)
+- `McpInstall` already has `projectId String?` (added in a post-0011 migration, visible at `schema.prisma:990`)
+- The "subscribe an MCP server to a project" feature works today — the new IDE panel just adds a curated `featuredForIdePanel` view on top.
 
 ## 3. Panel architecture — 4 sections
 
@@ -154,7 +208,6 @@ model UserConnection {
   user                    User     @relation(fields: [userId], references: [id])
   oauthAppOverride        OrganizationOAuthAppOverride? @relation(fields: [oauthAppOverrideId], references: [id])
   projectLinks            ProjectConnectionLink[]
-  accessLogs              ConnectionAccessLog[]
 
   @@unique([userId, provider, externalAccountId])
   @@index([userId, provider])
@@ -198,13 +251,13 @@ model OrganizationOAuthAppOverride {
   @@unique([organizationId, provider])
 }
 
-// === Enterprise: connector visibility + group ACL
+// === Enterprise: connector visibility + role ACL (NO Groups table exists today)
 model OrganizationConnectorPolicy {
   id                      String   @id @default(cuid())
   organizationId          String
   provider                String
   enabled                 Boolean  @default(true)
-  allowedGroupIds         String[]
+  allowedRoleKeys         String[]                     // matches existing Role.key + CustomRole.key (NOT groupIds — Vibecore has no Groups concept)
   rateLimitOverride       Int?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
@@ -214,25 +267,8 @@ model OrganizationConnectorPolicy {
   @@unique([organizationId, provider])
 }
 
-// === Sidecar audit
-model ConnectionAccessLog {
-  id                  String   @id @default(cuid())
-  userConnectionId    String
-  projectId           String
-  workspaceId         String?
-  action              String                       // 'api_call' | 'token_refresh' | 'revoke' | 'reconnect' | 'webhook_received'
-  method              String?
-  path                String?
-  statusCode          Int?
-  agentSessionId      String?
-  errorMessage        String?
-  occurredAt          DateTime @default(now())
-
-  userConnection      UserConnection @relation(fields: [userConnectionId], references: [id])
-
-  @@index([userConnectionId, occurredAt])
-  @@index([projectId, occurredAt])
-}
+// (Audit: see "Existing AuditLog + automatic SIEM delivery" — uses existing AuditLog table,
+//  no dedicated ConnectionAccessLog table is created.)
 
 // === Persistent "needs reconnect" alerts
 model ReconnectionAlert {
@@ -320,12 +356,12 @@ ACL on every request:
 1. JWT validates → extract `workspaceId`, `projectId`
 2. `workspace.projectId === jwt.projectId` (Prisma lookup)
 3. `ProjectConnectionLink` exists for `(projectId, userConnectionId)`
-4. `OrganizationConnectorPolicy` allows this provider for this org and the user is in `allowedGroupIds`
+4. `OrganizationConnectorPolicy` allows this provider for this org and the user's role key is in `allowedRoleKeys`
 5. Rate limit OK (Redis token bucket per `(userId, provider)`)
 6. Decrypt token via `decryptJson()`
 7. Forward request, stream response
 8. On 401/403 from provider: mark `UserConnection.status='needs_reconnect'`, create `ReconnectionAlert`, publish Redis event
-9. Log to `ConnectionAccessLog`
+9. Insert `AuditLog { action: 'connector.api_call', resourceType: 'UserConnection', resourceId: userConnectionId, metadata: { method, path, statusCode, agentSessionId } }` (no dedicated table)
 10. Update `UserConnection.lastUsedAt`
 
 ### 5.3 `packages/connector-sdk` — new package
@@ -467,12 +503,12 @@ Lucide icons: `Layers`, `Search`, `Plus`, `X`, `ExternalLink`, `Settings`, `LogI
 ## 8. Security
 
 - All tokens encrypted at rest via `encryptJson()` (AES-256-GCM, existing `packages/security`)
-- OAuth state CSRF: HMAC-signed token with new `OAUTH_STATE_SECRET`, cookie `vc_oauth_state` httpOnly/secure/sameSite=lax, 10min TTL, single-use nonce
+- OAuth state CSRF: reuses existing `signOauthState` / `verifyOauthState` helpers (`app.ts:3795-3826`) with the existing `OAUTH_STATE_SECRET` env var. The connector OAuth flow encodes `{provider, projectId, userId}` in the state payload; the existing 10min TTL and HMAC-SHA256 signature suffice. No new mechanism.
 - Webhook signature verification per provider (Slack v0, Stripe `Stripe-Signature`, GitHub `X-Hub-Signature-256`), 5min anti-replay window
 - Scope validation: trim whitespace, detect missing URL prefix for Google scopes, match against `availableScopes`, precise error messages
 - Sidecar isolation: tokens never reach workspaces, every call ACL'd
 - Rate limiting per `(userId, provider)` (Redis token bucket), per `(orgId, provider)` for Enterprise overrides
-- Audit logging: every sidecar call → `ConnectionAccessLog`, daily aggregation worker, S3 export for Enterprise
+- Audit logging: every sidecar call inserts into existing `AuditLog` table with `action: 'connector.api_call'`. Automatic SIEM webhook delivery via existing `SiemWebhook` infrastructure (`app.ts:3057-3100`). Daily aggregation worker, S3 export for Enterprise.
 - Prompt injection: scanner on all tool responses
 
 ## 9. Plan gating
@@ -517,7 +553,7 @@ Workers (Node cron or Redis-scheduled):
 ## 12. Environment variables — new
 
 ```
-OAUTH_STATE_SECRET                       HMAC for OAuth CSRF state
+# OAUTH_STATE_SECRET — ALREADY EXISTS, reused as-is
 CONNECTOR_PROXY_INTERNAL_URL             Sidecar URL (internal DNS)
 CONNECTOR_PROXY_JWT_SECRET               Shared workspace ↔ sidecar JWT secret
 
@@ -566,7 +602,12 @@ Backend integration (Postgres real, no mocks):
 - Full OAuth GitHub flow: connect → callback → link → call via proxy → revoke
 - Multi-project: same connection linked to 2 projects, isolation by link
 - Cross-user/project/org isolation (verified before any feature ships)
-- Enterprise group ACL: user outside `allowedGroupIds` denied
+- Enterprise role ACL: user with role key not in `allowedRoleKeys` denied
+
+Gap tests to add (currently missing per audit):
+- `stripe-webhook.spec.ts` — signature verification for the existing billing webhook (currently uncovered)
+- `siem-webhook-delivery.spec.ts` — retry / failure paths for SIEM webhook delivery (currently uncovered)
+- `saml-acs.spec.ts` — SAML assertion signature validation (currently uncovered)
 
 Frontend unit:
 - Render of each `<ConnectorRow>` state (Connect, Sign in, Active+Manage, needs reconnect)
@@ -590,53 +631,89 @@ Agent specs:
 
 ## 15. Phases
 
+The phasing was revised after the live audit of the 5 existing Settings tabs revealed that GitHub, Vercel, Supabase are partially or completely broken (missing backend routes), and all 5 store tokens in plaintext localStorage. The new IDE Integrations panel UI is delivered **last**, on top of a solid foundation. The first phases repair the existing surface.
+
 ### Phase 0 — Foundation (3-4 days)
-- Prisma migration: 8 new tables + 1 column on `McpCatalogEntry`
-- Seed scripts: `ConnectorCatalog` (3 entries minimum: GitHub, Slack, Notion) + extend `McpCatalogEntry` with `featuredForIdePanel`
-- Skeleton: `services/connector-proxy/` with healthz + ACL middleware (no providers wired yet)
-- Skeleton: `packages/connector-sdk/` with type generator from catalog
-- Skeleton: `packages/runtime-contract/` extensions (message type definitions)
-- Design system tokens + atomic components (Button, Modal, Table, TabsUnderline, Pill, Toast, TooltipPopover)
-- Cross-user/project/org isolation tests — green before any feature ships
+- Prisma migration: 7 new tables (`ConnectorCatalog`, `UserConnection`, `ProjectConnectionLink`, `OrganizationOAuthAppOverride`, `OrganizationConnectorPolicy`, `ReconnectionAlert`, `IntegrationFeatureRequest`) + 1 column on `McpCatalogEntry` (`featuredForIdePanel`). The previously planned `ConnectionAccessLog` is dropped — audit goes into existing `AuditLog`.
+- Seed `ConnectorCatalog` with GitHub entry only (Phase 1 first provider). Stub entries for the 4 other repaired providers (Vercel, Supabase, GitLab, Netlify) so their Settings tabs can refer to them.
+- Reuse `signOauthState` / `verifyOauthState` from `app.ts:3795-3826` — no new state mechanism.
+- Skeleton `services/connector-proxy/` with healthz, ACL middleware, no providers wired yet.
+- Skeleton `packages/connector-sdk/` with type generator reading from `ConnectorCatalog`.
+- Skeleton extension of `packages/runtime-contract/` with new agent message types (definitions only).
+- Cross-user / cross-project / cross-org isolation tests — must be green before any feature ships.
 
-### Phase 1 — MVP: 4-section panel + GitHub OAuth end-to-end (~2 weeks)
-- Full panel UI refresh: 4 sections, search, modals, Manage sub-view, all empty states
-- Generic OAuth routes (connect/callback/revoke/test/refresh)
-- `connector-proxy` complete (ACL, logging, rate limit)
-- GitHub connector wired end-to-end through SDK and proxy
-- Webhook receiver for GitHub events
-- Migration script for legacy `VIBECORE_INTEGRATIONS_STATE`
-- Agent `connection_request` message + chat renderer + pause/resume
-- Tests: E2E GitHub OAuth, isolation, CSRF, refresh
+### Phase 1 — Repair GitHub (1-2 weeks)
+Repair the broken GitHub Settings tab by building it on top of the new `UserConnection` infrastructure. This validates the whole connector pattern (OAuth, sidecar, encryption, audit, reconnect) on one provider before generalizing.
 
-### Phase 2 — Connector breadth + API-key + Reconnection (~2 weeks)
-- Add 10 OAuth connectors: Slack, Notion, Google Drive/Calendar/Sheets/Docs, Linear, Jira, HubSpot, Figma
-- Add 5 API-key connectors: Sendgrid, Resend, Twilio, ElevenLabs, AgentMail (modals 4 + 6)
-- 3 Git Providers fully wired
-- Wire MCP Servers section to existing `McpCatalogEntry` with `featuredForIdePanel`
-- Multi-account UX in `<ConnectorRow>`
+- Real GitHub OAuth flow (`POST /api/integrations/oauth/github/connect`, `GET /integrations/oauth/github/callback`)
+- Implement missing routes: `/api/github-user`, `/api/github-stats` — now backed by `UserConnection`
+- Token storage: encrypted in `UserConnection.accessTokenEncrypted` (no localStorage)
+- Connector-proxy wires the GitHub provider: `POST /proxy/:userConnectionId/repos/...` forwards to `api.github.com` with injected `Authorization`
+- Refactor `GitHubTab.tsx` (282 lines) to consume `UserConnection` via `/api/account/connections?provider=github` — UI mostly unchanged, only the data source swaps
+- Webhook receiver for GitHub events at `/webhooks/github` with HMAC-SHA256 verification (reuse SIEM webhook pattern) + idempotency table mirroring `StripeEvent`
+- Agent message types `connection_request` and `connection_resolved` wired through chat
+- Tests: E2E GitHub OAuth, refresh, revoke, sidecar ACL, cross-user isolation, webhook signature verification
+
+### Phase 2 — Repair Vercel + Supabase + GitLab + Netlify (1-2 weeks)
+Apply the same pattern to the remaining 4 Settings tabs.
+
+- Vercel: implement `/api/vercel-user` + missing metric endpoints (deployments, domains, team, bandwidth). Refactor `VercelTab.tsx` to consume `UserConnection`.
+- Supabase: implement `/api/supabase`, `/api/supabase/variables`, `/api/supabase-user`. Refactor `SupabaseTab.tsx`. The UI is rich but completely broken today — this delivers actual functionality.
+- GitLab: migrate `GitLabTab.tsx` from localStorage to `UserConnection`. Supports self-hosted GitLab URLs via `UserConnection.metadata.baseUrl`.
+- Netlify: migrate `NetlifyTab.tsx` from localStorage + cookie to `UserConnection`. Provider is already working — this is a security upgrade, no functional regression.
+- Each tab keeps its specialized UI (it has substantial domain logic). Only the auth/storage backend swaps.
+- Multi-account UX for tabs that support it (e.g. multiple Netlify teams).
+- Tests for each: unit + integration (one test file per provider).
+
+### Phase 3 — New IDE Integrations panel UI (~2 weeks)
+Now that the data layer is solid (Phases 0-2 deliver real `UserConnection` for 5 providers), build the Replit-parity 4-section panel as a NEW surface in the IDE.
+
+- Full panel UI: 4 sections (e-code managed, Connectors, MCP Servers Beta, Git Providers) with the design system from §6
+- 5 modals (Request, Connect MCP, OAuth consent, Setup API key, Disconnect confirm)
+- Manage sub-view (Scopes / Configuration variants + Connected Apps)
+- Live search across all sections
+- Trigger tooltips
+- Empty states
+- Wire MCP Servers section to existing `McpCatalogEntry` with new `featuredForIdePanel` filter
+- Add Notion as first OAuth provider exclusive to the new panel (validates the catalog UX with a "fresh" provider)
+- Add 4-5 more OAuth providers: Slack, Linear, Jira, Google Drive, Calendar
+- Add 5 API-key connectors: Sendgrid, Resend, Twilio, ElevenLabs, AgentMail
+- Agent `secret_request` message + renderer + pause/resume
 - Reconnection alerts (worker + banner UI)
-- Workers: tokenRefresher, tokenHealthCheck
-- Agent `secret_request` message + renderer
-- Account-level view `/account/connections`
+- Workers: `tokenRefresher`, `tokenHealthCheck`
+- Account-level view `/account/connections` (cross-project view, separate from Settings tabs)
+- Migration script for legacy `VIBECORE_INTEGRATIONS_STATE` → `ProjectConnectionLink` placeholders
+- Settings tabs (Phases 1-2) link to the new IDE panel via the existing `ConnectionsTab` navigation hub — coexistence preserved
 
-### Phase 3 — Long tail + Enterprise (~2-3 weeks)
-- Long tail OAuth connectors (~20 remaining)
-- Custom MCP server modal + subscription
-- Enterprise: custom OAuth wizard 5-step + scope validator
-- Enterprise: per-group RBAC connector policies
-- Audit log export S3 + Worker
-- Plan gating middleware enforced
+### Phase 4 — Long tail + Enterprise + extras (~2-3 weeks)
+- Long tail OAuth connectors (~20 remaining from the 39-entry Replit catalog)
+- Custom MCP server modal + subscription (`McpInstall` with `customDisplayName` + URL)
+- Enterprise: custom OAuth app wizard 5-step + scope validator (`OrganizationOAuthAppOverride`)
+- Enterprise: per-role RBAC connector policies (`OrganizationConnectorPolicy.allowedRoleKeys`)
+- Audit log export S3 + Worker (reuse existing `AuditLog` aggregation, no new table)
+- Plan gating middleware enforced (`requirePlan` reuses `ensureQuota` patterns)
+- Optional: data warehouse connectors (Snowflake, BigQuery, Databricks)
 - Data warehouse connectors (Snowflake, BigQuery, Databricks) — if scope confirms
 
 ## 16. Open decisions
 
-1. **GitHub agent OAuth scope** — agent connector wants `read:org`, `read:user`, `read:project`, plus `repo` for some flows. Confirm scope set with the user.
-2. **Webhook host strategy** — `/webhooks/:provider` on `api.e-code.ai`. Confirm vs. a dedicated `webhooks.e-code.ai` subdomain.
-3. **MCP merge strategy** — extending existing 22 entries with 19 Replit-style additions; some overlap (Linear, Notion, Figma, Twilio). Confirm dedup logic.
-4. **Plan tiers** — Free/Pro/Enterprise matrix in §9. Confirm against the live billing plan keys.
+### Resolved (this chantier)
+- ✅ **Coexistence strategy**: Settings tabs and IDE Integrations panel coexist. Source of truth = `UserConnection` table consumed by both.
+- ✅ **Repair scope**: GitHub / Vercel / Supabase / GitLab / Netlify are repaired BEFORE the new IDE panel is shipped (Phases 1-2). The new panel comes in Phase 3.
+- ✅ **First provider**: GitHub (repairs the broken Settings tab + validates the connector pattern).
+- ✅ **Audit log strategy**: existing `AuditLog` + `SiemWebhook` delivery — no new `ConnectionAccessLog` table.
+- ✅ **OAuth state HMAC**: reuse existing `signOauthState` / `verifyOauthState` (`app.ts:3795-3826`).
+- ✅ **`McpInstall` per-project scoping**: already supported (`projectId` column at `schema.prisma:990`).
+- ✅ **RBAC for Enterprise connector policies**: use `allowedRoleKeys` (matching existing `Role.key` + `CustomRole.key`) — Vibecore has no Groups table.
+
+### Still open (to confirm during implementation)
+1. **GitHub agent OAuth scope** — `read:org`, `read:user`, `read:project`, `repo`. Confirm scope set before deploying the Phase 1 OAuth app.
+2. **Webhook host strategy** — `/webhooks/:provider` path on `api.e-code.ai`. Confirm vs. a dedicated `webhooks.e-code.ai` subdomain.
+3. **MCP merge strategy** — extending existing 22 entries with up to 19 additional curated entries; some overlap (Linear, Notion, Figma, Twilio). Confirm dedup logic.
+4. **Plan tiers** — Free/Pro/Enterprise matrix in §9. Confirm against the live `Plan.key` seed data.
 5. **SDK naming** — public `@e-code/sdk`, internal `@vibecore/connector-sdk`. Confirm.
-6. **AI Model BYOK location** — explicitly out of this panel; lives in agent settings. Confirm a separate chantier.
+6. **AI Model BYOK location** — out of this panel; lives in agent settings or AI Gateway config. Confirm separate chantier.
+7. **OAuth app credentials per provider** — for Phase 1, the e-code team must register a GitHub OAuth app at `https://github.com/settings/applications/new` with callback `https://app.e-code.ai/integrations/oauth/github/callback` and provide `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` + `GITHUB_WEBHOOK_SIGNING_SECRET` env vars before Phase 1 ships.
 
 ## 17. Cross-references
 
