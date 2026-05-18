@@ -11,7 +11,9 @@ metadata:
     app.kubernetes.io/component: {{ kebabcase $name }}
     app.kubernetes.io/part-of: vibecore
 spec:
+  {{- if eq (kebabcase $name) "worker" }}
   replicas: {{ $svc.replicas | default 2 }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ kebabcase $name }}

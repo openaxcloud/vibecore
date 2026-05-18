@@ -2,9 +2,15 @@
   "name": "@vibecore/admin",
   "private": true,
   "type": "module",
+  "files": [
+    "dist",
+    "serve.mjs",
+    "package.json"
+  ],
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5174",
     "build": "tsc --noEmit && vite build",
+    "start": "node serve.mjs",
     "test": "vitest --run",
     "typecheck": "tsc --noEmit",
     "lint": "pnpm run typecheck"
