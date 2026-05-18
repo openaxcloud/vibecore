@@ -5788,14 +5788,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           )}
         </div>
         <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
-          <ThemeSwitch size="lg" title="Switch light/dark theme" className="bolt-mobile-theme-switch" />
           {[
-            ['chat', 'i-ph:chat-circle-text', 'Chat'],
-            ['files', 'i-ph:files', 'Files'],
+            ['files', 'i-ph:folder-open', 'Files'],
             ['editor', 'i-ph:code', 'Editor'],
-            ['terminal', 'i-ph:terminal-window', 'Terminal'],
             ['preview', 'i-ph:browser', 'Preview'],
-            ['deploy', 'i-ph:rocket-launch', 'Deploy'],
+            ['chat', 'i-ph:sparkle', 'AI'],
+            ['terminal', 'i-ph:terminal-window', 'Terminal'],
+            ['deploy', 'i-ph:rocket-launch', 'Publish'],
           ].map(([id, icon, label]) => (
             <button
               key={id}
@@ -5807,7 +5806,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }}
             >
               <span className={icon} aria-hidden />
-              <span>{id === 'deploy' ? 'Publish' : label}</span>
+              <span>{label}</span>
             </button>
           ))}
         </nav>

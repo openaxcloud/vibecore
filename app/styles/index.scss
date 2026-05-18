@@ -3024,7 +3024,7 @@ body :where(.lucide, svg[data-lucide]) {
   left: 0;
   z-index: 999;
   display: none;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 2px;
   min-height: calc(64px + env(safe-area-inset-bottom, 0px));
   padding: 5px max(6px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
@@ -13985,7 +13985,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     right: 12px;
     bottom: 8px;
     left: 12px;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     min-height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
     border: 1px solid var(--mobile-nav-border);
@@ -14030,6 +14030,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     height: var(--mobile-nav-icon-size);
     color: currentColor;
     font-size: var(--mobile-nav-icon-size);
+    transition: transform 150ms ease;
   }
 
   .bolt-mobile-tabbar button[aria-current='page'] {
@@ -14038,6 +14039,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     color: var(--ecode-accent);
     opacity: 1;
     box-shadow: 0 0 20px -4px var(--mobile-nav-glow), inset 0 1px 0 0 var(--mobile-nav-border-top);
+  }
+
+  .bolt-mobile-tabbar button[aria-current='page'] span:first-child {
+    transform: translateY(-1px) scale(1.1);
   }
 
   .bolt-mobile-tabbar button[aria-current='page']::after {
@@ -14099,6 +14104,40 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
     padding-bottom: calc(var(--mobile-nav-height) + 58px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bolt-project-action-group--overflow .bolt-project-overflow-popover {
+    position: fixed !important;
+    top: auto !important;
+    right: 12px !important;
+    bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: none;
+    max-height: min(70dvh, 540px);
+    overflow: auto;
+    margin-top: 0 !important;
+    transform: translateY(calc(100dvh - var(--vc-ide-topbar-height, 48px))) !important;
+    border: 1px solid var(--mobile-nav-border);
+    border-top-color: var(--mobile-nav-border-top);
+    border-radius: 24px;
+    background: var(--mobile-nav-bg);
+    box-shadow: var(--mobile-nav-shadow), 0 24px 80px rgb(0 0 0 / 0.45);
+    padding: 12px;
+  }
+
+  .bolt-project-action-group--overflow .bolt-project-overflow-popover::before {
+    display: block;
+    width: 38px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--mobile-nav-border-top);
+    margin: 0 auto 10px;
+    content: '';
+  }
+
+  .bolt-project-action-group--overflow .bolt-project-overflow-section--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bolt-responsive-ide-mobile .Toastify__toast-container {
