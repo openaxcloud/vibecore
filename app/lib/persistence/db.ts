@@ -14,7 +14,7 @@ const logger = createScopedLogger('ChatHistory');
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   if (typeof indexedDB === 'undefined') {
-    console.error('indexedDB is not available in this environment.');
+    // Browser-only persistence: silently skip during SSR / non-browser environments.
     return undefined;
   }
 

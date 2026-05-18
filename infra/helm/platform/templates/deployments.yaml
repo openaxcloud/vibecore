@@ -32,7 +32,10 @@ spec:
       containers:
         - name: {{ kebabcase $name }}
           image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $.Values.global.imageTag }}"
-          imagePullPolicy: IfNotPresent
+          # `latest` is mutable in our registry, so always pull to pick up new SHAs.
+          # For pinned (immutable) tags, IfNotPresent would be cheaper, but the
+          # current flow rolls all services on the `latest` tag.
+          imagePullPolicy: {{ if eq ($.Values.global.imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -44,6 +47,10 @@ spec:
               value: production
             - name: APP_ENV
               value: {{ $.Values.global.environment | quote }}
+            - name: PORT
+              value: {{ $svc.port | quote }}
+            - name: HOST
+              value: "0.0.0.0"
           readinessProbe:
             httpGet:
               path: /health
