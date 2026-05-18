@@ -35,6 +35,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate image_tag is pinned (reject latest/empty)
+        env:
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if [ -z "$IMAGE_TAG" ] || [ "$IMAGE_TAG" = "latest" ] || [ "$IMAGE_TAG" = "REQUIRED_OVERRIDE_AT_DEPLOY" ]; then
+            echo "::error::image_tag must be a pinned immutable tag (e.g. sha-abc1234 or v1.2.3); got '$IMAGE_TAG'"
+            exit 1
+          fi
+          case "$IMAGE_TAG" in
+            sha-[0-9a-f]*|v[0-9]*)
+              echo "Accepted image_tag: $IMAGE_TAG"
+              ;;
+            *)
+              echo "::error::image_tag '$IMAGE_TAG' is not in expected format (sha-<hex> or v<semver>)"
+              exit 1
+              ;;
+          esac
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22

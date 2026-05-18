@@ -1,7 +1,11 @@
 global:
   environment: production
   imageRegistry: europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers
-  imageTag: latest
+  # imageTag MUST be overridden at deploy time with an immutable SHA tag, e.g.
+  #   helm upgrade ... --set global.imageTag=sha-abc1234
+  # The sentinel below makes an accidental `helm upgrade -f values-prod.yaml`
+  # fail fast on ImagePullBackOff instead of silently pulling a stale image.
+  imageTag: REQUIRED_OVERRIDE_AT_DEPLOY
   appDomain: app.e-code.ai
   previewDomain: preview.e-code.ai
   marketingDomain: e-code.ai
