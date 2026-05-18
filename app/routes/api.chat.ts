@@ -412,6 +412,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             if (finishReason !== 'length') {
               streamRecovery.stop();
+
+              /*
+               * Structured usage log for the Cloud Logging → metric pipeline so
+               * chat token consumption is visible per-project even though
+               * C1.b (ai-gateway routing + quota enforcement) is not landed yet.
+               * Once C1.b is in, this can move into the api-side recorder.
+               */
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.completion.usage',
+                  projectId,
+                  chatMode,
+                  finishReason,
+                  promptTokens: cumulativeUsage.promptTokens,
+                  completionTokens: cumulativeUsage.completionTokens,
+                  totalTokens: cumulativeUsage.totalTokens,
+                  timestamp: new Date().toISOString(),
+                }),
+              );
+
               dataStream.writeMessageAnnotation({
                 type: 'usage',
                 value: {

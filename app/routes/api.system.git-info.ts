@@ -62,8 +62,6 @@ declare const __GIT_REPO_NAME: string;
  */
 
 export const loader: LoaderFunction = async ({ request, context }: LoaderFunctionArgs & { context: AppContext }) => {
-  console.log('Git info API called with URL:', request.url);
-
   // Handle CORS preflight requests
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -77,8 +75,6 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
 
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
-
-  console.log('Git info action:', action);
 
   if (action === 'getUser' || action === 'getRepos' || action === 'getOrgs' || action === 'getActivity') {
     // Use server-side token instead of client-side token
@@ -95,11 +91,6 @@ export const loader: LoaderFunction = async ({ request, context }: LoaderFunctio
     const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
     const token = serverGithubToken || headerToken || cookieToken;
-
-    console.log(
-      'Using GitHub token from:',
-      serverGithubToken ? 'server env' : headerToken ? 'auth header' : cookieToken ? 'cookie' : 'none',
-    );
 
     if (!token) {
       console.error('No GitHub token available');
