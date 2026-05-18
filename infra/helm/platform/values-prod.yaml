@@ -35,28 +35,35 @@ services:
   web:
     enabled: true
     image: web
-    port: 3000
+    port: 5173
     replicas: 1
     command: []
     path: /
+    healthPath: /
+    readOnlyRootFilesystem: false
     resources:
-      requests: { cpu: 100m, memory: 256Mi }
-      limits: { cpu: 500m, memory: 512Mi }
+      requests: { cpu: 250m, memory: 1Gi }
+      limits: { cpu: "1", memory: 2Gi }
   admin:
-    enabled: true
+    enabled: false
     image: admin
     port: 3000
     replicas: 1
     path: /admin
+    healthPath: ""
+    readOnlyRootFilesystem: false
     resources:
-      requests: { cpu: 100m, memory: 128Mi }
-      limits: { cpu: 250m, memory: 256Mi }
+      requests: { cpu: 150m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
   api:
     enabled: true
     image: api
     port: 3001
     replicas: 1
     path: /api
+    command: ["tsx", "dist/server.js"]
+    healthPath: /health
+    readOnlyRootFilesystem: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
@@ -66,34 +73,46 @@ services:
     port: 3002
     replicas: 1
     path: ""
+    command: ["tsx", "dist/index.js"]
+    healthPath: ""
+    readOnlyRootFilesystem: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
   aiGateway:
     enabled: true
     image: ai-gateway
-    port: 3010
+    port: 3030
     replicas: 1
     path: /ai
+    command: ["tsx", "dist/server.js"]
+    healthPath: /health
+    readOnlyRootFilesystem: false
     resources:
       requests: { cpu: 250m, memory: 512Mi }
       limits: { cpu: "1", memory: 1Gi }
   workspaceManager:
     enabled: true
     image: workspace-manager
-    port: 3020
+    port: 3010
     replicas: 1
     path: /runtime
+    command: ["tsx", "dist/server.js"]
+    healthPath: /health
+    readOnlyRootFilesystem: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
   previewProxy:
     enabled: true
     image: preview-proxy
-    port: 3030
+    port: 3020
     replicas: 1
     path: /
     host: "*.preview.e-code.ai"
+    command: ["tsx", "dist/server.js"]
+    healthPath: /health
+    readOnlyRootFilesystem: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }

@@ -7,6 +7,7 @@ metadata:
   name: {{ include "vibecore-platform.fullname" $ }}-{{ kebabcase $name }}
   labels:
     app.kubernetes.io/name: {{ kebabcase $name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
     app.kubernetes.io/component: {{ kebabcase $name }}
     app.kubernetes.io/part-of: vibecore
 spec:
@@ -27,12 +28,19 @@ spec:
       automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: {{ kebabcase $name }}
           image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $.Values.global.imageTag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ $svc.imagePullPolicy | default "Always" }}
+          {{- with $svc.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -44,24 +52,37 @@ spec:
               value: production
             - name: APP_ENV
               value: {{ $.Values.global.environment | quote }}
+          {{- $healthPath := $svc.healthPath }}
+          {{- if and (ne (toString $healthPath) "") (ne (toString $healthPath) "<nil>") }}
           readinessProbe:
             httpGet:
-              path: /health
+              path: {{ $healthPath }}
               port: http
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
+              path: {{ $healthPath }}
               port: http
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 20
+          {{- end }}
           resources:
 {{ toYaml $svc.resources | indent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: wrangler-tmp
+              mountPath: /app/.wrangler
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: {{ $svc.readOnlyRootFilesystem | default false }}
             capabilities:
               drop: ["ALL"]
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: wrangler-tmp
+          emptyDir: {}
 {{- end }}
 {{- end }}
