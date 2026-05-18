@@ -1,129 +1,206 @@
 # Production secrets bootstrap
 
-State of GCP Secret Manager `vibecore-prod-*` as of **2026-05-18**, plus
-the runbook to sync them into the K8s `Secret/vibecore-platform-secrets`
-that every deployment consumes.
+This is the runbook for the **6 Phase 0 secret gaps** identified by
+`pnpm run production:validate --strict`. The platform compiles, types
+and tests green on `main`, but `helm upgrade` will not pass until every
+secret below has an enabled version in GCP Secret Manager.
 
-## What's already filled
+The platform K8s Secret `vibecore-platform-secrets` (defined in
+`infra/helm/platform/values-prod.yaml`) is hydrated from these GCP
+Secret Manager entries. You will need a `gcloud` session authenticated
+against `vibecore-495216`.
 
-19/20 `vibecore-prod-*` secrets have an enabled version (audited live,
-not from docs): database URL, Redis URL (Memorystore
-`redis://10.237.0.4:6379`), JWT/cookie/encryption/workspace-agent
-secrets, backup encryption key, SIEM signing secret, Google/GitHub
-OAuth client IDs and secrets, OpenAI/Gemini/Moonshot/xAI API keys,
-Stripe secret key + webhook secret, Sentry DSN.
+```bash
+gcloud auth login
+gcloud config set project vibecore-495216
+```
 
-The 20th secret — `vibecore-prod-anthropic-api-key` — is the only
-hard-empty one. The platform boots without it because other AI
-providers cover the validator's `requiredAny`.
+---
 
-> The `JWT_SECRET` (vibecore-prod-jwt-secret) was empty on 2026-05-18
-> and re-generated then (64-byte hex) as part of Phase 0. If any prior
-> deployment minted JWTs against an older value, those sessions are no
-> longer valid — users will need to log back in. Rotation cadence is
-> tracked under `SECRET_ROTATION_OWNER` / `SECRET_ROTATION_CADENCE_DAYS`.
+## Quick check — what's currently empty
 
-## Quick audit
+Run this before you start. Anything reported as `NO ENABLED VERSION`
+or with a placeholder value needs to be set below.
 
 ```bash
 for s in \
-  vibecore-prod-database-url vibecore-prod-redis-url \
-  vibecore-prod-jwt-secret vibecore-prod-cookie-secret \
-  vibecore-prod-encryption-key vibecore-prod-workspace-agent-token-secret \
-  vibecore-prod-backup-encryption-key vibecore-prod-siem-signing-secret \
-  vibecore-prod-google-client-id vibecore-prod-google-client-secret \
-  vibecore-prod-github-client-id vibecore-prod-github-client-secret \
-  vibecore-prod-openai-api-key vibecore-prod-anthropic-api-key \
-  vibecore-prod-google-gemini-api-key vibecore-prod-xai-api-key \
-  vibecore-prod-moonshot-api-key \
-  vibecore-prod-stripe-secret-key vibecore-prod-stripe-webhook-secret \
-  vibecore-prod-sentry-dsn
+  vibecore-prod-anthropic-api-key \
+  vibecore-prod-redis-url \
+  vibecore-prod-stripe-free-product-id \
+  vibecore-prod-stripe-free-price-id \
+  vibecore-prod-stripe-enterprise-product-id \
+  vibecore-prod-smtp-host \
+  vibecore-prod-otel-endpoint \
+  vibecore-prod-incident-webhook-url
 do
-  c=$(gcloud secrets versions list "$s" --project=vibecore-495216 --filter="state:ENABLED" --format="value(name)" 2>/dev/null | wc -l | tr -d ' ')
-  [ "$c" = "0" ] && echo "  MISSING: $s" || echo "  ok ($c): $s"
+  ver=$(gcloud secrets versions list "$s" --filter="state:ENABLED" --format="value(name)" --limit=1 2>/dev/null | head -1)
+  if [ -z "$ver" ]; then
+    echo "  MISSING: $s"
+  else
+    echo "  ok:      $s (v$ver)"
+  fi
 done
 ```
 
-## Add the missing one — Anthropic API key
+The `vibecore-prod-redis-url` secret already points to
+`redis://10.237.0.4:6379` (Memorystore) — verified `2026-05-18`. If
+this changes you'll need to add an AUTH password to the URL when
+Memorystore AUTH is enabled in Phase 1.
+
+---
+
+## A3 — Anthropic API key
 
 Get a key from <https://console.anthropic.com/settings/keys>. Use a
-dedicated production key so it can be rotated independently of dev.
+dedicated key for prod (so it can be rotated independently of dev). The
+secret `vibecore-prod-anthropic-api-key` already exists with no enabled
+version — just add one.
 
 ```bash
 printf '%s' 'sk-ant-PASTE_HERE' | gcloud secrets versions add \
-  vibecore-prod-anthropic-api-key --project=vibecore-495216 --data-file=-
+  vibecore-prod-anthropic-api-key --data-file=-
 ```
 
-## Sync GCP Secret Manager → K8s Secret
+---
 
-Use the committed script (zero-leak: never prints values to stdout):
+## A4 — Transactional email
+
+Two valid shapes; pick one.
+
+### Option A — SMTP (Mailgun, Postmark, etc.)
 
 ```bash
-# Refresh cluster credentials + add your IP to the master authorized network
-gcloud container clusters get-credentials vibecore-prod-app \
-  --region europe-west9 --project vibecore-495216
-MY_IP=$(curl -s ifconfig.me)
-gcloud container clusters update vibecore-prod-app \
-  --region europe-west9 --project vibecore-495216 \
-  --enable-master-authorized-networks \
-  --master-authorized-networks "${MY_IP}/32"
-
-# Show keys (values redacted) so you can sanity-check the mapping:
-./scripts/sync-k8s-secret-from-gcp.sh --dry-run
-
-# Apply for real, then rolling-restart every deployment:
-./scripts/sync-k8s-secret-from-gcp.sh --restart
+printf '%s' 'smtp.mailgun.org'         | gcloud secrets versions add vibecore-prod-smtp-host    --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-smtp-host  --data-file=- < <(printf '%s' 'smtp.mailgun.org')
+printf '%s' '587'                       | gcloud secrets versions add vibecore-prod-smtp-port    --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-smtp-port  --data-file=- < <(printf '%s' '587')
+printf '%s' 'postmaster@e-code.ai'      | gcloud secrets versions add vibecore-prod-smtp-user    --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-smtp-user  --data-file=- < <(printf '%s' 'postmaster@e-code.ai')
+printf '%s' 'PASTE_SMTP_PASSWORD'       | gcloud secrets versions add vibecore-prod-smtp-password --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-smtp-password --data-file=- < <(printf '%s' 'PASTE_SMTP_PASSWORD')
 ```
 
-The script pulls the 20 mapped secrets, plus 8 static config entries
-(`NODE_ENV=production`, `VITE_RUNTIME_MODE=remote-kubernetes`,
-`WORKSPACE_MANAGER_URL=https://workspace-manager.e-code.ai`, etc.) into
-a transient file `chmod 600`, applies the Secret, and `shred`s the
-file. Any missing secret prints a `WARNING` but does not abort —
-`vibecore-prod-anthropic-api-key` is expected to be the only one until
-you fill it.
+Plus a `vars` entry in GitHub for `SMTP_FROM=no-reply@e-code.ai` and
+`EMAIL_FROM=no-reply@e-code.ai` (referenced by `.github/workflows/deploy-prod.yml`).
 
-## Helm deploy
+### Option B — Resend HTTP API (recommended for low setup cost)
 
-A7 hardened `values-prod.yaml` so an un-overridden `imageTag` fails
-fast. The deploy script enforces an immutable SHA-pinned tag:
+1. Buy/transfer `e-code.ai` DNS to your Resend domain set (Resend
+   dashboard prints the required MX/SPF/DKIM/DMARC TXT records — add
+   them to the Cloud DNS zone `e-code-ai`).
+2. Generate a domain-scoped API key.
 
 ```bash
-# Build first: push main to the build branch so .github/workflows/docker.yml
-# produces tagged images:
-git push origin main:product/saas-platform-production
-
-# Then deploy the current HEAD's SHA:
-./scripts/deploy-prod.sh
-# or pin to a specific previous tag:
-./scripts/deploy-prod.sh sha-ef77d35
-
-# Pre-flight only:
-./scripts/deploy-prod.sh --dry-run
+printf '%s' 'https://api.resend.com/emails'         | gcloud secrets versions add vibecore-prod-email-http-endpoint --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-email-http-endpoint --data-file=- < <(printf '%s' 'https://api.resend.com/emails')
+printf '%s' 're_PASTE_RESEND_KEY'                   | gcloud secrets versions add vibecore-prod-email-http-token    --data-file=- 2>/dev/null \
+  || gcloud secrets create vibecore-prod-email-http-token --data-file=- < <(printf '%s' 're_PASTE_RESEND_KEY')
 ```
 
-The script refuses to deploy if any of the 8 images
-(`web admin api worker ai-gateway workspace-manager workspace-agent
-preview-proxy`) doesn't have the target SHA tag in Artifact Registry,
-and runs `pnpm synthetic:health` against `https://app.e-code.ai`
-post-rollout. On failure it prints the rollback command.
+---
 
-## What's still needed beyond Phase 0 to pass `production:validate --strict`
+## A5 — Stripe catalog IDs (free + enterprise)
 
-These are **non-blocking for the platform booting**, but the
-production validator is strict. Each gap = Phase 1 work:
+The PRO and TEAM tiers already have product/price IDs in
+`.env.production`. Free + Enterprise need to be created in
+<https://dashboard.stripe.com/products>:
 
-| Gap | Why it fails | Phase |
-|-----|--------------|-------|
-| OIDC (Microsoft Entra) | 8 envs missing | Phase 1 — SSO |
-| SAML metadata or X509 cert | provider set incomplete | Phase 1 — SSO |
-| Transactional email (SMTP or Resend) | no provider set | Phase 1 — Email |
-| `SIEM_WEBHOOK_URL` | empty | Phase 1 — Audit immutable |
-| `STRIPE_FREE_*` + `STRIPE_ENTERPRISE_PRODUCT_ID` | missing | Phase 1 — Stripe catalog |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | empty | Phase 1 — Observability |
-| `INCIDENT_WEBHOOK_URL` | empty | Phase 1 — Incident response |
-| `SOC2_EVIDENCE_BUCKET` | empty | Phase 1 — Compliance |
-| `SECURITY_CONTACT_EMAIL` | empty | trivial — set in GitHub Variables |
+1. **Free** — recurring $0/mo, name "VibeCore Free". Copy the
+   `prod_…` and `price_…` IDs.
+2. **Enterprise** — recurring custom price (or $1, the seat count is
+   gated by RBAC, not Stripe). Copy `prod_…` (the `price_…` is already
+   in `.env.production`).
 
-Until those land, deploy uses `production:validate` (non-strict) which
-only checks core secrets + ingress reachability.
+```bash
+gcloud secrets create vibecore-prod-stripe-free-product-id        --data-file=- < <(printf '%s' 'prod_PASTE_FREE')
+gcloud secrets create vibecore-prod-stripe-free-price-id          --data-file=- < <(printf '%s' 'price_PASTE_FREE')
+gcloud secrets create vibecore-prod-stripe-enterprise-product-id  --data-file=- < <(printf '%s' 'prod_PASTE_ENT')
+```
+
+Then run `pnpm run stripe:seed` once with these values in the env to
+make sure the Postgres `BillingPlan` rows are aligned with the Stripe
+catalog.
+
+---
+
+## A6 — OTEL exporter endpoint
+
+Pick a backend (Grafana Cloud, Honeycomb, Datadog, or a self-hosted
+Tempo). Each gives you an OTLP HTTP endpoint and a header-based auth
+token.
+
+```bash
+gcloud secrets create vibecore-prod-otel-endpoint     --data-file=- < <(printf '%s' 'https://otlp.eu.grafana.net/otlp')
+gcloud secrets create vibecore-prod-otel-headers      --data-file=- < <(printf '%s' 'Authorization=Basic PASTE_BASE64')
+```
+
+Then add a corresponding entry in `.github/workflows/deploy-prod.yml`
+under `OTEL_EXPORTER_OTLP_ENDPOINT`, and (optionally)
+`OTEL_EXPORTER_OTLP_HEADERS`.
+
+---
+
+## Incident webhook (referenced by `validate-production-enterprise`)
+
+Slack: `Apps → Incoming Webhooks → Add to your channel`. Copy the
+`https://hooks.slack.com/services/...` URL.
+
+```bash
+gcloud secrets create vibecore-prod-incident-webhook-url \
+  --data-file=- < <(printf '%s' 'https://hooks.slack.com/services/PASTE')
+```
+
+---
+
+## After every `versions add` — push changes into the K8s secret
+
+The platform reads from a K8s `Secret/vibecore-platform-secrets`. Until
+External Secrets Operator is wired (Phase 1), recreate it from the live
+SM values and bounce the pods:
+
+```bash
+# 1. Pull every secret value into a temp env file (NEVER commit it).
+TMP=$(mktemp)
+chmod 600 "$TMP"
+
+declare -A MAP=(
+  [ANTHROPIC_API_KEY]=vibecore-prod-anthropic-api-key
+  [REDIS_URL]=vibecore-prod-redis-url
+  [STRIPE_FREE_PRODUCT_ID]=vibecore-prod-stripe-free-product-id
+  [STRIPE_FREE_PRICE_ID]=vibecore-prod-stripe-free-price-id
+  [STRIPE_ENTERPRISE_PRODUCT_ID]=vibecore-prod-stripe-enterprise-product-id
+  [OTEL_EXPORTER_OTLP_ENDPOINT]=vibecore-prod-otel-endpoint
+  [INCIDENT_WEBHOOK_URL]=vibecore-prod-incident-webhook-url
+)
+for k in "${!MAP[@]}"; do
+  v=$(gcloud secrets versions access latest --secret="${MAP[$k]}" 2>/dev/null) || continue
+  printf '%s=%s\n' "$k" "$v" >> "$TMP"
+done
+
+# 2. Patch the platform secret in-place.
+kubectl create secret generic vibecore-platform-secrets \
+  --namespace=vibecore \
+  --from-env-file="$TMP" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+shred -u "$TMP"
+
+# 3. Rolling-restart every deployment that mounts the secret.
+kubectl rollout restart deployment -n vibecore \
+  --selector app.kubernetes.io/part-of=vibecore
+```
+
+---
+
+## Verification
+
+After the rolling restart, the production validator should pass:
+
+```bash
+# From the deploy-prod GitHub Action environment (so env vars are
+# populated). Or run locally with `set -a; . ./.env.production; set +a`.
+pnpm run production:validate --strict
+```
+
+And the live status page at <https://app.e-code.ai/status> (added in
+P0.B7) should show every component as `Operational`.
