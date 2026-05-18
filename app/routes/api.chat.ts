@@ -21,6 +21,7 @@ import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
+import { recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
@@ -414,23 +415,44 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               streamRecovery.stop();
 
               /*
-               * Structured usage log for the Cloud Logging → metric pipeline so
-               * chat token consumption is visible per-project even though
-               * C1.b (ai-gateway routing + quota enforcement) is not landed yet.
-               * Once C1.b is in, this can move into the api-side recorder.
+               * Structured usage log so the local Cloud Logging metric still
+               * fires even if the api-side ledger call below fails. This is
+               * what C1.a wired; C1.b.3 now also POSTs to services/api so
+               * the AiCostLedger + quota counters get the data.
                */
+              const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
+              const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
+                ? extractPropertiesFromMessage(lastUserMessageForUsage)
+                : { provider: 'unknown', model: 'unknown' };
+
               logger.info(
                 JSON.stringify({
                   event: 'chat.completion.usage',
                   projectId,
                   chatMode,
                   finishReason,
+                  provider: completionProvider,
+                  model: completionModel,
                   promptTokens: cumulativeUsage.promptTokens,
                   completionTokens: cumulativeUsage.completionTokens,
                   totalTokens: cumulativeUsage.totalTokens,
                   timestamp: new Date().toISOString(),
                 }),
               );
+
+              if (projectId) {
+                // Fire-and-log: failures here never crash the chat stream.
+                await recordChatUsage({
+                  projectId,
+                  provider: completionProvider,
+                  model: completionModel,
+                  inputTokens: cumulativeUsage.promptTokens,
+                  outputTokens: cumulativeUsage.completionTokens,
+                  finishReason,
+                  cookieHeader: request.headers.get('Cookie') ?? undefined,
+                  source: 'remix-chat',
+                });
+              }
 
               dataStream.writeMessageAnnotation({
                 type: 'usage',
