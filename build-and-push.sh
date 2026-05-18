@@ -18,7 +18,7 @@ echo "=== 2/7 Build: admin ==="
 docker build \
   -f infra/docker/node-service.Dockerfile \
   --build-arg PACKAGE_FILTER=@vibecore/admin \
-  --build-arg 'START_CMD=pnpm --filter @vibecore/admin dev -- --host 0.0.0.0' \
+  --build-arg 'START_CMD=node serve.mjs' \
   -t "$REGISTRY/admin:latest" \
   .
 
