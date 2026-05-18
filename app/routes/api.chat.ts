@@ -421,6 +421,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * the AiCostLedger + quota counters get the data.
                */
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
+
               const { provider: completionProvider, model: completionModel } = lastUserMessageForUsage
                 ? extractPropertiesFromMessage(lastUserMessageForUsage)
                 : { provider: 'unknown', model: 'unknown' };

@@ -38,7 +38,7 @@ interface EditorPanelProps {
   onFileSelect?: (value?: string) => void;
   onFileSave?: OnEditorSave;
   onFileReset?: () => void;
-  mobilePanel?: 'files' | 'editor' | 'terminal';
+  mobilePanel?: 'files' | 'editor' | 'search' | 'locks' | 'terminal';
 }
 
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
@@ -250,7 +250,36 @@ export const EditorPanel = memo(
         return (
           <PanelBoundary title="Files">
             <div className="h-full" data-testid="mobile-files-panel">
-              {fileTabs}
+              <FileTree
+                className="h-full"
+                files={files}
+                hideRoot
+                unsavedFiles={unsavedFiles}
+                fileHistory={fileHistory}
+                rootFolder={WORK_DIR}
+                selectedFile={selectedFile}
+                onFileSelect={onFileSelect}
+              />
+            </div>
+          </PanelBoundary>
+        );
+      }
+
+      if (mobilePanel === 'search') {
+        return (
+          <PanelBoundary title="Search">
+            <div className="h-full overflow-auto" data-testid="mobile-search-panel">
+              <Search />
+            </div>
+          </PanelBoundary>
+        );
+      }
+
+      if (mobilePanel === 'locks') {
+        return (
+          <PanelBoundary title="Locks">
+            <div className="h-full overflow-auto" data-testid="mobile-locks-panel">
+              <LockManager />
             </div>
           </PanelBoundary>
         );

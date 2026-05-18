@@ -439,59 +439,67 @@ export const FileTree = memo(
           ))}
 
         {activeView === 'files' &&
-          filteredFileList.map((fileOrFolder) => {
-            switch (fileOrFolder.kind) {
-              case 'file': {
-                return (
-                  <File
-                    key={fileOrFolder.id}
-                    selected={selectedFile === fileOrFolder.fullPath}
-                    file={fileOrFolder}
-                    unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
-                    gitStatus={gitStatusForPath(gitStatusByPath, fileOrFolder.fullPath)}
-                    bookmarked={bookmarks.has(fileOrFolder.fullPath)}
-                    fileHistory={fileHistory}
-                    onToggleBookmark={() => toggleBookmark(fileOrFolder.fullPath)}
-                    onCopyPath={() => {
-                      onCopyPath(fileOrFolder);
-                    }}
-                    onCopyRelativePath={() => {
-                      onCopyRelativePath(fileOrFolder);
-                    }}
-                    onClick={() => {
-                      onFilePreview?.(fileOrFolder.fullPath);
-                      onFileSelect?.(fileOrFolder.fullPath);
-                    }}
-                    onDoubleClick={() => {
-                      onFileOpen?.(fileOrFolder.fullPath);
-                    }}
-                  />
-                );
+          (filteredFileList.length ? (
+            filteredFileList.map((fileOrFolder) => {
+              switch (fileOrFolder.kind) {
+                case 'file': {
+                  return (
+                    <File
+                      key={fileOrFolder.id}
+                      selected={selectedFile === fileOrFolder.fullPath}
+                      file={fileOrFolder}
+                      unsavedChanges={unsavedFiles instanceof Set && unsavedFiles.has(fileOrFolder.fullPath)}
+                      gitStatus={gitStatusForPath(gitStatusByPath, fileOrFolder.fullPath)}
+                      bookmarked={bookmarks.has(fileOrFolder.fullPath)}
+                      fileHistory={fileHistory}
+                      onToggleBookmark={() => toggleBookmark(fileOrFolder.fullPath)}
+                      onCopyPath={() => {
+                        onCopyPath(fileOrFolder);
+                      }}
+                      onCopyRelativePath={() => {
+                        onCopyRelativePath(fileOrFolder);
+                      }}
+                      onClick={() => {
+                        onFilePreview?.(fileOrFolder.fullPath);
+                        onFileSelect?.(fileOrFolder.fullPath);
+                      }}
+                      onDoubleClick={() => {
+                        onFileOpen?.(fileOrFolder.fullPath);
+                      }}
+                    />
+                  );
+                }
+                case 'folder': {
+                  return (
+                    <Folder
+                      key={fileOrFolder.id}
+                      folder={fileOrFolder}
+                      selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
+                      collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
+                      onCopyPath={() => {
+                        onCopyPath(fileOrFolder);
+                      }}
+                      onCopyRelativePath={() => {
+                        onCopyRelativePath(fileOrFolder);
+                      }}
+                      onClick={() => {
+                        toggleCollapseState(fileOrFolder.fullPath);
+                      }}
+                    />
+                  );
+                }
+                default: {
+                  return undefined;
+                }
               }
-              case 'folder': {
-                return (
-                  <Folder
-                    key={fileOrFolder.id}
-                    folder={fileOrFolder}
-                    selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
-                    collapsed={collapsedFolders.has(fileOrFolder.fullPath)}
-                    onCopyPath={() => {
-                      onCopyPath(fileOrFolder);
-                    }}
-                    onCopyRelativePath={() => {
-                      onCopyRelativePath(fileOrFolder);
-                    }}
-                    onClick={() => {
-                      toggleCollapseState(fileOrFolder.fullPath);
-                    }}
-                  />
-                );
-              }
-              default: {
-                return undefined;
-              }
-            }
-          })}
+            })
+          ) : (
+            <EmptyExplorerState
+              icon="i-ph:folder-open"
+              title="No files available"
+              description="Project files will appear here once the workspace is loaded."
+            />
+          ))}
       </div>
     );
   },

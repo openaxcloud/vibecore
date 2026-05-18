@@ -41,7 +41,7 @@ interface WorkspaceProps {
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
-  mobilePanel?: 'files' | 'editor' | 'terminal' | 'preview' | 'deploy';
+  mobilePanel?: 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
   projectId?: string;
 }
 
@@ -460,13 +460,17 @@ export const Workbench = memo(
                       <span className="truncate">
                         {mobilePanel === 'files'
                           ? 'Files'
-                          : mobilePanel === 'terminal'
-                            ? 'Terminal'
-                            : mobilePanel === 'preview'
-                              ? 'Preview'
-                              : mobilePanel === 'deploy'
-                                ? 'Deploy'
-                                : 'Editor'}
+                          : mobilePanel === 'search'
+                            ? 'Search'
+                            : mobilePanel === 'locks'
+                              ? 'Locks'
+                              : mobilePanel === 'terminal'
+                                ? 'Terminal'
+                                : mobilePanel === 'preview'
+                                  ? 'Preview'
+                                  : mobilePanel === 'deploy'
+                                    ? 'Deploy'
+                                    : 'Editor'}
                       </span>
                     </div>
                   )}
@@ -587,7 +591,14 @@ export const Workbench = memo(
                       onEditorChange={onEditorChange}
                       onFileSave={onFileSave}
                       onFileReset={onFileReset}
-                      mobilePanel={mobilePanel === 'files' || mobilePanel === 'terminal' ? mobilePanel : 'editor'}
+                      mobilePanel={
+                        mobilePanel === 'files' ||
+                        mobilePanel === 'search' ||
+                        mobilePanel === 'locks' ||
+                        mobilePanel === 'terminal'
+                          ? mobilePanel
+                          : 'editor'
+                      }
                     />
                   </View>
                   <View

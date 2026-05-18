@@ -255,53 +255,171 @@ const IDE_MANAGEMENT_PANELS = [
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
-const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'] as const;
+const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'terminal', 'preview', 'deploy'] as const;
 
-const MOBILE_IDE_PRIMARY_NAV_ITEMS = [
-  { id: 'files', icon: 'i-ph:folder-open', label: 'Files' },
-  { id: 'editor', icon: 'i-ph:code', label: 'Editor' },
-  { id: 'preview', icon: 'i-ph:browser', label: 'Preview' },
-  { id: 'chat', icon: 'i-ph:sparkle', label: 'AI' },
-  { id: 'terminal', icon: 'i-ph:terminal-window', label: 'Terminal' },
-] as const;
+const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deploy'] as const;
 
-const MOBILE_IDE_MORE_PANEL_ITEMS = [
+const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
+  preview: { id: 'preview', name: 'Preview', icon: 'i-ph:monitor' },
+  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
+  deploy: { id: 'deploy', name: 'Deploy', icon: 'i-ph:broadcast' },
+  files: { id: 'files', name: 'Files', icon: 'i-ph:folder-open' },
+  editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
+  search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
+  terminal: { id: 'terminal', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  actions: { id: 'actions', name: 'Actions', icon: 'i-ph:lightning' },
+  assistant: { id: 'assistant', name: 'Assistant', icon: 'i-ph:sparkle' },
+  publishing: { id: 'publishing', name: 'Publishing', icon: 'i-ph:rocket-launch' },
+  'app-storage': { id: 'app-storage', name: 'App Storage', icon: 'i-ph:hard-drives' },
+  auth: { id: 'auth', name: 'Auth', icon: 'i-ph:shield-check' },
+  console: { id: 'console', name: 'Console', icon: 'i-ph:terminal-window' },
+  database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
+  debug: { id: 'debug', name: 'Debug', icon: 'i-ph:bug' },
+  developer: { id: 'developer', name: 'Developer', icon: 'i-ph:code' },
+  git: { id: 'git', name: 'Git', icon: 'i-ph:git-branch' },
+  history: { id: 'history', name: 'History', icon: 'i-ph:clock-counter-clockwise' },
+  integrations: { id: 'integrations', name: 'Integrations', icon: 'i-ph:package' },
+  multiplayer: { id: 'multiplayer', name: 'Multiplayer', icon: 'i-ph:users' },
+  collaboration: { id: 'collaboration', name: 'Collaboration', icon: 'i-ph:users' },
+  packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
+  secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
+  settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
+  workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
+  checkpoints: { id: 'checkpoints', name: 'Checkpoints', icon: 'i-ph:arrow-counter-clockwise' },
+  extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
+  security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
+  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
+};
+
+const ECODE_MOBILE_TOOLS = [
   {
-    id: 'deploy',
-    icon: 'i-ph:rocket-launch',
-    label: 'Publish',
-    description: 'Build and publish the current project.',
+    id: 'search',
+    section: 'search',
+    title: 'Search',
+    description: 'Search through your files',
+    icon: 'i-ph:magnifying-glass',
   },
   {
     id: 'files',
+    section: 'search',
+    title: 'Files',
+    description: 'Find a file',
     icon: 'i-ph:folder-open',
-    label: 'Files',
-    description: 'Browse project files and folders.',
   },
   {
-    id: 'editor',
+    id: 'agent',
+    section: 'tools',
+    title: 'Agent',
+    description: 'Agent can make changes, review its work, and debug itself automatically.',
+    icon: 'agent',
+    tone: 'agent',
+  },
+  {
+    id: 'assistant',
+    section: 'tools',
+    title: 'Assistant',
+    description: 'Assistant answers questions, refines code, and makes precise edits.',
+    icon: 'i-ph:sparkle',
+    tone: 'assistant',
+  },
+  {
+    id: 'publishing',
+    section: 'tools',
+    title: 'Publishing',
+    description:
+      'Publish a live, stable, public version of your App, unaffected by the changes you make in the workspace',
+    icon: 'i-ph:rocket-launch',
+    tone: 'success',
+  },
+  {
+    id: 'app-storage',
+    section: 'tools',
+    title: 'App Storage',
+    description: 'Host and save uploads like images, videos, and documents.',
+    icon: 'i-ph:hard-drives',
+  },
+  {
+    id: 'auth',
+    section: 'tools',
+    title: 'Auth',
+    description: 'Let users log in to your App using a prebuilt login page',
+    icon: 'i-ph:shield-check',
+    tone: 'info',
+  },
+  {
+    id: 'console',
+    section: 'tools',
+    title: 'Console',
+    description: 'View the terminal output after running your code',
+    icon: 'i-ph:terminal-window',
+  },
+  {
+    id: 'database',
+    section: 'tools',
+    title: 'Database',
+    description: 'Stores structured data such as user profiles, game scores, and product catalogs.',
+    icon: 'i-ph:database',
+    tone: 'info',
+  },
+  {
+    id: 'developer',
+    section: 'tools',
+    title: 'Developer',
+    description: 'Advanced development tools',
     icon: 'i-ph:code',
-    label: 'Editor',
-    description: 'Open the code editor workspace.',
+  },
+  {
+    id: 'git',
+    section: 'tools',
+    title: 'Git',
+    description: 'Version control for your App',
+    icon: 'i-ph:git-branch',
+    tone: 'warning',
+  },
+  {
+    id: 'integrations',
+    section: 'tools',
+    title: 'Integrations',
+    description: 'Connect to Vibecore-native and external services',
+    icon: 'i-ph:package',
+  },
+  {
+    id: 'multiplayer',
+    section: 'tools',
+    title: 'Multiplayer',
+    description: 'Invite real-time collaborators and manage access to your App',
+    icon: 'i-ph:users',
+    tone: 'info',
   },
   {
     id: 'preview',
-    icon: 'i-ph:browser',
-    label: 'Preview',
-    description: 'Inspect the running app preview.',
+    section: 'tools',
+    title: 'Preview',
+    description: 'View your app in a browser',
+    icon: 'i-ph:monitor',
   },
-  {
-    id: 'chat',
-    icon: 'i-ph:sparkle',
-    label: 'AI',
-    description: 'Return to the project agent.',
-  },
-  {
-    id: 'terminal',
-    icon: 'i-ph:terminal-window',
-    label: 'Terminal',
-    description: 'View shell output and logs.',
-  },
+] as const;
+
+const ECODE_MOBILE_MORE_MENU_ITEMS = [
+  { id: 'web', label: 'Web', icon: 'i-ph:globe' },
+  { id: 'deploy', label: 'Deploy', icon: 'i-ph:rocket-launch' },
+  { id: 'git', label: 'Git', icon: 'i-ph:git-branch' },
+  { id: 'packages', label: 'Packages', icon: 'i-ph:package' },
+  { id: 'database', label: 'Database', icon: 'i-ph:database' },
+  { id: 'secrets', label: 'Secrets', icon: 'i-ph:key' },
+  { id: 'debug', label: 'Debug', icon: 'i-ph:bug' },
+  { id: 'search', label: 'Search', icon: 'i-ph:magnifying-glass' },
+  { id: 'commands', label: 'Commands', icon: 'i-ph:command' },
+  { id: 'workflows', label: 'Workflows', icon: 'i-ph:git-branch' },
+  { id: 'actions', label: 'Actions', icon: 'i-ph:lightning' },
+  { id: 'tools', label: 'Tools', icon: 'i-ph:stack' },
+  { id: 'collaborate', label: 'Collaborate', icon: 'i-ph:users' },
+  { id: 'share', label: 'Share', icon: 'i-ph:share-network' },
+  { id: 'history', label: 'History', icon: 'i-ph:clock-counter-clockwise' },
+  { id: 'checkpoints', label: 'Checkpoints', icon: 'i-ph:arrow-counter-clockwise' },
+  { id: 'extensions', label: 'Extensions', icon: 'i-ph:puzzle-piece' },
+  { id: 'security', label: 'Security', icon: 'i-ph:shield-check' },
+  { id: 'settings', label: 'Settings', icon: 'i-ph:gear' },
 ] as const;
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
@@ -1918,49 +2036,61 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const useMobileIde = layout.isMobile || layout.isTabletPortrait;
 
-    const [mobilePanel, setMobilePanel] = useState<'chat' | 'files' | 'editor' | 'terminal' | 'preview' | 'deploy'>(
-      'chat',
-    );
+    const [mobilePanel, setMobilePanel] = useState<
+      'chat' | 'files' | 'editor' | 'search' | 'terminal' | 'preview' | 'deploy'
+    >('chat');
 
     const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
-    const [mobileMoreQuery, setMobileMoreQuery] = useState('');
+    const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
+    const [mobileToolsQuery, setMobileToolsQuery] = useState('');
+
+    const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
+
+    const [mobileOpenTabs, setMobileOpenTabs] = useState(() =>
+      ECODE_MOBILE_DEFAULT_TABS.map((tab) => ECODE_MOBILE_TAB_META[tab]),
+    );
+
+    const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
     const { state: mobileIdeLocalState, setActivePanel: persistMobilePanel } = useMobileIdePersistence(
       projectIdeMode ? projectId : undefined,
     );
+    const ensureMobileOpenTab = useCallback((tabId: string) => {
+      const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        id: tabId,
+        name: panelTitle(tabId),
+        icon: panelIcon(tabId),
+      };
+
+      setMobileOpenTabs((current) => (current.some((item) => item.id === tab.id) ? current : [...current, tab]));
+      setActiveMobileOpenTabId(tab.id);
+    }, []);
     const setMobileIdePanel = useCallback(
       (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
         setMobilePanel(panel);
         persistMobilePanel(panel);
+        ensureMobileOpenTab(panel === 'chat' ? 'agent' : panel);
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
         }
       },
-      [persistMobilePanel],
+      [ensureMobileOpenTab, persistMobilePanel],
     );
-    const filteredMobileMorePanelItems = useMemo(() => {
-      const query = mobileMoreQuery.trim().toLowerCase();
+    const filteredMobileToolsSheetItems = useMemo(() => {
+      const query = mobileToolsQuery.trim().toLowerCase();
 
       if (!query) {
-        return MOBILE_IDE_MORE_PANEL_ITEMS;
+        return ECODE_MOBILE_TOOLS;
       }
 
-      return MOBILE_IDE_MORE_PANEL_ITEMS.filter(
+      return ECODE_MOBILE_TOOLS.filter(
         (item) =>
-          item.label.toLowerCase().includes(query) ||
+          item.title.toLowerCase().includes(query) ||
           item.description.toLowerCase().includes(query) ||
           item.id.toLowerCase().includes(query),
       );
-    }, [mobileMoreQuery]);
-    const openMobilePanelFromMore = useCallback(
-      (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
-        setMobileIdePanel(panel);
-        setMobileMoreOpen(false);
-        setMobileMoreQuery('');
-      },
-      [setMobileIdePanel],
-    );
+    }, [mobileToolsQuery]);
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
         const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
@@ -1991,7 +2121,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       if (!useMobileIde) {
         setMobileMoreOpen(false);
-        setMobileMoreQuery('');
+        setMobileToolsSheetOpen(false);
+        setMobileToolsQuery('');
       }
     }, [useMobileIde]);
 
@@ -2856,7 +2987,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (
             ui?.mobilePanel &&
-            ['chat', 'files', 'editor', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
+            ['chat', 'files', 'editor', 'search', 'terminal', 'preview', 'deploy'].includes(ui.mobilePanel)
           ) {
             setMobilePanel(ui.mobilePanel);
           }
@@ -3330,6 +3461,133 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activePaneId, openWorkspacePanel, setProjectPanelSearchParam],
     );
 
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+      setCommandPaletteMode(mode);
+      setCommandPaletteQuery('');
+      setCommandPaletteIndex(0);
+      setCommandPaletteOpen(true);
+    }, []);
+
+    const activateMobileTool = useCallback(
+      (toolId: string) => {
+        const normalizedToolId = toolId === 'deployment' ? 'publishing' : toolId;
+
+        const managementPanelByTool: Record<string, IdeManagementPanel> = {
+          publishing: 'deployments',
+          deploy: 'deployments',
+          'app-storage': 'object-storage',
+          database: 'database',
+          debug: 'debugger',
+          developer: 'debugger',
+          git: 'git',
+          history: 'activity',
+          integrations: 'integrations',
+          collaboration: 'collaborators',
+          collaborate: 'collaborators',
+          multiplayer: 'collaborators',
+          packages: 'packages',
+          secrets: 'secrets',
+          auth: 'settings',
+          settings: 'settings',
+          workflows: 'workflows',
+          checkpoints: 'snapshots',
+          extensions: 'extensions',
+          security: 'security',
+        };
+
+        if (
+          normalizedToolId === 'agent' ||
+          normalizedToolId === 'assistant' ||
+          normalizedToolId === 'actions' ||
+          normalizedToolId === 'tools'
+        ) {
+          setMobileIdePanel('chat');
+          ensureMobileOpenTab(normalizedToolId);
+        } else if (normalizedToolId === 'files') {
+          setMobileIdePanel('files');
+        } else if (normalizedToolId === 'search') {
+          setMobileIdePanel('search');
+        } else if (normalizedToolId === 'preview') {
+          setMobileIdePanel('preview');
+        } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
+          setMobileIdePanel('terminal');
+          ensureMobileOpenTab(normalizedToolId === 'console' ? 'console' : 'terminal');
+        } else if (normalizedToolId === 'editor') {
+          setMobileIdePanel('editor');
+        } else {
+          const managementPanel = managementPanelByTool[normalizedToolId];
+
+          if (managementPanel) {
+            openWorkspacePanel(managementPanel);
+            setMobileIdePanel('deploy');
+            ensureMobileOpenTab(normalizedToolId);
+          }
+        }
+
+        setMobileMoreOpen(false);
+        setMobileToolsSheetOpen(false);
+        setMobileToolsQuery('');
+        setMobileTabSwitcherOpen(false);
+      },
+      [ensureMobileOpenTab, openWorkspacePanel, setMobileIdePanel],
+    );
+
+    const activateMobileMoreMenuItem = useCallback(
+      async (itemId: (typeof ECODE_MOBILE_MORE_MENU_ITEMS)[number]['id']) => {
+        if (itemId === 'commands') {
+          setMobileMoreOpen(false);
+          openCommandPalette('all');
+
+          return;
+        }
+
+        if (itemId === 'share') {
+          setMobileMoreOpen(false);
+
+          try {
+            await navigator.clipboard?.writeText(`${window.location.origin}/projects/${projectId}`);
+            toast.success('Project link copied');
+          } catch (error) {
+            toast.error(`Copy failed: ${(error as Error).message}`);
+          }
+
+          return;
+        }
+
+        if (itemId === 'tools') {
+          setMobileMoreOpen(false);
+          activateMobileTool('tools');
+
+          return;
+        }
+
+        if (itemId === 'web') {
+          activateMobileTool('preview');
+          return;
+        }
+
+        activateMobileTool(itemId);
+      },
+      [activateMobileTool, openCommandPalette, projectId],
+    );
+
+    const closeMobileOpenTab = useCallback(
+      (tabId: string) => {
+        setMobileOpenTabs((current) => {
+          const coreTabs = new Set<string>(ECODE_MOBILE_DEFAULT_TABS);
+          const nextTabs = coreTabs.has(tabId) ? current : current.filter((tab) => tab.id !== tabId);
+
+          if (activeMobileOpenTabId === tabId) {
+            const fallbackTab = nextTabs[nextTabs.length - 1] ?? ECODE_MOBILE_TAB_META.agent;
+            window.setTimeout(() => activateMobileTool(fallbackTab.id), 0);
+          }
+
+          return nextTabs;
+        });
+      },
+      [activateMobileTool, activeMobileOpenTabId],
+    );
+
     useEffect(() => {
       if (!projectIdeMode) {
         return undefined;
@@ -3417,10 +3675,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setMobileIdePanel('editor');
           } else if (isIdeManagementPanel(activeProjectPanel)) {
             setMobileIdePanel('deploy');
+            ensureMobileOpenTab(activeProjectPanel);
           }
         }
       }
-    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      ensureMobileOpenTab,
+      openWorkspacePanel,
+      projectIdeMode,
+      projectStateReady,
+      setMobileIdePanel,
+      useMobileIde,
+    ]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -3474,13 +3741,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [useMobileIde],
     );
-
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
-      setCommandPaletteMode(mode);
-      setCommandPaletteQuery('');
-      setCommandPaletteIndex(0);
-      setCommandPaletteOpen(true);
-    }, []);
 
     const reopenLastClosedTab = useCallback(() => {
       const [tab, ...rest] = closedTabs;
@@ -3746,8 +4006,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      setMobilePanel(mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number]);
-    }, [mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
+      const persistedPanel = mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number];
+      setMobilePanel(persistedPanel);
+      ensureMobileOpenTab(persistedPanel === 'chat' ? 'agent' : persistedPanel);
+    }, [ensureMobileOpenTab, mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
 
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
@@ -5867,86 +6129,334 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </>
           )}
         </div>
-        <nav className="bolt-mobile-tabbar" aria-label="IDE panels">
-          {MOBILE_IDE_PRIMARY_NAV_ITEMS.map(({ id, icon, label }) => (
-            <button
-              key={id}
-              type="button"
-              aria-label={label}
-              aria-current={mobilePanel === id ? 'page' : undefined}
-              onClick={() => {
-                setMobileIdePanel(id);
-                setMobileMoreOpen(false);
-              }}
-            >
-              <span className={icon} aria-hidden />
-              <span>{label}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            aria-label="More panels"
-            aria-haspopup="dialog"
-            aria-expanded={mobileMoreOpen}
-            aria-current={mobilePanel === 'deploy' ? 'page' : undefined}
-            onClick={() => setMobileMoreOpen((value) => !value)}
+        {useMobileIde && (
+          <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
+            <div className="bolt-mobile-replit-nav-bg" aria-hidden />
+            <div className="bolt-mobile-replit-nav-inner">
+              <button
+                type="button"
+                className={classNames('bolt-mobile-replit-run', {
+                  'bolt-mobile-replit-run--active': isRuntimeReallyRunning,
+                })}
+                aria-label={isRuntimeReallyRunning ? 'Stop running' : 'Run project'}
+                data-testid="button-play-stop"
+                onClick={() => {
+                  if (isRuntimeReallyRunning) {
+                    void workbenchStore.stopPreviewServer();
+                  } else {
+                    setMobileIdePanel('preview');
+                    void workbenchStore.startPreviewServer();
+                  }
+                }}
+              >
+                <span className={isRuntimeReallyRunning ? 'i-ph:square-fill' : 'i-ph:play-fill'} aria-hidden />
+              </button>
+
+              <div className="bolt-mobile-replit-tabs" data-testid="mobile-open-tabs">
+                <button
+                  type="button"
+                  className="bolt-mobile-replit-icon-tab"
+                  aria-label="Open tab switcher"
+                  data-testid="button-tab-switcher"
+                  onClick={() => setMobileTabSwitcherOpen(true)}
+                >
+                  <span className="i-ph:squares-four" aria-hidden />
+                </button>
+                <span className="bolt-mobile-replit-divider" aria-hidden />
+                {mobileOpenTabs.slice(0, 3).map((tab) => {
+                  const isActive = activeMobileOpenTabId === tab.id;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className="bolt-mobile-replit-icon-tab"
+                      aria-label={`Switch to ${tab.name} tab`}
+                      aria-pressed={isActive}
+                      aria-current={isActive ? 'page' : undefined}
+                      data-testid={`tab-${tab.id}`}
+                      onClick={() => activateMobileTool(tab.id)}
+                    >
+                      {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} aria-hidden />}
+                      {isActive ? <i aria-hidden /> : null}
+                    </button>
+                  );
+                })}
+                {mobileOpenTabs.length > 3 ? (
+                  <button
+                    type="button"
+                    className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
+                    aria-label={`Show ${mobileOpenTabs.length - 3} more tabs`}
+                    data-testid="button-more-tabs"
+                    onClick={() => setMobileTabSwitcherOpen(true)}
+                  >
+                    +{mobileOpenTabs.length - 3}
+                  </button>
+                ) : null}
+                {mobileOpenTabs.length < 4 ? (
+                  <>
+                    <span className="bolt-mobile-replit-divider" aria-hidden />
+                    <button
+                      type="button"
+                      className="bolt-mobile-replit-icon-tab"
+                      aria-label="Add new tab"
+                      data-testid="button-add-tab"
+                      onClick={() => setMobileToolsSheetOpen(true)}
+                    >
+                      <span className="i-ph:plus" aria-hidden />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="bolt-mobile-replit-more"
+                aria-label="More options"
+                aria-haspopup="dialog"
+                aria-expanded={mobileMoreOpen}
+                data-testid="button-more"
+                onClick={() => {
+                  setMobileToolsSheetOpen(false);
+                  setMobileMoreOpen(true);
+                }}
+              >
+                <span className="i-ph:dots-three-vertical" aria-hidden />
+              </button>
+            </div>
+          </nav>
+        )}
+        {useMobileIde && mobileTabSwitcherOpen && (
+          <section
+            className="bolt-mobile-tab-switcher"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Tab switcher"
+            data-testid="mobile-tab-switcher"
           >
-            <span className="i-ph:dots-three-circle" aria-hidden />
-            <span>More</span>
-          </button>
-        </nav>
+            <div className="bolt-mobile-tab-switcher-body">
+              <div className="bolt-mobile-tab-switcher-content">
+                <div className="bolt-mobile-tab-switcher-grid">
+                  {mobileOpenTabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className="bolt-mobile-tab-switcher-card"
+                      aria-current={activeMobileOpenTabId === tab.id ? 'true' : undefined}
+                      data-testid={`tab-card-${tab.id}`}
+                      onClick={() => activateMobileTool(tab.id)}
+                    >
+                      <span className="bolt-mobile-tab-switcher-card-icon" aria-hidden>
+                        {tab.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={tab.icon} />}
+                      </span>
+                      <span>{tab.name}</span>
+                      {!ECODE_MOBILE_DEFAULT_TABS.includes(tab.id as any) ? (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="bolt-mobile-tab-switcher-close"
+                          aria-label={`Close ${tab.name} tab`}
+                          data-testid={`button-close-tab-${tab.id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            closeMobileOpenTab(tab.id);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              closeMobileOpenTab(tab.id);
+                            }
+                          }}
+                        >
+                          <span className="i-ph:x" aria-hidden />
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="bolt-mobile-tab-switcher-footer">
+                <div className="bolt-mobile-tab-switcher-quick" role="group" aria-label="Quick access tools">
+                  {['secrets', 'database', 'auth'].map((toolId) => {
+                    const tool = ECODE_MOBILE_TAB_META[toolId];
+
+                    return (
+                      <button
+                        key={toolId}
+                        type="button"
+                        aria-label={`Quick access: ${tool.name}`}
+                        data-testid={`quick-access-${toolId}`}
+                        onClick={() => activateMobileTool(toolId)}
+                      >
+                        <span className={tool.icon} aria-hidden />
+                        <span>{tool.name}</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    aria-label="Open new tab"
+                    data-testid="button-new-tab"
+                    onClick={() => {
+                      setMobileTabSwitcherOpen(false);
+                      setMobileToolsSheetOpen(true);
+                    }}
+                  >
+                    <span className="i-ph:plus" aria-hidden />
+                    <span>New Tab</span>
+                  </button>
+                </div>
+                <div className="bolt-mobile-tab-switcher-search">
+                  <label>
+                    <span className="i-ph:files" aria-hidden />
+                    <input placeholder="Search tabs..." aria-label="Search open tabs" data-testid="input-search-tabs" />
+                  </label>
+                  <button type="button" aria-label="Clear search" data-testid="button-clear-search">
+                    <span className="i-ph:magnifying-glass" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Close tab switcher"
+                    data-testid="button-close-switcher"
+                    onClick={() => setMobileTabSwitcherOpen(false)}
+                  >
+                    <span className="i-ph:x" aria-hidden />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
         {useMobileIde && mobileMoreOpen && (
           <>
             <button
               type="button"
-              className="bolt-mobile-more-backdrop"
-              aria-label="Close mobile panels menu"
+              className="bolt-mobile-more-menu-backdrop"
+              aria-label="Close more menu"
               onClick={() => setMobileMoreOpen(false)}
+              data-testid="mobile-more-menu-backdrop"
             />
-            <section className="bolt-mobile-more-sheet" role="dialog" aria-modal="true" aria-label="More panels">
-              <div className="bolt-mobile-more-handle" aria-hidden />
-              <header className="bolt-mobile-more-header">
-                <div>
-                  <h2>Search for tools and files</h2>
-                  <p>Open any IDE panel without leaving mobile mode.</p>
-                </div>
-                <button type="button" className="bolt-mobile-more-close" onClick={() => setMobileMoreOpen(false)}>
-                  Close
+            <section
+              className="bolt-mobile-more-menu-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Tools"
+              data-testid="mobile-more-menu-sheet"
+            >
+              <div className="bolt-mobile-more-menu-handle" aria-hidden />
+              <header className="bolt-mobile-more-menu-header">
+                <h2>Tools</h2>
+                <button
+                  type="button"
+                  aria-label="Close more menu"
+                  data-testid="mobile-more-menu-close"
+                  onClick={() => setMobileMoreOpen(false)}
+                >
+                  <span className="i-ph:x" aria-hidden />
                 </button>
               </header>
-              <label className="bolt-mobile-more-search">
-                <span className="i-ph:magnifying-glass" aria-hidden />
-                <span className="sr-only">Search panels</span>
-                <input
-                  value={mobileMoreQuery}
-                  onChange={(event) => setMobileMoreQuery(event.target.value)}
-                  placeholder="Search panels"
-                  autoComplete="off"
-                />
-              </label>
-              <div className="bolt-mobile-more-section-label">Panels</div>
-              <div className="bolt-mobile-more-list">
-                {filteredMobileMorePanelItems.map((item) => (
+              <div className="bolt-mobile-more-menu-grid">
+                {ECODE_MOBILE_MORE_MENU_ITEMS.map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    className="bolt-mobile-more-item"
-                    aria-label={item.label}
-                    aria-current={mobilePanel === item.id ? 'page' : undefined}
-                    onClick={() => openMobilePanelFromMore(item.id)}
+                    className="bolt-mobile-more-menu-item"
+                    data-testid={`mobile-more-menu-${item.id}`}
+                    onClick={() => void activateMobileMoreMenuItem(item.id)}
                   >
-                    <span className="bolt-mobile-more-item-icon" aria-hidden>
+                    <span className="bolt-mobile-more-menu-icon" aria-hidden>
                       <span className={item.icon} />
+                      {item.id === 'debug' && statusbarDiagnostics.errors > 0 ? (
+                        <strong>{statusbarDiagnostics.errors}</strong>
+                      ) : null}
                     </span>
-                    <span className="bolt-mobile-more-item-copy">
-                      <span>{item.label}</span>
-                      <small>{item.description}</small>
-                    </span>
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
-              {filteredMobileMorePanelItems.length === 0 && (
-                <div className="bolt-mobile-more-empty">No panels found for "{mobileMoreQuery}".</div>
+            </section>
+          </>
+        )}
+        {useMobileIde && mobileToolsSheetOpen && (
+          <>
+            <button
+              type="button"
+              className="bolt-mobile-more-backdrop"
+              aria-label="Close tools sheet"
+              onClick={() => setMobileToolsSheetOpen(false)}
+            />
+            <section
+              className="bolt-mobile-more-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Search for tools and files"
+              data-testid="tools-sheet"
+            >
+              <div className="bolt-mobile-more-handle" aria-hidden />
+              <header className="bolt-mobile-more-header">
+                <label className="bolt-mobile-more-search">
+                  <span className="sr-only">Search for tools and files</span>
+                  <input
+                    value={mobileToolsQuery}
+                    onChange={(event) => setMobileToolsQuery(event.target.value)}
+                    placeholder="Search for tools and files"
+                    autoComplete="off"
+                    autoFocus
+                    data-testid="tools-search-input"
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="bolt-mobile-more-close"
+                  data-testid="tools-sheet-close"
+                  onClick={() => setMobileToolsSheetOpen(false)}
+                >
+                  Close
+                </button>
+              </header>
+              <div className="bolt-mobile-more-scroll">
+                {(['search', 'tools'] as const).map((section) => {
+                  const items = filteredMobileToolsSheetItems.filter((item) => item.section === section);
+
+                  if (!items.length) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={section} className="bolt-mobile-more-group">
+                      <div className="bolt-mobile-more-section-label">{section === 'search' ? 'Search' : 'Tools'}</div>
+                      <div className="bolt-mobile-more-list">
+                        {items.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="bolt-mobile-more-item"
+                            data-tone={'tone' in item ? item.tone : undefined}
+                            aria-label={item.title}
+                            aria-current={activeMobileOpenTabId === item.id ? 'page' : undefined}
+                            data-testid={`tool-item-${item.id}`}
+                            onClick={() => activateMobileTool(item.id)}
+                          >
+                            <span className="bolt-mobile-more-item-icon" aria-hidden>
+                              {item.icon === 'agent' ? <MobileReplitAgentIcon /> : <span className={item.icon} />}
+                            </span>
+                            <span className="bolt-mobile-more-item-copy">
+                              <span>{item.title}</span>
+                              <small>{item.description}</small>
+                            </span>
+                            {section === 'search' ? (
+                              <span className="bolt-mobile-more-item-chevron i-ph:caret-right" aria-hidden />
+                            ) : null}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {filteredMobileToolsSheetItems.length === 0 && (
+                <div className="bolt-mobile-more-empty">No tools found for "{mobileToolsQuery}".</div>
               )}
             </section>
           </>
@@ -14329,6 +14839,17 @@ function PanelButton({ children, variant, ...props }: any) {
     >
       {children}
     </button>
+  );
+}
+
+function MobileReplitAgentIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden>
+      <circle cx="7" cy="7" r="3" />
+      <circle cx="17" cy="7" r="3" />
+      <circle cx="7" cy="17" r="3" />
+      <circle cx="17" cy="17" r="3" />
+    </svg>
   );
 }
 

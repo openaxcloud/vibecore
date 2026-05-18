@@ -3,13 +3,9 @@ import { createScopedLogger } from '~/utils/logger';
 const logger = createScopedLogger('ai-usage');
 
 function apiBaseUrl() {
-  return (
-    process.env.SAAS_API_URL ??
-    process.env.API_BASE_URL ??
-    // Same in-cluster DNS the Helm chart uses for service-to-service calls.
-    process.env.VITE_API_URL ??
-    'http://localhost:3001'
-  );
+  const inClusterApiUrl = process.env.VITE_API_URL;
+
+  return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? inClusterApiUrl ?? 'http://localhost:3001';
 }
 
 export interface RecordChatUsageInput {
@@ -21,10 +17,13 @@ export interface RecordChatUsageInput {
   finishReason?: string;
   conversationId?: string;
   messageId?: string;
+
   /** Tag in the AiCostLedger reason field; defaults to "remix-chat". */
   source?: string;
+
   /** Browser cookies forwarded so the api can authenticate the user. */
   cookieHeader?: string;
+
   /** Bearer token override (used by tests / future agent contexts). */
   bearerToken?: string;
 }
@@ -45,6 +44,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
   if (!input.projectId) {
     return;
   }
+
   if (input.inputTokens === 0 && input.outputTokens === 0) {
     // Nothing to bill, no point bouncing through api.
     return;
@@ -103,8 +103,10 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
       return;
     }
 
-    // Trace-level acknowledgement so we can correlate the local C1.a log
-    // with the api-side ledger row in Cloud Logging.
+    /*
+     * Trace-level acknowledgement so we can correlate the local C1.a log
+     * with the api-side ledger row in Cloud Logging.
+     */
     logger.debug(
       JSON.stringify({
         event: 'ai-usage.recorded',
