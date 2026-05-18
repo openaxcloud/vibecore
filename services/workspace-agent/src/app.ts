@@ -1,7 +1,7 @@
 import websocket from '@fastify/websocket';
 import { createPrometheusRegistry } from '@vibecore/observability';
 import { normalizeShellCommand, normalizeShellCommandArgs } from '@vibecore/runtime-contract';
-import { detectCommandAbuse } from '@vibecore/security';
+import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -42,7 +42,11 @@ const snapshotSchema = z.object({ files: z.array(writeSchema).default([]) });
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const root = resolve(options.workspaceRoot ?? process.env.WORKSPACE_ROOT ?? '/workspace');
-  const tokenSecret = options.tokenSecret ?? process.env.WORKSPACE_AGENT_TOKEN_SECRET ?? 'dev-workspace-agent-secret';
+  const tokenSecret = requireProductionSecret(
+    'WORKSPACE_AGENT_TOKEN_SECRET',
+    options.tokenSecret ?? process.env.WORKSPACE_AGENT_TOKEN_SECRET,
+    'dev-workspace-agent-secret',
+  );
   const workspaceId = options.workspaceId ?? process.env.WORKSPACE_ID;
   const maxFileBytes = options.maxFileBytes ?? Number(process.env.WORKSPACE_MAX_FILE_BYTES ?? 2 * 1024 * 1024);
   const maxOutputBytes = options.maxOutputBytes ?? Number(process.env.WORKSPACE_MAX_OUTPUT_BYTES ?? 1024 * 1024);

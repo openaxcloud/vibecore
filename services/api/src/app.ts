@@ -44,6 +44,7 @@ import {
   hasRecentReauth,
   isIpAllowed,
   requireCsrfToken,
+  requireProductionSecret,
 } from '@vibecore/security';
 import { DOMParser } from '@xmldom/xmldom';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
@@ -3290,7 +3291,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const stripeClient =
     process.env.STRIPE_SECRET_KEY || process.env.STRIPE_API_BASE_URL
       ? new StripeBillingClient({
-          apiKey: process.env.STRIPE_SECRET_KEY ?? 'dev-stripe-key',
+          apiKey: requireProductionSecret('STRIPE_SECRET_KEY', process.env.STRIPE_SECRET_KEY, 'dev-stripe-key'),
           baseUrl: process.env.STRIPE_API_BASE_URL,
         })
       : undefined;
@@ -3349,8 +3350,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     referrerPolicy: { policy: 'no-referrer' },
     strictTransportSecurity: isProduction ? { maxAge: 63072000, includeSubDomains: true, preload: true } : false,
   });
-  await app.register(cookie, { secret: process.env.COOKIE_SECRET || 'dev-cookie-secret-change-me' });
-  await app.register(jwt, { secret: options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me' });
+  await app.register(cookie, {
+    secret: requireProductionSecret('COOKIE_SECRET', process.env.COOKIE_SECRET, 'dev-cookie-secret-change-me'),
+  });
+  await app.register(jwt, {
+    secret: requireProductionSecret(
+      'JWT_SECRET',
+      options.jwtSecret ?? process.env.JWT_SECRET,
+      'dev-jwt-secret-change-me',
+    ),
+  });
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -3789,7 +3798,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   );
 
   function oauthStateSecret() {
-    return process.env.OAUTH_STATE_SECRET || options.jwtSecret || process.env.JWT_SECRET || 'dev-jwt-secret-change-me';
+    return requireProductionSecret(
+      'OAUTH_STATE_SECRET',
+      process.env.OAUTH_STATE_SECRET ?? options.jwtSecret ?? process.env.JWT_SECRET,
+      'dev-jwt-secret-change-me',
+    );
   }
 
   function signOauthState(provider: string, ttlSeconds = 600): string {

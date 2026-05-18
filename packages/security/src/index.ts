@@ -44,6 +44,23 @@ export function assertStrictCorsOrigin(origin: string | undefined, allowedOrigin
   return allowedOrigins.includes(origin);
 }
 
+export function requireProductionSecret(name: string, value: string | undefined | null, devFallback: string): string {
+  const resolved = value && value.length > 0 ? value : devFallback;
+
+  if (process.env.NODE_ENV === 'production' && resolved === devFallback) {
+    const code = name
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, '_')
+      .replace(/_+/g, '_');
+    throw Object.assign(new Error(`${name} must be set when NODE_ENV=production`), {
+      statusCode: 500,
+      code: `${code}_REQUIRED`,
+    });
+  }
+
+  return resolved;
+}
+
 export function requireCsrfToken(headers: Record<string, string | string[] | undefined>, method: string) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
     return;
