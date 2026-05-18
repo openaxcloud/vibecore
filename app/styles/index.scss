@@ -3115,39 +3115,37 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-sheet {
   position: fixed;
-  right: 12px;
-  bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
+  right: 0;
+  bottom: 0;
+  left: 0;
   z-index: 1002;
   display: flex;
-  max-height: min(70dvh, 540px);
+  height: min(85dvh, 720px);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--mobile-nav-border);
   border-top-color: var(--mobile-nav-border-top);
-  border-radius: 24px;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
   background: var(--mobile-nav-bg);
   box-shadow: var(--mobile-nav-shadow), 0 24px 80px rgb(0 0 0 / 0.46);
   color: var(--vc-ide-text-primary);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .bolt-mobile-more-handle {
-  width: 42px;
-  height: 4px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--mobile-nav-border-top);
-  margin: 10px auto 6px;
+  display: none;
 }
 
 .bolt-mobile-more-header {
   display: flex;
   min-width: 0;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
-  border-bottom: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 10%);
-  padding: 8px 16px 12px;
+  border-bottom: 0;
+  padding: 16px 16px 0;
 }
 
 .bolt-mobile-more-header h2 {
@@ -3159,10 +3157,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-more-header p {
-  margin: 3px 0 0;
-  color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  line-height: 1.35;
+  display: none;
 }
 
 .bolt-mobile-more-close {
@@ -3183,7 +3178,9 @@ body :where(.lucide, svg[data-lucide]) {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  margin: 12px 14px 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mobile-nav-border), transparent 10%);
+  margin: 12px 16px 0;
+  padding-bottom: 16px;
 }
 
 .bolt-mobile-more-search > span:first-child {
@@ -3222,7 +3219,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-more-list {
-  display: grid;
+  display: block;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -3243,6 +3240,10 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: left;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-mobile-more-item + .bolt-mobile-more-item {
+  margin-top: 2px;
 }
 
 .bolt-mobile-more-item:hover,
@@ -14173,8 +14174,74 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 @media (max-width: 899px) {
+  .bolt-project-ide-shell > main {
+    height: 100dvh !important;
+    padding-top: var(--vc-ide-topbar-height, 48px) !important;
+  }
+
   .bolt-responsive-ide-mobile {
+    height: 100%;
+    min-height: 0;
     background: var(--vc-ide-bg-app);
+  }
+
+  .bolt-responsive-ide-mobile > .flex {
+    height: 100%;
+    overflow: hidden !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
+    top: var(--vc-ide-topbar-height, 48px) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 20;
+    width: 100vw !important;
+    padding: 0 !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed > div {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: var(--vc-ide-bg-app) !important;
+    box-shadow: none !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed .bolt-project-service-panel {
+    height: 100%;
+    padding-bottom: calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .bolt-workbench-mobile > div.fixed {
+    top: var(--vc-ide-topbar-height, 48px) !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    z-index: 20;
+    width: 100vw !important;
+  }
+
+  .bolt-workbench-mobile > div.fixed > div {
+    padding: 0 0 calc(var(--mobile-nav-height) + 22px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .bolt-workbench-mobile > div.fixed > div > div {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: var(--vc-ide-bg-app) !important;
+    box-shadow: none !important;
+  }
+
+  .bolt-workbench-mobile > div.fixed > div > div > div:first-child {
+    min-height: 48px;
+    border-color: var(--mobile-nav-border) !important;
+    background: var(--mobile-nav-bg) !important;
+    padding-inline: 12px;
+  }
+
+  .bolt-workbench-mobile > div.fixed > div > div > div:first-child > button:first-child,
+  .bolt-workbench-mobile > div.fixed > div > div > div:first-child > button:last-child {
+    display: none !important;
   }
 
   .bolt-mobile-tabbar {
@@ -14247,10 +14314,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     bottom: 3px;
     left: 22%;
     height: 3px;
+    border: 0 !important;
     border-radius: 999px;
     background: linear-gradient(90deg, var(--ecode-accent), var(--ecode-accent-hover));
     box-shadow: 0 0 16px 2px var(--mobile-nav-glow-strong);
-    content: '';
+    content: '' !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    padding: 0 !important;
+    pointer-events: none;
+    transform: none !important;
   }
 
   .bolt-mobile-tabbar button:active {
@@ -14262,15 +14335,25 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     outline-offset: 2px;
   }
 
+  .bolt-mobile-tabbar button[data-vc-tooltip]::before,
+  .bolt-mobile-tabbar button[data-vc-tooltip]:not([aria-current='page'])::after {
+    display: none !important;
+    content: none !important;
+  }
+
   .bolt-project-statusbar-mobile {
     right: 16px;
     bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     z-index: 1000;
+    container-type: normal;
+    pointer-events: none;
     height: 24px;
     min-height: 24px;
     border: 0;
     background: transparent;
+    max-width: none;
+    margin: 0;
     padding: 0;
   }
 
@@ -14278,10 +14361,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100%;
     justify-content: space-between;
     gap: 8px;
+    overflow: visible;
   }
 
   .bolt-project-statusbar-mobile .bolt-project-statusbar-pill {
-    min-height: 24px;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 24px !important;
+    flex: 0 0 auto !important;
+    gap: 4px;
+    pointer-events: auto;
     border: 1px solid var(--mobile-nav-border);
     border-radius: 999px;
     background: var(--mobile-nav-bg);
@@ -14290,12 +14379,42 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-project-statusbar-mobile .bolt-project-statusbar-workspace {
+    order: 1;
+    max-width: min(48vw, 176px) !important;
     border-color: var(--vc-ide-accent-error);
     color: var(--vc-ide-accent-error);
   }
 
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:nth-child(2) {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-error-count,
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-warning-count {
+    min-width: 0;
+    padding: 2px 6px;
+  }
+
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-error-count[data-empty='true'],
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-warning-count[data-empty='true'] {
+    display: none !important;
+  }
+
+  .bolt-project-statusbar-mobile
+    .bolt-project-statusbar-primary
+    > .bolt-project-statusbar-pill:nth-child(2):has(.bolt-project-statusbar-error-count[data-empty='true']):has(
+      .bolt-project-statusbar-warning-count[data-empty='true']
+    ) {
+    display: none !important;
+  }
+
   .bolt-project-statusbar-mobile .bolt-project-statusbar-runtime {
-    border-color: var(--vc-ide-accent-warning);
+    display: none !important;
+  }
+
+  .bolt-project-statusbar-mobile .bolt-project-statusbar-logs {
+    display: none !important;
   }
 
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
