@@ -91,11 +91,10 @@ services:
     enabled: true
     image: workspace-manager
     port: 3020
-    # NOTE: workspace-manager currently uses JsonWorkspaceStore (file-backed),
-    # which is not safe across replicas. Until the Prisma-backed store lands
-    # (Phase 1 / B4), keep replicas: 1. A second pod would race on the JSON
-    # file and lose writes; rolling updates accept brief downtime.
-    replicas: 1
+    # B4 landed: workspace-manager now reads/writes via PrismaWorkspaceStore
+    # against the shared Postgres, so replicas: 2 is safe (no on-disk
+    # state to race). PDB activates because replicas > 1.
+    replicas: 2
     path: /runtime
     resources:
       requests: { cpu: 100m, memory: 256Mi }
