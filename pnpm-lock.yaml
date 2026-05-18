@@ -259,6 +259,9 @@ importers:
       '@remix-run/react':
         specifier: ^2.17.4
         version: 2.17.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)
+      '@remix-run/serve':
+        specifier: ^2.17.4
+        version: 2.17.4(typescript@5.8.3)
       '@tanstack/react-virtual':
         specifier: ^3.13.0
         version: 3.13.12(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -536,9 +539,6 @@ importers:
       '@remix-run/dev':
         specifier: ^2.17.4
         version: 2.17.4(@remix-run/react@2.17.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3))(@remix-run/serve@2.17.4(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1))
-      '@remix-run/serve':
-        specifier: ^2.17.4
-        version: 2.17.4(typescript@5.8.3)
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3

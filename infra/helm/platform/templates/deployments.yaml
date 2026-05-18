@@ -32,7 +32,7 @@ spec:
       containers:
         - name: {{ kebabcase $name }}
           image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $.Values.global.imageTag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ if eq (toString $.Values.global.imageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -44,15 +44,19 @@ spec:
               value: production
             - name: APP_ENV
               value: {{ $.Values.global.environment | quote }}
+            - name: PORT
+              value: {{ $svc.port | quote }}
+            - name: HOST
+              value: "0.0.0.0"
           readinessProbe:
             httpGet:
-              path: /health
+              path: {{ $svc.healthPath | default "/health" }}
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
+              path: {{ $svc.healthPath | default "/health" }}
               port: http
             initialDelaySeconds: 30
             periodSeconds: 20
@@ -60,7 +64,7 @@ spec:
 {{ toYaml $svc.resources | indent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: {{ $svc.readOnlyRootFilesystem | default true }}
             capabilities:
               drop: ["ALL"]
 {{- end }}
