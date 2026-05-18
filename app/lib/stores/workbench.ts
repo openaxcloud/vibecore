@@ -84,6 +84,15 @@ const WORKSPACE_LOG_LIMIT = 500;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
 
+/*
+ * Sampling window for the AI streaming-action runner. Each token chunk
+ * carries a partial action update; running them all would saturate the
+ * preview filesystem with intermediate writes. 100 ms keeps the UI
+ * responsive (≈10 updates/s feels live) while collapsing the dozens of
+ * chunks that arrive within a single render frame into a single apply.
+ */
+const ACTION_STREAM_SAMPLE_INTERVAL_MS = 100;
+
 const PROJECT_STORAGE_SYNC_EXCLUDED_DIRECTORIES = new Set([
   '.git',
   '.next',
@@ -1955,7 +1964,7 @@ export class WorkbenchStore {
 
   actionStreamSampler = createSampler(async (data: ActionCallbackData, isStreaming: boolean = false) => {
     return await this._runAction(data, isStreaming);
-  }, 100); // TODO: remove this magic number to have it configurable
+  }, ACTION_STREAM_SAMPLE_INTERVAL_MS);
 
   #emitFileApplied(
     filePath: string,

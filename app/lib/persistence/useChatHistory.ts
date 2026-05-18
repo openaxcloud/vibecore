@@ -493,10 +493,14 @@ ${value.content}
 }
 
 function navigateChat(nextId: string) {
-  /**
-   * FIXME: Using the intended navigate function causes a rerender for <Chat /> that breaks the app.
-   *
-   * `navigate(`/chat/${nextId}`, { replace: true });`
+  /*
+   * Update the address bar without going through the Remix router. We're
+   * called mid-`storeMessageHistory` — Remix `navigate()` would treat the
+   * new `/chat/:id` as a route transition, remount <Chat />, and lose the
+   * in-flight save (snapshot + setMessages haven't completed yet). The
+   * chat ID is also a server-generated alias for an already-loaded chat,
+   * not a different route, so `history.replaceState` is the semantically
+   * correct tool here: same view, freshened URL.
    */
   const url = new URL(window.location.href);
   url.pathname = `/chat/${nextId}`;
