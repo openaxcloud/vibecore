@@ -54,7 +54,7 @@
     "secrets:generate": "node scripts/generate-secrets.mjs",
     "stripe:seed": "node scripts/seed-stripe-catalog.mjs",
     "deploy": "npm run build && wrangler pages deploy",
-    "build": "VITE_CJS_IGNORE_WARNING=1 NODE_OPTIONS=--max-old-space-size=8192 remix vite:build",
+    "build": "VITE_CJS_IGNORE_WARNING=1 NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=8192} remix vite:build",
     "dev": "pnpm run dev:all",
     "dev:web": "node pre-start.cjs && remix vite:dev",
     "dev:api": "sh -c 'set -a; [ -f .env ] && . ./.env; set +a; API_HOST=${API_HOST:-127.0.0.1} pnpm --filter @vibecore/api dev'",
