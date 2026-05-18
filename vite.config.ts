@@ -1,10 +1,10 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
+import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
 import { defineConfig, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
-import * as dotenv from 'dotenv';
 
 // Load environment variables from multiple files
 dotenv.config({ path: '.env.local' });
@@ -165,6 +165,15 @@ export default defineConfig((config) => {
        */
       config.mode !== 'test' &&
         remixVitePlugin({
+          /*
+           * Co-located component / route specs (`Foo.spec.ts`,
+           * `Foo.spec.tsx`) live next to the modules they test, including
+           * inside `app/routes/`. Remix's default route discovery would
+           * import them as SSR route modules and explode the moment the
+           * file imports `vitest`. Exclude every spec file from the route
+           * manifest so the dev server only ever loads real routes.
+           */
+          ignoredRouteFiles: ['**/*.spec.ts', '**/*.spec.tsx'],
           future: {
             v3_fetcherPersist: true,
             v3_relativeSplatPath: true,
@@ -205,6 +214,7 @@ export default defineConfig((config) => {
         '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**',
+
         // service workspaces have their own vitest configs (node env, fastify, etc.)
         'services/preview-proxy/**',
       ],
