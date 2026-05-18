@@ -915,6 +915,10 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
+    devDependencies:
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
 
   services/workspace-agent:
     dependencies:

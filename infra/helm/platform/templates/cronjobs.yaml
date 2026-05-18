@@ -1,0 +1,92 @@
+{{- /*
+  Scheduled enqueues for the worker's enterprise-jobs queue.
+
+  We don't ship a separate scheduler service; instead the cluster's own
+  cron-controller fires a one-shot Job at the configured schedule which
+  runs the worker image with the `enqueue-cli.js` entrypoint. The CLI
+  adds a single BullMQ job and exits, the worker Deployment picks it up
+  and runs the actual handler (siem.deliver / retention.enforce in
+  services/worker/src/index.ts).
+
+  The jobs themselves are idempotent — the worker uses an offset cursor
+  (lastDeliveredAt for SIEM, dataRetentionDays for retention) so a
+  duplicate enqueue doesn't reprocess.
+*/}}
+{{- $cronjobs := .Values.cronjobs | default dict -}}
+{{- $defaults := dict
+    "siemDeliver" (dict
+      "enabled" true
+      "schedule" "*/5 * * * *"
+      "queue" "enterprise-jobs"
+      "job" "siem.deliver")
+    "retentionEnforce" (dict
+      "enabled" true
+      "schedule" "30 3 * * *"
+      "queue" "enterprise-jobs"
+      "job" "retention.enforce")
+-}}
+{{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
+{{- range $name, $cron := $merged }}
+{{- if $cron.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "vibecore-platform.fullname" $ }}-cron-{{ kebabcase $name }}
+  labels:
+    app.kubernetes.io/name: cron-{{ kebabcase $name }}
+    app.kubernetes.io/component: cron
+    app.kubernetes.io/part-of: vibecore
+spec:
+  schedule: {{ $cron.schedule | quote }}
+  # If the controller is paused for longer than a single tick, only fire once
+  # when it comes back; never let backlog stampede the queue.
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 60
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: cron-{{ kebabcase $name }}
+            app.kubernetes.io/component: cron
+            app.kubernetes.io/part-of: vibecore
+        spec:
+          serviceAccountName: {{ include "vibecore-platform.fullname" $ }}-worker
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: enqueue
+              image: "{{ $.Values.global.imageRegistry }}/worker:{{ required "global.imageTag must be set" $.Values.global.imageTag }}"
+              imagePullPolicy: {{ if eq (toString $.Values.global.imageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+              command:
+                - node
+                - /runtime/services/worker/dist/enqueue-cli.js
+                - --queue
+                - {{ $cron.queue | quote }}
+                - --job
+                - {{ $cron.job | quote }}
+              envFrom:
+                - secretRef:
+                    name: {{ $.Values.secrets.existingSecret }}
+              resources:
+                requests:
+                  cpu: 20m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+{{- end }}
+{{- end }}
