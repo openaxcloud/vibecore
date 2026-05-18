@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GeneratedFileJsonError,
-  GeneratedFileParseError,
   MissingImportError,
   resolveImport,
   validateGeneratedFiles,
@@ -60,15 +59,58 @@ describe('agent post-generation import validation', () => {
     ).resolves.toBeUndefined();
   });
 
-  it('rejects syntactically invalid generated source files before they can be applied', async () => {
-    await expect(
-      validateGeneratedFiles([
-        {
-          path: 'src/components/AboutSection.tsx',
-          content: "export function AboutSection() {\n  return 'unterminated;\n}\n",
-        },
-      ]),
-    ).rejects.toBeInstanceOf(GeneratedFileParseError);
+  describe('fail-open on parser errors (Replit/Cursor parity)', () => {
+    /*
+     * `@babel/parser` lags TC39 + TypeScript feature flags, so a syntactically
+     * valid file can still fail to parse. Blocking the agent on a parser hiccup
+     * confused the auto-apply UX (proposal stuck in "Review AI changes" with
+     * status `failed`). The contract is now: log a warning, skip the import
+     * check for that file, and let the TS LSP + preview build surface real
+     * syntax errors as diagnostics.
+     */
+    let warnSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it('does not reject when a generated file fails to parse', async () => {
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/components/AboutSection.tsx',
+            content: "export function AboutSection() {\n  return 'unterminated;\n}\n",
+          },
+        ]),
+      ).resolves.toBeUndefined();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Skipping import check for src/components/AboutSection.tsx'),
+      );
+    });
+
+    it('still validates resolvable imports in the rest of the batch', async () => {
+      /*
+       * Unparseable file shouldn't poison the batch — sibling files keep
+       * their import validation. A missing import elsewhere must still fail.
+       */
+      await expect(
+        validateGeneratedFiles([
+          {
+            path: 'src/broken.tsx',
+            content: "export function Broken() { return 'unterminated;\n}\n",
+          },
+          {
+            path: 'src/main.tsx',
+            content: "import App from './App';\nconsole.log(App);\n",
+          },
+        ]),
+      ).rejects.toBeInstanceOf(MissingImportError);
+    });
   });
 
   it('accepts plain .ts files that use legacy <Type>value casts without tripping the jsx plugin', async () => {

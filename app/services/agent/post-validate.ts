@@ -17,17 +17,6 @@ export class MissingImportError extends Error {
   }
 }
 
-export class GeneratedFileParseError extends Error {
-  readonly filePath: string;
-
-  constructor(filePath: string, cause: unknown) {
-    const message = cause instanceof Error ? cause.message : 'Unable to parse generated file.';
-    super(`Unable to validate imports in ${filePath}: ${message}`);
-    this.name = 'GeneratedFileParseError';
-    this.filePath = filePath;
-  }
-}
-
 export class GeneratedFileJsonError extends Error {
   readonly filePath: string;
 
@@ -184,7 +173,19 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
       plugins: pluginsForExtension(normalizedPath),
     });
   } catch (error) {
-    throw new GeneratedFileParseError(normalizedPath, error);
+    /*
+     * Replit / Cursor parity: never block an agent apply on a parser hiccup.
+     * `@babel/parser` lags TC39 + TS feature flags (stage-3 proposals, new
+     * decorators, `using`, …), so a perfectly valid file can fail here. We
+     * still want to flag missing imports — but only when we can actually
+     * parse the file. If we can't, the TypeScript LSP and the preview build
+     * surface real syntax errors as diagnostics, which the agent reads on
+     * the next iteration. Logging keeps the signal for debugging.
+     */
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[agent post-validate] Skipping import check for ${normalizedPath}: ${message}`);
+
+    return;
   }
 
   for (const node of ast.program.body) {
