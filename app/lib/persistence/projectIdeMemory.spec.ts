@@ -150,6 +150,20 @@ describe('project IDE memory persistence', () => {
     expect(restored.ui?.terminalBottomHeight).toBe(444);
   });
 
+  it('uses an empty local state for unauthenticated IDE memory reads instead of throwing', async () => {
+    const projectId = 'project-auth-expired';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 401,
+      })),
+    );
+
+    const restored = await getProjectIdeMemory(projectId);
+    expect(restored).toEqual({});
+  });
+
   it('prefers the newest state between server and localStorage', async () => {
     const projectId = 'project-newest';
     globalThis.localStorage.setItem(

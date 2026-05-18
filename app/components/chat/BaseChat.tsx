@@ -2876,7 +2876,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectFilePaths.length, projectIdeMode, rightPanelMode, rightPanelOpen]);
 
     useEffect(() => {
-      if (!projectIdeMode) {
+      if (!projectIdeMode || useMobileIde || workspaceLoading || workspaceError) {
         return undefined;
       }
 
@@ -2884,10 +2884,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
-      const timer = window.setTimeout(() => setGuidedTourOpen(true), 900);
+      const timer = window.setTimeout(() => setGuidedTourOpen(true), 4_000);
 
       return () => window.clearTimeout(timer);
-    }, [projectIdeMode]);
+    }, [projectIdeMode, useMobileIde, workspaceError, workspaceLoading]);
+
+    useEffect(() => {
+      if (useMobileIde && guidedTourOpen) {
+        setGuidedTourOpen(false);
+      }
+    }, [guidedTourOpen, useMobileIde]);
 
     useEffect(() => {
       if (!projectIdeMode || !guidedTourOpen) {
@@ -5186,7 +5192,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <HeaderTip label="Switch light / dark theme">
                         <ThemeSwitch
                           size="lg"
-                          title=""
+                          title="Switch light/dark theme"
                           className="bolt-project-ide-icon-button"
                           iconClassName="text-[14px]"
                         />
@@ -5759,7 +5765,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     </div>
                   </div>
                 </PanelBoundary>
-              ) : (
+              ) : useMobileIde && mobilePanel === 'chat' ? null : (
                 <ClientOnly>
                   {() => (
                     <PanelBoundary title="Workbench">

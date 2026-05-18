@@ -443,6 +443,8 @@ export const Workbench = memo(
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1.5 overflow-x-auto">
                   <button
                     className={`${showChat ? 'i-ph:sidebar-simple-fill' : 'i-ph:sidebar-simple'} text-lg text-bolt-elements-textSecondary mr-1`}
+                    aria-label={showChat ? 'Hide agent panel' : 'Show agent panel'}
+                    title={showChat ? 'Hide agent panel' : 'Show agent panel'}
                     disabled={!canHideChat || isSmallViewport}
                     onClick={() => {
                       if (canHideChat) {
@@ -563,6 +565,7 @@ export const Workbench = memo(
                   )}
                   <IconButton
                     icon="i-ph:x-circle"
+                    title="Close workbench"
                     className="-mr-1"
                     size="xl"
                     onClick={() => {

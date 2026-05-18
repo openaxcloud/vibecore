@@ -108,7 +108,9 @@ export function useChatHistory() {
         .catch((error) => {
           console.error(error);
           logStore.logError('Failed to load project IDE chat memory', error);
-          toast.error('Failed to load project IDE memory: ' + error.message);
+          toast.error('Failed to load project IDE memory: ' + error.message, {
+            toastId: `project-ide-memory-load-${projectId}`,
+          });
           chatId.set(`project:${projectId}`);
           description.set('Project assistant');
           setReady(true);

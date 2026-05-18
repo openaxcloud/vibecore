@@ -1,7 +1,16 @@
 /* eslint-disable import/order */
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
-import { Links, Meta, Outlet, Scripts, ScrollRestoration, useFetchers, useNavigation } from '@remix-run/react';
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useFetchers,
+  useLocation,
+  useNavigation,
+} from '@remix-run/react';
 import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { installEditorPwaServiceWorker } from '@vibecore/editor';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
@@ -85,6 +94,8 @@ export const Head = createHead(() => (
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const theme = useStore(themeStore);
+  const location = useLocation();
+  const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
 
   useEffect(() => {
     const root = document.querySelector('html');
@@ -99,12 +110,53 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <ClientOnly>{() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}</ClientOnly>
+      <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
+        {() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}
+      </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
       <ScrollRestoration />
       <Scripts />
     </>
+  );
+}
+
+function AppBootFallback({ ide }: { ide: boolean }) {
+  if (!ide) {
+    return (
+      <main className="bolt-app-boot-fallback" aria-label="Loading VibeCore" role="status">
+        <div className="bolt-app-boot-mark" aria-hidden />
+        <span>Loading VibeCore</span>
+      </main>
+    );
+  }
+
+  return (
+    <main className="bolt-ide-boot-fallback" aria-label="Loading project IDE" role="status">
+      <div className="bolt-ide-boot-topbar">
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="bolt-ide-boot-body">
+        <aside>
+          <span />
+          <span />
+          <span />
+        </aside>
+        <section>
+          <div />
+          <div />
+          <div />
+        </section>
+        <aside>
+          <span />
+          <span />
+          <span />
+        </aside>
+      </div>
+      <span className="bolt-ide-boot-label">Loading project IDE</span>
+    </main>
   );
 }
 

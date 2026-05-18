@@ -697,11 +697,19 @@ function IdeProjectTopBar({
               aria-label="Collaborate"
               className="bolt-project-collaborate-popover absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border p-2"
             >
-              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+              <Link
+                to={`/projects/${projectId}/ide?panel=collaborators`}
+                className="bolt-project-overflow-item"
+                aria-label="Share project"
+              >
                 <Share2 className="h-3.5 w-3.5" aria-hidden />
                 <span>Share project</span>
               </Link>
-              <Link to={`/projects/${projectId}/ide?panel=collaborators`} className="bolt-project-overflow-item">
+              <Link
+                to={`/projects/${projectId}/ide?panel=collaborators`}
+                className="bolt-project-overflow-item"
+                aria-label="Invite collaborators"
+              >
                 <UserPlus className="h-3.5 w-3.5" aria-hidden />
                 <span>Invite collaborators</span>
               </Link>

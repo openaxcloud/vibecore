@@ -173,6 +173,7 @@ let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
 
 const SAVE_RETRY_DELAYS_MS = [1_000, 4_000, 12_000];
+const PROJECT_IDE_MEMORY_AUTH_STATUSES = new Set([401, 403]);
 
 function messageKey(message: Message, index: number) {
   return message.id ?? `${message.role}:${index}:${String(message.content).slice(0, 80)}`;
@@ -503,6 +504,14 @@ export async function getProjectIdeMemory(projectId: string): Promise<ProjectIde
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
+
+    if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
+      const memory = localMemory ?? {};
+      memoryCache.set(projectId, memory);
+      versionByProject.delete(projectId);
+
+      return memory;
+    }
 
     if (!response.ok) {
       throw new Error(`Failed to load project IDE memory (${response.status})`);
