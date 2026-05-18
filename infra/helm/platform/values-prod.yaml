@@ -40,7 +40,9 @@ services:
     enabled: true
     image: web
     port: 3000
-    replicas: 1
+    # 2 replicas → PDB minAvailable: 1 activates (template guards on replicas>1)
+    # so rolling updates and node drains never take the public site to zero.
+    replicas: 2
     command: []
     path: /
     resources:
@@ -50,7 +52,7 @@ services:
     enabled: true
     image: admin
     port: 3000
-    replicas: 1
+    replicas: 2
     path: /admin
     resources:
       requests: { cpu: 100m, memory: 128Mi }
@@ -59,7 +61,7 @@ services:
     enabled: true
     image: api
     port: 3001
-    replicas: 1
+    replicas: 2
     path: /api
     resources:
       requests: { cpu: 100m, memory: 256Mi }
@@ -68,6 +70,9 @@ services:
     enabled: true
     image: worker
     port: 3002
+    # Queue worker: a single consumer is fine, BullMQ handles dedup. Keeping
+    # replicas: 1 avoids paying for an idle second worker. Re-evaluate once
+    # queue depth justifies a second consumer.
     replicas: 1
     path: ""
     resources:
@@ -77,7 +82,7 @@ services:
     enabled: true
     image: ai-gateway
     port: 3010
-    replicas: 1
+    replicas: 2
     path: /ai
     resources:
       requests: { cpu: 250m, memory: 512Mi }
@@ -86,6 +91,10 @@ services:
     enabled: true
     image: workspace-manager
     port: 3020
+    # NOTE: workspace-manager currently uses JsonWorkspaceStore (file-backed),
+    # which is not safe across replicas. Until the Prisma-backed store lands
+    # (Phase 1 / B4), keep replicas: 1. A second pod would race on the JSON
+    # file and lose writes; rolling updates accept brief downtime.
     replicas: 1
     path: /runtime
     resources:
@@ -95,7 +104,7 @@ services:
     enabled: true
     image: preview-proxy
     port: 3030
-    replicas: 1
+    replicas: 2
     path: /
     host: "*.preview.e-code.ai"
     resources:
