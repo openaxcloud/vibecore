@@ -799,6 +799,22 @@ exports.Prisma.ConsensusRecordScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
+  id: 'id',
+  orgId: 'orgId',
+  projectId: 'projectId',
+  plan: 'plan',
+  status: 'status',
+  pvcName: 'pvcName',
+  podName: 'podName',
+  serviceName: 'serviceName',
+  agentTokenSecretName: 'agentTokenSecretName',
+  error: 'error',
+  createdAt: 'createdAt',
+  lastActiveAt: 'lastActiveAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -974,7 +990,8 @@ exports.Prisma.ModelName = {
   McpInstall: 'McpInstall',
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',
-  ConsensusRecord: 'ConsensusRecord'
+  ConsensusRecord: 'ConsensusRecord',
+  WorkspaceRuntime: 'WorkspaceRuntime'
 };
 
 /**

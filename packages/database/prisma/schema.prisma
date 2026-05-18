@@ -1052,3 +1052,32 @@ model ConsensusRecord {
   createdAt      DateTime           @default(now())
   run            AgentRun           @relation(fields: [runId], references: [id], onDelete: Cascade)
 }
+
+/// Runtime/K8s orchestration state owned by services/workspace-manager.
+/// Distinct from the user-facing Workspace model (which carries projectId
+/// and runtimeMode for the IDE): this row tracks the actual pod, PVC,
+/// service and agent-token-secret names allocated to the workspace, plus
+/// the lifecycle status and the last-active timestamp used by the GC sweep.
+/// The id matches the workspaceId used by services/api and the K8s object
+/// names ("workspace-${id}", "pvc-${id}", "agent-token-${id}"), so this row
+/// is effectively the canonical state shared between workspace-manager
+/// replicas — replacing the file-backed JsonWorkspaceStore.
+model WorkspaceRuntime {
+  id                   String   @id
+  orgId                String
+  projectId            String
+  plan                 Json
+  status               String
+  pvcName              String
+  podName              String
+  serviceName          String
+  agentTokenSecretName String
+  error                String?
+  createdAt            DateTime @default(now())
+  lastActiveAt         DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([projectId])
+  @@index([status, lastActiveAt])
+}
