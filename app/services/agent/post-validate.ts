@@ -1,4 +1,4 @@
-import { parse } from '@babel/parser';
+import { parse, type ParserPlugin } from '@babel/parser';
 
 export interface GeneratedFile {
   path: string;
@@ -107,6 +107,28 @@ function isSourceFile(filePath: string) {
   return SOURCE_FILE_EXTENSIONS.has(extensionOf(filePath));
 }
 
+/*
+ * Pick `@babel/parser` plugins by file extension. Enabling `jsx` on a plain
+ * `.ts` file makes the parser treat `<MyType>value` (legacy TS type assertion)
+ * or a generic like `<T>(x: T) => x` as the opening of a JSX tag, which then
+ * fails with "Unexpected token, expected ';'". The `typescript` plugin is the
+ * mirror image — never apply it to plain `.js`/`.jsx`/`.mjs`/`.cjs`.
+ */
+function pluginsForExtension(filePath: string): ParserPlugin[] {
+  const extension = extensionOf(filePath).toLowerCase();
+  const plugins: ParserPlugin[] = ['importAttributes'];
+
+  if (extension === '.ts' || extension === '.tsx') {
+    plugins.push('typescript');
+  }
+
+  if (extension === '.tsx' || extension === '.jsx' || extension === '.js' || extension === '.mjs') {
+    plugins.push('jsx');
+  }
+
+  return plugins;
+}
+
 function isJsonFile(filePath: string) {
   return JSON_FILE_EXTENSIONS.has(extensionOf(filePath));
 }
@@ -159,7 +181,7 @@ export async function validateImports(file: GeneratedFile, allFiles: Map<string,
   try {
     ast = parse(file.content, {
       sourceType: 'module',
-      plugins: ['typescript', 'jsx', 'importAttributes'],
+      plugins: pluginsForExtension(normalizedPath),
     });
   } catch (error) {
     throw new GeneratedFileParseError(normalizedPath, error);

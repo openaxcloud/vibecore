@@ -71,6 +71,57 @@ describe('agent post-generation import validation', () => {
     ).rejects.toBeInstanceOf(GeneratedFileParseError);
   });
 
+  it('accepts plain .ts files that use legacy <Type>value casts without tripping the jsx plugin', async () => {
+    /*
+     * Repro for the "Unable to validate imports in src/types/index.ts:
+     * Unexpected token, expected ';'" bug — when the jsx plugin was enabled
+     * for every extension the parser interpreted `<MyType>value` as a JSX
+     * opening tag, which then failed with the unexpected-token error and
+     * marked the proposal as `failed`, surfacing it in the Review queue even
+     * when auto-apply was on.
+     */
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'src/types/index.ts',
+          content: [
+            'export type Brand<T, B extends string> = T & { readonly __brand: B };',
+            'export function asUserId(value: string) {',
+            '  return <Brand<string, "UserId">>value;',
+            '}',
+            '',
+          ].join('\n'),
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('accepts plain .ts files that declare ambiguous arrow generics', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'src/utils/identity.ts',
+          content: 'export const identity = <T>(value: T): T => value;\n',
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
+  it('still parses JSX in .tsx and .jsx generated files', async () => {
+    await expect(
+      validateGeneratedFiles([
+        {
+          path: 'src/App.tsx',
+          content: 'export default function App() { return <main>hi</main>; }\n',
+        },
+        {
+          path: 'src/Legacy.jsx',
+          content: 'export default function Legacy() { return <section>hi</section>; }\n',
+        },
+      ]),
+    ).resolves.toBeUndefined();
+  });
+
   it('rejects invalid generated JSON before package parsing reaches preview startup', async () => {
     await expect(
       validateGeneratedFiles([
