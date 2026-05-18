@@ -26,6 +26,7 @@ import {
   StripeBillingClient,
   assertQuota,
   billingPlans,
+  computeAiCostCents,
   planByKey,
   verifyStripeSignature,
   type PlanKey,
@@ -704,6 +705,17 @@ const aiMessageSchema = z.object({
   model: z.string().optional(),
   stream: z.boolean().default(false),
 });
+const aiRecordUsageSchema = z.object({
+  conversationId: z.string().min(1).optional(),
+  messageId: z.string().min(1).optional(),
+  provider: z.string().min(1),
+  model: z.string().min(1),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  finishReason: z.string().optional(),
+  source: z.string().min(1).default('remix-chat'),
+});
+
 const aiToolSchema = z.object({
   workspaceId: z.string().min(1).optional(),
   path: z.string().optional(),
@@ -8460,6 +8472,73 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { messages: await store.listAiMessages(conversationId) };
+  });
+  /*
+   * C1.b.2 — Record-usage endpoint called by the Remix chat route after a
+   * Bolt streamText() completes. Today the Remix chat bypasses
+   * services/ai-gateway (Bolt's inherited code calls the providers
+   * directly), so the only way to charge the cost ledger + enforce
+   * quotas is to have Remix POST here in onFinish. Auth is the standard
+   * project ACL (the Remix loader forwards the user's session cookie),
+   * so a malicious caller can only inflate their *own* org's usage.
+   * Once C1.b.4 reroutes the stream through ai-gateway, this endpoint
+   * becomes redundant and the gateway records usage directly.
+   */
+  app.post('/projects/:projectId/ai/record-usage', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    const body = parse(aiRecordUsageSchema, request.body ?? {});
+
+    const { costCents, matched } = computeAiCostCents({
+      model: body.model,
+      provider: body.provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+      inputTokens: body.inputTokens,
+      outputTokens: body.outputTokens,
+    });
+
+    await store.recordAiCost({
+      organizationId: project.organizationId,
+      projectId: project.id,
+      conversationId: body.conversationId,
+      messageId: body.messageId,
+      provider: body.provider,
+      model: body.model,
+      inputTokens: body.inputTokens,
+      outputTokens: body.outputTokens,
+      costCents,
+      reason: `chat.completion.${body.source}`,
+    });
+
+    await recordUsage(request, project.organizationId, 'ai.messages');
+    if (body.inputTokens > 0) {
+      await recordUsage(request, project.organizationId, 'ai.inputTokens', body.inputTokens);
+    }
+    if (body.outputTokens > 0) {
+      await recordUsage(request, project.organizationId, 'ai.outputTokens', body.outputTokens);
+    }
+
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: body.provider, model: body.model, direction: 'input' },
+      body.inputTokens,
+    );
+    metrics.increment(
+      'ai_tokens_total',
+      { provider: body.provider, model: body.model, direction: 'output' },
+      body.outputTokens,
+    );
+    metrics.setGauge(
+      'cost_estimate_cents',
+      { organizationId: project.organizationId, source: 'ai' },
+      costCents,
+    );
+
+    return {
+      recorded: true,
+      costCents,
+      modelMatched: matched,
+      finishReason: body.finishReason ?? null,
+    };
   });
   app.post('/projects/:projectId/ai/tools/:toolName', async (request, reply) => {
     const { projectId, toolName } = parse(aiToolParams, request.params);

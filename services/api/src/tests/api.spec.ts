@@ -3696,4 +3696,123 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       await app.close();
     }
   });
+
+  it('records chat usage in the AI cost ledger and the usage counters', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'usage@example.com', organizationName: 'Usage Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Usage Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const record = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        inputTokens: 10_000,
+        outputTokens: 2_000,
+        finishReason: 'stop',
+        source: 'bolt-chat',
+      },
+    });
+
+    expect(record.statusCode).toBe(200);
+    const body = record.json();
+    expect(body.recorded).toBe(true);
+    expect(body.modelMatched).toBe(true);
+    // 10000 input @ 300¢/M = 3¢, 2000 output @ 1500¢/M = 3¢ → 6¢
+    expect(body.costCents).toBe(6);
+    expect(body.finishReason).toBe('stop');
+
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(1);
+    expect(costs[0].provider).toBe('anthropic');
+    expect(costs[0].model).toBe('claude-sonnet-4-6');
+    expect(costs[0].inputTokens).toBe(10_000);
+    expect(costs[0].outputTokens).toBe(2_000);
+    expect(costs[0].costCents).toBe(6);
+    expect(costs[0].reason).toBe('chat.completion.bolt-chat');
+
+    await app.close();
+  });
+
+  it('returns matched:false and 0¢ when the model is not in the pricing catalog', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'unknown-model@example.com', organizationName: 'Unknown Model Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Unknown Model Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const record = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-future-2030',
+        inputTokens: 1000,
+        outputTokens: 1000,
+      },
+    });
+
+    expect(record.statusCode).toBe(200);
+    const body = record.json();
+    expect(body.recorded).toBe(true);
+    expect(body.modelMatched).toBe(false);
+    expect(body.costCents).toBe(0);
+
+    // The cost row is still written (with cents=0) so we can spot
+    // "we silently zero-billed N chats" in the ledger later.
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(1);
+    expect(costs[0].model).toBe('claude-future-2030');
+    expect(costs[0].costCents).toBe(0);
+
+    await app.close();
+  });
+
+  it('rejects unauthenticated record-usage requests with 401', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'auth-required@example.com', organizationName: 'Auth Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Auth Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const anonymous = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/record-usage`,
+      payload: {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-6',
+        inputTokens: 100,
+        outputTokens: 100,
+      },
+    });
+
+    expect(anonymous.statusCode).toBe(401);
+    const costs = await store.listAiCosts(auth.organization.id);
+    expect(costs).toHaveLength(0);
+
+    await app.close();
+  });
 });
