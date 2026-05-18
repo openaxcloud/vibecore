@@ -66,13 +66,16 @@ services:
     port: 3002
     replicas: 1
     path: ""
+    # No HTTP listener — background consumer driven by Redis/Postgres.
+    # An exec probe keeps liveness honest while the pod has no /health route.
+    httpHealth: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
   aiGateway:
     enabled: true
     image: ai-gateway
-    port: 3010
+    port: 3030
     replicas: 1
     path: /ai
     resources:
@@ -81,7 +84,7 @@ services:
   workspaceManager:
     enabled: true
     image: workspace-manager
-    port: 3020
+    port: 3010
     replicas: 1
     path: /runtime
     resources:
@@ -90,7 +93,7 @@ services:
   previewProxy:
     enabled: true
     image: preview-proxy
-    port: 3030
+    port: 3020
     replicas: 1
     path: /
     host: "*.preview.e-code.ai"
