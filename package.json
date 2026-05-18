@@ -331,6 +331,7 @@
       "body-parser": "^2.2.2",
       "qs": "^6.15.1",
       "path-to-regexp": "^8.4.2",
+      "express>path-to-regexp": "0.1.12",
       "undici": "^6.25.0",
       "hono": "^4.12.18",
       "@hono/node-server": "^1.19.13",
