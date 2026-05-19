@@ -104,7 +104,7 @@ export const ECODE_MARKETING_BRAND = {
 } as const;
 
 export const publicNav = [
-  { label: 'Product', to: '/#product' },
+  { label: 'Product', to: '/features' },
   { label: 'Solutions', to: '/solutions/app-builder' },
   { label: 'Resources', to: '/docs' },
   { label: 'Company', to: '/about' },
@@ -115,8 +115,8 @@ export const publicNav = [
 export const publicMarketingMenus = {
   product: [
     ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
-    ['Browser IDE', '/#product', 'Enterprise-grade development workspace built for teams.'],
-    ['Multiplayer', '/#collaboration', 'Live collaboration, pair programming and shared presence.'],
+    ['Browser IDE', '/features', 'Enterprise-grade development workspace built for teams.'],
+    ['Multiplayer', '/collaboration', 'Live collaboration, pair programming and shared presence.'],
     ['Mobile App', '/mobile', 'Ship from phone and tablet with the same IDE workflow.'],
     ['Desktop App', '/desktop', 'Optimized local workflows with secure project sync.'],
     ['AI Platform', '/ai', 'Governance, observability and orchestration for AI workloads.'],
@@ -169,9 +169,9 @@ export const publicFooterColumns: readonly FooterColumn[] = [
   {
     title: 'Product',
     links: [
-      ['AI Agent', '/#builder'],
-      ['IDE', '/#product'],
-      ['Multiplayer', '/#collaboration'],
+      ['AI Agent', '/ai'],
+      ['IDE', '/features'],
+      ['Multiplayer', '/collaboration'],
       ['Mobile App', '/mobile'],
       ['Deployments', '/marketing/deployments'],
       ['AI Platform', '/ai'],

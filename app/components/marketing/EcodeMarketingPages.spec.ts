@@ -13,6 +13,7 @@ describe('E-Code marketing page registry', () => {
     expect(Object.keys(marketingPages)).toEqual(
       expect.arrayContaining([
         'about',
+        'features',
         'careers',
         'blog',
         'contact',

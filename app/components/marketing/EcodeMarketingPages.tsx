@@ -13,6 +13,7 @@ import {
   HeartHandshake,
   Layers,
   Megaphone,
+  MonitorPlay,
   MonitorSmartphone,
   Newspaper,
   PlayCircle,
@@ -47,6 +48,30 @@ export interface MarketingPageDefinition {
 const productProof = ['AI-native builder', 'Preserved Bolt IDE', 'Real runtimes', 'Enterprise governance'] as const;
 
 export const marketingPages = {
+  features: {
+    slug: 'features',
+    title: 'E-Code Features',
+    eyebrow: 'Product',
+    description:
+      'The full E-Code product surface: AI agent, browser IDE, multiplayer collaboration, real runtimes, previews, deployments and enterprise governance.',
+    kind: 'standard',
+    icon: MonitorPlay,
+    primaryAction: ['Start building', '/signup'],
+    secondaryAction: ['Compare platforms', '/compare'],
+    highlights: ['Browser IDE', 'AI agent', 'Multiplayer review', 'Runtime previews', 'Deployments'],
+    sections: [
+      {
+        title: 'Integrated development workspace',
+        body: 'E-Code keeps the preserved Bolt IDE, generated code, terminal output, preview state and deployment path visible in one production workflow.',
+        items: ['File tree and editor', 'Agent patch review', 'Live preview', 'Terminal and logs'],
+      },
+      {
+        title: 'Team-ready by default',
+        body: 'The feature set is designed for teams that need shared context, controlled releases and traceability.',
+        items: ['Collaborative project access', 'Audit-ready activity', 'Secrets boundaries', 'Release visibility'],
+      },
+    ],
+  },
   about: {
     slug: 'about',
     title: 'About E-Code',
@@ -162,7 +187,7 @@ export const marketingPages = {
     kind: 'standard',
     icon: Handshake,
     primaryAction: ['Become a partner', '/contact'],
-    secondaryAction: ['View integrations', '/#partners'],
+    secondaryAction: ['View integrations', '/partners'],
     highlights: ['OpenAI', 'GitHub', 'Docker', 'Vercel', 'Cloudflare', 'Stripe'],
     sections: [
       {

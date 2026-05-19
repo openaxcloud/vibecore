@@ -34,6 +34,7 @@ describe('public marketing brand', () => {
 
     const footerTargets = publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to));
 
+    expect(menuTargets).toContain('/features');
     expect(menuTargets).toContain('/solutions/app-builder');
     expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/ai');
@@ -43,6 +44,7 @@ describe('public marketing brand', () => {
     expect(footerTargets).toContain('/acceptable-use');
     expect(footerTargets).toContain('/ai-documentation');
     expect(footerTargets).toContain('/subprocessors');
+    expect(footerTargets).toContain('/features');
     expect(publicCompareLinks.map(([, to]) => to)).toContain('/compare/github-codespaces');
     expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/#compare-github-codespaces');
   });
