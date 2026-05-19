@@ -20,6 +20,7 @@ import {
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
+import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
@@ -1113,12 +1114,6 @@ export class WorkbenchStore {
     this.#syncAgentPatchProposalToServer(proposalId);
 
     try {
-      const artifact = this.#getArtifact(proposal.artifactId);
-
-      if (!artifact) {
-        throw new Error('Artifact no longer exists for this patch.');
-      }
-
       const acceptedContent = applyReviewableDiffHunks({
         originalContent: proposal.originalContent,
         hunks: proposal.hunks,
@@ -1134,19 +1129,33 @@ export class WorkbenchStore {
         await this.saveFile(proposal.filePath);
       }
 
-      await artifact.runner.runAction(
-        {
-          artifactId: proposal.artifactId,
-          messageId: proposal.messageId,
-          actionId: proposal.actionId,
-          action: {
-            type: 'file',
-            filePath: proposal.relativePath,
-            content: acceptedContent,
+      /*
+       * Live proposals route the write through the artifact action runner so
+       * the artifact tracks the action's lifecycle. Hydrated proposals
+       * (reload, server roundtrip) have no live artifact — fall back to a
+       * direct runtime write so accept stays functional. The runtime adapter
+       * is the same surface the runner ultimately calls, so behaviour at the
+       * filesystem level is identical.
+       */
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      if (artifact) {
+        await artifact.runner.runAction(
+          {
+            artifactId: proposal.artifactId,
+            messageId: proposal.messageId,
+            actionId: proposal.actionId,
+            action: {
+              type: 'file',
+              filePath: proposal.relativePath,
+              content: acceptedContent,
+            },
           },
-        },
-        false,
-      );
+          false,
+        );
+      } else {
+        await writeAcceptedAgentFile(this.#runtime, proposal.relativePath, acceptedContent);
+      }
 
       if (!fileExistsInEditor) {
         await this.loadRuntimeFiles('.').catch((error) => {
