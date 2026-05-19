@@ -14648,8 +14648,11 @@ button.bolt-project-statusbar-pill:focus-visible,
     display: grid;
   }
 
-  html,
-  body {
+  // Lock document scroll only when the IDE owns the viewport — the IDE
+  // manages its own scrollable panes. Marketing, dashboard and other
+  // pages need normal document scrolling on mobile widths.
+  html:has(.bolt-project-ide-shell),
+  body:has(.bolt-project-ide-shell) {
     overflow: hidden;
   }
 
