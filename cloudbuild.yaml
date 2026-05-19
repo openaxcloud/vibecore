@@ -19,6 +19,17 @@
 #
 # The chart pins `global.imageTag` to a SHA at deploy time, so the SHA tag
 # is what production actually rolls. `latest` is kept fresh as a fallback.
+#
+# Layer caching:
+# Each step pulls the previous `:latest` (best-effort, `|| true` on first
+# run when it doesn't exist yet) and passes it via --cache-from. The
+# Dockerfiles are structured so the heavy `pnpm fetch`/`pnpm install`
+# layers land near the top; with --cache-from those layers are reused
+# bit-for-bit when package.json / pnpm-lock.yaml are unchanged, which is
+# every build that only touches source code. Expected effect on the
+# common case: ~5-7 min per node-service step instead of ~3-5 min cold.
+# (Cloud Build's per-build Docker daemon starts empty otherwise — no
+# layer cache survives between builds without an explicit pull.)
 substitutions:
   _REGION: europe-west9
   _PROJECT: vibecore-495216
@@ -40,11 +51,27 @@ steps:
   # wall time is acceptable because every step writes to the shared Docker
   # layer cache, so the heavy `pnpm fetch` work is reused across the six
   # node-service.Dockerfile builds that follow.
+
+  # ---- prime cache: pull every previous :latest in parallel ----
+  # `docker pull || true` so a missing cache (first-ever run, deleted image)
+  # never fails the build. Cloud Build's daemon survives across steps within
+  # a single build, so subsequent build steps see these images.
+  - id: prime-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        for svc in web admin api worker ai-gateway workspace-manager preview-proxy; do
+          docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$svc:latest || true
+        done
+
   - id: build-web
     name: gcr.io/cloud-builders/docker
     args:
       - build
       - --target=bolt-ai-production
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - .
@@ -56,6 +83,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/admin
       - --build-arg=START_CMD=node serve.mjs
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
       - .
@@ -67,6 +95,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/api
       - --build-arg=START_CMD=node services/api/dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
       - .
@@ -78,6 +107,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/worker
       - --build-arg=START_CMD=node services/worker/dist/index.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
       - .
@@ -89,6 +119,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/ai-gateway
       - --build-arg=START_CMD=node services/ai-gateway/dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
       - .
@@ -100,6 +131,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/workspace-manager
       - --build-arg=START_CMD=node services/workspace-manager/dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
       - .
@@ -111,6 +143,7 @@ steps:
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/preview-proxy
       - --build-arg=START_CMD=node services/preview-proxy/dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - .
