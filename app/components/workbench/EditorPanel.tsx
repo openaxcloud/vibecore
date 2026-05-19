@@ -63,7 +63,7 @@ export const EditorPanel = memo(
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
     const layout = useResponsiveLayout();
-    const useMobilePanelLayout = layout.isMobile || layout.isTabletPortrait;
+    const useMobilePanelLayout = layout.isMobile || layout.isTablet;
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {

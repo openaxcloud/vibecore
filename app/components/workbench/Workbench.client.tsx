@@ -315,7 +315,7 @@ export const Workbench = memo(
 
     const isSmallViewport = useViewport(1024);
     const layout = useResponsiveLayout();
-    const useMobileWorkbench = layout.isMobile || layout.isTabletPortrait;
+    const useMobileWorkbench = layout.isMobile || layout.isTablet;
     const streaming = useStore(streamingState);
     const { exportChat } = useChatHistory();
     const [isSyncing, setIsSyncing] = useState(false);
