@@ -740,7 +740,161 @@ Now that the data layer is solid (Phases 0-2 deliver real `UserConnection` for 5
 - Optional: data warehouse connectors (Snowflake, BigQuery, Databricks)
 - Data warehouse connectors (Snowflake, BigQuery, Databricks) — if scope confirms
 
-## 16. Open decisions
+## 16. Platform admin page (`/admin/integrations`)
+
+A dedicated admin surface for the e-code team to manage the connector catalog, default credentials, MCP catalogue, webhook secrets, usage and audit — without redeploying. Access gated by `User.platformAdmin = true` (column exists at `packages/database/prisma/schema.prisma`).
+
+All admin write actions log to the existing `AdminAuditLog` table (`schema.prisma:551-559`) via `packages/audit` AuditSink. Critical action keys (`admin.connector.credentials.rotate`, `admin.connector.disable`, `admin.mcp.add`) are added to `criticalAuditActions` in `packages/audit/src/index.ts` so they are forwarded to enterprise SIEMs.
+
+### 16.1 Route structure
+
+```
+/admin/integrations                      → overview dashboard
+/admin/integrations/connectors           → catalog table
+/admin/integrations/connectors/:provider → edit single connector
+/admin/integrations/connectors/new       → add new connector
+/admin/integrations/mcp                  → MCP catalog table
+/admin/integrations/mcp/:slug            → edit MCP entry
+/admin/integrations/mcp/new              → add new MCP entry
+/admin/integrations/webhooks             → signing secrets + delivery health
+/admin/integrations/usage                → cross-org usage stats
+/admin/integrations/audit                → connector audit log viewer
+/admin/integrations/feature-requests     → user-submitted requests
+/admin/integrations/org-overrides        → read-only view of enterprise OAuth overrides
+```
+
+Backend routes mirror this structure under `/api/admin/integrations/*`, each guarded by `requirePlatformAdmin(request)` middleware (new — wraps an existing `User.platformAdmin` check).
+
+### 16.2 Sub-pages
+
+**Overview dashboard**
+- KPIs: total connectors enabled, active connections last 24h, OAuth refresh failures last 24h, top 5 providers by call volume, pending feature requests count
+- Recent admin actions (last 20 from `AdminAuditLog` filtered by action prefix `admin.connector.*` or `admin.mcp.*`)
+- Health alerts: any provider with > 10% 401/403 in last hour → red badge
+
+**Connectors catalog table**
+- Columns: Logo, Provider key, Display name, Category, Auth type (OAuth | API key), Section (connectors | git_providers | managed), Plan tier, Featured, Enabled toggle, Connected accounts count, Actions
+- Row hover reveals: Edit, Test connection, Rotate secret, View stats, Disable, Delete (with confirm)
+- Filter bar: by category, auth type, section, plan tier, enabled/disabled
+- Search by provider key or display name
+
+**Add / Edit Connector form**
+- Identity: provider slug (unique), display name, description, category dropdown, logo URL
+- Auth: type selector (OAuth | API key)
+  - **If OAuth**: authorize URL, token URL, revoke URL (optional), user info URL, default scopes (multi-input with chips), available scopes (multi-input — for Enterprise scope picker), default Client ID (text), **default Client Secret** (password input, write-only — encrypted on save via `encryptJson()`, never returned in GET responses; display shows `••••••••` + "Rotate" button)
+  - **If API key**: field schema (JSON editor: array of `{name, label, type: 'text' | 'password', required, placeholder}`), test endpoint URL
+- Triggers: multi-input list of trigger IDs + map of `{triggerId: human label}` for the hover tooltips
+- Webhook: signature scheme dropdown (slack_v0 | stripe_v0 | github_hmac_sha256 | hmac_sha256_generic | none), webhook signing secret (write-only password input)
+- Plan & visibility: min plan tier dropdown, `forAgentUse` toggle, `section` dropdown, display order (number), `featuredForIdePanel` toggle (for catalog ordering)
+- Test connection button: triggers a one-shot OAuth dry-run (or API key validation) using a test account configured at platform level. Reports success/failure inline.
+- Save → upsert in `ConnectorCatalog`, audit log
+
+**Rotate secret modal**
+- For any provider with a stored secret (Client Secret or webhook signing secret)
+- Two-input form (new secret + confirm), warning "rotating immediately invalidates the previous secret — existing webhook deliveries with the old signature will fail until providers update"
+- On save: re-encrypt with `encryptJson()`, write to `ConnectorCatalog.defaultClientSecretEnc` or equivalent, emit `admin.connector.credentials.rotate` audit event
+
+**MCP catalog table**
+- Columns: Logo, Slug, Display name, Category, Featured for IDE panel, Install count, Verified badge, Actions
+- Edit modal for each `McpCatalogEntry` (`schema.prisma:927-950`): name, description, category, transport, configTemplate JSON, configSchema JSON, version, `featuredForIdePanel`
+- Add new MCP entry form
+- Verify ownership flow (mark `verified = true` after manual review)
+
+**Webhooks page**
+- Per provider: current signing secret (masked), rotate button, last successful delivery timestamp, failure count last 7 days
+- Recent webhook deliveries table (timestamp, provider, status code, response time, error if failed)
+- Replay button on failed deliveries (re-emits the stored payload to the receiver)
+- Reused from existing SIEM webhook delivery patterns at `app.ts:3057-3100`
+
+**Usage stats**
+- Daily aggregate of `AuditLog` rows where `action LIKE 'connector.api_call.%'`
+- Charts: per-provider call volume, per-org call volume, 401/403 rate, average latency from `ConnectionAccessLog` metadata
+- Aggregation done by existing `services/worker/src/index.ts` daily job, results in a new materialized view or aggregate table (cache layer, not new schema)
+- Export CSV
+
+**Audit log viewer**
+- Filtered `AuditLog` table with `action LIKE 'connector.%'` OR `action LIKE 'admin.connector.%'`
+- Filters: provider, org, actor, action, date range
+- Export to CSV / NDJSON
+- Click row → detail drawer with full metadata + IP + user agent
+
+**Feature requests**
+- Table from `IntegrationFeatureRequest` model (created in §4 schema)
+- Per row: requested name, use case, requesting user, status, date
+- Status transitions: pending → reviewed → approved | declined
+- "Approved" auto-creates a stub `ConnectorCatalog` row with `enabled = false` so the team can finish configuring it
+- Email notification to requesting user on status change (uses existing email service)
+
+**Org overrides (read-only)**
+- List of all `OrganizationOAuthAppOverride` rows configured by Enterprise orgs
+- Columns: Org, Provider, Configured by, Configured at, Test status, Last error
+- Click → detail view (Client ID visible, Secret masked, scopes shown). Helps the e-code team support Enterprise customers when their custom OAuth app misbehaves.
+- No edit (orgs manage their own); admin can only force-disable with a comment.
+
+### 16.3 New backend routes
+
+```
+GET  /api/admin/integrations/overview              → KPIs payload
+GET  /api/admin/integrations/connectors            → list
+GET  /api/admin/integrations/connectors/:provider  → details (secrets masked)
+POST /api/admin/integrations/connectors            → create
+PUT  /api/admin/integrations/connectors/:provider  → update (secrets only if provided)
+POST /api/admin/integrations/connectors/:provider/rotate-secret
+POST /api/admin/integrations/connectors/:provider/rotate-webhook-secret
+POST /api/admin/integrations/connectors/:provider/test
+DELETE /api/admin/integrations/connectors/:provider
+GET  /api/admin/integrations/mcp                   → list McpCatalogEntry
+POST /api/admin/integrations/mcp                   → create
+PUT  /api/admin/integrations/mcp/:slug             → update
+DELETE /api/admin/integrations/mcp/:slug
+GET  /api/admin/integrations/webhooks/deliveries   → recent + failed
+POST /api/admin/integrations/webhooks/replay/:deliveryId
+GET  /api/admin/integrations/usage                 → aggregates
+GET  /api/admin/integrations/audit                 → filtered AuditLog
+GET  /api/admin/integrations/feature-requests      → list
+PUT  /api/admin/integrations/feature-requests/:id  → update status
+GET  /api/admin/integrations/org-overrides         → cross-org read
+PUT  /api/admin/integrations/org-overrides/:orgId/:provider/force-disable
+```
+
+All routes guarded by `requirePlatformAdmin(request)`.
+
+### 16.4 Security
+
+- Every write action checks `request.currentUser.platformAdmin === true` (existing field)
+- Every write action requires recent admin reauth (last 15min, pattern reused from SIEM webhook creation at `app.ts:6729-6752`)
+- Secrets are write-only in the API: response always masks `defaultClientSecretEnc`, even to platform admins. Only the rotate flow lets them set a new value.
+- Audit log every admin write with full before/after metadata (redacted via `redactAuditMetadata`)
+- IP allowlist enforcement honored (existing `isIpAllowed()` in `packages/security`)
+
+### 16.5 Frontend
+
+New Remix routes under `app/routes/admin.integrations.*`:
+- `admin.integrations._index.tsx` — overview dashboard
+- `admin.integrations.connectors._index.tsx` — catalog table
+- `admin.integrations.connectors.$provider.tsx` — edit form
+- `admin.integrations.connectors.new.tsx` — create form
+- `admin.integrations.mcp.*` — MCP screens
+- `admin.integrations.webhooks.tsx`
+- `admin.integrations.usage.tsx`
+- `admin.integrations.audit.tsx`
+- `admin.integrations.feature-requests.tsx`
+- `admin.integrations.org-overrides.tsx`
+
+Components shared with the org-admin pages (Phase 4 Enterprise) — single `<ConnectorForm>` reusable for both platform admins (configures defaults) and Enterprise admins (configures overrides).
+
+### 16.6 Phase placement
+
+This admin page is delivered incrementally:
+
+- **Phase 0**: data layer ready (`ConnectorCatalog` table, encrypted secret columns) — no UI yet
+- **Phase 1**: minimal admin view-only page listing the GitHub seed entry, no edit (we ship the connector via seed scripts)
+- **Phase 2-3**: read + edit + add UI as more providers come online and the team needs to manage them without code changes
+- **Phase 4**: full admin (usage stats, audit, feature requests, org-overrides view, webhook replay)
+
+A new seed script `packages/database/prisma/seed-connector-catalog.ts` runs in CI and is the source of truth for initial connector entries. The admin page lets the team add ad-hoc entries without redeploying for the long tail.
+
+## 17. Open decisions
 
 ### Resolved (this chantier)
 - ✅ **Coexistence strategy**: Settings tabs and IDE Integrations panel coexist. Source of truth = `UserConnection` table consumed by both.
@@ -760,7 +914,7 @@ Now that the data layer is solid (Phases 0-2 deliver real `UserConnection` for 5
 6. **AI Model BYOK location** — out of this panel; lives in agent settings or AI Gateway config. Confirm separate chantier.
 7. **OAuth app credentials per provider** — for Phase 1, the e-code team must register a GitHub OAuth app at `https://github.com/settings/applications/new` with callback `https://app.e-code.ai/integrations/oauth/github/callback` and provide `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` + `GITHUB_WEBHOOK_SIGNING_SECRET` env vars before Phase 1 ships.
 
-## 17. Cross-references
+## 18. Cross-references
 
 - `docs/MCP_MARKETPLACE.md` — existing MCP infra (reused)
 - `docs/STRIPE_WEBHOOKS.md` — billing webhook pattern (reused for connector webhooks)
