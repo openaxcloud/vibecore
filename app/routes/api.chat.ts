@@ -204,6 +204,30 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }
             }
           }
+
+          /*
+           * C1.b.7 — Surface the headroom payload so the front-end can render
+           * "X tokens left" / "Y messages left this month" hints without
+           * making a second round-trip. byok policy is included so the UI
+           * can show a "managed mode" badge or hide the BYOK settings panel.
+           */
+          if (
+            quota.inputTokensRemaining !== undefined ||
+            quota.messagesRemaining !== undefined ||
+            quota.byok !== undefined
+          ) {
+            const byokPayload = quota.byok
+              ? { allowed: quota.byok.allowed, reason: quota.byok.reason, plan: quota.byok.plan }
+              : null;
+            dataStream.writeMessageAnnotation({
+              type: 'quota',
+              value: {
+                inputTokensRemaining: quota.inputTokensRemaining ?? null,
+                messagesRemaining: quota.messagesRemaining ?? null,
+                byok: byokPayload,
+              },
+            });
+          }
         }
 
         if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
