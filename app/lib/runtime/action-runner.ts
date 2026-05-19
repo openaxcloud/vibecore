@@ -1,7 +1,8 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
-import { validateAndFormatHunk } from './hunk-validate';
+import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
+import { workspaceEvents } from './workspace-events';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { path as nodePath } from '~/utils/path';
@@ -14,6 +15,59 @@ const TOOL_TIMEOUT_MS = 60_000;
 const FILE_TOOL_TIMEOUT_MS = 120_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
+
+/*
+ * Phase 0 #2 — AST self-repair retry budget. When pre-write validation
+ * (validateAndFormatHunk) flags a parse error, we ask the same LLM to
+ * regenerate the file via /api/agent/self-repair and re-validate. Capped
+ * at 2 attempts to avoid runaway cost and a poor UX: a third bad
+ * generation almost always means the model is stuck on a misunderstanding
+ * that no extra round trip is going to fix.
+ */
+const SELF_REPAIR_MAX_ATTEMPTS = 2;
+const SELF_REPAIR_BASE_DELAY_MS = 1_000;
+const SELF_REPAIR_ENDPOINT = '/api/agent/self-repair';
+
+const BOLT_ACTION_CONTENT_PATTERN = /<boltAction\b[^>]*>([\s\S]*?)<\/boltAction>/;
+
+/**
+ * Extract the file content from a self-repair LLM response. The prompt
+ * asks the model to wrap the corrected file in a single boltAction tag,
+ * but we keep a verbatim fallback for the rare model that ignores the
+ * formatting hint — better to write a slightly wrappy file than to drop
+ * an otherwise-valid correction.
+ */
+export function extractSelfRepairContent(raw: string): string {
+  const match = raw.match(BOLT_ACTION_CONTENT_PATTERN);
+
+  if (match && typeof match[1] === 'string') {
+    return match[1].replace(/^\n/, '').replace(/\n\s*$/, '');
+  }
+
+  return raw;
+}
+
+async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Promise<string> {
+  const response = await fetch(SELF_REPAIR_ENDPOINT, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ prompt }),
+    signal,
+  });
+
+  if (!response.ok) {
+    throw new Error(`self-repair endpoint returned ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { content?: unknown; error?: unknown };
+
+  if (typeof payload.content !== 'string' || payload.content.length === 0) {
+    throw new Error('self-repair endpoint returned empty content');
+  }
+
+  return extractSelfRepairContent(payload.content);
+}
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
@@ -456,24 +510,17 @@ export class ActionRunner {
     }
 
     /*
-     * Phase 0 #2 — pre-write AST validation. For JS/TS/JSX/TSX/JSON we
-     * parse the proposed content and log a warning on failure so the
-     * user sees the issue in the workspace log. We still write the
-     * file (so they can edit it in place) but the formatted version is
-     * preferred when validation succeeds. The LLM self-repair retry
-     * loop is wired one layer up — this is just the per-file check.
+     * Phase 0 #2 — pre-write AST validation + self-repair retry loop. For
+     * JS/TS/JSX/TSX/JSON we parse the proposed content; on a parse error
+     * we ask the same LLM (via /api/agent/self-repair) to regenerate the
+     * file with the error in context, then re-validate. Up to
+     * SELF_REPAIR_MAX_ATTEMPTS retries with an exponential delay so a
+     * transient provider hiccup doesn't escalate to a burst of calls. If
+     * we exhaust the budget the original (broken) payload is written
+     * anyway — the user can still edit it in place — and the failure is
+     * surfaced through the workspace log and the patch-review banner.
      */
-    try {
-      const validation = await validateAndFormatHunk(relativePath, payload);
-
-      if (validation.kind === 'error') {
-        logger.warn(`Pre-write validation failed for ${relativePath} (${validation.language}): ${validation.message}`);
-      } else if (validation.kind === 'ok' && validation.formatted !== payload) {
-        payload = validation.formatted;
-      }
-    } catch (error) {
-      logger.warn(`Pre-write validation crashed for ${relativePath}; continuing with sanitized payload`, error);
-    }
+    payload = await this.#repairWithSelfRepairLoop(relativePath, payload);
 
     try {
       await this.#runtime.writeFile(relativePath, payload);
@@ -482,6 +529,80 @@ export class ActionRunner {
       logger.error('Failed to write file\n\n', error);
       throw error;
     }
+  }
+
+  async #repairWithSelfRepairLoop(relativePath: string, initialPayload: string): Promise<string> {
+    let payload = initialPayload;
+    let validation: Awaited<ReturnType<typeof validateAndFormatHunk>>;
+
+    try {
+      validation = await validateAndFormatHunk(relativePath, payload);
+    } catch (error) {
+      logger.warn(`Pre-write validation crashed for ${relativePath}; continuing with sanitized payload`, error);
+      return payload;
+    }
+
+    if (validation.kind === 'ok') {
+      return validation.formatted !== payload ? validation.formatted : payload;
+    }
+
+    if (validation.kind === 'skipped') {
+      return payload;
+    }
+
+    let lastError: HunkValidationError = validation;
+
+    for (let attempt = 1; attempt <= SELF_REPAIR_MAX_ATTEMPTS; attempt += 1) {
+      workspaceEvents.emit('agent:self-repair:progress', {
+        filePath: relativePath,
+        status: {
+          attempt,
+          maxAttempts: SELF_REPAIR_MAX_ATTEMPTS,
+          errorMessage: lastError.message,
+        },
+      });
+
+      if (attempt > 1) {
+        const delay = SELF_REPAIR_BASE_DELAY_MS * 2 ** (attempt - 2);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      try {
+        const prompt = buildSelfRepairPrompt(relativePath, payload, lastError);
+        const corrected = await callSelfRepairEndpoint(prompt);
+        const reValidation = await validateAndFormatHunk(relativePath, corrected);
+
+        if (reValidation.kind === 'ok') {
+          workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+          return reValidation.formatted;
+        }
+
+        if (reValidation.kind === 'skipped') {
+          workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+          return corrected;
+        }
+
+        lastError = reValidation;
+        payload = corrected;
+      } catch (error) {
+        logger.warn(`Self-repair attempt ${attempt}/${SELF_REPAIR_MAX_ATTEMPTS} for ${relativePath} failed:`, error);
+
+        if (attempt === SELF_REPAIR_MAX_ATTEMPTS) {
+          break;
+        }
+      }
+    }
+
+    /*
+     * Out of retries — keep the broken-but-most-recent payload so the user
+     * can still see / edit the file. Log + clear the UI banner.
+     */
+    logger.warn(
+      `Self-repair exhausted ${SELF_REPAIR_MAX_ATTEMPTS} retries for ${relativePath} (${lastError.language}); writing best-effort payload`,
+    );
+    workspaceEvents.emit('agent:self-repair:progress', { filePath: relativePath, status: null });
+
+    return payload;
   }
 
   #updateAction(id: string, newState: ActionStateUpdate) {
