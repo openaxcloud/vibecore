@@ -88,32 +88,29 @@ export default defineConfig((config) => {
               return 'vendor-export-pdf';
             }
 
-            if (id.includes('/jszip/')) {
-              return 'vendor-export-zip';
-            }
-
-            if (id.includes('/@radix-ui/')) {
-              return 'vendor-radix';
-            }
-
             if (id.includes('/lucide-react/')) {
               return 'vendor-icons';
             }
 
             /*
-             * React and react-dom share __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
-             * across module boundaries, so splitting them into separate chunks
-             * leaves react-dom in its TDZ ("Cannot read properties of undefined
-             * (reading '__SECRET_INTERNALS_...')") whenever the bundler picks the
-             * react-dom entrypoint first. Keep both in one chunk so the runtime
-             * sees React initialized before react-dom imports it.
+             * React, react-dom, scheduler, @remix-run, @radix-ui and jszip
+             * are kept together. Splitting them produced cycles like
+             *   vendor-react -> vendor-radix   -> vendor-react
+             *   vendor-react -> vendor-remix   -> vendor-react
+             *   vendor-react -> vendor-export-zip -> vendor-react
+             * which left react-dom's __SECRET_INTERNALS / radix's forwardRef
+             * in the TDZ at runtime and crashed hydration ("black screen"
+             * on the landing page).
              */
-            if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
+            if (
+              id.includes('/react-dom/') ||
+              id.includes('/react/') ||
+              id.includes('/scheduler/') ||
+              id.includes('/@remix-run/') ||
+              id.includes('/@radix-ui/') ||
+              id.includes('/jszip/')
+            ) {
               return 'vendor-react';
-            }
-
-            if (id.includes('/@remix-run/')) {
-              return 'vendor-remix';
             }
 
             return undefined;
