@@ -852,10 +852,10 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
-    devDependencies:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+    devDependencies:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
@@ -904,6 +904,9 @@ importers:
       prisma:
         specifier: ^7.8.0
         version: 7.8.0(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@6.0.3)
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       xml-crypto:
         specifier: ^6.1.2
         version: 6.1.2
@@ -913,10 +916,10 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
-    devDependencies:
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
+    devDependencies:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
@@ -935,6 +938,9 @@ importers:
       ioredis:
         specifier: ^5.10.1
         version: 5.10.1
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
     devDependencies:
       vitest:
         specifier: ^2.1.9
@@ -985,13 +991,13 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       zod:
         specifier: ^3.24.1
         version: 3.25.76
     devDependencies:
-      tsx:
-        specifier: ^4.21.0
-        version: 4.21.0
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)

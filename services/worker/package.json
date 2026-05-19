@@ -6,7 +6,8 @@
     "@vibecore/database": "workspace:*",
     "@vibecore/security": "workspace:*",
     "bullmq": "^5.76.2",
-    "ioredis": "^5.10.1"
+    "ioredis": "^5.10.1",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "vitest": "^2.1.9"

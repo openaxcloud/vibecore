@@ -94,7 +94,7 @@ steps:
       - build
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/api
-      - --build-arg=START_CMD=node dist/server.js
+      - --build-arg=START_CMD=tsx dist/server.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/api:latest
@@ -106,7 +106,7 @@ steps:
       - build
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/worker
-      - --build-arg=START_CMD=node dist/index.js
+      - --build-arg=START_CMD=tsx dist/index.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/worker:latest
@@ -118,7 +118,7 @@ steps:
       - build
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/ai-gateway
-      - --build-arg=START_CMD=node dist/server.js
+      - --build-arg=START_CMD=tsx dist/server.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/ai-gateway:latest
@@ -130,7 +130,7 @@ steps:
       - build
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/workspace-manager
-      - --build-arg=START_CMD=node dist/server.js
+      - --build-arg=START_CMD=tsx dist/server.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
@@ -142,7 +142,7 @@ steps:
       - build
       - -f=infra/docker/node-service.Dockerfile
       - --build-arg=PACKAGE_FILTER=@vibecore/preview-proxy
-      - --build-arg=START_CMD=node dist/server.js
+      - --build-arg=START_CMD=tsx dist/server.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest

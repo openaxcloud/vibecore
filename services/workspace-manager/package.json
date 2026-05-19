@@ -7,10 +7,10 @@
     "@vibecore/k8s-client": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
     "fastify": "^5.8.5",
+    "tsx": "^4.21.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "tsx": "^4.21.0",
     "vitest": "^2.1.9"
   },
   "scripts": {
