@@ -174,54 +174,14 @@ shred -u "$TMP" 2>/dev/null || rm -f "$TMP"
 
 ---
 
-## Step 3 — Run Prisma migrations
+## Step 3 — Helm upgrade with the SHA pin
 
-Migration `0015_workspace_runtime_state` (B4) and `0016_agent_patch_proposals`
-both need to run before the new web/api pods boot. The deploy doesn't
-do it automatically yet — run it from the cluster via a one-shot Job
-using the api image (which ships `@vibecore/database` with the migrations).
-
-```bash
-SHA=$(git rev-parse --short HEAD)
-NS=vibecore
-IMAGE=europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/api:sha-${SHA}
-
-kubectl run prisma-migrate-${SHA} -n ${NS} \
-  --image=${IMAGE} \
-  --restart=Never \
-  --env-from-secret=vibecore-platform-secrets \
-  --command -- node node_modules/@vibecore/database/node_modules/.bin/prisma migrate deploy \
-    --schema=node_modules/@vibecore/database/prisma/schema.prisma
-
-# If --env-from-secret isn't supported on your kubectl, expand inline:
-kubectl run prisma-migrate-${SHA} -n ${NS} \
-  --image=${IMAGE} \
-  --restart=Never \
-  --overrides='{
-    "spec": {
-      "containers": [{
-        "name": "prisma-migrate",
-        "image": "'"${IMAGE}"'",
-        "envFrom": [{"secretRef": {"name": "vibecore-platform-secrets"}}],
-        "command": ["node", "node_modules/@vibecore/database/node_modules/.bin/prisma", "migrate", "deploy", "--schema=node_modules/@vibecore/database/prisma/schema.prisma"]
-      }],
-      "restartPolicy": "Never"
-    }
-  }' --command -- true
-
-# Tail the migration logs and delete the pod once done:
-kubectl logs -f prisma-migrate-${SHA} -n ${NS}
-kubectl delete pod prisma-migrate-${SHA} -n ${NS}
-```
-
-If you see `All migrations have been successfully applied.` (or `No
-pending migrations`), continue. If a migration fails, **stop**, capture
-the SQL error, and either fix forward or use Cloud SQL PITR per
-[`ROLLBACK.md`](./ROLLBACK.md).
-
----
-
-## Step 4 — Helm upgrade with the SHA pin
+Prisma migrations run automatically as a Helm pre-upgrade hook (the
+`prisma-migrate` Job in `infra/helm/platform/templates/migrations-job.yaml`).
+It blocks the rest of the rollout: the api/web/worker Deployments are
+not updated until `prisma migrate deploy` exits 0 against the live
+DATABASE_URL. To skip the hook (e.g. you ran it manually), pass
+`--set migrations.enabled=false`.
 
 ```bash
 SHA=$(git rev-parse --short HEAD)
@@ -248,7 +208,20 @@ fails fast on ImagePullBackOff rather than silently pulling stale code.
 
 ---
 
-## Step 5 — Post-deploy smoke checks
+### Tail the migration hook
+
+```bash
+kubectl logs -f -n vibecore job/vibecore-vibecore-platform-prisma-migrate
+```
+
+If the Job fails, `helm upgrade --atomic` rolls the whole release back
+before any service pod is touched. Read the Job logs, fix forward (new
+migration commit + re-build image + re-run Step 4) or restore from PITR
+per [`ROLLBACK.md`](./ROLLBACK.md).
+
+---
+
+## Step 4 — Post-deploy smoke checks
 
 ```bash
 # Pods are healthy + readiness probes passed.
@@ -274,7 +247,7 @@ kubectl get cronjobs -n vibecore
 
 ---
 
-## Step 6 — Watch for the first 15 minutes
+## Step 5 — Watch for the first 15 minutes
 
 The first 5 min the `workspace.gc` CronJob shouldn't fire; the first
 15 min mark is when its first reaper run reaches workspace-manager.
