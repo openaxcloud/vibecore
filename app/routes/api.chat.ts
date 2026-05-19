@@ -102,7 +102,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     }>();
 
   const cookieHeader = request.headers.get('Cookie');
-  const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
+  const apiKeys: Record<string, string> = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');
 
   const providerSettings: Record<string, IProviderSetting> = JSON.parse(
     parseCookies(cookieHeader || '').providers || '{}',
@@ -174,6 +174,35 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             streamRecovery.stop();
 
             return;
+          }
+
+          /*
+           * C1.b.6 — Force managed keys. When the org plan disallows BYOK,
+           * strip the user-supplied apiKeys cookie so the provider modules
+           * fall back to ANTHROPIC_API_KEY / OPENAI_API_KEY / ... from the
+           * pod env. This closes the loop where a user could paste their
+           * own key into the Bolt UI, consume vibecore's per-org quota,
+           * but pay their own provider — leaving our cost ledger out of
+           * sync with our quotas.
+           */
+          if (quota.byok && !quota.byok.allowed) {
+            const userKeyCount = Object.keys(apiKeys).length;
+
+            if (userKeyCount > 0) {
+              logger.info(
+                JSON.stringify({
+                  event: 'chat.byok.overridden',
+                  projectId,
+                  plan: quota.byok.plan,
+                  reason: quota.byok.reason,
+                  userKeyCount,
+                }),
+              );
+
+              for (const key of Object.keys(apiKeys)) {
+                delete apiKeys[key];
+              }
+            }
           }
         }
 

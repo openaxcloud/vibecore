@@ -8582,7 +8582,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can render a "X tokens left this month" hint. The plan-resolution
      * path is shared with ensureQuota so the override table is honoured.
      */
-    const { limits } = await billingState(project.organizationId);
+    const state = await billingState(project.organizationId);
+    const { limits, plan } = state;
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
 
     const tokenLimit =
@@ -8597,6 +8598,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const messageUsed = await usageForQuota(project.organizationId, 'ai.messages', request);
 
+    /*
+     * C1.b.6 — BYOK policy. Managed-mode plans (free + pro) force the
+     * server-side env keys (ANTHROPIC_API_KEY etc.) so a user can't
+     * silently bypass vibecore's quota by pasting their own provider
+     * key into the Bolt UI cookies. Team + enterprise are advanced
+     * tiers where bringing-your-own-key is a legitimate feature.
+     * Override via the ENTERPRISE_FORCE_MANAGED_KEYS env knob if a
+     * specific deployment wants everyone on managed.
+     */
+    const byokAllowedPlans: PlanKey[] = ['team', 'enterprise'];
+    const forceManaged = process.env.ENTERPRISE_FORCE_MANAGED_KEYS === 'true';
+    const byokAllowed = !forceManaged && byokAllowedPlans.includes(plan.key);
+
     return {
       ok: true,
       ai: {
@@ -8610,6 +8624,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           limit: messageLimit,
           remaining: Math.max(0, messageLimit - messageUsed),
         },
+      },
+      byok: {
+        allowed: byokAllowed,
+        reason: byokAllowed ? 'plan-allows-byok' : 'managed-mode-plan',
+        plan: plan.key,
       },
     };
   });

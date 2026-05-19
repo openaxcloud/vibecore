@@ -53,17 +53,25 @@ export interface CheckChatQuotaInput {
   bearerToken?: string;
 }
 
+export interface ByokPolicy {
+  allowed: boolean;
+  reason: string;
+  plan: string;
+}
+
 export type CheckChatQuotaResult =
   | {
       ok: true;
       inputTokensRemaining?: number;
       messagesRemaining?: number;
+      byok?: ByokPolicy;
     }
   | {
       ok: false;
       statusCode: number;
       code: string;
       message: string;
+      byok?: ByokPolicy;
     };
 
 /**
@@ -116,11 +124,13 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
             inputTokens?: { remaining?: number };
             messages?: { remaining?: number };
           };
+          byok?: ByokPolicy;
         };
         return {
           ok: true,
           inputTokensRemaining: payload.ai?.inputTokens?.remaining,
           messagesRemaining: payload.ai?.messages?.remaining,
+          byok: payload.byok,
         };
       } catch {
         return { ok: true };

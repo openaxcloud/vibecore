@@ -3820,8 +3820,87 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(body.ai.inputTokens.limit).toBe(100_000);
     expect(body.ai.inputTokens.remaining).toBeGreaterThan(0);
     expect(body.ai.messages.limit).toBe(50);
+    // free plan is managed-mode → BYOK disallowed
+    expect(body.byok.allowed).toBe(false);
+    expect(body.byok.plan).toBe('free');
+    expect(body.byok.reason).toBe('managed-mode-plan');
 
     await app.close();
+  });
+
+  it('check-quota allows BYOK on team and enterprise plans', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'byok@example.com', organizationName: 'BYOK Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'BYOK Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    await store.upsertSubscription({
+      organizationId: auth.organization.id,
+      planKey: 'team',
+      status: 'ACTIVE',
+    });
+
+    const check = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 5_000 },
+    });
+
+    expect(check.statusCode).toBe(200);
+    const body = check.json();
+    expect(body.byok.allowed).toBe(true);
+    expect(body.byok.plan).toBe('team');
+    expect(body.byok.reason).toBe('plan-allows-byok');
+
+    await app.close();
+  });
+
+  it('check-quota forces managed keys when ENTERPRISE_FORCE_MANAGED_KEYS=true overrides plan', async () => {
+    process.env.ENTERPRISE_FORCE_MANAGED_KEYS = 'true';
+    try {
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+      const auth = await register(app, { email: 'forced-managed@example.com', organizationName: 'Forced Managed' });
+
+      const project = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Forced Project' },
+      });
+      const projectId = project.json().project.id as string;
+
+      await store.upsertSubscription({
+        organizationId: auth.organization.id,
+        planKey: 'enterprise',
+        status: 'ACTIVE',
+      });
+
+      const check = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/check-quota`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { estimatedInputTokens: 5_000 },
+      });
+
+      expect(check.statusCode).toBe(200);
+      const body = check.json();
+      // enterprise would normally allow BYOK, but the env override forces managed
+      expect(body.byok.allowed).toBe(false);
+      expect(body.byok.plan).toBe('enterprise');
+
+      await app.close();
+    } finally {
+      delete (process.env as Record<string, string | undefined>).ENTERPRISE_FORCE_MANAGED_KEYS;
+    }
   });
 
   it('check-quota rejects with 429 when the estimated tokens would exceed the plan', async () => {
