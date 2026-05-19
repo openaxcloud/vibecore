@@ -79,6 +79,11 @@ export type AgentMemoryPreference = $Result.DefaultSelection<Prisma.$AgentMemory
  */
 export type ProjectIdeState = $Result.DefaultSelection<Prisma.$ProjectIdeStatePayload>
 /**
+ * Model AgentPatchProposal
+ * 
+ */
+export type AgentPatchProposal = $Result.DefaultSelection<Prisma.$AgentPatchProposalPayload>
+/**
  * Model ProjectEnvironment
  * 
  */
@@ -750,6 +755,16 @@ export class PrismaClient<
     * ```
     */
   get projectIdeState(): Prisma.ProjectIdeStateDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentPatchProposal`: Exposes CRUD operations for the **AgentPatchProposal** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentPatchProposals
+    * const agentPatchProposals = await prisma.agentPatchProposal.findMany()
+    * ```
+    */
+  get agentPatchProposal(): Prisma.AgentPatchProposalDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.projectEnvironment`: Exposes CRUD operations for the **ProjectEnvironment** model.
@@ -1707,6 +1722,7 @@ export namespace Prisma {
     AgentMemory: 'AgentMemory',
     AgentMemoryPreference: 'AgentMemoryPreference',
     ProjectIdeState: 'ProjectIdeState',
+    AgentPatchProposal: 'AgentPatchProposal',
     ProjectEnvironment: 'ProjectEnvironment',
     ProjectSecret: 'ProjectSecret',
     ProjectEnvVar: 'ProjectEnvVar',
@@ -1773,7 +1789,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2720,6 +2736,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectIdeStateCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectIdeStateCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentPatchProposal: {
+        payload: Prisma.$AgentPatchProposalPayload<ExtArgs>
+        fields: Prisma.AgentPatchProposalFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentPatchProposalFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentPatchProposalFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentPatchProposalFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentPatchProposalFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          findMany: {
+            args: Prisma.AgentPatchProposalFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>[]
+          }
+          create: {
+            args: Prisma.AgentPatchProposalCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          createMany: {
+            args: Prisma.AgentPatchProposalCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentPatchProposalCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentPatchProposalDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          update: {
+            args: Prisma.AgentPatchProposalUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentPatchProposalDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentPatchProposalUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentPatchProposalUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentPatchProposalUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentPatchProposalPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentPatchProposalAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentPatchProposal>
+          }
+          groupBy: {
+            args: Prisma.AgentPatchProposalGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentPatchProposalGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentPatchProposalCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentPatchProposalCountAggregateOutputType> | number
           }
         }
       }
@@ -6618,6 +6708,7 @@ export namespace Prisma {
     agentMemory?: AgentMemoryOmit
     agentMemoryPreference?: AgentMemoryPreferenceOmit
     projectIdeState?: ProjectIdeStateOmit
+    agentPatchProposal?: AgentPatchProposalOmit
     projectEnvironment?: ProjectEnvironmentOmit
     projectSecret?: ProjectSecretOmit
     projectEnvVar?: ProjectEnvVarOmit
@@ -7312,6 +7403,7 @@ export namespace Prisma {
     shareLinks: number
     agentMemories: number
     agentMemoryPreferences: number
+    agentPatchProposals: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7331,6 +7423,7 @@ export namespace Prisma {
     shareLinks?: boolean | ProjectCountOutputTypeCountShareLinksArgs
     agentMemories?: boolean | ProjectCountOutputTypeCountAgentMemoriesArgs
     agentMemoryPreferences?: boolean | ProjectCountOutputTypeCountAgentMemoryPreferencesArgs
+    agentPatchProposals?: boolean | ProjectCountOutputTypeCountAgentPatchProposalsArgs
   }
 
   // Custom InputTypes
@@ -7454,6 +7547,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountAgentMemoryPreferencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentMemoryPreferenceWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountAgentPatchProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentPatchProposalWhereInput
   }
 
 
@@ -19055,6 +19155,7 @@ export namespace Prisma {
     shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
+    agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -19128,6 +19229,7 @@ export namespace Prisma {
     shareLinks?: boolean | Project$shareLinksArgs<ExtArgs>
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
+    agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -19158,6 +19260,7 @@ export namespace Prisma {
       shareLinks: Prisma.$ProjectShareLinkPayload<ExtArgs>[]
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
+      agentPatchProposals: Prisma.$AgentPatchProposalPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -19585,6 +19688,7 @@ export namespace Prisma {
     shareLinks<T extends Project$shareLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$shareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemories<T extends Project$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemoryPreferences<T extends Project$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    agentPatchProposals<T extends Project$agentPatchProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentPatchProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -20428,6 +20532,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentMemoryPreferenceScalarFieldEnum | AgentMemoryPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * Project.agentPatchProposals
+   */
+  export type Project$agentPatchProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    where?: AgentPatchProposalWhereInput
+    orderBy?: AgentPatchProposalOrderByWithRelationInput | AgentPatchProposalOrderByWithRelationInput[]
+    cursor?: AgentPatchProposalWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentPatchProposalScalarFieldEnum | AgentPatchProposalScalarFieldEnum[]
   }
 
   /**
@@ -23901,6 +24029,1182 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectIdeStateInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentPatchProposal
+   */
+
+  export type AggregateAgentPatchProposal = {
+    _count: AgentPatchProposalCountAggregateOutputType | null
+    _min: AgentPatchProposalMinAggregateOutputType | null
+    _max: AgentPatchProposalMaxAggregateOutputType | null
+  }
+
+  export type AgentPatchProposalMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    artifactId: string | null
+    messageId: string | null
+    actionId: string | null
+    filePath: string | null
+    relativePath: string | null
+    originalContent: string | null
+    proposedContent: string | null
+    status: string | null
+    error: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentPatchProposalMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    artifactId: string | null
+    messageId: string | null
+    actionId: string | null
+    filePath: string | null
+    relativePath: string | null
+    originalContent: string | null
+    proposedContent: string | null
+    status: string | null
+    error: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AgentPatchProposalCountAggregateOutputType = {
+    id: number
+    projectId: number
+    artifactId: number
+    messageId: number
+    actionId: number
+    filePath: number
+    relativePath: number
+    originalContent: number
+    proposedContent: number
+    hunks: number
+    status: number
+    error: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AgentPatchProposalMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    artifactId?: true
+    messageId?: true
+    actionId?: true
+    filePath?: true
+    relativePath?: true
+    originalContent?: true
+    proposedContent?: true
+    status?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentPatchProposalMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    artifactId?: true
+    messageId?: true
+    actionId?: true
+    filePath?: true
+    relativePath?: true
+    originalContent?: true
+    proposedContent?: true
+    status?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AgentPatchProposalCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    artifactId?: true
+    messageId?: true
+    actionId?: true
+    filePath?: true
+    relativePath?: true
+    originalContent?: true
+    proposedContent?: true
+    hunks?: true
+    status?: true
+    error?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AgentPatchProposalAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentPatchProposal to aggregate.
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentPatchProposals to fetch.
+     */
+    orderBy?: AgentPatchProposalOrderByWithRelationInput | AgentPatchProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentPatchProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentPatchProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentPatchProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentPatchProposals
+    **/
+    _count?: true | AgentPatchProposalCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentPatchProposalMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentPatchProposalMaxAggregateInputType
+  }
+
+  export type GetAgentPatchProposalAggregateType<T extends AgentPatchProposalAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentPatchProposal]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentPatchProposal[P]>
+      : GetScalarType<T[P], AggregateAgentPatchProposal[P]>
+  }
+
+
+
+
+  export type AgentPatchProposalGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentPatchProposalWhereInput
+    orderBy?: AgentPatchProposalOrderByWithAggregationInput | AgentPatchProposalOrderByWithAggregationInput[]
+    by: AgentPatchProposalScalarFieldEnum[] | AgentPatchProposalScalarFieldEnum
+    having?: AgentPatchProposalScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentPatchProposalCountAggregateInputType | true
+    _min?: AgentPatchProposalMinAggregateInputType
+    _max?: AgentPatchProposalMaxAggregateInputType
+  }
+
+  export type AgentPatchProposalGroupByOutputType = {
+    id: string
+    projectId: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonValue
+    status: string
+    error: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AgentPatchProposalCountAggregateOutputType | null
+    _min: AgentPatchProposalMinAggregateOutputType | null
+    _max: AgentPatchProposalMaxAggregateOutputType | null
+  }
+
+  type GetAgentPatchProposalGroupByPayload<T extends AgentPatchProposalGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentPatchProposalGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentPatchProposalGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentPatchProposalGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentPatchProposalGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentPatchProposalSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    artifactId?: boolean
+    messageId?: boolean
+    actionId?: boolean
+    filePath?: boolean
+    relativePath?: boolean
+    originalContent?: boolean
+    proposedContent?: boolean
+    hunks?: boolean
+    status?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentPatchProposal"]>
+
+  export type AgentPatchProposalSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    artifactId?: boolean
+    messageId?: boolean
+    actionId?: boolean
+    filePath?: boolean
+    relativePath?: boolean
+    originalContent?: boolean
+    proposedContent?: boolean
+    hunks?: boolean
+    status?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentPatchProposal"]>
+
+  export type AgentPatchProposalSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    artifactId?: boolean
+    messageId?: boolean
+    actionId?: boolean
+    filePath?: boolean
+    relativePath?: boolean
+    originalContent?: boolean
+    proposedContent?: boolean
+    hunks?: boolean
+    status?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentPatchProposal"]>
+
+  export type AgentPatchProposalSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    artifactId?: boolean
+    messageId?: boolean
+    actionId?: boolean
+    filePath?: boolean
+    relativePath?: boolean
+    originalContent?: boolean
+    proposedContent?: boolean
+    hunks?: boolean
+    status?: boolean
+    error?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AgentPatchProposalOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "artifactId" | "messageId" | "actionId" | "filePath" | "relativePath" | "originalContent" | "proposedContent" | "hunks" | "status" | "error" | "createdAt" | "updatedAt", ExtArgs["result"]["agentPatchProposal"]>
+  export type AgentPatchProposalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AgentPatchProposalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AgentPatchProposalIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $AgentPatchProposalPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentPatchProposal"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      artifactId: string
+      messageId: string
+      actionId: string
+      filePath: string
+      relativePath: string
+      originalContent: string
+      proposedContent: string
+      hunks: Prisma.JsonValue
+      status: string
+      error: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["agentPatchProposal"]>
+    composites: {}
+  }
+
+  type AgentPatchProposalGetPayload<S extends boolean | null | undefined | AgentPatchProposalDefaultArgs> = $Result.GetResult<Prisma.$AgentPatchProposalPayload, S>
+
+  type AgentPatchProposalCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentPatchProposalFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentPatchProposalCountAggregateInputType | true
+    }
+
+  export interface AgentPatchProposalDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentPatchProposal'], meta: { name: 'AgentPatchProposal' } }
+    /**
+     * Find zero or one AgentPatchProposal that matches the filter.
+     * @param {AgentPatchProposalFindUniqueArgs} args - Arguments to find a AgentPatchProposal
+     * @example
+     * // Get one AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentPatchProposalFindUniqueArgs>(args: SelectSubset<T, AgentPatchProposalFindUniqueArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentPatchProposal that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentPatchProposalFindUniqueOrThrowArgs} args - Arguments to find a AgentPatchProposal
+     * @example
+     * // Get one AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentPatchProposalFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentPatchProposalFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentPatchProposal that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalFindFirstArgs} args - Arguments to find a AgentPatchProposal
+     * @example
+     * // Get one AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentPatchProposalFindFirstArgs>(args?: SelectSubset<T, AgentPatchProposalFindFirstArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentPatchProposal that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalFindFirstOrThrowArgs} args - Arguments to find a AgentPatchProposal
+     * @example
+     * // Get one AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentPatchProposalFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentPatchProposalFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentPatchProposals that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentPatchProposals
+     * const agentPatchProposals = await prisma.agentPatchProposal.findMany()
+     * 
+     * // Get first 10 AgentPatchProposals
+     * const agentPatchProposals = await prisma.agentPatchProposal.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentPatchProposalWithIdOnly = await prisma.agentPatchProposal.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentPatchProposalFindManyArgs>(args?: SelectSubset<T, AgentPatchProposalFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentPatchProposal.
+     * @param {AgentPatchProposalCreateArgs} args - Arguments to create a AgentPatchProposal.
+     * @example
+     * // Create one AgentPatchProposal
+     * const AgentPatchProposal = await prisma.agentPatchProposal.create({
+     *   data: {
+     *     // ... data to create a AgentPatchProposal
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentPatchProposalCreateArgs>(args: SelectSubset<T, AgentPatchProposalCreateArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentPatchProposals.
+     * @param {AgentPatchProposalCreateManyArgs} args - Arguments to create many AgentPatchProposals.
+     * @example
+     * // Create many AgentPatchProposals
+     * const agentPatchProposal = await prisma.agentPatchProposal.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentPatchProposalCreateManyArgs>(args?: SelectSubset<T, AgentPatchProposalCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentPatchProposals and returns the data saved in the database.
+     * @param {AgentPatchProposalCreateManyAndReturnArgs} args - Arguments to create many AgentPatchProposals.
+     * @example
+     * // Create many AgentPatchProposals
+     * const agentPatchProposal = await prisma.agentPatchProposal.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentPatchProposals and only return the `id`
+     * const agentPatchProposalWithIdOnly = await prisma.agentPatchProposal.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentPatchProposalCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentPatchProposalCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentPatchProposal.
+     * @param {AgentPatchProposalDeleteArgs} args - Arguments to delete one AgentPatchProposal.
+     * @example
+     * // Delete one AgentPatchProposal
+     * const AgentPatchProposal = await prisma.agentPatchProposal.delete({
+     *   where: {
+     *     // ... filter to delete one AgentPatchProposal
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentPatchProposalDeleteArgs>(args: SelectSubset<T, AgentPatchProposalDeleteArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentPatchProposal.
+     * @param {AgentPatchProposalUpdateArgs} args - Arguments to update one AgentPatchProposal.
+     * @example
+     * // Update one AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentPatchProposalUpdateArgs>(args: SelectSubset<T, AgentPatchProposalUpdateArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentPatchProposals.
+     * @param {AgentPatchProposalDeleteManyArgs} args - Arguments to filter AgentPatchProposals to delete.
+     * @example
+     * // Delete a few AgentPatchProposals
+     * const { count } = await prisma.agentPatchProposal.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentPatchProposalDeleteManyArgs>(args?: SelectSubset<T, AgentPatchProposalDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentPatchProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentPatchProposals
+     * const agentPatchProposal = await prisma.agentPatchProposal.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentPatchProposalUpdateManyArgs>(args: SelectSubset<T, AgentPatchProposalUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentPatchProposals and returns the data updated in the database.
+     * @param {AgentPatchProposalUpdateManyAndReturnArgs} args - Arguments to update many AgentPatchProposals.
+     * @example
+     * // Update many AgentPatchProposals
+     * const agentPatchProposal = await prisma.agentPatchProposal.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AgentPatchProposals and only return the `id`
+     * const agentPatchProposalWithIdOnly = await prisma.agentPatchProposal.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgentPatchProposalUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentPatchProposalUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentPatchProposal.
+     * @param {AgentPatchProposalUpsertArgs} args - Arguments to update or create a AgentPatchProposal.
+     * @example
+     * // Update or create a AgentPatchProposal
+     * const agentPatchProposal = await prisma.agentPatchProposal.upsert({
+     *   create: {
+     *     // ... data to create a AgentPatchProposal
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentPatchProposal we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentPatchProposalUpsertArgs>(args: SelectSubset<T, AgentPatchProposalUpsertArgs<ExtArgs>>): Prisma__AgentPatchProposalClient<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentPatchProposals.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalCountArgs} args - Arguments to filter AgentPatchProposals to count.
+     * @example
+     * // Count the number of AgentPatchProposals
+     * const count = await prisma.agentPatchProposal.count({
+     *   where: {
+     *     // ... the filter for the AgentPatchProposals we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentPatchProposalCountArgs>(
+      args?: Subset<T, AgentPatchProposalCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentPatchProposalCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentPatchProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentPatchProposalAggregateArgs>(args: Subset<T, AgentPatchProposalAggregateArgs>): Prisma.PrismaPromise<GetAgentPatchProposalAggregateType<T>>
+
+    /**
+     * Group by AgentPatchProposal.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentPatchProposalGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentPatchProposalGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentPatchProposalGroupByArgs['orderBy'] }
+        : { orderBy?: AgentPatchProposalGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentPatchProposalGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentPatchProposalGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentPatchProposal model
+   */
+  readonly fields: AgentPatchProposalFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentPatchProposal.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentPatchProposalClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentPatchProposal model
+   */
+  interface AgentPatchProposalFieldRefs {
+    readonly id: FieldRef<"AgentPatchProposal", 'String'>
+    readonly projectId: FieldRef<"AgentPatchProposal", 'String'>
+    readonly artifactId: FieldRef<"AgentPatchProposal", 'String'>
+    readonly messageId: FieldRef<"AgentPatchProposal", 'String'>
+    readonly actionId: FieldRef<"AgentPatchProposal", 'String'>
+    readonly filePath: FieldRef<"AgentPatchProposal", 'String'>
+    readonly relativePath: FieldRef<"AgentPatchProposal", 'String'>
+    readonly originalContent: FieldRef<"AgentPatchProposal", 'String'>
+    readonly proposedContent: FieldRef<"AgentPatchProposal", 'String'>
+    readonly hunks: FieldRef<"AgentPatchProposal", 'Json'>
+    readonly status: FieldRef<"AgentPatchProposal", 'String'>
+    readonly error: FieldRef<"AgentPatchProposal", 'String'>
+    readonly createdAt: FieldRef<"AgentPatchProposal", 'DateTime'>
+    readonly updatedAt: FieldRef<"AgentPatchProposal", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentPatchProposal findUnique
+   */
+  export type AgentPatchProposalFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentPatchProposal to fetch.
+     */
+    where: AgentPatchProposalWhereUniqueInput
+  }
+
+  /**
+   * AgentPatchProposal findUniqueOrThrow
+   */
+  export type AgentPatchProposalFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentPatchProposal to fetch.
+     */
+    where: AgentPatchProposalWhereUniqueInput
+  }
+
+  /**
+   * AgentPatchProposal findFirst
+   */
+  export type AgentPatchProposalFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentPatchProposal to fetch.
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentPatchProposals to fetch.
+     */
+    orderBy?: AgentPatchProposalOrderByWithRelationInput | AgentPatchProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentPatchProposals.
+     */
+    cursor?: AgentPatchProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentPatchProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentPatchProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentPatchProposals.
+     */
+    distinct?: AgentPatchProposalScalarFieldEnum | AgentPatchProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AgentPatchProposal findFirstOrThrow
+   */
+  export type AgentPatchProposalFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentPatchProposal to fetch.
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentPatchProposals to fetch.
+     */
+    orderBy?: AgentPatchProposalOrderByWithRelationInput | AgentPatchProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentPatchProposals.
+     */
+    cursor?: AgentPatchProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentPatchProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentPatchProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentPatchProposals.
+     */
+    distinct?: AgentPatchProposalScalarFieldEnum | AgentPatchProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AgentPatchProposal findMany
+   */
+  export type AgentPatchProposalFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentPatchProposals to fetch.
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentPatchProposals to fetch.
+     */
+    orderBy?: AgentPatchProposalOrderByWithRelationInput | AgentPatchProposalOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentPatchProposals.
+     */
+    cursor?: AgentPatchProposalWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentPatchProposals from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentPatchProposals.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentPatchProposals.
+     */
+    distinct?: AgentPatchProposalScalarFieldEnum | AgentPatchProposalScalarFieldEnum[]
+  }
+
+  /**
+   * AgentPatchProposal create
+   */
+  export type AgentPatchProposalCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentPatchProposal.
+     */
+    data: XOR<AgentPatchProposalCreateInput, AgentPatchProposalUncheckedCreateInput>
+  }
+
+  /**
+   * AgentPatchProposal createMany
+   */
+  export type AgentPatchProposalCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentPatchProposals.
+     */
+    data: AgentPatchProposalCreateManyInput | AgentPatchProposalCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentPatchProposal createManyAndReturn
+   */
+  export type AgentPatchProposalCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentPatchProposals.
+     */
+    data: AgentPatchProposalCreateManyInput | AgentPatchProposalCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentPatchProposal update
+   */
+  export type AgentPatchProposalUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentPatchProposal.
+     */
+    data: XOR<AgentPatchProposalUpdateInput, AgentPatchProposalUncheckedUpdateInput>
+    /**
+     * Choose, which AgentPatchProposal to update.
+     */
+    where: AgentPatchProposalWhereUniqueInput
+  }
+
+  /**
+   * AgentPatchProposal updateMany
+   */
+  export type AgentPatchProposalUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentPatchProposals.
+     */
+    data: XOR<AgentPatchProposalUpdateManyMutationInput, AgentPatchProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentPatchProposals to update
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * Limit how many AgentPatchProposals to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentPatchProposal updateManyAndReturn
+   */
+  export type AgentPatchProposalUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentPatchProposals.
+     */
+    data: XOR<AgentPatchProposalUpdateManyMutationInput, AgentPatchProposalUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentPatchProposals to update
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * Limit how many AgentPatchProposals to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentPatchProposal upsert
+   */
+  export type AgentPatchProposalUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentPatchProposal to update in case it exists.
+     */
+    where: AgentPatchProposalWhereUniqueInput
+    /**
+     * In case the AgentPatchProposal found by the `where` argument doesn't exist, create a new AgentPatchProposal with this data.
+     */
+    create: XOR<AgentPatchProposalCreateInput, AgentPatchProposalUncheckedCreateInput>
+    /**
+     * In case the AgentPatchProposal was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentPatchProposalUpdateInput, AgentPatchProposalUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentPatchProposal delete
+   */
+  export type AgentPatchProposalDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
+    /**
+     * Filter which AgentPatchProposal to delete.
+     */
+    where: AgentPatchProposalWhereUniqueInput
+  }
+
+  /**
+   * AgentPatchProposal deleteMany
+   */
+  export type AgentPatchProposalDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentPatchProposals to delete
+     */
+    where?: AgentPatchProposalWhereInput
+    /**
+     * Limit how many AgentPatchProposals to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentPatchProposal without action
+   */
+  export type AgentPatchProposalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentPatchProposal
+     */
+    select?: AgentPatchProposalSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentPatchProposal
+     */
+    omit?: AgentPatchProposalOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentPatchProposalInclude<ExtArgs> | null
   }
 
 
@@ -81184,6 +82488,26 @@ export namespace Prisma {
   export type ProjectIdeStateScalarFieldEnum = (typeof ProjectIdeStateScalarFieldEnum)[keyof typeof ProjectIdeStateScalarFieldEnum]
 
 
+  export const AgentPatchProposalScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    artifactId: 'artifactId',
+    messageId: 'messageId',
+    actionId: 'actionId',
+    filePath: 'filePath',
+    relativePath: 'relativePath',
+    originalContent: 'originalContent',
+    proposedContent: 'proposedContent',
+    hunks: 'hunks',
+    status: 'status',
+    error: 'error',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AgentPatchProposalScalarFieldEnum = (typeof AgentPatchProposalScalarFieldEnum)[keyof typeof AgentPatchProposalScalarFieldEnum]
+
+
   export const ProjectEnvironmentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -82897,6 +84221,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
+    agentPatchProposals?: AgentPatchProposalListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -82931,6 +84256,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkOrderByRelationAggregateInput
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
+    agentPatchProposals?: AgentPatchProposalOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -82969,6 +84295,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkListRelationFilter
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
+    agentPatchProposals?: AgentPatchProposalListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -83291,6 +84618,106 @@ export namespace Prisma {
     updatedByUserId?: StringNullableWithAggregatesFilter<"ProjectIdeState"> | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"ProjectIdeState"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"ProjectIdeState"> | Date | string
+  }
+
+  export type AgentPatchProposalWhereInput = {
+    AND?: AgentPatchProposalWhereInput | AgentPatchProposalWhereInput[]
+    OR?: AgentPatchProposalWhereInput[]
+    NOT?: AgentPatchProposalWhereInput | AgentPatchProposalWhereInput[]
+    id?: StringFilter<"AgentPatchProposal"> | string
+    projectId?: StringFilter<"AgentPatchProposal"> | string
+    artifactId?: StringFilter<"AgentPatchProposal"> | string
+    messageId?: StringFilter<"AgentPatchProposal"> | string
+    actionId?: StringFilter<"AgentPatchProposal"> | string
+    filePath?: StringFilter<"AgentPatchProposal"> | string
+    relativePath?: StringFilter<"AgentPatchProposal"> | string
+    originalContent?: StringFilter<"AgentPatchProposal"> | string
+    proposedContent?: StringFilter<"AgentPatchProposal"> | string
+    hunks?: JsonFilter<"AgentPatchProposal">
+    status?: StringFilter<"AgentPatchProposal"> | string
+    error?: StringNullableFilter<"AgentPatchProposal"> | string | null
+    createdAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type AgentPatchProposalOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    artifactId?: SortOrder
+    messageId?: SortOrder
+    actionId?: SortOrder
+    filePath?: SortOrder
+    relativePath?: SortOrder
+    originalContent?: SortOrder
+    proposedContent?: SortOrder
+    hunks?: SortOrder
+    status?: SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type AgentPatchProposalWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentPatchProposalWhereInput | AgentPatchProposalWhereInput[]
+    OR?: AgentPatchProposalWhereInput[]
+    NOT?: AgentPatchProposalWhereInput | AgentPatchProposalWhereInput[]
+    projectId?: StringFilter<"AgentPatchProposal"> | string
+    artifactId?: StringFilter<"AgentPatchProposal"> | string
+    messageId?: StringFilter<"AgentPatchProposal"> | string
+    actionId?: StringFilter<"AgentPatchProposal"> | string
+    filePath?: StringFilter<"AgentPatchProposal"> | string
+    relativePath?: StringFilter<"AgentPatchProposal"> | string
+    originalContent?: StringFilter<"AgentPatchProposal"> | string
+    proposedContent?: StringFilter<"AgentPatchProposal"> | string
+    hunks?: JsonFilter<"AgentPatchProposal">
+    status?: StringFilter<"AgentPatchProposal"> | string
+    error?: StringNullableFilter<"AgentPatchProposal"> | string | null
+    createdAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id">
+
+  export type AgentPatchProposalOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    artifactId?: SortOrder
+    messageId?: SortOrder
+    actionId?: SortOrder
+    filePath?: SortOrder
+    relativePath?: SortOrder
+    originalContent?: SortOrder
+    proposedContent?: SortOrder
+    hunks?: SortOrder
+    status?: SortOrder
+    error?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AgentPatchProposalCountOrderByAggregateInput
+    _max?: AgentPatchProposalMaxOrderByAggregateInput
+    _min?: AgentPatchProposalMinOrderByAggregateInput
+  }
+
+  export type AgentPatchProposalScalarWhereWithAggregatesInput = {
+    AND?: AgentPatchProposalScalarWhereWithAggregatesInput | AgentPatchProposalScalarWhereWithAggregatesInput[]
+    OR?: AgentPatchProposalScalarWhereWithAggregatesInput[]
+    NOT?: AgentPatchProposalScalarWhereWithAggregatesInput | AgentPatchProposalScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    projectId?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    artifactId?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    messageId?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    actionId?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    filePath?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    relativePath?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    originalContent?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    proposedContent?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    hunks?: JsonWithAggregatesFilter<"AgentPatchProposal">
+    status?: StringWithAggregatesFilter<"AgentPatchProposal"> | string
+    error?: StringNullableWithAggregatesFilter<"AgentPatchProposal"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AgentPatchProposal"> | Date | string
   }
 
   export type ProjectEnvironmentWhereInput = {
@@ -87738,6 +89165,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -87771,6 +89199,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -87804,6 +89233,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -87837,6 +89267,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -88109,6 +89540,124 @@ export namespace Prisma {
     updatedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalCreateInput = {
+    id: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutAgentPatchProposalsInput
+  }
+
+  export type AgentPatchProposalUncheckedCreateInput = {
+    id: string
+    projectId: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentPatchProposalUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutAgentPatchProposalsNestedInput
+  }
+
+  export type AgentPatchProposalUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalCreateManyInput = {
+    id: string
+    projectId: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentPatchProposalUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectEnvironmentCreateInput = {
@@ -92837,6 +94386,12 @@ export namespace Prisma {
     isNot?: ProjectIdeStateWhereInput | null
   }
 
+  export type AgentPatchProposalListRelationFilter = {
+    every?: AgentPatchProposalWhereInput
+    some?: AgentPatchProposalWhereInput
+    none?: AgentPatchProposalWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -92858,6 +94413,10 @@ export namespace Prisma {
   }
 
   export type FileSnapshotOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentPatchProposalOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -93187,6 +94746,55 @@ export namespace Prisma {
 
   export type ProjectIdeStateSumOrderByAggregateInput = {
     version?: SortOrder
+  }
+
+  export type AgentPatchProposalCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    artifactId?: SortOrder
+    messageId?: SortOrder
+    actionId?: SortOrder
+    filePath?: SortOrder
+    relativePath?: SortOrder
+    originalContent?: SortOrder
+    proposedContent?: SortOrder
+    hunks?: SortOrder
+    status?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentPatchProposalMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    artifactId?: SortOrder
+    messageId?: SortOrder
+    actionId?: SortOrder
+    filePath?: SortOrder
+    relativePath?: SortOrder
+    originalContent?: SortOrder
+    proposedContent?: SortOrder
+    status?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AgentPatchProposalMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    artifactId?: SortOrder
+    messageId?: SortOrder
+    actionId?: SortOrder
+    filePath?: SortOrder
+    relativePath?: SortOrder
+    originalContent?: SortOrder
+    proposedContent?: SortOrder
+    status?: SortOrder
+    error?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type ProjectEnvironmentProjectIdNameCompoundUniqueInput = {
@@ -97770,6 +99378,13 @@ export namespace Prisma {
     connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
   }
 
+  export type AgentPatchProposalCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput> | AgentPatchProposalCreateWithoutProjectInput[] | AgentPatchProposalUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentPatchProposalCreateOrConnectWithoutProjectInput | AgentPatchProposalCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentPatchProposalCreateManyProjectInputEnvelope
+    connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -97883,6 +99498,13 @@ export namespace Prisma {
     connectOrCreate?: AgentMemoryPreferenceCreateOrConnectWithoutProjectInput | AgentMemoryPreferenceCreateOrConnectWithoutProjectInput[]
     createMany?: AgentMemoryPreferenceCreateManyProjectInputEnvelope
     connect?: AgentMemoryPreferenceWhereUniqueInput | AgentMemoryPreferenceWhereUniqueInput[]
+  }
+
+  export type AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput> | AgentPatchProposalCreateWithoutProjectInput[] | AgentPatchProposalUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentPatchProposalCreateOrConnectWithoutProjectInput | AgentPatchProposalCreateOrConnectWithoutProjectInput[]
+    createMany?: AgentPatchProposalCreateManyProjectInputEnvelope
+    connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -98123,6 +99745,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
   }
 
+  export type AgentPatchProposalUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput> | AgentPatchProposalCreateWithoutProjectInput[] | AgentPatchProposalUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentPatchProposalCreateOrConnectWithoutProjectInput | AgentPatchProposalCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentPatchProposalUpsertWithWhereUniqueWithoutProjectInput | AgentPatchProposalUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentPatchProposalCreateManyProjectInputEnvelope
+    set?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    disconnect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    delete?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    update?: AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput | AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentPatchProposalUpdateManyWithWhereWithoutProjectInput | AgentPatchProposalUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -98353,6 +99989,20 @@ export namespace Prisma {
     deleteMany?: AgentMemoryPreferenceScalarWhereInput | AgentMemoryPreferenceScalarWhereInput[]
   }
 
+  export type AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput> | AgentPatchProposalCreateWithoutProjectInput[] | AgentPatchProposalUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AgentPatchProposalCreateOrConnectWithoutProjectInput | AgentPatchProposalCreateOrConnectWithoutProjectInput[]
+    upsert?: AgentPatchProposalUpsertWithWhereUniqueWithoutProjectInput | AgentPatchProposalUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AgentPatchProposalCreateManyProjectInputEnvelope
+    set?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    disconnect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    delete?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+    update?: AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput | AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AgentPatchProposalUpdateManyWithWhereWithoutProjectInput | AgentPatchProposalUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -98481,6 +100131,20 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectIdeStateUpdatesInput, UserUpdateWithoutProjectIdeStateUpdatesInput>, UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutAgentPatchProposalsInput = {
+    create?: XOR<ProjectCreateWithoutAgentPatchProposalsInput, ProjectUncheckedCreateWithoutAgentPatchProposalsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAgentPatchProposalsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutAgentPatchProposalsNestedInput = {
+    create?: XOR<ProjectCreateWithoutAgentPatchProposalsInput, ProjectUncheckedCreateWithoutAgentPatchProposalsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAgentPatchProposalsInput
+    upsert?: ProjectUpsertWithoutAgentPatchProposalsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAgentPatchProposalsInput, ProjectUpdateWithoutAgentPatchProposalsInput>, ProjectUncheckedUpdateWithoutAgentPatchProposalsInput>
   }
 
   export type ProjectCreateNestedOneWithoutEnvironmentsInput = {
@@ -102086,6 +103750,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -102118,6 +103783,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -104793,6 +106459,48 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AgentPatchProposalCreateWithoutProjectInput = {
+    id: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentPatchProposalUncheckedCreateWithoutProjectInput = {
+    id: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AgentPatchProposalCreateOrConnectWithoutProjectInput = {
+    where: AgentPatchProposalWhereUniqueInput
+    create: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentPatchProposalCreateManyProjectInputEnvelope = {
+    data: AgentPatchProposalCreateManyProjectInput | AgentPatchProposalCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -105238,6 +106946,42 @@ export namespace Prisma {
     data: XOR<AgentMemoryPreferenceUpdateManyMutationInput, AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type AgentPatchProposalUpsertWithWhereUniqueWithoutProjectInput = {
+    where: AgentPatchProposalWhereUniqueInput
+    update: XOR<AgentPatchProposalUpdateWithoutProjectInput, AgentPatchProposalUncheckedUpdateWithoutProjectInput>
+    create: XOR<AgentPatchProposalCreateWithoutProjectInput, AgentPatchProposalUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput = {
+    where: AgentPatchProposalWhereUniqueInput
+    data: XOR<AgentPatchProposalUpdateWithoutProjectInput, AgentPatchProposalUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type AgentPatchProposalUpdateManyWithWhereWithoutProjectInput = {
+    where: AgentPatchProposalScalarWhereInput
+    data: XOR<AgentPatchProposalUpdateManyMutationInput, AgentPatchProposalUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type AgentPatchProposalScalarWhereInput = {
+    AND?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
+    OR?: AgentPatchProposalScalarWhereInput[]
+    NOT?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
+    id?: StringFilter<"AgentPatchProposal"> | string
+    projectId?: StringFilter<"AgentPatchProposal"> | string
+    artifactId?: StringFilter<"AgentPatchProposal"> | string
+    messageId?: StringFilter<"AgentPatchProposal"> | string
+    actionId?: StringFilter<"AgentPatchProposal"> | string
+    filePath?: StringFilter<"AgentPatchProposal"> | string
+    relativePath?: StringFilter<"AgentPatchProposal"> | string
+    originalContent?: StringFilter<"AgentPatchProposal"> | string
+    proposedContent?: StringFilter<"AgentPatchProposal"> | string
+    hunks?: JsonFilter<"AgentPatchProposal">
+    status?: StringFilter<"AgentPatchProposal"> | string
+    error?: StringNullableFilter<"AgentPatchProposal"> | string | null
+    createdAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+    updatedAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -105572,6 +107316,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -105604,6 +107349,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -105652,6 +107398,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -105684,6 +107431,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -105862,6 +107610,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -105894,6 +107643,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -106100,6 +107850,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -106132,6 +107883,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -106164,6 +107916,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -106196,6 +107949,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -106319,6 +108073,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -106351,6 +108106,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -106434,6 +108190,154 @@ export namespace Prisma {
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
   }
 
+  export type ProjectCreateWithoutAgentPatchProposalsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutAgentPatchProposalsInput, ProjectUncheckedCreateWithoutAgentPatchProposalsInput>
+  }
+
+  export type ProjectUpsertWithoutAgentPatchProposalsInput = {
+    update: XOR<ProjectUpdateWithoutAgentPatchProposalsInput, ProjectUncheckedUpdateWithoutAgentPatchProposalsInput>
+    create: XOR<ProjectCreateWithoutAgentPatchProposalsInput, ProjectUncheckedCreateWithoutAgentPatchProposalsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutAgentPatchProposalsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutAgentPatchProposalsInput, ProjectUncheckedUpdateWithoutAgentPatchProposalsInput>
+  }
+
+  export type ProjectUpdateWithoutAgentPatchProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
   export type ProjectCreateWithoutEnvironmentsInput = {
     id?: string
     name: string
@@ -106464,6 +108368,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -106496,6 +108401,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -106544,6 +108450,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -106576,6 +108483,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -106608,6 +108516,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -106640,6 +108549,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -106688,6 +108598,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -106720,6 +108631,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -106752,6 +108664,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -106784,6 +108697,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -106832,6 +108746,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -106864,6 +108779,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -106896,6 +108812,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -106928,6 +108845,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -107051,6 +108969,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -107083,6 +109002,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -107196,6 +109116,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -107228,6 +109149,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -107351,6 +109273,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -107383,6 +109306,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -107496,6 +109420,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -107528,6 +109453,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -107651,6 +109577,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -107683,6 +109610,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -107796,6 +109724,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -107828,6 +109757,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -107951,6 +109881,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -107983,6 +109914,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -108096,6 +110028,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -108128,6 +110061,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -108251,6 +110185,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -108283,6 +110218,7 @@ export namespace Prisma {
     collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -108396,6 +110332,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -108428,6 +110365,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -108547,6 +110485,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -108579,6 +110518,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -108688,6 +110628,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -108720,6 +110661,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -108850,6 +110792,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -108882,6 +110825,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -109114,6 +111058,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -109146,6 +111091,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -109223,6 +111169,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -109255,6 +111202,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -109322,6 +111270,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -109354,6 +111303,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -109477,6 +111427,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -109509,6 +111460,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -109622,6 +111574,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -109654,6 +111607,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -109717,6 +111671,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -109749,6 +111704,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -111334,6 +113290,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -111366,6 +113323,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -111517,6 +113475,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -111549,6 +113508,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -116767,6 +118727,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -116799,6 +118760,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -117741,6 +119703,22 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type AgentPatchProposalCreateManyProjectInput = {
+    id: string
+    artifactId: string
+    messageId: string
+    actionId: string
+    filePath: string
+    relativePath: string
+    originalContent: string
+    proposedContent: string
+    hunks: JsonNullValueInput | InputJsonValue
+    status: string
+    error?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -118273,6 +120251,54 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     organizationId?: NullableStringFieldUpdateOperationsInput | string | null
     enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentPatchProposalUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    artifactId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    actionId?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    relativePath?: StringFieldUpdateOperationsInput | string
+    originalContent?: StringFieldUpdateOperationsInput | string
+    proposedContent?: StringFieldUpdateOperationsInput | string
+    hunks?: JsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
