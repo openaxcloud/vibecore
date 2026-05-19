@@ -49,31 +49,37 @@ const stats = [
 
 const features = [
   {
+    anchor: 'ai-platform',
     icon: Bot,
     title: 'AI agent that works inside the IDE',
     text: 'Generate, edit and validate application code without replacing the preserved Bolt workspace.',
   },
   {
+    anchor: 'runtime',
     icon: TerminalSquare,
     title: 'Real terminal and runtime panels',
     text: 'Interactive shell, logs, monitoring, ports and workspace status are wired to backend runtimes.',
   },
   {
+    anchor: 'collaboration',
     icon: ShieldCheck,
     title: 'Enterprise governance by default',
     text: 'Role controls, audit trails, environment secrets, snapshots and security scan surfaces.',
   },
   {
+    anchor: 'preview',
     icon: MonitorPlay,
     title: 'Preview-first delivery',
     text: 'Run dev servers, inspect live previews and keep runtime status visible across desktop and mobile.',
   },
   {
+    anchor: 'database',
     icon: Database,
     title: 'Database and backup workflows',
     text: 'Environment-backed database configuration plus snapshot-based backup and restore flows.',
   },
   {
+    anchor: 'mobile',
     icon: Globe2,
     title: 'Ship across devices',
     text: 'Desktop, tablet, mobile browser and Capacitor mobile builds share the same production surface.',
@@ -97,6 +103,54 @@ const languageIcons = [
   ['JavaScript', SiJavascript, '#F7DF1E'],
   ['Go', SiGo, '#00ADD8'],
   ['Rust', SiRust, '#F97316'],
+] as const;
+
+const partnerLogos = [
+  ['OpenAI', '/partners/openai.svg'],
+  ['GitHub', '/partners/github.svg'],
+  ['Docker', '/partners/docker.svg'],
+  ['Vercel', '/partners/vercel.svg'],
+  ['Cloudflare', '/partners/cloudflare.svg'],
+  ['Stripe', '/partners/stripe.svg'],
+  ['MongoDB', '/partners/mongodb.svg'],
+  ['Redis', '/partners/redis.svg'],
+  ['Google', '/partners/google.svg'],
+  ['Microsoft', '/partners/microsoft.svg'],
+  ['Amazon', '/partners/amazon.svg'],
+  ['Firebase', '/partners/firebase.svg'],
+] as const;
+
+const comparisonPlatforms = [
+  [
+    'compare-github-codespaces',
+    'GitHub Codespaces',
+    '/assets/compare/github-codespaces.svg',
+    'Repository-native cloud workspaces without E-Code agent orchestration and governed release flow.',
+  ],
+  [
+    'compare-glitch',
+    'Glitch',
+    '/assets/compare/glitch.svg',
+    'Creative prototyping compared with production runtimes, previews, snapshots and enterprise controls.',
+  ],
+  [
+    'compare-heroku',
+    'Heroku',
+    '/assets/compare/heroku.svg',
+    'Application hosting compared with an AI IDE, real terminal workflow and deployment guardrails.',
+  ],
+  [
+    'compare-codesandbox',
+    'CodeSandbox',
+    '/assets/compare/codesandbox.svg',
+    'Browser sandboxes compared with persistent projects, collaboration and controlled runtime adapters.',
+  ],
+  [
+    'compare-aws-cloud9',
+    'AWS Cloud9',
+    '/assets/compare/aws-cloud9.svg',
+    'Cloud IDE infrastructure compared with E-Code mobile-ready AI delivery loops.',
+  ],
 ] as const;
 
 export default function LandingPage() {
@@ -136,13 +190,14 @@ export default function LandingPage() {
               <LinkButton to="/contact-sales" variant="outline">
                 Contact sales
               </LinkButton>
-              <Link to="#video-demo" className="vc-home-video-link">
+              <Link to="#deploy" className="vc-home-video-link">
                 <Play className="h-4 w-4" aria-hidden />
                 Watch platform flow
               </Link>
             </div>
           </div>
           <div className="vc-home-product-frame" aria-label="E-Code IDE preview">
+            <img src="/assets/ai-avatar.svg" alt="" className="vc-home-agent-avatar" loading="eager" decoding="async" />
             <div className="vc-home-browser-bar">
               <span />
               <span />
@@ -179,7 +234,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="vc-home-stats" aria-label="Platform proof">
+      <section className="vc-home-stats" id="proof" aria-label="Platform proof">
         <div className="vc-public-container">
           {stats.map(([label, value, detail]) => (
             <article key={label}>
@@ -188,6 +243,23 @@ export default function LandingPage() {
               <p>{detail}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="vc-home-partners" id="partners" aria-label="E-Code partner ecosystem">
+        <div className="vc-public-container">
+          <div className="vc-home-partners-copy">
+            <span className="vc-badge">Ecosystem</span>
+            <p>Imported from the E-Code partner system and adapted to this marketing surface.</p>
+          </div>
+          <div className="vc-home-partner-grid">
+            {partnerLogos.map(([name, src]) => (
+              <article key={name}>
+                <img src={src} alt={`${name} logo`} loading="lazy" decoding="async" />
+                <span>{name}</span>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -206,7 +278,7 @@ export default function LandingPage() {
               const Icon = feature.icon;
 
               return (
-                <article key={feature.title} className="vc-home-card">
+                <article key={feature.title} id={feature.anchor} className="vc-home-card">
                   <Icon className="h-6 w-6" aria-hidden />
                   <h3>{feature.title}</h3>
                   <p>{feature.text}</p>
@@ -223,7 +295,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="vc-home-video" id="video-demo" data-testid="section-video-demo">
+      <section className="vc-home-video" id="deploy" data-testid="section-video-demo">
         <div className="vc-public-container">
           <div className="vc-home-media-card">
             <img src={heroImage} alt="Developer workspace with code editor" loading="lazy" />
@@ -263,6 +335,31 @@ export default function LandingPage() {
                   Learn more
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="vc-home-section vc-home-compare" id="compare" data-testid="section-compare">
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Compare</span>
+            <h2>E-Code comparison assets are now part of the marketing surface.</h2>
+            <p>
+              The cards below preserve the E-Code competitor logo set while routing to local anchors instead of missing
+              pages.
+            </p>
+          </div>
+          <div className="vc-home-compare-grid">
+            {comparisonPlatforms.map(([id, name, src, text]) => (
+              <article key={id} id={id}>
+                <img src={src} alt={`${name} logo`} loading="lazy" decoding="async" />
+                <div>
+                  <span>E-Code vs</span>
+                  <h3>{name}</h3>
+                  <p>{text}</p>
+                </div>
               </article>
             ))}
           </div>

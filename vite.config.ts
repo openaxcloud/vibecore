@@ -160,7 +160,7 @@ export default defineConfig((config) => {
           return null;
         },
       },
-      config.mode !== 'test' && remixCloudflareDevProxy(),
+      config.command === 'serve' && config.mode !== 'test' && remixCloudflareDevProxy(),
 
       /*
        * The Remix Vite plugin injects a HMR preamble that errors out under
@@ -205,7 +205,7 @@ export default defineConfig((config) => {
     css: {
       preprocessorOptions: {
         scss: {
-          api: 'modern-compiler',
+          api: 'modern',
         },
       },
     },

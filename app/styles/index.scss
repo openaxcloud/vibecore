@@ -15905,7 +15905,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .vc-home-product-frame {
+  position: relative;
   overflow: hidden;
+}
+
+.vc-home-agent-avatar {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2;
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 18px;
+  background: var(--vc-public-card-soft-bg);
+  box-shadow: 0 16px 40px var(--vc-public-shadow);
 }
 
 .vc-home-browser-bar {
@@ -16035,10 +16049,64 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-home-stats p,
 .vc-home-card p,
-.vc-home-showcase-grid p {
+.vc-home-showcase-grid p,
+.vc-home-compare-grid p {
   color: var(--vc-public-muted);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.vc-home-partners {
+  border-bottom: 1px solid var(--vc-public-border);
+  background: var(--vc-public-card-soft-bg);
+  padding-block: 42px;
+}
+
+.vc-home-partners .vc-public-container {
+  display: grid;
+  gap: 24px;
+}
+
+.vc-home-partners-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.vc-home-partners-copy p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--vc-public-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.vc-home-partner-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.vc-home-partner-grid article {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 14px;
+  background: var(--vc-public-card-bg);
+  padding: 14px;
+}
+
+.vc-home-partner-grid img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.vc-home-partner-grid span {
+  color: var(--vc-public-text);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .vc-home-section {
@@ -16083,13 +16151,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-home-feature-grid,
 .vc-home-showcase-grid,
-.vc-home-language-grid {
+.vc-home-language-grid,
+.vc-home-compare-grid {
   display: grid;
   gap: 14px;
 }
 
 .vc-home-card,
-.vc-home-showcase-grid article {
+.vc-home-showcase-grid article,
+.vc-home-compare-grid article {
   display: grid;
   gap: 12px;
   padding: 22px;
@@ -16097,6 +16167,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-home-card h3,
 .vc-home-showcase-grid h3,
+.vc-home-compare-grid h3,
 .vc-public-footer h3 {
   margin: 0;
   color: var(--vc-public-text);
@@ -17164,6 +17235,33 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background: var(--vc-public-hover-bg);
 }
 
+.vc-home-compare {
+  background: linear-gradient(180deg, transparent, var(--vc-public-hover-bg)), var(--vc-public-bg);
+}
+
+.vc-home-compare-grid article {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 16px;
+  background: var(--vc-public-card-bg);
+  box-shadow: 0 18px 48px var(--vc-public-shadow);
+}
+
+.vc-home-compare-grid img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.vc-home-compare-grid span {
+  color: var(--vc-public-link);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .vc-home-language-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -17228,6 +17326,39 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   gap: 14px;
 }
 
+.vc-public-footer-metrics {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 34px;
+}
+
+.vc-public-footer-metrics article {
+  border: 1px solid var(--vc-public-border);
+  border-radius: 14px;
+  background: var(--vc-public-card-soft-bg);
+  padding: 18px;
+}
+
+.vc-public-footer-metrics span,
+.vc-public-footer-compare p {
+  color: var(--vc-public-muted);
+  font-size: 12px;
+}
+
+.vc-public-footer-metrics span {
+  display: block;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vc-public-footer-metrics strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--vc-public-text);
+  font-size: 28px;
+}
+
 .vc-public-footer-grid {
   display: grid;
   gap: 28px;
@@ -17267,6 +17398,66 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-public-footer nav a:hover,
 .vc-public-footer-bottom a:hover {
   color: var(--vc-public-link-hover);
+}
+
+.vc-public-footer-compare {
+  display: grid;
+  gap: 18px;
+  margin-top: 34px;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 18px;
+  background: var(--vc-public-card-soft-bg);
+  padding: 22px;
+}
+
+.vc-public-footer-compare p {
+  margin: 6px 0 0;
+}
+
+.vc-public-footer-compare > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vc-public-footer-compare a {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 999px;
+  color: var(--vc-public-muted);
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.vc-public-footer-compare a:hover {
+  border-color: var(--vc-public-card-hover-border);
+  color: var(--vc-public-link-hover);
+}
+
+.vc-public-footer-trust-row {
+  display: grid;
+  gap: 12px;
+  margin-top: 34px;
+  border-top: 1px solid var(--vc-public-border);
+  padding-top: 26px;
+}
+
+.vc-public-footer-trust-row span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--vc-public-trust-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vc-public-footer-trust-row svg {
+  flex-shrink: 0;
+  color: var(--vc-public-link);
 }
 
 .vc-public-footer-bottom {
@@ -17323,7 +17514,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .vc-home-stats .vc-public-container,
-  .vc-home-feature-grid {
+  .vc-home-feature-grid,
+  .vc-home-partner-grid,
+  .vc-home-compare-grid,
+  .vc-public-footer-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -17332,7 +17526,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .vc-public-footer-grid {
-    grid-template-columns: 1.5fr repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .vc-public-footer-bottom {
@@ -17364,5 +17558,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .vc-home-showcase-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vc-home-partners .vc-public-container {
+    grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+    align-items: center;
+  }
+
+  .vc-home-partner-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .vc-home-compare-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vc-public-footer-grid {
+    grid-template-columns: 1.25fr repeat(4, minmax(0, 1fr));
+  }
+
+  .vc-public-footer-compare,
+  .vc-public-footer-trust-row {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
   }
 }

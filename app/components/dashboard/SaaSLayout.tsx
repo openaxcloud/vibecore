@@ -93,8 +93,11 @@ type FooterColumn = {
 
 export const ECODE_MARKETING_BRAND = {
   name: 'E-Code',
+  tagline: 'Build software fast with AI',
+  description: 'Code with AI. Deploy instantly. Share with the world. Build and ship software 10x faster.',
   legalName: 'E-Code.AI (Snatch Group Limited)',
   logoSrc: '/assets/logo.svg',
+  aiAvatarSrc: '/assets/ai-avatar.svg',
   faviconSrc: '/favicon.svg',
   appleTouchIconSrc: '/apple-touch-icon.png',
   repositoryUrl: 'https://github.com/openaxcloud/vibecore',
@@ -103,35 +106,54 @@ export const ECODE_MARKETING_BRAND = {
 export const publicNav = [
   { label: 'Product', to: '/#product' },
   { label: 'Solutions', to: '/#solutions' },
-  { label: 'Templates', to: '/templates' },
-  { label: 'Security', to: '/security' },
+  { label: 'Resources', to: '/docs' },
+  { label: 'Company', to: '/#company' },
   { label: 'Pricing', to: '/pricing' },
+  { label: 'Teams', to: '/contact-sales' },
 ];
 
 export const publicMarketingMenus = {
   product: [
     ['AI Agent', '/#builder', 'Build production-ready apps with natural language prompts.'],
     ['Browser IDE', '/#product', 'Enterprise-grade development workspace built for teams.'],
+    ['Multiplayer', '/#collaboration', 'Live collaboration, pair programming and shared presence.'],
     ['Mobile App', '/#mobile', 'Ship from phone and tablet with the same IDE workflow.'],
+    ['Desktop App', '/#product', 'Optimized local workflows with secure project sync.'],
+    ['AI Platform', '/#ai-platform', 'Governance, observability and orchestration for AI workloads.'],
     ['Deployments', '/#deploy', 'Preview, validate and release with production controls.'],
+    ['Bounties', '/#solutions', 'Activate an on-demand developer network to accelerate delivery.'],
+    ['Teams', '/contact-sales', 'Enterprise controls, compliance and insights for large orgs.'],
   ],
   solutions: [
-    ['App Builder', '/#solutions', 'Rapidly prototype and deploy full-stack applications.'],
+    ['App Builder', '/#builder', 'Rapidly prototype and deploy full-stack applications.'],
     ['Website Builder', '/templates', 'Create polished marketing sites with zero setup.'],
+    ['Game Builder', '/templates', 'Design and launch interactive experiences powered by AI.'],
+    ['Dashboard Builder', '/templates', 'Data-rich dashboards with real-time collaboration.'],
+    ['Chatbot / AI Agent Builder', '/#ai-platform', 'Deploy conversational assistants across your organization.'],
+    ['Internal AI Builder', '/#ai-platform', 'Bring private AI agents to every team safely and securely.'],
     ['Enterprise', '/contact-sales', 'SSO, audit logs, private runtimes and guided rollout.'],
-    ['Templates', '/templates', 'Launch with curated production starters.'],
+    ['Startups', '/pricing', 'Ship faster with startup-friendly plans and deployment paths.'],
+    ['Freelancers', '/templates', 'Deliver client projects faster with portfolio-ready hosting.'],
   ],
   resources: [
     ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
-    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
+    ['AI Documentation', '/docs#agent-walkthrough', 'Complete AI capabilities and agent workflow guide.'],
+    ['Tutorials', '/docs', 'Step-by-step learning from beginner to advanced.'],
+    ['Blog', '/changelog', 'Stories on shipping software at global scale.'],
     ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
+    ['Community', '/support', 'Connect with builders and share best practices.'],
+    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
+    ['Case Studies', '/#proof', 'Enterprise success patterns and delivery evidence.'],
+    ['Help Center', '/support', 'FAQs, troubleshooting and support.'],
     ['Status', '/status', 'Operational status and incident visibility.'],
   ],
   company: [
-    ['Security', '/security', 'Controls for identity, isolation, secrets and audit trails.'],
-    ['Contact sales', '/contact-sales', 'Plan enterprise deployment and private runtime pools.'],
-    ['Privacy', '/privacy', 'Workspace metadata, secrets and retention practices.'],
-    ['Terms', '/terms', 'Platform usage, billing and enterprise agreement basics.'],
+    ['About', '/#company', 'Learn about the platform mission and product direction.'],
+    ['Careers', '/contact-sales', 'Join a distributed team building the future of software.'],
+    ['Press', '/#partners', 'Brand, partner and platform overview.'],
+    ['Partners', '/#partners', 'Strategic alliances and solution partners.'],
+    ['Contact', '/contact-sales', 'Get in touch with our team.'],
+    ['Accessibility', '/acceptable-use', 'Our commitment to inclusive, responsible platform use.'],
   ],
 } as const satisfies Record<string, readonly MarketingMenuItem[]>;
 
@@ -141,32 +163,56 @@ export const publicFooterColumns: readonly FooterColumn[] = [
     links: [
       ['AI Agent', '/#builder'],
       ['IDE', '/#product'],
+      ['Multiplayer', '/#collaboration'],
       ['Mobile App', '/#mobile'],
       ['Deployments', '/#deploy'],
+      ['AI Platform', '/#ai-platform'],
       ['Templates', '/templates'],
       ['Pricing', '/pricing'],
+      ['Bounties', '/#solutions'],
     ],
   },
   {
     title: 'Resources',
     links: [
       ['Docs', '/docs'],
+      ['AI Documentation', '/docs#agent-walkthrough'],
+      ['Tutorials', '/docs'],
+      ['Blog', '/changelog'],
       ['Templates', '/templates'],
       ['Changelog', '/changelog'],
       ['Status', '/status'],
-      ['Security', '/security'],
+      ['Community', '/support'],
     ],
   },
   {
     title: 'Company',
     links: [
+      ['About', '/#company'],
+      ['Partners', '/#partners'],
       ['Contact sales', '/contact-sales'],
-      ['Privacy', '/privacy'],
+      ['Security', '/security'],
+      ['Support', '/support'],
+    ],
+  },
+  {
+    title: 'Legal',
+    links: [
       ['Terms', '/terms'],
+      ['Privacy', '/privacy'],
       ['Acceptable use', '/acceptable-use'],
+      ['Security', '/security'],
     ],
   },
 ] as const;
+
+export const publicCompareLinks = [
+  ['E-Code vs GitHub Codespaces', '/#compare-github-codespaces'],
+  ['E-Code vs Glitch', '/#compare-glitch'],
+  ['E-Code vs Heroku', '/#compare-heroku'],
+  ['E-Code vs CodeSandbox', '/#compare-codesandbox'],
+  ['E-Code vs AWS Cloud9', '/#compare-aws-cloud9'],
+] as const satisfies readonly FooterLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
 
@@ -316,6 +362,7 @@ function PublicMarketingHeader() {
     ...publicMarketingMenus.resources,
     ...publicMarketingMenus.company,
     ['Pricing', '/pricing', 'Plans for individuals, teams and enterprise deployments.'],
+    ['Teams', '/contact-sales', 'Enterprise collaboration, controls and procurement support.'],
   ] as const satisfies readonly MarketingMenuItem[];
 
   return (
@@ -338,6 +385,7 @@ function PublicMarketingHeader() {
             <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
             <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
             <NavButton to="/pricing">Pricing</NavButton>
+            <NavButton to="/contact-sales">Teams</NavButton>
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />
@@ -351,7 +399,7 @@ function PublicMarketingHeader() {
               </summary>
               <div className="vc-public-mobile-menu-panel">
                 {mobileItems.map(([title, to, description]) => (
-                  <Link key={to} to={to}>
+                  <Link key={`${title}-${to}`} to={to}>
                     <strong>{title}</strong>
                     <span>{description}</span>
                   </Link>
@@ -409,7 +457,7 @@ function MarketingMenu({
       </summary>
       <div className="vc-marketing-menu-panel">
         {items.map(([title, to, description]) => (
-          <Link key={to} to={to}>
+          <Link key={`${title}-${to}`} to={to}>
             <MenuIcon className="h-4 w-4" aria-hidden />
             <span>
               <strong>{title}</strong>
@@ -424,7 +472,7 @@ function MarketingMenu({
 
 function PublicMarketingFooter() {
   return (
-    <footer className="vc-public-footer" role="contentinfo" aria-label="Site footer">
+    <footer id="company" className="vc-public-footer" role="contentinfo" aria-label="Site footer">
       <div className="vc-public-container">
         <div className="vc-public-footer-cta">
           <div>
@@ -448,10 +496,20 @@ function PublicMarketingFooter() {
             </LinkButton>
           </div>
         </div>
+        <div className="vc-public-footer-metrics" aria-label="Enterprise platform metrics">
+          <article>
+            <span>Global uptime</span>
+            <strong>99.99%</strong>
+          </article>
+          <article>
+            <span>Enterprise teams</span>
+            <strong>4,500+</strong>
+          </article>
+        </div>
         <div className="vc-public-footer-grid">
           <div className="vc-public-footer-brand">
             <EcodeMarketingLogo />
-            <p>AI agents, real runtimes and a preserved Bolt workbench for production teams.</p>
+            <p>{ECODE_MARKETING_BRAND.description}</p>
             <div className="vc-public-trust-list">
               <span>
                 <CheckCircle2 className="h-4 w-4" /> AI governance
@@ -474,6 +532,30 @@ function PublicMarketingFooter() {
               ))}
             </nav>
           ))}
+        </div>
+        <div className="vc-public-footer-compare">
+          <div>
+            <h3>Compare platforms</h3>
+            <p>See how E-Code stacks up against other development clouds.</p>
+          </div>
+          <div role="list" aria-label="Platform comparisons">
+            {publicCompareLinks.map(([label, to]) => (
+              <Link key={to} to={to}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="vc-public-footer-trust-row">
+          <span>
+            <ShieldCheck className="h-5 w-5" aria-hidden /> SOC2 Type II, ISO 27001, GDPR &amp; HIPAA ready.
+          </span>
+          <span>
+            <Globe2 className="h-5 w-5" aria-hidden /> 18 global regions with enterprise data residency.
+          </span>
+          <span>
+            <Sparkles className="h-5 w-5" aria-hidden /> AI governance, policy controls and audit logging.
+          </span>
         </div>
         <div className="vc-public-footer-bottom">
           <span>
