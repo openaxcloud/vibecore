@@ -291,6 +291,8 @@ const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[numb
     'collaborators',
     'snapshots',
     'env',
+    'kv-store',
+    'storage',
   ]),
 };
 
@@ -323,6 +325,9 @@ const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: st
   checkpoints: { id: 'checkpoints', name: 'Checkpoints', icon: 'i-ph:arrow-counter-clockwise' },
   extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
   security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
+  shell: { id: 'shell', name: 'Shell', icon: 'i-ph:terminal-window' },
+  'kv-store': { id: 'kv-store', name: 'Key-Value Store', icon: 'i-ph:storefront' },
+  storage: { id: 'storage', name: 'Storage', icon: 'i-ph:hard-drives' },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
 
@@ -370,7 +375,7 @@ const ECODE_MOBILE_TOOLS = [
     id: 'app-storage',
     section: 'tools',
     title: 'App Storage',
-    description: 'Host and save uploads like images, videos, and documents.',
+    description: 'Built-in object storage for uploads like images, videos, and documents.',
     icon: 'i-ph:hard-drives',
   },
   {
@@ -400,7 +405,7 @@ const ECODE_MOBILE_TOOLS = [
     id: 'developer',
     section: 'tools',
     title: 'Developer',
-    description: 'Advanced development tools',
+    description: 'Advanced developer tools and settings',
     icon: 'i-ph:code',
   },
   {
@@ -415,7 +420,7 @@ const ECODE_MOBILE_TOOLS = [
     id: 'integrations',
     section: 'tools',
     title: 'Integrations',
-    description: 'Connect to Vibecore-native and external services',
+    description: 'Connect to native and external services',
     icon: 'i-ph:package',
   },
   {
@@ -430,8 +435,60 @@ const ECODE_MOBILE_TOOLS = [
     id: 'preview',
     section: 'tools',
     title: 'Preview',
-    description: 'View your app in a browser',
+    description: 'Preview your App',
     icon: 'i-ph:monitor',
+  },
+  {
+    id: 'kv-store',
+    section: 'tools',
+    title: 'Key-Value Store',
+    description: 'Easy-to-use key value store for caching and session management',
+    icon: 'i-ph:storefront',
+    tone: 'info',
+  },
+  {
+    id: 'secrets',
+    section: 'tools',
+    title: 'Secrets',
+    description: 'Store sensitive information (like API keys) securely in your App',
+    icon: 'i-ph:key',
+  },
+  {
+    id: 'security',
+    section: 'tools',
+    title: 'Security Scanner',
+    description: 'Scan your app for vulnerabilities',
+    icon: 'i-ph:shield-check',
+    tone: 'danger',
+  },
+  {
+    id: 'shell',
+    section: 'tools',
+    title: 'Shell',
+    description: 'Directly access your App through a command line interface (CLI)',
+    icon: 'i-ph:terminal-window',
+  },
+  {
+    id: 'settings',
+    section: 'tools',
+    title: 'User Settings',
+    description: 'Configure personal editor preferences and workspace settings',
+    icon: 'i-ph:gear',
+  },
+  {
+    id: 'workflows',
+    section: 'tools',
+    title: 'Workflows',
+    description: 'Configure different ways to run your App',
+    icon: 'i-ph:lightning',
+    tone: 'warning',
+  },
+  {
+    id: 'checkpoints',
+    section: 'tools',
+    title: 'Checkpoints',
+    description: 'View and restore project checkpoints created during AI builds',
+    icon: 'i-ph:clock-counter-clockwise',
   },
 ] as const;
 
@@ -3521,7 +3578,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           publishing: 'deployments',
           deploy: 'deployments',
           'app-storage': 'object-storage',
+          storage: 'object-storage',
           database: 'database',
+          'kv-store': 'database',
           debug: 'debugger',
           developer: 'debugger',
           git: 'git',
@@ -3554,7 +3613,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (normalizedToolId === 'preview') {
           setMobileIdePanel('preview');
         } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
-          setMobileIdePanel('terminal', { activeTabId: normalizedToolId === 'console' ? 'console' : 'terminal' });
+          setMobileIdePanel('terminal', { activeTabId: normalizedToolId });
         } else if (normalizedToolId === 'editor') {
           setMobileIdePanel('editor');
         } else {
@@ -5985,6 +6044,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
       };
+    const mobileServiceHeaderTab =
+      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
 
     const keybindingSections = useMemo(
       () =>
@@ -6201,14 +6262,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {agentPanel}
               {useMobileIde && mobilePanel === 'deploy' ? (
                 <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
-                  <div className="bolt-workbench-mobile fixed top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 z-0 w-full px-2">
-                    <div className="h-full overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
-                      <ProjectIdeServicePanel
-                        projectId={projectId}
-                        panel={activeMobileServicePanel}
-                        initialPayload={initialIdePanels?.[activeMobileServicePanel]}
-                      />
-                    </div>
+                  <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
+                    <ProjectIdeServicePanel
+                      projectId={projectId}
+                      panel={activeMobileServicePanel}
+                      displayTitle={mobileServiceHeaderTab?.name}
+                      displayIcon={mobileServiceHeaderTab?.icon === 'agent' ? undefined : mobileServiceHeaderTab?.icon}
+                      initialPayload={initialIdePanels?.[activeMobileServicePanel]}
+                    />
                   </div>
                 </PanelBoundary>
               ) : useMobileIde && mobilePanel === 'chat' ? null : (
@@ -6942,10 +7003,14 @@ function ProjectIdeGuidedTour({
 function ProjectIdeServicePanel({
   projectId,
   panel,
+  displayTitle,
+  displayIcon,
   initialPayload,
 }: {
   projectId?: string;
   panel: string;
+  displayTitle?: string;
+  displayIcon?: string;
   initialPayload?: any;
 }) {
   const [payload, setPayload] = useState<any>(() => initialPayload);
@@ -6965,7 +7030,8 @@ function ProjectIdeServicePanel({
     mode: 'editing',
   });
 
-  const title = panelTitle(panel);
+  const title = displayTitle ?? panelTitle(panel);
+  const icon = displayIcon ?? panelIcon(panel);
 
   const rendersEmptyStateActions =
     panel === 'deployments' ||
@@ -7131,7 +7197,7 @@ function ProjectIdeServicePanel({
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
       <div className="bolt-project-ide-panel-header">
-        <span className={panelIcon(panel)} aria-hidden />
+        <span className={icon} aria-hidden />
         <h2 className="m-0 text-sm font-semibold">{title}</h2>
         <button
           type="button"
