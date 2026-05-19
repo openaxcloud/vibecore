@@ -73,7 +73,7 @@ spec:
               imagePullPolicy: {{ if eq (toString $.Values.global.imageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
               command:
                 - node
-                - /runtime/services/worker/dist/enqueue-cli.js
+                - /runtime/dist/enqueue-cli.js
                 - --queue
                 - {{ $cron.queue | quote }}
                 - --job
