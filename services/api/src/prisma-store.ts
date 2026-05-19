@@ -4,6 +4,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type {
   AbuseEventRecord,
+  AgentPatchProposalRecord,
+  AgentPatchProposalStatus,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -708,6 +710,61 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectShareLink.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
       mapProjectShareLink,
     );
+  }
+
+  async upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }) {
+    return mapAgentPatchProposal(
+      await this.prisma.agentPatchProposal.upsert({
+        where: { id: input.id },
+        create: {
+          id: input.id,
+          projectId: input.projectId,
+          artifactId: input.artifactId,
+          messageId: input.messageId,
+          actionId: input.actionId,
+          filePath: input.filePath,
+          relativePath: input.relativePath,
+          originalContent: input.originalContent,
+          proposedContent: input.proposedContent,
+          hunks: input.hunks as any,
+          status: input.status,
+          error: input.error,
+        },
+        update: {
+          proposedContent: input.proposedContent,
+          hunks: input.hunks as any,
+          status: input.status,
+          error: input.error,
+        },
+      }),
+    );
+  }
+
+  async listOpenAgentPatchProposals(projectId: string) {
+    return (
+      await this.prisma.agentPatchProposal.findMany({
+        where: { projectId, status: { in: ['pending', 'applying', 'failed'] } },
+        orderBy: { updatedAt: 'desc' },
+      })
+    ).map(mapAgentPatchProposal);
+  }
+
+  async deleteAgentPatchProposal(projectId: string, id: string) {
+    const deleted = await this.prisma.agentPatchProposal.deleteMany({ where: { projectId, id } });
+    return deleted.count > 0;
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {
@@ -1832,6 +1889,25 @@ function mapProjectShareLink(link: any): ProjectShareLinkRecord {
     createdByUserId: link.createdByUserId ?? undefined,
     revokedAt: toIso(link.revokedAt),
     createdAt: toIso(link.createdAt)!,
+  };
+}
+
+function mapAgentPatchProposal(row: any): AgentPatchProposalRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    artifactId: row.artifactId,
+    messageId: row.messageId,
+    actionId: row.actionId,
+    filePath: row.filePath,
+    relativePath: row.relativePath,
+    originalContent: row.originalContent,
+    proposedContent: row.proposedContent,
+    hunks: row.hunks,
+    status: row.status,
+    error: row.error ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
   };
 }
 

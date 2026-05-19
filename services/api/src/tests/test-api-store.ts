@@ -4,6 +4,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import type {
   AbuseEventRecord,
+  AgentPatchProposalRecord,
+  AgentPatchProposalStatus,
   ApiStore,
   AiCostLedgerRecord,
   AiConversationRecord,
@@ -81,6 +83,7 @@ export class TestApiStore implements ApiStore {
   readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
   readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
+  readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly supportTickets = new Map<string, SupportTicketRecord>();
@@ -724,6 +727,58 @@ export class TestApiStore implements ApiStore {
 
   async listProjectShareLinks(projectId: string) {
     return [...this.projectShareLinks.values()].filter((link) => link.projectId === projectId);
+  }
+
+  async upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }) {
+    const existing = this.agentPatchProposals.get(input.id);
+    const proposal: AgentPatchProposalRecord = {
+      id: input.id,
+      projectId: input.projectId,
+      artifactId: input.artifactId,
+      messageId: input.messageId,
+      actionId: input.actionId,
+      filePath: input.filePath,
+      relativePath: input.relativePath,
+      originalContent: existing?.originalContent ?? input.originalContent,
+      proposedContent: input.proposedContent,
+      hunks: input.hunks,
+      status: input.status,
+      error: input.error,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
+    this.agentPatchProposals.set(input.id, proposal);
+    return proposal;
+  }
+
+  async listOpenAgentPatchProposals(projectId: string) {
+    return [...this.agentPatchProposals.values()]
+      .filter((proposal) => proposal.projectId === projectId)
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+
+  async deleteAgentPatchProposal(projectId: string, id: string) {
+    const existing = this.agentPatchProposals.get(id);
+
+    if (!existing || existing.projectId !== projectId) {
+      return false;
+    }
+
+    this.agentPatchProposals.delete(id);
+    return true;
   }
 
   async createWorkspace(input: { id?: string; projectId: string; name: string; runtimeMode: string }) {

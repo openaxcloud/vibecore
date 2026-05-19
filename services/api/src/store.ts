@@ -384,6 +384,30 @@ export interface ProjectShareLinkRecord {
   createdAt: string;
 }
 
+/*
+ * Status enum mirrored from the client-side AgentPatchProposalStatus
+ * (workbench.ts). Terminal statuses (`accepted`, `rejected`, `reverted`) are
+ * never persisted — the client deletes the row after the user decides.
+ */
+export type AgentPatchProposalStatus = 'pending' | 'applying' | 'failed';
+
+export interface AgentPatchProposalRecord {
+  id: string;
+  projectId: string;
+  artifactId: string;
+  messageId: string;
+  actionId: string;
+  filePath: string;
+  relativePath: string;
+  originalContent: string;
+  proposedContent: string;
+  hunks: unknown;
+  status: AgentPatchProposalStatus;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BillingCustomerRecord {
   id: string;
   organizationId: string;
@@ -577,6 +601,22 @@ export interface ApiStore {
     createdByUserId?: string;
   }): Promise<ProjectShareLinkRecord>;
   listProjectShareLinks(projectId: string): Promise<ProjectShareLinkRecord[]>;
+  upsertAgentPatchProposal(input: {
+    id: string;
+    projectId: string;
+    artifactId: string;
+    messageId: string;
+    actionId: string;
+    filePath: string;
+    relativePath: string;
+    originalContent: string;
+    proposedContent: string;
+    hunks: unknown;
+    status: AgentPatchProposalStatus;
+    error?: string;
+  }): Promise<AgentPatchProposalRecord>;
+  listOpenAgentPatchProposals(projectId: string): Promise<AgentPatchProposalRecord[]>;
+  deleteAgentPatchProposal(projectId: string, id: string): Promise<boolean>;
   createWorkspace(input: {
     id?: string;
     projectId: string;
