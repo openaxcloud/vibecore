@@ -63,6 +63,10 @@ services:
     port: 3001
     replicas: 2
     path: /api
+    # /ready hits Postgres + Redis (services/api/src/app.ts:3575). On a
+    # transient DB hiccup the pod drops out of the Service without being
+    # killed, so users hit a healthy replica instead of a 5xx mid-request.
+    readyPath: /ready
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }

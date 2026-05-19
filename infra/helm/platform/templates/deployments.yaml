@@ -55,18 +55,26 @@ spec:
             - name: HOST
               value: "0.0.0.0"
           {{- if ne $svc.httpHealth false }}
+          # readinessProbe distinguished from livenessProbe: a 503 on /ready
+          # (DB/Redis check) drops the pod from the Service backend without
+          # killing the process. /health stays a pure sync 200 so liveness
+          # only fires on a deadlocked or crashed Node process.
           readinessProbe:
             httpGet:
-              path: {{ $svc.healthPath | default "/health" }}
+              path: {{ $svc.readyPath | default $svc.healthPath | default "/health" }}
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           livenessProbe:
             httpGet:
               path: {{ $svc.healthPath | default "/health" }}
               port: http
             initialDelaySeconds: 30
             periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 5
           {{- end }}
           resources:
 {{ toYaml $svc.resources | indent 12 }}
