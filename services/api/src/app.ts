@@ -1995,15 +1995,32 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   const userInfoUrl = process.env[`${provider.toUpperCase()}_USERINFO_URL`];
 
   if (!tokenUrl || !userInfoUrl) {
-    throw Object.assign(new Error('OAuth provider is not configured'), {
-      statusCode: 503,
-      code: 'OAUTH_PROVIDER_NOT_CONFIGURED',
-    });
+    throw Object.assign(
+      new Error(
+        `OAuth provider ${provider} is not configured (missing ${provider.toUpperCase()}_TOKEN_URL or ${provider.toUpperCase()}_USERINFO_URL)`,
+      ),
+      {
+        statusCode: 503,
+        code: 'OAUTH_PROVIDER_NOT_CONFIGURED',
+      },
+    );
   }
 
   const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
   const clientSecret = process.env[`${provider.toUpperCase()}_CLIENT_SECRET`];
   const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
+
+  if (!clientId || !clientSecret) {
+    throw Object.assign(
+      new Error(
+        `OAuth provider ${provider} is missing credentials (need ${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET)`,
+      ),
+      {
+        statusCode: 503,
+        code: 'OAUTH_PROVIDER_MISSING_CREDENTIALS',
+      },
+    );
+  }
 
   const tokenPayload: Record<string, string> = {
     grant_type: 'authorization_code',
@@ -2029,10 +2046,21 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   });
 
   if (!tokenResponse.ok) {
-    throw Object.assign(new Error('OAuth token exchange failed'), {
-      statusCode: 401,
-      code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
-    });
+    let providerBody = '';
+    try {
+      providerBody = (await tokenResponse.text()).slice(0, 500);
+    } catch {
+      // ignore body read failures
+    }
+    throw Object.assign(
+      new Error(`OAuth token exchange failed (status=${tokenResponse.status}): ${providerBody || '<empty>'}`),
+      {
+        statusCode: 401,
+        code: 'OAUTH_TOKEN_EXCHANGE_FAILED',
+        providerStatus: tokenResponse.status,
+        providerBody,
+      },
+    );
   }
 
   const tokens = (await tokenResponse.json()) as { access_token?: string; id_token?: string; refresh_token?: string };
@@ -2051,7 +2079,21 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   const profileResponse = await fetch(userInfoUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
 
   if (!profileResponse.ok) {
-    throw Object.assign(new Error('OAuth userinfo failed'), { statusCode: 401, code: 'OAUTH_USERINFO_FAILED' });
+    let providerBody = '';
+    try {
+      providerBody = (await profileResponse.text()).slice(0, 500);
+    } catch {
+      // ignore body read failures
+    }
+    throw Object.assign(
+      new Error(`OAuth userinfo failed (status=${profileResponse.status}): ${providerBody || '<empty>'}`),
+      {
+        statusCode: 401,
+        code: 'OAUTH_USERINFO_FAILED',
+        providerStatus: profileResponse.status,
+        providerBody,
+      },
+    );
   }
 
   const profile = (await profileResponse.json()) as {
@@ -3972,33 +4014,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(401).send({ error: 'Invalid or expired OAuth state', code: 'OAUTH_STATE_INVALID' });
       }
 
-      const profile = await resolveOAuthProfile(provider, body);
+      let profile;
+      try {
+        profile = await resolveOAuthProfile(provider, body);
+      } catch (err: any) {
+        request.log.error(
+          { provider, code: err?.code, statusCode: err?.statusCode, msg: err?.message },
+          'oauth resolveOAuthProfile failed',
+        );
+        return reply
+          .code(err?.statusCode ?? 500)
+          .send({ error: err?.message ?? 'OAuth resolve failed', code: err?.code ?? 'OAUTH_RESOLVE_FAILED' });
+      }
 
-      const user =
-        (await store.findUserByEmail(profile.email)) ??
-        (await store.createUser({
-          email: profile.email,
-          name: profile.name,
-          passwordHash: hashPassword(createOpaqueToken('oauth')),
-        }));
-      await store.upsertOAuthConnection({
-        userId: user.id,
-        provider,
-        externalId: profile.externalId,
-        accessToken: profile.accessToken,
-        refreshToken: profile.refreshToken,
-      });
+      try {
+        const user =
+          (await store.findUserByEmail(profile.email)) ??
+          (await store.createUser({
+            email: profile.email,
+            name: profile.name,
+            passwordHash: hashPassword(createOpaqueToken('oauth')),
+          }));
+        await store.upsertOAuthConnection({
+          userId: user.id,
+          provider,
+          externalId: profile.externalId,
+          accessToken: profile.accessToken,
+          refreshToken: profile.refreshToken,
+        });
 
-      const token = createOpaqueToken('session');
-      await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
-      reply.setCookie('session', token, authCookieOptions(isProduction));
-      await audit(request, store, {
-        action: `auth.oauth.${provider}.login`,
-        resourceType: 'user',
-        resourceId: user.id,
-      });
+        const token = createOpaqueToken('session');
+        await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
+        reply.setCookie('session', token, authCookieOptions(isProduction));
+        await audit(request, store, {
+          action: `auth.oauth.${provider}.login`,
+          resourceType: 'user',
+          resourceId: user.id,
+        });
 
-      return { token, user: { id: user.id, email: user.email, name: user.name } };
+        return { token, user: { id: user.id, email: user.email, name: user.name } };
+      } catch (err: any) {
+        request.log.error(
+          { provider, code: err?.code, msg: err?.message, stack: err?.stack },
+          'oauth user/session persistence failed',
+        );
+        return reply.code(500).send({ error: 'OAuth login persistence failed', code: 'OAUTH_SESSION_FAILED' });
+      }
     },
   );
   app.get('/auth/oidc/start', async () => ({

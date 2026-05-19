@@ -52,7 +52,7 @@ describe('login route loader', () => {
     expect((response as Response).status).toBe(301);
   });
 
-  it('returns null on the app subdomain so the form renders', async () => {
+  it('returns no oauth error on the app subdomain so the form renders', async () => {
     const response = await loader({
       request: buildRequest('app.e-code.ai'),
       params: {},
@@ -61,10 +61,13 @@ describe('login route loader', () => {
       >[0]['context'],
     });
 
-    expect(response).toBeNull();
+    expect(response).toBeInstanceOf(Response);
+
+    const body = (await (response as Response).json()) as { oauth: unknown };
+    expect(body.oauth).toBeNull();
   });
 
-  it('returns null on localhost so dev mode keeps working', async () => {
+  it('returns no oauth error on localhost so dev mode keeps working', async () => {
     const response = await loader({
       request: buildRequest('localhost:5173'),
       params: {},
@@ -73,6 +76,36 @@ describe('login route loader', () => {
       >[0]['context'],
     });
 
-    expect(response).toBeNull();
+    expect(response).toBeInstanceOf(Response);
+
+    const body = (await (response as Response).json()) as { oauth: unknown };
+    expect(body.oauth).toBeNull();
+  });
+
+  it('surfaces the oauth error from query params', async () => {
+    const request = new Request(
+      'http://app.e-code.ai/login?oauth=google&error=callback_failed&detail=OAUTH_TOKEN_EXCHANGE_FAILED',
+      {
+        headers: { host: 'app.e-code.ai' },
+      },
+    );
+    const response = await loader({
+      request,
+      params: {},
+      context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+        typeof loader
+      >[0]['context'],
+    });
+
+    expect(response).toBeInstanceOf(Response);
+
+    const body = (await (response as Response).json()) as {
+      oauth: { provider: string; error: string; detail: string | null } | null;
+    };
+    expect(body.oauth).toEqual({
+      provider: 'google',
+      error: 'callback_failed',
+      detail: 'OAUTH_TOKEN_EXCHANGE_FAILED',
+    });
   });
 });

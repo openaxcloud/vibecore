@@ -1,4 +1,4 @@
-import { Form, Link, useActionData, useNavigation } from '@remix-run/react';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from '@remix-run/react';
 import {
   ArrowRight,
   CheckCircle,
@@ -40,7 +40,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('https://app.e-code.ai/login', { status: 301 });
   }
 
-  return null;
+  const url = new URL(request.url);
+  const oauth = url.searchParams.get('oauth');
+  const oauthError = url.searchParams.get('error');
+  const oauthDetail = url.searchParams.get('detail');
+
+  return json({
+    oauth: oauth && oauthError ? { provider: oauth, error: oauthError, detail: oauthDetail } : null,
+  });
 }
 
 const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
@@ -111,9 +118,19 @@ export async function action({ request }: EnterpriseActionArgs) {
 export default function LoginPage() {
   const actionData = useActionData<typeof action>();
 
+  const loaderData = useLoaderData<typeof loader>() as
+    | { oauth?: { provider: string; error: string; detail?: string | null } | null }
+    | undefined;
+
   const loginActionData = actionData as
     | { error?: string; mfaRequired?: boolean; email?: string; rememberMe?: boolean }
     | undefined;
+
+  const oauthErrorMessage = loaderData?.oauth
+    ? `Sign-in with ${loaderData.oauth.provider} failed (${loaderData.oauth.error}${
+        loaderData.oauth.detail ? `: ${loaderData.oauth.detail}` : ''
+      }).`
+    : null;
 
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
@@ -161,6 +178,10 @@ export default function LoginPage() {
             {loginActionData?.error ? (
               <div className="mb-4 rounded-md border border-[#F85149]/40 bg-[#F85149]/10 px-3 py-2 text-[12px] text-[#FCA5A5]">
                 {loginActionData.error}
+              </div>
+            ) : oauthErrorMessage ? (
+              <div className="mb-4 rounded-md border border-[#F85149]/40 bg-[#F85149]/10 px-3 py-2 text-[12px] text-[#FCA5A5]">
+                {oauthErrorMessage}
               </div>
             ) : null}
 
