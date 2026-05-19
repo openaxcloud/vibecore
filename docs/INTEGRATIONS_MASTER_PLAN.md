@@ -87,6 +87,26 @@ The `webhooks[]` and `apiKeys[]` structures stay as features inside the Manage s
 
 Used for every new encrypted column (`accessTokenEncrypted`, `refreshTokenEncrypted`, `clientSecretEncrypted`, `apiKeyFieldsEncrypted`, `customHeadersEnc`).
 
+### THREE distinct GitHub flows coexist (do NOT confuse them)
+
+GitHub appears in three orthogonal subsystems. Phase 1 adds the third one without modifying the first two.
+
+1. **Git operations** — `services/api/src/app.ts:2242 commitInitialScaffold`, line 5195 `gitProvider.commit`, lines 6774/6809/6852/6874/6925 (project creation, GitHub import, auto-commit on scaffold). Implementation: `GitCliProvider` (real Git CLI) with credentials stored as project secret. Used by the agent today to clone repos, commit, push, pull. **Untouched by this chantier.**
+2. **GitHub Login** — `app.ts:3890 /auth/oauth/github/start`, `:3896 /auth/oauth/:provider/callback`. OAuth flow with **hashed** tokens in `OAuthConnection` (`schema.prisma:889-900`). Used solely for user login. **Untouched.**
+3. **GitHub Connector for the agent** — NEW. OAuth flow with **encrypted reversible** tokens in `UserConnection`, callback `/integrations/oauth/github/callback`, accessed via `connector-proxy` sidecar. Lets the agent call the GitHub REST API for actions beyond pure git (create issues, comment PRs, list repos, etc.). **This is the only GitHub flow Phase 1 builds.**
+
+The user-visible Settings tab `GitHubTab.tsx` is repaired in Phase 1 by implementing the missing `/api/github-user` and `/api/github-stats` routes backed by the new `UserConnection` — these were referenced for display purposes (profile, stats) and never touched the auto-commit flow.
+
+### MCP appears in three surfaces (single source of truth)
+
+`McpCatalogEntry` + `McpInstall` is the canonical data layer. Three UI surfaces read it:
+
+1. **Settings → MCP** (existing, `app/components/@settings/tabs/mcp/`) — JSON editor + marketplace browse. Power-user view. Untouched.
+2. **Chat MCP popover** (existing, `app/components/chat/MCPTools.tsx`, button in `ChatBox.tsx:14`) — shows the MCP tools currently available to the agent, refresh button, deep link to Settings → MCP. Reads `useMCPStore` which mirrors `McpInstall`. **Untouched.**
+3. **IDE Integrations panel → MCP Servers section** (new, Phase 3) — Replit-style curated catalogue with `featuredForIdePanel` filter, one-click "Sign in" / "Add MCP server" modal. Same `McpCatalogEntry` + `McpInstall` tables.
+
+Add an MCP via any of the three surfaces → it appears immediately in the other two. Zero regression on the existing chat popover and Settings tab.
+
 ### OAuth state HMAC (reuse intact, do NOT create new)
 - `signOauthState(provider, ttlSeconds=600)` — `services/api/src/app.ts:3795-3802`
 - `verifyOauthState(state, provider)` — `services/api/src/app.ts:3804-3826`
