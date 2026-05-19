@@ -894,6 +894,22 @@ importers:
         specifier: ^6.1.2
         version: 6.1.2
 
+  services/connector-proxy:
+    dependencies:
+      '@vibecore/connector-sdk':
+        specifier: workspace:*
+        version: link:../../packages/connector-sdk
+      fastify:
+        specifier: ^5.8.5
+        version: 5.8.5
+    devDependencies:
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)
+
   services/preview-proxy:
     dependencies:
       fastify:
