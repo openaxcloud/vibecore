@@ -38,4 +38,4 @@ COPY --from=build /runtime /runtime
 USER node
 EXPOSE 3000
 
-CMD ["sh", "-lc", "$START_CMD"]
+CMD ["sh", "-c", "exec $START_CMD"]
