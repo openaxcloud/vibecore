@@ -35,17 +35,19 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 }
 
 describe('agentPatchProposalSync', () => {
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
-  let warnSpy: ReturnType<typeof vi.spyOn>;
+  const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
+
+  let logSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch');
-    warnSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   });
 
   afterEach(() => {
-    fetchSpy.mockRestore();
-    warnSpy.mockRestore();
+    vi.unstubAllGlobals();
+    logSpy.mockRestore();
   });
 
   describe('isTerminalAgentPatchStatus', () => {
@@ -62,41 +64,41 @@ describe('agentPatchProposalSync', () => {
   describe('fetchOpenAgentPatchProposals', () => {
     it('hits the project-scoped endpoint with credentials + json accept and returns the proposals', async () => {
       const proposal = makeProposal();
-      fetchSpy.mockResolvedValueOnce(jsonResponse({ proposals: [proposal] }));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ proposals: [proposal] }));
 
       const result = await fetchOpenAgentPatchProposals('proj-1');
 
       expect(result).toEqual([proposal]);
-      expect(fetchSpy).toHaveBeenCalledWith(
+      expect(fetchMock).toHaveBeenCalledWith(
         '/api/projects/proj-1/agent-patch-proposals',
         expect.objectContaining({ credentials: 'include' }),
       );
     });
 
     it('returns an empty array on non-OK responses without throwing', async () => {
-      fetchSpy.mockResolvedValueOnce(new Response('boom', { status: 500 }));
+      fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }));
 
       const result = await fetchOpenAgentPatchProposals('proj-1');
 
       expect(result).toEqual([]);
-      expect(warnSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled();
     });
 
     it('returns an empty array when the network throws', async () => {
-      fetchSpy.mockRejectedValueOnce(new Error('offline'));
+      fetchMock.mockRejectedValueOnce(new Error('offline'));
 
       const result = await fetchOpenAgentPatchProposals('proj-1');
 
       expect(result).toEqual([]);
-      expect(warnSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled();
     });
 
     it('encodes the projectId so a slash or space in the path cannot escape the route', async () => {
-      fetchSpy.mockResolvedValueOnce(jsonResponse({ proposals: [] }));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ proposals: [] }));
 
       await fetchOpenAgentPatchProposals('proj/with space');
 
-      expect(fetchSpy).toHaveBeenCalledWith(
+      expect(fetchMock).toHaveBeenCalledWith(
         '/api/projects/proj%2Fwith%20space/agent-patch-proposals',
         expect.anything(),
       );
@@ -105,13 +107,13 @@ describe('agentPatchProposalSync', () => {
 
   describe('putAgentPatchProposal', () => {
     it('writes the non-terminal proposal with JSON headers and the full payload', async () => {
-      fetchSpy.mockResolvedValueOnce(jsonResponse({ proposal: makeProposal() }));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ proposal: makeProposal() }));
 
       await putAgentPatchProposal('proj-1', makeProposal({ status: 'pending' }));
 
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
 
-      const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(url).toBe('/api/projects/proj-1/agent-patch-proposals/artifact-1%3Aaction-1');
       expect(init.method).toBe('PUT');
       expect(init.credentials).toBe('include');
@@ -128,41 +130,41 @@ describe('agentPatchProposalSync', () => {
     });
 
     it('reroutes terminal statuses to DELETE instead of persisting them', async () => {
-      fetchSpy.mockResolvedValueOnce(jsonResponse({ deleted: true }));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ deleted: true }));
 
       await putAgentPatchProposal('proj-1', makeProposal({ status: 'accepted' }));
 
-      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
 
-      const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(init.method).toBe('DELETE');
       expect(url).toBe('/api/projects/proj-1/agent-patch-proposals/artifact-1%3Aaction-1');
     });
 
     it('swallows network errors after logging — the nanostore stays the source of truth', async () => {
-      fetchSpy.mockRejectedValueOnce(new Error('offline'));
+      fetchMock.mockRejectedValueOnce(new Error('offline'));
 
       await expect(putAgentPatchProposal('proj-1', makeProposal())).resolves.toBeUndefined();
-      expect(warnSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled();
     });
   });
 
   describe('deleteAgentPatchProposalRemote', () => {
     it('issues a DELETE with the proposal id and resolves on success', async () => {
-      fetchSpy.mockResolvedValueOnce(jsonResponse({ deleted: true }));
+      fetchMock.mockResolvedValueOnce(jsonResponse({ deleted: true }));
 
       await deleteAgentPatchProposalRemote('proj-1', 'artifact-1:action-1');
 
-      const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(url).toBe('/api/projects/proj-1/agent-patch-proposals/artifact-1%3Aaction-1');
       expect(init.method).toBe('DELETE');
     });
 
     it('logs and resolves rather than rejecting on a network error', async () => {
-      fetchSpy.mockRejectedValueOnce(new Error('offline'));
+      fetchMock.mockRejectedValueOnce(new Error('offline'));
 
       await expect(deleteAgentPatchProposalRemote('proj-1', 'x:y')).resolves.toBeUndefined();
-      expect(warnSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalled();
     });
   });
 });
