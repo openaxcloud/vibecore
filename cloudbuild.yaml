@@ -10,8 +10,12 @@
 #     --region=europe-west9 \
 #     --config=cloudbuild.yaml \
 #     --substitutions=_SHORT_SHA=$(git rev-parse --short=10 HEAD) \
-#     --machine-type=e2-highcpu-32 \
+#     --machine-type=e2-highcpu-8 \
 #     --timeout=3600s .
+#
+# Stick with e2-highcpu-8 — europe-west9 doesn't carry quota for the
+# larger e2-highcpu-32 tier as of 2026-05-19 (gcloud returns
+# FAILED_PRECONDITION otherwise).
 #
 # The chart pins `global.imageTag` to a SHA at deploy time, so the SHA tag
 # is what production actually rolls. `latest` is kept fresh as a fallback.
@@ -21,21 +25,23 @@ substitutions:
   _REPO: vibecore-prod-containers
   _SHORT_SHA: dev
 options:
-  machineType: E2_HIGHCPU_32
+  machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY
   # The build context plus 7 image layers chew through disk fast; give it
-  # plenty of headroom so we never OOM mid-bundle.
+  # plenty of headroom so we never run out mid-bundle.
   diskSizeGb: 200
 
 timeout: 3600s
 
 steps:
-  # Build all 7 images in parallel waitFor=['-'] so the slowest path wins
-  # instead of the sum of every build. Cloud Build's E2_HIGHCPU_32 has
-  # enough cores to fan out comfortably.
+  # Steps run serially (no `waitFor`). The previous parallel layout exit-137'd
+  # on E2_HIGHCPU_8 because seven concurrent `pnpm install` on a 2200-package
+  # monorepo overflowed the 8Gi RAM. Serial keeps each install isolated; total
+  # wall time is acceptable because every step writes to the shared Docker
+  # layer cache, so the heavy `pnpm fetch` work is reused across the six
+  # node-service.Dockerfile builds that follow.
   - id: build-web
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - --target=bolt-ai-production
@@ -45,7 +51,6 @@ steps:
 
   - id: build-admin
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
@@ -57,7 +62,6 @@ steps:
 
   - id: build-api
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
@@ -69,7 +73,6 @@ steps:
 
   - id: build-worker
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
@@ -81,7 +84,6 @@ steps:
 
   - id: build-ai-gateway
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
@@ -93,7 +95,6 @@ steps:
 
   - id: build-workspace-manager
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
@@ -105,7 +106,6 @@ steps:
 
   - id: build-preview-proxy
     name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
     args:
       - build
       - -f=infra/docker/node-service.Dockerfile
