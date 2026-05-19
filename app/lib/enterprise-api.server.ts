@@ -2,8 +2,30 @@ import { json, redirect, type ActionFunctionArgs, type LoaderFunctionArgs } from
 
 const sessionCookieName = 'vc_session';
 
+/*
+ * `vite-plugin-node-polyfills` injects a browser process shim into the SSR
+ * bundle (vite.config.ts globals.process=true). That shim ships `env: {}`,
+ * so runtime env vars set by the K8s deployment never reach this module —
+ * `process.env.SAAS_API_URL` evaluates to undefined in production.
+ *
+ * `process.env.NODE_ENV` is the one exception: vite's `define` inlines it as
+ * a literal string at build time, so the conditional below survives the
+ * polyfill. We use it to pick an in-cluster service URL by default so the
+ * web pod can still reach the api pod when env wiring is missing. The
+ * production K8s Service is `<release>-<chart>-api` in namespace `vibecore`
+ * which resolves to `vibecore-vibecore-platform-api.vibecore.svc.cluster.local`.
+ */
+const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
+const LOCAL_DEV_API_URL = 'http://localhost:8787';
+
 export function apiBaseUrl() {
-  return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://localhost:8787';
+  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
+
+  if (fromEnv && fromEnv.length > 0) {
+    return fromEnv;
+  }
+
+  return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : LOCAL_DEV_API_URL;
 }
 
 export function readSessionToken(request: Request) {

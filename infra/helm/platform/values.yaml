@@ -29,6 +29,29 @@ global:
 secrets:
   existingSecret: vibecore-platform-secrets
 
+# Non-secret env values injected via ConfigMap (templates/configmap.yaml).
+# OAuth client IDs/secrets live in the existing Secret; only the public,
+# well-known URLs and the platform admin allowlist go here.
+platformEnv:
+  # In-cluster DNS for the api Service. Released chart name is
+  # `<release>-<chart>-api`, so with `helm install vibecore ...` this is
+  # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.
+  saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  platformAdminEmails: ""
+  google:
+    authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
+    tokenUrl: "https://oauth2.googleapis.com/token"
+    userinfoUrl: "https://openidconnect.googleapis.com/v1/userinfo"
+    redirectUri: ""
+    scope: "openid email profile"
+  github:
+    authorizationUrl: "https://github.com/login/oauth/authorize"
+    tokenUrl: "https://github.com/login/oauth/access_token"
+    userinfoUrl: "https://api.github.com/user"
+    redirectUri: ""
+    scope: "read:user user:email"
+
 ingress:
   className: nginx
   issuerName: letsencrypt-dns01
