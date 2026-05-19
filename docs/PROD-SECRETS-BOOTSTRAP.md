@@ -171,6 +171,9 @@ declare -A MAP=(
   [STRIPE_ENTERPRISE_PRODUCT_ID]=vibecore-prod-stripe-enterprise-product-id
   [OTEL_EXPORTER_OTLP_ENDPOINT]=vibecore-prod-otel-endpoint
   [INCIDENT_WEBHOOK_URL]=vibecore-prod-incident-webhook-url
+  [EMAIL_HTTP_ENDPOINT]=vibecore-prod-email-http-endpoint
+  [EMAIL_HTTP_TOKEN]=vibecore-prod-email-http-token
+  [EMAIL_FROM]=vibecore-prod-email-from
 )
 for k in "${!MAP[@]}"; do
   v=$(gcloud secrets versions access latest --secret="${MAP[$k]}" 2>/dev/null) || continue
