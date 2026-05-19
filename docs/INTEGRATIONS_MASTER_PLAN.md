@@ -123,8 +123,50 @@ The new `UserConnection` table is genuinely needed for reversible-encrypted toke
 This **replaces** the previously planned `ConnectionAccessLog` dedicated table. No new audit table needed.
 
 ### Existing `McpInstall.projectId` (already supports per-project scoping)
-- `McpInstall` already has `projectId String?` (added in a post-0011 migration, visible at `schema.prisma:990`)
-- The "subscribe an MCP server to a project" feature works today — the new IDE panel just adds a curated `featuredForIdePanel` view on top.
+
+`McpInstall` already has `projectId String?` (added in a post-0011 migration, visible at `packages/database/prisma/schema.prisma:990`). The "subscribe an MCP server to a project" feature works today — the new IDE panel just adds a curated `featuredForIdePanel` view on top, no schema change.
+
+### Specialized packages (reuse, do NOT duplicate)
+
+The codebase has dedicated packages that already implement utilities the plan needed. Every new module pulls from them:
+
+- `packages/audit/src/index.ts` — `AuditEvent`, `AuditSink`, `criticalAuditActions` (set of high-signal action keys for SIEM forwarding), `redactAuditMetadata` (strips secrets from metadata before audit insert). Every new `AuditLog.create` for connectors uses these.
+- `packages/auth/src/index.ts` — `hashToken`, `createOpaqueToken`, `hashPassword`, `verifyPassword`, `authCookieOptions`, TOTP helpers. The new sidecar JWT auth reuses `hashToken` + `createOpaqueToken` patterns.
+- `packages/quota/src/index.ts` — `QuotaLimit`, `QuotaUsage`, `assertWithinQuota`. Plan gating in §9 calls `assertWithinQuota` through the existing `ensureQuota(request, orgId, key, increment)` middleware at `app.ts:4973` (already used 10+ times for `ai.toolCalls`, `deployments.count`, `workspaces.active`, etc.).
+- `packages/rbac/src/index.ts` — `PermissionKey`, `rolePermissions`, `hasPermission`, `requirePermission`. The `allowedRoleKeys` field in `OrganizationConnectorPolicy` cross-references existing `Role.key` + `CustomRole.key`; the sidecar's permission check at step 4 of the ACL uses `hasPermission(roleKey, 'integrations:use')`.
+- `packages/observability/` — structured logging + metrics. Sidecar emits spans/counters here, no parallel system.
+
+### Agent orchestration location (verified)
+
+The e-code agent does NOT live in `services/workspace-agent/` (which is a 3-file workspace-side runtime). The actual LLM-driven agent is in `app/lib/.server/llm/agent-orchestration.ts` (413 lines).
+
+Notable surface:
+- `AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa'` — multi-role orchestration (parallel subagents OR single-model-lanes mode)
+- `ECODE_AGENT_ROLES` constant at line 155
+- `executeAgentOrchestration(input)` at line 293
+- `createAgentOrchestrationPrompt(plan)` at line 389 — system prompt builder
+
+The new connector detection + `connection_request` emission hooks into `executeAgentOrchestration`. The plan's "Agent layer" code lives here, not in workspace-agent.
+
+### Chat message format (verified — uses Vercel AI SDK)
+
+Chat messages use the Vercel AI SDK's `Message` type (`import type { Message } from 'ai'`). The codebase extends it via `ChatMessage` interface at `app/lib/persistence/chats.ts:8`. New agent message kinds (`connection_request`, `secret_request`, `connection_resolved`, `connection_failed`) are emitted as **AI SDK data parts** (custom annotations on the message stream), not as a new runtime-contract type. This avoids forking the chat protocol.
+
+### No-mocks gate (CI-enforced — affects every new file)
+
+`scripts/check-no-runtime-mocks.mjs` scans `app/`, `services/`, `packages/`, `infra/` for blocked patterns:
+
+```
+/\b(Mock|mock|InMemory|stub|fake|scaffolded)\b|Test(ApiStore|ProjectStorage|GitProvider|EmailProvider|WorkspaceStore|EventBus|WorkspaceK8sClient)/
+```
+
+Run by `pnpm run platform:no-mocks` and chained into `platform:verify`. Tests are excluded (`*.spec.*`, `*.test.*`, `/tests/`, `/src/tests/`).
+
+Every new file in this chantier — sidecar service, SDK package, route handler, frontend component, agent module — must not contain those identifiers in non-test code. The plan's previous mention of `MockGitProvider` for testing is fine inside `.spec.ts`, not elsewhere. New mocks must be implemented as real adapters with a different naming convention (e.g. `RecordingConnectorAdapter`, `OfflineConnectorAdapter`).
+
+### Workers (run in existing `services/worker/`)
+
+`services/worker/src/index.ts` (118 lines) is the existing background worker entrypoint. The §10 workers (`tokenRefresher`, `tokenHealthCheck`, `reconnectionAlertNotifier`, `auditLogAggregator`, `auditLogExporter`) are added as new modules consumed by this service — not as standalone services.
 
 ## 3. Panel architecture — 4 sections
 
@@ -634,13 +676,16 @@ Agent specs:
 The phasing was revised after the live audit of the 5 existing Settings tabs revealed that GitHub, Vercel, Supabase are partially or completely broken (missing backend routes), and all 5 store tokens in plaintext localStorage. The new IDE Integrations panel UI is delivered **last**, on top of a solid foundation. The first phases repair the existing surface.
 
 ### Phase 0 — Foundation (3-4 days)
-- Prisma migration: 7 new tables (`ConnectorCatalog`, `UserConnection`, `ProjectConnectionLink`, `OrganizationOAuthAppOverride`, `OrganizationConnectorPolicy`, `ReconnectionAlert`, `IntegrationFeatureRequest`) + 1 column on `McpCatalogEntry` (`featuredForIdePanel`). The previously planned `ConnectionAccessLog` is dropped — audit goes into existing `AuditLog`.
+- Prisma migration `0015_integrations_connectors`: 7 new tables (`ConnectorCatalog`, `UserConnection`, `ProjectConnectionLink`, `OrganizationOAuthAppOverride`, `OrganizationConnectorPolicy`, `ReconnectionAlert`, `IntegrationFeatureRequest`) + 1 column on `McpCatalogEntry` (`featuredForIdePanel`). The previously planned `ConnectionAccessLog` is dropped — audit goes into existing `AuditLog` via `packages/audit`.
 - Seed `ConnectorCatalog` with GitHub entry only (Phase 1 first provider). Stub entries for the 4 other repaired providers (Vercel, Supabase, GitLab, Netlify) so their Settings tabs can refer to them.
 - Reuse `signOauthState` / `verifyOauthState` from `app.ts:3795-3826` — no new state mechanism.
-- Skeleton `services/connector-proxy/` with healthz, ACL middleware, no providers wired yet.
-- Skeleton `packages/connector-sdk/` with type generator reading from `ConnectorCatalog`.
-- Skeleton extension of `packages/runtime-contract/` with new agent message types (definitions only).
+- Skeleton `services/connector-proxy/` with healthz, ACL middleware. Auth uses `hashToken` + `createOpaqueToken` from `packages/auth`. Permission check uses `hasPermission` from `packages/rbac`. Audit writes via `packages/audit` AuditSink to existing `AuditLog`. Rate limits enforced via `assertWithinQuota` from `packages/quota` through existing `ensureQuota` middleware.
+- Skeleton `packages/connector-sdk/` with type generator reading from `ConnectorCatalog`. Naming convention: NO `Mock|mock|InMemory|stub|fake|scaffolded` per `scripts/check-no-runtime-mocks.mjs`. Use `RecordingAdapter` / `OfflineAdapter` if test-double behavior is needed in production code.
+- Chat message types (`connection_request`, `secret_request`, `connection_resolved`, `connection_failed`) added as Vercel AI SDK **data parts** annotated on the existing `Message` stream (no fork of runtime-contract). Type definitions co-located in `app/lib/chat/connector-messages.ts`.
+- Connector detection + emission hooked into `app/lib/.server/llm/agent-orchestration.ts:293` (`executeAgentOrchestration`) — the actual e-code agent loop. NOT in `services/workspace-agent/` which is the workspace-side runtime.
+- Workers (`tokenRefresher`, `tokenHealthCheck`, `reconnectionAlertNotifier`) added as modules consumed by existing `services/worker/src/index.ts` (118 lines).
 - Cross-user / cross-project / cross-org isolation tests — must be green before any feature ships.
+- `pnpm run platform:verify` must pass (chains `platform:no-mocks` + lint + test + typecheck + build + infra:validate).
 
 ### Phase 1 — Repair GitHub (1-2 weeks)
 Repair the broken GitHub Settings tab by building it on top of the new `UserConnection` infrastructure. This validates the whole connector pattern (OAuth, sidecar, encryption, audit, reconnect) on one provider before generalizing.
@@ -725,3 +770,11 @@ Now that the data layer is solid (Phases 0-2 deliver real `UserConnection` for 5
 - `docs/AUTH_RBAC.md` — `requireProject` / `requireOrg` middleware used throughout
 - `packages/security/src/index.ts` — `encryptJson` / `decryptJson` used for every encrypted column
 - `packages/workspace-sdk/src/index.ts` — HMAC JWT pattern reused for sidecar auth
+- `packages/audit/src/index.ts` — `AuditSink`, `redactAuditMetadata`, `criticalAuditActions` used for every connector audit insert
+- `packages/auth/src/index.ts` — `hashToken`, `createOpaqueToken` used for sidecar JWT
+- `packages/quota/src/index.ts` — `assertWithinQuota` used via existing `ensureQuota` middleware for plan gating
+- `packages/rbac/src/index.ts` — `hasPermission`, `requirePermission`, `PermissionKey` used for connector RBAC
+- `app/lib/.server/llm/agent-orchestration.ts` — the actual e-code agent (`executeAgentOrchestration`), where connector detection + connection_request emission hooks in
+- `app/lib/chat/` — existing chat module where connector message renderers and data-part handlers live
+- `services/worker/src/index.ts` — existing background worker where new connector workers (token refresh, health check, reconnection alerts) plug in
+- `scripts/check-no-runtime-mocks.mjs` — CI-enforced banned-identifier scanner; every new non-test file must comply
