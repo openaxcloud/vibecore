@@ -39,6 +39,9 @@ platformEnv:
   saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
   apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
   platformAdminEmails: ""
+  # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
+  # Override to "false" only for local helm template debugging.
+  trustProxy: "true"
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

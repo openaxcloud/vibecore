@@ -34,3 +34,7 @@ data:
 
   # Comma-separated list of emails granted PlatformAdmin (services/api/src/app.ts:2224).
   PLATFORM_ADMIN_EMAILS: {{ .Values.platformEnv.platformAdminEmails | quote }}
+
+  # Tell Fastify to honor X-Forwarded-* from the GKE ingress so request.ip
+  # is the real client IP (audit logs, rate-limits, OAuth callback origin).
+  TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}
