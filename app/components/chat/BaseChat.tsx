@@ -256,6 +256,44 @@ const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'terminal', 'pre
 
 const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deploy'] as const;
 
+const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[number], Set<string>> = {
+  chat: new Set(['agent', 'assistant', 'actions', 'tools']),
+  files: new Set(['files']),
+  editor: new Set(['editor']),
+  search: new Set(['search']),
+  terminal: new Set(['terminal', 'console', 'shell']),
+  preview: new Set(['preview', 'web']),
+  deploy: new Set([
+    'deploy',
+    'publishing',
+    'app-storage',
+    'auth',
+    'database',
+    'debug',
+    'developer',
+    'git',
+    'history',
+    'integrations',
+    'collaboration',
+    'collaborate',
+    'multiplayer',
+    'packages',
+    'secrets',
+    'settings',
+    'workflows',
+    'checkpoints',
+    'extensions',
+    'security',
+    'debugger',
+    'deployments',
+    'object-storage',
+    'activity',
+    'collaborators',
+    'snapshots',
+    'env',
+  ]),
+};
+
 const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Preview', icon: 'i-ph:monitor' },
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
@@ -472,6 +510,16 @@ type AgentToolAction = {
   title: string;
   description: string;
   icon: string;
+};
+
+const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {
+  deployments: 'deploy',
+  'object-storage': 'app-storage',
+  debugger: 'debug',
+  activity: 'history',
+  collaborators: 'collaboration',
+  snapshots: 'checkpoints',
+  env: 'secrets',
 };
 type ProjectSnapshot = {
   id: string;
@@ -2063,10 +2111,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setActiveMobileOpenTabId(tab.id);
     }, []);
     const setMobileIdePanel = useCallback(
-      (panel: (typeof MOBILE_IDE_PANELS)[number]) => {
+      (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
         setMobilePanel(panel);
         persistMobilePanel(panel);
-        ensureMobileOpenTab(panel === 'chat' ? 'agent' : panel);
+        ensureMobileOpenTab(options.activeTabId ?? (panel === 'chat' ? 'agent' : panel));
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
@@ -3498,8 +3546,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           normalizedToolId === 'actions' ||
           normalizedToolId === 'tools'
         ) {
-          setMobileIdePanel('chat');
-          ensureMobileOpenTab(normalizedToolId);
+          setMobileIdePanel('chat', { activeTabId: normalizedToolId });
         } else if (normalizedToolId === 'files') {
           setMobileIdePanel('files');
         } else if (normalizedToolId === 'search') {
@@ -3507,8 +3554,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         } else if (normalizedToolId === 'preview') {
           setMobileIdePanel('preview');
         } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
-          setMobileIdePanel('terminal');
-          ensureMobileOpenTab(normalizedToolId === 'console' ? 'console' : 'terminal');
+          setMobileIdePanel('terminal', { activeTabId: normalizedToolId === 'console' ? 'console' : 'terminal' });
         } else if (normalizedToolId === 'editor') {
           setMobileIdePanel('editor');
         } else {
@@ -3516,8 +3562,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (managementPanel) {
             openWorkspacePanel(managementPanel);
-            setMobileIdePanel('deploy');
-            ensureMobileOpenTab(normalizedToolId);
+            setMobileIdePanel('deploy', { activeTabId: normalizedToolId });
           }
         }
 
@@ -3671,20 +3716,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           } else if (activeProjectPanel === 'editor') {
             setMobileIdePanel('editor');
           } else if (isIdeManagementPanel(activeProjectPanel)) {
-            setMobileIdePanel('deploy');
-            ensureMobileOpenTab(activeProjectPanel);
+            setMobileIdePanel('deploy', {
+              activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
+            });
           }
         }
       }
-    }, [
-      activeProjectPanel,
-      ensureMobileOpenTab,
-      openWorkspacePanel,
-      projectIdeMode,
-      projectStateReady,
-      setMobileIdePanel,
-      useMobileIde,
-    ]);
+    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
 
     const onProjectEditorSave = useCallback(() => {
       workbenchStore.saveCurrentDocument().catch(() => undefined);
@@ -4005,8 +4043,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const persistedPanel = mobileIdeLocalState.activePanel as (typeof MOBILE_IDE_PANELS)[number];
       setMobilePanel(persistedPanel);
+
+      if (ECODE_MOBILE_COMPATIBLE_PANEL_TABS[persistedPanel]?.has(activeMobileOpenTabId)) {
+        return;
+      }
+
       ensureMobileOpenTab(persistedPanel === 'chat' ? 'agent' : persistedPanel);
-    }, [ensureMobileOpenTab, mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
+    }, [activeMobileOpenTabId, ensureMobileOpenTab, mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
 
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
@@ -5936,6 +5979,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
+      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+        id: activeMobileOpenTabId,
+        name: panelTitle(activeMobileOpenTabId),
+        icon: panelIcon(activeMobileOpenTabId),
+      };
+
     const keybindingSections = useMemo(
       () =>
         (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
@@ -5968,6 +6018,63 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {projectIdeMode && useMobileIde && (
+          <header className="bolt-mobile-ecode-header" data-testid="mobile-ide-header">
+            <div className="bolt-mobile-ecode-header-inner">
+              <div className="bolt-mobile-ecode-header-side">
+                <button type="button" aria-label="Back" data-testid="button-back" onClick={() => window.history.back()}>
+                  <span className="i-ph:arrow-left" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="History"
+                  data-testid="button-history"
+                  onClick={() => activateMobileTool('history')}
+                >
+                  <span className="i-ph:clock-counter-clockwise" aria-hidden />
+                </button>
+              </div>
+
+              <div className="bolt-mobile-ecode-header-title">
+                {mobileHeaderTab.icon === 'agent' ? (
+                  <MobileReplitAgentIcon className="bolt-mobile-ecode-header-agent" />
+                ) : (
+                  <span className={mobileHeaderTab.icon} aria-hidden />
+                )}
+                <span>{mobileHeaderTab.name}</span>
+              </div>
+
+              <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
+                <button
+                  type="button"
+                  aria-label="New tab"
+                  data-testid="button-new-tab"
+                  onClick={() => {
+                    setMobileMoreOpen(false);
+                    setMobileTabSwitcherOpen(false);
+                    setMobileToolsSheetOpen(true);
+                  }}
+                >
+                  <span className="i-ph:plus" aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  aria-label="More options"
+                  aria-haspopup="dialog"
+                  aria-expanded={mobileMoreOpen}
+                  data-testid="button-more"
+                  onClick={() => {
+                    setMobileToolsSheetOpen(false);
+                    setMobileTabSwitcherOpen(false);
+                    setMobileMoreOpen(true);
+                  }}
+                >
+                  <span className="i-ph:dots-three-vertical" aria-hidden />
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
           {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
         </div>

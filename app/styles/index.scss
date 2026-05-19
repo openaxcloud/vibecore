@@ -3103,6 +3103,99 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
 }
 
+.bolt-mobile-ecode-header {
+  display: none;
+}
+
+.bolt-mobile-ecode-header-inner {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.bolt-mobile-ecode-header-side {
+  display: flex;
+  min-width: 82px;
+  align-items: center;
+  gap: 4px;
+}
+
+.bolt-mobile-ecode-header-side--right {
+  justify-content: flex-end;
+}
+
+.bolt-mobile-ecode-header button {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ca3af;
+  padding: 0;
+  touch-action: manipulation;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-mobile-ecode-header button:first-child {
+  margin-left: -8px;
+}
+
+.bolt-mobile-ecode-header-side--right button:last-child {
+  margin-right: -8px;
+}
+
+.bolt-mobile-ecode-header button:active {
+  background: #2a2a2a;
+  transform: scale(0.95);
+}
+
+.bolt-mobile-ecode-header button > span {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.bolt-mobile-ecode-header-title {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 13px !important;
+  font-weight: 600;
+  line-height: 1 !important;
+}
+
+.bolt-mobile-ecode-header-title > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-mobile-ecode-header-title > span:first-child,
+.bolt-mobile-ecode-header-title > svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  color: #6b7280;
+  font-size: 20px;
+}
+
+.bolt-mobile-ecode-header-agent {
+  color: #7c65c1 !important;
+}
+
 .bolt-mobile-replit-nav {
   position: fixed;
   right: 0;
@@ -3259,10 +3352,15 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-tab-switcher {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 12000;
+  border-radius: 0 !important;
   background: rgb(15 23 42 / 0.95);
+  box-shadow: none !important;
   color: var(--vc-ide-text-primary);
+  animation: none !important;
   backdrop-filter: blur(20px);
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 .bolt-mobile-tab-switcher-body {
@@ -3454,13 +3552,19 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-more-menu-backdrop {
-  position: fixed;
-  z-index: 1001;
-  inset: 0;
+  position: fixed !important;
+  z-index: 11000;
+  inset: 0 !important;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
   border: 0;
+  border-radius: 0 !important;
   background: rgb(2 6 23 / 0.5);
   padding: 0;
+  animation: none !important;
   backdrop-filter: blur(4px);
+  transform: none !important;
 }
 
 .bolt-mobile-more-menu-sheet {
@@ -3468,7 +3572,7 @@ body :where(.lucide, svg[data-lucide]) {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 1002;
+  z-index: 11001;
   display: flex;
   max-height: min(70dvh, 620px);
   flex-direction: column;
@@ -3478,6 +3582,9 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: 0 -24px 80px rgb(0 0 0 / 0.46);
   color: var(--vc-ide-text-primary);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: bolt-mobile-sheet-in 180ms cubic-bezier(0.2, 0, 0, 1) both !important;
+  opacity: 1 !important;
+  transform-origin: center bottom !important;
 }
 
 .bolt-mobile-more-menu-handle {
@@ -3600,14 +3707,32 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: center;
 }
 
+@keyframes bolt-mobile-sheet-in {
+  from {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .bolt-mobile-more-backdrop {
-  position: fixed;
-  z-index: 1001;
-  inset: 0;
+  position: fixed !important;
+  z-index: 11000;
+  inset: 0 !important;
+  display: block;
+  width: 100vw;
+  height: 100dvh;
   border: 0;
+  border-radius: 0 !important;
   background: rgb(2 6 23 / 0.46);
   padding: 0;
+  animation: none !important;
   backdrop-filter: blur(8px);
+  transform: none !important;
 }
 
 .bolt-mobile-more-sheet {
@@ -3615,7 +3740,7 @@ body :where(.lucide, svg[data-lucide]) {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 1002;
+  z-index: 11001;
   display: flex;
   height: min(85dvh, 720px);
   max-height: calc(100dvh - env(safe-area-inset-top, 0px));
@@ -3631,6 +3756,9 @@ body :where(.lucide, svg[data-lucide]) {
     0 24px 80px rgb(0 0 0 / 0.46);
   color: var(--vc-ide-text-primary);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: bolt-mobile-sheet-in 180ms cubic-bezier(0.2, 0, 0, 1) both !important;
+  opacity: 1 !important;
+  transform-origin: center bottom !important;
 }
 
 .bolt-mobile-more-handle {
@@ -14698,6 +14826,38 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 @media (max-width: 899px) {
+  .bolt-project-topbar {
+    display: none !important;
+  }
+
+  .bolt-mobile-ecode-header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 9000;
+    display: block;
+    border-bottom: 1px solid rgb(55 65 81 / 0.5);
+    background: rgb(28 28 28 / 0.95);
+    color: #fff;
+    backdrop-filter: blur(20px);
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .bolt-mobile-ecode-header-title,
+  .bolt-mobile-ecode-header-title > span:last-child {
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+
+  .bolt-mobile-ecode-header button > span,
+  .bolt-mobile-ecode-header-title > span:first-child,
+  .bolt-mobile-ecode-header-title > svg {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 20px !important;
+  }
+
   .bolt-project-ide-shell > main {
     height: 100dvh !important;
     padding-top: var(--vc-ide-topbar-height, 48px) !important;
