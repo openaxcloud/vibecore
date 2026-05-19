@@ -3708,6 +3708,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Usage Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     const record = await app.inject({
@@ -3725,9 +3726,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(record.statusCode).toBe(200);
+
     const body = record.json();
     expect(body.recorded).toBe(true);
     expect(body.modelMatched).toBe(true);
+
     // 10000 input @ 300¢/M = 3¢, 2000 output @ 1500¢/M = 3¢ → 6¢
     expect(body.costCents).toBe(6);
     expect(body.finishReason).toBe('stop');
@@ -3755,6 +3758,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Unknown Model Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     const record = await app.inject({
@@ -3770,13 +3774,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(record.statusCode).toBe(200);
+
     const body = record.json();
     expect(body.recorded).toBe(true);
     expect(body.modelMatched).toBe(false);
     expect(body.costCents).toBe(0);
 
-    // The cost row is still written (with cents=0) so we can spot
-    // "we silently zero-billed N chats" in the ledger later.
+    /*
+     * The cost row is still written (with cents=0) so we can spot
+     * "we silently zero-billed N chats" in the ledger later.
+     */
     const costs = await store.listAiCosts(auth.organization.id);
     expect(costs).toHaveLength(1);
     expect(costs[0].model).toBe('claude-future-2030');
@@ -3796,6 +3803,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Quota OK Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     const check = await app.inject({
@@ -3806,6 +3814,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(check.statusCode).toBe(200);
+
     const body = check.json();
     expect(body.ok).toBe(true);
     expect(body.ai.inputTokens.limit).toBe(100_000);
@@ -3826,6 +3835,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Quota Over Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     // Free plan caps ai.inputTokens at 100_000. Asking for 200_000 must 429.
@@ -3837,6 +3847,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(blocked.statusCode).toBe(429);
+
     const error = blocked.json();
     expect(error.code).toMatch(/QUOTA/);
 
@@ -3854,6 +3865,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Auth Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     const anonymous = await app.inject({
@@ -3868,8 +3880,166 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(anonymous.statusCode).toBe(401);
+
     const costs = await store.listAiCosts(auth.organization.id);
     expect(costs).toHaveLength(0);
+
+    await app.close();
+  });
+
+  it('persists and lists AgentPatchProposal rows across the project lifecycle', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, {
+      email: 'agent-patch@example.com',
+      organizationName: 'Agent Patch Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Agent Patch Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+
+    const proposalId = 'artifact-1:action-1';
+
+    const upsert = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: {
+        artifactId: 'artifact-1',
+        messageId: 'msg-1',
+        actionId: 'action-1',
+        filePath: '/home/project/src/App.tsx',
+        relativePath: 'src/App.tsx',
+        originalContent: 'before',
+        proposedContent: 'after',
+        hunks: [{ id: 'h-1' }],
+        status: 'pending',
+      },
+    });
+    expect(upsert.statusCode).toBe(200);
+    expect(upsert.json().proposal.status).toBe('pending');
+    expect(upsert.json().proposal.proposedContent).toBe('after');
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(list.statusCode).toBe(200);
+    expect(list.json().proposals).toHaveLength(1);
+    expect(list.json().proposals[0].id).toBe(proposalId);
+
+    /*
+     * Re-upserting with a different proposedContent + status must update
+     * in place and keep the same id so the client's nanostore key stays
+     * in sync with the server row.
+     */
+    const refresh = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: {
+        artifactId: 'artifact-1',
+        messageId: 'msg-1',
+        actionId: 'action-1',
+        filePath: '/home/project/src/App.tsx',
+        relativePath: 'src/App.tsx',
+        originalContent: 'before',
+        proposedContent: 'after-v2',
+        hunks: [{ id: 'h-1' }, { id: 'h-2' }],
+        status: 'failed',
+        error: 'Parser error',
+      },
+    });
+    expect(refresh.statusCode).toBe(200);
+    expect(refresh.json().proposal.status).toBe('failed');
+    expect(refresh.json().proposal.proposedContent).toBe('after-v2');
+
+    const removed = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}/agent-patch-proposals/${proposalId}`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json().deleted).toBe(true);
+
+    const afterDelete = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(afterDelete.json().proposals).toHaveLength(0);
+
+    /*
+     * Deleting a non-existent proposal returns 200 with deleted=false so
+     * the client can stay idempotent (e.g., retrying after a network
+     * flake) without surfacing a 404 to the user.
+     */
+    const ghostDelete = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${projectId}/agent-patch-proposals/no-such-id`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(ghostDelete.statusCode).toBe(200);
+    expect(ghostDelete.json().deleted).toBe(false);
+
+    await app.close();
+  });
+
+  it('enforces organization isolation on AgentPatchProposal endpoints', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, {
+      email: 'agent-patch-iso-owner@example.com',
+      organizationName: 'Owner Org',
+    });
+    const stranger = await register(app, {
+      email: 'agent-patch-iso-stranger@example.com',
+      organizationName: 'Stranger Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/projects`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { name: 'Isolated Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    const denied = await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/agent-patch-proposals/x:y`,
+      headers: { authorization: `Bearer ${stranger.token}` },
+      payload: {
+        artifactId: 'x',
+        messageId: 'm',
+        actionId: 'y',
+        filePath: '/home/project/x.ts',
+        relativePath: 'x.ts',
+        originalContent: '',
+        proposedContent: '',
+        hunks: [],
+        status: 'pending',
+      },
+    });
+    expect(denied.statusCode).toBe(404);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/agent-patch-proposals`,
+      headers: { authorization: `Bearer ${stranger.token}` },
+    });
+    expect(list.statusCode).toBe(404);
 
     await app.close();
   });

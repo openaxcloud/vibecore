@@ -244,6 +244,26 @@ const projectSettingsSchema = z.object({
 const projectIdeStateSchema = z.object({
   state: z.record(z.unknown()),
 });
+
+const agentPatchProposalParams = z.object({
+  projectId: z.string().min(1),
+  proposalId: z.string().min(1),
+});
+
+const agentPatchProposalStatusSchema = z.enum(['pending', 'applying', 'failed']);
+
+const agentPatchProposalUpsertSchema = z.object({
+  artifactId: z.string().min(1),
+  messageId: z.string().min(1),
+  actionId: z.string().min(1),
+  filePath: z.string().min(1),
+  relativePath: z.string().min(1),
+  originalContent: z.string(),
+  proposedContent: z.string(),
+  hunks: z.unknown(),
+  status: agentPatchProposalStatusSchema,
+  error: z.string().optional(),
+});
 const projectActivityQuerySchema = z.object({
   action: z.string().min(1).max(160).optional(),
   actorUserId: z.string().min(1).max(160).optional(),
@@ -3291,7 +3311,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   if (isProduction) {
     const unsafeOrigins = allowedOrigins.filter(
-      (origin) => !origin.startsWith('https://') || /(?:^|[/@])(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\b|\/)/i.test(origin),
+      (origin) =>
+        !origin.startsWith('https://') || /(?:^|[/@])(?:localhost|127\.0\.0\.1|0\.0\.0\.0)(?::|\b|\/)/i.test(origin),
     );
 
     if (allowedOrigins.length === 0 || unsafeOrigins.length > 0) {
@@ -3302,6 +3323,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
     }
   }
+
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(
     /\/+$/,
     '',
@@ -7144,6 +7166,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { ideState };
   });
+
+  /*
+   * Persistence for the workbench AgentPatchProposal queue. Terminal-status
+   * rows (accepted/rejected/reverted) are hard-deleted by the client when
+   * the user makes their decision; this table only holds proposals still
+   * awaiting a manual action (pending/applying/failed). See the
+   * AgentPatchProposal Prisma model for the schema rationale.
+   */
+  app.get('/projects/:projectId/agent-patch-proposals', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    return { proposals: await store.listOpenAgentPatchProposals(project.id) };
+  });
+
+  app.put('/projects/:projectId/agent-patch-proposals/:proposalId', async (request) => {
+    const { projectId, proposalId } = parse(agentPatchProposalParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const body = parse(agentPatchProposalUpsertSchema, request.body ?? {});
+
+    const proposal = await store.upsertAgentPatchProposal({
+      id: proposalId,
+      projectId: project.id,
+      artifactId: body.artifactId,
+      messageId: body.messageId,
+      actionId: body.actionId,
+      filePath: body.filePath,
+      relativePath: body.relativePath,
+      originalContent: body.originalContent,
+      proposedContent: body.proposedContent,
+      hunks: body.hunks,
+      status: body.status,
+      error: body.error,
+    });
+
+    return { proposal };
+  });
+
+  app.delete('/projects/:projectId/agent-patch-proposals/:proposalId', async (request) => {
+    const { projectId, proposalId } = parse(agentPatchProposalParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:write');
+
+    return { deleted: await store.deleteAgentPatchProposal(project.id, proposalId) };
+  });
+
   app.get('/projects/:projectId/settings', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
   }));
@@ -8479,6 +8550,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { messages: await store.listAiMessages(conversationId) };
   });
+
   /*
    * C1.b.4 — Pre-flight quota check called by the Remix chat route BEFORE
    * starting streamText. Estimates input tokens from the incoming
@@ -8493,27 +8565,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireProject(request, store, projectId, 'workspaces:read');
     const body = parse(aiCheckQuotaSchema, request.body ?? {});
 
-    // Always charge 1 message against the daily ai.messages cap. This is
-    // checked even when estimatedInputTokens is 0 so a barely-typed
-    // "..." still trips the rate-limit at a sane upper bound.
+    /*
+     * Always charge 1 message against the daily ai.messages cap. This is
+     * checked even when estimatedInputTokens is 0 so a barely-typed
+     * "..." still trips the rate-limit at a sane upper bound.
+     */
     const estimated = body.estimatedInputTokens ?? 0;
     await ensureQuota(request, project.organizationId, 'ai.messages', 1);
+
     if (estimated > 0) {
       await ensureQuota(request, project.organizationId, 'ai.inputTokens', estimated);
     }
 
-    // Resolve the live headroom for both relevant quotas so the client
-    // can render a "X tokens left this month" hint. The plan-resolution
-    // path is shared with ensureQuota so the override table is honoured.
+    /*
+     * Resolve the live headroom for both relevant quotas so the client
+     * can render a "X tokens left this month" hint. The plan-resolution
+     * path is shared with ensureQuota so the override table is honoured.
+     */
     const { limits } = await billingState(project.organizationId);
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
+
     const tokenLimit =
       (isQuotaOverrideActive(tokenOverride) ? tokenOverride?.limit : undefined) ?? limits['ai.inputTokens'] ?? 0;
+
     const tokenUsed = await usageForQuota(project.organizationId, 'ai.inputTokens', request);
 
     const messageOverride = await store.getQuotaOverride(project.organizationId, 'ai.messages');
+
     const messageLimit =
       (isQuotaOverrideActive(messageOverride) ? messageOverride?.limit : undefined) ?? limits['ai.messages'] ?? 0;
+
     const messageUsed = await usageForQuota(project.organizationId, 'ai.messages', request);
 
     return {
@@ -8532,6 +8613,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
   });
+
   /*
    * C1.b.2 — Record-usage endpoint called by the Remix chat route after a
    * Bolt streamText() completes. Today the Remix chat bypasses
@@ -8569,9 +8651,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     await recordUsage(request, project.organizationId, 'ai.messages');
+
     if (body.inputTokens > 0) {
       await recordUsage(request, project.organizationId, 'ai.inputTokens', body.inputTokens);
     }
+
     if (body.outputTokens > 0) {
       await recordUsage(request, project.organizationId, 'ai.outputTokens', body.outputTokens);
     }
@@ -8586,11 +8670,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       { provider: body.provider, model: body.model, direction: 'output' },
       body.outputTokens,
     );
-    metrics.setGauge(
-      'cost_estimate_cents',
-      { organizationId: project.organizationId, source: 'ai' },
-      costCents,
-    );
+    metrics.setGauge('cost_estimate_cents', { organizationId: project.organizationId, source: 'ai' }, costCents);
 
     return {
       recorded: true,
