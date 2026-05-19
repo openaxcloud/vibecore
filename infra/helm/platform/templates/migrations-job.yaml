@@ -59,12 +59,18 @@ spec:
             - -c
             - |
               set -e
-              cd /runtime
+              # Prisma 7 requires `datasource.url` to come from `prisma.config.ts`
+              # (the schema.prisma block intentionally omits `url`). The config
+              # file lives at the @vibecore/database package root, so prisma
+              # must run with that directory as CWD — it discovers
+              # prisma.config.ts in CWD, then resolves the `schema:` and
+              # `migrations.path:` entries inside it relative to CWD too.
+              DB_DIR=$(node -e "process.stdout.write(require('path').dirname(require.resolve('@vibecore/database/package.json')))")
+              cd "$DB_DIR"
               PRISMA_BIN=$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")
-              SCHEMA=$(node -e "process.stdout.write(require.resolve('@vibecore/database/prisma/schema.prisma'))")
+              echo "db dir:     $DB_DIR"
               echo "prisma bin: $PRISMA_BIN"
-              echo "schema:     $SCHEMA"
-              node "$PRISMA_BIN" migrate deploy --schema "$SCHEMA"
+              node "$PRISMA_BIN" migrate deploy
           envFrom:
             - secretRef:
                 name: {{ .Values.secrets.existingSecret }}
