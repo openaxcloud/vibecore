@@ -225,6 +225,7 @@ model Project {
   shareLinks             ProjectShareLink[]
   agentMemories          AgentMemory[]
   agentMemoryPreferences AgentMemoryPreference[]
+  agentPatchProposals    AgentPatchProposal[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -291,6 +292,33 @@ model ProjectIdeState {
   createdAt       DateTime @default(now())
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   updatedBy       User?    @relation(fields: [updatedByUserId], references: [id], onDelete: SetNull)
+}
+
+// Persists the AI-generated patch review queue across workbench reloads.
+// Terminal status proposals (accepted, rejected, reverted) are hard-deleted
+// because the audit trail lives in ProjectActivity; this table only holds
+// proposals the user still has to decide on. The id is the existing
+// "artifactId:actionId" composite the streaming runner already uses, so the
+// nanostore key and the row id line up 1:1.
+model AgentPatchProposal {
+  id              String   @id
+  projectId       String
+  artifactId      String
+  messageId       String
+  actionId        String
+  filePath        String
+  relativePath    String
+  originalContent String
+  proposedContent String
+  hunks           Json
+  status          String
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([projectId, updatedAt])
 }
 
 model ProjectEnvironment {
