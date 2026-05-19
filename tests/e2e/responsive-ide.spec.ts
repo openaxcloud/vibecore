@@ -127,7 +127,9 @@ test.describe('responsive IDE shell', () => {
 
     await mobileNav.getByRole('button', { name: 'Editor', exact: true }).tap();
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first()).toBeVisible({
+    await expect(
+      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
+    ).toBeVisible({
       timeout: 15000,
     });
 
@@ -273,21 +275,30 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('button', { name: /Save/ })).toBeVisible({ timeout: 15000 });
   });
 
-  test('tablet landscape sizes the agent panel fluidly without horizontal overflow', async ({ page, isMobile }) => {
+  test('tablet landscape uses the compact mobile IDE shell', async ({ page, isMobile }) => {
     test.skip(isMobile, 'tablet landscape assertion');
     await page.setViewportSize({ width: 1024, height: 768 });
 
     const projectId = await createTestProject(page, 'Responsive tablet project');
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-    const agentPanel = page.locator('.bolt-project-agent-shell').first();
-    await expect(agentPanel).toBeVisible({ timeout: 15000 });
+    await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
+      timeout: 15000,
+    });
 
-    const agentBox = await agentPanel.boundingBox();
-    expect(agentBox).not.toBeNull();
-    expect(agentBox?.width).toBeGreaterThan(220);
-    expect(agentBox?.width).toBeLessThan(460);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+    const metrics = await page.evaluate(() => {
+      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
+      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+
+      return {
+        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      };
+    });
+
+    expect(metrics.overlaps).toBe(false);
+    expect(metrics.overflowX).toBe(false);
   });
 });

@@ -2136,7 +2136,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, []);
 
-    const useMobileIde = layout.isMobile || layout.isTabletPortrait;
+    const useMobileIde = layout.isMobile || layout.isTablet;
 
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'terminal' | 'preview' | 'deploy'
