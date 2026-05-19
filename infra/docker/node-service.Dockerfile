@@ -23,6 +23,10 @@ WORKDIR /runtime
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
+# Put workspace-local binaries (tsx, prisma, etc.) on PATH so START_CMD can
+# call them by name. pnpm deploy lands them in /runtime/node_modules/.bin
+# but only pnpm/npm script invocations get that on PATH by default.
+ENV PATH=/runtime/node_modules/.bin:${PATH}
 ARG START_CMD
 ENV START_CMD=${START_CMD}
 
