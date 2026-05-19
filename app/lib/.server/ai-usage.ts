@@ -2,10 +2,21 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ai-usage');
 
-function apiBaseUrl() {
-  const inClusterApiUrl = process.env.VITE_API_URL;
+/*
+ * Matches app/lib/enterprise-api.server.ts: vite-plugin-node-polyfills wipes
+ * process.env in the SSR bundle, but process.env.NODE_ENV is build-time
+ * inlined via vite `define`, so we use it to pick an in-cluster default.
+ */
+const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
 
-  return process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? inClusterApiUrl ?? 'http://localhost:3001';
+function apiBaseUrl() {
+  const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? process.env.VITE_API_URL;
+
+  if (fromEnv && fromEnv.length > 0) {
+    return fromEnv;
+  }
+
+  return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : 'http://localhost:3001';
 }
 
 export interface RecordChatUsageInput {

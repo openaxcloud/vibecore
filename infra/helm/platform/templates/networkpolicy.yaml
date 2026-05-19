@@ -52,3 +52,32 @@ spec:
 {{- range $key, $value := .Values.networkPolicy.ingressControllerNamespaceSelector }}
               {{ $key }}: {{ $value | quote }}
 {{- end }}
+---
+# `deny-all-default` above blocks pod-to-pod traffic inside this namespace, so
+# web→api, worker→api, ai-gateway→api etc. all fail. This policy re-opens
+# intra-namespace traffic, scoped to pods labelled `app.kubernetes.io/part-of:
+# vibecore` (all the chart's workloads carry that label — see deployments.yaml
+# and cronjobs.yaml). Cross-namespace traffic stays blocked; only ingress-nginx
+# (allow-ingress-controller above) and DNS/HTTPS egress (allow-platform-
+# required-egress above) remain reachable from outside the namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intra-namespace-platform
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: vibecore
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: vibecore
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: vibecore

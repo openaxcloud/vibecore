@@ -29,6 +29,29 @@ global:
 secrets:
   existingSecret: vibecore-platform-secrets
 
+# OAuth provider URLs, in-cluster api URL, and platform-admin allowlist.
+# These are public well-known endpoints (Google/GitHub) plus operational
+# config — none of them are secrets. Mounted via a ConfigMap so they live
+# in version-controlled chart values, not Secret Manager.
+platformEnv:
+  saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  # Comma-separated emails. PlatformAdmin grants global console access
+  # (services/api/src/app.ts:2224). Edit cautiously.
+  platformAdminEmails: "avi@snatchbot.me"
+  google:
+    authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
+    tokenUrl: "https://oauth2.googleapis.com/token"
+    userinfoUrl: "https://openidconnect.googleapis.com/v1/userinfo"
+    redirectUri: "https://app.e-code.ai/auth/oauth/google/callback"
+    scope: "openid email profile"
+  github:
+    authorizationUrl: "https://github.com/login/oauth/authorize"
+    tokenUrl: "https://github.com/login/oauth/access_token"
+    userinfoUrl: "https://api.github.com/user"
+    redirectUri: "https://app.e-code.ai/auth/oauth/github/callback"
+    scope: "read:user user:email"
+
 ingress:
   className: nginx
   issuerName: letsencrypt-dns01

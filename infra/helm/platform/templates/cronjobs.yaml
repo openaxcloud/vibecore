@@ -81,6 +81,8 @@ spec:
               envFrom:
                 - secretRef:
                     name: {{ $.Values.secrets.existingSecret }}
+                - configMapRef:
+                    name: {{ include "vibecore-platform.fullname" $ }}-platform-env
               resources:
                 requests:
                   cpu: 20m

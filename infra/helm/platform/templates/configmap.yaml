@@ -1,0 +1,36 @@
+{{- /*
+Non-secret platform-wide env: OAuth provider URLs, the api base URL the web
+pod uses to reach the api service, and the admin allowlist. These are public
+well-known URLs (Google/GitHub) and cluster-internal DNS — none of them belong
+in Secret Manager. Mounted via `envFrom` alongside the existing secret so the
+API and web pods see them as process.env entries.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-platform-env
+  labels:
+    app.kubernetes.io/part-of: vibecore
+data:
+  # In-cluster URL the web/admin pods use to reach the api service. Mirrors
+  # the build-time fallback baked into app/lib/enterprise-api.server.ts —
+  # set explicitly here so the source of truth is the chart, not the bundle.
+  SAAS_API_URL: {{ .Values.platformEnv.saasApiUrl | quote }}
+  API_BASE_URL: {{ .Values.platformEnv.apiBaseUrl | quote }}
+
+  # Google OAuth — well-known endpoints, redirect URI derived from the chart.
+  GOOGLE_AUTHORIZATION_URL: {{ .Values.platformEnv.google.authorizationUrl | quote }}
+  GOOGLE_TOKEN_URL: {{ .Values.platformEnv.google.tokenUrl | quote }}
+  GOOGLE_USERINFO_URL: {{ .Values.platformEnv.google.userinfoUrl | quote }}
+  GOOGLE_REDIRECT_URI: {{ .Values.platformEnv.google.redirectUri | quote }}
+  GOOGLE_SCOPE: {{ .Values.platformEnv.google.scope | quote }}
+
+  # GitHub OAuth — well-known endpoints, redirect URI derived from the chart.
+  GITHUB_AUTHORIZATION_URL: {{ .Values.platformEnv.github.authorizationUrl | quote }}
+  GITHUB_TOKEN_URL: {{ .Values.platformEnv.github.tokenUrl | quote }}
+  GITHUB_USERINFO_URL: {{ .Values.platformEnv.github.userinfoUrl | quote }}
+  GITHUB_REDIRECT_URI: {{ .Values.platformEnv.github.redirectUri | quote }}
+  GITHUB_SCOPE: {{ .Values.platformEnv.github.scope | quote }}
+
+  # Comma-separated list of emails granted PlatformAdmin (services/api/src/app.ts:2224).
+  PLATFORM_ADMIN_EMAILS: {{ .Values.platformEnv.platformAdminEmails | quote }}
