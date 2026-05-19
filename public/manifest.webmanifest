@@ -1,13 +1,13 @@
 {
-  "name": "VibeCore",
-  "short_name": "VibeCore",
-  "description": "A responsive Bolt IDE SaaS workspace for desktop, tablet, and mobile.",
+  "name": "E-Code.ai",
+  "short_name": "E-Code",
+  "description": "AI-powered coding platform with governed workspaces, real runtimes, and deployment controls.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "browser"],
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0D0D0D",
+  "theme_color": "#F26207",
   "orientation": "any",
   "icons": [
     {
@@ -17,10 +17,10 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/logo-light.png",
+      "src": "/icons/ecode-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [

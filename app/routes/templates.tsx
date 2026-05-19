@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { PublicShell, TemplateGallery, LinkButton } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Templates - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Templates - E-Code' }];
 
 export default function TemplatesPage() {
   return (

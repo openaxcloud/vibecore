@@ -15491,10 +15491,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   height: 34px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--vc-public-accent), var(--vc-public-accent-2));
+  overflow: hidden;
+  border-radius: 9px;
+  background: transparent;
   color: #111827;
   box-shadow: 0 14px 35px rgba(249, 115, 22, 0.28);
+}
+
+.vc-logo-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .vc-public-shell :where(a, button, summary, input):focus-visible {

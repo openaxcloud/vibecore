@@ -84,11 +84,11 @@ export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0d0d0d" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="VibeCore" />
+    <meta name="apple-mobile-web-app-title" content="E-Code" />
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
@@ -131,9 +131,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 function AppBootFallback({ ide }: { ide: boolean }) {
   if (!ide) {
     return (
-      <main className="bolt-app-boot-fallback" aria-label="Loading VibeCore" role="status">
+      <main className="bolt-app-boot-fallback" aria-label="Loading E-Code" role="status">
         <div className="bolt-app-boot-mark" aria-hidden />
-        <span>Loading VibeCore</span>
+        <span>Loading E-Code</span>
       </main>
     );
   }
@@ -272,7 +272,7 @@ export default function App() {
 
   return (
     <Layout>
-      <AppErrorBoundary title="VibeCore" boundaryId="app-root">
+      <AppErrorBoundary title="E-Code" boundaryId="app-root">
         <Outlet />
       </AppErrorBoundary>
     </Layout>

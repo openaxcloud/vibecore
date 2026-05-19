@@ -4,7 +4,7 @@ import { MailPlus, ShieldCheck, Users } from 'lucide-react';
 import { PublicShell, SettingsForm, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { apiBaseUrl, formObject, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
 
-export const meta: MetaFunction = () => [{ title: 'Contact sales - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Contact sales - E-Code' }];
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());

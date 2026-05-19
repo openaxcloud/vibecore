@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { CheckCircle2 } from 'lucide-react';
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Pricing - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Pricing - E-Code' }];
 
 const plans = [
   {

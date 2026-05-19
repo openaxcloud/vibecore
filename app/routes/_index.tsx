@@ -29,7 +29,7 @@ import {
 import { PublicShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [
-  { title: 'VibeCore - Enterprise vibe coding platform' },
+  { title: 'E-Code - AI-powered enterprise development platform' },
   {
     name: 'description',
     content:
@@ -37,8 +37,8 @@ export const meta: MetaFunction = () => [
   },
 ];
 
-const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
-const cloudImage = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+const heroImage = '/assets/hero-image.svg';
+const cloudImage = '/assets/hero-image.svg';
 
 const stats = [
   ['Active workspaces', 'Real-time', 'Runtime sessions, ports and preview health.'],
@@ -108,11 +108,11 @@ export default function LandingPage() {
           <div className="vc-home-hero-copy">
             <span className="vc-badge">
               <Sparkles className="h-3 w-3" aria-hidden />
-              Fortune 500-grade vibe coding
+              AI-powered enterprise development platform
             </span>
-            <h1>Build and deploy production apps from one governed AI IDE.</h1>
+            <h1>Build and deploy production apps in minutes.</h1>
             <p>
-              VibeCore wraps the Bolt editor with persistent projects, real runtimes, mobile-ready workflows, deployment
+              E-Code wraps the Bolt editor with persistent projects, real runtimes, mobile-ready workflows, deployment
               controls and enterprise governance so teams can ship without losing engineering discipline.
             </p>
             <Form method="get" action="/signup" className="vc-home-builder-form" id="builder">
@@ -142,7 +142,7 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-          <div className="vc-home-product-frame" aria-label="VibeCore IDE preview">
+          <div className="vc-home-product-frame" aria-label="E-Code IDE preview">
             <div className="vc-home-browser-bar">
               <span />
               <span />
@@ -162,7 +162,7 @@ export default function LandingPage() {
                   <span>Preview</span>
                   <span>Terminal</span>
                 </div>
-                <pre>{`const app = await vibecore.build({
+                <pre>{`const app = await ecode.build({
   prompt,
   runtime: "managed",
   checks: ["typecheck", "tests", "preview"]
@@ -197,7 +197,7 @@ export default function LandingPage() {
             <span className="vc-badge">Product</span>
             <h2>Everything expected from a serious cloud IDE, wired for real delivery.</h2>
             <p>
-              The homepage design is visual, but the product claims map to actual Vibecore surfaces: projects, runtime
+              The homepage design is visual, but the product claims map to actual E-Code surfaces: projects, runtime
               adapters, terminal, preview, security, database, deployment and mobile validation.
             </p>
           </div>
@@ -231,7 +231,7 @@ export default function LandingPage() {
               <span className="vc-badge">Live platform flow</span>
               <h2>Prompt, inspect, run, preview, deploy.</h2>
               <p>
-                VibeCore is optimized for the working loop: describe a change, inspect generated files, run the real
+                E-Code is optimized for the working loop: describe a change, inspect generated files, run the real
                 terminal, verify preview output and push a deployable project.
               </p>
               <ul>

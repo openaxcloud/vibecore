@@ -4,11 +4,11 @@ import { ActivityList, PublicShell, LinkButton } from '~/components/dashboard/Sa
 import { AgentWalkthrough } from '~/components/docs/AgentWalkthrough';
 
 export const meta: MetaFunction = () => [
-  { title: 'Docs - VibeCore' },
+  { title: 'Docs - E-Code' },
   {
     name: 'description',
     content:
-      'Implementation guides for the VibeCore platform plus a feature-by-feature walkthrough of the IDE agent panel (@ mentions, / commands, plan checklist, patch review, branches, share, presence, FR/EN).',
+      'Implementation guides for the E-Code platform plus a feature-by-feature walkthrough of the IDE agent panel (@ mentions, / commands, plan checklist, patch review, branches, share, presence, FR/EN).',
   },
 ];
 

@@ -1,7 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Terms - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Terms - E-Code' }];
 
 export default function TermsPage() {
   return (

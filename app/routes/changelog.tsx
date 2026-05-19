@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { GitBranch, Rocket, ShieldCheck } from 'lucide-react';
 import { ActivityList, PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Changelog - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Changelog - E-Code' }];
 
 export default function ChangelogPage() {
   return (

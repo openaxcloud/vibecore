@@ -718,7 +718,7 @@ function SidebarHeader({ collapsed }: { collapsed: boolean }) {
       </span>
       {!collapsed ? (
         <span className="vc-sidebar-fade-label min-w-0 flex-1">
-          <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+          <span className="block text-sm font-semibold leading-tight">{ECODE_MARKETING_BRAND.name}</span>
           <span className="block truncate text-[11px] leading-tight text-bolt-elements-textTertiary">
             SaaS workspace
           </span>
@@ -810,7 +810,7 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
               <Sparkles className="h-4 w-4" />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold leading-tight">VibeCore</span>
+              <span className="block text-sm font-semibold leading-tight">{ECODE_MARKETING_BRAND.name}</span>
               <span className="block text-[11px] leading-tight text-bolt-elements-textTertiary">SaaS workspace</span>
             </span>
           </Link>

@@ -3,7 +3,7 @@ import { useLoaderData } from '@remix-run/react';
 import { Activity, CheckCircle2, OctagonAlert, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { PublicShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Status - VibeCore' }];
+export const meta: MetaFunction = () => [{ title: 'Status - E-Code' }];
 
 type ComponentStatus = 'operational' | 'degraded' | 'down';
 
