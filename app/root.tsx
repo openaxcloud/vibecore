@@ -17,7 +17,10 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import { useEffect, useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { I18nextProvider } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
+
+import { getI18nInstance } from './lib/i18n/runtime';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
@@ -111,7 +114,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ClientOnly fallback={<AppBootFallback ide={showIdeBootFallback} />}>
-        {() => <DndProvider backend={HTML5Backend}>{children}</DndProvider>}
+        {() => (
+          <I18nextProvider i18n={getI18nInstance()}>
+            <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+          </I18nextProvider>
+        )}
       </ClientOnly>
       <ClientOnly>{() => <GlobalRouteLoader />}</ClientOnly>
       <ClientOnly>{() => <AppToastContainer />}</ClientOnly>
