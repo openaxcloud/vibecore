@@ -144,6 +144,7 @@ export class TestApiStore implements ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }) {
     const user = this.users.get(input.userId);
 
@@ -159,6 +160,7 @@ export class TestApiStore implements ApiStore {
       mfaEnabled: input.mfaEnabled ?? user.mfaEnabled,
       mfaSecretEncrypted: input.mfaSecretEncrypted ?? user.mfaSecretEncrypted,
       platformAdmin: input.platformAdmin ?? user.platformAdmin,
+      language: input.language === undefined ? user.language : input.language ?? undefined,
     });
 
     return user;

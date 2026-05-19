@@ -47,6 +47,11 @@ model User {
   mfaEnabled              Boolean                  @default(false)
   mfaSecretCiphertext     String?
   platformAdmin           Boolean                  @default(false)
+  // BCP-47 primary language tag (e.g. "en", "fr"). Null when the user
+  // hasn't set a preference; the client falls back to navigator.language
+  // and finally to "en". Drives SSR language selection via a cookie set
+  // on session create.
+  language                String?
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   accounts                Account[]

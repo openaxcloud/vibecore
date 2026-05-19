@@ -129,6 +129,7 @@ exports.Prisma.UserScalarFieldEnum = {
   mfaEnabled: 'mfaEnabled',
   mfaSecretCiphertext: 'mfaSecretCiphertext',
   platformAdmin: 'platformAdmin',
+  language: 'language',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

@@ -4223,4 +4223,71 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     await app.close();
   });
+
+  it('persists User.language through PATCH /auth/me and surfaces it on GET', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-user@example.com', organizationName: 'i18n Org' });
+
+    /*
+     * Fresh users have no language preference — GET /auth/me should
+     * surface it as undefined so the client can fall back to
+     * navigator.language detection.
+     */
+    const before = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(before.statusCode).toBe(200);
+    expect(before.json().user.language).toBeFalsy();
+
+    const setFr = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'fr' },
+    });
+    expect(setFr.statusCode).toBe(200);
+    expect(setFr.json().user.language).toBe('fr');
+
+    const afterSet = await app.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(afterSet.json().user.language).toBe('fr');
+
+    /*
+     * Explicit null clears the preference; the client goes back to
+     * navigator.language on the next boot.
+     */
+    const clear = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: null },
+    });
+    expect(clear.statusCode).toBe(200);
+    expect(clear.json().user.language).toBeFalsy();
+
+    await app.close();
+  });
+
+  it('rejects unsupported language tags on PATCH /auth/me', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-bad@example.com', organizationName: 'i18n Bad Org' });
+
+    const bad = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'klingon' },
+    });
+
+    expect(bad.statusCode).toBe(400);
+
+    await app.close();
+  });
 });

@@ -183,10 +183,24 @@ const contactSalesSchema = z.object({
   teamSize: z.string().optional(),
   requirements: z.string().min(1),
 });
+/*
+ * Supported BCP-47 primary language tags. Kept narrow to match the bundles
+ * shipped by `app/lib/i18n/messages/` — adding a language is a coordinated
+ * change (bundle + UI strings + QA) so a typo'd PATCH /auth/me payload
+ * should fail validation rather than silently persisting an unsupported
+ * tag the client can't render.
+ */
+const supportedLanguageTagSchema = z.enum(['en', 'fr']);
+
 const userProfileSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   timezone: z.string().min(1).optional(),
+  /*
+   * `null` clears the stored preference (back to client-side detection);
+   * an unset key leaves the column untouched.
+   */
+  language: supportedLanguageTagSchema.nullable().optional(),
 });
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -5981,6 +5995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             emailVerifiedAt: user.emailVerifiedAt,
             mfaEnabled: user.mfaEnabled,
             platformAdmin: user.platformAdmin,
+            language: user.language,
             createdAt: user.createdAt,
           }
         : request.currentUser,
@@ -5993,15 +6008,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       userId: request.currentUser!.id,
       email: body.email,
       name: body.name,
+      language: body.language,
     });
     await audit(request, store, {
       action: 'auth.profile.update',
       resourceType: 'user',
       resourceId: user.id,
-      metadata: { timezone: body.timezone },
+      metadata: { timezone: body.timezone, language: body.language },
     });
 
-    return { user: { id: user.id, email: user.email, name: user.name } };
+    return {
+      user: { id: user.id, email: user.email, name: user.name, language: user.language },
+    };
   });
 
   app.patch(

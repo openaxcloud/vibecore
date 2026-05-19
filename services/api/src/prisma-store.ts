@@ -110,6 +110,7 @@ export class PrismaApiStore implements ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }) {
     return mapUser(
       await this.prisma.user.update({
@@ -122,6 +123,13 @@ export class PrismaApiStore implements ApiStore {
           mfaEnabled: input.mfaEnabled,
           mfaSecretCiphertext: input.mfaSecretEncrypted,
           platformAdmin: input.platformAdmin,
+          /*
+           * `language: null` clears the column (Prisma differentiates null
+           * from undefined: undefined skips the field, null writes NULL).
+           * The undefined case is the no-op we want when the caller didn't
+           * mention language at all.
+           */
+          language: input.language === undefined ? undefined : input.language,
         },
       }),
     );
@@ -1715,6 +1723,7 @@ function mapUser(user: any): UserRecord {
     mfaEnabled: user.mfaEnabled,
     mfaSecretEncrypted: user.mfaSecretCiphertext ?? undefined,
     platformAdmin: user.platformAdmin,
+    language: user.language ?? undefined,
     createdAt: toIso(user.createdAt)!,
   };
 }

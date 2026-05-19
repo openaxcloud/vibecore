@@ -7815,6 +7815,7 @@ export namespace Prisma {
     mfaEnabled: boolean | null
     mfaSecretCiphertext: string | null
     platformAdmin: boolean | null
+    language: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7828,6 +7829,7 @@ export namespace Prisma {
     mfaEnabled: boolean | null
     mfaSecretCiphertext: string | null
     platformAdmin: boolean | null
+    language: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7841,6 +7843,7 @@ export namespace Prisma {
     mfaEnabled: number
     mfaSecretCiphertext: number
     platformAdmin: number
+    language: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7856,6 +7859,7 @@ export namespace Prisma {
     mfaEnabled?: true
     mfaSecretCiphertext?: true
     platformAdmin?: true
+    language?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7869,6 +7873,7 @@ export namespace Prisma {
     mfaEnabled?: true
     mfaSecretCiphertext?: true
     platformAdmin?: true
+    language?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7882,6 +7887,7 @@ export namespace Prisma {
     mfaEnabled?: true
     mfaSecretCiphertext?: true
     platformAdmin?: true
+    language?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -7968,6 +7974,7 @@ export namespace Prisma {
     mfaEnabled: boolean
     mfaSecretCiphertext: string | null
     platformAdmin: boolean
+    language: string | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -7998,6 +8005,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
+    language?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     accounts?: boolean | User$accountsArgs<ExtArgs>
@@ -8035,6 +8043,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
+    language?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -8048,6 +8057,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
+    language?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -8061,11 +8071,12 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: boolean
     platformAdmin?: boolean
+    language?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "name" | "passwordHash" | "emailVerifiedAt" | "mfaEnabled" | "mfaSecretCiphertext" | "platformAdmin" | "language" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     accounts?: boolean | User$accountsArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
@@ -8131,6 +8142,7 @@ export namespace Prisma {
       mfaEnabled: boolean
       mfaSecretCiphertext: string | null
       platformAdmin: boolean
+      language: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -8587,6 +8599,7 @@ export namespace Prisma {
     readonly mfaEnabled: FieldRef<"User", 'Boolean'>
     readonly mfaSecretCiphertext: FieldRef<"User", 'String'>
     readonly platformAdmin: FieldRef<"User", 'Boolean'>
+    readonly language: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -82318,6 +82331,7 @@ export namespace Prisma {
     mfaEnabled: 'mfaEnabled',
     mfaSecretCiphertext: 'mfaSecretCiphertext',
     platformAdmin: 'platformAdmin',
+    language: 'language',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -83501,6 +83515,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFilter<"User"> | boolean
     mfaSecretCiphertext?: StringNullableFilter<"User"> | string | null
     platformAdmin?: BoolFilter<"User"> | boolean
+    language?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -83537,6 +83552,7 @@ export namespace Prisma {
     mfaEnabled?: SortOrder
     mfaSecretCiphertext?: SortOrderInput | SortOrder
     platformAdmin?: SortOrder
+    language?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     accounts?: AccountOrderByRelationAggregateInput
@@ -83576,6 +83592,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFilter<"User"> | boolean
     mfaSecretCiphertext?: StringNullableFilter<"User"> | string | null
     platformAdmin?: BoolFilter<"User"> | boolean
+    language?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     accounts?: AccountListRelationFilter
@@ -83612,6 +83629,7 @@ export namespace Prisma {
     mfaEnabled?: SortOrder
     mfaSecretCiphertext?: SortOrderInput | SortOrder
     platformAdmin?: SortOrder
+    language?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -83631,6 +83649,7 @@ export namespace Prisma {
     mfaEnabled?: BoolWithAggregatesFilter<"User"> | boolean
     mfaSecretCiphertext?: StringNullableWithAggregatesFilter<"User"> | string | null
     platformAdmin?: BoolWithAggregatesFilter<"User"> | boolean
+    language?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -88379,6 +88398,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -88415,6 +88435,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -88451,6 +88472,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -88487,6 +88509,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -88523,6 +88546,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -88536,6 +88560,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -88549,6 +88574,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -93827,6 +93853,7 @@ export namespace Prisma {
     mfaEnabled?: SortOrder
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
+    language?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -93840,6 +93867,7 @@ export namespace Prisma {
     mfaEnabled?: SortOrder
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
+    language?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -93853,6 +93881,7 @@ export namespace Prisma {
     mfaEnabled?: SortOrder
     mfaSecretCiphertext?: SortOrder
     platformAdmin?: SortOrder
+    language?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -103363,6 +103392,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -103398,6 +103428,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -103449,6 +103480,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -103484,6 +103516,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -103519,6 +103552,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -103554,6 +103588,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -103605,6 +103640,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -103640,6 +103676,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -105175,6 +105212,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -105210,6 +105248,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -105361,6 +105400,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -105396,6 +105436,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -106991,6 +107032,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -107026,6 +107068,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -107077,6 +107120,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -107112,6 +107156,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -107443,6 +107488,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -107478,6 +107524,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -107671,6 +107718,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -107706,6 +107754,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -107966,6 +108015,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -108001,6 +108051,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -108129,6 +108180,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -108164,6 +108216,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -108862,6 +108915,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -108897,6 +108951,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -109025,6 +109080,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -109060,6 +109116,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -109166,6 +109223,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -109201,6 +109259,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -109329,6 +109388,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -109364,6 +109424,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -109470,6 +109531,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -109505,6 +109567,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -109633,6 +109696,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -109668,6 +109732,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -109774,6 +109839,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -109809,6 +109875,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -109937,6 +110004,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -109972,6 +110040,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -110078,6 +110147,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -110113,6 +110183,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -110241,6 +110312,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -110276,6 +110348,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -111320,6 +111393,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -111355,6 +111429,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -111483,6 +111558,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -111518,6 +111594,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -111884,6 +111961,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -111919,6 +111997,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -112047,6 +112126,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -112082,6 +112162,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -112117,6 +112198,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -112152,6 +112234,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -112203,6 +112286,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -112238,6 +112322,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -113340,6 +113425,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -113375,6 +113461,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -113531,6 +113618,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -113566,6 +113654,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -114257,6 +114346,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -114292,6 +114382,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -114420,6 +114511,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -114455,6 +114547,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -114638,6 +114731,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -114673,6 +114767,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -114724,6 +114819,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -114759,6 +114855,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -114794,6 +114891,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -114829,6 +114927,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -114880,6 +114979,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -114915,6 +115015,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -114950,6 +115051,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -114985,6 +115087,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -115036,6 +115139,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -115071,6 +115175,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -116065,6 +116170,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -116100,6 +116206,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -116228,6 +116335,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -116263,6 +116371,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -116298,6 +116407,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -116333,6 +116443,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -116384,6 +116495,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -116419,6 +116531,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -116549,6 +116662,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -116584,6 +116698,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -116759,6 +116874,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -116794,6 +116910,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
@@ -116977,6 +117094,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountCreateNestedManyWithoutUserInput
@@ -117012,6 +117130,7 @@ export namespace Prisma {
     mfaEnabled?: boolean
     mfaSecretCiphertext?: string | null
     platformAdmin?: boolean
+    language?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
@@ -117207,6 +117326,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUpdateManyWithoutUserNestedInput
@@ -117242,6 +117362,7 @@ export namespace Prisma {
     mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
     mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
     platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput

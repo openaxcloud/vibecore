@@ -12,6 +12,12 @@ export interface UserRecord {
   mfaEnabled?: boolean;
   mfaSecretEncrypted?: string;
   platformAdmin?: boolean;
+  /**
+   * BCP-47 primary language tag the user picked (e.g. `en`, `fr`). Optional:
+   * existing users default to client-side detection until they touch the
+   * account settings. Slice 2 of the Phase 0 #7 react-i18next migration.
+   */
+  language?: string;
   createdAt: string;
 }
 
@@ -486,6 +492,7 @@ export interface ApiStore {
     mfaEnabled?: boolean;
     mfaSecretEncrypted?: string;
     platformAdmin?: boolean;
+    language?: string | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
