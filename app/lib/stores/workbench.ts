@@ -259,6 +259,17 @@ export class WorkbenchStore {
     import.meta.hot?.data.projectFilesPanelRequest ?? atom<ProjectFilesPanelRequest | undefined>(undefined);
   agentPatchReviewRequired: WritableAtom<boolean> =
     import.meta.hot?.data.agentPatchReviewRequired ?? atom<boolean>(false);
+
+  /*
+   * Per-filePath self-repair progress mirrored from the
+   * `agent:self-repair:progress` workspace event. Keyed by the action's
+   * runtime-relative path; the MessagePatchReview surface looks up
+   * `proposal.relativePath` in this map to surface the "Self-repair
+   * attempt N/M…" banner on the matching InlineFileActionDiff card.
+   */
+  agentPatchSelfRepair: MapStore<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>> =
+    import.meta.hot?.data.agentPatchSelfRepair ??
+    map<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>>({});
   agentPatchProposals: MapStore<Record<string, AgentPatchProposal>> =
     import.meta.hot?.data.agentPatchProposals ?? map<Record<string, AgentPatchProposal>>({});
   quotaWarning: WritableAtom<string | undefined> =
@@ -276,6 +287,7 @@ export class WorkbenchStore {
       import.meta.hot.data.currentView = this.currentView;
       import.meta.hot.data.agentPatchReviewRequired = this.agentPatchReviewRequired;
       import.meta.hot.data.agentPatchProposals = this.agentPatchProposals;
+      import.meta.hot.data.agentPatchSelfRepair = this.agentPatchSelfRepair;
       import.meta.hot.data.actionAlert = this.actionAlert;
       import.meta.hot.data.supabaseAlert = this.supabaseAlert;
       import.meta.hot.data.deployAlert = this.deployAlert;
@@ -299,6 +311,19 @@ export class WorkbenchStore {
         }
       }
     }
+
+    workspaceEvents.on('agent:self-repair:progress', ({ filePath, status }) => {
+      if (status) {
+        this.agentPatchSelfRepair.setKey(filePath, status);
+      } else {
+        const current = { ...this.agentPatchSelfRepair.get() };
+
+        if (filePath in current) {
+          delete current[filePath];
+          this.agentPatchSelfRepair.set(current);
+        }
+      }
+    });
   }
 
   requestProjectFilesPanel(open?: boolean) {
