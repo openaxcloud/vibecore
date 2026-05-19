@@ -3820,6 +3820,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(body.ai.inputTokens.limit).toBe(100_000);
     expect(body.ai.inputTokens.remaining).toBeGreaterThan(0);
     expect(body.ai.messages.limit).toBe(50);
+
     // free plan is managed-mode → BYOK disallowed
     expect(body.byok.allowed).toBe(false);
     expect(body.byok.plan).toBe('free');
@@ -3839,6 +3840,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'BYOK Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     await store.upsertSubscription({
@@ -3855,6 +3857,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(check.statusCode).toBe(200);
+
     const body = check.json();
     expect(body.byok.allowed).toBe(true);
     expect(body.byok.plan).toBe('team');
@@ -3865,6 +3868,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
   it('check-quota forces managed keys when ENTERPRISE_FORCE_MANAGED_KEYS=true overrides plan', async () => {
     process.env.ENTERPRISE_FORCE_MANAGED_KEYS = 'true';
+
     try {
       const store = new TestApiStore();
       const app = await buildTestApiApp({ store });
@@ -3876,6 +3880,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         headers: { authorization: `Bearer ${auth.token}` },
         payload: { name: 'Forced Project' },
       });
+
       const projectId = project.json().project.id as string;
 
       await store.upsertSubscription({
@@ -3892,7 +3897,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       });
 
       expect(check.statusCode).toBe(200);
+
       const body = check.json();
+
       // enterprise would normally allow BYOK, but the env override forces managed
       expect(body.byok.allowed).toBe(false);
       expect(body.byok.plan).toBe('enterprise');
@@ -3944,6 +3951,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Project A' },
     });
+
     const projectAId = projectA.json().project.id as string;
 
     // Seed three usage rows: 2 anthropic Sonnet (one each on two days), 1 openai gpt
@@ -3985,6 +3993,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(summary.statusCode).toBe(200);
+
     const body = summary.json();
     expect(body.organizationId).toBe(auth.organization.id);
     expect(body.totals.costCents).toBe(21);
@@ -4006,8 +4015,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'cost-window@example.com', organizationName: 'Cost Window Org' });
 
-    // Two rows; default TestApiStore uses now() so both fall in "now".
-    // We test the filter by giving a future `from` that excludes both.
+    /*
+     * Two rows; default TestApiStore uses now() so both fall in "now".
+     * We test the filter by giving a future `from` that excludes both.
+     */
     await store.recordAiCost({
       organizationId: auth.organization.id,
       provider: 'anthropic',
@@ -4019,6 +4030,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     const future = new Date(Date.now() + 86_400_000).toISOString();
+
     const summary = await app.inject({
       method: 'GET',
       url: `/orgs/${auth.organization.id}/ai/cost-summary?from=${encodeURIComponent(future)}`,
@@ -4026,6 +4038,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(summary.statusCode).toBe(200);
+
     const body = summary.json();
     expect(body.totals.messages).toBe(0);
     expect(body.totals.costCents).toBe(0);
@@ -4287,6 +4300,75 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
 
     expect(bad.statusCode).toBe(400);
+
+    await app.close();
+  });
+
+  it('mirrors the persisted language into the vibecore-lang cookie and clears it on null', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'i18n-cookie@example.com', organizationName: 'i18n Cookie Org' });
+
+    const setFr = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: 'fr' },
+    });
+    expect(setFr.statusCode).toBe(200);
+
+    const setCookies = setFr.headers['set-cookie'];
+    const setCookieArray = Array.isArray(setCookies) ? setCookies : setCookies ? [setCookies] : [];
+    const langCookie = setCookieArray.find((header) => header.startsWith('vibecore-lang='));
+    expect(langCookie).toBeDefined();
+    expect(langCookie).toContain('vibecore-lang=fr');
+    expect(langCookie).toContain('SameSite=Lax');
+    expect(langCookie).toContain('Max-Age=31536000');
+    expect(langCookie).not.toContain('HttpOnly');
+
+    const clear = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { language: null },
+    });
+    expect(clear.statusCode).toBe(200);
+
+    const clearCookies = clear.headers['set-cookie'];
+    const clearCookieArray = Array.isArray(clearCookies) ? clearCookies : clearCookies ? [clearCookies] : [];
+    const langClear = clearCookieArray.find((header) => header.startsWith('vibecore-lang='));
+    expect(langClear).toBeDefined();
+
+    /*
+     * fastify-cookie's clearCookie sets the value to '' and pushes
+     * Expires into the past so the browser drops it on the next round
+     * trip. Either signal proves the clear path fired.
+     */
+    expect(langClear).toMatch(/vibecore-lang=;|Expires=Thu, 01 Jan 1970/i);
+
+    await app.close();
+  });
+
+  it('does not touch the vibecore-lang cookie when the PATCH omits language', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'i18n-cookie-skip@example.com',
+      organizationName: 'i18n Cookie Skip Org',
+    });
+
+    const nameOnly = await app.inject({
+      method: 'PATCH',
+      url: '/auth/me',
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Renamed' },
+    });
+    expect(nameOnly.statusCode).toBe(200);
+
+    const setCookies = nameOnly.headers['set-cookie'];
+    const setCookieArray = Array.isArray(setCookies) ? setCookies : setCookies ? [setCookies] : [];
+    expect(setCookieArray.find((header) => header.startsWith('vibecore-lang='))).toBeUndefined();
 
     await app.close();
   });

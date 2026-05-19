@@ -183,6 +183,7 @@ const contactSalesSchema = z.object({
   teamSize: z.string().optional(),
   requirements: z.string().min(1),
 });
+
 /*
  * Supported BCP-47 primary language tags. Kept narrow to match the bundles
  * shipped by `app/lib/i18n/messages/` — adding a language is a coordinated
@@ -196,6 +197,7 @@ const userProfileSchema = z.object({
   name: z.string().min(1).optional(),
   email: z.string().email().optional(),
   timezone: z.string().min(1).optional(),
+
   /*
    * `null` clears the stored preference (back to client-side detection);
    * an unset key leaves the column untouched.
@@ -6001,7 +6003,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : request.currentUser,
     };
   });
-  app.patch('/auth/me', async (request) => {
+  app.patch('/auth/me', async (request, reply) => {
     const body = parse(userProfileSchema, request.body);
 
     const user = await store.updateUser({
@@ -6010,6 +6012,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       name: body.name,
       language: body.language,
     });
+
+    /*
+     * Slice 3 react-i18next — mirror the persisted language into a
+     * `vibecore-lang` cookie so the client's i18next runtime can pick it
+     * up at boot without an extra round trip to GET /auth/me. The cookie
+     * is intentionally NOT httpOnly: the client reads it from
+     * `document.cookie` to pre-select the i18next language before any
+     * UI renders. SameSite=Lax + Secure (in prod) match the session
+     * cookie so the SSO redirect roundtrip preserves it.
+     */
+    if (body.language !== undefined) {
+      if (body.language === null) {
+        reply.clearCookie('vibecore-lang', { path: '/' });
+      } else {
+        reply.setCookie('vibecore-lang', body.language, {
+          httpOnly: false,
+          sameSite: 'lax',
+          secure: isProduction,
+          path: '/',
+          maxAge: 60 * 60 * 24 * 365,
+        });
+      }
+    }
+
     await audit(request, store, {
       action: 'auth.profile.update',
       resourceType: 'user',
@@ -8786,10 +8812,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let totalCostCents = 0;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    const byProvider: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
-    const byModel: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
-    const byDay: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
-    const byProject: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
+
+    const byProvider: Record<
+      string,
+      { costCents: number; inputTokens: number; outputTokens: number; messages: number }
+    > = {};
+    const byModel: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> =
+      {};
+    const byDay: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> =
+      {};
+    const byProject: Record<
+      string,
+      { costCents: number; inputTokens: number; outputTokens: number; messages: number }
+    > = {};
 
     for (const row of ledger) {
       totalCostCents += row.costCents;
@@ -8797,7 +8832,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       totalOutputTokens += row.outputTokens;
 
       const day = row.createdAt.slice(0, 10); // YYYY-MM-DD
-      const bucketKeys: Array<[Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }>, string]> = [
+
+      const bucketKeys: Array<
+        [Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }>, string]
+      > = [
         [byProvider, row.provider],
         [byModel, row.model],
         [byDay, day],

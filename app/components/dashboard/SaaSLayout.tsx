@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { Form, Link, NavLink, useNavigate } from '@remix-run/react';
 import {
   Activity,
+  ArrowUpRight,
   Bell,
   BookOpen,
   Boxes,
@@ -83,6 +84,22 @@ type TemplateCard = {
   providers: TemplateProvider[];
 };
 
+type MarketingMenuItem = readonly [title: string, to: string, description: string];
+type FooterLink = readonly [label: string, to: string];
+type FooterColumn = {
+  title: string;
+  links: readonly FooterLink[];
+};
+
+export const ECODE_MARKETING_BRAND = {
+  name: 'E-Code',
+  legalName: 'E-Code.AI (Snatch Group Limited)',
+  logoSrc: '/assets/logo.svg',
+  faviconSrc: '/favicon.svg',
+  appleTouchIconSrc: '/apple-touch-icon.png',
+  repositoryUrl: 'https://github.com/openaxcloud/vibecore',
+} as const;
+
 export const publicNav = [
   { label: 'Product', to: '/#product' },
   { label: 'Solutions', to: '/#solutions' },
@@ -90,6 +107,66 @@ export const publicNav = [
   { label: 'Security', to: '/security' },
   { label: 'Pricing', to: '/pricing' },
 ];
+
+export const publicMarketingMenus = {
+  product: [
+    ['AI Agent', '/#builder', 'Build production-ready apps with natural language prompts.'],
+    ['Browser IDE', '/#product', 'Enterprise-grade development workspace built for teams.'],
+    ['Mobile App', '/#mobile', 'Ship from phone and tablet with the same IDE workflow.'],
+    ['Deployments', '/#deploy', 'Preview, validate and release with production controls.'],
+  ],
+  solutions: [
+    ['App Builder', '/#solutions', 'Rapidly prototype and deploy full-stack applications.'],
+    ['Website Builder', '/templates', 'Create polished marketing sites with zero setup.'],
+    ['Enterprise', '/contact-sales', 'SSO, audit logs, private runtimes and guided rollout.'],
+    ['Templates', '/templates', 'Launch with curated production starters.'],
+  ],
+  resources: [
+    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
+    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
+    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
+    ['Status', '/status', 'Operational status and incident visibility.'],
+  ],
+  company: [
+    ['Security', '/security', 'Controls for identity, isolation, secrets and audit trails.'],
+    ['Contact sales', '/contact-sales', 'Plan enterprise deployment and private runtime pools.'],
+    ['Privacy', '/privacy', 'Workspace metadata, secrets and retention practices.'],
+    ['Terms', '/terms', 'Platform usage, billing and enterprise agreement basics.'],
+  ],
+} as const satisfies Record<string, readonly MarketingMenuItem[]>;
+
+export const publicFooterColumns: readonly FooterColumn[] = [
+  {
+    title: 'Product',
+    links: [
+      ['AI Agent', '/#builder'],
+      ['IDE', '/#product'],
+      ['Mobile App', '/#mobile'],
+      ['Deployments', '/#deploy'],
+      ['Templates', '/templates'],
+      ['Pricing', '/pricing'],
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      ['Docs', '/docs'],
+      ['Templates', '/templates'],
+      ['Changelog', '/changelog'],
+      ['Status', '/status'],
+      ['Security', '/security'],
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      ['Contact sales', '/contact-sales'],
+      ['Privacy', '/privacy'],
+      ['Terms', '/terms'],
+      ['Acceptable use', '/acceptable-use'],
+    ],
+  },
+] as const;
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
 
@@ -221,71 +298,64 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function VibecoreLogo({ compact = false }: { compact?: boolean }) {
+function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="vc-logo" aria-label="VibeCore">
+    <span className="vc-logo" aria-label={ECODE_MARKETING_BRAND.name}>
       <span className="vc-logo-mark" aria-hidden>
-        <Sparkles className="h-4 w-4" />
+        <img src={ECODE_MARKETING_BRAND.logoSrc} alt="" loading="eager" decoding="async" />
       </span>
-      {!compact ? <span className="vc-logo-text">VibeCore</span> : null}
+      {!compact ? <span className="vc-logo-text">{ECODE_MARKETING_BRAND.name}</span> : null}
     </span>
   );
 }
 
 function PublicMarketingHeader() {
-  const productItems = [
-    ['AI Agent', '/#builder', 'Generate, patch and ship production apps from natural language.'],
-    ['Browser IDE', '/#product', 'A preserved Bolt workbench with files, terminal, preview and deploy tools.'],
-    ['Mobile IDE', '/#mobile', 'Review, run and inspect projects from phone and tablet layouts.'],
-    ['Deployments', '/#deploy', 'Runtime-aware previews, snapshots and production release controls.'],
-  ];
-  const resourceItems = [
-    ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
-    ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
-    ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
-    ['Status', '/status', 'Operational status and incident visibility.'],
-  ];
+  const mobileItems = [
+    ...publicMarketingMenus.product,
+    ...publicMarketingMenus.solutions,
+    ...publicMarketingMenus.resources,
+    ...publicMarketingMenus.company,
+    ['Pricing', '/pricing', 'Plans for individuals, teams and enterprise deployments.'],
+  ] as const satisfies readonly MarketingMenuItem[];
 
   return (
     <header className="vc-public-header" role="banner" aria-label="Site header">
       <div className="vc-public-announcement">
         <div className="vc-public-container vc-public-announcement-inner">
-          <span className="vc-badge">New</span>
-          <span>Enterprise-grade mobile IDE, runtime status and Android build validation are now live.</span>
+          <span className="vc-badge">NEW</span>
+          <span>Introducing E-Code Enterprise Cloud with dedicated AI governance and auditability.</span>
           <Link to="/contact-sales">Talk to an expert</Link>
         </div>
       </div>
       <nav className="vc-public-nav" aria-label="Main navigation">
         <div className="vc-public-container vc-public-nav-inner">
           <Link to="/" className="vc-public-brand">
-            <VibecoreLogo />
+            <EcodeMarketingLogo />
           </Link>
           <div className="vc-public-desktop-nav" aria-label="Public navigation">
-            <MarketingMenu label="Product" items={productItems} icon={Sparkles} />
-            <MarketingMenu label="Resources" items={resourceItems} icon={BookOpen} />
+            <MarketingMenu label="Product" items={publicMarketingMenus.product} icon={Sparkles} />
+            <MarketingMenu label="Solutions" items={publicMarketingMenus.solutions} icon={Rocket} />
+            <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
+            <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
             <NavButton to="/pricing">Pricing</NavButton>
-            <NavButton to="/security">Security</NavButton>
-            <NavButton to="/contact-sales">Enterprise</NavButton>
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />
             <LinkButton to="/login" variant="ghost">
               Sign in
             </LinkButton>
-            <LinkButton to="/signup">Start building</LinkButton>
+            <LinkButton to="/register">Get started</LinkButton>
             <details className="vc-public-mobile-menu">
               <summary aria-label="Open mobile menu">
                 <Menu className="h-5 w-5" aria-hidden />
               </summary>
               <div className="vc-public-mobile-menu-panel">
-                {[...productItems, ...resourceItems, ['Pricing', '/pricing', 'Plans for teams and enterprises']].map(
-                  ([title, to, description]) => (
-                    <Link key={to} to={to}>
-                      <strong>{title}</strong>
-                      <span>{description}</span>
-                    </Link>
-                  ),
-                )}
+                {mobileItems.map(([title, to, description]) => (
+                  <Link key={to} to={to}>
+                    <strong>{title}</strong>
+                    <span>{description}</span>
+                  </Link>
+                ))}
               </div>
             </details>
           </div>
@@ -320,7 +390,15 @@ function PublicThemeToggle() {
   );
 }
 
-function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items: string[][]; icon: Icon }) {
+function MarketingMenu({
+  label,
+  items,
+  icon: menuIcon,
+}: {
+  label: string;
+  items: readonly MarketingMenuItem[];
+  icon: Icon;
+}) {
   const MenuIcon = menuIcon;
 
   return (
@@ -345,38 +423,6 @@ function MarketingMenu({ label, items, icon: menuIcon }: { label: string; items:
 }
 
 function PublicMarketingFooter() {
-  const footerColumns = [
-    {
-      title: 'Product',
-      links: [
-        ['AI Agent', '/#builder'],
-        ['IDE', '/#product'],
-        ['Mobile', '/#mobile'],
-        ['Deployments', '/#deploy'],
-        ['Pricing', '/pricing'],
-      ],
-    },
-    {
-      title: 'Resources',
-      links: [
-        ['Docs', '/docs'],
-        ['Templates', '/templates'],
-        ['Changelog', '/changelog'],
-        ['Status', '/status'],
-        ['Contact sales', '/contact-sales'],
-      ],
-    },
-    {
-      title: 'Company',
-      links: [
-        ['Security', '/security'],
-        ['Privacy', '/privacy'],
-        ['Terms', '/terms'],
-        ['Acceptable use', '/acceptable-use'],
-      ],
-    },
-  ];
-
   return (
     <footer className="vc-public-footer" role="contentinfo" aria-label="Site footer">
       <div className="vc-public-container">
@@ -384,27 +430,31 @@ function PublicMarketingFooter() {
           <div>
             <span className="vc-badge">
               <ShieldCheck className="h-3 w-3" aria-hidden />
-              Enterprise ready
+              Built for Fortune 500
             </span>
-            <h2>The future of governed software development.</h2>
+            <h2>The future of enterprise software development.</h2>
             <p>
-              VibeCore combines Bolt IDE ergonomics, managed runtimes, auditability and production deployment controls.
+              E-Code combines secure cloud workspaces, intelligent automation and enterprise controls so your teams can
+              ship faster across every device.
             </p>
           </div>
           <div className="vc-public-footer-actions">
-            <LinkButton to="/contact-sales">Talk to sales</LinkButton>
-            <LinkButton to="/signup" variant="outline">
+            <LinkButton to="/contact-sales">
+              Talk to sales
+              <ArrowUpRight className="h-4 w-4" aria-hidden />
+            </LinkButton>
+            <LinkButton to="/register" variant="outline">
               Start building
             </LinkButton>
           </div>
         </div>
         <div className="vc-public-footer-grid">
           <div className="vc-public-footer-brand">
-            <VibecoreLogo />
-            <p>Persistent projects, real runtimes and a preserved Bolt workbench for production teams.</p>
+            <EcodeMarketingLogo />
+            <p>AI agents, real runtimes and a preserved Bolt workbench for production teams.</p>
             <div className="vc-public-trust-list">
               <span>
-                <CheckCircle2 className="h-4 w-4" /> Audit logs
+                <CheckCircle2 className="h-4 w-4" /> AI governance
               </span>
               <span>
                 <Globe2 className="h-4 w-4" /> Global previews
@@ -414,7 +464,7 @@ function PublicMarketingFooter() {
               </span>
             </div>
           </div>
-          {footerColumns.map((column) => (
+          {publicFooterColumns.map((column) => (
             <nav key={column.title} aria-label={`${column.title} footer links`}>
               <h3>{column.title}</h3>
               {column.links.map(([label, to]) => (
@@ -426,9 +476,11 @@ function PublicMarketingFooter() {
           ))}
         </div>
         <div className="vc-public-footer-bottom">
-          <span>© {new Date().getFullYear()} VibeCore. All rights reserved.</span>
+          <span>
+            © {new Date().getFullYear()} {ECODE_MARKETING_BRAND.legalName}. All rights reserved.
+          </span>
           <div>
-            <a href="https://github.com/openaxcloud/vibecore" target="_blank" rel="noreferrer" aria-label="GitHub">
+            <a href={ECODE_MARKETING_BRAND.repositoryUrl} target="_blank" rel="noreferrer" aria-label="GitHub">
               <Github className="h-4 w-4" />
             </a>
             <a href="/docs" aria-label="Documentation">
@@ -1269,7 +1321,7 @@ export function LinkButton({
     <Link
       to={to}
       className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
+        'inline-flex h-9 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-bolt-elements-borderColor',
         variant === 'default' && 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
         variant === 'outline' &&
           'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
