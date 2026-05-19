@@ -1,0 +1,97 @@
+import { type ActionFunctionArgs } from '@remix-run/cloudflare';
+
+import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
+import type { IProviderSetting } from '~/types/model';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('api.agent.self-repair');
+
+/*
+ * Phase 0 #2 — server-side single-shot LLM call for the AST self-repair
+ * pipeline. Given a self-repair prompt built by `buildSelfRepairPrompt`
+ * (hunk-validate.ts), regenerate the corrected file content and return it
+ * verbatim so the client retry loop in ActionRunner can re-validate and
+ * write. Cookie-based provider/apiKeys resolution mirrors api.chat.ts so
+ * the same user-supplied credentials drive both flows.
+ *
+ * This route stays plain JSON (not a stream): the caller is the
+ * ActionRunner inside an in-flight artifact, not the chat UI, so a
+ * single-message round trip is the right shape.
+ */
+
+const MAX_PROMPT_BYTES = 64_000;
+
+function parseCookies(cookieHeader: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+
+  for (const item of cookieHeader.split(';').map((cookie) => cookie.trim())) {
+    const [name, ...rest] = item.split('=');
+
+    if (name && rest.length > 0) {
+      cookies[decodeURIComponent(name.trim())] = decodeURIComponent(rest.join('=').trim());
+    }
+  }
+
+  return cookies;
+}
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+export async function action({ context, request }: ActionFunctionArgs) {
+  if (request.method.toUpperCase() !== 'POST') {
+    return json({ error: 'Method not allowed' }, 405);
+  }
+
+  let body: { prompt?: unknown };
+
+  try {
+    body = (await request.json()) as { prompt?: unknown };
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  if (typeof body.prompt !== 'string' || body.prompt.length === 0) {
+    return json({ error: 'Body must include a non-empty string `prompt`' }, 400);
+  }
+
+  if (body.prompt.length > MAX_PROMPT_BYTES) {
+    return json({ error: `Prompt exceeds the ${MAX_PROMPT_BYTES}-byte self-repair budget` }, 413);
+  }
+
+  const cookieHeader = request.headers.get('Cookie') ?? '';
+  const cookies = parseCookies(cookieHeader);
+
+  let apiKeys: Record<string, string> = {};
+  let providerSettings: Record<string, IProviderSetting> = {};
+
+  try {
+    apiKeys = JSON.parse(cookies.apiKeys || '{}');
+    providerSettings = JSON.parse(cookies.providers || '{}');
+  } catch {
+    return json({ error: 'Invalid apiKeys / providers cookie payload' }, 400);
+  }
+
+  const messages: Messages = [{ id: 'self-repair', role: 'user', content: body.prompt }];
+
+  try {
+    const result = await streamText({
+      messages,
+      env: context.cloudflare?.env,
+      apiKeys,
+      providerSettings,
+      promptId: 'self-repair',
+    });
+
+    const content = await result.text;
+
+    return json({ content });
+  } catch (error) {
+    logger.error('Self-repair LLM call failed:', error);
+    return json({ error: error instanceof Error ? error.message : 'self-repair failed' }, 502);
+  }
+}
