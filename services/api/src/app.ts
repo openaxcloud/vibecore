@@ -164,16 +164,27 @@ function createDefaultAgentMemory(store: ApiStore) {
 
 const allPermissionKeys = new Set(Object.values(rolePermissions).flat() as PermissionKey[]);
 
+/*
+ * Cap user-supplied password lengths to defang scrypt CPU-exhaustion
+ * attacks. scryptSync runs synchronously on Node's event loop, so an
+ * attacker who can submit a >100KB "password" stalls the API for every
+ * concurrent request while the hash computes. 128 chars is plenty for
+ * even the strongest passphrase managers (1Password / Bitwarden default
+ * to 14–20 char generated passwords) and matches the OWASP ASVS V2.1.1
+ * upper-bound guidance.
+ */
+const PASSWORD_MAX_LENGTH = 128;
+
 const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).optional(),
-  organizationName: z.string().min(1).optional(),
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(PASSWORD_MAX_LENGTH),
+  name: z.string().min(1).max(200).optional(),
+  organizationName: z.string().min(1).max(200).optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().email().max(254),
+  password: z.string().min(1).max(PASSWORD_MAX_LENGTH),
   mfaCode: z.string().min(6).max(32).optional(),
 });
 
@@ -205,16 +216,19 @@ const userProfileSchema = z.object({
   language: supportedLanguageTagSchema.nullable().optional(),
 });
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8),
+  currentPassword: z.string().min(1).max(PASSWORD_MAX_LENGTH),
+  newPassword: z.string().min(8).max(PASSWORD_MAX_LENGTH),
 });
 
 const deleteAccountSchema = z.object({ confirmation: z.literal('DELETE MY ACCOUNT') });
-const tokenSchema = z.object({ token: z.string().min(16) });
-const passwordResetRequestSchema = z.object({ email: z.string().email() });
-const passwordResetConfirmSchema = z.object({ token: z.string().min(16), password: z.string().min(8) });
+const tokenSchema = z.object({ token: z.string().min(16).max(256) });
+const passwordResetRequestSchema = z.object({ email: z.string().email().max(254) });
+const passwordResetConfirmSchema = z.object({
+  token: z.string().min(16).max(256),
+  password: z.string().min(8).max(PASSWORD_MAX_LENGTH),
+});
 const mfaVerifySchema = z.object({ code: z.string().min(6).max(32) });
-const reauthSchema = z.object({ password: z.string().min(1) });
+const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
 const createOrgSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
 const orgParams = z.object({ orgId: z.string().min(1) });
 const membershipParams = orgParams.extend({ userId: z.string().min(1) });
@@ -3399,8 +3413,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
   const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
 
+  /*
+   * In production the API runs behind a load balancer / ingress
+   * (GKE Ingress for app.e-code.ai, or any reverse proxy a self-host
+   * operator slots in). Without `trustProxy`, `request.ip` is the
+   * socket source — i.e. the LB's internal IP — so the per-IP rate
+   * limiter, the audit log, and the abuse detector all collapse onto
+   * one tenant per LB. We opt in by env var so it's never on by
+   * default (which would let a public-facing operator be tricked by a
+   * spoofed `X-Forwarded-For`). Accepts:
+   *   TRUST_PROXY=true        – trust the chain (use behind LB only)
+   *   TRUST_PROXY=1           – trust the immediate upstream hop
+   *   TRUST_PROXY=10.0.0.0/8  – trust a specific CIDR
+   *   (unset / false)         – fall back to socket IP (dev default)
+   */
+  const trustProxyEnv = process.env.TRUST_PROXY;
+  const trustProxy: boolean | number | string =
+    trustProxyEnv === 'true'
+      ? true
+      : trustProxyEnv === 'false' || trustProxyEnv === undefined
+        ? false
+        : /^\d+$/.test(trustProxyEnv)
+          ? Number(trustProxyEnv)
+          : trustProxyEnv;
+
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
+    trustProxy,
     genReqId(request) {
       const header = request.headers['x-request-id'];
       return typeof header === 'string' && header.length > 0 ? header : randomUUID();
@@ -3727,7 +3766,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post(
     '/auth/register',
-    { config: { rateLimit: { max: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? 200), timeWindow: '1 minute' } } },
+    {
+      /*
+       * Default 10 register attempts per minute per IP+user+org bucket
+       * (see the `keyGenerator` on the global rate limiter). 200/min was
+       * the legacy default from the API-only era; with the UI now live
+       * on a public domain that's a wide-open registration spam vector.
+       * Operators can lift the ceiling via `AUTH_REGISTER_RATE_LIMIT_MAX`
+       * during marketing pushes.
+       */
+      config: { rateLimit: { max: Number(process.env.AUTH_REGISTER_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } },
+    },
     async (request, reply) => {
       const body = parse(registerSchema, request.body);
       const existing = await store.findUserByEmail(body.email);
@@ -3782,7 +3831,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post(
     '/auth/login',
-    { config: { rateLimit: { max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? 100), timeWindow: '1 minute' } } },
+    {
+      /*
+       * 10 attempts per minute per IP keeps credential-stuffing bots in
+       * check while leaving room for a confused human to fat-finger
+       * their password. Tighter than register because every failed
+       * attempt forces a scrypt computation.
+       */
+      config: { rateLimit: { max: Number(process.env.AUTH_LOGIN_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } },
+    },
     async (request, reply) => {
       const body = parse(loginSchema, request.body);
       const user = await store.findUserByEmail(body.email);
