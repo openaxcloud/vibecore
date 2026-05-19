@@ -26,8 +26,11 @@
   gap: 8px;
   overflow: visible;
   border-color: var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--vc-ide-bg-panel, #0e1525), white 3%), var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2)));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--vc-ide-bg-panel, #0e1525), white 3%),
+    var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2))
+  );
   padding: 6px 8px;
 }
 
