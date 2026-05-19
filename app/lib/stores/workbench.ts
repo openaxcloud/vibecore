@@ -11,6 +11,12 @@ import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
+import {
+  deleteAgentPatchProposalRemote,
+  fetchOpenAgentPatchProposals,
+  isTerminalAgentPatchStatus,
+  putAgentPatchProposal,
+} from '~/lib/persistence/agentPatchProposalSync';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
@@ -313,7 +319,65 @@ export class WorkbenchStore {
   }
 
   configureProject(projectId?: string) {
+    const changed = this.#projectId !== projectId;
     this.#projectId = projectId;
+
+    /*
+     * Hydrate the AgentPatchProposal queue from the server every time the
+     * workbench rebinds to a different project. The fetch is best-effort
+     * (logs + empty list on failure), so a slow or unavailable API doesn't
+     * block the IDE booting; the nanostore remains the source of truth.
+     */
+    if (changed && projectId) {
+      void this.#hydrateAgentPatchProposals(projectId);
+    }
+  }
+
+  async #hydrateAgentPatchProposals(projectId: string) {
+    const proposals = await fetchOpenAgentPatchProposals(projectId);
+
+    if (this.#projectId !== projectId) {
+      // The workbench has been re-bound to another project while we waited.
+      return;
+    }
+
+    for (const proposal of proposals) {
+      const existing = this.agentPatchProposals.get()[proposal.id];
+
+      if (existing && existing.updatedAt >= proposal.updatedAt) {
+        /*
+         * Local copy is at least as fresh — typically because the streaming
+         * action runner re-created the proposal between our fetch firing
+         * and resolving. Don't clobber the more recent local state.
+         */
+        continue;
+      }
+
+      this.agentPatchProposals.setKey(proposal.id, proposal);
+      this.#agentPatchOriginals.set(proposal.actionId, proposal.originalContent);
+    }
+  }
+
+  #syncAgentPatchProposalToServer(proposalId: string) {
+    const projectId = this.#projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    const proposal = this.agentPatchProposals.get()[proposalId];
+
+    if (!proposal) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
+      return;
+    }
+
+    if (isTerminalAgentPatchStatus(proposal.status)) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
+      return;
+    }
+
+    void putAgentPatchProposal(projectId, proposal);
   }
 
   async loadRuntimeFiles(rootPath = '.') {
@@ -1000,6 +1064,7 @@ export class WorkbenchStore {
       status: proposal.status === 'accepted' ? 'accepted' : 'rejected',
       updatedAt: new Date().toISOString(),
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
   }
 
   async rejectAgentPatchProposal(proposalId: string) {
@@ -1018,6 +1083,7 @@ export class WorkbenchStore {
       status: 'rejected',
       updatedAt: new Date().toISOString(),
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
     this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
   }
 
@@ -1044,6 +1110,7 @@ export class WorkbenchStore {
       updatedAt: new Date().toISOString(),
       error: undefined,
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
 
     try {
       const artifact = this.#getArtifact(proposal.artifactId);
@@ -1099,6 +1166,7 @@ export class WorkbenchStore {
         status: 'accepted',
         updatedAt: new Date().toISOString(),
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.#emitFileApplied(proposal.relativePath, 'agent', {
         artifactId: proposal.artifactId,
         actionId: proposal.actionId,
@@ -1122,6 +1190,7 @@ export class WorkbenchStore {
         updatedAt: new Date().toISOString(),
         error: message,
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
 
       return 'failed';
@@ -1214,6 +1283,7 @@ export class WorkbenchStore {
         status: 'reverted',
         updatedAt: new Date().toISOString(),
       });
+      this.#syncAgentPatchProposalToServer(proposalId);
       this.#emitFileApplied(proposal.relativePath, 'agent', {
         artifactId: proposal.artifactId,
         actionId: `${proposal.actionId}-revert`,
@@ -1681,6 +1751,7 @@ export class WorkbenchStore {
           updatedAt: new Date().toISOString(),
           error: message,
         });
+        this.#syncAgentPatchProposalToServer(proposal.id);
         this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
       }
     }
@@ -1722,6 +1793,7 @@ export class WorkbenchStore {
       createdAt: previous?.createdAt ?? now,
       updatedAt: now,
     });
+    this.#syncAgentPatchProposalToServer(proposalId);
 
     if (this.selectedFile.value !== fullPath) {
       this.setSelectedFile(fullPath);
