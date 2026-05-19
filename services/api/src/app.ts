@@ -716,12 +716,6 @@ const aiRecordUsageSchema = z.object({
   source: z.string().min(1).default('remix-chat'),
 });
 
-const aiCheckQuotaSchema = z.object({
-  estimatedInputTokens: z.number().int().nonnegative().default(0),
-  model: z.string().optional(),
-  provider: z.string().optional(),
-});
-
 const aiToolSchema = z.object({
   workspaceId: z.string().min(1).optional(),
   path: z.string().optional(),
@@ -8478,59 +8472,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return { messages: await store.listAiMessages(conversationId) };
-  });
-  /*
-   * C1.b.4 — Pre-flight quota check called by the Remix chat route BEFORE
-   * starting streamText. Estimates input tokens from the incoming
-   * conversation, runs the same ensureQuota path as the in-server AI
-   * routes, and returns the remaining headroom so the client can warn
-   * the user. ensureQuota throws 429 on overage with the structured
-   * error code QUOTA_EXCEEDED, which the Fastify error handler will
-   * pass through and Remix will surface as a chat-error annotation.
-   */
-  app.post('/projects/:projectId/ai/check-quota', async (request) => {
-    const { projectId } = parse(projectParams, request.params);
-    const project = await requireProject(request, store, projectId, 'workspaces:read');
-    const body = parse(aiCheckQuotaSchema, request.body ?? {});
-
-    // Always charge 1 message against the daily ai.messages cap. This is
-    // checked even when estimatedInputTokens is 0 so a barely-typed
-    // "..." still trips the rate-limit at a sane upper bound.
-    const estimated = body.estimatedInputTokens ?? 0;
-    await ensureQuota(request, project.organizationId, 'ai.messages', 1);
-    if (estimated > 0) {
-      await ensureQuota(request, project.organizationId, 'ai.inputTokens', estimated);
-    }
-
-    // Resolve the live headroom for both relevant quotas so the client
-    // can render a "X tokens left this month" hint. The plan-resolution
-    // path is shared with ensureQuota so the override table is honoured.
-    const { limits } = await billingState(project.organizationId);
-    const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
-    const tokenLimit =
-      (isQuotaOverrideActive(tokenOverride) ? tokenOverride?.limit : undefined) ?? limits['ai.inputTokens'] ?? 0;
-    const tokenUsed = await usageForQuota(project.organizationId, 'ai.inputTokens', request);
-
-    const messageOverride = await store.getQuotaOverride(project.organizationId, 'ai.messages');
-    const messageLimit =
-      (isQuotaOverrideActive(messageOverride) ? messageOverride?.limit : undefined) ?? limits['ai.messages'] ?? 0;
-    const messageUsed = await usageForQuota(project.organizationId, 'ai.messages', request);
-
-    return {
-      ok: true,
-      ai: {
-        inputTokens: {
-          used: tokenUsed,
-          limit: tokenLimit,
-          remaining: Math.max(0, tokenLimit - tokenUsed),
-        },
-        messages: {
-          used: messageUsed,
-          limit: messageLimit,
-          remaining: Math.max(0, messageLimit - messageUsed),
-        },
-      },
-    };
   });
   /*
    * C1.b.2 — Record-usage endpoint called by the Remix chat route after a
