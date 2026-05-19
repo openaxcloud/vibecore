@@ -1,0 +1,89 @@
+{{- /*
+  Run `prisma migrate deploy` as a Helm pre-install / pre-upgrade hook so
+  the database schema is always in sync with the deployed image before
+  any service pod is rolled. Replaces the manual `kubectl run prisma-
+  migrate-<SHA>` step that DEPLOYMENT.md used to require.
+
+  The Job runs against the api image (which now bundles the prisma CLI
+  via @vibecore/database/dependencies) and reads DATABASE_URL from the
+  same vibecore-platform-secrets every other deployment mounts.
+
+  hook-weight -10 puts it before everything else in the same install
+  pass. hook-delete-policy cleans the previous successful run before
+  creating the next, while leaving the failed Pod around for triage.
+*/}}
+{{- $migrations := .Values.migrations | default dict -}}
+{{- $migrationsEnabled := true -}}
+{{- if hasKey $migrations "enabled" -}}
+{{-   $migrationsEnabled = $migrations.enabled -}}
+{{- end -}}
+{{- if $migrationsEnabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "vibecore-platform.fullname" . }}-prisma-migrate
+  labels:
+    app.kubernetes.io/name: prisma-migrate
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: vibecore
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prisma-migrate
+        app.kubernetes.io/component: migration
+        app.kubernetes.io/part-of: vibecore
+    spec:
+      serviceAccountName: {{ include "vibecore-platform.fullname" . }}-api
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: prisma-migrate
+          image: "{{ .Values.global.imageRegistry }}/api:{{ required "global.imageTag must be set" .Values.global.imageTag }}"
+          imagePullPolicy: {{ if eq (.Values.global.imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              cd /runtime
+              PRISMA_BIN=$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")
+              SCHEMA=$(node -e "process.stdout.write(require.resolve('@vibecore/database/prisma/schema.prisma'))")
+              echo "prisma bin: $PRISMA_BIN"
+              echo "schema:     $SCHEMA"
+              node "$PRISMA_BIN" migrate deploy --schema "$SCHEMA"
+          envFrom:
+            - secretRef:
+                name: {{ .Values.secrets.existingSecret }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}
