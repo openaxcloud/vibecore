@@ -12876,6 +12876,64 @@ button.bolt-project-statusbar-pill:focus-visible,
   color: var(--vc-ide-text-muted) !important;
 }
 
+@media (min-width: 1024px) {
+  .bolt-responsive-ide-desktop .bolt-project-files-tool,
+  .bolt-responsive-ide-desktop .bolt-project-file-tree {
+    background: #f5f7f2 !important;
+    background-color: #f5f7f2 !important;
+    color: #36373b !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-header,
+  .bolt-responsive-ide-desktop .bolt-project-files-search {
+    border-color: #dde3d4 !important;
+    background: #eef3e8 !important;
+    background-color: #eef3e8 !important;
+    color: #36373b !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-count,
+  .bolt-responsive-ide-desktop .bolt-project-files-search span {
+    color: #5f625d !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-search input {
+    border-color: #d2dac8 !important;
+    background: #fbfcf8 !important;
+    color: #36373b !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-search input:focus {
+    border-color: #8aa45e !important;
+    box-shadow: 0 0 0 2px rgba(138, 164, 94, 0.2);
+  }
+
+  .bolt-responsive-ide-desktop .bolt-file-tree-node,
+  .bolt-responsive-ide-desktop .bolt-file-tree-name,
+  .bolt-responsive-ide-desktop .bolt-file-tree-icon-wrap,
+  .bolt-responsive-ide-desktop .bolt-file-tree-icon-wrap [class*='i-ph:'] {
+    color: #36373b !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-file-tree-node:hover {
+    background: #e8eedf !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-file-tree .bolt-project-file-selected {
+    background: #dfe9d3 !important;
+    color: #36373b !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-header button {
+    color: #4d504a !important;
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-files-header button:hover {
+    background: #dfe9d3 !important;
+    color: #36373b !important;
+  }
+}
+
 .bolt-project-terminal-hub {
   display: flex;
   min-width: 0;
