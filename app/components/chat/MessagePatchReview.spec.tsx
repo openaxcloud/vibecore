@@ -36,15 +36,19 @@ vi.mock('~/lib/hooks/useFileActionDiff', () => ({
   computeFileActionDiff: (_files: unknown, action: FileActionBlock) => buildFakeDiff(action),
 }));
 
-const { filesMock } = vi.hoisted(() => {
+const { filesMock, selfRepairMock } = vi.hoisted(() => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- needed to stay inside the hoisted closure
   const { map } = require('nanostores') as typeof import('nanostores');
-  return { filesMock: map<Record<string, { type: 'file'; content: string; isBinary: false }>>({}) };
+  return {
+    filesMock: map<Record<string, { type: 'file'; content: string; isBinary: false }>>({}),
+    selfRepairMock: map<Record<string, { attempt: number; maxAttempts: number; errorMessage?: string }>>({}),
+  };
 });
 
 vi.mock('~/lib/stores/workbench', () => ({
   workbenchStore: {
     files: filesMock,
+    agentPatchSelfRepair: selfRepairMock,
     writeFileContent: vi.fn(async () => undefined),
   },
 }));
