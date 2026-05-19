@@ -1,8 +1,5 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
-/* eslint-disable import/order */
+/* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
+// @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
