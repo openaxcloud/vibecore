@@ -35,6 +35,10 @@ export interface ChatHistoryItem {
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
+/*
+ * `db` is browser-only. Guard the top-level await so this module can be
+ * imported during SSR without touching indexedDB (which is undefined in Node).
+ */
 export const db = persistenceEnabled && typeof indexedDB !== 'undefined' ? await openDatabase() : undefined;
 
 export const chatId = atom<string | undefined>(undefined);

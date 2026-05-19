@@ -1,3 +1,7 @@
+declare module 'react-dom/server.browser' {
+  export { renderToReadableStream } from 'react-dom/server';
+}
+
 interface Window {
   showDirectoryPicker(): Promise<FileSystemDirectoryHandle>;
   webkitSpeechRecognition: typeof SpeechRecognition;

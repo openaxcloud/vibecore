@@ -54,25 +54,27 @@ ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
-# Install curl for HEALTHCHECK
+# Install curl for the Kubernetes /health probe + Docker HEALTHCHECK.
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy built artifacts and pruned production node_modules
+# Copy built artifacts + pruned production node_modules. `public/` is bundled
+# into `build/client/` by Vite, so it's not copied separately.
 COPY --from=prod-deps --chown=node:node /app/build /app/build
 COPY --from=prod-deps --chown=node:node /app/node_modules /app/node_modules
 COPY --from=prod-deps --chown=node:node /app/package.json /app/package.json
-COPY --from=prod-deps --chown=node:node /app/public /app/public
 
-# Run as non-root to satisfy Kubernetes runAsNonRoot
+# Run as non-root to satisfy podSecurity `runAsNonRoot: true`. The `node` user
+# (uid 1000) ships with the official Node image and has read access to /app.
 USER node
 
 EXPOSE 3000
 
+# Kubernetes uses /health; Docker HEALTHCHECK matches.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD curl -fsS http://localhost:3000/health || exit 1
 
-# Official Remix Node.js production server.
+# Run remix-serve directly so the runtime is plain Node — no wrangler/miniflare.
 CMD ["node", "./node_modules/@remix-run/serve/dist/cli.js", "./build/server/index.js"]
 
 

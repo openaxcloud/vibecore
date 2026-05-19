@@ -75,13 +75,17 @@ services:
     # queue depth justifies a second consumer.
     replicas: 1
     path: ""
+    # No HTTP listener — background consumer driven by Redis/Postgres.
+    # An exec probe keeps liveness honest while the pod has no /health route.
+    httpHealth: false
     resources:
       requests: { cpu: 100m, memory: 256Mi }
       limits: { cpu: 500m, memory: 512Mi }
   aiGateway:
     enabled: true
     image: ai-gateway
-    port: 3010
+    # ai-gateway binary binds 3030 (services/ai-gateway/src/server.ts AI_GATEWAY_PORT default).
+    port: 3030
     replicas: 2
     path: /ai
     resources:
@@ -90,10 +94,10 @@ services:
   workspaceManager:
     enabled: true
     image: workspace-manager
-    port: 3020
-    # B4 landed: workspace-manager now reads/writes via PrismaWorkspaceStore
-    # against the shared Postgres, so replicas: 2 is safe (no on-disk
-    # state to race). PDB activates because replicas > 1.
+    # workspace-manager binary binds 3010 (services/workspace-manager/src/server.ts).
+    # B4 landed: PrismaWorkspaceStore lets replicas > 1 share Postgres-backed
+    # state — PDB activates because replicas > 1.
+    port: 3010
     replicas: 2
     path: /runtime
     resources:
@@ -102,7 +106,8 @@ services:
   previewProxy:
     enabled: true
     image: preview-proxy
-    port: 3030
+    # preview-proxy binary binds 3020 (services/preview-proxy/src/server.ts).
+    port: 3020
     replicas: 2
     path: /
     host: "*.preview.e-code.ai"

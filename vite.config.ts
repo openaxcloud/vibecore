@@ -65,10 +65,14 @@ export default defineConfig((config) => {
             }
 
             if (id.includes('/@codemirror/') || id.includes('/@lezer/')) {
-              if (id.includes('/@codemirror/lang-') || id.includes('/@lezer/')) {
-                return 'vendor-codemirror-languages';
-              }
-
+              /*
+               * Splitting CodeMirror core from its language packs produced a
+               * circular chunk (lang-* re-imports core helpers that re-import
+               * lang-*), which triggered "Cannot access 'dt' before
+               * initialization" at runtime and left the page on a blank
+               * shell. Keep CodeMirror + Lezer in a single chunk so module
+               * initialization is deterministic.
+               */
               return 'vendor-codemirror';
             }
 
@@ -84,28 +88,29 @@ export default defineConfig((config) => {
               return 'vendor-export-pdf';
             }
 
-            if (id.includes('/jszip/')) {
-              return 'vendor-export-zip';
-            }
-
-            if (id.includes('/@radix-ui/')) {
-              return 'vendor-radix';
-            }
-
             if (id.includes('/lucide-react/')) {
               return 'vendor-icons';
             }
 
-            if (id.includes('/react-dom/')) {
-              return 'vendor-react-dom';
-            }
-
-            if (id.includes('/react/') || id.includes('/scheduler/')) {
+            /*
+             * React, react-dom, scheduler, @remix-run, @radix-ui and jszip
+             * are kept together. Splitting them produced cycles like
+             *   vendor-react -> vendor-radix   -> vendor-react
+             *   vendor-react -> vendor-remix   -> vendor-react
+             *   vendor-react -> vendor-export-zip -> vendor-react
+             * which left react-dom's __SECRET_INTERNALS / radix's forwardRef
+             * in the TDZ at runtime and crashed hydration ("black screen"
+             * on the landing page).
+             */
+            if (
+              id.includes('/react-dom/') ||
+              id.includes('/react/') ||
+              id.includes('/scheduler/') ||
+              id.includes('/@remix-run/') ||
+              id.includes('/@radix-ui/') ||
+              id.includes('/jszip/')
+            ) {
               return 'vendor-react';
-            }
-
-            if (id.includes('/@remix-run/')) {
-              return 'vendor-remix';
             }
 
             return undefined;
