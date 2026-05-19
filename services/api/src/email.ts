@@ -28,7 +28,10 @@ export class HttpEmailProvider implements EmailProvider {
         'content-type': 'application/json',
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
       },
-      body: JSON.stringify(message),
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM || 'no-reply@e-code.ai',
+        ...message,
+      }),
     });
 
     if (!response.ok) {
