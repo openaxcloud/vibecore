@@ -62,6 +62,30 @@ export class SmtpEmailProvider implements EmailProvider {
   }
 }
 
+/*
+ * Fallback used when neither SMTP nor an HTTP webhook is configured. The
+ * registration / password-reset flows still issue tokens, but the message
+ * body is written to the server log instead of being delivered. Production
+ * deployments must replace this with an SMTP relay or a webhook to Resend /
+ * SendGrid / SES — that switch is purely environment-driven and does not
+ * require a code change.
+ */
+export class LoggingEmailProvider implements EmailProvider {
+  async send(message: EmailMessage) {
+    const banner = '─'.repeat(60);
+    console.warn(
+      [
+        banner,
+        `[email] No SMTP_HOST / EMAIL_HTTP_ENDPOINT configured — logging only.`,
+        `[email] To:      ${message.to}`,
+        `[email] Subject: ${message.subject}`,
+        `[email] Body:    ${message.text}`,
+        banner,
+      ].join('\n'),
+    );
+  }
+}
+
 export function createEmailProvider(): EmailProvider {
   if (process.env.SMTP_HOST) {
     return new SmtpEmailProvider();
@@ -71,5 +95,16 @@ export function createEmailProvider(): EmailProvider {
     return new HttpEmailProvider();
   }
 
-  throw new Error('SMTP_HOST or EMAIL_HTTP_ENDPOINT is required. The API does not start with an in-memory email provider.');
+  /*
+   * Refuse to silently swallow transactional email in production. Operators
+   * must explicitly opt in via `EMAIL_PROVIDER=logging` if they want the
+   * logging fallback while a real provider is being provisioned.
+   */
+  if (process.env.NODE_ENV === 'production' && process.env.EMAIL_PROVIDER !== 'logging') {
+    throw new Error(
+      'SMTP_HOST or EMAIL_HTTP_ENDPOINT is required in production. Set EMAIL_PROVIDER=logging to override during initial rollout.',
+    );
+  }
+
+  return new LoggingEmailProvider();
 }
