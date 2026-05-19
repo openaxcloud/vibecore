@@ -153,7 +153,7 @@ export default function LoginPage() {
 
           <div className="mb-6 flex items-center gap-3 sm:mb-8">
             <div className="grid h-10 w-10 place-items-center rounded-lg border border-[#2B3245] bg-[#0E1525] shadow-[0_12px_32px_rgba(0,4,20,0.45)] sm:h-11 sm:w-11">
-              <img src="/logo.png" alt="E-code" className="h-6 w-6 rounded object-contain sm:h-7 sm:w-7" />
+              <img src="/assets/logo.svg" alt="E-code" className="h-6 w-6 rounded object-contain sm:h-7 sm:w-7" />
             </div>
             <div>
               <p className="text-[15px] font-semibold leading-none text-white">E-code</p>
