@@ -21,7 +21,7 @@ import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
-import { recordChatUsage } from '~/lib/.server/ai-usage';
+import { checkChatQuota, recordChatUsage } from '~/lib/.server/ai-usage';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { MCPService } from '~/lib/services/mcpService';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
@@ -130,6 +130,52 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const dataStream = createDataStream({
       async execute(dataStream) {
         streamRecovery.startMonitoring();
+
+        /*
+         * C1.b.4 — Pre-flight quota check. We over-estimate (×1.2) on
+         * char/4 so a chat that would clip the limit by a hair is
+         * rejected up front rather than mid-stream. Fail-open inside
+         * checkChatQuota when the api is unreachable; the post-stream
+         * recordChatUsage call will still try to charge the ledger.
+         */
+        if (projectId) {
+          const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
+
+          const quota = await checkChatQuota({
+            projectId,
+            estimatedInputTokens,
+            cookieHeader: cookieHeader ?? undefined,
+          });
+
+          if (!quota.ok) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.quota.blocked',
+                projectId,
+                code: quota.code,
+                statusCode: quota.statusCode,
+              }),
+            );
+            dataStream.writeData({
+              type: 'progress',
+              label: 'quota-exceeded',
+              status: 'complete',
+              order: progressCounter++,
+              message: quota.message,
+            } satisfies ProgressAnnotation);
+            dataStream.writeMessageAnnotation({
+              type: 'error',
+              value: {
+                code: quota.code,
+                statusCode: quota.statusCode,
+                message: quota.message,
+              },
+            });
+            streamRecovery.stop();
+
+            return;
+          }
+        }
 
         if (shouldUsePortfolioTemplate({ messages, chatMode, files })) {
           const streamChunks = createPortfolioTemplateStreamChunks(messages);

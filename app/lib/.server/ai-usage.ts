@@ -40,6 +40,140 @@ export interface RecordChatUsageInput {
  * this is how the cost ledger gets populated for the managed-keys SaaS
  * model (see audit C1).
  */
+export interface CheckChatQuotaInput {
+  projectId: string;
+  estimatedInputTokens: number;
+  model?: string;
+  provider?: string;
+
+  /** Browser cookies forwarded so the api can authenticate the user. */
+  cookieHeader?: string;
+
+  /** Bearer token override (tests / future agent contexts). */
+  bearerToken?: string;
+}
+
+export type CheckChatQuotaResult =
+  | {
+      ok: true;
+      inputTokensRemaining?: number;
+      messagesRemaining?: number;
+    }
+  | {
+      ok: false;
+      statusCode: number;
+      code: string;
+      message: string;
+    };
+
+/**
+ * Ask services/api whether the org has headroom for an incoming chat
+ * BEFORE we start streaming the LLM. Returns ok:false on 429 with the
+ * structured error code so the chat route can surface a friendly UX
+ * message instead of letting the user burn tokens they'll be billed
+ * for but can't afford.
+ *
+ * Fail-open on network errors (returns ok:true) — we'd rather risk
+ * over-spending a chat than break the UX when the api is degraded.
+ * Auditing in `recordChatUsage` would still catch a runaway loop.
+ */
+export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckChatQuotaResult> {
+  if (!input.projectId) {
+    return { ok: true };
+  }
+
+  const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/check-quota`;
+
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    accept: 'application/json',
+  };
+
+  if (input.bearerToken) {
+    headers.authorization = `Bearer ${input.bearerToken}`;
+  } else if (input.cookieHeader) {
+    headers.cookie = input.cookieHeader;
+  } else {
+    // No credentials forwarded — fail-open, the api would reject anyway.
+    return { ok: true };
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        estimatedInputTokens: input.estimatedInputTokens,
+        model: input.model,
+        provider: input.provider,
+      }),
+    });
+
+    if (response.status === 200) {
+      try {
+        const payload = (await response.json()) as {
+          ai?: {
+            inputTokens?: { remaining?: number };
+            messages?: { remaining?: number };
+          };
+        };
+        return {
+          ok: true,
+          inputTokensRemaining: payload.ai?.inputTokens?.remaining,
+          messagesRemaining: payload.ai?.messages?.remaining,
+        };
+      } catch {
+        return { ok: true };
+      }
+    }
+
+    if (response.status === 429) {
+      let message = 'AI quota exceeded for this organization.';
+      let code = 'QUOTA_EXCEEDED';
+
+      try {
+        const payload = (await response.json()) as { error?: string; code?: string };
+
+        if (payload.error) {
+          message = payload.error;
+        }
+
+        if (payload.code) {
+          code = payload.code;
+        }
+      } catch {
+        // body wasn't JSON; keep defaults
+      }
+
+      return { ok: false, statusCode: 429, code, message };
+    }
+
+    /*
+     * 401/403/5xx → fail-open so we don't break chat when auth or api
+     * is transiently degraded. The post-stream recorder still tries to
+     * bill, and the api's own audit logs will flag the discrepancy.
+     */
+    logger.warn(
+      JSON.stringify({
+        event: 'ai-usage.check-quota.unexpected-status',
+        status: response.status,
+        projectId: input.projectId,
+      }),
+    );
+
+    return { ok: true };
+  } catch (error) {
+    logger.warn(
+      JSON.stringify({
+        event: 'ai-usage.check-quota.fetch-failed',
+        error: error instanceof Error ? error.message : String(error),
+        projectId: input.projectId,
+      }),
+    );
+    return { ok: true };
+  }
+}
+
 export async function recordChatUsage(input: RecordChatUsageInput): Promise<void> {
   if (!input.projectId) {
     return;
