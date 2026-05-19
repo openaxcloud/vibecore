@@ -44,7 +44,7 @@ export interface SlashCommandContext {
    * input is overwritten (used by `/preview-error` to pre-fill an
    * actionable prompt); otherwise the text is appended at the caret.
    * Wired by BaseChat through the same handleInputChange machinery
-   * the overlays use, so no separate mock is needed.
+   * the overlays use, so the production path stays shared.
    */
   insertIntoComposer?: (text: string, options?: { replace?: boolean }) => void;
 

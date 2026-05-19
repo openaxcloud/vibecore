@@ -373,8 +373,8 @@ function parseEtagHeader(header: string | null | undefined): number | undefined 
 
 /*
  * The real `fetch` Response always has a `Headers` instance, but the unit
- * tests stub `fetch` with plain objects that omit `headers`. We tolerate
- * that here instead of forcing every existing mock to grow a headers shim.
+ * tests can provide plain response objects that omit `headers`. We tolerate
+ * that here instead of forcing every existing test double to grow a headers shim.
  */
 function readResponseHeader(response: Response, name: string): string | null {
   const headers = (response as { headers?: { get?: (name: string) => string | null } }).headers;

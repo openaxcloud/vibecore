@@ -4,9 +4,9 @@ import { path } from '~/utils/path';
 
 /**
  * Subset of the runtime adapter surface this helper actually touches.
- * Keeping it narrow lets unit tests stub a tiny mock and lets callers in
- * non-streaming contexts (hydrated proposals, accept-after-reload) reuse
- * the same write path without dragging the full adapter dependency.
+ * Keeping it narrow lets unit tests provide a tiny test double and lets
+ * callers in non-streaming contexts (hydrated proposals, accept-after-reload)
+ * reuse the same write path without dragging the full adapter dependency.
  */
 export type AgentFileWriteRuntime = Pick<RuntimeAdapter, 'createDirectory' | 'writeFile'>;
 

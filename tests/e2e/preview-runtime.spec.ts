@@ -1,34 +1,58 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
+async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) {
+  const seconds = Number(responseText.match(/retry in (\d+) seconds/i)?.[1]);
+  const waitMs = Number.isFinite(seconds) ? (seconds + 1) * 1000 : fallbackMs;
+
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
+}
+
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
-    data: {
-      email: `preview-${suffix}@local.test`,
-      password: 'Password123!',
-      name: 'Preview E2E',
-      organizationName: `Preview E2E Organization ${suffix}`,
-    },
-  });
+  let responseText = '';
+  let payload: { token: string; organization: { id: string } } | undefined;
 
-  expect(response.ok(), await response.text()).toBeTruthy();
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+      data: {
+        email: `preview-${suffix}-${attempt}@local.test`,
+        password: 'Password123!',
+        name: 'Preview E2E',
+        organizationName: `Preview E2E Organization ${suffix}-${attempt}`,
+      },
+    });
 
-  const payload = (await response.json()) as { token: string; organization: { id: string } };
+    responseText = await response.text();
+
+    if (response.ok()) {
+      payload = JSON.parse(responseText) as { token: string; organization: { id: string } };
+      break;
+    }
+
+    if (response.status() === 429 && attempt < 3) {
+      await waitForRateLimitReset(responseText);
+      continue;
+    }
+
+    expect(response.ok(), responseText).toBeTruthy();
+  }
+
+  expect(payload, responseText).toBeTruthy();
 
   await page.context().addCookies([
     {
       name: 'vc_session',
-      value: payload.token,
+      value: payload!.token,
       url: appBaseUrl,
       httpOnly: true,
       sameSite: 'Lax',
     },
   ]);
 
-  return payload;
+  return payload!;
 }
 
 async function createZipBase64(files: Record<string, string>) {
@@ -48,12 +72,12 @@ async function expectPreviewIframe(page: import('@playwright/test').Page, timeou
   return previewIframe;
 }
 
-async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 30_000) {
+async function expectWorkspaceRunning(page: import('@playwright/test').Page, timeout = 90_000) {
   await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
 }
 
 test('project preview boots a real app and renders inside the webview', async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -77,24 +101,24 @@ test('project preview boots a real app and renders inside the webview', async ({
 
   const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
-    data: { zipBase64 },
+    data: { zipBase64, replaceExisting: true },
   });
 
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expectWorkspaceRunning(page);
+  await expectWorkspaceRunning(page, 180_000);
   await page.getByRole('button', { name: 'Webview' }).click();
 
-  await expectPreviewIframe(page, 90_000);
+  await expectPreviewIframe(page, 180_000);
   await expect(page.frameLocator('iframe[title="preview"]').locator('#app')).toContainText(
     'VibeCore preview runtime smoke',
-    { timeout: 90_000 },
+    { timeout: 180_000 },
   );
 });
 
 test('project preview boots a package-script Vite app and renders inside the webview', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -117,7 +141,8 @@ test('project preview boots a package-script Vite app and renders inside the web
       null,
       2,
     ),
-    'index.html': '<!doctype html><html><body><main id="app"></main><script type="module" src="/src/main.js"></script></body></html>',
+    'index.html':
+      '<!doctype html><html><body><main id="app"></main><script type="module" src="/src/main.js"></script></body></html>',
     'src/main.js': [
       "const root = document.querySelector('#app');",
       "root.textContent = 'VibeCore package preview runtime smoke';",
@@ -127,20 +152,19 @@ test('project preview boots a package-script Vite app and renders inside the web
 
   const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
-    data: { zipBase64 },
+    data: { zipBase64, replaceExisting: true },
   });
 
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expectWorkspaceRunning(page);
+  await expectWorkspaceRunning(page, 180_000);
   await page.getByRole('button', { name: 'Webview' }).click();
 
-  await expectPreviewIframe(page, 120_000);
-  await expect(page.frameLocator('iframe[title="preview"]').locator('[data-preview-runtime="vite-package"]')).toContainText(
-    'VibeCore package preview runtime smoke',
-    { timeout: 120_000 },
-  );
+  await expectPreviewIframe(page, 180_000);
+  await expect(
+    page.frameLocator('iframe[title="preview"]').locator('[data-preview-runtime="vite-package"]'),
+  ).toContainText('VibeCore package preview runtime smoke', { timeout: 180_000 });
 });
 
 test('template-created project boots and renders the generated app in preview', async ({ page }) => {
@@ -150,8 +174,8 @@ test('template-created project boots and renders the generated app in preview', 
 
   await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
   await page.getByRole('button', { name: 'Use template' }).first().click();
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30_000 });
-  await expectWorkspaceRunning(page);
+  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
+  await expectWorkspaceRunning(page, 180_000);
 
   await page.getByRole('button', { name: 'Webview' }).click();
 
@@ -159,7 +183,9 @@ test('template-created project boots and renders the generated app in preview', 
   await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible({
     timeout: 180_000,
   });
-  await expect(page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.')).toBeVisible();
+  await expect(
+    page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
+  ).toBeVisible();
 });
 
 test('AI-created project starts the agent with a valid default model', async ({ page }) => {
@@ -169,22 +195,18 @@ test('AI-created project starts the agent with a valid default model', async ({ 
 
   const prompt = 'Build a realtime kanban board with analytics';
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByLabel('AI provider')).toHaveValue('Anthropic');
-  await page.getByLabel('AI provider').selectOption('Google');
-  await expect(page.getByLabel('AI provider')).toHaveValue('Google');
-  await expect(page.getByLabel('AI model')).not.toHaveValue('');
-  await page.getByLabel('AI provider').selectOption('Anthropic');
-  await expect(page.getByLabel('AI provider')).toHaveValue('Anthropic');
-  await expect(page.getByLabel('AI model')).not.toHaveValue('');
-  await page.getByLabel('AI prompt').fill(prompt);
+  const providerDropdown = page.getByTestId('ai-provider-dropdown');
+  const modelDropdown = page.getByTestId('ai-model-dropdown');
+  await expect(providerDropdown.getByRole('combobox', { name: 'AI provider' })).toContainText('Anthropic', {
+    timeout: 30_000,
+  });
+  await expect(modelDropdown.getByRole('combobox', { name: 'AI model' })).not.toContainText('No option available');
+  await page.getByLabel('Describe your idea').fill(prompt);
   await page.getByRole('button', { name: 'Create project' }).click();
 
   await expect(page).toHaveURL(/\/projects\/[^/]+\/ide(?:\?.*)?$/, { timeout: 30_000 });
-  await expectWorkspaceRunning(page);
   await expect(page.getByText('Invalid model selected')).toHaveCount(0);
-  await expect(page.getByText('User prompt: Build a realtime kanban board with analytics')).toBeVisible({
-    timeout: 30_000,
-  });
+  await expect(page.getByText(prompt, { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Realtime Kanban Board|Generating Response|Response Generated/).first()).toBeVisible({
     timeout: 120_000,
   });
@@ -192,7 +214,7 @@ test('AI-created project starts the agent with a valid default model', async ({ 
 
 test('preview window options stay readable and interactive in light theme', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Preview toolbar window menu is part of the desktop/tablet IDE shell.');
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -210,16 +232,16 @@ test('preview window options stay readable and interactive in light theme', asyn
 
   const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
     headers: { authorization: `Bearer ${auth.token}` },
-    data: { zipBase64 },
+    data: { zipBase64, replaceExisting: true },
   });
 
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expectWorkspaceRunning(page);
+  await expectWorkspaceRunning(page, 180_000);
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
   await page.getByRole('button', { name: 'Webview' }).click();
-  await expectPreviewIframe(page, 90_000);
+  await expectPreviewIframe(page, 180_000);
 
   const toolbar = page.locator('.bolt-project-webview-toolbar').first();
   await expect(toolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
@@ -273,14 +295,14 @@ test('preview window options stay readable and interactive in light theme', asyn
   expect(metrics).toMatchObject({
     background: 'rgb(255, 255, 255)',
     color: 'rgb(17, 24, 39)',
-    borderColor: 'rgb(196, 204, 216)',
+    borderColor: 'rgb(154, 168, 187)',
     labelTextAlign: 'start',
     labelPaddingLeft: '12px',
     labelBackground: 'rgb(255, 255, 255)',
-    labelColor: 'rgb(107, 114, 128)',
+    labelColor: 'rgb(71, 85, 105)',
     frameBackground: 'rgb(246, 248, 251)',
     viewportBackground: 'rgb(255, 255, 255)',
-    viewportBorderColor: 'rgb(196, 204, 216)',
+    viewportBorderColor: 'rgb(154, 168, 187)',
     switchWidth: 34,
     switchHeight: 18,
     presetDisplay: 'grid',

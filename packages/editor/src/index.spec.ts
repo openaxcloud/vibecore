@@ -14,6 +14,7 @@ describe('responsive editor layout', () => {
     expect(getResponsiveLayoutState(1440, 900).breakpoint).toBe('desktop');
     expect(getResponsiveLayoutState(editorBreakpoints.desktop, 900).isDesktop).toBe(true);
     expect(getResponsiveLayoutState(1024, 768).breakpoint).toBe('tablet-landscape');
+    expect(getResponsiveLayoutState(1194, 834).breakpoint).toBe('tablet-landscape');
     expect(getResponsiveLayoutState(820, 1180).breakpoint).toBe('tablet-portrait');
     expect(getResponsiveLayoutState(390, 844).breakpoint).toBe('mobile');
   });
@@ -34,9 +35,9 @@ describe('responsive editor layout', () => {
     expect(state.safeArea.bottom).toContain('safe-area-inset-bottom');
   });
 
-  it('uses Monaco only on desktop and landscape tablets', () => {
+  it('uses Monaco only on desktop', () => {
     expect(editorKindForLayout(getResponsiveLayoutState(1440, 900))).toBe('monaco');
-    expect(editorKindForLayout(getResponsiveLayoutState(1024, 768))).toBe('monaco');
+    expect(editorKindForLayout(getResponsiveLayoutState(1024, 768))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(820, 1180))).toBe('codemirror');
     expect(editorKindForLayout(getResponsiveLayoutState(390, 844))).toBe('codemirror');
   });

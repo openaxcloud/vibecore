@@ -16,7 +16,7 @@ export type EditorKind = 'monaco' | 'codemirror';
 export const MOBILE_BREAKPOINT = 768;
 export const MOBILE_LANDSCAPE_MAX_HEIGHT = 500;
 export const TABLET_MIN_WIDTH = 768;
-export const TABLET_MAX_WIDTH = 1024;
+export const TABLET_MAX_WIDTH = 1199;
 
 export interface EditorAdapterValue {
   value: string;
@@ -166,16 +166,17 @@ export function useEditorAdapter(): EditorKind {
 }
 
 export function editorKindForLayout(
-  layout: Pick<ResponsiveLayoutState, 'isDesktop' | 'isTabletLandscape'>,
+  layout: Pick<ResponsiveLayoutState, 'isDesktop'>,
 ): EditorKind {
-  if (layout.isDesktop || layout.isTabletLandscape) {
+  if (layout.isDesktop) {
     return 'monaco';
   }
 
   return 'codemirror';
 }
 
-const WORKSPACE_SYMBOL_EXTENSIONS = /\.(tsx|ts|jsx|js|mjs|cjs|css|scss|html|json|md|mdx|py|go|rs|java|c|cc|cpp|h|hpp|cs)$/i;
+const WORKSPACE_SYMBOL_EXTENSIONS =
+  /\.(tsx|ts|jsx|js|mjs|cjs|css|scss|html|json|md|mdx|py|go|rs|java|c|cc|cpp|h|hpp|cs)$/i;
 const MAX_WORKSPACE_INDEX_FILES = 250;
 const MAX_WORKSPACE_INDEX_FILE_BYTES = 500_000;
 
@@ -254,7 +255,10 @@ export function extractWorkspaceSymbols(filePath: string, contents: string): Wor
     { regex: /\bexport\s+class\s+([A-Za-z_$][\w$]*)/g, kind: 'class' },
     { regex: /\bclass\s+([A-Za-z_$][\w$]*)/g, kind: 'class' },
     { regex: /\bexport\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g, kind: 'variable' },
-    { regex: /\b(?:const|let|var)\s+([A-Z][\w$]*)\s*=\s*(?:memo\(|forwardRef\(|\([^)]*\)\s*=>|function\b)/g, kind: 'component' },
+    {
+      regex: /\b(?:const|let|var)\s+([A-Z][\w$]*)\s*=\s*(?:memo\(|forwardRef\(|\([^)]*\)\s*=>|function\b)/g,
+      kind: 'component',
+    },
     { regex: /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)/g, kind: 'variable' },
     { regex: /^\s*([.#][A-Za-z_-][\w-]*)\s*[{,]/gm, kind: 'selector' },
   ];
@@ -323,7 +327,11 @@ function modelUriForPath(monaco: typeof import('monaco-editor/esm/vs/editor/edit
   return monaco.Uri.parse(`file:///${normalizeWorkspaceFilePath(filePath)}`);
 }
 
-function getWorkspaceIndex(projectFiles: Record<string, string> | undefined, currentFilePath?: string, currentValue?: string) {
+function getWorkspaceIndex(
+  projectFiles: Record<string, string> | undefined,
+  currentFilePath?: string,
+  currentValue?: string,
+) {
   const entries = Object.entries(projectFiles ?? {})
     .filter(([filePath, contents]) => isWorkspaceSemanticFile(filePath, contents))
     .slice(0, MAX_WORKSPACE_INDEX_FILES);
@@ -364,7 +372,21 @@ function installWorkspaceSemanticProviders(
     onOpenFile: (filePath: string) => void;
   },
 ) {
-  const languageIds = ['typescript', 'javascript', 'css', 'html', 'json', 'markdown', 'python', 'go', 'rust', 'java', 'c', 'cpp', 'csharp'];
+  const languageIds = [
+    'typescript',
+    'javascript',
+    'css',
+    'html',
+    'json',
+    'markdown',
+    'python',
+    'go',
+    'rust',
+    'java',
+    'c',
+    'cpp',
+    'csharp',
+  ];
 
   const getIndex = () =>
     getWorkspaceIndex(sources.getProjectFiles(), sources.getCurrentFilePath(), sources.getCurrentValue());

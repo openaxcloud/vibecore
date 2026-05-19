@@ -252,28 +252,34 @@ const IDE_MANAGEMENT_PANELS = [
 const IDE_RIGHT_PANELS = ['files'] as const;
 const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
-const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'terminal', 'preview', 'deploy'] as const;
+const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
-const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deploy'] as const;
+const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 
 const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[number], Set<string>> = {
   chat: new Set(['agent', 'assistant', 'actions', 'tools']),
   files: new Set(['files']),
   editor: new Set(['editor']),
   search: new Set(['search']),
+  locks: new Set(['locks']),
   terminal: new Set(['terminal', 'console', 'shell']),
   preview: new Set(['preview', 'web']),
   deploy: new Set([
     'deploy',
+    'deployments',
     'publishing',
+    'object-storage',
     'app-storage',
     'auth',
     'database',
+    'debugger',
     'debug',
     'developer',
     'git',
+    'activity',
     'history',
     'integrations',
+    'collaborators',
     'collaboration',
     'collaborate',
     'multiplayer',
@@ -281,53 +287,66 @@ const ECODE_MOBILE_COMPATIBLE_PANEL_TABS: Record<(typeof MOBILE_IDE_PANELS)[numb
     'secrets',
     'settings',
     'workflows',
+    'snapshots',
     'checkpoints',
     'extensions',
     'security',
-    'debugger',
-    'deployments',
-    'object-storage',
-    'activity',
-    'collaborators',
-    'snapshots',
     'env',
+    'logs',
+    'monitoring',
+    'domains',
+    'overview',
     'kv-store',
     'storage',
   ]),
 };
 
 const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Preview', icon: 'i-ph:monitor' },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deploy', icon: 'i-ph:broadcast' },
+  preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
+  agent: { id: 'agent', name: 'AI Agent', icon: 'agent' },
+  deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
+  deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
   files: { id: 'files', name: 'Files', icon: 'i-ph:folder-open' },
   editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
   search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
+  locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
   terminal: { id: 'terminal', name: 'Terminal', icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Actions', icon: 'i-ph:lightning' },
-  assistant: { id: 'assistant', name: 'Assistant', icon: 'i-ph:sparkle' },
-  publishing: { id: 'publishing', name: 'Publishing', icon: 'i-ph:rocket-launch' },
-  'app-storage': { id: 'app-storage', name: 'App Storage', icon: 'i-ph:hard-drives' },
-  auth: { id: 'auth', name: 'Auth', icon: 'i-ph:shield-check' },
-  console: { id: 'console', name: 'Console', icon: 'i-ph:terminal-window' },
+  actions: { id: 'actions', name: 'AI Agent', icon: 'agent' },
+  assistant: { id: 'assistant', name: 'AI Agent', icon: 'agent' },
+  publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
+  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
+  console: { id: 'console', name: 'Terminal', icon: 'i-ph:terminal-window' },
   database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
-  debug: { id: 'debug', name: 'Debug', icon: 'i-ph:bug' },
-  developer: { id: 'developer', name: 'Developer', icon: 'i-ph:code' },
+  debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
+  debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
+  developer: { id: 'developer', name: 'Debugger', icon: 'i-ph:bug' },
   git: { id: 'git', name: 'Git', icon: 'i-ph:git-branch' },
-  history: { id: 'history', name: 'History', icon: 'i-ph:clock-counter-clockwise' },
+  history: { id: 'history', name: 'Activity', icon: 'i-ph:activity' },
+  activity: { id: 'activity', name: 'Activity', icon: 'i-ph:activity' },
   integrations: { id: 'integrations', name: 'Integrations', icon: 'i-ph:package' },
-  multiplayer: { id: 'multiplayer', name: 'Multiplayer', icon: 'i-ph:users' },
-  collaboration: { id: 'collaboration', name: 'Collaboration', icon: 'i-ph:users' },
+  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: 'i-ph:users' },
+  collaboration: { id: 'collaboration', name: 'Collaborators', icon: 'i-ph:users' },
+  collaborate: { id: 'collaborate', name: 'Collaborators', icon: 'i-ph:users' },
+  collaborators: { id: 'collaborators', name: 'Collaborators', icon: 'i-ph:users' },
   packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
   secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
   settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
   workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
-  checkpoints: { id: 'checkpoints', name: 'Checkpoints', icon: 'i-ph:arrow-counter-clockwise' },
+  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: 'i-ph:stack' },
+  snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
   extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
   security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
-  shell: { id: 'shell', name: 'Shell', icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Key-Value Store', icon: 'i-ph:storefront' },
-  storage: { id: 'storage', name: 'Storage', icon: 'i-ph:hard-drives' },
+  shell: { id: 'shell', name: 'Terminal', icon: 'i-ph:terminal-window' },
+  'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
+  storage: { id: 'storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
+  env: { id: 'env', name: 'Environment variables', icon: 'i-ph:brackets-curly' },
+  logs: { id: 'logs', name: 'Logs', icon: 'i-ph:list-magnifying-glass' },
+  monitoring: { id: 'monitoring', name: 'Monitoring', icon: 'i-ph:chart-line' },
+  domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
+  overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
+  web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
 
@@ -347,66 +366,80 @@ const ECODE_MOBILE_TOOLS = [
     icon: 'i-ph:folder-open',
   },
   {
+    id: 'editor',
+    section: 'search',
+    title: 'Editor',
+    description: 'Open code editor',
+    icon: 'i-ph:code',
+  },
+  {
+    id: 'overview',
+    section: 'tools',
+    title: 'Overview',
+    description: 'Project summary',
+    icon: 'i-ph:gauge',
+    tone: 'info',
+  },
+  {
     id: 'agent',
     section: 'tools',
-    title: 'Agent',
+    title: 'AI Agent',
     description: 'Agent can make changes, review its work, and debug itself automatically.',
     icon: 'agent',
     tone: 'agent',
   },
   {
-    id: 'assistant',
+    id: 'deployments',
     section: 'tools',
-    title: 'Assistant',
-    description: 'Assistant answers questions, refines code, and makes precise edits.',
-    icon: 'i-ph:sparkle',
-    tone: 'assistant',
-  },
-  {
-    id: 'publishing',
-    section: 'tools',
-    title: 'Publishing',
-    description:
-      'Publish a live, stable, public version of your App, unaffected by the changes you make in the workspace',
+    title: 'Deployments',
+    description: 'Publish your app',
     icon: 'i-ph:rocket-launch',
     tone: 'success',
   },
   {
-    id: 'app-storage',
+    id: 'object-storage',
     section: 'tools',
-    title: 'App Storage',
-    description: 'Built-in object storage for uploads like images, videos, and documents.',
+    title: 'Object Storage',
+    description: 'File storage',
     icon: 'i-ph:hard-drives',
   },
   {
-    id: 'auth',
+    id: 'settings',
     section: 'tools',
-    title: 'Auth',
-    description: 'Let users log in to your App using a prebuilt login page',
-    icon: 'i-ph:shield-check',
+    title: 'Settings',
+    description: 'Project settings',
+    icon: 'i-ph:gear',
     tone: 'info',
   },
   {
-    id: 'console',
+    id: 'terminal',
     section: 'tools',
-    title: 'Console',
-    description: 'View the terminal output after running your code',
+    title: 'Terminal',
+    description: 'Workspace terminal',
     icon: 'i-ph:terminal-window',
   },
   {
     id: 'database',
     section: 'tools',
     title: 'Database',
-    description: 'Stores structured data such as user profiles, game scores, and product catalogs.',
+    description: 'SQL browser',
     icon: 'i-ph:database',
     tone: 'info',
   },
   {
-    id: 'developer',
+    id: 'locks',
     section: 'tools',
-    title: 'Developer',
-    description: 'Advanced developer tools and settings',
-    icon: 'i-ph:code',
+    title: 'Locks',
+    description: 'Locked files',
+    icon: 'i-ph:lock',
+    tone: 'warning',
+  },
+  {
+    id: 'debugger',
+    section: 'tools',
+    title: 'Debugger',
+    description: 'Breakpoints and launch configs',
+    icon: 'i-ph:bug',
   },
   {
     id: 'git',
@@ -420,30 +453,37 @@ const ECODE_MOBILE_TOOLS = [
     id: 'integrations',
     section: 'tools',
     title: 'Integrations',
-    description: 'Connect to native and external services',
+    description: 'Connected services',
     icon: 'i-ph:package',
   },
   {
-    id: 'multiplayer',
+    id: 'extensions',
     section: 'tools',
-    title: 'Multiplayer',
-    description: 'Invite real-time collaborators and manage access to your App',
+    title: 'Extensions',
+    description: 'Marketplace',
+    icon: 'i-ph:puzzle-piece',
+  },
+  {
+    id: 'collaborators',
+    section: 'tools',
+    title: 'Collaborators',
+    description: 'Team access',
     icon: 'i-ph:users',
     tone: 'info',
   },
   {
     id: 'preview',
     section: 'tools',
-    title: 'Preview',
+    title: 'Webview',
     description: 'Preview your App',
     icon: 'i-ph:monitor',
   },
   {
-    id: 'kv-store',
+    id: 'logs',
     section: 'tools',
-    title: 'Key-Value Store',
-    description: 'Easy-to-use key value store for caching and session management',
-    icon: 'i-ph:storefront',
+    title: 'Logs',
+    description: 'Terminal',
+    icon: 'i-ph:list-magnifying-glass',
     tone: 'info',
   },
   {
@@ -456,24 +496,24 @@ const ECODE_MOBILE_TOOLS = [
   {
     id: 'security',
     section: 'tools',
-    title: 'Security Scanner',
-    description: 'Scan your app for vulnerabilities',
+    title: 'Security',
+    description: 'Security scanner',
     icon: 'i-ph:shield-check',
     tone: 'danger',
   },
   {
-    id: 'shell',
+    id: 'monitoring',
     section: 'tools',
-    title: 'Shell',
-    description: 'Directly access your App through a command line interface (CLI)',
-    icon: 'i-ph:terminal-window',
+    title: 'Monitoring',
+    description: 'App metrics',
+    icon: 'i-ph:chart-line',
   },
   {
-    id: 'settings',
+    id: 'env',
     section: 'tools',
-    title: 'User Settings',
-    description: 'Configure personal editor preferences and workspace settings',
-    icon: 'i-ph:gear',
+    title: 'Environment variables',
+    description: 'Environment variables',
+    icon: 'i-ph:brackets-curly',
   },
   {
     id: 'workflows',
@@ -484,32 +524,53 @@ const ECODE_MOBILE_TOOLS = [
     tone: 'warning',
   },
   {
-    id: 'checkpoints',
+    id: 'activity',
     section: 'tools',
-    title: 'Checkpoints',
-    description: 'View and restore project checkpoints created during AI builds',
-    icon: 'i-ph:clock-counter-clockwise',
+    title: 'Activity',
+    description: 'Project timeline',
+    icon: 'i-ph:activity',
+  },
+  {
+    id: 'snapshots',
+    section: 'tools',
+    title: 'Snapshots',
+    description: 'Rollback points',
+    icon: 'i-ph:stack',
+  },
+  {
+    id: 'domains',
+    section: 'tools',
+    title: 'Domains',
+    description: 'Custom domains',
+    icon: 'i-ph:globe',
   },
 ] as const;
 
 const ECODE_MOBILE_MORE_MENU_ITEMS = [
-  { id: 'web', label: 'Web', icon: 'i-ph:globe' },
-  { id: 'deploy', label: 'Deploy', icon: 'i-ph:rocket-launch' },
+  { id: 'overview', label: 'Overview', icon: 'i-ph:gauge' },
+  { id: 'preview', label: 'Webview', icon: 'i-ph:monitor' },
+  { id: 'deployments', label: 'Deployments', icon: 'i-ph:rocket-launch' },
   { id: 'git', label: 'Git', icon: 'i-ph:git-branch' },
   { id: 'packages', label: 'Packages', icon: 'i-ph:package' },
   { id: 'database', label: 'Database', icon: 'i-ph:database' },
+  { id: 'object-storage', label: 'Object Storage', icon: 'i-ph:hard-drives' },
+  { id: 'locks', label: 'Locks', icon: 'i-ph:lock' },
   { id: 'secrets', label: 'Secrets', icon: 'i-ph:key' },
-  { id: 'debug', label: 'Debug', icon: 'i-ph:bug' },
+  { id: 'env', label: 'Environment variables', icon: 'i-ph:brackets-curly' },
+  { id: 'terminal', label: 'Terminal', icon: 'i-ph:terminal-window' },
+  { id: 'logs', label: 'Logs', icon: 'i-ph:list-magnifying-glass' },
+  { id: 'debugger', label: 'Debugger', icon: 'i-ph:bug' },
   { id: 'search', label: 'Search', icon: 'i-ph:magnifying-glass' },
   { id: 'commands', label: 'Commands', icon: 'i-ph:command' },
   { id: 'workflows', label: 'Workflows', icon: 'i-ph:git-branch' },
-  { id: 'actions', label: 'Actions', icon: 'i-ph:lightning' },
-  { id: 'tools', label: 'Tools', icon: 'i-ph:stack' },
-  { id: 'collaborate', label: 'Collaborate', icon: 'i-ph:users' },
+  { id: 'integrations', label: 'Integrations', icon: 'i-ph:package' },
+  { id: 'collaborators', label: 'Collaborators', icon: 'i-ph:users' },
   { id: 'share', label: 'Share', icon: 'i-ph:share-network' },
-  { id: 'history', label: 'History', icon: 'i-ph:clock-counter-clockwise' },
-  { id: 'checkpoints', label: 'Checkpoints', icon: 'i-ph:arrow-counter-clockwise' },
+  { id: 'activity', label: 'Activity', icon: 'i-ph:activity' },
+  { id: 'snapshots', label: 'Snapshots', icon: 'i-ph:stack' },
   { id: 'extensions', label: 'Extensions', icon: 'i-ph:puzzle-piece' },
+  { id: 'monitoring', label: 'Monitoring', icon: 'i-ph:chart-line' },
+  { id: 'domains', label: 'Domains', icon: 'i-ph:globe' },
   { id: 'security', label: 'Security', icon: 'i-ph:shield-check' },
   { id: 'settings', label: 'Settings', icon: 'i-ph:gear' },
 ] as const;
@@ -569,15 +630,7 @@ type AgentToolAction = {
   icon: string;
 };
 
-const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {
-  deployments: 'deploy',
-  'object-storage': 'app-storage',
-  debugger: 'debug',
-  activity: 'history',
-  collaborators: 'collaboration',
-  snapshots: 'checkpoints',
-  env: 'secrets',
-};
+const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {};
 type ProjectSnapshot = {
   id: string;
   label?: string;
@@ -2139,7 +2192,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const useMobileIde = layout.isMobile || layout.isTablet;
 
     const [mobilePanel, setMobilePanel] = useState<
-      'chat' | 'files' | 'editor' | 'search' | 'terminal' | 'preview' | 'deploy'
+      'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >('chat');
 
     const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
@@ -3572,32 +3625,43 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const activateMobileTool = useCallback(
       (toolId: string) => {
-        const normalizedToolId = toolId === 'deployment' ? 'publishing' : toolId;
-
         const managementPanelByTool: Record<string, IdeManagementPanel> = {
+          deployments: 'deployments',
           publishing: 'deployments',
           deploy: 'deployments',
+          'object-storage': 'object-storage',
           'app-storage': 'object-storage',
           storage: 'object-storage',
           database: 'database',
           'kv-store': 'database',
+          debugger: 'debugger',
           debug: 'debugger',
           developer: 'debugger',
           git: 'git',
+          activity: 'activity',
           history: 'activity',
           integrations: 'integrations',
+          collaborators: 'collaborators',
           collaboration: 'collaborators',
           collaborate: 'collaborators',
           multiplayer: 'collaborators',
           packages: 'packages',
           secrets: 'secrets',
+          env: 'env',
           auth: 'settings',
           settings: 'settings',
           workflows: 'workflows',
+          snapshots: 'snapshots',
           checkpoints: 'snapshots',
           extensions: 'extensions',
           security: 'security',
+          logs: 'logs',
+          monitoring: 'monitoring',
+          domains: 'domains',
+          overview: 'overview',
         };
+
+        const normalizedToolId = toolId === 'deployment' ? 'deployments' : toolId;
 
         if (
           normalizedToolId === 'agent' ||
@@ -3610,10 +3674,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('files');
         } else if (normalizedToolId === 'search') {
           setMobileIdePanel('search');
+        } else if (normalizedToolId === 'locks') {
+          setMobileIdePanel('locks');
         } else if (normalizedToolId === 'preview') {
           setMobileIdePanel('preview');
         } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
-          setMobileIdePanel('terminal', { activeTabId: normalizedToolId });
+          setMobileIdePanel('terminal', { activeTabId: 'terminal' });
         } else if (normalizedToolId === 'editor') {
           setMobileIdePanel('editor');
         } else {
@@ -3621,7 +3687,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           if (managementPanel) {
             openWorkspacePanel(managementPanel);
-            setMobileIdePanel('deploy', { activeTabId: normalizedToolId });
+            setMobileIdePanel('deploy', { activeTabId: managementPanel });
           }
         }
 
@@ -3652,18 +3718,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             toast.error(`Copy failed: ${(error as Error).message}`);
           }
 
-          return;
-        }
-
-        if (itemId === 'tools') {
-          setMobileMoreOpen(false);
-          activateMobileTool('tools');
-
-          return;
-        }
-
-        if (itemId === 'web') {
-          activateMobileTool('preview');
           return;
         }
 
@@ -3759,6 +3813,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setRightPanelMode('files');
         setRightPanelOpen(true);
 
+        if (useMobileIde && activeProjectPanel === 'files') {
+          setMobileIdePanel('files');
+        }
+
         return;
       }
 
@@ -3766,14 +3824,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
 
         if (useMobileIde) {
-          if (activeProjectPanel === 'terminal' || activeProjectPanel === 'logs') {
+          if (activeProjectPanel === 'terminal') {
             setMobileIdePanel('terminal');
           } else if (activeProjectPanel === 'preview') {
             setMobileIdePanel('preview');
           } else if (activeProjectPanel === 'files') {
             setMobileIdePanel('files');
+          } else if (activeProjectPanel === 'search') {
+            setMobileIdePanel('search');
           } else if (activeProjectPanel === 'editor') {
             setMobileIdePanel('editor');
+          } else if (activeProjectPanel === 'locks') {
+            setMobileIdePanel('locks');
           } else if (isIdeManagementPanel(activeProjectPanel)) {
             setMobileIdePanel('deploy', {
               activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
@@ -4094,6 +4156,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (
         !projectIdeMode ||
         !useMobileIde ||
+        activeProjectPanel ||
         !mobileIdeLocalState.activePanel ||
         !MOBILE_IDE_PANELS.includes(mobileIdeLocalState.activePanel as any)
       ) {
@@ -4108,7 +4171,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       ensureMobileOpenTab(persistedPanel === 'chat' ? 'agent' : persistedPanel);
-    }, [activeMobileOpenTabId, ensureMobileOpenTab, mobileIdeLocalState.activePanel, projectIdeMode, useMobileIde]);
+    }, [
+      activeMobileOpenTabId,
+      activeProjectPanel,
+      ensureMobileOpenTab,
+      mobileIdeLocalState.activePanel,
+      projectIdeMode,
+      useMobileIde,
+    ]);
 
     const networkToastRef = useRef<{ offline?: string | number; first: boolean }>({ first: true });
 
@@ -5919,7 +5989,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
             ['database', 'Database', 'SQL browser', ''],
             ['object-storage', 'Object Storage', 'File storage', ''],
-            ['env', 'Env vars', 'Environment variables', ''],
+            ['env', 'Environment variables', 'Environment variables', ''],
             ['secrets', 'Secrets', 'Encrypted project secrets', ''],
             ['git', 'Git', 'Version control', ''],
             ['packages', 'Packages', 'Dependencies manager', ''],
@@ -5944,7 +6014,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ...[
             ['run', 'Run app', 'Open preview runtime', ''],
             ['stop', 'Stop app', 'Open logs to stop runtime process', ''],
-            ['deploy', 'Deploy', 'Open deployment panel', ''],
+            ['deploy', 'Deployments', 'Open Deployments panel', ''],
             ['theme', 'Toggle theme', 'Use existing theme controls', ''],
             ['reset-layout', 'Reset layout', 'Restore default IDE layout', ''],
           ].map(([command, title, description, shortcut]) => ({
@@ -6088,11 +6158,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label="History"
+                  aria-label="Activity"
                   data-testid="button-history"
-                  onClick={() => activateMobileTool('history')}
+                  onClick={() => activateMobileTool('activity')}
                 >
-                  <span className="i-ph:clock-counter-clockwise" aria-hidden />
+                  <span className="i-ph:activity" aria-hidden />
                 </button>
               </div>
 
@@ -6260,7 +6330,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           ) : (
             <>
               {agentPanel}
-              {useMobileIde && mobilePanel === 'deploy' ? (
+              {useMobileIde && mobilePanel === 'locks' ? (
+                <PanelBoundary title="Locks">
+                  <div
+                    className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full"
+                    data-testid="mobile-locks-panel"
+                  >
+                    <LockManager />
+                  </div>
+                </PanelBoundary>
+              ) : useMobileIde && mobilePanel === 'deploy' ? (
                 <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
@@ -6443,7 +6522,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
               <div className="bolt-mobile-tab-switcher-footer">
                 <div className="bolt-mobile-tab-switcher-quick" role="group" aria-label="Quick access tools">
-                  {['secrets', 'database', 'auth'].map((toolId) => {
+                  {['secrets', 'database', 'settings'].map((toolId) => {
                     const tool = ECODE_MOBILE_TAB_META[toolId];
 
                     return (
@@ -8227,7 +8306,7 @@ function IdeTabBar({
     ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', 'var(--vc-ide-accent-warning)', 'Data'],
     [
       'env',
-      'Env vars',
+      'Environment variables',
       'Environment variables',
       'i-ph:brackets-curly',
       'var(--vc-ide-accent-warning)',
@@ -15042,7 +15121,7 @@ function panelTitle(panel: string) {
     search: 'Search',
     locks: 'Locks',
     overview: 'Overview',
-    deployments: 'Deploy',
+    deployments: 'Deployments',
     security: 'Security',
     env: 'Environment variables',
     secrets: 'Secrets',

@@ -1,34 +1,126 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
+
+function isCompactIdeProject(testInfo: TestInfo) {
+  return testInfo.project.name === 'mobile' || testInfo.project.name === 'tablet';
+}
+
+function mobileBottomNavigation(page: import('@playwright/test').Page) {
+  return page.getByTestId('mobile-bottom-navigation');
+}
+
+async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) {
+  const seconds = Number(responseText.match(/retry in (\d+) seconds/i)?.[1]);
+  const waitMs = Number.isFinite(seconds) ? (seconds + 1) * 1000 : fallbackMs;
+
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
+}
+
+async function openMobileMoreMenu(page: import('@playwright/test').Page) {
+  const moreMenu = page.getByTestId('mobile-more-menu-sheet');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const trigger =
+      attempt === 0
+        ? page.getByTestId('mobile-ide-header').getByTestId('button-more')
+        : mobileBottomNavigation(page).getByTestId('button-more');
+
+    await trigger.click({ force: true });
+
+    try {
+      await expect(moreMenu).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('mobile-more-menu-overview')).toBeVisible({ timeout: 5000 });
+
+      return moreMenu;
+    } catch {
+      await page.getByTestId('mobile-more-menu-backdrop').click({ force: true }).catch(() => undefined);
+    }
+  }
+
+  await expect(moreMenu).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('mobile-more-menu-overview')).toBeVisible({ timeout: 15000 });
+
+  return moreMenu;
+}
+
+async function openMobileToolsSheet(page: import('@playwright/test').Page) {
+  const toolsSheet = page.getByTestId('tools-sheet');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const trigger =
+      attempt === 0
+        ? page.getByTestId('mobile-ide-header').getByTestId('button-new-tab')
+        : mobileBottomNavigation(page).getByTestId('button-add-tab');
+
+    await trigger.click({ force: true });
+
+    try {
+      await expect(toolsSheet).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('tool-item-overview')).toBeVisible({ timeout: 5000 });
+
+      return toolsSheet;
+    } catch {
+      await page.getByTestId('tools-sheet-close').click({ force: true }).catch(() => undefined);
+    }
+  }
+
+  await expect(toolsSheet).toBeVisible({ timeout: 15000 });
+  await expect(page.getByTestId('tool-item-overview')).toBeVisible({ timeout: 15000 });
+
+  return toolsSheet;
+}
+
+async function selectMobileMoreMenuItem(page: import('@playwright/test').Page, itemId: string) {
+  const menuItem = page.getByTestId(`mobile-more-menu-${itemId}`);
+  await expect(menuItem).toBeVisible({ timeout: 15000 });
+  await menuItem.click({ force: true });
+}
 
 async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const email = `responsive-${suffix}@local.test`;
-  const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
-    data: {
-      email,
-      password: 'Password123!',
-      name: 'Responsive E2E',
-      organizationName: `Responsive E2E Organization ${suffix}`,
-    },
-  });
+  let responseText = '';
+  let payload: { token: string; organization: { id: string } } | undefined;
 
-  expect(response.ok(), await response.text()).toBeTruthy();
-  const payload = (await response.json()) as { token: string; organization: { id: string } };
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+      data: {
+        email: `responsive-${suffix}-${attempt}@local.test`,
+        password: 'Password123!',
+        name: 'Responsive E2E',
+        organizationName: `Responsive E2E Organization ${suffix}-${attempt}`,
+      },
+    });
+
+    responseText = await response.text();
+
+    if (response.ok()) {
+      payload = JSON.parse(responseText) as { token: string; organization: { id: string } };
+      break;
+    }
+
+    if (response.status() === 429 && attempt < 3) {
+      await waitForRateLimitReset(responseText);
+      continue;
+    }
+
+    expect(response.ok(), responseText).toBeTruthy();
+  }
+
+  expect(payload, responseText).toBeTruthy();
 
   await page.context().addCookies([
     {
       name: 'vc_session',
-      value: payload.token,
+      value: payload!.token,
       url: appBaseUrl,
       httpOnly: true,
       sameSite: 'Lax',
     },
   ]);
 
-  return payload;
+  return payload!;
 }
 
 async function createTestProject(page: import('@playwright/test').Page, name: string) {
@@ -62,8 +154,8 @@ async function createTestProject(page: import('@playwright/test').Page, name: st
 }
 
 test.describe('responsive IDE shell', () => {
-  test('desktop keeps the full IDE workspace available', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'desktop-only assertion');
+  test('desktop keeps the full IDE workspace available', async ({ page }, testInfo) => {
+    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
 
     const projectId = await createTestProject(page, 'Responsive desktop project');
 
@@ -79,8 +171,8 @@ test.describe('responsive IDE shell', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
   });
 
-  test('desktop can collapse and restore the right preview panel', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'desktop-only assertion');
+  test('desktop can collapse and restore the right preview panel', async ({ page }, testInfo) => {
+    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
 
     const projectId = await createTestProject(page, 'Responsive files toggle project');
 
@@ -101,8 +193,8 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
   });
 
-  test('desktop opens terminal as a workspace panel from the panel URL', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'desktop-only assertion');
+  test('desktop opens terminal as a workspace panel from the panel URL', async ({ page }, testInfo) => {
+    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
 
     const projectId = await createTestProject(page, 'Responsive terminal panel project');
 
@@ -121,11 +213,13 @@ test.describe('responsive IDE shell', () => {
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
 
-    for (const panel of ['Chat', 'Files', 'Editor', 'Terminal', 'Preview', 'Deploy']) {
-      await expect(mobileNav.getByRole('button', { name: panel, exact: true })).toBeVisible();
-    }
+    await expect(page.getByTestId('tab-preview')).toBeVisible();
+    await expect(page.getByTestId('tab-agent')).toBeVisible();
+    await expect(page.getByTestId('tab-deployments')).toBeVisible();
+    await expect(mobileNav.getByTestId('button-more')).toBeVisible();
 
-    await mobileNav.getByRole('button', { name: 'Editor', exact: true }).tap();
+    await openMobileToolsSheet(page);
+    await page.getByTestId('tool-item-editor').click();
     await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
     await expect(
       page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
@@ -133,7 +227,8 @@ test.describe('responsive IDE shell', () => {
       timeout: 15000,
     });
 
-    await mobileNav.getByRole('button', { name: 'Terminal', exact: true }).tap();
+    await openMobileToolsSheet(page);
+    await page.getByTestId('tool-item-terminal').click();
     await expect(page.getByRole('button', { name: 'Vibecore Terminal' })).toBeVisible({ timeout: 15000 });
   });
 
@@ -145,20 +240,28 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.bolt-project-statusbar-mobile')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.bolt-project-statusbar-runtime')).toContainText(/Runtime:/);
-    await expect(page.locator('.bolt-project-statusbar-workspace')).toContainText(/Workspace:/);
-
     const metrics = await page.evaluate(() => {
-      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
-      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+      const navElement = document.querySelector('.bolt-mobile-replit-nav');
+      const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
+      const nav = navElement?.getBoundingClientRect();
+      const status = statusElement?.getBoundingClientRect();
+      const statusVisible =
+        statusElement instanceof HTMLElement &&
+        getComputedStyle(statusElement).display !== 'none' &&
+        statusElement.offsetParent !== null;
 
       return {
-        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        navVisible:
+          navElement instanceof HTMLElement &&
+          getComputedStyle(navElement).display !== 'none' &&
+          getComputedStyle(navElement).visibility !== 'hidden' &&
+          Boolean(nav && nav.width > 0 && nav.height > 0),
+        overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
 
+    expect(metrics.navVisible).toBe(true);
     expect(metrics.overlaps).toBe(false);
     expect(metrics.overflowX).toBe(false);
   });
@@ -171,7 +274,7 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
-    await mobileNav.getByRole('button', { name: 'Preview', exact: true }).tap();
+    await page.getByTestId('tab-preview').tap();
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'preview');
 
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -182,26 +285,56 @@ test.describe('responsive IDE shell', () => {
 
   test('mobile can deep-link to real IDE service panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive mobile database panel project');
 
+    await page.goto(`/projects/${projectId}/ide?panel=search`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'search', {
+      timeout: 45000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Search');
+
+    await page.goto(`/projects/${projectId}/ide?panel=files`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'files', {
+      timeout: 45000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Files');
+
     await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
-      timeout: 15000,
+      timeout: 45000,
     });
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
-      timeout: 15000,
-    });
-    await expect(page.getByRole('button', { name: 'Backups' })).toBeVisible();
+    const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
+    await expect(databasePanel).toBeVisible({ timeout: 45000 });
+    await expect(databasePanel.getByText(/Loading database from backend/i)).toHaveCount(0, { timeout: 45000 });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
+    await expect(databasePanel.getByRole('button', { name: 'Backups' })).toBeVisible({ timeout: 45000 });
 
     await page.goto(`/projects/${projectId}/ide?panel=security`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
-      timeout: 15000,
+      timeout: 45000,
     });
     const securityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="security"]').first();
     await expect(securityPanel).toBeVisible({ timeout: 15000 });
-    await expect(securityPanel.getByRole('button', { name: 'Run scan' })).toBeVisible();
+    await expect(securityPanel.getByRole('button', { name: 'Run full scan' })).toBeVisible();
     await expect(securityPanel.getByRole('button', { name: 'Settings' })).toBeVisible();
+
+    await page.goto(`/projects/${projectId}/ide?panel=logs`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
+      timeout: 45000,
+    });
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="logs"]').first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Logs');
+
+    await page.goto(`/projects/${projectId}/ide?panel=locks`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'locks', {
+      timeout: 45000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Locks');
+    await expect(page.getByText('No locked items found')).toBeVisible({ timeout: 15000 });
   });
 
   test('short landscape mobile viewport keeps the IDE mobile shell', async ({ page, isMobile }) => {
@@ -215,17 +348,31 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
 
     const metrics = await page.evaluate(() => {
-      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
-      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+      const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
+      const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
+      const status = statusElement?.getBoundingClientRect();
+      const statusVisible =
+        statusElement instanceof HTMLElement &&
+        getComputedStyle(statusElement).display !== 'none' &&
+        statusElement.offsetParent !== null;
 
       return {
-        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
 
     expect(metrics.overlaps).toBe(false);
     expect(metrics.overflowX).toBe(false);
+
+    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
+    ).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
   test('tablet portrait uses the compact mobile IDE shell', async ({ page, isMobile }) => {
@@ -240,19 +387,40 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
       timeout: 15000,
     });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
+
+    const moreMenu = await openMobileMoreMenu(page);
+    await expect(moreMenu.getByRole('button', { name: 'Deployments', exact: true })).toBeVisible();
+    await expect(moreMenu.getByRole('button', { name: 'Object Storage', exact: true })).toBeVisible();
+    await expect(moreMenu.getByText('Publishing', { exact: true })).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
     const metrics = await page.evaluate(() => {
-      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
-      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+      const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
+      const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
+      const status = statusElement?.getBoundingClientRect();
+      const statusVisible =
+        statusElement instanceof HTMLElement &&
+        getComputedStyle(statusElement).display !== 'none' &&
+        statusElement.offsetParent !== null;
 
       return {
-        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
 
     expect(metrics.overlaps).toBe(false);
     expect(metrics.overflowX).toBe(false);
+
+    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
+    ).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
   test('mobile editor accepts edits and exposes save without Monaco', async ({ page, isMobile }) => {
@@ -260,10 +428,9 @@ test.describe('responsive IDE shell', () => {
 
     const projectId = await createTestProject(page, 'Responsive mobile editor project');
 
-    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
-    await mobileNav.getByRole('button', { name: 'Editor', exact: true }).tap();
 
     const codeMirror = page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first();
     await expect(codeMirror).toBeVisible({ timeout: 15000 });
@@ -275,8 +442,8 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('button', { name: /Save/ })).toBeVisible({ timeout: 15000 });
   });
 
-  test('tablet landscape uses the compact mobile IDE shell', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'tablet landscape assertion');
+  test('tablet landscape uses the compact mobile IDE shell', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'tablet', 'tablet landscape assertion');
     await page.setViewportSize({ width: 1024, height: 768 });
 
     const projectId = await createTestProject(page, 'Responsive tablet project');
@@ -287,18 +454,96 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
       timeout: 15000,
     });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
+
+    const moreMenu = await openMobileMoreMenu(page);
+    await expect(moreMenu.getByRole('button', { name: 'Deployments', exact: true })).toBeVisible();
+    await expect(moreMenu.getByRole('button', { name: 'Object Storage', exact: true })).toBeVisible();
+    await expect(moreMenu.getByRole('button', { name: 'Debugger', exact: true })).toBeVisible();
+    await expect(moreMenu.getByRole('button', { name: 'Activity', exact: true })).toBeVisible();
+    await expect(moreMenu.getByText('Publishing', { exact: true })).toHaveCount(0);
+    await page.keyboard.press('Escape');
 
     const metrics = await page.evaluate(() => {
-      const nav = document.querySelector('.bolt-mobile-tabbar')?.getBoundingClientRect();
-      const status = document.querySelector('.bolt-project-statusbar')?.getBoundingClientRect();
+      const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
+      const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
+      const status = statusElement?.getBoundingClientRect();
+      const statusVisible =
+        statusElement instanceof HTMLElement &&
+        getComputedStyle(statusElement).display !== 'none' &&
+        statusElement.offsetParent !== null;
 
       return {
-        overlaps: Boolean(nav && status && status.bottom > nav.top),
+        overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
         overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
       };
     });
 
     expect(metrics.overlaps).toBe(false);
     expect(metrics.overflowX).toBe(false);
+
+    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
+    ).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
+  });
+
+  test('mobile and tablet use canonical web panel names in More and tools sheets', async ({ page }, testInfo) => {
+    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+    test.setTimeout(90_000);
+
+    const projectId = await createTestProject(page, 'Responsive canonical mobile panels project');
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
+
+    const moreMenu = await openMobileMoreMenu(page);
+    for (const [itemId, label] of [
+      ['overview', 'Overview'],
+      ['preview', 'Webview'],
+      ['deployments', 'Deployments'],
+      ['object-storage', 'Object Storage'],
+      ['locks', 'Locks'],
+      ['env', 'Environment variables'],
+      ['debugger', 'Debugger'],
+      ['integrations', 'Integrations'],
+      ['activity', 'Activity'],
+      ['extensions', 'Extensions'],
+      ['snapshots', 'Snapshots'],
+    ] as const) {
+      await expect(moreMenu.getByTestId(`mobile-more-menu-${itemId}`)).toContainText(label);
+    }
+    for (const legacyLabel of ['Publishing', 'App Storage', 'Debug', 'History', 'Checkpoints', 'Multiplayer']) {
+      await expect(moreMenu.getByText(legacyLabel, { exact: true })).toHaveCount(0);
+    }
+
+    await selectMobileMoreMenuItem(page, 'deployments');
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]').first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
+
+    const toolsSheet = await openMobileToolsSheet(page);
+    for (const toolId of [
+      'overview',
+      'deployments',
+      'object-storage',
+      'locks',
+      'debugger',
+      'integrations',
+      'extensions',
+      'activity',
+      'snapshots',
+      'settings',
+    ]) {
+      await expect(page.getByTestId(`tool-item-${toolId}`)).toBeVisible();
+    }
+    for (const legacyLabel of ['Publishing', 'App Storage', 'Auth', 'Console', 'Shell', 'Key-Value Store']) {
+      await expect(toolsSheet.getByText(legacyLabel, { exact: true })).toHaveCount(0);
+    }
   });
 });

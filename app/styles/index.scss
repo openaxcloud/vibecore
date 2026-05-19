@@ -14804,7 +14804,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
-@media (min-width: 768px) and (max-width: 899px) {
+@media (min-width: 768px) and (max-width: 1199px) {
   .bolt-project-statusbar-mobile {
     right: 14px;
     bottom: calc(86px + env(safe-area-inset-bottom, 0px));
@@ -14828,7 +14828,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
-@media (max-width: 899px) {
+@media (max-width: 1199px) {
   .bolt-project-topbar {
     display: none !important;
   }

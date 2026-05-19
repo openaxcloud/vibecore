@@ -288,9 +288,11 @@ export const EditorPanel = memo(
       if (mobilePanel === 'terminal') {
         return (
           <PanelBoundary title="Terminal">
-            <PanelGroup direction="vertical">
-              <TerminalTabs panelDefaultSize={100} />
-            </PanelGroup>
+            <div className="h-full min-h-0" data-testid="mobile-terminal-panel">
+              <PanelGroup direction="vertical">
+                <TerminalTabs panelDefaultSize={100} />
+              </PanelGroup>
+            </div>
           </PanelBoundary>
         );
       }

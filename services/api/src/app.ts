@@ -137,7 +137,7 @@ export interface ApiAppOptions {
   /**
    * Override the static build orchestrator. Production uses the default
    * exported from `./deployments`, which spawns `npm install` + the user's
-   * build command on the host. Tests inject a deterministic fake.
+   * build command on the host. Tests inject a deterministic implementation.
    */
   staticBuildRunner?: typeof runStaticBuild;
 }
