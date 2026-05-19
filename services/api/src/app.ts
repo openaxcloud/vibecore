@@ -8738,6 +8738,83 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { usage: await store.listAiCosts(organization.id) };
   });
 
+  /*
+   * Aggregated AI cost summary for billing dashboards. Returns totals plus
+   * breakdowns by provider/model/day/project so the admin UI can render
+   * trend charts without re-grouping the raw ledger client-side. Filtering
+   * by `from`/`to` (ISO timestamps) is supported for "last 30 days"-style
+   * panels; when omitted we summarise the entire ledger for the org.
+   */
+  app.get('/orgs/:orgId/ai/cost-summary', async (request) => {
+    const { orgId } = parse(orgParams, request.params);
+    await requireOrg(request, store, orgId, 'billing:read');
+
+    const query = parse(
+      z.object({
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
+      }),
+      request.query ?? {},
+    );
+
+    const fromMs = query.from ? new Date(query.from).getTime() : 0;
+    const toMs = query.to ? new Date(query.to).getTime() : Number.POSITIVE_INFINITY;
+
+    const ledger = (await store.listAiCosts(orgId)).filter((row) => {
+      const created = new Date(row.createdAt).getTime();
+      return created >= fromMs && created <= toMs;
+    });
+
+    let totalCostCents = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    const byProvider: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
+    const byModel: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
+    const byDay: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
+    const byProject: Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }> = {};
+
+    for (const row of ledger) {
+      totalCostCents += row.costCents;
+      totalInputTokens += row.inputTokens;
+      totalOutputTokens += row.outputTokens;
+
+      const day = row.createdAt.slice(0, 10); // YYYY-MM-DD
+      const bucketKeys: Array<[Record<string, { costCents: number; inputTokens: number; outputTokens: number; messages: number }>, string]> = [
+        [byProvider, row.provider],
+        [byModel, row.model],
+        [byDay, day],
+        [byProject, row.projectId ?? '<no-project>'],
+      ];
+
+      for (const [bucket, key] of bucketKeys) {
+        const existing = bucket[key] ?? { costCents: 0, inputTokens: 0, outputTokens: 0, messages: 0 };
+        existing.costCents += row.costCents;
+        existing.inputTokens += row.inputTokens;
+        existing.outputTokens += row.outputTokens;
+        existing.messages += 1;
+        bucket[key] = existing;
+      }
+    }
+
+    return {
+      organizationId: orgId,
+      window: {
+        from: query.from ?? null,
+        to: query.to ?? null,
+      },
+      totals: {
+        costCents: totalCostCents,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        messages: ledger.length,
+      },
+      byProvider,
+      byModel,
+      byDay,
+      byProject,
+    };
+  });
+
   app.get('/orgs/:orgId/billing', async (request) => {
     const { orgId } = parse(orgParams, request.params);
     await requireOrg(request, store, orgId, 'billing:read');

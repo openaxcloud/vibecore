@@ -3933,6 +3933,107 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('cost-summary aggregates AiCostLedger rows by provider/model/day/project', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'cost-summary@example.com', organizationName: 'Cost Summary Org' });
+
+    const projectA = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Project A' },
+    });
+    const projectAId = projectA.json().project.id as string;
+
+    // Seed three usage rows: 2 anthropic Sonnet (one each on two days), 1 openai gpt
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 1000,
+      outputTokens: 500,
+      costCents: 6,
+      reason: 'chat.completion.remix-chat',
+    });
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 2000,
+      outputTokens: 1000,
+      costCents: 12,
+      reason: 'chat.completion.remix-chat',
+    });
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      projectId: projectAId,
+      provider: 'openai',
+      model: 'gpt-4.1',
+      inputTokens: 500,
+      outputTokens: 250,
+      costCents: 3,
+      reason: 'chat.completion.remix-chat',
+    });
+
+    const summary = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/ai/cost-summary`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(summary.statusCode).toBe(200);
+    const body = summary.json();
+    expect(body.organizationId).toBe(auth.organization.id);
+    expect(body.totals.costCents).toBe(21);
+    expect(body.totals.inputTokens).toBe(3500);
+    expect(body.totals.outputTokens).toBe(1750);
+    expect(body.totals.messages).toBe(3);
+    expect(body.byProvider.anthropic.costCents).toBe(18);
+    expect(body.byProvider.anthropic.messages).toBe(2);
+    expect(body.byProvider.openai.costCents).toBe(3);
+    expect(body.byModel['claude-sonnet-4-6'].costCents).toBe(18);
+    expect(body.byModel['gpt-4.1'].costCents).toBe(3);
+    expect(body.byProject[projectAId].messages).toBe(3);
+
+    await app.close();
+  });
+
+  it('cost-summary filters by from/to window', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'cost-window@example.com', organizationName: 'Cost Window Org' });
+
+    // Two rows; default TestApiStore uses now() so both fall in "now".
+    // We test the filter by giving a future `from` that excludes both.
+    await store.recordAiCost({
+      organizationId: auth.organization.id,
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      inputTokens: 100,
+      outputTokens: 50,
+      costCents: 1,
+      reason: 'test',
+    });
+
+    const future = new Date(Date.now() + 86_400_000).toISOString();
+    const summary = await app.inject({
+      method: 'GET',
+      url: `/orgs/${auth.organization.id}/ai/cost-summary?from=${encodeURIComponent(future)}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(summary.statusCode).toBe(200);
+    const body = summary.json();
+    expect(body.totals.messages).toBe(0);
+    expect(body.totals.costCents).toBe(0);
+    expect(body.window.from).toBe(future);
+
+    await app.close();
+  });
+
   it('rejects unauthenticated record-usage requests with 401', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
