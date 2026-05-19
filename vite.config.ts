@@ -100,11 +100,15 @@ export default defineConfig((config) => {
               return 'vendor-icons';
             }
 
-            if (id.includes('/react-dom/')) {
-              return 'vendor-react-dom';
-            }
-
-            if (id.includes('/react/') || id.includes('/scheduler/')) {
+            /*
+             * React and react-dom share __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
+             * across module boundaries, so splitting them into separate chunks
+             * leaves react-dom in its TDZ ("Cannot read properties of undefined
+             * (reading '__SECRET_INTERNALS_...')") whenever the bundler picks the
+             * react-dom entrypoint first. Keep both in one chunk so the runtime
+             * sees React initialized before react-dom imports it.
+             */
+            if (id.includes('/react-dom/') || id.includes('/react/') || id.includes('/scheduler/')) {
               return 'vendor-react';
             }
 
