@@ -76,6 +76,26 @@ async function expectWorkspaceRunning(page: import('@playwright/test').Page, tim
   await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout });
 }
 
+async function expectProjectCreationForm(page: import('@playwright/test').Page) {
+  const promptField = page.getByLabel('Describe your idea');
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
+
+    try {
+      await expect(promptField).toBeVisible({ timeout: 30_000 });
+
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+
+      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    }
+  }
+}
+
 test('project preview boots a real app and renders inside the webview', async ({ page }) => {
   test.setTimeout(240_000);
 
@@ -194,7 +214,7 @@ test('AI-created project starts the agent with a valid default model', async ({ 
   await authenticate(page);
 
   const prompt = 'Build a realtime kanban board with analytics';
-  await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
+  await expectProjectCreationForm(page);
   const providerDropdown = page.getByTestId('ai-provider-dropdown');
   const modelDropdown = page.getByTestId('ai-model-dropdown');
   await expect(providerDropdown.getByRole('combobox', { name: 'AI provider' })).toContainText('Anthropic', {

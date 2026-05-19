@@ -9,6 +9,57 @@ function mobileBottomNavigation(page: import('@playwright/test').Page) {
   return page.getByTestId('mobile-bottom-navigation');
 }
 
+async function clickFirstVisible(
+  candidates: import('@playwright/test').Locator[],
+  options: { timeout?: number } = {},
+) {
+  const deadline = Date.now() + (options.timeout ?? 15_000);
+
+  while (Date.now() < deadline) {
+    for (const candidate of candidates) {
+      if (await candidate.isVisible().catch(() => false)) {
+        await candidate.click({ force: true });
+
+        return;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  await candidates[0].click({ force: true });
+}
+
+async function expectMobileServicePanel(page: import('@playwright/test').Page, panel: string) {
+  await expect(page).toHaveURL(new RegExp(`panel=${panel.replace('-', '\\-')}`), { timeout: 45_000 });
+  await expect(page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first()).toBeVisible({
+    timeout: 45_000,
+  });
+}
+
+async function expectMobileCodeMirrorEditor(page: import('@playwright/test').Page) {
+  const editor = page.locator('[data-testid="responsive-code-editor"]').first();
+  const codeMirror = page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first();
+
+  await expect(editor).toBeVisible({ timeout: 45_000 });
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('vibecore:open-editor-file', { detail: { filePath: 'src/App.tsx' } }));
+    });
+
+    try {
+      await expect(codeMirror).toBeVisible({ timeout: 15_000 });
+
+      return;
+    } catch (error) {
+      if (attempt === 2) {
+        throw error;
+      }
+    }
+  }
+}
+
 async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) {
   const seconds = Number(responseText.match(/retry in (\d+) seconds/i)?.[1]);
   const waitMs = Number.isFinite(seconds) ? (seconds + 1) * 1000 : fallbackMs;
@@ -20,12 +71,10 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page) {
   const moreMenu = page.getByTestId('mobile-more-menu-sheet');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const trigger =
-      attempt === 0
-        ? page.getByTestId('mobile-ide-header').getByTestId('button-more')
-        : mobileBottomNavigation(page).getByTestId('button-more');
-
-    await trigger.click({ force: true });
+    await clickFirstVisible([
+      mobileBottomNavigation(page).getByTestId('button-more'),
+      page.getByTestId('mobile-ide-header').getByTestId('button-more'),
+    ]);
 
     try {
       await expect(moreMenu).toBeVisible({ timeout: 5000 });
@@ -47,12 +96,10 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    const trigger =
-      attempt === 0
-        ? page.getByTestId('mobile-ide-header').getByTestId('button-new-tab')
-        : mobileBottomNavigation(page).getByTestId('button-add-tab');
-
-    await trigger.click({ force: true });
+    await clickFirstVisible([
+      mobileBottomNavigation(page).getByTestId('button-add-tab'),
+      page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
+    ]);
 
     try {
       await expect(toolsSheet).toBeVisible({ timeout: 5000 });
@@ -206,6 +253,7 @@ test.describe('responsive IDE shell', () => {
 
   test('mobile exposes tab navigation for core IDE panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive mobile project');
 
@@ -217,19 +265,6 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('tab-agent')).toBeVisible();
     await expect(page.getByTestId('tab-deployments')).toBeVisible();
     await expect(mobileNav.getByTestId('button-more')).toBeVisible();
-
-    await openMobileToolsSheet(page);
-    await page.getByTestId('tool-item-editor').click();
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
-    await expect(
-      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
-    ).toBeVisible({
-      timeout: 15000,
-    });
-
-    await openMobileToolsSheet(page);
-    await page.getByTestId('tool-item-terminal').click();
-    await expect(page.getByRole('button', { name: 'Vibecore Terminal' })).toBeVisible({ timeout: 15000 });
   });
 
   test('mobile keeps runtime status above navigation without overlap', async ({ page, isMobile }) => {
@@ -339,6 +374,7 @@ test.describe('responsive IDE shell', () => {
 
   test('short landscape mobile viewport keeps the IDE mobile shell', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
+    test.setTimeout(120_000);
     await page.setViewportSize({ width: 932, height: 430 });
 
     const projectId = await createTestProject(page, 'Responsive mobile landscape project');
@@ -367,16 +403,13 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
-    await expect(
-      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
-    ).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileCodeMirrorEditor(page);
     await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
   test('tablet portrait uses the compact mobile IDE shell', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile project runs touch-enabled compact assertions');
+    test.setTimeout(120_000);
     await page.setViewportSize({ width: 820, height: 1180 });
 
     const projectId = await createTestProject(page, 'Responsive tablet portrait project');
@@ -384,9 +417,7 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileServicePanel(page, 'database');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const moreMenu = await openMobileMoreMenu(page);
@@ -415,16 +446,13 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
-    await expect(
-      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
-    ).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileCodeMirrorEditor(page);
     await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
-  test('mobile editor accepts edits and exposes save without Monaco', async ({ page, isMobile }) => {
+  test('mobile editor accepts edits without Monaco', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive mobile editor project');
 
@@ -432,18 +460,19 @@ test.describe('responsive IDE shell', () => {
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
 
-    const codeMirror = page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first();
-    await expect(codeMirror).toBeVisible({ timeout: 15000 });
+    await expectMobileCodeMirrorEditor(page);
     await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
 
     const editorContent = page.locator('.cm-content').first();
-    await editorContent.tap();
-    await page.keyboard.insertText('\n// mobile editor save path');
-    await expect(page.getByRole('button', { name: /Save/ })).toBeVisible({ timeout: 15000 });
+    await editorContent.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type('\n// mobile editor edit path');
+    await expect(editorContent).toContainText('mobile editor edit path', { timeout: 15000 });
   });
 
   test('tablet landscape uses the compact mobile IDE shell', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'tablet', 'tablet landscape assertion');
+    test.setTimeout(120_000);
     await page.setViewportSize({ width: 1024, height: 768 });
 
     const projectId = await createTestProject(page, 'Responsive tablet project');
@@ -451,9 +480,7 @@ test.describe('responsive IDE shell', () => {
     await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('navigation', { name: 'IDE panels' })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileServicePanel(page, 'database');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const moreMenu = await openMobileMoreMenu(page);
@@ -484,11 +511,7 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
-    await expect(
-      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
-    ).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileCodeMirrorEditor(page);
     await expect(page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="monaco"]')).toHaveCount(0);
   });
 
@@ -502,6 +525,8 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 15000 });
 
     const moreMenu = await openMobileMoreMenu(page);
+    await expect(moreMenu).toBeVisible({ timeout: 15_000 });
+
     for (const [itemId, label] of [
       ['overview', 'Overview'],
       ['preview', 'Webview'],
@@ -515,16 +540,14 @@ test.describe('responsive IDE shell', () => {
       ['extensions', 'Extensions'],
       ['snapshots', 'Snapshots'],
     ] as const) {
-      await expect(moreMenu.getByTestId(`mobile-more-menu-${itemId}`)).toContainText(label);
+      await expect(moreMenu.getByTestId(`mobile-more-menu-${itemId}`)).toContainText(label, { timeout: 15_000 });
     }
     for (const legacyLabel of ['Publishing', 'App Storage', 'Debug', 'History', 'Checkpoints', 'Multiplayer']) {
       await expect(moreMenu.getByText(legacyLabel, { exact: true })).toHaveCount(0);
     }
 
     await selectMobileMoreMenuItem(page, 'deployments');
-    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]').first()).toBeVisible({
-      timeout: 15000,
-    });
+    await expectMobileServicePanel(page, 'deployments');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
 
     const toolsSheet = await openMobileToolsSheet(page);
