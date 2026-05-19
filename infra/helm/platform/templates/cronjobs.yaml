@@ -24,6 +24,11 @@
       "schedule" "30 3 * * *"
       "queue" "enterprise-jobs"
       "job" "retention.enforce")
+    "workspaceGc" (dict
+      "enabled" true
+      "schedule" "*/15 * * * *"
+      "queue" "workspace-jobs"
+      "job" "workspace.gc")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- range $name, $cron := $merged }}
