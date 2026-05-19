@@ -3785,6 +3785,64 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('check-quota returns headroom when within the plan limits', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'check-ok@example.com', organizationName: 'Quota OK Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Quota OK Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const check = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 5_000, model: 'claude-sonnet-4-6' },
+    });
+
+    expect(check.statusCode).toBe(200);
+    const body = check.json();
+    expect(body.ok).toBe(true);
+    expect(body.ai.inputTokens.limit).toBe(100_000);
+    expect(body.ai.inputTokens.remaining).toBeGreaterThan(0);
+    expect(body.ai.messages.limit).toBe(50);
+
+    await app.close();
+  });
+
+  it('check-quota rejects with 429 when the estimated tokens would exceed the plan', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'check-over@example.com', organizationName: 'Quota Over Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Quota Over Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    // Free plan caps ai.inputTokens at 100_000. Asking for 200_000 must 429.
+    const blocked = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/check-quota`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { estimatedInputTokens: 200_000, model: 'claude-sonnet-4-6' },
+    });
+
+    expect(blocked.statusCode).toBe(429);
+    const error = blocked.json();
+    expect(error.code).toMatch(/QUOTA/);
+
+    await app.close();
+  });
+
   it('rejects unauthenticated record-usage requests with 401', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
