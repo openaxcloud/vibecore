@@ -39,14 +39,24 @@ export function readSessionToken(request: Request) {
   return match ? decodeURIComponent(match.slice(sessionCookieName.length + 1)) : undefined;
 }
 
+/*
+ * `Secure` is gated on NODE_ENV=production because local dev runs on
+ * plain http://localhost — Secure cookies would never be sent, which
+ * silently breaks the dev login flow. In production the Remix SSR pod
+ * is always served over HTTPS, so the bearer-token-bearing session
+ * cookie must be marked Secure to prevent a downgrade attack from
+ * leaking it over an attacker-MITMed plaintext channel.
+ */
+const cookieSecureFlag = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+
 export function sessionCookie(token: string, maxAgeSeconds?: number) {
   const maxAge = typeof maxAgeSeconds === 'number' ? `; Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : '';
 
-  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${maxAge}`;
+  return `${sessionCookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}${maxAge}`;
 }
 
 export function clearSessionCookie() {
-  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}; Max-Age=0`;
 }
 
 export async function apiRequest<T = unknown>(request: Request, path: string, init: RequestInit = {}) {
