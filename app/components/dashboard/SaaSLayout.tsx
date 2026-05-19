@@ -105,55 +105,63 @@ export const ECODE_MARKETING_BRAND = {
 
 export const publicNav = [
   { label: 'Product', to: '/#product' },
-  { label: 'Solutions', to: '/#solutions' },
+  { label: 'Solutions', to: '/solutions/app-builder' },
   { label: 'Resources', to: '/docs' },
-  { label: 'Company', to: '/#company' },
+  { label: 'Company', to: '/about' },
   { label: 'Pricing', to: '/pricing' },
-  { label: 'Teams', to: '/contact-sales' },
+  { label: 'Teams', to: '/team' },
 ];
 
 export const publicMarketingMenus = {
   product: [
-    ['AI Agent', '/#builder', 'Build production-ready apps with natural language prompts.'],
+    ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
     ['Browser IDE', '/#product', 'Enterprise-grade development workspace built for teams.'],
     ['Multiplayer', '/#collaboration', 'Live collaboration, pair programming and shared presence.'],
-    ['Mobile App', '/#mobile', 'Ship from phone and tablet with the same IDE workflow.'],
-    ['Desktop App', '/#product', 'Optimized local workflows with secure project sync.'],
-    ['AI Platform', '/#ai-platform', 'Governance, observability and orchestration for AI workloads.'],
-    ['Deployments', '/#deploy', 'Preview, validate and release with production controls.'],
-    ['Bounties', '/#solutions', 'Activate an on-demand developer network to accelerate delivery.'],
-    ['Teams', '/contact-sales', 'Enterprise controls, compliance and insights for large orgs.'],
+    ['Mobile App', '/mobile', 'Ship from phone and tablet with the same IDE workflow.'],
+    ['Desktop App', '/desktop', 'Optimized local workflows with secure project sync.'],
+    ['AI Platform', '/ai', 'Governance, observability and orchestration for AI workloads.'],
+    ['Deployments', '/marketing/deployments', 'Preview, validate and release with production controls.'],
+    ['Bounties', '/marketing/bounties', 'Activate an on-demand developer network to accelerate delivery.'],
+    ['Teams', '/marketing/teams', 'Enterprise controls, compliance and insights for large orgs.'],
   ],
   solutions: [
-    ['App Builder', '/#builder', 'Rapidly prototype and deploy full-stack applications.'],
-    ['Website Builder', '/templates', 'Create polished marketing sites with zero setup.'],
-    ['Game Builder', '/templates', 'Design and launch interactive experiences powered by AI.'],
-    ['Dashboard Builder', '/templates', 'Data-rich dashboards with real-time collaboration.'],
-    ['Chatbot / AI Agent Builder', '/#ai-platform', 'Deploy conversational assistants across your organization.'],
-    ['Internal AI Builder', '/#ai-platform', 'Bring private AI agents to every team safely and securely.'],
-    ['Enterprise', '/contact-sales', 'SSO, audit logs, private runtimes and guided rollout.'],
-    ['Startups', '/pricing', 'Ship faster with startup-friendly plans and deployment paths.'],
-    ['Freelancers', '/templates', 'Deliver client projects faster with portfolio-ready hosting.'],
+    ['App Builder', '/solutions/app-builder', 'Rapidly prototype and deploy full-stack applications.'],
+    ['Website Builder', '/solutions/website-builder', 'Create polished marketing sites with zero setup.'],
+    ['Game Builder', '/solutions/game-builder', 'Design and launch interactive experiences powered by AI.'],
+    ['Dashboard Builder', '/solutions/dashboard-builder', 'Data-rich dashboards with real-time collaboration.'],
+    [
+      'Chatbot / AI Agent Builder',
+      '/solutions/chatbot-builder',
+      'Deploy conversational assistants across your organization.',
+    ],
+    [
+      'Internal AI Builder',
+      '/solutions/internal-ai-builder',
+      'Bring private AI agents to every team safely and securely.',
+    ],
+    ['Enterprise', '/solutions/enterprise', 'SSO, audit logs, private runtimes and guided rollout.'],
+    ['Startups', '/solutions/startups', 'Ship faster with startup-friendly plans and deployment paths.'],
+    ['Freelancers', '/solutions/freelancers', 'Deliver client projects faster with portfolio-ready hosting.'],
   ],
   resources: [
     ['Documentation', '/docs', 'Guides for projects, runtimes, security and deployment.'],
-    ['AI Documentation', '/docs#agent-walkthrough', 'Complete AI capabilities and agent workflow guide.'],
-    ['Tutorials', '/docs', 'Step-by-step learning from beginner to advanced.'],
-    ['Blog', '/changelog', 'Stories on shipping software at global scale.'],
+    ['AI Documentation', '/ai-documentation', 'Complete AI capabilities and agent workflow guide.'],
+    ['Tutorials', '/tutorials', 'Step-by-step learning from beginner to advanced.'],
+    ['Blog', '/blog', 'Stories on shipping software at global scale.'],
     ['Changelog', '/changelog', 'Latest platform updates and validation notes.'],
-    ['Community', '/support', 'Connect with builders and share best practices.'],
+    ['Community', '/forum', 'Connect with builders and share best practices.'],
     ['Templates', '/templates', 'Production starters for SaaS, dashboards, APIs and AI tools.'],
-    ['Case Studies', '/#proof', 'Enterprise success patterns and delivery evidence.'],
-    ['Help Center', '/support', 'FAQs, troubleshooting and support.'],
+    ['Case Studies', '/case-studies', 'Enterprise success patterns and delivery evidence.'],
+    ['Help Center', '/help-center', 'FAQs, troubleshooting and support.'],
     ['Status', '/status', 'Operational status and incident visibility.'],
   ],
   company: [
-    ['About', '/#company', 'Learn about the platform mission and product direction.'],
-    ['Careers', '/contact-sales', 'Join a distributed team building the future of software.'],
-    ['Press', '/#partners', 'Brand, partner and platform overview.'],
-    ['Partners', '/#partners', 'Strategic alliances and solution partners.'],
-    ['Contact', '/contact-sales', 'Get in touch with our team.'],
-    ['Accessibility', '/acceptable-use', 'Our commitment to inclusive, responsible platform use.'],
+    ['About', '/about', 'Learn about the platform mission and product direction.'],
+    ['Careers', '/careers', 'Join a distributed team building the future of software.'],
+    ['Press', '/press', 'Brand, partner and platform overview.'],
+    ['Partners', '/partners', 'Strategic alliances and solution partners.'],
+    ['Contact', '/contact', 'Get in touch with our team.'],
+    ['Accessibility', '/accessibility', 'Our commitment to inclusive, responsible platform use.'],
   ],
 } as const satisfies Record<string, readonly MarketingMenuItem[]>;
 
@@ -164,33 +172,36 @@ export const publicFooterColumns: readonly FooterColumn[] = [
       ['AI Agent', '/#builder'],
       ['IDE', '/#product'],
       ['Multiplayer', '/#collaboration'],
-      ['Mobile App', '/#mobile'],
-      ['Deployments', '/#deploy'],
-      ['AI Platform', '/#ai-platform'],
+      ['Mobile App', '/mobile'],
+      ['Deployments', '/marketing/deployments'],
+      ['AI Platform', '/ai'],
       ['Templates', '/templates'],
       ['Pricing', '/pricing'],
-      ['Bounties', '/#solutions'],
+      ['Bounties', '/marketing/bounties'],
     ],
   },
   {
     title: 'Resources',
     links: [
       ['Docs', '/docs'],
-      ['AI Documentation', '/docs#agent-walkthrough'],
-      ['Tutorials', '/docs'],
-      ['Blog', '/changelog'],
+      ['AI Documentation', '/ai-documentation'],
+      ['Tutorials', '/tutorials'],
+      ['Blog', '/blog'],
       ['Templates', '/templates'],
       ['Changelog', '/changelog'],
       ['Status', '/status'],
-      ['Community', '/support'],
+      ['Community', '/forum'],
     ],
   },
   {
     title: 'Company',
     links: [
-      ['About', '/#company'],
-      ['Partners', '/#partners'],
+      ['About', '/about'],
+      ['Careers', '/careers'],
+      ['Press', '/press'],
+      ['Partners', '/partners'],
       ['Contact sales', '/contact-sales'],
+      ['Contact', '/contact'],
       ['Security', '/security'],
       ['Support', '/support'],
     ],
@@ -200,18 +211,22 @@ export const publicFooterColumns: readonly FooterColumn[] = [
     links: [
       ['Terms', '/terms'],
       ['Privacy', '/privacy'],
+      ['DPA', '/dpa'],
+      ['Subprocessors', '/subprocessors'],
+      ['Student DPA', '/student-dpa'],
       ['Acceptable use', '/acceptable-use'],
       ['Security', '/security'],
+      ['Report abuse', '/report-abuse'],
     ],
   },
 ] as const;
 
 export const publicCompareLinks = [
-  ['E-Code vs GitHub Codespaces', '/#compare-github-codespaces'],
-  ['E-Code vs Glitch', '/#compare-glitch'],
-  ['E-Code vs Heroku', '/#compare-heroku'],
-  ['E-Code vs CodeSandbox', '/#compare-codesandbox'],
-  ['E-Code vs AWS Cloud9', '/#compare-aws-cloud9'],
+  ['E-Code vs GitHub Codespaces', '/compare/github-codespaces'],
+  ['E-Code vs Glitch', '/compare/glitch'],
+  ['E-Code vs Heroku', '/compare/heroku'],
+  ['E-Code vs CodeSandbox', '/compare/codesandbox'],
+  ['E-Code vs AWS Cloud9', '/compare/aws-cloud9'],
 ] as const satisfies readonly FooterLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
@@ -362,7 +377,7 @@ function PublicMarketingHeader() {
     ...publicMarketingMenus.resources,
     ...publicMarketingMenus.company,
     ['Pricing', '/pricing', 'Plans for individuals, teams and enterprise deployments.'],
-    ['Teams', '/contact-sales', 'Enterprise collaboration, controls and procurement support.'],
+    ['Teams', '/team', 'Enterprise collaboration, controls and procurement support.'],
   ] as const satisfies readonly MarketingMenuItem[];
 
   return (
@@ -385,7 +400,7 @@ function PublicMarketingHeader() {
             <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
             <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
             <NavButton to="/pricing">Pricing</NavButton>
-            <NavButton to="/contact-sales">Teams</NavButton>
+            <NavButton to="/team">Teams</NavButton>
           </div>
           <div className="vc-public-actions">
             <PublicThemeToggle />

@@ -34,16 +34,17 @@ describe('public marketing brand', () => {
 
     const footerTargets = publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to));
 
-    expect(menuTargets).toContain('/#builder');
-    expect(menuTargets).toContain('/contact-sales');
-    expect(menuTargets).toContain('/#ai-platform');
-    expect(menuTargets).toContain('/#partners');
+    expect(menuTargets).toContain('/solutions/app-builder');
+    expect(menuTargets).toContain('/marketing/teams');
+    expect(menuTargets).toContain('/ai');
+    expect(menuTargets).toContain('/partners');
     expect(menuTargets).not.toContain('/ai-agent');
 
     expect(footerTargets).toContain('/acceptable-use');
-    expect(footerTargets).toContain('/docs#agent-walkthrough');
-    expect(publicCompareLinks.map(([, to]) => to)).toContain('/#compare-github-codespaces');
-    expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/compare/github-codespaces');
+    expect(footerTargets).toContain('/ai-documentation');
+    expect(footerTargets).toContain('/subprocessors');
+    expect(publicCompareLinks.map(([, to]) => to)).toContain('/compare/github-codespaces');
+    expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/#compare-github-codespaces');
   });
 
   it('serves the copied E-Code favicon, logos, comparison assets, partner assets, and manifest icons', () => {
@@ -55,6 +56,8 @@ describe('public marketing brand', () => {
     const compareLogo = readFileSync(join(publicDir, 'assets/compare/github-codespaces.svg'), 'utf8');
     const partnerLogo = readFileSync(join(publicDir, 'partners/openai.svg'), 'utf8');
     const agentWorkingIcon = readFileSync(join(publicDir, 'icons/agent/working.svg'), 'utf8');
+    const offlinePage = readFileSync(join(publicDir, 'offline.html'), 'utf8');
+    const robots = readFileSync(join(publicDir, 'robots.txt'), 'utf8');
 
     const manifest = JSON.parse(readFileSync(join(publicDir, 'manifest.webmanifest'), 'utf8')) as {
       name: string;
@@ -63,12 +66,14 @@ describe('public marketing brand', () => {
 
     expect(favicon).toContain('#F26207');
     expect(faviconIco.readUInt16LE(2)).toBe(1);
-    expect(faviconIco[6]).toBe(32);
+    expect(faviconIco.readUInt16LE(4)).toBeGreaterThanOrEqual(6);
     expect(logo).toContain('E-Code Logo SVG');
     expect(aiAvatar).toContain('E-Code AI Avatar');
     expect(compareLogo).toContain('<svg');
     expect(partnerLogo).toContain('<svg');
     expect(agentWorkingIcon).toContain('<svg');
+    expect(offlinePage).toContain('E-Code');
+    expect(robots).toContain('Sitemap');
     expect(manifest.name).toBe('E-Code.ai');
 
     expect(manifest.icons).toContainEqual(
