@@ -64,6 +64,13 @@ import {
   type AgentMemoryType,
 } from './agent-memory.js';
 import {
+  resolveIntegrationOauthStateSecret,
+  signIntegrationOauthState,
+  verifyIntegrationOauthState,
+} from './integrations/oauth-state.js';
+import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
+import { ConnectorProviderError } from './integrations/providers/types.js';
+import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
   createDeploymentLogs,
@@ -641,6 +648,12 @@ const oauthCallbackSchema = z.object({
 
 const oidcCallbackSchema = oauthCallbackSchema.extend({ orgId: z.string().optional() });
 const samlAcsSchema = z.object({ SAMLResponse: z.string().min(1) });
+const integrationOauthProviderParams = z.object({ provider: z.string().min(1) });
+const integrationOauthConnectSchema = z.object({ projectId: z.string().min(1) });
+const integrationOauthCallbackBodySchema = z.object({
+  code: z.string().min(1),
+  state: z.string().min(1),
+});
 const platformAdminParams = z.object({ userId: z.string().min(1) });
 const platformAdminSchema = z.object({ platformAdmin: z.boolean() });
 const adminUserParams = z.object({ userId: z.string().min(1) });
@@ -4299,6 +4312,171 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { memory: archived };
   });
+
+  app.post(
+    '/api/integrations/oauth/:provider/connect',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+      const body = parse(integrationOauthConnectSchema, request.body);
+      const project = await requireProject(request, store, body.projectId, 'projects:write');
+
+      if (params.provider !== 'github') {
+        return reply.code(400).send({
+          error: `Unsupported connector provider: ${params.provider}`,
+          code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      const credentials = resolveGithubCredentials();
+
+      if (!credentials) {
+        return reply.code(503).send({
+          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          code: 'PROVIDER_NOT_CONFIGURED',
+        });
+      }
+
+      const state = signIntegrationOauthState({
+        context: {
+          provider: params.provider,
+          projectId: project.id,
+          userId: request.currentUser.id,
+          organizationId: project.organizationId,
+        },
+        secret: resolveIntegrationOauthStateSecret(),
+      });
+
+      const authorizationUrl = githubConnector.buildAuthorizeUrl({ credentials, state });
+
+      return { provider: params.provider, authorizationUrl };
+    },
+  );
+
+  app.post(
+    '/api/integrations/oauth/:provider/callback',
+    {
+      config: { rateLimit: { max: 60, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      if (!request.currentUser) {
+        return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      }
+
+      const params = parse(integrationOauthProviderParams, request.params);
+      const body = parse(integrationOauthCallbackBodySchema, request.body);
+
+      if (params.provider !== 'github') {
+        return reply.code(400).send({
+          error: `Unsupported connector provider: ${params.provider}`,
+          code: 'CONNECTOR_UNKNOWN_PROVIDER',
+        });
+      }
+
+      const stateResult = verifyIntegrationOauthState({
+        state: body.state,
+        expectedProvider: params.provider,
+        secret: resolveIntegrationOauthStateSecret(),
+      });
+
+      if (!stateResult.ok) {
+        const code = stateResult.reason === 'expired' ? 'OAUTH_STATE_EXPIRED' : 'OAUTH_STATE_INVALID';
+
+        return reply.code(401).send({ error: `OAuth state ${stateResult.reason}`, code });
+      }
+
+      const context = stateResult.context;
+
+      if (context.userId !== request.currentUser.id) {
+        return reply
+          .code(401)
+          .send({ error: 'OAuth state does not belong to the current user', code: 'OAUTH_STATE_USER_MISMATCH' });
+      }
+
+      const project = await store.getProject(context.projectId);
+
+      if (!project || project.organizationId !== context.organizationId) {
+        return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+      }
+
+      const credentials = resolveGithubCredentials();
+
+      if (!credentials) {
+        return reply.code(503).send({
+          error: 'GitHub integration OAuth credentials are not configured on this server.',
+          code: 'PROVIDER_NOT_CONFIGURED',
+        });
+      }
+
+      try {
+        const tokenResult = await githubConnector.exchangeCodeForToken({ credentials, code: body.code });
+        const userInfo = await githubConnector.fetchUserInfo({ accessToken: tokenResult.accessToken });
+
+        const accessTokenEncrypted = encryptJson({ value: tokenResult.accessToken });
+        const refreshTokenEncrypted = tokenResult.refreshToken
+          ? encryptJson({ value: tokenResult.refreshToken })
+          : undefined;
+
+        const userConnection = await store.upsertUserConnection({
+          userId: context.userId,
+          provider: params.provider,
+          externalAccountId: userInfo.externalAccountId,
+          externalAccountLabel: userInfo.externalAccountLabel,
+          accessTokenEncrypted,
+          refreshTokenEncrypted,
+          scopes: tokenResult.scopes,
+          tokenExpiresAt: tokenResult.expiresInSeconds
+            ? new Date(Date.now() + tokenResult.expiresInSeconds * 1000)
+            : undefined,
+          forAgentUse: true,
+          oauthAppSource: 'e_code_default',
+          createdByUserId: context.userId,
+        });
+
+        await store.linkProjectToUserConnection({
+          projectId: context.projectId,
+          userConnectionId: userConnection.id,
+          linkedByUserId: context.userId,
+        });
+
+        await audit(request, store, {
+          organizationId: context.organizationId,
+          action: `connector.oauth.${params.provider}.connect`,
+          resourceType: 'UserConnection',
+          resourceId: userConnection.id,
+          metadata: {
+            projectId: context.projectId,
+            provider: params.provider,
+            accountLabel: userInfo.externalAccountLabel,
+            scopes: tokenResult.scopes,
+          },
+        });
+
+        return {
+          userConnectionId: userConnection.id,
+          provider: params.provider,
+          accountLabel: userInfo.externalAccountLabel,
+          scopes: tokenResult.scopes,
+        };
+      } catch (error) {
+        if (error instanceof ConnectorProviderError) {
+          return reply.code(error.httpStatus ?? 502).send({
+            error: error.message,
+            code: error.code,
+            detail: error.providerDetail,
+          });
+        }
+
+        throw error;
+      }
+    },
+  );
 
   app.get('/mcp/catalog', async (request, reply) => {
     const query = parse(catalogQuerySchema, request.query);
