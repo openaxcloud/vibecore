@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import React from 'react';
+import { GitHubOauthConnectButton } from './GitHubOauthConnectButton';
+
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection } from '~/lib/hooks';
 import { classNames } from '~/utils/classNames';
@@ -62,22 +64,34 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
     >
       <div className="p-6 space-y-6">
         {!isConnected && (
-          <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
-            <p className="flex items-center gap-1 mb-1">
-              <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
-              <span className="font-medium">Tip:</span> You can also set the{' '}
-              <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
-                VITE_GITHUB_ACCESS_TOKEN
-              </code>{' '}
-              environment variable to connect automatically.
-            </p>
-            <p>
-              For fine-grained tokens, also set{' '}
-              <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
-                VITE_GITHUB_TOKEN_TYPE=fine-grained
-              </code>
-            </p>
-          </div>
+          <>
+            <div className="rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor p-4">
+              <h3 className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary mb-2">
+                Connect with GitHub (OAuth)
+              </h3>
+              <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-3">
+                Authorize through GitHub. We store an encrypted server-side token tied to your e-code account — no
+                personal access token to copy, and the token never reaches your browser. Recommended.
+              </p>
+              <GitHubOauthConnectButton />
+            </div>
+
+            <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
+              <p className="flex items-center gap-1 mb-1">
+                <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
+                <span className="font-medium">Legacy:</span> You can also paste a Personal Access Token below. Use this
+                if you prefer to manage your own token rotation, or set the{' '}
+                <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
+                  VITE_GITHUB_ACCESS_TOKEN
+                </code>{' '}
+                environment variable to connect automatically. For fine-grained tokens, also set{' '}
+                <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
+                  VITE_GITHUB_TOKEN_TYPE=fine-grained
+                </code>
+                .
+              </p>
+            </div>
+          </>
         )}
 
         <form onSubmit={handleConnect} className="space-y-4">
