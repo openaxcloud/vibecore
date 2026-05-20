@@ -19,6 +19,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
+  EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
@@ -1316,6 +1317,15 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async listOAuthConnections(userId: string) {
+    return (
+      await this.prisma.oAuthConnection.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      })
+    ).map(mapOAuthConnection);
+  }
+
   async upsertUserConnection(input: {
     userId: string;
     provider: string;
@@ -1710,6 +1720,65 @@ export class PrismaApiStore implements ApiStore {
       ),
       created: true,
     };
+  }
+
+  async recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }) {
+    const existing = await this.prisma.emailDeliveryEvent.findUnique({
+      where: {
+        provider_providerEventId: { provider: input.provider, providerEventId: input.providerEventId },
+      },
+    });
+
+    if (existing) {
+      return { event: mapEmailDeliveryEvent(existing), created: false };
+    }
+
+    return {
+      event: mapEmailDeliveryEvent(
+        await this.prisma.emailDeliveryEvent.create({
+          data: {
+            provider: input.provider,
+            providerEventId: input.providerEventId,
+            type: input.type,
+            email: input.email,
+            emailMessageId: input.emailMessageId,
+            subject: input.subject,
+            fromAddress: input.fromAddress,
+            payload: input.payload as any,
+          },
+        }),
+      ),
+      created: true,
+    };
+  }
+
+  async listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }) {
+    const where: Record<string, unknown> = {};
+    if (filter?.email) where.email = filter.email;
+    if (filter?.type) where.type = filter.type;
+    if (filter?.emailMessageId) where.emailMessageId = filter.emailMessageId;
+
+    const rows = await this.prisma.emailDeliveryEvent.findMany({
+      where,
+      orderBy: { receivedAt: 'desc' },
+      take: Math.min(Math.max(filter?.limit ?? 100, 1), 500),
+    });
+
+    return rows.map(mapEmailDeliveryEvent);
   }
 
   async recordAudit(event: AuditEvent) {
@@ -2386,5 +2455,20 @@ function mapStripeEvent(event: any): StripeEventRecord {
     type: event.type,
     processedAt: toIso(event.processedAt)!,
     payload: event.payload,
+  };
+}
+
+function mapEmailDeliveryEvent(event: any): EmailDeliveryEventRecord {
+  return {
+    id: event.id,
+    provider: event.provider,
+    providerEventId: event.providerEventId,
+    type: event.type,
+    email: event.email,
+    emailMessageId: event.emailMessageId ?? undefined,
+    subject: event.subject ?? undefined,
+    fromAddress: event.fromAddress ?? undefined,
+    payload: event.payload,
+    receivedAt: toIso(event.receivedAt)!,
   };
 }

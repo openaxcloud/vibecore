@@ -515,6 +515,19 @@ export interface StripeEventRecord {
   payload: unknown;
 }
 
+export interface EmailDeliveryEventRecord {
+  id: string;
+  provider: string;
+  providerEventId: string;
+  type: string;
+  email: string;
+  emailMessageId?: string;
+  subject?: string;
+  fromAddress?: string;
+  payload: unknown;
+  receivedAt: string;
+}
+
 export interface ApiStore {
   createUser(input: {
     email: string;
@@ -791,6 +804,7 @@ export interface ApiStore {
     accessToken: string;
     refreshToken?: string;
   }): Promise<OAuthConnectionRecord>;
+  listOAuthConnections(userId: string): Promise<OAuthConnectionRecord[]>;
   upsertUserConnection(input: {
     userId: string;
     provider: string;
@@ -911,6 +925,22 @@ export interface ApiStore {
     type: string;
     payload: unknown;
   }): Promise<{ event: StripeEventRecord; created: boolean }>;
+  recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }): Promise<{ event: EmailDeliveryEventRecord; created: boolean }>;
+  listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }): Promise<EmailDeliveryEventRecord[]>;
   recordAudit(event: AuditEvent): Promise<void>;
   listAuditLogs(organizationId?: string): Promise<AuditEvent[]>;
   listAdminUsers(): Promise<UserRecord[]>;
