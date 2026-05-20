@@ -7,6 +7,7 @@ import {
   newsletterPages,
   solutionPages,
 } from './EcodeMarketingPages';
+import { ecodeSurfacePages } from './EcodeSurfacePages';
 
 describe('E-Code marketing page registry', () => {
   it('covers the public E-Code pages missing from the initial import', () => {
@@ -67,5 +68,22 @@ describe('E-Code marketing page registry', () => {
     );
     expect(Object.keys(marketingCampaignPages)).toEqual(expect.arrayContaining(['bounties', 'deployments', 'teams']));
     expect(Object.keys(newsletterPages)).toEqual(expect.arrayContaining(['confirmed', 'confirm', 'unsubscribe']));
+  });
+
+  it('connects the broader E-Code product surface registry to the marketing import', () => {
+    expect(Object.keys(ecodeSurfacePages)).toEqual(
+      expect.arrayContaining([
+        'apps',
+        'teams',
+        'runtimes',
+        'runtime-diagnostics',
+        'database',
+        'console',
+        'shell',
+        'authentication',
+        'integrations',
+        'solartech-ai-chat',
+      ]),
+    );
   });
 });
