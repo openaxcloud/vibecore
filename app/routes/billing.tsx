@@ -7,8 +7,10 @@ import {
   apiRequest,
   apiErrorMessage,
   firstOrganization,
+  firstOrganizationOrNull,
   isForbiddenApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
@@ -22,7 +24,11 @@ type BillingData = {
 
 export const meta: MetaFunction = () => [{ title: 'Billing - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
 
   try {
     const billing = await apiRequest<BillingData>(request, `/orgs/${organization.id}/billing`);

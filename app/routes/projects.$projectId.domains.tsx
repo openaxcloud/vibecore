@@ -6,6 +6,7 @@ import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
   firstOrganization,
+  firstOrganizationOrNull,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -26,8 +27,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const [projectResult, organization] = await Promise.all([
     apiRequest<{ project: Project }>(request, `/projects/${projectId}`),
-    firstOrganization(request),
+    firstOrganizationOrNull(request),
   ]);
+
+  if (!organization) {
+    return redirect('/');
+  }
 
   const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
 

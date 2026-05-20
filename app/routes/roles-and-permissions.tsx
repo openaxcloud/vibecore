@@ -3,16 +3,21 @@ import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enter
 import {
   apiRequest,
   apiErrorMessage,
-  firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   isForbiddenApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
 
   const result = await apiRequest<{ roles: Array<{ key: string; name: string; permissions: string[] }> }>(
     request,

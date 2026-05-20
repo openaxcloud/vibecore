@@ -2,7 +2,7 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { Activity, Boxes, Database, Sparkles } from 'lucide-react';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
-import { apiRequest, firstOrganization, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 type UsageEvent = { id: string; type: string; quantity: number; createdAt?: string };
 type UsageData = {
@@ -14,7 +14,12 @@ type UsageData = {
 
 export const meta: MetaFunction = () => [{ title: 'Usage - VibeCore' }];
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   return apiRequest<UsageData>(request, `/orgs/${organization.id}/usage`);
 }
 

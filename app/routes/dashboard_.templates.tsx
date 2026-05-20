@@ -4,6 +4,7 @@ import { AppShell, LinkButton, TemplateGallery, templates } from '~/components/d
 import {
   apiRequest,
   firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   redirect,
   type EnterpriseActionArgs,
@@ -15,7 +16,12 @@ export const meta: MetaFunction = () => [{ title: 'Workspace templates - VibeCor
 type Project = { id: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   return null;
 }
 

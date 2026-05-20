@@ -5,7 +5,7 @@ import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/E
 import {
   apiRequest,
   apiErrorMessage,
-  firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   isForbiddenApiResponse,
   json,
@@ -16,9 +16,12 @@ import {
 export const meta: MetaFunction = () => [{ title: 'Organization members - VibeCore' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = new URL(request.url).searchParams.get('orgId')
-    ? { id: new URL(request.url).searchParams.get('orgId')! }
-    : await firstOrganization(request);
+  const orgIdParam = new URL(request.url).searchParams.get('orgId');
+  const organization = orgIdParam ? { id: orgIdParam } : await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    throw json({ error: 'No organization found' }, { status: 400 });
+  }
 
   const [membersResult, rolesResult] = await Promise.all([
     apiRequest<{ memberships: Array<{ id: string; userId: string; roleKey: string }> }>(

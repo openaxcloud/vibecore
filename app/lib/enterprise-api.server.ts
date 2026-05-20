@@ -147,6 +147,15 @@ export async function firstOrganization(request: Request) {
   return organization;
 }
 
+export async function firstOrganizationOrNull(request: Request) {
+  const result = await apiRequest<{ organizations: Array<{ id: string; name?: string; slug?: string }> }>(
+    request,
+    '/orgs',
+  );
+
+  return result.organizations[0] ?? null;
+}
+
 export function formObject(formData: FormData) {
   return Object.fromEntries(
     [...formData.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : value.name]),
