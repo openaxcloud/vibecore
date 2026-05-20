@@ -26,6 +26,7 @@ import type {
   ProjectActivityListOptions,
   ProjectActivityRecord,
   ProjectCollaboratorRecord,
+  ProjectConnectionLinkRecord,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectRecord,
@@ -42,6 +43,8 @@ import type {
   SsoConfigRecord,
   SupportTicketRecord,
   SystemSettingRecord,
+  UserConnectionRecord,
+  UserConnectionStatus,
   UserRecord,
   UsageEventRecord,
   WorkspaceRecord,
@@ -1248,6 +1251,147 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }) {
+    return mapUserConnection(
+      await this.prisma.userConnection.upsert({
+        where: {
+          userId_provider_externalAccountId: {
+            userId: input.userId,
+            provider: input.provider,
+            externalAccountId: input.externalAccountId,
+          },
+        },
+        create: {
+          userId: input.userId,
+          provider: input.provider,
+          externalAccountId: input.externalAccountId,
+          externalAccountLabel: input.externalAccountLabel,
+          accessTokenEncrypted: input.accessTokenEncrypted,
+          refreshTokenEncrypted: input.refreshTokenEncrypted,
+          apiKeyFieldsEncrypted: input.apiKeyFieldsEncrypted as never,
+          scopes: input.scopes,
+          tokenExpiresAt: input.tokenExpiresAt,
+          forAgentUse: input.forAgentUse ?? true,
+          oauthAppSource: input.oauthAppSource ?? 'e_code_default',
+          oauthAppOverrideId: input.oauthAppOverrideId,
+          createdByUserId: input.createdByUserId,
+          status: 'active',
+        },
+        update: {
+          externalAccountLabel: input.externalAccountLabel,
+          accessTokenEncrypted: input.accessTokenEncrypted,
+          refreshTokenEncrypted: input.refreshTokenEncrypted,
+          apiKeyFieldsEncrypted: input.apiKeyFieldsEncrypted as never,
+          scopes: input.scopes,
+          tokenExpiresAt: input.tokenExpiresAt,
+          forAgentUse: input.forAgentUse,
+          oauthAppSource: input.oauthAppSource,
+          oauthAppOverrideId: input.oauthAppOverrideId,
+          status: 'active',
+          revokedAt: null,
+        },
+      }),
+    );
+  }
+
+  async getUserConnectionById(id: string) {
+    const row = await this.prisma.userConnection.findUnique({ where: { id } });
+
+    return row ? mapUserConnection(row) : undefined;
+  }
+
+  async listUserConnectionsByUser(userId: string, opts?: { provider?: string }) {
+    const rows = await this.prisma.userConnection.findMany({
+      where: {
+        userId,
+        provider: opts?.provider,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return rows.map(mapUserConnection);
+  }
+
+  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+    try {
+      const updated = await this.prisma.userConnection.update({
+        where: { id: input.id },
+        data: { status: input.status, revokedAt: input.revokedAt },
+      });
+
+      return mapUserConnection(updated);
+    } catch {
+      return undefined;
+    }
+  }
+
+  async linkProjectToUserConnection(input: { projectId: string; userConnectionId: string; linkedByUserId: string }) {
+    const link = await this.prisma.projectConnectionLink.upsert({
+      where: {
+        projectId_userConnectionId: {
+          projectId: input.projectId,
+          userConnectionId: input.userConnectionId,
+        },
+      },
+      create: {
+        projectId: input.projectId,
+        userConnectionId: input.userConnectionId,
+        linkedByUserId: input.linkedByUserId,
+      },
+      update: { unlinkedAt: null },
+    });
+
+    return mapProjectConnectionLink(link);
+  }
+
+  async unlinkProjectFromUserConnection(input: { projectId: string; userConnectionId: string }) {
+    const link = await this.prisma.projectConnectionLink.findUnique({
+      where: {
+        projectId_userConnectionId: {
+          projectId: input.projectId,
+          userConnectionId: input.userConnectionId,
+        },
+      },
+    });
+
+    if (!link) {
+      return undefined;
+    }
+
+    const updated = await this.prisma.projectConnectionLink.update({
+      where: { id: link.id },
+      data: { unlinkedAt: new Date() },
+    });
+
+    return mapProjectConnectionLink(updated);
+  }
+
+  async listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }) {
+    const rows = await this.prisma.projectConnectionLink.findMany({
+      where: {
+        projectId,
+        unlinkedAt: opts?.includeUnlinked ? undefined : null,
+      },
+      orderBy: { linkedAt: 'desc' },
+    });
+
+    return rows.map(mapProjectConnectionLink);
+  }
+
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
     return mapAiConversation(await this.prisma.aiConversation.create({ data: input }));
   }
@@ -1987,6 +2131,38 @@ function mapOAuthConnection(connection: any): OAuthConnectionRecord {
     accessHash: connection.accessHash,
     refreshHash: connection.refreshHash ?? undefined,
     createdAt: toIso(connection.createdAt)!,
+  };
+}
+
+function mapUserConnection(connection: any): UserConnectionRecord {
+  return {
+    id: connection.id,
+    userId: connection.userId,
+    provider: connection.provider,
+    externalAccountId: connection.externalAccountId,
+    externalAccountLabel: connection.externalAccountLabel,
+    scopes: connection.scopes ?? [],
+    tokenExpiresAt: toIso(connection.tokenExpiresAt),
+    status: connection.status as UserConnectionStatus,
+    lastUsedAt: toIso(connection.lastUsedAt),
+    forAgentUse: connection.forAgentUse,
+    oauthAppSource: connection.oauthAppSource as 'e_code_default' | 'org_override',
+    oauthAppOverrideId: connection.oauthAppOverrideId ?? undefined,
+    createdByUserId: connection.createdByUserId,
+    createdAt: toIso(connection.createdAt)!,
+    updatedAt: toIso(connection.updatedAt)!,
+    revokedAt: toIso(connection.revokedAt),
+  };
+}
+
+function mapProjectConnectionLink(link: any): ProjectConnectionLinkRecord {
+  return {
+    id: link.id,
+    projectId: link.projectId,
+    userConnectionId: link.userConnectionId,
+    linkedByUserId: link.linkedByUserId,
+    linkedAt: toIso(link.linkedAt)!,
+    unlinkedAt: toIso(link.unlinkedAt),
   };
 }
 

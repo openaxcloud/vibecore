@@ -21,6 +21,9 @@ import type {
   FeatureFlagRecord,
   MembershipRecord,
   OAuthConnectionRecord,
+  ProjectConnectionLinkRecord,
+  UserConnectionRecord,
+  UserConnectionStatus,
   OrganizationInviteRecord,
   OrganizationRecord,
   ProjectActivityListOptions,
@@ -104,6 +107,8 @@ export class TestApiStore implements ApiStore {
   readonly siemWebhooks = new Map<string, SiemWebhookRecord>();
   readonly organizationInvites = new Map<string, OrganizationInviteRecord>();
   readonly oauthConnections = new Map<string, OAuthConnectionRecord>();
+  readonly userConnections = new Map<string, UserConnectionRecord>();
+  readonly projectConnectionLinks = new Map<string, ProjectConnectionLinkRecord>();
   readonly aiConversations = new Map<string, AiConversationRecord>();
   readonly aiMessages = new Map<string, AiMessageRecord>();
   readonly aiToolCalls = new Map<string, AiToolCallRecord>();
@@ -1173,7 +1178,126 @@ export class TestApiStore implements ApiStore {
       createdAt: existing?.createdAt ?? now(),
     };
     this.oauthConnections.set(key, record);
+
     return record;
+  }
+
+  private userConnectionKey(userId: string, provider: string, externalAccountId: string) {
+    return `${userId}:${provider}:${externalAccountId}`;
+  }
+
+  async upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }): Promise<UserConnectionRecord> {
+    const key = this.userConnectionKey(input.userId, input.provider, input.externalAccountId);
+    const existing = Array.from(this.userConnections.values()).find(
+      (row) => this.userConnectionKey(row.userId, row.provider, row.externalAccountId) === key,
+    );
+    const record: UserConnectionRecord = {
+      id: existing?.id ?? id('uconn'),
+      userId: input.userId,
+      provider: input.provider,
+      externalAccountId: input.externalAccountId,
+      externalAccountLabel: input.externalAccountLabel,
+      scopes: input.scopes,
+      tokenExpiresAt: input.tokenExpiresAt?.toISOString(),
+      status: 'active',
+      lastUsedAt: existing?.lastUsedAt,
+      forAgentUse: input.forAgentUse ?? true,
+      oauthAppSource: input.oauthAppSource ?? 'e_code_default',
+      oauthAppOverrideId: input.oauthAppOverrideId,
+      createdByUserId: input.createdByUserId,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+      revokedAt: undefined,
+    };
+    this.userConnections.set(record.id, record);
+
+    return record;
+  }
+
+  async getUserConnectionById(connectionId: string) {
+    return this.userConnections.get(connectionId);
+  }
+
+  async listUserConnectionsByUser(userId: string, opts?: { provider?: string }) {
+    return Array.from(this.userConnections.values())
+      .filter((row) => row.userId === userId && (!opts?.provider || row.provider === opts.provider))
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  }
+
+  async markUserConnectionStatus(input: { id: string; status: UserConnectionStatus; revokedAt?: Date }) {
+    const existing = this.userConnections.get(input.id);
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: UserConnectionRecord = {
+      ...existing,
+      status: input.status,
+      revokedAt: input.revokedAt?.toISOString(),
+      updatedAt: now(),
+    };
+    this.userConnections.set(updated.id, updated);
+
+    return updated;
+  }
+
+  private projectConnectionLinkKey(projectId: string, userConnectionId: string) {
+    return `${projectId}:${userConnectionId}`;
+  }
+
+  async linkProjectToUserConnection(input: { projectId: string; userConnectionId: string; linkedByUserId: string }) {
+    const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+    const existing = Array.from(this.projectConnectionLinks.values()).find(
+      (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
+    );
+    const link: ProjectConnectionLinkRecord = {
+      id: existing?.id ?? id('plink'),
+      projectId: input.projectId,
+      userConnectionId: input.userConnectionId,
+      linkedByUserId: input.linkedByUserId,
+      linkedAt: existing?.linkedAt ?? now(),
+      unlinkedAt: undefined,
+    };
+    this.projectConnectionLinks.set(link.id, link);
+
+    return link;
+  }
+
+  async unlinkProjectFromUserConnection(input: { projectId: string; userConnectionId: string }) {
+    const key = this.projectConnectionLinkKey(input.projectId, input.userConnectionId);
+    const existing = Array.from(this.projectConnectionLinks.values()).find(
+      (row) => this.projectConnectionLinkKey(row.projectId, row.userConnectionId) === key,
+    );
+
+    if (!existing) {
+      return undefined;
+    }
+
+    const updated: ProjectConnectionLinkRecord = { ...existing, unlinkedAt: now() };
+    this.projectConnectionLinks.set(existing.id, updated);
+
+    return updated;
+  }
+
+  async listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }) {
+    return Array.from(this.projectConnectionLinks.values()).filter(
+      (row) => row.projectId === projectId && (opts?.includeUnlinked || !row.unlinkedAt),
+    );
   }
 
   async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {

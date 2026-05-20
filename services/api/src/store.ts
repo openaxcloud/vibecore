@@ -286,6 +286,36 @@ export interface OAuthConnectionRecord {
   createdAt: string;
 }
 
+export type UserConnectionStatus = 'active' | 'needs_reconnect' | 'revoked';
+
+export interface UserConnectionRecord {
+  id: string;
+  userId: string;
+  provider: string;
+  externalAccountId: string;
+  externalAccountLabel: string;
+  scopes: string[];
+  tokenExpiresAt?: string;
+  status: UserConnectionStatus;
+  lastUsedAt?: string;
+  forAgentUse: boolean;
+  oauthAppSource: 'e_code_default' | 'org_override';
+  oauthAppOverrideId?: string;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+  revokedAt?: string;
+}
+
+export interface ProjectConnectionLinkRecord {
+  id: string;
+  projectId: string;
+  userConnectionId: string;
+  linkedByUserId: string;
+  linkedAt: string;
+  unlinkedAt?: string;
+}
+
 export interface AiConversationRecord {
   id: string;
   projectId?: string;
@@ -705,6 +735,38 @@ export interface ApiStore {
     accessToken: string;
     refreshToken?: string;
   }): Promise<OAuthConnectionRecord>;
+  upsertUserConnection(input: {
+    userId: string;
+    provider: string;
+    externalAccountId: string;
+    externalAccountLabel: string;
+    accessTokenEncrypted: string;
+    refreshTokenEncrypted?: string;
+    apiKeyFieldsEncrypted?: Record<string, string>;
+    scopes: string[];
+    tokenExpiresAt?: Date;
+    forAgentUse?: boolean;
+    oauthAppSource?: 'e_code_default' | 'org_override';
+    oauthAppOverrideId?: string;
+    createdByUserId: string;
+  }): Promise<UserConnectionRecord>;
+  getUserConnectionById(id: string): Promise<UserConnectionRecord | undefined>;
+  listUserConnectionsByUser(userId: string, opts?: { provider?: string }): Promise<UserConnectionRecord[]>;
+  markUserConnectionStatus(input: {
+    id: string;
+    status: UserConnectionStatus;
+    revokedAt?: Date;
+  }): Promise<UserConnectionRecord | undefined>;
+  linkProjectToUserConnection(input: {
+    projectId: string;
+    userConnectionId: string;
+    linkedByUserId: string;
+  }): Promise<ProjectConnectionLinkRecord>;
+  unlinkProjectFromUserConnection(input: {
+    projectId: string;
+    userConnectionId: string;
+  }): Promise<ProjectConnectionLinkRecord | undefined>;
+  listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }): Promise<ProjectConnectionLinkRecord[]>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   createAiMessage(input: {
