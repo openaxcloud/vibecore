@@ -26,7 +26,8 @@ export type ConnectorErrorCode =
   | 'CONNECTOR_RATE_LIMITED'
   | 'CONNECTOR_PROVIDER_AUTH_FAILED'
   | 'CONNECTOR_PROVIDER_UNREACHABLE'
-  | 'CONNECTOR_UNKNOWN_PROVIDER';
+  | 'CONNECTOR_UNKNOWN_PROVIDER'
+  | 'CONNECTOR_NEEDS_RECONNECT';
 
 export interface ConnectorErrorBody {
   error: string;

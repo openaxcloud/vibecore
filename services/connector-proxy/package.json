@@ -4,6 +4,8 @@
   "type": "module",
   "dependencies": {
     "@vibecore/connector-sdk": "workspace:*",
+    "@vibecore/database": "workspace:*",
+    "@vibecore/security": "workspace:*",
     "fastify": "^5.8.5"
   },
   "devDependencies": {
