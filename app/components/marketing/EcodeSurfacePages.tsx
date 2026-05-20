@@ -293,7 +293,7 @@ function makeSurfacePage(input: SurfacePageInput): EcodeSurfacePageDefinition {
       },
       {
         title: 'Production controls',
-        body: 'The route is wired through the public shell, navigation-safe links and responsive content instead of an empty compatibility stub.',
+        body: 'The route is wired through the public shell, navigation-safe links and responsive content instead of an empty compatibility page.',
         items: category.controls,
       },
     ],
