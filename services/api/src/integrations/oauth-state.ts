@@ -12,7 +12,11 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 
 export interface IntegrationOAuthStateContext {
   provider: string;
-  projectId: string;
+  /**
+   * Optional project to link the resulting UserConnection to. Absent for
+   * account-scoped connect flows (e.g. the Settings → GitHub tab).
+   */
+  projectId?: string;
   userId: string;
   organizationId: string;
 }
@@ -97,7 +101,7 @@ export function verifyIntegrationOauthState(input: {
 
   if (
     typeof payload.provider !== 'string' ||
-    typeof payload.projectId !== 'string' ||
+    (payload.projectId !== undefined && typeof payload.projectId !== 'string') ||
     typeof payload.userId !== 'string' ||
     typeof payload.organizationId !== 'string' ||
     typeof payload.expiresAt !== 'number' ||
@@ -125,4 +129,8 @@ export function verifyIntegrationOauthState(input: {
       organizationId: payload.organizationId,
     },
   };
+}
+
+export function isAccountScopedContext(context: IntegrationOAuthStateContext): boolean {
+  return !context.projectId;
 }

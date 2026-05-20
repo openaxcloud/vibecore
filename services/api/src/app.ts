@@ -703,7 +703,7 @@ const oauthCallbackSchema = z.object({
 const oidcCallbackSchema = oauthCallbackSchema.extend({ orgId: z.string().optional() });
 const samlAcsSchema = z.object({ SAMLResponse: z.string().min(1) });
 const integrationOauthProviderParams = z.object({ provider: z.string().min(1) });
-const integrationOauthConnectSchema = z.object({ projectId: z.string().min(1) });
+const integrationOauthConnectSchema = z.object({ projectId: z.string().min(1).optional() });
 
 const integrationOauthCallbackBodySchema = z.object({
   code: z.string().min(1),
@@ -4558,13 +4558,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const params = parse(integrationOauthProviderParams, request.params);
       const body = parse(integrationOauthConnectSchema, request.body);
-      const project = await requireProject(request, store, body.projectId, 'projects:write');
 
       if (params.provider !== 'github') {
         return reply.code(400).send({
           error: `Unsupported connector provider: ${params.provider}`,
           code: 'CONNECTOR_UNKNOWN_PROVIDER',
         });
+      }
+
+      let projectId: string | undefined;
+      let organizationId: string;
+
+      if (body.projectId) {
+        const project = await requireProject(request, store, body.projectId, 'projects:write');
+        projectId = project.id;
+        organizationId = project.organizationId;
+      } else {
+        // Account-scoped connect (Settings → GitHub tab, no project context).
+        // Bind the resulting UserConnection to the first organization the
+        // builder belongs to so the AuditLog row carries an organizationId.
+        const orgs = await store.listOrganizations(request.currentUser.id);
+
+        if (orgs.length === 0) {
+          return reply.code(400).send({
+            error: 'Account is not a member of any organization.',
+            code: 'NO_ORGANIZATION_MEMBERSHIP',
+          });
+        }
+
+        organizationId = orgs[0].id;
       }
 
       const credentials = resolveGithubCredentials();
@@ -4579,9 +4601,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const state = signIntegrationOauthState({
         context: {
           provider: params.provider,
-          projectId: project.id,
+          projectId,
           userId: request.currentUser.id,
-          organizationId: project.organizationId,
+          organizationId,
         },
         secret: resolveIntegrationOauthStateSecret(),
       });
@@ -4632,10 +4654,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .send({ error: 'OAuth state does not belong to the current user', code: 'OAUTH_STATE_USER_MISMATCH' });
       }
 
-      const project = await store.getProject(context.projectId);
+      if (context.projectId) {
+        const project = await store.getProject(context.projectId);
 
-      if (!project || project.organizationId !== context.organizationId) {
-        return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+        if (!project || project.organizationId !== context.organizationId) {
+          return reply.code(404).send({ error: 'Project not found', code: 'PROJECT_NOT_FOUND' });
+        }
       }
 
       const credentials = resolveGithubCredentials();
@@ -4673,11 +4697,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           createdByUserId: context.userId,
         });
 
-        await store.linkProjectToUserConnection({
-          projectId: context.projectId,
-          userConnectionId: userConnection.id,
-          linkedByUserId: context.userId,
-        });
+        if (context.projectId) {
+          await store.linkProjectToUserConnection({
+            projectId: context.projectId,
+            userConnectionId: userConnection.id,
+            linkedByUserId: context.userId,
+          });
+        }
 
         await audit(request, store, {
           organizationId: context.organizationId,
@@ -4685,7 +4711,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           resourceType: 'UserConnection',
           resourceId: userConnection.id,
           metadata: {
-            projectId: context.projectId,
+            projectId: context.projectId ?? null,
+            scope: context.projectId ? 'project' : 'account',
             provider: params.provider,
             accountLabel: userInfo.externalAccountLabel,
             scopes: tokenResult.scopes,

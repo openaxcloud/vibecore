@@ -396,4 +396,54 @@ describe('Integrations OAuth routes (TestApiStore)', () => {
     expect(sampleCipher.value).toBe('gh-cipher-token');
     await app.close();
   });
+
+  it('account-scoped connect: callback creates a UserConnection without a ProjectConnectionLink', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const tenant = await registerUserAndProject(app, 'account-only@example.com', 'AccountOnlyOrg');
+
+    const connect = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/oauth/github/connect',
+      headers: { authorization: `Bearer ${tenant.token}` },
+      payload: {},
+    });
+
+    expect(connect.statusCode).toBe(200);
+    const authorizationUrl = (connect.json() as { authorizationUrl: string }).authorizationUrl;
+    const state = new URL(authorizationUrl).searchParams.get('state')!;
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = input instanceof URL ? input : new URL(String(input));
+
+      if (url.toString().endsWith('/access_token')) {
+        return new Response(JSON.stringify({ access_token: 'acct-only-token', scope: 'repo' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ id: 4242, login: 'account-octo' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+
+    const callback = await app.inject({
+      method: 'POST',
+      url: '/api/integrations/oauth/github/callback',
+      headers: { authorization: `Bearer ${tenant.token}` },
+      payload: { code: 'auth-code', state },
+    });
+
+    expect(callback.statusCode).toBe(200);
+    const result = callback.json() as { userConnectionId: string };
+
+    const stored = await store.getUserConnectionById(result.userConnectionId);
+    expect(stored?.externalAccountLabel).toBe('account-octo');
+
+    const links = await store.listProjectConnectionLinks(tenant.projectId);
+    expect(links.find((row) => row.userConnectionId === result.userConnectionId)).toBeUndefined();
+    await app.close();
+  });
 });
