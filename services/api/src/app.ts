@@ -2140,7 +2140,23 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     await assertOidcIdToken(tokens.id_token);
   }
 
-  const profileResponse = await fetch(userInfoUrl, { headers: { authorization: `Bearer ${tokens.access_token}` } });
+  const userInfoHeaders: Record<string, string> = {
+    authorization: `Bearer ${tokens.access_token}`,
+    accept: 'application/json',
+  };
+
+  if (provider === 'github') {
+    /*
+     * GitHub's REST API requires a User-Agent header and recommends the
+     * vendor-specific accept type. Without User-Agent some intermediary
+     * proxies return 403; with the vendor accept type we get the stable
+     * v3 schema regardless of future default changes.
+     */
+    userInfoHeaders['user-agent'] = process.env.GITHUB_USER_AGENT ?? 'vibecore-app';
+    userInfoHeaders.accept = 'application/vnd.github+json';
+  }
+
+  const profileResponse = await fetch(userInfoUrl, { headers: userInfoHeaders });
 
   if (!profileResponse.ok) {
     let providerBody = '';
@@ -2162,15 +2178,46 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
   }
 
   const profile = (await profileResponse.json()) as {
-    email?: string;
-    id?: string;
+    email?: string | null;
+    id?: string | number;
     sub?: string;
     name?: string;
     login?: string;
   };
 
-  const email = profile.email;
-  const externalId = profile.id ?? profile.sub ?? profile.login;
+  let email = profile.email ?? undefined;
+  const externalId =
+    profile.id !== undefined && profile.id !== null
+      ? String(profile.id)
+      : profile.sub ?? profile.login;
+
+  if (!email && provider === 'github' && tokens.access_token) {
+    /*
+     * GitHub omits the primary email from /user when the user marks it
+     * private (the default for many accounts). The user:email scope grants
+     * /user/emails which returns every verified address with primary/verified
+     * flags — pick the primary verified one and fall back to any verified
+     * address so accounts without an explicit primary still log in.
+     */
+    const emailsUrl = process.env.GITHUB_USERINFO_EMAILS_URL ?? `${userInfoUrl.replace(/\/$/, '')}/emails`;
+    const emailResponse = await fetch(emailsUrl, { headers: userInfoHeaders });
+
+    if (emailResponse.ok) {
+      const emails = (await emailResponse.json()) as Array<{
+        email: string;
+        primary?: boolean;
+        verified?: boolean;
+      }>;
+      const candidate =
+        emails.find((entry) => entry.primary && entry.verified) ??
+        emails.find((entry) => entry.verified) ??
+        emails[0];
+
+      if (candidate?.email) {
+        email = candidate.email;
+      }
+    }
+  }
 
   if (!email || !externalId) {
     throw Object.assign(new Error('OAuth profile is missing email or subject'), {

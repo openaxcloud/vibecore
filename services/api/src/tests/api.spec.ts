@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
@@ -984,6 +984,183 @@ describe('SaaS API', () => {
       restoreEnv('GITHUB_CLIENT_ID', original.githubClientId);
       restoreEnv('GITHUB_OAUTH_AUTHORIZATION_URL', original.githubAuthorizationUrl);
     }
+  });
+
+  describe('GitHub OAuth code exchange', () => {
+    const originalEnv = {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      redirectUri: process.env.GITHUB_REDIRECT_URI,
+      userAgent: process.env.GITHUB_USER_AGENT,
+      emailsUrl: process.env.GITHUB_USERINFO_EMAILS_URL,
+    };
+
+    afterEach(() => {
+      restoreEnv('GITHUB_CLIENT_ID', originalEnv.clientId);
+      restoreEnv('GITHUB_CLIENT_SECRET', originalEnv.clientSecret);
+      restoreEnv('GITHUB_REDIRECT_URI', originalEnv.redirectUri);
+      restoreEnv('GITHUB_USER_AGENT', originalEnv.userAgent);
+      restoreEnv('GITHUB_USERINFO_EMAILS_URL', originalEnv.emailsUrl);
+      vi.restoreAllMocks();
+    });
+
+    it('falls back to /user/emails when GitHub returns a null email for a private profile', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-code-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-code-client-secret';
+      process.env.GITHUB_REDIRECT_URI = 'https://app.e-code.ai/auth/oauth/github/callback';
+      process.env.GITHUB_USER_AGENT = 'vibecore-test-agent';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      const requests: Array<{ url: string; init?: RequestInit }> = [];
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+        requests.push({ url, init });
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(
+            JSON.stringify({ access_token: 'gh-access-token', token_type: 'bearer', scope: 'read:user,user:email' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(
+            JSON.stringify({ id: 4242, login: 'octocat-private', name: 'Octo Private', email: null }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (url === 'https://api.github.com/user/emails') {
+          return new Response(
+            JSON.stringify([
+              { email: 'noreply@users.github.com', primary: false, verified: true },
+              { email: 'octo@example.com', primary: true, verified: true },
+            ]),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        throw new Error(`Unexpected fetch in GitHub OAuth test: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-auth-code' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const result = response.json() as { token: string; user: { email: string } };
+      expect(result.user.email).toBe('octo@example.com');
+
+      const stored = await store.findUserByEmail('octo@example.com');
+      expect(stored).toBeTruthy();
+
+      const tokenRequest = requests.find((entry) => entry.url === 'https://github.com/login/oauth/access_token');
+      expect(tokenRequest).toBeTruthy();
+      const tokenBody = String(tokenRequest!.init?.body ?? '');
+      expect(tokenBody).toContain('code=gh-auth-code');
+      expect(tokenBody).toContain('client_id=gh-code-client-id');
+      expect(tokenBody).toContain('client_secret=gh-code-client-secret');
+      expect(tokenBody).toContain('redirect_uri=https%3A%2F%2Fapp.e-code.ai%2Fauth%2Foauth%2Fgithub%2Fcallback');
+
+      const userRequest = requests.find((entry) => entry.url === 'https://api.github.com/user');
+      expect(userRequest).toBeTruthy();
+      const userHeaders = new Headers((userRequest!.init?.headers ?? {}) as Record<string, string>);
+      expect(userHeaders.get('authorization')).toBe('Bearer gh-access-token');
+      expect(userHeaders.get('user-agent')).toBe('vibecore-test-agent');
+      expect(userHeaders.get('accept')).toBe('application/vnd.github+json');
+
+      const emailsRequest = requests.find((entry) => entry.url === 'https://api.github.com/user/emails');
+      expect(emailsRequest).toBeTruthy();
+      const emailHeaders = new Headers((emailsRequest!.init?.headers ?? {}) as Record<string, string>);
+      expect(emailHeaders.get('authorization')).toBe('Bearer gh-access-token');
+
+      await app.close();
+    });
+
+    it('uses the email returned by /user without an extra /user/emails request', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-public-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-public-client-secret';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(JSON.stringify({ access_token: 'gh-public-token' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(
+            JSON.stringify({ id: 7, login: 'octocat-public', name: 'Octo Public', email: 'public@example.com' }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-public-code' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect((response.json() as { user: { email: string } }).user.email).toBe('public@example.com');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      await app.close();
+    });
+
+    it('returns OAUTH_PROFILE_INCOMPLETE when GitHub has no usable email and /user/emails fails', async () => {
+      process.env.GITHUB_CLIENT_ID = 'gh-noemail-client-id';
+      process.env.GITHUB_CLIENT_SECRET = 'gh-noemail-client-secret';
+
+      const store = new TestApiStore();
+      const app = await buildTestApiApp({ store });
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+        const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+        if (url === 'https://github.com/login/oauth/access_token') {
+          return new Response(JSON.stringify({ access_token: 'gh-noemail-token' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user') {
+          return new Response(JSON.stringify({ id: 13, login: 'no-email', email: null }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        if (url === 'https://api.github.com/user/emails') {
+          return new Response('forbidden', { status: 403 });
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/auth/oauth/github/callback',
+        payload: { code: 'gh-noemail-code' },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toMatchObject({ code: 'OAUTH_PROFILE_INCOMPLETE' });
+      await app.close();
+    });
   });
 
   it('completes OAuth, OIDC and SAML login callbacks with account linking', async () => {
