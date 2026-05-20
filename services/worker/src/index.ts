@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
 import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
+import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
 
 const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -133,6 +134,16 @@ export const enterpriseWorker = new Worker(
     if (job.name === 'retention.enforce') {
       await enforceDataRetention();
       return { retained: true };
+    }
+
+    if (job.name === 'connector.healthcheck') {
+      const result = await runConnectorTokenHealthCheck({ prisma: createDatabaseClient() });
+      return result;
+    }
+
+    if (job.name === 'connector.notify.reconnect') {
+      const result = await runConnectorReconnectionNotifier({ prisma: createDatabaseClient() });
+      return result;
     }
 
     throw new Error(`Unsupported enterprise job: ${job.name}`);
