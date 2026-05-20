@@ -720,8 +720,9 @@ async function auditCriticalUiInteractions(projectId, token) {
     async (page) => {
       const workflowName = `Workflow Audit ${Date.now()}`;
       await page.getByTestId('new-workflow-button').click();
-      await page.getByTestId('workflow-name-input').fill(workflowName);
-      await page.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
+      const createForm = page.getByTestId('create-workflow-form');
+      await createForm.getByTestId('workflow-name-input').fill(workflowName);
+      await createForm.getByPlaceholder('npm run dev').fill(`echo ${workflowName}`);
       await Promise.all([
         waitForPanelResponse(page, 'workflows', 'POST'),
         page.getByRole('button', { name: 'Create Workflow' }).click(),
@@ -1025,9 +1026,10 @@ async function auditResponsiveViewports(projectId, token) {
     await page.getByTestId('mobile-bottom-navigation').waitFor({ state: 'visible', timeout: 15_000 });
   }
 
-  async function assertMobileRoutedPanel(page, panel, locatorFactory) {
-    await page.goto(`${appBaseUrl}/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
-    await page.locator('.bolt-responsive-ide').first().waitFor({ state: 'visible', timeout: 20_000 });
+  async function assertMobilePanel(page, panel, locatorFactory) {
+    await page.evaluate((targetPanel) => {
+      window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: targetPanel } }));
+    }, panel);
     await waitForMobileChrome(page);
     await locatorFactory(page).waitFor({
       state: 'visible',
@@ -1056,23 +1058,21 @@ async function auditResponsiveViewports(projectId, token) {
         await waitForMobileChrome(page);
         await page.getByTestId('tab-agent').click();
         await page.locator('[data-testid="ide-agent-panel"]').first().waitFor({ state: 'visible', timeout: 15_000 });
-        await assertMobileRoutedPanel(page, 'files', (activePage) =>
-          activePage.getByTestId('mobile-files-panel').first(),
-        );
-        await assertMobileRoutedPanel(page, 'editor', (activePage) =>
+        await assertMobilePanel(page, 'files', (activePage) => activePage.getByTestId('mobile-files-panel').first());
+        await assertMobilePanel(page, 'editor', (activePage) =>
           activePage.locator('[data-testid="responsive-code-editor"]').first(),
         );
-        await assertMobileRoutedPanel(page, 'terminal', (activePage) =>
+        await assertMobilePanel(page, 'terminal', (activePage) =>
           activePage.getByTestId('mobile-terminal-panel').first(),
         );
-        await assertMobileRoutedPanel(page, 'preview', (activePage) =>
+        await assertMobilePanel(page, 'preview', (activePage) =>
           activePage
             .locator(
               '.bolt-project-webview-tool, [data-testid="preview-not-running-state"], [data-testid="preview-splash-sequence"]',
             )
             .first(),
         );
-        await assertMobileRoutedPanel(page, 'deployments', (activePage) =>
+        await assertMobilePanel(page, 'deployments', (activePage) =>
           activePage.locator('[data-testid="ide-service-panel"][data-panel="deployments"]').first(),
         );
       } else {
