@@ -14,6 +14,7 @@ import { Markdown } from './Markdown';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import { ToolInvocations } from './ToolInvocations';
+import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
@@ -143,6 +144,14 @@ export const AssistantMessage = memo(
     const toolCallAnnotations = filteredAnnotations.filter(
       (annotation) => annotation.type === 'toolCall',
     ) as ToolCallAnnotation[];
+
+    const connectorAnnotations = filteredAnnotations.filter(
+      (annotation) =>
+        annotation.type === 'connector' &&
+        typeof annotation.payload === 'object' &&
+        annotation.payload !== null &&
+        typeof (annotation.payload as { kind?: unknown }).kind === 'string',
+    ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
     return (
       <div className="bolt-assistant-message overflow-hidden w-full">
@@ -416,6 +425,20 @@ export const AssistantMessage = memo(
           );
         })()}
         {messageId ? <MessagePatchReview messageId={messageId} content={content} parts={parts} /> : null}
+        {connectorAnnotations.length > 0
+          ? connectorAnnotations.map((annotation) => {
+              if (annotation.payload.kind === 'connection_request') {
+                return <ConnectionRequestCard key={annotation.payload.messageId} payload={annotation.payload} />;
+              }
+
+              /*
+               * The connection_resolved / connection_failed / secret_request /
+               * reconnection_required renderers ship in their own commits so the
+               * chat falls through silently for now.
+               */
+              return null;
+            })
+          : null}
         {toolInvocations && toolInvocations.length > 0 && (
           <ToolInvocations
             toolInvocations={toolInvocations}
