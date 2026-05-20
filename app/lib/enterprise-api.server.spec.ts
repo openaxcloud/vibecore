@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { apiBaseUrl, apiRequest } from './enterprise-api.server';
+import { apiBaseUrl, apiRequest, firstOrganization, firstOrganizationOrNull } from './enterprise-api.server';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL', 'NODE_ENV'] as const;
 
@@ -178,6 +178,73 @@ describe('apiRequest', () => {
       ok: false,
       code: 'RBAC_FORBIDDEN',
       error: 'Missing permission: billing:read',
+    });
+  });
+});
+
+describe('firstOrganization helpers', () => {
+  let originalApiBaseUrl: string | undefined;
+
+  beforeEach(() => {
+    originalApiBaseUrl = process.env.API_BASE_URL;
+    delete process.env.SAAS_API_URL;
+    process.env.API_BASE_URL = 'https://api.example.com';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+
+    if (originalApiBaseUrl === undefined) {
+      delete process.env.API_BASE_URL;
+    } else {
+      process.env.API_BASE_URL = originalApiBaseUrl;
+    }
+  });
+
+  function stubOrgsResponse(organizations: Array<{ id: string }>) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ organizations }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+  }
+
+  it('firstOrganization returns the first organization when the user belongs to one', async () => {
+    stubOrgsResponse([{ id: 'org_1' }, { id: 'org_2' }]);
+
+    await expect(firstOrganization(new Request('https://app.example.com/dashboard'))).resolves.toEqual({ id: 'org_1' });
+  });
+
+  it('firstOrganization throws a 400 response when the user has no organizations', async () => {
+    stubOrgsResponse([]);
+
+    let thrown: unknown;
+
+    try {
+      await firstOrganization(new Request('https://app.example.com/dashboard'));
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(400);
+  });
+
+  it('firstOrganizationOrNull returns null instead of throwing when the user has no organizations', async () => {
+    stubOrgsResponse([]);
+
+    await expect(firstOrganizationOrNull(new Request('https://app.example.com/dashboard'))).resolves.toBeNull();
+  });
+
+  it('firstOrganizationOrNull returns the first organization when the user belongs to one', async () => {
+    stubOrgsResponse([{ id: 'org_1' }]);
+
+    await expect(firstOrganizationOrNull(new Request('https://app.example.com/dashboard'))).resolves.toEqual({
+      id: 'org_1',
     });
   });
 });

@@ -2,15 +2,21 @@ import { Form, useActionData, useLoaderData } from '@remix-run/react';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
   apiRequest,
-  firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   json,
+  redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   return json({ orgId: organization.id });
 }
 

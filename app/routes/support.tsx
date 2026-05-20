@@ -7,6 +7,7 @@ import {
   apiRequest,
   apiErrorMessage,
   firstOrganization,
+  firstOrganizationOrNull,
   isForbiddenApiResponse,
   json,
   redirect,
@@ -37,7 +38,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const organization = await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return json({ error: 'No organization found' }, { status: 400 });
+  }
+
   const form = await request.formData();
 
   try {

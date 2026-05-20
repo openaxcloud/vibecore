@@ -5,6 +5,7 @@ import { AppShell, SettingsForm } from '~/components/dashboard/SaaSLayout';
 import {
   apiRequest,
   firstOrganization,
+  firstOrganizationOrNull,
   formObject,
   redirect,
   type EnterpriseActionArgs,
@@ -16,7 +17,12 @@ export const meta: MetaFunction = () => [{ title: 'Import GitHub - VibeCore' }];
 type Project = { id: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  await firstOrganization(request);
+  const organization = await firstOrganizationOrNull(request);
+
+  if (!organization) {
+    return redirect('/');
+  }
+
   return null;
 }
 
