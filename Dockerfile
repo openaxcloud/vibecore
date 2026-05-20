@@ -48,10 +48,10 @@ ENV VITE_PUBLIC_APP_URL=${VITE_PUBLIC_APP_URL}
 # is local-deps, node_modules is absent and we run the install below.
 COPY . .
 
-# Install only if the base didn't already provide node_modules. With the
-# shared Cloud Build deps base this is a no-op; with the local-deps
-# fallback it does the offline install using the prefetched store.
-RUN if [ ! -d /app/node_modules ]; then \
+# Install only if the base didn't already provide a linked dependency tree.
+# `pnpm fetch` creates node_modules/.pnpm without root .bin links, so checking
+# only for node_modules would skip the offline install and leave `remix` absent.
+RUN if [ ! -x /app/node_modules/.bin/remix ]; then \
       pnpm install --offline --frozen-lockfile; \
     fi
 
