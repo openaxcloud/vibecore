@@ -28,6 +28,39 @@ global:
 
 secrets:
   existingSecret: vibecore-platform-secrets
+  # K8s Secret key → GCP Secret Manager secret name. The bootstrap script
+  # in docs/DEPLOYMENT.md (Step 2) reads each GCP secret and writes the
+  # resulting key/value pairs into the K8s Secret named above, which every
+  # Deployment consumes via envFrom. The chart templates themselves don't
+  # iterate this map yet (Phase 1 will introduce External Secrets Operator);
+  # for now it is the auditable source of truth and must stay in sync with
+  # the bash MAP in the runbook. When you add a secret here, also add it to
+  # the runbook so the next re-sync picks it up.
+  secretManagerMap:
+    DATABASE_URL: vibecore-prod-database-url
+    REDIS_URL: vibecore-prod-redis-url
+    JWT_SECRET: vibecore-prod-jwt-secret
+    COOKIE_SECRET: vibecore-prod-cookie-secret
+    CONFIG_ENCRYPTION_KEY: vibecore-prod-encryption-key
+    WORKSPACE_AGENT_TOKEN_SECRET: vibecore-prod-workspace-agent-token-secret
+    BACKUP_ENCRYPTION_KEY: vibecore-prod-backup-encryption-key
+    SIEM_SIGNING_SECRET: vibecore-prod-siem-signing-secret
+    GOOGLE_CLIENT_ID: vibecore-prod-google-client-id
+    GOOGLE_CLIENT_SECRET: vibecore-prod-google-client-secret
+    GITHUB_CLIENT_ID: vibecore-prod-github-client-id
+    GITHUB_CLIENT_SECRET: vibecore-prod-github-client-secret
+    OPENAI_API_KEY: vibecore-prod-openai-api-key
+    ANTHROPIC_API_KEY: vibecore-prod-anthropic-api-key
+    GOOGLE_GEMINI_API_KEY: vibecore-prod-google-gemini-api-key
+    XAI_API_KEY: vibecore-prod-xai-api-key
+    MOONSHOT_API_KEY: vibecore-prod-moonshot-api-key
+    STRIPE_SECRET_KEY: vibecore-prod-stripe-secret-key
+    STRIPE_WEBHOOK_SECRET: vibecore-prod-stripe-webhook-secret
+    # Svix-format signing secret from the Resend dashboard. Verifies POSTs
+    # to /webhooks/resend (services/api/src/app.ts:5217); the route returns
+    # 503 WEBHOOK_NOT_CONFIGURED until this is populated.
+    RESEND_WEBHOOK_SECRET: vibecore-prod-resend-webhook-secret
+    SENTRY_DSN: vibecore-prod-sentry-dsn
 
 # OAuth provider URLs, in-cluster api URL, and platform-admin allowlist.
 # These are public well-known endpoints (Google/GitHub) plus operational
@@ -43,6 +76,11 @@ platformEnv:
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.
   trustProxy: "true"
+  # Require TOTP MFA for every PlatformAdmin endpoint. The api defaults to
+  # required when the env var is anything other than the string "false"
+  # (services/api/src/app.ts:1005), but we set it explicitly here so the
+  # policy is auditable from the chart values rather than implicit in code.
+  adminMfaRequired: "true"
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

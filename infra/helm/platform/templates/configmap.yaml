@@ -38,3 +38,8 @@ data:
   # Tell Fastify to honor X-Forwarded-* from the GKE ingress so request.ip
   # is the real client IP (audit logs, rate-limits, OAuth callback origin).
   TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}
+
+  # Gate /platform/admin/* behind a TOTP step-up. The api treats anything
+  # other than the literal string "false" as required (services/api/src/app.ts:1005),
+  # so the only way to relax the policy is to set this to "false".
+  ADMIN_MFA_REQUIRED: {{ .Values.platformEnv.adminMfaRequired | default "true" | quote }}

@@ -140,6 +140,10 @@ declare -A MAP=(
   [MOONSHOT_API_KEY]=vibecore-prod-moonshot-api-key
   [STRIPE_SECRET_KEY]=vibecore-prod-stripe-secret-key
   [STRIPE_WEBHOOK_SECRET]=vibecore-prod-stripe-webhook-secret
+  # Svix-format signing secret from the Resend dashboard. Required by
+  # /webhooks/resend (services/api/src/app.ts:5217) — the route returns
+  # 503 WEBHOOK_NOT_CONFIGURED until this is populated.
+  [RESEND_WEBHOOK_SECRET]=vibecore-prod-resend-webhook-secret
   [SENTRY_DSN]=vibecore-prod-sentry-dsn
 )
 for k in "${!MAP[@]}"; do
