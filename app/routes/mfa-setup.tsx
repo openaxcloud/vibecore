@@ -141,7 +141,13 @@ export default function MfaSetupPage() {
           <Form method="post" className="mb-6">
             <input type="hidden" name="intent" value="setup" />
             <PrimaryButton type="submit" disabled={isGenerating || isVerifying}>
-              {secret ? (isGenerating ? 'Regenerating...' : 'Regenerate secret') : isGenerating ? 'Generating...' : 'Generate secret'}
+              {secret
+                ? isGenerating
+                  ? 'Regenerating...'
+                  : 'Regenerate secret'
+                : isGenerating
+                  ? 'Generating...'
+                  : 'Generate secret'}
             </PrimaryButton>
           </Form>
           {secret ? (
