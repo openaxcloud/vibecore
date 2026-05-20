@@ -1987,6 +1987,34 @@ export async function assertOidcIdToken(
   }
 }
 
+/*
+ * Well-known OAuth endpoints for providers whose URLs never change.
+ * Operators only need to provision `<PROVIDER>_CLIENT_ID` /
+ * `<PROVIDER>_CLIENT_SECRET` (plus optionally `_REDIRECT_URI`); the
+ * authorization, token, and userinfo URLs default to the canonical
+ * provider URLs below. Custom deployments (GitHub Enterprise Server,
+ * self-hosted Gitea, etc.) can still override any of these via the
+ * matching `_OAUTH_AUTHORIZATION_URL` / `_TOKEN_URL` / `_USERINFO_URL`
+ * env vars.
+ */
+const wellKnownOauthEndpoints: Record<
+  string,
+  { authorizationUrl: string; tokenUrl: string; userInfoUrl: string; scope?: string }
+> = {
+  google: {
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token',
+    userInfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo',
+    scope: 'openid email profile',
+  },
+  github: {
+    authorizationUrl: 'https://github.com/login/oauth/authorize',
+    tokenUrl: 'https://github.com/login/oauth/access_token',
+    userInfoUrl: 'https://api.github.com/user',
+    scope: 'read:user user:email',
+  },
+};
+
 async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthCallbackSchema>) {
   if (body.email && body.externalId && body.accessToken) {
     return {
@@ -2005,8 +2033,10 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     });
   }
 
-  const tokenUrl = process.env[`${provider.toUpperCase()}_TOKEN_URL`];
-  const userInfoUrl = process.env[`${provider.toUpperCase()}_USERINFO_URL`];
+  const tokenUrl =
+    process.env[`${provider.toUpperCase()}_TOKEN_URL`] ?? wellKnownOauthEndpoints[provider]?.tokenUrl;
+  const userInfoUrl =
+    process.env[`${provider.toUpperCase()}_USERINFO_URL`] ?? wellKnownOauthEndpoints[provider]?.userInfoUrl;
 
   if (!tokenUrl || !userInfoUrl) {
     throw Object.assign(
@@ -4027,11 +4057,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   function oauthAuthorizationUrl(provider: string) {
     const authorizationUrl =
       process.env[`${provider.toUpperCase()}_OAUTH_AUTHORIZATION_URL`] ??
-      process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`];
+      process.env[`${provider.toUpperCase()}_AUTHORIZATION_URL`] ??
+      wellKnownOauthEndpoints[provider]?.authorizationUrl;
 
     const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
     const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
-    const scope = process.env[`${provider.toUpperCase()}_SCOPE`] ?? 'openid email profile';
+    const scope =
+      process.env[`${provider.toUpperCase()}_SCOPE`] ??
+      wellKnownOauthEndpoints[provider]?.scope ??
+      'openid email profile';
 
     if (!authorizationUrl || !clientId) {
       return null;

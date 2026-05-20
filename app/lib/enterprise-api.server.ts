@@ -59,6 +59,18 @@ export function clearSessionCookie() {
   return `${sessionCookieName}=; Path=/; HttpOnly; SameSite=Lax${cookieSecureFlag}; Max-Age=0`;
 }
 
+/*
+ * Platform-admin accounts created via /auth/register (or promoted via
+ * PLATFORM_ADMIN_EMAILS) are forced to enroll MFA before any non-MFA
+ * endpoint will respond. The API expresses this as a 403 with
+ * `code: 'MFA_REQUIRED'`. Without special handling the dashboard loader
+ * would surface a bare "403" to the user. Instead, transparently
+ * redirect them to /mfa-setup so they can complete enrollment and
+ * resume the request afterwards. The /auth/mfa/* endpoints are exempt
+ * from the gate, so the setup page itself never triggers this branch.
+ */
+const MFA_REQUIRED_REDIRECT_PATH = '/mfa-setup';
+
 export async function apiRequest<T = unknown>(request: Request, path: string, init: RequestInit = {}) {
   const token = readSessionToken(request);
   const headers = new Headers(init.headers);
@@ -77,11 +89,20 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
   if (!response.ok) {
+    const payloadCode = typeof payload === 'object' && payload ? (payload as { code?: string }).code : undefined;
+
+    if (response.status === 403 && payloadCode === 'MFA_REQUIRED' && !path.startsWith('/auth/mfa')) {
+      throw redirect(MFA_REQUIRED_REDIRECT_PATH);
+    }
+
     throw json(
       {
         ok: false,
-        error: typeof payload === 'object' && payload ? ((payload as any).error ?? 'Request failed') : String(payload),
-        code: typeof payload === 'object' && payload ? (payload as any).code : undefined,
+        error:
+          typeof payload === 'object' && payload
+            ? ((payload as { error?: string }).error ?? 'Request failed')
+            : String(payload),
+        code: payloadCode,
       },
       { status: response.status },
     );

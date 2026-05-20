@@ -382,6 +382,14 @@ function stripeSignature(payload: string, secret: string) {
   return `t=${timestamp},v1=${signature}`;
 }
 
+function restoreEnv(key: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = value;
+  }
+}
+
 describe('SaaS API', () => {
   it('authenticates users and returns the current session', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore(), allowedOrigins: ['http://localhost:5173'] });
@@ -915,6 +923,67 @@ describe('SaaS API', () => {
     });
     expect(lastOwner.statusCode).toBe(409);
     await app.close();
+  });
+
+  it('uses well-known authorization URL defaults for Google when only the client id is set', async () => {
+    /*
+     * Reproduces the prod gap: operators provisioned GOOGLE_CLIENT_ID
+     * but not GOOGLE_OAUTH_AUTHORIZATION_URL, so /auth/oauth/google/start
+     * returned `ready:true` with `authorizationUrl:null` and the web
+     * route bounced to /login?error=not_configured. The well-known
+     * provider map should fill in the canonical Google endpoints so
+     * `client_id` alone is enough to make the start endpoint usable.
+     */
+    const original = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      authorizationUrl: process.env.GOOGLE_OAUTH_AUTHORIZATION_URL,
+      legacyAuthorizationUrl: process.env.GOOGLE_AUTHORIZATION_URL,
+      githubClientId: process.env.GITHUB_CLIENT_ID,
+      githubAuthorizationUrl: process.env.GITHUB_OAUTH_AUTHORIZATION_URL,
+    };
+
+    delete process.env.GOOGLE_OAUTH_AUTHORIZATION_URL;
+    delete process.env.GOOGLE_AUTHORIZATION_URL;
+    delete process.env.GITHUB_OAUTH_AUTHORIZATION_URL;
+    process.env.GOOGLE_CLIENT_ID = 'test-google-client-id';
+    process.env.GITHUB_CLIENT_ID = 'test-github-client-id';
+
+    try {
+      const app = await buildTestApiApp({ store: new TestApiStore() });
+
+      const google = await app.inject({ method: 'GET', url: '/auth/oauth/google/start' });
+      expect(google.statusCode).toBe(200);
+
+      const googlePayload = google.json() as { ready: boolean; authorizationUrl: string | null };
+      expect(googlePayload.ready).toBe(true);
+      expect(googlePayload.authorizationUrl).toBeTruthy();
+
+      const googleUrl = new URL(googlePayload.authorizationUrl!);
+      expect(googleUrl.origin).toBe('https://accounts.google.com');
+      expect(googleUrl.pathname).toBe('/o/oauth2/v2/auth');
+      expect(googleUrl.searchParams.get('client_id')).toBe('test-google-client-id');
+      expect(googleUrl.searchParams.get('scope')).toBe('openid email profile');
+      expect(googleUrl.searchParams.get('response_type')).toBe('code');
+      expect(googleUrl.searchParams.get('state')).toBeTruthy();
+
+      const github = await app.inject({ method: 'GET', url: '/auth/oauth/github/start' });
+      const githubPayload = github.json() as { ready: boolean; authorizationUrl: string | null };
+      expect(githubPayload.ready).toBe(true);
+
+      const githubUrl = new URL(githubPayload.authorizationUrl!);
+      expect(githubUrl.origin).toBe('https://github.com');
+      expect(githubUrl.pathname).toBe('/login/oauth/authorize');
+      expect(githubUrl.searchParams.get('client_id')).toBe('test-github-client-id');
+      expect(githubUrl.searchParams.get('scope')).toBe('read:user user:email');
+
+      await app.close();
+    } finally {
+      restoreEnv('GOOGLE_CLIENT_ID', original.clientId);
+      restoreEnv('GOOGLE_OAUTH_AUTHORIZATION_URL', original.authorizationUrl);
+      restoreEnv('GOOGLE_AUTHORIZATION_URL', original.legacyAuthorizationUrl);
+      restoreEnv('GITHUB_CLIENT_ID', original.githubClientId);
+      restoreEnv('GITHUB_OAUTH_AUTHORIZATION_URL', original.githubAuthorizationUrl);
+    }
   });
 
   it('completes OAuth, OIDC and SAML login callbacks with account linking', async () => {

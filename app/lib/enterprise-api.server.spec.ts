@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { apiBaseUrl } from './enterprise-api.server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { apiBaseUrl, apiRequest } from './enterprise-api.server';
 
 const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL', 'NODE_ENV'] as const;
 
@@ -64,5 +64,120 @@ describe('apiBaseUrl', () => {
     process.env.NODE_ENV = 'production';
 
     expect(apiBaseUrl()).toBe('http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001');
+  });
+});
+
+describe('apiRequest', () => {
+  let originalApiBaseUrl: string | undefined;
+  let originalSaasApiUrl: string | undefined;
+
+  beforeEach(() => {
+    originalApiBaseUrl = process.env.API_BASE_URL;
+    originalSaasApiUrl = process.env.SAAS_API_URL;
+    delete process.env.SAAS_API_URL;
+    process.env.API_BASE_URL = 'https://api.example.com';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+
+    if (originalApiBaseUrl === undefined) {
+      delete process.env.API_BASE_URL;
+    } else {
+      process.env.API_BASE_URL = originalApiBaseUrl;
+    }
+
+    if (originalSaasApiUrl === undefined) {
+      delete process.env.SAAS_API_URL;
+    } else {
+      process.env.SAAS_API_URL = originalSaasApiUrl;
+    }
+  });
+
+  it('redirects non-MFA requests to setup when the API requires MFA enrollment', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ code: 'MFA_REQUIRED', error: 'MFA enrollment required' }), {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/dashboard'), '/orgs');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(302);
+    expect((thrown as Response).headers.get('Location')).toBe('/mfa-setup');
+  });
+
+  it('keeps MFA endpoint failures as API errors instead of redirecting', async () => {
+    /*
+     * The /mfa-setup page itself calls /auth/mfa/setup which is exempt
+     * from the API's MFA gate. If that endpoint ever returns 403
+     * MFA_REQUIRED (e.g. an unrelated misconfiguration), redirecting
+     * back to /mfa-setup would cause an infinite loop; the path guard
+     * prevents that.
+     */
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ code: 'MFA_REQUIRED', error: 'MFA enrollment required' }), {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/mfa-setup'), '/auth/mfa/setup', { method: 'POST' });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(403);
+    await expect((thrown as Response).json()).resolves.toMatchObject({
+      ok: false,
+      error: 'MFA enrollment required',
+      code: 'MFA_REQUIRED',
+    });
+  });
+
+  it('passes through non-MFA 403 responses as json errors', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return new Response(JSON.stringify({ error: 'Missing permission: billing:read', code: 'RBAC_FORBIDDEN' }), {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
+
+    let thrown: unknown;
+
+    try {
+      await apiRequest(new Request('https://app.example.com/dashboard'), '/orgs/org_1/billing');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(403);
+    await expect((thrown as Response).json()).resolves.toMatchObject({
+      ok: false,
+      code: 'RBAC_FORBIDDEN',
+      error: 'Missing permission: billing:read',
+    });
   });
 });
