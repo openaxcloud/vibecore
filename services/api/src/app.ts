@@ -654,6 +654,8 @@ const integrationOauthCallbackBodySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
 });
+const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
+const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
 const platformAdminSchema = z.object({ platformAdmin: z.boolean() });
 const adminUserParams = z.object({ userId: z.string().min(1) });
@@ -4477,6 +4479,78 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     },
   );
+
+  app.get('/api/account/connections', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const query = parse(userConnectionListQuerySchema, request.query);
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, {
+      provider: query.provider,
+    });
+
+    return {
+      connections: connections.map((connection) => ({
+        id: connection.id,
+        provider: connection.provider,
+        externalAccountId: connection.externalAccountId,
+        externalAccountLabel: connection.externalAccountLabel,
+        scopes: connection.scopes,
+        status: connection.status,
+        forAgentUse: connection.forAgentUse,
+        oauthAppSource: connection.oauthAppSource,
+        createdAt: connection.createdAt,
+        updatedAt: connection.updatedAt,
+        lastUsedAt: connection.lastUsedAt ?? null,
+        tokenExpiresAt: connection.tokenExpiresAt ?? null,
+        revokedAt: connection.revokedAt ?? null,
+      })),
+    };
+  });
+
+  app.post('/api/account/connections/:userConnectionId/revoke', async (request, reply) => {
+    if (!request.currentUser) {
+      return reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    }
+
+    const params = parse(userConnectionIdParams, request.params);
+    const existing = await store.getUserConnectionById(params.userConnectionId);
+
+    if (!existing || existing.userId !== request.currentUser.id) {
+      return reply.code(404).send({ error: 'Connection not found', code: 'CONNECTION_NOT_FOUND' });
+    }
+
+    if (existing.status === 'revoked') {
+      return {
+        userConnectionId: existing.id,
+        status: existing.status,
+        revokedAt: existing.revokedAt,
+      };
+    }
+
+    const updated = await store.markUserConnectionStatus({
+      id: existing.id,
+      status: 'revoked',
+      revokedAt: new Date(),
+    });
+
+    await audit(request, store, {
+      action: `connector.oauth.${existing.provider}.revoke`,
+      resourceType: 'UserConnection',
+      resourceId: existing.id,
+      metadata: {
+        provider: existing.provider,
+        accountLabel: existing.externalAccountLabel,
+      },
+    });
+
+    return {
+      userConnectionId: existing.id,
+      status: updated?.status ?? 'revoked',
+      revokedAt: updated?.revokedAt ?? new Date().toISOString(),
+    };
+  });
 
   app.get('/mcp/catalog', async (request, reply) => {
     const query = parse(catalogQuerySchema, request.query);
