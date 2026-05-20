@@ -19,6 +19,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   DomainVerificationRecord,
+  EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
@@ -123,6 +124,7 @@ export class TestApiStore implements ApiStore {
   readonly usageEvents = new Map<string, UsageEventRecord>();
   readonly quotaOverrides = new Map<string, QuotaOverrideRecord>();
   readonly stripeEvents = new Map<string, StripeEventRecord>();
+  readonly emailDeliveryEvents: EmailDeliveryEventRecord[] = [];
   readonly auditLogs: AuditEvent[] = [];
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
 
@@ -1239,6 +1241,12 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
+  async listOAuthConnections(userId: string) {
+    return [...this.oauthConnections.values()]
+      .filter((connection) => connection.userId === userId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   private userConnectionKey(userId: string, provider: string, externalAccountId: string) {
     return `${userId}:${provider}:${externalAccountId}`;
   }
@@ -1573,6 +1581,60 @@ export class TestApiStore implements ApiStore {
     const event: StripeEventRecord = { ...input, processedAt: now() };
     this.stripeEvents.set(event.id, event);
     return { event, created: true };
+  }
+
+  async recordEmailDeliveryEvent(input: {
+    provider: string;
+    providerEventId: string;
+    type: string;
+    email: string;
+    emailMessageId?: string;
+    subject?: string;
+    fromAddress?: string;
+    payload: unknown;
+  }) {
+    const existing = this.emailDeliveryEvents.find(
+      (event) => event.provider === input.provider && event.providerEventId === input.providerEventId,
+    );
+
+    if (existing) {
+      return { event: existing, created: false };
+    }
+
+    const event: EmailDeliveryEventRecord = {
+      id: id('email_event'),
+      provider: input.provider,
+      providerEventId: input.providerEventId,
+      type: input.type,
+      email: input.email,
+      emailMessageId: input.emailMessageId,
+      subject: input.subject,
+      fromAddress: input.fromAddress,
+      payload: input.payload,
+      receivedAt: now(),
+    };
+    this.emailDeliveryEvents.push(event);
+    return { event, created: true };
+  }
+
+  async listEmailDeliveryEvents(filter?: {
+    email?: string;
+    type?: string;
+    emailMessageId?: string;
+    limit?: number;
+  }) {
+    const limit = Math.min(Math.max(filter?.limit ?? 100, 1), 500);
+
+    return this.emailDeliveryEvents
+      .filter((event) => {
+        if (filter?.email && event.email !== filter.email) return false;
+        if (filter?.type && event.type !== filter.type) return false;
+        if (filter?.emailMessageId && event.emailMessageId !== filter.emailMessageId) return false;
+        return true;
+      })
+      .slice()
+      .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt))
+      .slice(0, limit);
   }
 
   async recordAudit(event: AuditEvent) {
