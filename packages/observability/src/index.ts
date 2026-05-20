@@ -28,6 +28,7 @@ export const platformMetricDefinitions: MetricDefinition[] = [
   { name: 'ai_provider_latency_seconds', help: 'AI provider latency.', type: 'histogram', buckets: defaultBuckets },
   { name: 'ai_provider_errors_total', help: 'AI provider errors.', type: 'counter' },
   { name: 'stripe_webhook_failures_total', help: 'Stripe webhook failures.', type: 'counter' },
+  { name: 'resend_webhook_events_total', help: 'Resend transactional-email webhook events received.', type: 'counter' },
   { name: 'abuse_events_total', help: 'Abuse events.', type: 'counter' },
   { name: 'kubernetes_pod_failures_total', help: 'Kubernetes pod failures.', type: 'counter' },
   { name: 'node_pool_capacity', help: 'Node pool allocatable capacity.', type: 'gauge' },

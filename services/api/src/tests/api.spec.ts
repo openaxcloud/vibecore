@@ -382,6 +382,15 @@ function stripeSignature(payload: string, secret: string) {
   return `t=${timestamp},v1=${signature}`;
 }
 
+function svixSignature(input: { id: string; timestampSeconds: number; body: string; secretWhsec: string }) {
+  const secretBase64 = input.secretWhsec.startsWith('whsec_')
+    ? input.secretWhsec.slice('whsec_'.length)
+    : input.secretWhsec;
+  const key = Buffer.from(secretBase64, 'base64');
+  const signed = `${input.id}.${input.timestampSeconds}.${input.body}`;
+  return `v1,${createHmac('sha256', key).update(signed).digest('base64')}`;
+}
+
 function restoreEnv(key: string, value: string | undefined) {
   if (value === undefined) {
     delete process.env[key];
@@ -1175,6 +1184,17 @@ describe('SaaS API', () => {
     expect(oauth.statusCode).toBe(200);
     expect(await store.findUserByEmail('oauth@example.com')).toBeTruthy();
 
+    const oauthToken = oauth.json().token as string;
+    const connections = await app.inject({
+      method: 'GET',
+      url: '/auth/connections',
+      headers: { authorization: `Bearer ${oauthToken}` },
+    });
+    expect(connections.statusCode).toBe(200);
+    const connectionList = connections.json().connections as Array<{ provider: string; externalId: string }>;
+    expect(connectionList).toHaveLength(1);
+    expect(connectionList[0]).toMatchObject({ provider: 'github', externalId: 'gh_1' });
+
     const oidc = await app.inject({
       method: 'POST',
       url: '/auth/oidc/callback',
@@ -1883,6 +1903,193 @@ describe('SaaS API', () => {
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       process.env.STRIPE_PRO_PRICE_ID = previousProPrice;
+      await app.close();
+    }
+  });
+
+  it('verifies Resend webhooks, persists delivery events idempotently, and rejects bad signatures', async () => {
+    const previousSecret = process.env.RESEND_WEBHOOK_SECRET;
+    /*
+     * Random 24-byte secret encoded as base64 — matches the shape of a real
+     * Resend signing secret without leaking one from the dashboard.
+     */
+    const secretBytes = Buffer.from('0123456789abcdef0123456789abcdef0123456789abcdef');
+    const whsec = `whsec_${secretBytes.toString('base64')}`;
+    process.env.RESEND_WEBHOOK_SECRET = whsec;
+
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    try {
+      const bouncedBody = JSON.stringify({
+        type: 'email.bounced',
+        created_at: '2026-05-20T12:00:00.000Z',
+        data: {
+          email_id: 'em_test_bounce',
+          from: 'no-reply@e-code.ai',
+          to: ['Bouncy@example.com'],
+          subject: 'Verify your email',
+          bounce: { subType: 'permanent', message: 'mailbox full' },
+        },
+      });
+
+      const ts = Math.floor(Date.now() / 1000);
+      const svixId = 'msg_resend_bounce_1';
+
+      const missingHeaders = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: { 'content-type': 'application/json' },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(missingHeaders.statusCode).toBe(401);
+      expect(missingHeaders.json().code).toBe('WEBHOOK_SIGNATURE_MISSING');
+
+      const badSignature = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': 'v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(badSignature.statusCode).toBe(401);
+      expect(badSignature.json().code).toBe('WEBHOOK_SIGNATURE_INVALID');
+
+      const staleTimestamp = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts - 60 * 60),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts - 60 * 60,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(staleTimestamp.statusCode).toBe(401);
+      expect(staleTimestamp.json().code).toBe('WEBHOOK_TIMESTAMP_SKEW');
+
+      const valid = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(valid.statusCode).toBe(200);
+      expect(valid.json()).toMatchObject({
+        received: true,
+        provider: 'resend',
+        eventType: 'email.bounced',
+        duplicate: false,
+      });
+
+      expect(store.emailDeliveryEvents).toHaveLength(1);
+      const persisted = store.emailDeliveryEvents[0]!;
+      expect(persisted.email).toBe('bouncy@example.com');
+      expect(persisted.emailMessageId).toBe('em_test_bounce');
+      expect(persisted.subject).toBe('Verify your email');
+      expect(persisted.fromAddress).toBe('no-reply@e-code.ai');
+      expect(persisted.type).toBe('email.bounced');
+      expect(persisted.providerEventId).toBe(svixId);
+
+      const replay = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': svixId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: svixId,
+            timestampSeconds: ts,
+            body: bouncedBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(bouncedBody),
+      });
+      expect(replay.statusCode).toBe(200);
+      expect(replay.json().duplicate).toBe(true);
+      expect(store.emailDeliveryEvents).toHaveLength(1);
+
+      const deliveredBody = JSON.stringify({
+        type: 'email.delivered',
+        created_at: '2026-05-20T12:01:00.000Z',
+        data: {
+          email_id: 'em_test_delivered',
+          from: 'no-reply@e-code.ai',
+          to: ['Reach@example.com'],
+          subject: 'Welcome to e-code',
+        },
+      });
+      const deliveredId = 'msg_resend_delivered_1';
+      const delivered = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: {
+          'content-type': 'application/json',
+          'svix-id': deliveredId,
+          'svix-timestamp': String(ts),
+          'svix-signature': svixSignature({
+            id: deliveredId,
+            timestampSeconds: ts,
+            body: deliveredBody,
+            secretWhsec: whsec,
+          }),
+        },
+        payload: Buffer.from(deliveredBody),
+      });
+      expect(delivered.statusCode).toBe(200);
+      expect(delivered.json().eventType).toBe('email.delivered');
+      expect(store.emailDeliveryEvents).toHaveLength(2);
+
+      const queried = await store.listEmailDeliveryEvents({ email: 'reach@example.com' });
+      expect(queried).toHaveLength(1);
+      expect(queried[0]!.type).toBe('email.delivered');
+
+      expect(store.auditLogs.some((log) => log.action === 'email.delivery_event.received')).toBe(true);
+    } finally {
+      restoreEnv('RESEND_WEBHOOK_SECRET', previousSecret);
+      await app.close();
+    }
+  });
+
+  it('returns 503 from /webhooks/resend when RESEND_WEBHOOK_SECRET is unset', async () => {
+    const previousSecret = process.env.RESEND_WEBHOOK_SECRET;
+    delete process.env.RESEND_WEBHOOK_SECRET;
+
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/webhooks/resend',
+        headers: { 'content-type': 'application/json' },
+        payload: Buffer.from('{}'),
+      });
+      expect(response.statusCode).toBe(503);
+      expect(response.json().code).toBe('WEBHOOK_NOT_CONFIGURED');
+    } finally {
+      restoreEnv('RESEND_WEBHOOK_SECRET', previousSecret);
       await app.close();
     }
   });

@@ -5199,6 +5199,214 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * Resend transactional-email webhook.
+   *
+   * Resend signs deliveries with Svix headers (svix-id, svix-timestamp,
+   * svix-signature). The signing secret is the dashboard-issued string
+   * shaped like `whsec_<base64>`; the bytes after the prefix are the HMAC
+   * key. The signed payload is `${svix_id}.${svix_timestamp}.${rawBody}`
+   * and the header carries one or more space-separated `v1,<base64sig>`
+   * tokens — we accept the request if any of them matches.
+   *
+   * We persist every accepted event in EmailDeliveryEvent and dedupe on
+   * (provider, svix-id) so Resend's retry queue is idempotent. The route
+   * is intentionally unauthenticated — the signature IS the auth — and is
+   * exempted from the global auth hook because it lives under /webhooks/.
+   */
+  app.post('/webhooks/resend', async (request, reply) => {
+    const rawSecret = process.env.RESEND_WEBHOOK_SECRET;
+
+    if (!rawSecret) {
+      return reply.code(503).send({
+        error: 'Resend webhook signing secret is not configured on this server.',
+        code: 'WEBHOOK_NOT_CONFIGURED',
+      });
+    }
+
+    const rawBody = request.rawBody;
+
+    if (typeof rawBody !== 'string') {
+      return reply.code(400).send({
+        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        code: 'WEBHOOK_RAW_BODY_MISSING',
+      });
+    }
+
+    const svixId = request.headers['svix-id'];
+    const svixTimestamp = request.headers['svix-timestamp'];
+    const svixSignature = request.headers['svix-signature'];
+
+    if (typeof svixId !== 'string' || typeof svixTimestamp !== 'string' || typeof svixSignature !== 'string') {
+      return reply.code(401).send({
+        error: 'Missing svix-id, svix-timestamp, or svix-signature header.',
+        code: 'WEBHOOK_SIGNATURE_MISSING',
+      });
+    }
+
+    const timestampSeconds = Number.parseInt(svixTimestamp, 10);
+    if (!Number.isFinite(timestampSeconds)) {
+      return reply.code(401).send({
+        error: 'Invalid svix-timestamp header.',
+        code: 'WEBHOOK_TIMESTAMP_INVALID',
+      });
+    }
+
+    /*
+     * Reject deliveries whose timestamp is more than five minutes out from
+     * the server clock. Svix's reference verifier uses the same window;
+     * the goal is to bound the replay-attack surface if a signature header
+     * leaks (e.g. via a misconfigured log sink).
+     */
+    const skewSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds);
+    if (skewSeconds > 5 * 60) {
+      return reply.code(401).send({
+        error: 'Webhook timestamp is outside the allowed tolerance.',
+        code: 'WEBHOOK_TIMESTAMP_SKEW',
+      });
+    }
+
+    const secretBase64 = rawSecret.startsWith('whsec_') ? rawSecret.slice('whsec_'.length) : rawSecret;
+    let secretBytes: Buffer;
+    try {
+      secretBytes = Buffer.from(secretBase64, 'base64');
+      if (secretBytes.length === 0) {
+        throw new Error('empty secret');
+      }
+    } catch {
+      return reply.code(503).send({
+        error: 'Resend webhook signing secret is malformed.',
+        code: 'WEBHOOK_SECRET_INVALID',
+      });
+    }
+
+    const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const expectedSignature = createHmac('sha256', secretBytes).update(signedPayload).digest('base64');
+    const expectedBuffer = Buffer.from(expectedSignature, 'base64');
+
+    /*
+     * The header may carry multiple signatures (e.g. during secret
+     * rotation). Each token looks like `v1,<base64>`; we ignore any
+     * version we don't understand and only count `v1` matches.
+     */
+    const providedSignatures = svixSignature
+      .split(' ')
+      .map((token) => token.trim())
+      .filter((token) => token.startsWith('v1,'))
+      .map((token) => token.slice('v1,'.length));
+
+    let signatureMatched = false;
+    for (const candidate of providedSignatures) {
+      let candidateBuffer: Buffer;
+      try {
+        candidateBuffer = Buffer.from(candidate, 'base64');
+      } catch {
+        continue;
+      }
+
+      if (candidateBuffer.length !== expectedBuffer.length) {
+        continue;
+      }
+
+      if (timingSafeEqual(candidateBuffer, expectedBuffer)) {
+        signatureMatched = true;
+        break;
+      }
+    }
+
+    if (!signatureMatched) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    let payload: {
+      type?: string;
+      created_at?: string;
+      data?: {
+        email_id?: string;
+        from?: string;
+        to?: string[] | string;
+        subject?: string;
+        bounce?: { message?: string; subType?: string };
+        click?: { link?: string };
+      };
+    };
+
+    try {
+      payload = JSON.parse(rawBody) as typeof payload;
+    } catch {
+      return reply.code(400).send({
+        error: 'Webhook body is not valid JSON.',
+        code: 'WEBHOOK_BODY_INVALID',
+      });
+    }
+
+    const eventType = typeof payload.type === 'string' ? payload.type : 'unknown';
+    const data = payload.data ?? {};
+    const recipientCandidate = Array.isArray(data.to) ? data.to[0] : data.to;
+    const recipient = typeof recipientCandidate === 'string' ? recipientCandidate.toLowerCase() : 'unknown';
+
+    const { event, created } = await store.recordEmailDeliveryEvent({
+      provider: 'resend',
+      providerEventId: svixId,
+      type: eventType,
+      email: recipient,
+      emailMessageId: typeof data.email_id === 'string' ? data.email_id : undefined,
+      subject: typeof data.subject === 'string' ? data.subject : undefined,
+      fromAddress: typeof data.from === 'string' ? data.from : undefined,
+      payload,
+    });
+
+    /*
+     * Surface delivery failures at WARN so they show up in oncall log
+     * filters without a dedicated alert. Everything else (sent,
+     * delivered, opened, clicked, delivery_delayed) stays at INFO.
+     */
+    const isFailure =
+      eventType === 'email.bounced' || eventType === 'email.complained' || eventType === 'email.failed';
+    const logger = isFailure ? request.log.warn.bind(request.log) : request.log.info.bind(request.log);
+
+    logger({
+      event: 'email.delivery_event',
+      provider: 'resend',
+      type: eventType,
+      svixId,
+      emailMessageId: event.emailMessageId,
+      recipient: event.email,
+      duplicate: !created,
+    });
+
+    request.observabilityMetrics?.increment?.('resend_webhook_events_total', {
+      type: eventType,
+      duplicate: !created,
+    });
+
+    if (created) {
+      await audit(request, store, {
+        action: 'email.delivery_event.received',
+        resourceType: 'EmailDeliveryEvent',
+        resourceId: event.id,
+        metadata: {
+          provider: 'resend',
+          eventType,
+          providerEventId: svixId,
+          emailMessageId: event.emailMessageId,
+          recipient: event.email,
+        },
+      });
+    }
+
+    return {
+      received: true,
+      provider: 'resend',
+      eventType,
+      eventId: event.id,
+      duplicate: !created,
+    };
+  });
+
   app.get('/mcp/catalog', async (request, reply) => {
     const query = parse(catalogQuerySchema, request.query);
     const service = requireMcpMarketplaceService(mcpMarketplace);
@@ -7027,6 +7235,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/auth/sessions', async (request) => ({ sessions: await store.listSessions(request.currentUser!.id) }));
+  app.get('/auth/connections', async (request) => {
+    const records = await store.listOAuthConnections(request.currentUser!.id);
+    return {
+      connections: records.map((record) => ({
+        provider: record.provider,
+        externalId: record.externalId,
+        createdAt: record.createdAt,
+      })),
+    };
+  });
   app.post('/auth/logout', async (request) => {
     const sessionId = request.currentSession!.id;
     const revoked = await store.revokeSession(request.currentUser!.id, sessionId);
