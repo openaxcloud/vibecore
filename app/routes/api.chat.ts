@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
-import { createDataStream, formatDataStreamPart, generateId } from 'ai';
+import { createDataStream, formatDataStreamPart, generateId, type JSONValue } from 'ai';
 import {
   agentMemoryAnnotation,
   persistAgentMemoryCandidate,
@@ -14,6 +14,9 @@ import {
   createAgentExecutionContext,
   executeAgentOrchestration,
 } from '~/lib/.server/llm/agent-orchestration';
+import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
+import { apiRequest } from '~/lib/enterprise-api.server';
+import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
@@ -316,6 +319,24 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (agentMemory?.memories.length) {
           dataStream.writeMessageAnnotation(agentMemoryAnnotation(agentMemory.memories) as ContextAnnotation);
         }
+
+        /*
+         * Connector-need detection: scan the latest user message and emit a
+         * connection_request data part for any provider that is referenced
+         * but not yet linked to this project. The chat renderer turns the
+         * data part into an inline Connect card so the builder can
+         * authorize without leaving the conversation. The detection is
+         * additive — the agent continues regardless; if it tries to call
+         * the provider through @e-code/sdk before the connection is in
+         * place, the sidecar returns CONNECTOR_LINK_MISSING and the next
+         * turn surfaces another request.
+         */
+        await emitConnectorConnectionRequests({
+          dataStream,
+          processedMessages,
+          projectId,
+          request,
+        });
 
         let orchestrationPlan = buildAgentOrchestrationPlan({
           messages: processedMessages,
@@ -743,4 +764,130 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       statusText: 'Error',
     });
   }
+}
+
+interface AccountConnectionResponse {
+  id: string;
+  provider: string;
+  externalAccountLabel: string;
+  scopes: string[];
+  status: 'active' | 'needs_reconnect' | 'revoked';
+}
+
+/**
+ * Detect which connectors the latest user message references and, when
+ * a needed provider is not already covered by an active UserConnection,
+ * emit a connection_request data part into the chat stream so the
+ * client can render an inline Connect card.
+ *
+ * The detection runs against the prompt only (recent generated code is
+ * not yet stitched back into the chat route — the agent orchestration
+ * already has it). Account-level connections are fetched best-effort:
+ * a failed fetch silently disables the surfacing so chat never breaks
+ * because of a connector-side error.
+ */
+async function emitConnectorConnectionRequests(input: {
+  dataStream: { writeMessageAnnotation: (annotation: JSONValue) => void };
+  processedMessages: Messages;
+  projectId?: string;
+  request: Request;
+}): Promise<void> {
+  const latestUserMessage = [...input.processedMessages].reverse().find((message) => message.role === 'user');
+
+  if (!latestUserMessage) {
+    return;
+  }
+
+  const prompt = typeof latestUserMessage.content === 'string' ? latestUserMessage.content : '';
+
+  if (!prompt) {
+    return;
+  }
+
+  const detected = detectConnectorNeeds({ prompt });
+
+  if (detected.length === 0) {
+    return;
+  }
+
+  let accountConnections: AccountConnectionResponse[] = [];
+
+  try {
+    const response = await apiRequest<{ connections: AccountConnectionResponse[] }>(
+      input.request,
+      '/api/account/connections',
+    );
+    accountConnections = response.connections;
+  } catch {
+    /*
+     * Best-effort: the chat continues even if the account-connections
+     * lookup is unreachable. The card will simply not pre-populate
+     * existingAccountConnections.
+     */
+    accountConnections = [];
+  }
+
+  for (const need of detected) {
+    const matchingAccount = accountConnections.find(
+      (connection) => connection.provider === need.provider && connection.status === 'active',
+    );
+
+    /*
+     * The Phase 1 minimum-viable detection emits a request whenever the
+     * provider is mentioned. The client-side card de-duplicates against
+     * the project's actual link state when the user clicks Connect; the
+     * cost of a spurious card is small compared to the cost of missing
+     * one.
+     */
+
+    const existingAccountConnections: ExistingAccountConnection[] = matchingAccount
+      ? [
+          {
+            userConnectionId: matchingAccount.id,
+            accountLabel: matchingAccount.externalAccountLabel,
+            scopes: matchingAccount.scopes,
+            scopesMatch: true,
+          },
+        ]
+      : [];
+
+    let dataPart: ConnectorDataPart;
+
+    try {
+      dataPart = createConnectionRequestDataPart({
+        messageId: generateId(),
+        provider: need.provider,
+        reason: `The request mentions ${need.provider}. Connect it so the agent can read or write ${need.provider} data on your behalf.`,
+        resumeToken: generateId(),
+        existingAccountConnections: existingAccountConnections.length > 0 ? existingAccountConnections : undefined,
+      });
+    } catch {
+      /*
+       * Unknown provider in the catalog — skip silently. The detection
+       * catalog and the data-part catalog can drift while new providers
+       * are being added; the safer behaviour is to fall through rather
+       * than crash the chat.
+       */
+      continue;
+    }
+
+    /*
+     * The connector annotation is not in the typed ContextAnnotation
+     * union because its discriminated payload would break the
+     * JSONObject constraint of writeMessageAnnotation. We cast through
+     * JSONValue so the client renderer (which structurally matches
+     * type === 'connector') still picks it up.
+     */
+    input.dataStream.writeMessageAnnotation({
+      type: 'connector',
+      payload: dataPart.payload as unknown as JSONValue,
+    });
+  }
+
+  /*
+   * projectId is not consumed yet because the per-project link state
+   * ships with the IDE Integrations panel in Phase 3; the parameter
+   * stays here so the call sites already pass it.
+   */
+  void input.projectId;
 }
