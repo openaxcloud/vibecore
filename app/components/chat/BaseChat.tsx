@@ -3782,6 +3782,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
+        if (useMobileIde) {
+          activateMobileTool(panel);
+
+          return;
+        }
+
         if (isIdeRightPanel(panel) || isIdeWorkspacePanel(panel)) {
           openIdeTool(panel);
         }
@@ -3792,7 +3798,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return () => {
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
       };
-    }, [openIdeTool, projectIdeMode]);
+    }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
 
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
