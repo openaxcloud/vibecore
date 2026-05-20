@@ -381,6 +381,14 @@ export type ReconnectionAlert = $Result.DefaultSelection<Prisma.$ReconnectionAle
  * 
  */
 export type IntegrationFeatureRequest = $Result.DefaultSelection<Prisma.$IntegrationFeatureRequestPayload>
+/**
+ * Model EmailDeliveryEvent
+ * Delivery / bounce / complaint notifications received from transactional
+ * email providers. The recipient is stored verbatim (not joined to User) so
+ * we can keep history for addresses that don't have an account — password
+ * reset and email-verification flows fire before the user exists.
+ */
+export type EmailDeliveryEvent = $Result.DefaultSelection<Prisma.$EmailDeliveryEventPayload>
 
 /**
  * Enums
@@ -1380,6 +1388,16 @@ export class PrismaClient<
     * ```
     */
   get integrationFeatureRequest(): Prisma.IntegrationFeatureRequestDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.emailDeliveryEvent`: Exposes CRUD operations for the **EmailDeliveryEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more EmailDeliveryEvents
+    * const emailDeliveryEvents = await prisma.emailDeliveryEvent.findMany()
+    * ```
+    */
+  get emailDeliveryEvent(): Prisma.EmailDeliveryEventDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1885,7 +1903,8 @@ export namespace Prisma {
     OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
     OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
     ReconnectionAlert: 'ReconnectionAlert',
-    IntegrationFeatureRequest: 'IntegrationFeatureRequest'
+    IntegrationFeatureRequest: 'IntegrationFeatureRequest',
+    EmailDeliveryEvent: 'EmailDeliveryEvent'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1901,7 +1920,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest" | "emailDeliveryEvent"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -7217,6 +7236,80 @@ export namespace Prisma {
           }
         }
       }
+      EmailDeliveryEvent: {
+        payload: Prisma.$EmailDeliveryEventPayload<ExtArgs>
+        fields: Prisma.EmailDeliveryEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.EmailDeliveryEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.EmailDeliveryEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          findFirst: {
+            args: Prisma.EmailDeliveryEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.EmailDeliveryEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          findMany: {
+            args: Prisma.EmailDeliveryEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>[]
+          }
+          create: {
+            args: Prisma.EmailDeliveryEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          createMany: {
+            args: Prisma.EmailDeliveryEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.EmailDeliveryEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>[]
+          }
+          delete: {
+            args: Prisma.EmailDeliveryEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          update: {
+            args: Prisma.EmailDeliveryEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.EmailDeliveryEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.EmailDeliveryEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.EmailDeliveryEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.EmailDeliveryEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EmailDeliveryEventPayload>
+          }
+          aggregate: {
+            args: Prisma.EmailDeliveryEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateEmailDeliveryEvent>
+          }
+          groupBy: {
+            args: Prisma.EmailDeliveryEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<EmailDeliveryEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.EmailDeliveryEventCountArgs<ExtArgs>
+            result: $Utils.Optional<EmailDeliveryEventCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -7397,6 +7490,7 @@ export namespace Prisma {
     organizationConnectorPolicy?: OrganizationConnectorPolicyOmit
     reconnectionAlert?: ReconnectionAlertOmit
     integrationFeatureRequest?: IntegrationFeatureRequestOmit
+    emailDeliveryEvent?: EmailDeliveryEventOmit
   }
 
   /* Types for Logging */
@@ -91591,6 +91685,1067 @@ export namespace Prisma {
 
 
   /**
+   * Model EmailDeliveryEvent
+   */
+
+  export type AggregateEmailDeliveryEvent = {
+    _count: EmailDeliveryEventCountAggregateOutputType | null
+    _min: EmailDeliveryEventMinAggregateOutputType | null
+    _max: EmailDeliveryEventMaxAggregateOutputType | null
+  }
+
+  export type EmailDeliveryEventMinAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    providerEventId: string | null
+    type: string | null
+    email: string | null
+    emailMessageId: string | null
+    subject: string | null
+    fromAddress: string | null
+    receivedAt: Date | null
+  }
+
+  export type EmailDeliveryEventMaxAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    providerEventId: string | null
+    type: string | null
+    email: string | null
+    emailMessageId: string | null
+    subject: string | null
+    fromAddress: string | null
+    receivedAt: Date | null
+  }
+
+  export type EmailDeliveryEventCountAggregateOutputType = {
+    id: number
+    provider: number
+    providerEventId: number
+    type: number
+    email: number
+    emailMessageId: number
+    subject: number
+    fromAddress: number
+    payload: number
+    receivedAt: number
+    _all: number
+  }
+
+
+  export type EmailDeliveryEventMinAggregateInputType = {
+    id?: true
+    provider?: true
+    providerEventId?: true
+    type?: true
+    email?: true
+    emailMessageId?: true
+    subject?: true
+    fromAddress?: true
+    receivedAt?: true
+  }
+
+  export type EmailDeliveryEventMaxAggregateInputType = {
+    id?: true
+    provider?: true
+    providerEventId?: true
+    type?: true
+    email?: true
+    emailMessageId?: true
+    subject?: true
+    fromAddress?: true
+    receivedAt?: true
+  }
+
+  export type EmailDeliveryEventCountAggregateInputType = {
+    id?: true
+    provider?: true
+    providerEventId?: true
+    type?: true
+    email?: true
+    emailMessageId?: true
+    subject?: true
+    fromAddress?: true
+    payload?: true
+    receivedAt?: true
+    _all?: true
+  }
+
+  export type EmailDeliveryEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which EmailDeliveryEvent to aggregate.
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EmailDeliveryEvents to fetch.
+     */
+    orderBy?: EmailDeliveryEventOrderByWithRelationInput | EmailDeliveryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: EmailDeliveryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EmailDeliveryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EmailDeliveryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned EmailDeliveryEvents
+    **/
+    _count?: true | EmailDeliveryEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: EmailDeliveryEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: EmailDeliveryEventMaxAggregateInputType
+  }
+
+  export type GetEmailDeliveryEventAggregateType<T extends EmailDeliveryEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateEmailDeliveryEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateEmailDeliveryEvent[P]>
+      : GetScalarType<T[P], AggregateEmailDeliveryEvent[P]>
+  }
+
+
+
+
+  export type EmailDeliveryEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: EmailDeliveryEventWhereInput
+    orderBy?: EmailDeliveryEventOrderByWithAggregationInput | EmailDeliveryEventOrderByWithAggregationInput[]
+    by: EmailDeliveryEventScalarFieldEnum[] | EmailDeliveryEventScalarFieldEnum
+    having?: EmailDeliveryEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: EmailDeliveryEventCountAggregateInputType | true
+    _min?: EmailDeliveryEventMinAggregateInputType
+    _max?: EmailDeliveryEventMaxAggregateInputType
+  }
+
+  export type EmailDeliveryEventGroupByOutputType = {
+    id: string
+    provider: string
+    providerEventId: string
+    type: string
+    email: string
+    emailMessageId: string | null
+    subject: string | null
+    fromAddress: string | null
+    payload: JsonValue
+    receivedAt: Date
+    _count: EmailDeliveryEventCountAggregateOutputType | null
+    _min: EmailDeliveryEventMinAggregateOutputType | null
+    _max: EmailDeliveryEventMaxAggregateOutputType | null
+  }
+
+  type GetEmailDeliveryEventGroupByPayload<T extends EmailDeliveryEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<EmailDeliveryEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof EmailDeliveryEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], EmailDeliveryEventGroupByOutputType[P]>
+            : GetScalarType<T[P], EmailDeliveryEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type EmailDeliveryEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    providerEventId?: boolean
+    type?: boolean
+    email?: boolean
+    emailMessageId?: boolean
+    subject?: boolean
+    fromAddress?: boolean
+    payload?: boolean
+    receivedAt?: boolean
+  }, ExtArgs["result"]["emailDeliveryEvent"]>
+
+  export type EmailDeliveryEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    providerEventId?: boolean
+    type?: boolean
+    email?: boolean
+    emailMessageId?: boolean
+    subject?: boolean
+    fromAddress?: boolean
+    payload?: boolean
+    receivedAt?: boolean
+  }, ExtArgs["result"]["emailDeliveryEvent"]>
+
+  export type EmailDeliveryEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    providerEventId?: boolean
+    type?: boolean
+    email?: boolean
+    emailMessageId?: boolean
+    subject?: boolean
+    fromAddress?: boolean
+    payload?: boolean
+    receivedAt?: boolean
+  }, ExtArgs["result"]["emailDeliveryEvent"]>
+
+  export type EmailDeliveryEventSelectScalar = {
+    id?: boolean
+    provider?: boolean
+    providerEventId?: boolean
+    type?: boolean
+    email?: boolean
+    emailMessageId?: boolean
+    subject?: boolean
+    fromAddress?: boolean
+    payload?: boolean
+    receivedAt?: boolean
+  }
+
+  export type EmailDeliveryEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "provider" | "providerEventId" | "type" | "email" | "emailMessageId" | "subject" | "fromAddress" | "payload" | "receivedAt", ExtArgs["result"]["emailDeliveryEvent"]>
+
+  export type $EmailDeliveryEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "EmailDeliveryEvent"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      provider: string
+      providerEventId: string
+      type: string
+      email: string
+      emailMessageId: string | null
+      subject: string | null
+      fromAddress: string | null
+      payload: Prisma.JsonValue
+      receivedAt: Date
+    }, ExtArgs["result"]["emailDeliveryEvent"]>
+    composites: {}
+  }
+
+  type EmailDeliveryEventGetPayload<S extends boolean | null | undefined | EmailDeliveryEventDefaultArgs> = $Result.GetResult<Prisma.$EmailDeliveryEventPayload, S>
+
+  type EmailDeliveryEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<EmailDeliveryEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: EmailDeliveryEventCountAggregateInputType | true
+    }
+
+  export interface EmailDeliveryEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['EmailDeliveryEvent'], meta: { name: 'EmailDeliveryEvent' } }
+    /**
+     * Find zero or one EmailDeliveryEvent that matches the filter.
+     * @param {EmailDeliveryEventFindUniqueArgs} args - Arguments to find a EmailDeliveryEvent
+     * @example
+     * // Get one EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends EmailDeliveryEventFindUniqueArgs>(args: SelectSubset<T, EmailDeliveryEventFindUniqueArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one EmailDeliveryEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {EmailDeliveryEventFindUniqueOrThrowArgs} args - Arguments to find a EmailDeliveryEvent
+     * @example
+     * // Get one EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends EmailDeliveryEventFindUniqueOrThrowArgs>(args: SelectSubset<T, EmailDeliveryEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first EmailDeliveryEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventFindFirstArgs} args - Arguments to find a EmailDeliveryEvent
+     * @example
+     * // Get one EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends EmailDeliveryEventFindFirstArgs>(args?: SelectSubset<T, EmailDeliveryEventFindFirstArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first EmailDeliveryEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventFindFirstOrThrowArgs} args - Arguments to find a EmailDeliveryEvent
+     * @example
+     * // Get one EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends EmailDeliveryEventFindFirstOrThrowArgs>(args?: SelectSubset<T, EmailDeliveryEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more EmailDeliveryEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all EmailDeliveryEvents
+     * const emailDeliveryEvents = await prisma.emailDeliveryEvent.findMany()
+     * 
+     * // Get first 10 EmailDeliveryEvents
+     * const emailDeliveryEvents = await prisma.emailDeliveryEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const emailDeliveryEventWithIdOnly = await prisma.emailDeliveryEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends EmailDeliveryEventFindManyArgs>(args?: SelectSubset<T, EmailDeliveryEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a EmailDeliveryEvent.
+     * @param {EmailDeliveryEventCreateArgs} args - Arguments to create a EmailDeliveryEvent.
+     * @example
+     * // Create one EmailDeliveryEvent
+     * const EmailDeliveryEvent = await prisma.emailDeliveryEvent.create({
+     *   data: {
+     *     // ... data to create a EmailDeliveryEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends EmailDeliveryEventCreateArgs>(args: SelectSubset<T, EmailDeliveryEventCreateArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many EmailDeliveryEvents.
+     * @param {EmailDeliveryEventCreateManyArgs} args - Arguments to create many EmailDeliveryEvents.
+     * @example
+     * // Create many EmailDeliveryEvents
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends EmailDeliveryEventCreateManyArgs>(args?: SelectSubset<T, EmailDeliveryEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many EmailDeliveryEvents and returns the data saved in the database.
+     * @param {EmailDeliveryEventCreateManyAndReturnArgs} args - Arguments to create many EmailDeliveryEvents.
+     * @example
+     * // Create many EmailDeliveryEvents
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many EmailDeliveryEvents and only return the `id`
+     * const emailDeliveryEventWithIdOnly = await prisma.emailDeliveryEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends EmailDeliveryEventCreateManyAndReturnArgs>(args?: SelectSubset<T, EmailDeliveryEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a EmailDeliveryEvent.
+     * @param {EmailDeliveryEventDeleteArgs} args - Arguments to delete one EmailDeliveryEvent.
+     * @example
+     * // Delete one EmailDeliveryEvent
+     * const EmailDeliveryEvent = await prisma.emailDeliveryEvent.delete({
+     *   where: {
+     *     // ... filter to delete one EmailDeliveryEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends EmailDeliveryEventDeleteArgs>(args: SelectSubset<T, EmailDeliveryEventDeleteArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one EmailDeliveryEvent.
+     * @param {EmailDeliveryEventUpdateArgs} args - Arguments to update one EmailDeliveryEvent.
+     * @example
+     * // Update one EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends EmailDeliveryEventUpdateArgs>(args: SelectSubset<T, EmailDeliveryEventUpdateArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more EmailDeliveryEvents.
+     * @param {EmailDeliveryEventDeleteManyArgs} args - Arguments to filter EmailDeliveryEvents to delete.
+     * @example
+     * // Delete a few EmailDeliveryEvents
+     * const { count } = await prisma.emailDeliveryEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends EmailDeliveryEventDeleteManyArgs>(args?: SelectSubset<T, EmailDeliveryEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more EmailDeliveryEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many EmailDeliveryEvents
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends EmailDeliveryEventUpdateManyArgs>(args: SelectSubset<T, EmailDeliveryEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more EmailDeliveryEvents and returns the data updated in the database.
+     * @param {EmailDeliveryEventUpdateManyAndReturnArgs} args - Arguments to update many EmailDeliveryEvents.
+     * @example
+     * // Update many EmailDeliveryEvents
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more EmailDeliveryEvents and only return the `id`
+     * const emailDeliveryEventWithIdOnly = await prisma.emailDeliveryEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends EmailDeliveryEventUpdateManyAndReturnArgs>(args: SelectSubset<T, EmailDeliveryEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one EmailDeliveryEvent.
+     * @param {EmailDeliveryEventUpsertArgs} args - Arguments to update or create a EmailDeliveryEvent.
+     * @example
+     * // Update or create a EmailDeliveryEvent
+     * const emailDeliveryEvent = await prisma.emailDeliveryEvent.upsert({
+     *   create: {
+     *     // ... data to create a EmailDeliveryEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the EmailDeliveryEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends EmailDeliveryEventUpsertArgs>(args: SelectSubset<T, EmailDeliveryEventUpsertArgs<ExtArgs>>): Prisma__EmailDeliveryEventClient<$Result.GetResult<Prisma.$EmailDeliveryEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of EmailDeliveryEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventCountArgs} args - Arguments to filter EmailDeliveryEvents to count.
+     * @example
+     * // Count the number of EmailDeliveryEvents
+     * const count = await prisma.emailDeliveryEvent.count({
+     *   where: {
+     *     // ... the filter for the EmailDeliveryEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends EmailDeliveryEventCountArgs>(
+      args?: Subset<T, EmailDeliveryEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], EmailDeliveryEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a EmailDeliveryEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends EmailDeliveryEventAggregateArgs>(args: Subset<T, EmailDeliveryEventAggregateArgs>): Prisma.PrismaPromise<GetEmailDeliveryEventAggregateType<T>>
+
+    /**
+     * Group by EmailDeliveryEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EmailDeliveryEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends EmailDeliveryEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: EmailDeliveryEventGroupByArgs['orderBy'] }
+        : { orderBy?: EmailDeliveryEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, EmailDeliveryEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetEmailDeliveryEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the EmailDeliveryEvent model
+   */
+  readonly fields: EmailDeliveryEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for EmailDeliveryEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__EmailDeliveryEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the EmailDeliveryEvent model
+   */
+  interface EmailDeliveryEventFieldRefs {
+    readonly id: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly provider: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly providerEventId: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly type: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly email: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly emailMessageId: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly subject: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly fromAddress: FieldRef<"EmailDeliveryEvent", 'String'>
+    readonly payload: FieldRef<"EmailDeliveryEvent", 'Json'>
+    readonly receivedAt: FieldRef<"EmailDeliveryEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * EmailDeliveryEvent findUnique
+   */
+  export type EmailDeliveryEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter, which EmailDeliveryEvent to fetch.
+     */
+    where: EmailDeliveryEventWhereUniqueInput
+  }
+
+  /**
+   * EmailDeliveryEvent findUniqueOrThrow
+   */
+  export type EmailDeliveryEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter, which EmailDeliveryEvent to fetch.
+     */
+    where: EmailDeliveryEventWhereUniqueInput
+  }
+
+  /**
+   * EmailDeliveryEvent findFirst
+   */
+  export type EmailDeliveryEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter, which EmailDeliveryEvent to fetch.
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EmailDeliveryEvents to fetch.
+     */
+    orderBy?: EmailDeliveryEventOrderByWithRelationInput | EmailDeliveryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for EmailDeliveryEvents.
+     */
+    cursor?: EmailDeliveryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EmailDeliveryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EmailDeliveryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EmailDeliveryEvents.
+     */
+    distinct?: EmailDeliveryEventScalarFieldEnum | EmailDeliveryEventScalarFieldEnum[]
+  }
+
+  /**
+   * EmailDeliveryEvent findFirstOrThrow
+   */
+  export type EmailDeliveryEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter, which EmailDeliveryEvent to fetch.
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EmailDeliveryEvents to fetch.
+     */
+    orderBy?: EmailDeliveryEventOrderByWithRelationInput | EmailDeliveryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for EmailDeliveryEvents.
+     */
+    cursor?: EmailDeliveryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EmailDeliveryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EmailDeliveryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EmailDeliveryEvents.
+     */
+    distinct?: EmailDeliveryEventScalarFieldEnum | EmailDeliveryEventScalarFieldEnum[]
+  }
+
+  /**
+   * EmailDeliveryEvent findMany
+   */
+  export type EmailDeliveryEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter, which EmailDeliveryEvents to fetch.
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EmailDeliveryEvents to fetch.
+     */
+    orderBy?: EmailDeliveryEventOrderByWithRelationInput | EmailDeliveryEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing EmailDeliveryEvents.
+     */
+    cursor?: EmailDeliveryEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EmailDeliveryEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EmailDeliveryEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EmailDeliveryEvents.
+     */
+    distinct?: EmailDeliveryEventScalarFieldEnum | EmailDeliveryEventScalarFieldEnum[]
+  }
+
+  /**
+   * EmailDeliveryEvent create
+   */
+  export type EmailDeliveryEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * The data needed to create a EmailDeliveryEvent.
+     */
+    data: XOR<EmailDeliveryEventCreateInput, EmailDeliveryEventUncheckedCreateInput>
+  }
+
+  /**
+   * EmailDeliveryEvent createMany
+   */
+  export type EmailDeliveryEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many EmailDeliveryEvents.
+     */
+    data: EmailDeliveryEventCreateManyInput | EmailDeliveryEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * EmailDeliveryEvent createManyAndReturn
+   */
+  export type EmailDeliveryEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many EmailDeliveryEvents.
+     */
+    data: EmailDeliveryEventCreateManyInput | EmailDeliveryEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * EmailDeliveryEvent update
+   */
+  export type EmailDeliveryEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * The data needed to update a EmailDeliveryEvent.
+     */
+    data: XOR<EmailDeliveryEventUpdateInput, EmailDeliveryEventUncheckedUpdateInput>
+    /**
+     * Choose, which EmailDeliveryEvent to update.
+     */
+    where: EmailDeliveryEventWhereUniqueInput
+  }
+
+  /**
+   * EmailDeliveryEvent updateMany
+   */
+  export type EmailDeliveryEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update EmailDeliveryEvents.
+     */
+    data: XOR<EmailDeliveryEventUpdateManyMutationInput, EmailDeliveryEventUncheckedUpdateManyInput>
+    /**
+     * Filter which EmailDeliveryEvents to update
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * Limit how many EmailDeliveryEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * EmailDeliveryEvent updateManyAndReturn
+   */
+  export type EmailDeliveryEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * The data used to update EmailDeliveryEvents.
+     */
+    data: XOR<EmailDeliveryEventUpdateManyMutationInput, EmailDeliveryEventUncheckedUpdateManyInput>
+    /**
+     * Filter which EmailDeliveryEvents to update
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * Limit how many EmailDeliveryEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * EmailDeliveryEvent upsert
+   */
+  export type EmailDeliveryEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * The filter to search for the EmailDeliveryEvent to update in case it exists.
+     */
+    where: EmailDeliveryEventWhereUniqueInput
+    /**
+     * In case the EmailDeliveryEvent found by the `where` argument doesn't exist, create a new EmailDeliveryEvent with this data.
+     */
+    create: XOR<EmailDeliveryEventCreateInput, EmailDeliveryEventUncheckedCreateInput>
+    /**
+     * In case the EmailDeliveryEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<EmailDeliveryEventUpdateInput, EmailDeliveryEventUncheckedUpdateInput>
+  }
+
+  /**
+   * EmailDeliveryEvent delete
+   */
+  export type EmailDeliveryEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+    /**
+     * Filter which EmailDeliveryEvent to delete.
+     */
+    where: EmailDeliveryEventWhereUniqueInput
+  }
+
+  /**
+   * EmailDeliveryEvent deleteMany
+   */
+  export type EmailDeliveryEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which EmailDeliveryEvents to delete
+     */
+    where?: EmailDeliveryEventWhereInput
+    /**
+     * Limit how many EmailDeliveryEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * EmailDeliveryEvent without action
+   */
+  export type EmailDeliveryEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EmailDeliveryEvent
+     */
+    select?: EmailDeliveryEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EmailDeliveryEvent
+     */
+    omit?: EmailDeliveryEventOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -92641,6 +93796,22 @@ export namespace Prisma {
   };
 
   export type IntegrationFeatureRequestScalarFieldEnum = (typeof IntegrationFeatureRequestScalarFieldEnum)[keyof typeof IntegrationFeatureRequestScalarFieldEnum]
+
+
+  export const EmailDeliveryEventScalarFieldEnum: {
+    id: 'id',
+    provider: 'provider',
+    providerEventId: 'providerEventId',
+    type: 'type',
+    email: 'email',
+    emailMessageId: 'emailMessageId',
+    subject: 'subject',
+    fromAddress: 'fromAddress',
+    payload: 'payload',
+    receivedAt: 'receivedAt'
+  };
+
+  export type EmailDeliveryEventScalarFieldEnum = (typeof EmailDeliveryEventScalarFieldEnum)[keyof typeof EmailDeliveryEventScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -98508,6 +99679,84 @@ export namespace Prisma {
     useCaseDescription?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
     status?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
     createdAt?: DateTimeWithAggregatesFilter<"IntegrationFeatureRequest"> | Date | string
+  }
+
+  export type EmailDeliveryEventWhereInput = {
+    AND?: EmailDeliveryEventWhereInput | EmailDeliveryEventWhereInput[]
+    OR?: EmailDeliveryEventWhereInput[]
+    NOT?: EmailDeliveryEventWhereInput | EmailDeliveryEventWhereInput[]
+    id?: StringFilter<"EmailDeliveryEvent"> | string
+    provider?: StringFilter<"EmailDeliveryEvent"> | string
+    providerEventId?: StringFilter<"EmailDeliveryEvent"> | string
+    type?: StringFilter<"EmailDeliveryEvent"> | string
+    email?: StringFilter<"EmailDeliveryEvent"> | string
+    emailMessageId?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    subject?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    fromAddress?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    payload?: JsonFilter<"EmailDeliveryEvent">
+    receivedAt?: DateTimeFilter<"EmailDeliveryEvent"> | Date | string
+  }
+
+  export type EmailDeliveryEventOrderByWithRelationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    providerEventId?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
+    emailMessageId?: SortOrderInput | SortOrder
+    subject?: SortOrderInput | SortOrder
+    fromAddress?: SortOrderInput | SortOrder
+    payload?: SortOrder
+    receivedAt?: SortOrder
+  }
+
+  export type EmailDeliveryEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    provider_providerEventId?: EmailDeliveryEventProviderProviderEventIdCompoundUniqueInput
+    AND?: EmailDeliveryEventWhereInput | EmailDeliveryEventWhereInput[]
+    OR?: EmailDeliveryEventWhereInput[]
+    NOT?: EmailDeliveryEventWhereInput | EmailDeliveryEventWhereInput[]
+    provider?: StringFilter<"EmailDeliveryEvent"> | string
+    providerEventId?: StringFilter<"EmailDeliveryEvent"> | string
+    type?: StringFilter<"EmailDeliveryEvent"> | string
+    email?: StringFilter<"EmailDeliveryEvent"> | string
+    emailMessageId?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    subject?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    fromAddress?: StringNullableFilter<"EmailDeliveryEvent"> | string | null
+    payload?: JsonFilter<"EmailDeliveryEvent">
+    receivedAt?: DateTimeFilter<"EmailDeliveryEvent"> | Date | string
+  }, "id" | "provider_providerEventId">
+
+  export type EmailDeliveryEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    providerEventId?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
+    emailMessageId?: SortOrderInput | SortOrder
+    subject?: SortOrderInput | SortOrder
+    fromAddress?: SortOrderInput | SortOrder
+    payload?: SortOrder
+    receivedAt?: SortOrder
+    _count?: EmailDeliveryEventCountOrderByAggregateInput
+    _max?: EmailDeliveryEventMaxOrderByAggregateInput
+    _min?: EmailDeliveryEventMinOrderByAggregateInput
+  }
+
+  export type EmailDeliveryEventScalarWhereWithAggregatesInput = {
+    AND?: EmailDeliveryEventScalarWhereWithAggregatesInput | EmailDeliveryEventScalarWhereWithAggregatesInput[]
+    OR?: EmailDeliveryEventScalarWhereWithAggregatesInput[]
+    NOT?: EmailDeliveryEventScalarWhereWithAggregatesInput | EmailDeliveryEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"EmailDeliveryEvent"> | string
+    provider?: StringWithAggregatesFilter<"EmailDeliveryEvent"> | string
+    providerEventId?: StringWithAggregatesFilter<"EmailDeliveryEvent"> | string
+    type?: StringWithAggregatesFilter<"EmailDeliveryEvent"> | string
+    email?: StringWithAggregatesFilter<"EmailDeliveryEvent"> | string
+    emailMessageId?: StringNullableWithAggregatesFilter<"EmailDeliveryEvent"> | string | null
+    subject?: StringNullableWithAggregatesFilter<"EmailDeliveryEvent"> | string | null
+    fromAddress?: StringNullableWithAggregatesFilter<"EmailDeliveryEvent"> | string | null
+    payload?: JsonWithAggregatesFilter<"EmailDeliveryEvent">
+    receivedAt?: DateTimeWithAggregatesFilter<"EmailDeliveryEvent"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -104476,6 +105725,97 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type EmailDeliveryEventCreateInput = {
+    id?: string
+    provider: string
+    providerEventId: string
+    type: string
+    email: string
+    emailMessageId?: string | null
+    subject?: string | null
+    fromAddress?: string | null
+    payload: JsonNullValueInput | InputJsonValue
+    receivedAt?: Date | string
+  }
+
+  export type EmailDeliveryEventUncheckedCreateInput = {
+    id?: string
+    provider: string
+    providerEventId: string
+    type: string
+    email: string
+    emailMessageId?: string | null
+    subject?: string | null
+    fromAddress?: string | null
+    payload: JsonNullValueInput | InputJsonValue
+    receivedAt?: Date | string
+  }
+
+  export type EmailDeliveryEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    providerEventId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailMessageId?: NullableStringFieldUpdateOperationsInput | string | null
+    subject?: NullableStringFieldUpdateOperationsInput | string | null
+    fromAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: JsonNullValueInput | InputJsonValue
+    receivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EmailDeliveryEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    providerEventId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailMessageId?: NullableStringFieldUpdateOperationsInput | string | null
+    subject?: NullableStringFieldUpdateOperationsInput | string | null
+    fromAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: JsonNullValueInput | InputJsonValue
+    receivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EmailDeliveryEventCreateManyInput = {
+    id?: string
+    provider: string
+    providerEventId: string
+    type: string
+    email: string
+    emailMessageId?: string | null
+    subject?: string | null
+    fromAddress?: string | null
+    payload: JsonNullValueInput | InputJsonValue
+    receivedAt?: Date | string
+  }
+
+  export type EmailDeliveryEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    providerEventId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailMessageId?: NullableStringFieldUpdateOperationsInput | string | null
+    subject?: NullableStringFieldUpdateOperationsInput | string | null
+    fromAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: JsonNullValueInput | InputJsonValue
+    receivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EmailDeliveryEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    providerEventId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailMessageId?: NullableStringFieldUpdateOperationsInput | string | null
+    subject?: NullableStringFieldUpdateOperationsInput | string | null
+    fromAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    payload?: JsonNullValueInput | InputJsonValue
+    receivedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -108303,6 +109643,48 @@ export namespace Prisma {
     useCaseDescription?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EmailDeliveryEventProviderProviderEventIdCompoundUniqueInput = {
+    provider: string
+    providerEventId: string
+  }
+
+  export type EmailDeliveryEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    providerEventId?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
+    emailMessageId?: SortOrder
+    subject?: SortOrder
+    fromAddress?: SortOrder
+    payload?: SortOrder
+    receivedAt?: SortOrder
+  }
+
+  export type EmailDeliveryEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    providerEventId?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
+    emailMessageId?: SortOrder
+    subject?: SortOrder
+    fromAddress?: SortOrder
+    receivedAt?: SortOrder
+  }
+
+  export type EmailDeliveryEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    providerEventId?: SortOrder
+    type?: SortOrder
+    email?: SortOrder
+    emailMessageId?: SortOrder
+    subject?: SortOrder
+    fromAddress?: SortOrder
+    receivedAt?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {

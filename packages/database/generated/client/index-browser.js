@@ -943,6 +943,19 @@ exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.EmailDeliveryEventScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  providerEventId: 'providerEventId',
+  type: 'type',
+  email: 'email',
+  emailMessageId: 'emailMessageId',
+  subject: 'subject',
+  fromAddress: 'fromAddress',
+  payload: 'payload',
+  receivedAt: 'receivedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1127,7 +1140,8 @@ exports.Prisma.ModelName = {
   OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
   OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
   ReconnectionAlert: 'ReconnectionAlert',
-  IntegrationFeatureRequest: 'IntegrationFeatureRequest'
+  IntegrationFeatureRequest: 'IntegrationFeatureRequest',
+  EmailDeliveryEvent: 'EmailDeliveryEvent'
 };
 
 /**

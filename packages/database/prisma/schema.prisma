@@ -1287,3 +1287,25 @@ model IntegrationFeatureRequest {
   @@index([status])
   @@index([userId])
 }
+
+/// Delivery / bounce / complaint notifications received from transactional
+/// email providers. The recipient is stored verbatim (not joined to User) so
+/// we can keep history for addresses that don't have an account — password
+/// reset and email-verification flows fire before the user exists.
+model EmailDeliveryEvent {
+  id              String   @id @default(cuid())
+  provider        String
+  providerEventId String
+  type            String
+  email           String
+  emailMessageId  String?
+  subject         String?
+  fromAddress     String?
+  payload         Json
+  receivedAt      DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([email])
+  @@index([type])
+  @@index([emailMessageId])
+}
