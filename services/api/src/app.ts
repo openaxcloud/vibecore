@@ -4143,13 +4143,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
-        const user =
-          (await store.findUserByEmail(profile.email)) ??
-          (await store.createUser({
+        let isNewUser = false;
+        let user = await store.findUserByEmail(profile.email);
+        if (!user) {
+          user = await store.createUser({
             email: profile.email,
             name: profile.name,
             passwordHash: hashPassword(createOpaqueToken('oauth')),
-          }));
+          });
+          isNewUser = true;
+        }
         await store.upsertOAuthConnection({
           userId: user.id,
           provider,
@@ -4158,8 +4161,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           refreshToken: profile.refreshToken,
         });
 
+        // Auto-create organization for users who don't have one (new OAuth users)
+        let organizationId = orgIdFromRequest(request);
+        if (!organizationId) {
+          const existingOrgs = await store.listOrganizations(user.id);
+          if (existingOrgs.length > 0) {
+            organizationId = existingOrgs[0].id;
+          } else {
+            const org = await store.createOrganization({
+              name: `${profile.name ?? profile.email}'s Organization`,
+              slug: `org-${user.id.slice(-8)}`,
+              ownerUserId: user.id,
+            });
+            organizationId = org.id;
+          }
+        }
+
         const token = createOpaqueToken('session');
-        await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
+        await createLoginSession({ store, userId: user.id, organizationId, token, request });
         reply.setCookie('session', token, authCookieOptions(isProduction));
         await audit(request, store, {
           action: `auth.oauth.${provider}.login`,
@@ -4194,13 +4213,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const profile = await resolveOAuthProfile('oidc', body);
 
-      const user =
-        (await store.findUserByEmail(profile.email)) ??
-        (await store.createUser({
+      let user = await store.findUserByEmail(profile.email);
+      if (!user) {
+        user = await store.createUser({
           email: profile.email,
           name: profile.name,
           passwordHash: hashPassword(createOpaqueToken('oidc')),
-        }));
+        });
+      }
       await store.upsertOAuthConnection({
         userId: user.id,
         provider: 'oidc',
@@ -4209,11 +4229,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         refreshToken: profile.refreshToken,
       });
 
+      // Auto-create organization for users who don't have one (new OIDC users)
+      let oidcOrgId = body.orgId ?? orgIdFromRequest(request);
+      if (!oidcOrgId) {
+        const existingOrgs = await store.listOrganizations(user.id);
+        if (existingOrgs.length > 0) {
+          oidcOrgId = existingOrgs[0].id;
+        } else {
+          const org = await store.createOrganization({
+            name: `${profile.name ?? profile.email}'s Organization`,
+            slug: `org-${user.id.slice(-8)}`,
+            ownerUserId: user.id,
+          });
+          oidcOrgId = org.id;
+        }
+      }
+
       const token = createOpaqueToken('session');
       await createLoginSession({
         store,
         userId: user.id,
-        organizationId: body.orgId ?? orgIdFromRequest(request),
+        organizationId: oidcOrgId,
         token,
         request,
       });
@@ -7067,7 +7103,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { user: { id: user.id, email: user.email, name: user.name, platformAdmin: user.platformAdmin } };
   });
 
-  app.get('/orgs', async (request) => ({ organizations: await store.listOrganizations(request.currentUser!.id) }));
+  app.get('/orgs', async (request) => {
+    let organizations = await store.listOrganizations(request.currentUser!.id);
+    // Auto-provision a default organization for users who don't have one (e.g. OAuth users created before the auto-create fix)
+    if (organizations.length === 0) {
+      const user = request.currentUser!;
+      const org = await store.createOrganization({
+        name: `${user.name ?? user.email}'s Organization`,
+        slug: `org-${user.id.slice(-8)}`,
+        ownerUserId: user.id,
+      });
+      organizations = [org];
+    }
+    return { organizations };
+  });
   app.post('/orgs', async (request, reply) => {
     const body = parse(createOrgSchema, request.body);
 
