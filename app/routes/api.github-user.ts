@@ -1,14 +1,45 @@
 import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { apiRequest } from '~/lib/enterprise-api.server';
 import { withSecurity } from '~/lib/security';
 
 async function githubUserLoader({ request, context }: { request: Request; context: any }) {
   try {
-    // Get API keys from cookies (server-side only)
+    /*
+     * First try the UserConnection-backed flow: the API service decrypts
+     * the token from packages/database UserConnection.accessTokenEncrypted
+     * and calls api.github.com on the builder's behalf. This is the Phase
+     * 1 path that replaces the legacy localStorage / cookie token.
+     */
+    try {
+      const upstream = await apiRequest<{
+        login: string;
+        avatar_url: string;
+        html_url: string;
+        name: string;
+      }>(request, '/api/github-user');
+
+      return json(upstream);
+    } catch (error) {
+      /*
+       * The API service returns 401 CONNECTOR_NOT_LINKED when the current
+       * user has no active GitHub UserConnection. In that case we fall
+       * back to the legacy cookie / env GitHub PAT so existing users who
+       * pasted a token before the OAuth flow shipped keep working until
+       * they reconnect.
+       */
+      if (!(error instanceof Response) || error.status !== 401) {
+        throw error;
+      }
+    }
+
+    /*
+     * Legacy fallback: pull a GitHub PAT from cookies / env until the
+     * builder reconnects through the new OAuth flow.
+     */
     const cookieHeader = request.headers.get('Cookie');
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-    // Try to get GitHub token from various sources
     const githubToken =
       apiKeys.GITHUB_API_KEY ||
       apiKeys.VITE_GITHUB_ACCESS_TOKEN ||
@@ -21,7 +52,6 @@ async function githubUserLoader({ request, context }: { request: Request; contex
       return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
-    // Make server-side request to GitHub API
     const response = await fetch('https://api.github.com/user', {
       headers: {
         Accept: 'application/vnd.github.v3+json',
@@ -55,6 +85,7 @@ async function githubUserLoader({ request, context }: { request: Request; contex
     });
   } catch (error) {
     console.error('Error fetching GitHub user:', error);
+
     return json(
       {
         error: 'Failed to fetch GitHub user information',
