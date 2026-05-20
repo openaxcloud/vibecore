@@ -3612,7 +3612,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
   });
   app.addHook('preParsing', async (request, _reply, payload) => {
-    if (request.url.startsWith('/billing/stripe/webhook')) {
+    if (request.url.startsWith('/billing/stripe/webhook') || request.url.startsWith('/webhooks/')) {
       const chunks: Buffer[] = [];
 
       for await (const chunk of payload as AsyncIterable<Buffer>) {
@@ -4334,6 +4334,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/billing/stripe/webhook') ||
+      request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
       request.url.startsWith('/static-deployments/')
     ) {
@@ -4993,6 +4994,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       publicGists: 0,
       privateGists: 0,
       lastUpdated: new Date().toISOString(),
+    };
+  });
+
+  app.post('/webhooks/github', async (request, reply) => {
+    const signingSecret = process.env.INTEGRATION_GITHUB_WEBHOOK_SIGNING_SECRET;
+
+    if (!signingSecret) {
+      return reply.code(503).send({
+        error: 'GitHub webhook signing secret is not configured on this server.',
+        code: 'WEBHOOK_NOT_CONFIGURED',
+      });
+    }
+
+    const rawBody = request.rawBody;
+
+    if (typeof rawBody !== 'string') {
+      return reply.code(400).send({
+        error: 'Raw body unavailable; the preParsing hook did not capture this request.',
+        code: 'WEBHOOK_RAW_BODY_MISSING',
+      });
+    }
+
+    const headerSignature = request.headers['x-hub-signature-256'];
+
+    if (typeof headerSignature !== 'string' || !headerSignature.startsWith('sha256=')) {
+      return reply.code(401).send({
+        error: 'Missing or malformed X-Hub-Signature-256 header.',
+        code: 'WEBHOOK_SIGNATURE_MISSING',
+      });
+    }
+
+    const expected = createHmac('sha256', signingSecret).update(rawBody).digest('hex');
+    const provided = headerSignature.slice('sha256='.length);
+
+    if (expected.length !== provided.length) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    let signaturesMatch = false;
+
+    try {
+      signaturesMatch = timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(provided, 'hex'));
+    } catch {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    if (!signaturesMatch) {
+      return reply.code(401).send({
+        error: 'Webhook signature is invalid.',
+        code: 'WEBHOOK_SIGNATURE_INVALID',
+      });
+    }
+
+    const eventType = String(request.headers['x-github-event'] ?? 'unknown');
+    const deliveryId = String(request.headers['x-github-delivery'] ?? '');
+
+    let payload: { installation?: { id?: number }; repository?: { full_name?: string }; sender?: { login?: string } };
+
+    try {
+      payload = JSON.parse(rawBody) as typeof payload;
+    } catch {
+      return reply.code(400).send({
+        error: 'Webhook body is not valid JSON.',
+        code: 'WEBHOOK_BODY_INVALID',
+      });
+    }
+
+    await audit(request, store, {
+      action: 'connector.webhook.received',
+      resourceType: 'GithubWebhook',
+      resourceId: deliveryId || undefined,
+      metadata: {
+        provider: 'github',
+        eventType,
+        deliveryId,
+        installationId: payload.installation?.id,
+        repository: payload.repository?.full_name,
+        sender: payload.sender?.login,
+      },
+    });
+
+    return {
+      received: true,
+      provider: 'github',
+      eventType,
+      deliveryId,
     };
   });
 
