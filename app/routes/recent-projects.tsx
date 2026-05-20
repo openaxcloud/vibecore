@@ -1,12 +1,7 @@
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { useLoaderData } from '@remix-run/react';
 import { AppShell, ProjectGrid } from '~/components/dashboard/SaaSLayout';
-import {
-  apiRequest,
-  firstOrganizationOrNull,
-  redirect,
-  type EnterpriseLoaderArgs,
-} from '~/lib/enterprise-api.server';
+import { apiRequest, firstOrganizationOrNull, redirect, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 export const meta: MetaFunction = () => [{ title: 'Recent projects - VibeCore' }];
 
