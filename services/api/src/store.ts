@@ -300,6 +300,15 @@ export interface UserConnectionRecord {
   provider: string;
   externalAccountId: string;
   externalAccountLabel: string;
+  /**
+   * AES-256-GCM ciphertext produced by packages/security#encryptJson.
+   * Internal callers (sidecar, github-user / github-stats routes, agent
+   * orchestrator) decrypt it on demand; HTTP responses must never include
+   * this field (route handlers explicitly strip it).
+   */
+  accessTokenEncrypted?: string;
+  refreshTokenEncrypted?: string;
+  apiKeyFieldsEncrypted?: Record<string, string>;
   scopes: string[];
   tokenExpiresAt?: string;
   status: UserConnectionStatus;

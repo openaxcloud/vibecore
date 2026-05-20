@@ -1,5 +1,6 @@
 import { json } from '@remix-run/cloudflare';
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
+import { apiRequest } from '~/lib/enterprise-api.server';
 import { withSecurity } from '~/lib/security';
 import type { GitHubUserResponse, GitHubStats } from '~/types/GitHub';
 
@@ -62,11 +63,28 @@ async function githubCount(token: string, path: string): Promise<number> {
 
 async function githubStatsLoader({ request, context }: { request: Request; context: any }) {
   try {
-    // Get API keys from cookies (server-side only)
+    /*
+     * First try the UserConnection-backed flow: the API service decrypts
+     * the token from packages/database UserConnection.accessTokenEncrypted
+     * and aggregates basic stats on the builder's behalf.
+     */
+    try {
+      const upstream = await apiRequest<GitHubStats>(request, '/api/github-stats');
+
+      return json(upstream);
+    } catch (error) {
+      if (!(error instanceof Response) || error.status !== 401) {
+        throw error;
+      }
+    }
+
+    /*
+     * Legacy fallback: pull a GitHub PAT from cookies / env so existing
+     * builders keep seeing their stats until they reconnect through OAuth.
+     */
     const cookieHeader = request.headers.get('Cookie');
     const apiKeys = getApiKeysFromCookie(cookieHeader);
 
-    // Try to get GitHub token from various sources
     const githubToken =
       apiKeys.GITHUB_API_KEY ||
       apiKeys.VITE_GITHUB_ACCESS_TOKEN ||

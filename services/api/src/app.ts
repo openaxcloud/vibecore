@@ -66,13 +66,6 @@ import {
   type AgentMemoryType,
 } from './agent-memory.js';
 import {
-  resolveIntegrationOauthStateSecret,
-  signIntegrationOauthState,
-  verifyIntegrationOauthState,
-} from './integrations/oauth-state.js';
-import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
-import { ConnectorProviderError } from './integrations/providers/types.js';
-import {
   assertDeploymentRequestAllowed,
   buildDeploymentUrl,
   createDeploymentLogs,
@@ -88,6 +81,13 @@ import {
   redactDeploymentLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import {
+  resolveIntegrationOauthStateSecret,
+  signIntegrationOauthState,
+  verifyIntegrationOauthState,
+} from './integrations/oauth-state.js';
+import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
+import { ConnectorProviderError } from './integrations/providers/types.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -230,10 +230,12 @@ const changePasswordSchema = z.object({
 const deleteAccountSchema = z.object({ confirmation: z.literal('DELETE MY ACCOUNT') });
 const tokenSchema = z.object({ token: z.string().min(16).max(256) });
 const passwordResetRequestSchema = z.object({ email: z.string().email().max(254) });
+
 const passwordResetConfirmSchema = z.object({
   token: z.string().min(16).max(256),
   password: z.string().min(8).max(PASSWORD_MAX_LENGTH),
 });
+
 const mfaVerifySchema = z.object({ code: z.string().min(6).max(32) });
 const reauthSchema = z.object({ password: z.string().min(1).max(PASSWORD_MAX_LENGTH) });
 const createOrgSchema = z.object({ name: z.string().min(1), slug: z.string().min(2).optional() });
@@ -702,10 +704,12 @@ const oidcCallbackSchema = oauthCallbackSchema.extend({ orgId: z.string().option
 const samlAcsSchema = z.object({ SAMLResponse: z.string().min(1) });
 const integrationOauthProviderParams = z.object({ provider: z.string().min(1) });
 const integrationOauthConnectSchema = z.object({ projectId: z.string().min(1) });
+
 const integrationOauthCallbackBodySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
 });
+
 const userConnectionListQuerySchema = z.object({ provider: z.string().min(1).optional() });
 const userConnectionIdParams = z.object({ userConnectionId: z.string().min(1) });
 const platformAdminParams = z.object({ userId: z.string().min(1) });
@@ -2048,8 +2052,8 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
     });
   }
 
-  const tokenUrl =
-    process.env[`${provider.toUpperCase()}_TOKEN_URL`] ?? wellKnownOauthEndpoints[provider]?.tokenUrl;
+  const tokenUrl = process.env[`${provider.toUpperCase()}_TOKEN_URL`] ?? wellKnownOauthEndpoints[provider]?.tokenUrl;
+
   const userInfoUrl =
     process.env[`${provider.toUpperCase()}_USERINFO_URL`] ?? wellKnownOauthEndpoints[provider]?.userInfoUrl;
 
@@ -2106,6 +2110,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
 
   if (!tokenResponse.ok) {
     let providerBody = '';
+
     try {
       providerBody = (await tokenResponse.text()).slice(0, 500);
     } catch {
@@ -2139,6 +2144,7 @@ async function resolveOAuthProfile(provider: string, body: z.infer<typeof oauthC
 
   if (!profileResponse.ok) {
     let providerBody = '';
+
     try {
       providerBody = (await profileResponse.text()).slice(0, 500);
     } catch {
@@ -3473,6 +3479,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    *   (unset / false)         – fall back to socket IP (dev default)
    */
   const trustProxyEnv = process.env.TRUST_PROXY;
+
   const trustProxy: boolean | number | string =
     trustProxyEnv === 'true'
       ? true
@@ -4077,6 +4084,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const clientId = process.env[`${provider.toUpperCase()}_CLIENT_ID`];
     const redirectUri = process.env[`${provider.toUpperCase()}_REDIRECT_URI`];
+
     const scope =
       process.env[`${provider.toUpperCase()}_SCOPE`] ??
       wellKnownOauthEndpoints[provider]?.scope ??
@@ -4121,6 +4129,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       let profile;
+
       try {
         profile = await resolveOAuthProfile(provider, body);
       } catch (err: any) {
@@ -4642,6 +4651,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const userInfo = await githubConnector.fetchUserInfo({ accessToken: tokenResult.accessToken });
 
         const accessTokenEncrypted = encryptJson({ value: tokenResult.accessToken });
+
         const refreshTokenEncrypted = tokenResult.refreshToken
           ? encryptJson({ value: tokenResult.refreshToken })
           : undefined;
@@ -4707,6 +4717,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const query = parse(userConnectionListQuerySchema, request.query);
+
     const connections = await store.listUserConnectionsByUser(request.currentUser.id, {
       provider: query.provider,
     });
@@ -4770,6 +4781,218 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       userConnectionId: existing.id,
       status: updated?.status ?? 'revoked',
       revokedAt: updated?.revokedAt ?? new Date().toISOString(),
+    };
+  });
+
+  async function resolveActiveGithubAccessToken(request: any, reply: any): Promise<string | null> {
+    if (!request.currentUser) {
+      reply.code(401).send({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+
+      return null;
+    }
+
+    const connections = await store.listUserConnectionsByUser(request.currentUser.id, { provider: 'github' });
+    const active = connections.find((row) => row.status === 'active');
+
+    if (!active) {
+      reply.code(401).send({ error: 'GitHub is not connected for this account.', code: 'CONNECTOR_NOT_LINKED' });
+
+      return null;
+    }
+
+    if (!active.accessTokenEncrypted) {
+      reply.code(503).send({ error: 'GitHub token unavailable', code: 'CONNECTOR_TOKEN_UNAVAILABLE' });
+
+      return null;
+    }
+
+    try {
+      const decrypted = decryptJson<{ value: string }>(active.accessTokenEncrypted);
+
+      return decrypted.value;
+    } catch {
+      reply.code(503).send({ error: 'GitHub token could not be decrypted', code: 'CONNECTOR_TOKEN_DECRYPT_FAILED' });
+
+      return null;
+    }
+  }
+
+  async function handleGithubProviderResponse(
+    request: any,
+    reply: any,
+    response: Response,
+    fallbackCode: 'PROVIDER_API_FAILED',
+  ) {
+    if (response.status === 401 || response.status === 403) {
+      const connections = await store.listUserConnectionsByUser(request.currentUser?.id ?? '', { provider: 'github' });
+      const active = connections.find((row) => row.status === 'active');
+
+      if (active) {
+        await store.markUserConnectionStatus({ id: active.id, status: 'needs_reconnect' });
+        await audit(request, store, {
+          action: 'connector.oauth.github.needs_reconnect',
+          resourceType: 'UserConnection',
+          resourceId: active.id,
+          metadata: { reason: 'token_expired_or_revoked', upstreamStatus: response.status },
+        });
+      }
+
+      return reply.code(401).send({
+        error: 'GitHub rejected the stored access token',
+        code: 'CONNECTOR_NEEDS_RECONNECT',
+        upstreamStatus: response.status,
+      });
+    }
+
+    return reply.code(502).send({
+      error: `GitHub upstream returned HTTP ${response.status}`,
+      code: fallbackCode,
+      upstreamStatus: response.status,
+    });
+  }
+
+  app.get('/api/github-user', async (request, reply) => {
+    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const response = await fetch('https://api.github.com/user', {
+      method: 'GET',
+      headers: {
+        authorization: `token ${accessToken}`,
+        accept: 'application/vnd.github+json',
+        'user-agent': 'e-code-api',
+        'x-github-api-version': '2022-11-28',
+      },
+    });
+
+    if (!response.ok) {
+      return handleGithubProviderResponse(request, reply, response, 'PROVIDER_API_FAILED');
+    }
+
+    type GithubUserResponse = {
+      login: string;
+      avatar_url: string;
+      html_url: string;
+      name?: string | null;
+      bio?: string | null;
+      public_repos?: number;
+      followers?: number;
+      following?: number;
+      public_gists?: number;
+      created_at: string;
+      updated_at: string;
+    };
+
+    const payload = (await response.json()) as GithubUserResponse;
+
+    return {
+      login: payload.login,
+      avatar_url: payload.avatar_url,
+      html_url: payload.html_url,
+      name: payload.name ?? '',
+      bio: payload.bio ?? '',
+      public_repos: payload.public_repos ?? 0,
+      followers: payload.followers ?? 0,
+      following: payload.following ?? 0,
+      public_gists: payload.public_gists ?? 0,
+      created_at: payload.created_at,
+      updated_at: payload.updated_at,
+    };
+  });
+
+  app.get('/api/github-stats', async (request, reply) => {
+    const accessToken = await resolveActiveGithubAccessToken(request, reply);
+
+    if (!accessToken) {
+      return reply;
+    }
+
+    const reposResponse = await fetch(
+      'https://api.github.com/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member',
+      {
+        method: 'GET',
+        headers: {
+          authorization: `token ${accessToken}`,
+          accept: 'application/vnd.github+json',
+          'user-agent': 'e-code-api',
+          'x-github-api-version': '2022-11-28',
+        },
+      },
+    );
+
+    if (!reposResponse.ok) {
+      return handleGithubProviderResponse(request, reply, reposResponse, 'PROVIDER_API_FAILED');
+    }
+
+    type GithubRepoSummary = {
+      id: number;
+      name: string;
+      full_name: string;
+      html_url: string;
+      description: string | null;
+      stargazers_count: number;
+      forks_count: number;
+      default_branch: string;
+      updated_at: string;
+      language: string | null;
+      private?: boolean;
+      topics?: string[];
+      archived?: boolean;
+      fork?: boolean;
+      size?: number;
+    };
+
+    const repos = (await reposResponse.json()) as GithubRepoSummary[];
+
+    const totalStars = repos.reduce((acc, repo) => acc + (repo.stargazers_count ?? 0), 0);
+    const totalForks = repos.reduce((acc, repo) => acc + (repo.forks_count ?? 0), 0);
+    const publicRepos = repos.filter((repo) => !repo.private).length;
+    const privateRepos = repos.filter((repo) => repo.private === true).length;
+
+    const languages: Record<string, number> = {};
+
+    for (const repo of repos) {
+      if (repo.language) {
+        languages[repo.language] = (languages[repo.language] ?? 0) + 1;
+      }
+    }
+
+    return {
+      repos: repos.map((repo) => ({
+        id: String(repo.id),
+        name: repo.name,
+        full_name: repo.full_name,
+        html_url: repo.html_url,
+        description: repo.description ?? '',
+        stargazers_count: repo.stargazers_count,
+        forks_count: repo.forks_count,
+        default_branch: repo.default_branch,
+        updated_at: repo.updated_at,
+        language: repo.language ?? '',
+        languages_url: `https://api.github.com/repos/${repo.full_name}/languages`,
+        private: repo.private,
+        topics: repo.topics ?? [],
+        archived: repo.archived ?? false,
+        fork: repo.fork ?? false,
+        size: repo.size ?? 0,
+      })),
+      totalStars,
+      totalForks,
+      organizations: [],
+      recentActivity: [],
+      languages,
+      totalGists: 0,
+      publicRepos,
+      privateRepos,
+      stars: totalStars,
+      forks: totalForks,
+      followers: 0,
+      publicGists: 0,
+      privateGists: 0,
+      lastUpdated: new Date().toISOString(),
     };
   });
 
