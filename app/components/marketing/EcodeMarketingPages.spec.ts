@@ -36,6 +36,13 @@ describe('E-Code marketing page registry', () => {
         'report-abuse',
         'subprocessors',
         'student-dpa',
+        'marketplace',
+        'community',
+        'explore',
+        'search',
+        'demo',
+        'theme-validation',
+        'runtime-test',
       ]),
     );
   });

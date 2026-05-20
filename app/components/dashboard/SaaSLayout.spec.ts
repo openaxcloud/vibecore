@@ -39,12 +39,19 @@ describe('public marketing brand', () => {
     expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/ai');
     expect(menuTargets).toContain('/partners');
+    expect(menuTargets).toContain('/marketplace');
+    expect(menuTargets).toContain('/community');
+    expect(menuTargets).toContain('/explore');
+    expect(menuTargets).toContain('/search');
     expect(menuTargets).not.toContain('/ai-agent');
 
     expect(footerTargets).toContain('/acceptable-use');
     expect(footerTargets).toContain('/ai-documentation');
     expect(footerTargets).toContain('/subprocessors');
     expect(footerTargets).toContain('/features');
+    expect(footerTargets).toContain('/marketplace');
+    expect(footerTargets).toContain('/community');
+    expect(footerTargets).toContain('/explore');
     expect(publicCompareLinks.map(([, to]) => to)).toContain('/compare/github-codespaces');
     expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/#compare-github-codespaces');
   });
@@ -65,6 +72,10 @@ describe('public marketing brand', () => {
       name: string;
       icons: Array<{ src: string; sizes: string; type: string }>;
     };
+    const jsonManifest = JSON.parse(readFileSync(join(publicDir, 'manifest.json'), 'utf8')) as {
+      name: string;
+      icons: Array<{ src: string; sizes: string; type: string }>;
+    };
 
     expect(favicon).toContain('#F26207');
     expect(faviconIco.readUInt16LE(2)).toBe(1);
@@ -77,12 +88,16 @@ describe('public marketing brand', () => {
     expect(offlinePage).toContain('E-Code');
     expect(robots).toContain('Sitemap');
     expect(manifest.name).toBe('E-Code.ai');
+    expect(jsonManifest.name).toBe('E-Code.ai');
 
     expect(manifest.icons).toContainEqual(
       expect.objectContaining({ src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }),
     );
     expect(manifest.icons).toContainEqual(
       expect.objectContaining({ src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' }),
+    );
+    expect(jsonManifest.icons).toContainEqual(
+      expect.objectContaining({ src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }),
     );
   });
 });
