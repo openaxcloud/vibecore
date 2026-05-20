@@ -10,6 +10,7 @@ import {
   publicMarketingMenus,
   publicNav,
 } from './SaaSLayout';
+import { ecodeCompatibilityRoutePatterns } from '~/components/marketing/EcodeSurfacePages';
 
 describe('public marketing brand', () => {
   it('uses the E-Code identity for the shared marketing shell', () => {
@@ -19,6 +20,7 @@ describe('public marketing brand', () => {
     expect(ECODE_MARKETING_BRAND.faviconSrc).toBe('/favicon.svg');
     expect(publicNav.map((item) => item.label)).toEqual([
       'Product',
+      'Platform',
       'Solutions',
       'Resources',
       'Company',
@@ -35,6 +37,12 @@ describe('public marketing brand', () => {
     const footerTargets = publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to));
 
     expect(menuTargets).toContain('/features');
+    expect(menuTargets).toContain('/apps');
+    expect(menuTargets).toContain('/ai-agent/studio');
+    expect(menuTargets).toContain('/github-import');
+    expect(menuTargets).toContain('/runtime-diagnostics');
+    expect(menuTargets).toContain('/database');
+    expect(menuTargets).toContain('/advanced/mobile');
     expect(menuTargets).toContain('/solutions/app-builder');
     expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/ai');
@@ -46,6 +54,12 @@ describe('public marketing brand', () => {
     expect(menuTargets).not.toContain('/ai-agent');
 
     expect(footerTargets).toContain('/acceptable-use');
+    expect(footerTargets).toContain('/apps');
+    expect(footerTargets).toContain('/github-import');
+    expect(footerTargets).toContain('/runtime-diagnostics');
+    expect(footerTargets).toContain('/database');
+    expect(footerTargets).toContain('/api-sdk');
+    expect(footerTargets).toContain('/performance');
     expect(footerTargets).toContain('/ai-documentation');
     expect(footerTargets).toContain('/subprocessors');
     expect(footerTargets).toContain('/features');
@@ -54,6 +68,14 @@ describe('public marketing brand', () => {
     expect(footerTargets).toContain('/explore');
     expect(publicCompareLinks.map(([, to]) => to)).toContain('/compare/github-codespaces');
     expect(publicCompareLinks.map(([, to]) => to)).not.toContain('/#compare-github-codespaces');
+  });
+
+  it('keeps every Platform menu target backed by the imported E-Code surface registry', () => {
+    const concreteSurfaceTargets = new Set(ecodeCompatibilityRoutePatterns.filter((target) => !target.includes(':')));
+
+    for (const [, to] of publicMarketingMenus.platform) {
+      expect(concreteSurfaceTargets.has(to)).toBe(true);
+    }
   });
 
   it('serves the copied E-Code favicon, logos, comparison assets, partner assets, and manifest icons', () => {

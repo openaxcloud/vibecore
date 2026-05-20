@@ -105,6 +105,7 @@ export const ECODE_MARKETING_BRAND = {
 
 export const publicNav = [
   { label: 'Product', to: '/features' },
+  { label: 'Platform', to: '/apps' },
   { label: 'Solutions', to: '/solutions/app-builder' },
   { label: 'Resources', to: '/docs' },
   { label: 'Company', to: '/about' },
@@ -123,6 +124,28 @@ export const publicMarketingMenus = {
     ['Deployments', '/marketing/deployments', 'Preview, validate and release with production controls.'],
     ['Bounties', '/marketing/bounties', 'Activate an on-demand developer network to accelerate delivery.'],
     ['Teams', '/marketing/teams', 'Enterprise controls, compliance and insights for large orgs.'],
+  ],
+  platform: [
+    ['Apps', '/apps', 'Imported app catalog for internal tools, SaaS projects and AI workflows.'],
+    ['New project', '/new', 'Start a project from prompt, template, GitHub or imported design.'],
+    ['AI Agent Studio', '/ai-agent/studio', 'Plan, supervise and validate AI agent work.'],
+    ['GitHub Import', '/github-import', 'Bring repositories into E-Code with dependency and preview setup.'],
+    ['Runtimes', '/runtimes', 'Choose browser, remote and deployment runtime paths.'],
+    ['Runtime Diagnostics', '/runtime-diagnostics', 'Inspect install, server, port and preview health.'],
+    ['Database', '/database', 'Design schemas, migrations and data-backed generated apps.'],
+    ['Object Storage', '/object-storage', 'Handle uploads, generated assets and public media.'],
+    ['KV Store', '/kv-store', 'Use lightweight state for sessions, flags and edge workflows.'],
+    ['Console', '/console', 'Review commands, logs and operational status.'],
+    ['Shell', '/shell', 'Run controlled project commands with clear recovery paths.'],
+    ['Packages', '/packages', 'Track workspace packages, dependency versions and installs.'],
+    ['Security Scanner', '/security-scanner', 'Scan code, dependencies and configuration before release.'],
+    ['Authentication', '/authentication', 'Plan passwords, OAuth, sessions and enterprise SSO.'],
+    ['Workflows', '/workflows', 'Automate generation, validation, review and release preparation.'],
+    ['Extensions', '/extensions', 'Extend workspaces with approved tools and capabilities.'],
+    ['Integrations', '/integrations', 'Connect source control, providers, data and operational systems.'],
+    ['Networking', '/networking', 'Manage ports, preview URLs, domains and secure connectivity.'],
+    ['Advanced Mobile', '/advanced/mobile', 'Deep mobile delivery guidance for app and IDE surfaces.'],
+    ['Advanced SSO', '/advanced/sso', 'Enterprise identity architecture and role mapping.'],
   ],
   solutions: [
     ['App Builder', '/solutions/app-builder', 'Rapidly prototype and deploy full-stack applications.'],
@@ -158,6 +181,11 @@ export const publicMarketingMenus = {
     ['Case Studies', '/case-studies', 'Enterprise success patterns and delivery evidence.'],
     ['Help Center', '/help-center', 'FAQs, troubleshooting and support.'],
     ['Status', '/status', 'Operational status and incident visibility.'],
+    ['Learn', '/learn', 'Structured paths for prompt-to-app delivery and runtime operations.'],
+    ['API SDK', '/api-sdk', 'Typed platform interfaces for integrations and automation.'],
+    ['Performance', '/performance', 'Guidance for fast previews, bundles and responsive apps.'],
+    ['Themes', '/themes', 'Dark default, light mode and generated UI styling guidance.'],
+    ['Advanced Search', '/search-advanced', 'Search projects, docs, files, templates and agent context.'],
   ],
   company: [
     ['About', '/about', 'Learn about the platform mission and product direction.'],
@@ -185,15 +213,35 @@ export const publicFooterColumns: readonly FooterColumn[] = [
     ],
   },
   {
+    title: 'Platform',
+    links: [
+      ['Apps', '/apps'],
+      ['New project', '/new'],
+      ['AI Agent Studio', '/ai-agent/studio'],
+      ['GitHub Import', '/github-import'],
+      ['Runtimes', '/runtimes'],
+      ['Diagnostics', '/runtime-diagnostics'],
+      ['Database', '/database'],
+      ['Object storage', '/object-storage'],
+      ['KV Store', '/kv-store'],
+      ['Console', '/console'],
+      ['Security scanner', '/security-scanner'],
+      ['Integrations', '/integrations'],
+    ],
+  },
+  {
     title: 'Resources',
     links: [
       ['Docs', '/docs'],
       ['AI Documentation', '/ai-documentation'],
       ['Tutorials', '/tutorials'],
+      ['Learn', '/learn'],
+      ['API SDK', '/api-sdk'],
       ['Blog', '/blog'],
       ['Templates', '/templates'],
       ['Marketplace', '/marketplace'],
       ['Explore', '/explore'],
+      ['Performance', '/performance'],
       ['Changelog', '/changelog'],
       ['Status', '/status'],
       ['Community', '/community'],
@@ -380,6 +428,7 @@ function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
 function PublicMarketingHeader() {
   const mobileItems = [
     ...publicMarketingMenus.product,
+    ...publicMarketingMenus.platform,
     ...publicMarketingMenus.solutions,
     ...publicMarketingMenus.resources,
     ...publicMarketingMenus.company,
@@ -403,6 +452,7 @@ function PublicMarketingHeader() {
           </Link>
           <div className="vc-public-desktop-nav" aria-label="Public navigation">
             <MarketingMenu label="Product" items={publicMarketingMenus.product} icon={Sparkles} />
+            <MarketingMenu label="Platform" items={publicMarketingMenus.platform} icon={Command} />
             <MarketingMenu label="Solutions" items={publicMarketingMenus.solutions} icon={Rocket} />
             <MarketingMenu label="Resources" items={publicMarketingMenus.resources} icon={BookOpen} />
             <MarketingMenu label="Company" items={publicMarketingMenus.company} icon={ShieldCheck} />
