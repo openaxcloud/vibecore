@@ -9,10 +9,7 @@ function mobileBottomNavigation(page: import('@playwright/test').Page) {
   return page.getByTestId('mobile-bottom-navigation');
 }
 
-async function clickFirstVisible(
-  candidates: import('@playwright/test').Locator[],
-  options: { timeout?: number } = {},
-) {
+async function clickFirstVisible(candidates: import('@playwright/test').Locator[], options: { timeout?: number } = {}) {
   const deadline = Date.now() + (options.timeout ?? 15_000);
 
   while (Date.now() < deadline) {
@@ -82,7 +79,10 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page) {
 
       return moreMenu;
     } catch {
-      await page.getByTestId('mobile-more-menu-backdrop').click({ force: true }).catch(() => undefined);
+      await page
+        .getByTestId('mobile-more-menu-backdrop')
+        .click({ force: true })
+        .catch(() => undefined);
     }
   }
 
@@ -107,7 +107,10 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page) {
 
       return toolsSheet;
     } catch {
-      await page.getByTestId('tools-sheet-close').click({ force: true }).catch(() => undefined);
+      await page
+        .getByTestId('tools-sheet-close')
+        .click({ force: true })
+        .catch(() => undefined);
     }
   }
 
@@ -127,6 +130,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   let responseText = '';
   let payload: { token: string; organization: { id: string } } | undefined;
 
@@ -173,6 +177,7 @@ async function authenticate(page: import('@playwright/test').Page) {
 async function createTestProject(page: import('@playwright/test').Page, name: string) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const auth = await authenticate(page);
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name },
@@ -203,45 +208,115 @@ async function createTestProject(page: import('@playwright/test').Page, name: st
 test.describe('responsive IDE shell', () => {
   test('desktop keeps the full IDE workspace available', async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive desktop project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45000 });
+    await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
+    await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
 
     const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
     const viewport = page.viewportSize();
     expect(agentBox?.width).toBeGreaterThan(260);
     expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+
+    await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').hover();
+    await expect(page.locator('.bolt-project-tooltip-content').filter({ hasText: /Files/ }).last()).toBeVisible({
+      timeout: 5000,
+    });
+    await page.keyboard.press('Escape');
+
+    const desktopSizes = [
+      { width: 1200, height: 720 },
+      { width: 1440, height: 900 },
+      { width: 1728, height: 960 },
+    ];
+
+    for (const size of desktopSizes) {
+      await page.setViewportSize(size);
+      await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible({ timeout: 5000 });
+
+      const metrics = await page.locator('.bolt-project-ide-panels').evaluate(() => {
+        const readRect = (selector: string) => {
+          const element = document.querySelector(selector);
+
+          if (!element) {
+            throw new Error(`Missing ${selector}`);
+          }
+
+          const box = element.getBoundingClientRect();
+
+          return {
+            top: Math.round(box.top),
+            right: Math.round(box.right),
+            bottom: Math.round(box.bottom),
+            left: Math.round(box.left),
+            width: Math.round(box.width),
+            height: Math.round(box.height),
+          };
+        };
+
+        return {
+          viewport: { width: window.innerWidth, height: window.innerHeight },
+          documentWidth: document.documentElement.scrollWidth,
+          panelGroup: readRect('.bolt-project-panel-group'),
+          rail: readRect('.bolt-project-ide-rail'),
+          statusbar: readRect('.bolt-project-statusbar'),
+          agent: readRect('.bolt-project-agent-shell'),
+          workspace: readRect('.bolt-project-workspace-shell'),
+          rightPanel: readRect('.bolt-project-right-panel-shell'),
+        };
+      });
+
+      expect(metrics.documentWidth).toBeLessThanOrEqual(metrics.viewport.width + 1);
+      expect(metrics.panelGroup.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
+      expect(metrics.rail.bottom).toBeLessThanOrEqual(metrics.statusbar.top);
+      expect(metrics.statusbar.left).toBe(metrics.panelGroup.left);
+      expect(metrics.workspace.width).toBeGreaterThan(320);
+      expect(metrics.rightPanel.width).toBeGreaterThanOrEqual(160);
+    }
   });
 
   test('desktop can collapse and restore the right preview panel', async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive files toggle project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
 
-    const filesToggle = page.getByTestId('ide-files-panel-toggle');
-    await expect(filesToggle).toBeVisible();
-    await expect(filesToggle).toHaveAttribute('aria-label', 'Close right panel');
-    await filesToggle.click();
+    const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
+    await expect(filesPanelToggle).toBeVisible();
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+
+    await filesPanelToggle.click();
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+
+    await filesPanelToggle.click();
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+
+    await page.getByRole('button', { name: 'Close right panel' }).click();
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
-    await expect(filesToggle).toHaveAttribute('aria-label', 'Open right panel');
-    await filesToggle.click();
+    await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').click();
     await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
   });
 
   test('desktop opens terminal as a workspace panel from the panel URL', async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+    test.setTimeout(120_000);
 
     const projectId = await createTestProject(page, 'Responsive terminal panel project');
 
@@ -258,6 +333,7 @@ test.describe('responsive IDE shell', () => {
     const projectId = await createTestProject(page, 'Responsive mobile project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
 
@@ -273,13 +349,16 @@ test.describe('responsive IDE shell', () => {
     const projectId = await createTestProject(page, 'Responsive mobile status project');
 
     await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
+
     const metrics = await page.evaluate(() => {
       const navElement = document.querySelector('.bolt-mobile-replit-nav');
       const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
       const nav = navElement?.getBoundingClientRect();
       const status = statusElement?.getBoundingClientRect();
+
       const statusVisible =
         statusElement instanceof HTMLElement &&
         getComputedStyle(statusElement).display !== 'none' &&
@@ -307,6 +386,7 @@ test.describe('responsive IDE shell', () => {
     const projectId = await createTestProject(page, 'Responsive mobile persistence project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
     await page.getByTestId('tab-preview').tap();
@@ -340,6 +420,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
       timeout: 45000,
     });
+
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
     await expect(databasePanel).toBeVisible({ timeout: 45000 });
     await expect(databasePanel.getByText(/Loading database from backend/i)).toHaveCount(0, { timeout: 45000 });
@@ -350,6 +431,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {
       timeout: 45000,
     });
+
     const securityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="security"]').first();
     await expect(securityPanel).toBeVisible({ timeout: 15000 });
     await expect(securityPanel.getByRole('button', { name: 'Run full scan' })).toBeVisible();
@@ -387,6 +469,7 @@ test.describe('responsive IDE shell', () => {
       const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
       const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
       const status = statusElement?.getBoundingClientRect();
+
       const statusVisible =
         statusElement instanceof HTMLElement &&
         getComputedStyle(statusElement).display !== 'none' &&
@@ -430,6 +513,7 @@ test.describe('responsive IDE shell', () => {
       const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
       const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
       const status = statusElement?.getBoundingClientRect();
+
       const statusVisible =
         statusElement instanceof HTMLElement &&
         getComputedStyle(statusElement).display !== 'none' &&
@@ -457,6 +541,7 @@ test.describe('responsive IDE shell', () => {
     const projectId = await createTestProject(page, 'Responsive mobile editor project');
 
     await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+
     const mobileNav = page.getByRole('navigation', { name: 'IDE panels' });
     await expect(mobileNav).toBeVisible({ timeout: 15000 });
 
@@ -495,6 +580,7 @@ test.describe('responsive IDE shell', () => {
       const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
       const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
       const status = statusElement?.getBoundingClientRect();
+
       const statusVisible =
         statusElement instanceof HTMLElement &&
         getComputedStyle(statusElement).display !== 'none' &&
@@ -542,6 +628,7 @@ test.describe('responsive IDE shell', () => {
     ] as const) {
       await expect(moreMenu.getByTestId(`mobile-more-menu-${itemId}`)).toContainText(label, { timeout: 15_000 });
     }
+
     for (const legacyLabel of ['Publishing', 'App Storage', 'Debug', 'History', 'Checkpoints', 'Multiplayer']) {
       await expect(moreMenu.getByText(legacyLabel, { exact: true })).toHaveCount(0);
     }
@@ -551,6 +638,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
 
     const toolsSheet = await openMobileToolsSheet(page);
+
     for (const toolId of [
       'overview',
       'deployments',
@@ -565,6 +653,7 @@ test.describe('responsive IDE shell', () => {
     ]) {
       await expect(page.getByTestId(`tool-item-${toolId}`)).toBeVisible();
     }
+
     for (const legacyLabel of ['Publishing', 'App Storage', 'Auth', 'Console', 'Shell', 'Key-Value Store']) {
       await expect(toolsSheet.getByText(legacyLabel, { exact: true })).toHaveCount(0);
     }

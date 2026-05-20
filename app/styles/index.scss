@@ -365,6 +365,8 @@ body {
   --vc-ide-text-primary: #111827;
   --vc-ide-text-secondary: #334155;
   --vc-ide-text-muted: #475569;
+  --vc-file-tree-foreground: #36373b;
+  --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-ai-start: #6d5dfc;
   --vc-ide-accent-ai-end: #d9467e;
   --vc-ide-accent-success: #17803d;
@@ -482,6 +484,8 @@ body {
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   --vc-ide-text-muted: #6e7681;
+  --vc-file-tree-foreground: var(--vc-ide-text-secondary);
+  --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-ai-start: #7b61ff;
   --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
@@ -2628,6 +2632,7 @@ body
 }
 
 body :where([role='tooltip'], .tooltip, .vc-tooltip, .cm-tooltip, [data-radix-tooltip-content]) {
+  z-index: 2500;
   border: 1px solid var(--vc-ui-tooltip-border);
   background: var(--vc-ui-tooltip-bg);
   color: var(--vc-ide-text-primary);
@@ -2639,6 +2644,25 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   fill: var(--vc-ui-tooltip-bg);
 }
 
+.bolt-project-tooltip-content {
+  z-index: 2500;
+  max-width: min(280px, calc(100vw - 32px));
+  border: 1px solid var(--vc-ui-tooltip-border);
+  border-radius: 8px;
+  background: var(--vc-ui-tooltip-bg);
+  color: var(--vc-ide-text-primary);
+  padding: 8px 10px;
+  box-shadow: var(--vc-ui-shadow-lg);
+  font-size: var(--vc-ui-tooltip-text-size) !important;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.bolt-project-tooltip-arrow {
+  fill: var(--vc-ui-tooltip-bg);
+}
+
 .bolt-responsive-ide
   :where(button, [role='button'], [role='tab'], [role='separator'], input, select, textarea):focus-visible {
   outline: 2px solid var(--vc-ide-accent-action);
@@ -2646,15 +2670,17 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
 }
 
-.bolt-responsive-ide :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip] {
+.bolt-responsive-ide
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+    [data-vc-radix-tooltip='true']
+  ) {
   position: relative;
 }
 
 .bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(
-    :hover,
-    :focus-visible
-  )::after {
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+    [data-vc-radix-tooltip='true']
+  ):where(:hover, :focus-visible)::after {
   position: absolute;
   z-index: 2500;
   bottom: calc(100% + 8px);
@@ -2677,10 +2703,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 .bolt-responsive-ide
-  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:where(
-    :hover,
-    :focus-visible
-  )::before {
+  :where(button, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
+    [data-vc-radix-tooltip='true']
+  ):where(:hover, :focus-visible)::before {
   position: absolute;
   z-index: 2501;
   bottom: calc(100% + 3px);
@@ -4075,7 +4100,11 @@ body :where(.lucide, svg[data-lucide]) {
 
 :root {
   --vc-ide-topbar-height: 36px;
+  --vc-ide-statusbar-height: 32px;
   --vc-ide-topbar-padding-inline: clamp(10px, 1vw + 6px, 18px);
+  --project-ide-rail-width: 56px;
+  --vc-file-tree-foreground: var(--vc-ide-text-secondary);
+  --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
 }
 
 .bolt-project-topbar {
@@ -4607,6 +4636,99 @@ body :where(.lucide, svg[data-lucide]) {
   outline: none;
 }
 
+@media (min-width: 1200px) and (max-width: 1360px) {
+  .bolt-project-breadcrumb-kicker {
+    display: none;
+  }
+
+  .bolt-project-breadcrumb-workspace {
+    max-width: min(12vw, 128px);
+  }
+
+  .bolt-project-breadcrumb-branch {
+    max-width: min(10vw, 96px);
+  }
+
+  .bolt-project-action-group--collaborate {
+    display: none;
+  }
+
+  .bolt-project-run-button {
+    padding-inline: 14px;
+  }
+
+  .bolt-project-publish-button {
+    padding-inline: 10px;
+  }
+
+  .bolt-project-agent-mode-bar {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .bolt-project-agent-mode-toggles {
+    gap: 6px;
+  }
+
+  .bolt-project-agent-mode-bar .bolt-project-agent-plan-first-label {
+    max-width: 132px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (min-width: 1600px) and (min-height: 800px) {
+  .bolt-responsive-ide-desktop {
+    --project-ide-rail-width: 72px;
+  }
+
+  .bolt-project-ide-rail-item {
+    min-height: 50px;
+    gap: 4px;
+  }
+
+  .bolt-project-ide-rail-label {
+    position: static;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    overflow: hidden;
+    clip: auto;
+    clip-path: none;
+    color: currentcolor;
+    font-size: 9px !important;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1920px) and (min-height: 900px) {
+  .bolt-responsive-ide-desktop {
+    --project-ide-rail-width: 84px;
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 760px) {
+  .bolt-project-ide-rail {
+    padding: 5px;
+  }
+
+  .bolt-project-ide-rail-item {
+    min-height: 38px;
+  }
+
+  .bolt-project-agent-header {
+    height: 40px;
+    padding: 6px 10px;
+  }
+
+  .bolt-project-agent-mode-bar {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+}
+
 @media (max-width: 960px) {
   .bolt-project-breadcrumb-workspace {
     max-width: min(16vw, 140px);
@@ -4832,8 +4954,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-panels {
   --project-agent-width: 420px;
-  --project-agent-min-width: 400px;
-  --project-ide-rail-width: 56px;
+  --project-agent-min-width: 340px;
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -4844,11 +4965,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-panel-group {
   position: fixed;
-  top: 36px;
+  top: var(--vc-ide-topbar-height);
   right: 0;
-  bottom: 0;
+  bottom: var(--vc-ide-statusbar-height);
   left: calc(var(--project-ide-rail-width) + 1px);
   z-index: 35;
+  width: auto !important;
+  height: auto !important;
   min-width: 0;
   min-height: 0;
   background: var(--vc-ide-bg-app);
@@ -5927,8 +6050,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail {
   position: fixed;
-  top: 36px;
-  bottom: 28px;
+  top: var(--vc-ide-topbar-height);
+  bottom: var(--vc-ide-statusbar-height);
   left: 0;
   z-index: 36;
   display: flex;
@@ -6016,10 +6139,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail
-  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:where(
-    :hover,
-    :focus-visible
-  )::after {
+  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:not(
+    [data-vc-radix-tooltip='true']
+  ):where(:hover, :focus-visible)::after {
   top: 50%;
   bottom: auto;
   left: calc(100% + 10px);
@@ -6028,10 +6150,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-ide-rail
-  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:where(
-    :hover,
-    :focus-visible
-  )::before {
+  :where(.bolt-project-ide-rail-item, .bolt-project-ide-rail-more-trigger)[data-vc-tooltip]:not(
+    [data-vc-radix-tooltip='true']
+  ):where(:hover, :focus-visible)::before {
   top: 50%;
   bottom: auto;
   left: calc(100% + 5px);
@@ -6139,7 +6260,7 @@ body :where(.lucide, svg[data-lucide]) {
   position: relative;
   width: 100%;
   height: 100%;
-  padding-bottom: 23px;
+  padding-bottom: 0;
   box-sizing: border-box;
   display: flex;
   min-width: 0;
@@ -7287,7 +7408,7 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   min-height: 0;
   background: var(--vc-ide-bg-panel);
-  color: #36373b;
+  color: var(--vc-file-tree-foreground);
   font-size: 14px;
   font-weight: 400;
   padding-right: 10px;
@@ -7306,7 +7427,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 4px;
   padding: 0;
   box-sizing: border-box;
-  color: #36373b;
+  color: var(--vc-file-tree-foreground);
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
@@ -7314,12 +7435,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-file-tree .bolt-file-tree-node:hover {
   background: var(--vc-ide-bg-hover);
-  color: #36373b;
+  color: var(--vc-file-tree-foreground-hover);
 }
 
 .bolt-project-file-tree .bolt-project-file-selected {
   background: color-mix(in srgb, var(--vc-ide-bg-hover), var(--vc-ide-accent-orange) 8%);
-  color: #36373b;
+  color: var(--vc-file-tree-foreground-hover);
 }
 
 .bolt-file-tree-icon-wrap {
@@ -7327,14 +7448,14 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 16px;
   height: 16px;
   align-items: center;
-  color: #36373b;
+  color: var(--vc-file-tree-foreground);
   box-sizing: content-box;
 }
 
 .bolt-file-tree-icon-wrap [class*='i-ph:'] {
   width: 16px;
   height: 16px;
-  color: #36373b;
+  color: var(--vc-file-tree-foreground);
   font-size: 16px;
 }
 
@@ -7342,13 +7463,22 @@ body :where(.lucide, svg[data-lucide]) {
   display: block;
   min-width: 0;
   max-width: 100%;
-  color: #36373b;
+  color: var(--vc-file-tree-foreground);
   font-size: 14px;
   font-weight: 400;
   line-height: normal;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.bolt-project-file-tree .bolt-file-tree-node:hover .bolt-file-tree-name,
+.bolt-project-file-tree .bolt-file-tree-node:hover .bolt-file-tree-icon-wrap,
+.bolt-project-file-tree .bolt-file-tree-node:hover .bolt-file-tree-icon-wrap [class*='i-ph:'],
+.bolt-project-file-tree .bolt-project-file-selected .bolt-file-tree-name,
+.bolt-project-file-tree .bolt-project-file-selected .bolt-file-tree-icon-wrap,
+.bolt-project-file-tree .bolt-project-file-selected .bolt-file-tree-icon-wrap [class*='i-ph:'] {
+  color: var(--vc-file-tree-foreground-hover);
 }
 
 .bolt-project-editor-tool,
@@ -12035,10 +12165,11 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   right: 0;
   bottom: 0;
-  left: calc(var(--project-ide-rail-width, 72px) + var(--project-agent-statusbar-left-offset, 0px) + 1px);
+  left: calc(var(--project-ide-rail-width, 72px) + 1px);
   z-index: 40;
   display: flex;
-  min-height: 32px;
+  height: var(--vc-ide-statusbar-height);
+  min-height: var(--vc-ide-statusbar-height);
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--vc-ide-border-subtle);

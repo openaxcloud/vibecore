@@ -36,6 +36,7 @@ import {
   extractRelativePath,
   type ReviewableDiffHunk,
 } from '~/utils/diff';
+import { dropFailedPatchLogsForPath } from '~/utils/agent-patch-logs';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -808,6 +809,14 @@ export class WorkbenchStore {
     this.workspaceLogs.set([...this.workspaceLogs.get(), ...lines].slice(-WORKSPACE_LOG_LIMIT));
   }
 
+  #dropResolvedAgentPatchLogs(relativePath: string) {
+    const nextLogs = dropFailedPatchLogsForPath(this.workspaceLogs.get(), relativePath);
+
+    if (nextLogs) {
+      this.workspaceLogs.set(nextLogs);
+    }
+  }
+
   addToExecutionQueue(callback: () => Promise<void>) {
     this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
   }
@@ -1110,6 +1119,7 @@ export class WorkbenchStore {
       updatedAt: new Date().toISOString(),
     });
     this.#syncAgentPatchProposalToServer(proposalId);
+    this.#dropResolvedAgentPatchLogs(proposal.relativePath);
     this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
   }
 
@@ -1205,6 +1215,7 @@ export class WorkbenchStore {
         artifactId: proposal.artifactId,
         actionId: proposal.actionId,
       });
+      this.#dropResolvedAgentPatchLogs(proposal.relativePath);
       this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
       await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {

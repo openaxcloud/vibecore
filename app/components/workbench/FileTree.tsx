@@ -1029,7 +1029,6 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           'i-ph:caret-right scale-98': collapsed,
           'i-ph:caret-down scale-98': !collapsed,
         })}
-        iconStyle={{ color: '#36373B' }}
         title={folder.fullPath}
         onClick={onClick}
       >
@@ -1138,7 +1137,6 @@ function File({
         iconClasses={classNames(materialFileIcon(name).icon, 'scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
-        iconStyle={{ color: '#36373B' }}
         title={fullPath}
         onClick={onClick}
         onDoubleClick={onDoubleClick}

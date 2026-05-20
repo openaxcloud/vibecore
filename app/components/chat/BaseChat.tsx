@@ -1702,16 +1702,18 @@ function HeaderTip({
   children: React.ReactElement;
   side?: 'top' | 'bottom' | 'left' | 'right';
 }) {
+  const trigger = React.cloneElement(children, {
+    'data-vc-radix-tooltip': 'true',
+    title: children.props.title ?? label,
+  });
+
   return (
     <Tooltip.Root>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Tooltip.Trigger asChild>{trigger}</Tooltip.Trigger>
       <Tooltip.Portal>
-        <Tooltip.Content
-          side={side}
-          sideOffset={6}
-          className="z-[80] max-w-[240px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-1 text-[11px] font-medium leading-tight text-bolt-elements-textPrimary shadow-md"
-        >
+        <Tooltip.Content side={side} sideOffset={8} collisionPadding={12} className="bolt-project-tooltip-content">
           {label}
+          <Tooltip.Arrow className="bolt-project-tooltip-arrow" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>
@@ -2280,6 +2282,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setMobileToolsQuery('');
       }
     }, [useMobileIde]);
+
+    useEffect(() => {
+      if (!useMobileIde || (!mobileMoreOpen && !mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
+        return undefined;
+      }
+
+      const handleMobileOverlayEscape = (event: KeyboardEvent) => {
+        if (event.key !== 'Escape') {
+          return;
+        }
+
+        setMobileMoreOpen(false);
+        setMobileToolsSheetOpen(false);
+        setMobileTabSwitcherOpen(false);
+      };
+
+      window.addEventListener('keydown', handleMobileOverlayEscape);
+
+      return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
+    }, [mobileMoreOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -2992,7 +3014,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         eventSource.onerror = () => {
           if (!cancelled) {
-            console.error('Project IDE overview stream disconnected; falling back to slow refresh.');
+            console.warn('Project IDE overview stream disconnected; falling back to slow refresh.');
             eventSource?.close();
             startFallbackPolling();
           }
@@ -3601,19 +3623,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
     }, []);
 
+    const openProjectFilesPanel = useCallback(() => {
+      setRightPanelMode('files');
+      setRightPanelOpen(true);
+      workbenchStore.projectFilesPanelOpen.set(true);
+      setProjectPanelSearchParam('files');
+    }, [setProjectPanelSearchParam]);
+
     const openIdeTool = useCallback(
       (panel: IdeWorkspacePanel | IdeRightPanel, paneId = activePaneId) => {
         if (isIdeRightPanel(panel)) {
-          setRightPanelMode('files');
-          setRightPanelOpen(true);
-          setProjectPanelSearchParam(panel);
+          openProjectFilesPanel();
 
           return;
         }
 
         openWorkspacePanel(panel, { paneId });
       },
-      [activePaneId, openWorkspacePanel, setProjectPanelSearchParam],
+      [activePaneId, openProjectFilesPanel, openWorkspacePanel],
     );
 
     const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
@@ -4303,7 +4330,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setModelList(typedData.modelList);
           })
           .catch((error) => {
-            console.error('Error fetching model list:', error);
+            console.warn('Error fetching model list:', error);
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -4325,7 +4352,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const data = await response.json();
         providerModels = (data as { modelList: ModelInfo[] }).modelList;
       } catch (error) {
-        console.error('Error loading dynamic models for:', providerName, error);
+        console.warn('Error loading dynamic models for:', providerName, error);
       }
 
       // Only update models for the specific provider
@@ -5424,25 +5451,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
       return (
-        <button
-          key={item.panel}
-          type="button"
-          className="bolt-project-ide-rail-item"
-          aria-current={active ? 'page' : undefined}
-          aria-label={formatRailItemLabel(item.label, badgeLabel)}
-          title={tooltip}
-          data-vc-tooltip={tooltip}
-          data-tone={item.tone}
-          onClick={() => openIdeTool(item.panel)}
-        >
-          <span className={item.icon} aria-hidden />
-          <span className="bolt-project-ide-rail-label">{item.label}</span>
-          {item.badge ? (
-            <span className="bolt-project-ide-rail-badge" aria-hidden>
-              {formatRailBadgeValue(item.badge)}
-            </span>
-          ) : null}
-        </button>
+        <HeaderTip key={item.panel} label={tooltip} side="right">
+          <button
+            type="button"
+            className="bolt-project-ide-rail-item"
+            aria-current={active ? 'page' : undefined}
+            aria-label={formatRailItemLabel(item.label, badgeLabel)}
+            title={tooltip}
+            data-vc-tooltip={tooltip}
+            data-tone={item.tone}
+            onClick={() => openIdeTool(item.panel)}
+          >
+            <span className={item.icon} aria-hidden />
+            <span className="bolt-project-ide-rail-label">{item.label}</span>
+            {item.badge ? (
+              <span className="bolt-project-ide-rail-badge" aria-hidden>
+                {formatRailBadgeValue(item.badge)}
+              </span>
+            ) : null}
+          </button>
+        </HeaderTip>
       );
     };
 

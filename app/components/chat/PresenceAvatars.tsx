@@ -54,9 +54,9 @@ export const PresenceAvatars = memo(({ entries, maxVisible = 4 }: PresenceAvatar
 
   return (
     <div className="bolt-presence-avatars" role="group" aria-label={`${entries.length} viewers`}>
-      {visible.map((entry) => (
+      {visible.map((entry, index) => (
         <div
-          key={entry.userId}
+          key={`${entry.userId}:${entry.status}:${entry.lastSeenAt}:${index}`}
           className="bolt-presence-avatar"
           data-status={entry.status}
           title={`${entry.name} (${STATUS_LABEL[entry.status]})`}

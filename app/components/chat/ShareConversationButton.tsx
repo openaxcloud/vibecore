@@ -13,7 +13,7 @@
  */
 
 import type { Message } from 'ai';
-import { memo, useCallback } from 'react';
+import { forwardRef, memo, useCallback } from 'react';
 import { toast } from 'react-toastify';
 
 import { useShareLink } from '~/lib/hooks/useShareLink';
@@ -30,69 +30,64 @@ export interface ShareConversationButtonProps {
 }
 
 export const ShareConversationButton = memo(
-  ({
-    conversationId,
-    projectId,
-    authorUserId,
-    title,
-    messages,
-    allowFork,
-    className,
-  }: ShareConversationButtonProps) => {
-    const share = useShareLink();
+  forwardRef<HTMLButtonElement, ShareConversationButtonProps>(
+    ({ conversationId, projectId, authorUserId, title, messages, allowFork, className }, ref) => {
+      const share = useShareLink();
 
-    const handleClick = useCallback(async () => {
-      const url = share.build({
-        conversationId,
-        projectId,
-        authorUserId,
-        title,
-        messages,
-        allowFork,
-      });
+      const handleClick = useCallback(async () => {
+        const url = share.build({
+          conversationId,
+          projectId,
+          authorUserId,
+          title,
+          messages,
+          allowFork,
+        });
 
-      if (!url) {
-        const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorCouldNotBuild');
-        toast.error(message);
+        if (!url) {
+          const message = share.state.kind === 'error' ? share.state.message : t('shareButton.errorCouldNotBuild');
+          toast.error(message);
 
-        return;
-      }
+          return;
+        }
 
-      /*
-       * Write directly to the clipboard with the freshly-built URL —
-       * share.copyToClipboard reads the hook's React state which is
-       * still 'idle' inside this click handler's closure (the
-       * setState in build() doesn't flush mid-callback).
-       */
-      if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-        toast.error(t('shareButton.errorClipboard'));
-        return;
-      }
+        /*
+         * Write directly to the clipboard with the freshly-built URL —
+         * share.copyToClipboard reads the hook's React state which is
+         * still 'idle' inside this click handler's closure (the
+         * setState in build() doesn't flush mid-callback).
+         */
+        if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+          toast.error(t('shareButton.errorClipboard'));
+          return;
+        }
 
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success(t('shareButton.copiedToast'));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : t('shareButton.errorClipboard');
-        toast.error(message);
-      }
-    }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success(t('shareButton.copiedToast'));
+        } catch (error) {
+          const message = error instanceof Error ? error.message : t('shareButton.errorClipboard');
+          toast.error(message);
+        }
+      }, [allowFork, authorUserId, conversationId, messages, projectId, share, title]);
 
-    const disabled = messages.length === 0;
+      const disabled = messages.length === 0;
 
-    return (
-      <button
-        type="button"
-        className={className}
-        onClick={handleClick}
-        disabled={disabled}
-        aria-label={t('shareButton.label')}
-        title={disabled ? t('shareButton.disabled') : t('shareButton.enabled')}
-      >
-        <span className="i-ph:share-network" aria-hidden />
-      </button>
-    );
-  },
+      return (
+        <button
+          ref={ref}
+          type="button"
+          className={className}
+          onClick={handleClick}
+          disabled={disabled}
+          aria-label={t('shareButton.label')}
+          title={disabled ? t('shareButton.disabled') : t('shareButton.enabled')}
+        >
+          <span className="i-ph:share-network" aria-hidden />
+        </button>
+      );
+    },
+  ),
 );
 
 ShareConversationButton.displayName = 'ShareConversationButton';

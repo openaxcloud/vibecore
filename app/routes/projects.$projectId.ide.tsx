@@ -401,6 +401,16 @@ function IdeProjectTopBar({
     }
   };
 
+  const toggleFilesPanel = (open: boolean) => {
+    const detail = { open };
+
+    workbenchStore.projectFilesPanelOpen.set(open);
+    workbenchStore.requestProjectFilesPanel(open);
+    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
+  };
+
+  const filesPanelToggleLabel = filesPanelOpen ? 'Close files panel' : 'Open files panel';
+
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
       <div className="bolt-project-topbar-left">
@@ -567,6 +577,18 @@ function IdeProjectTopBar({
         >
           <button
             type="button"
+            data-testid="ide-files-panel-toggle"
+            className={filesPanelOpen ? 'bolt-project-topbar-icon-button is-active' : 'bolt-project-topbar-icon-button'}
+            aria-label={filesPanelToggleLabel}
+            aria-pressed={filesPanelOpen}
+            title={filesPanelToggleLabel}
+            data-vc-tooltip={filesPanelToggleLabel}
+            onClick={() => toggleFilesPanel(!filesPanelOpen)}
+          >
+            <Files className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button
+            type="button"
             className="bolt-project-topbar-icon-button"
             aria-label="More topbar actions"
             aria-haspopup="menu"
@@ -651,19 +673,6 @@ function IdeProjectTopBar({
                     {visibleCollaborators.length} collaborator{visibleCollaborators.length === 1 ? '' : 's'}
                   </span>
                 </Link>
-                <button
-                  type="button"
-                  className="bolt-project-overflow-item"
-                  onClick={() => {
-                    const detail = { open: !filesPanelOpen };
-                    workbenchStore.requestProjectFilesPanel(detail.open);
-                    window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
-                    setOverflowMenuOpen(false);
-                  }}
-                >
-                  <Files className="h-3.5 w-3.5" aria-hidden />
-                  <span>{filesPanelOpen ? 'Close files panel' : 'Open files panel'}</span>
-                </button>
                 <Link
                   to="/account-settings"
                   className="bolt-project-overflow-item"
