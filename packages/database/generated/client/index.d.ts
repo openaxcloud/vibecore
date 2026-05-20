@@ -346,6 +346,41 @@ export type ConsensusRecord = $Result.DefaultSelection<Prisma.$ConsensusRecordPa
  * replicas — replacing the file-backed JsonWorkspaceStore.
  */
 export type WorkspaceRuntime = $Result.DefaultSelection<Prisma.$WorkspaceRuntimePayload>
+/**
+ * Model ConnectorCatalog
+ * 
+ */
+export type ConnectorCatalog = $Result.DefaultSelection<Prisma.$ConnectorCatalogPayload>
+/**
+ * Model UserConnection
+ * 
+ */
+export type UserConnection = $Result.DefaultSelection<Prisma.$UserConnectionPayload>
+/**
+ * Model ProjectConnectionLink
+ * 
+ */
+export type ProjectConnectionLink = $Result.DefaultSelection<Prisma.$ProjectConnectionLinkPayload>
+/**
+ * Model OrganizationOAuthAppOverride
+ * 
+ */
+export type OrganizationOAuthAppOverride = $Result.DefaultSelection<Prisma.$OrganizationOAuthAppOverridePayload>
+/**
+ * Model OrganizationConnectorPolicy
+ * 
+ */
+export type OrganizationConnectorPolicy = $Result.DefaultSelection<Prisma.$OrganizationConnectorPolicyPayload>
+/**
+ * Model ReconnectionAlert
+ * 
+ */
+export type ReconnectionAlert = $Result.DefaultSelection<Prisma.$ReconnectionAlertPayload>
+/**
+ * Model IntegrationFeatureRequest
+ * 
+ */
+export type IntegrationFeatureRequest = $Result.DefaultSelection<Prisma.$IntegrationFeatureRequestPayload>
 
 /**
  * Enums
@@ -1275,6 +1310,76 @@ export class PrismaClient<
     * ```
     */
   get workspaceRuntime(): Prisma.WorkspaceRuntimeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.connectorCatalog`: Exposes CRUD operations for the **ConnectorCatalog** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ConnectorCatalogs
+    * const connectorCatalogs = await prisma.connectorCatalog.findMany()
+    * ```
+    */
+  get connectorCatalog(): Prisma.ConnectorCatalogDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.userConnection`: Exposes CRUD operations for the **UserConnection** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserConnections
+    * const userConnections = await prisma.userConnection.findMany()
+    * ```
+    */
+  get userConnection(): Prisma.UserConnectionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectConnectionLink`: Exposes CRUD operations for the **ProjectConnectionLink** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectConnectionLinks
+    * const projectConnectionLinks = await prisma.projectConnectionLink.findMany()
+    * ```
+    */
+  get projectConnectionLink(): Prisma.ProjectConnectionLinkDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.organizationOAuthAppOverride`: Exposes CRUD operations for the **OrganizationOAuthAppOverride** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more OrganizationOAuthAppOverrides
+    * const organizationOAuthAppOverrides = await prisma.organizationOAuthAppOverride.findMany()
+    * ```
+    */
+  get organizationOAuthAppOverride(): Prisma.OrganizationOAuthAppOverrideDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.organizationConnectorPolicy`: Exposes CRUD operations for the **OrganizationConnectorPolicy** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more OrganizationConnectorPolicies
+    * const organizationConnectorPolicies = await prisma.organizationConnectorPolicy.findMany()
+    * ```
+    */
+  get organizationConnectorPolicy(): Prisma.OrganizationConnectorPolicyDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.reconnectionAlert`: Exposes CRUD operations for the **ReconnectionAlert** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ReconnectionAlerts
+    * const reconnectionAlerts = await prisma.reconnectionAlert.findMany()
+    * ```
+    */
+  get reconnectionAlert(): Prisma.ReconnectionAlertDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.integrationFeatureRequest`: Exposes CRUD operations for the **IntegrationFeatureRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more IntegrationFeatureRequests
+    * const integrationFeatureRequests = await prisma.integrationFeatureRequest.findMany()
+    * ```
+    */
+  get integrationFeatureRequest(): Prisma.IntegrationFeatureRequestDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1773,7 +1878,14 @@ export namespace Prisma {
     AgentRun: 'AgentRun',
     AgentRunResult: 'AgentRunResult',
     ConsensusRecord: 'ConsensusRecord',
-    WorkspaceRuntime: 'WorkspaceRuntime'
+    WorkspaceRuntime: 'WorkspaceRuntime',
+    ConnectorCatalog: 'ConnectorCatalog',
+    UserConnection: 'UserConnection',
+    ProjectConnectionLink: 'ProjectConnectionLink',
+    OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
+    OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
+    ReconnectionAlert: 'ReconnectionAlert',
+    IntegrationFeatureRequest: 'IntegrationFeatureRequest'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1789,7 +1901,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "integrationFeatureRequest"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6587,6 +6699,524 @@ export namespace Prisma {
           }
         }
       }
+      ConnectorCatalog: {
+        payload: Prisma.$ConnectorCatalogPayload<ExtArgs>
+        fields: Prisma.ConnectorCatalogFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ConnectorCatalogFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ConnectorCatalogFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          findFirst: {
+            args: Prisma.ConnectorCatalogFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ConnectorCatalogFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          findMany: {
+            args: Prisma.ConnectorCatalogFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>[]
+          }
+          create: {
+            args: Prisma.ConnectorCatalogCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          createMany: {
+            args: Prisma.ConnectorCatalogCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ConnectorCatalogCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>[]
+          }
+          delete: {
+            args: Prisma.ConnectorCatalogDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          update: {
+            args: Prisma.ConnectorCatalogUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          deleteMany: {
+            args: Prisma.ConnectorCatalogDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ConnectorCatalogUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ConnectorCatalogUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>[]
+          }
+          upsert: {
+            args: Prisma.ConnectorCatalogUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConnectorCatalogPayload>
+          }
+          aggregate: {
+            args: Prisma.ConnectorCatalogAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateConnectorCatalog>
+          }
+          groupBy: {
+            args: Prisma.ConnectorCatalogGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ConnectorCatalogGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ConnectorCatalogCountArgs<ExtArgs>
+            result: $Utils.Optional<ConnectorCatalogCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserConnection: {
+        payload: Prisma.$UserConnectionPayload<ExtArgs>
+        fields: Prisma.UserConnectionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserConnectionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserConnectionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          findFirst: {
+            args: Prisma.UserConnectionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserConnectionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          findMany: {
+            args: Prisma.UserConnectionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>[]
+          }
+          create: {
+            args: Prisma.UserConnectionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          createMany: {
+            args: Prisma.UserConnectionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserConnectionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>[]
+          }
+          delete: {
+            args: Prisma.UserConnectionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          update: {
+            args: Prisma.UserConnectionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          deleteMany: {
+            args: Prisma.UserConnectionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserConnectionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.UserConnectionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>[]
+          }
+          upsert: {
+            args: Prisma.UserConnectionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserConnectionPayload>
+          }
+          aggregate: {
+            args: Prisma.UserConnectionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserConnection>
+          }
+          groupBy: {
+            args: Prisma.UserConnectionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserConnectionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserConnectionCountArgs<ExtArgs>
+            result: $Utils.Optional<UserConnectionCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectConnectionLink: {
+        payload: Prisma.$ProjectConnectionLinkPayload<ExtArgs>
+        fields: Prisma.ProjectConnectionLinkFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectConnectionLinkFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectConnectionLinkFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectConnectionLinkFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectConnectionLinkFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectConnectionLinkFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectConnectionLinkCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectConnectionLinkCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectConnectionLinkCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectConnectionLinkDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          update: {
+            args: Prisma.ProjectConnectionLinkUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectConnectionLinkDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectConnectionLinkUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectConnectionLinkUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectConnectionLinkUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectConnectionLinkPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectConnectionLinkAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectConnectionLink>
+          }
+          groupBy: {
+            args: Prisma.ProjectConnectionLinkGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectConnectionLinkGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectConnectionLinkCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectConnectionLinkCountAggregateOutputType> | number
+          }
+        }
+      }
+      OrganizationOAuthAppOverride: {
+        payload: Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>
+        fields: Prisma.OrganizationOAuthAppOverrideFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.OrganizationOAuthAppOverrideFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.OrganizationOAuthAppOverrideFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          findFirst: {
+            args: Prisma.OrganizationOAuthAppOverrideFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.OrganizationOAuthAppOverrideFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          findMany: {
+            args: Prisma.OrganizationOAuthAppOverrideFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>[]
+          }
+          create: {
+            args: Prisma.OrganizationOAuthAppOverrideCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          createMany: {
+            args: Prisma.OrganizationOAuthAppOverrideCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.OrganizationOAuthAppOverrideCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>[]
+          }
+          delete: {
+            args: Prisma.OrganizationOAuthAppOverrideDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          update: {
+            args: Prisma.OrganizationOAuthAppOverrideUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          deleteMany: {
+            args: Prisma.OrganizationOAuthAppOverrideDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.OrganizationOAuthAppOverrideUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.OrganizationOAuthAppOverrideUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>[]
+          }
+          upsert: {
+            args: Prisma.OrganizationOAuthAppOverrideUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationOAuthAppOverridePayload>
+          }
+          aggregate: {
+            args: Prisma.OrganizationOAuthAppOverrideAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateOrganizationOAuthAppOverride>
+          }
+          groupBy: {
+            args: Prisma.OrganizationOAuthAppOverrideGroupByArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationOAuthAppOverrideGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.OrganizationOAuthAppOverrideCountArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationOAuthAppOverrideCountAggregateOutputType> | number
+          }
+        }
+      }
+      OrganizationConnectorPolicy: {
+        payload: Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>
+        fields: Prisma.OrganizationConnectorPolicyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.OrganizationConnectorPolicyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.OrganizationConnectorPolicyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          findFirst: {
+            args: Prisma.OrganizationConnectorPolicyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.OrganizationConnectorPolicyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          findMany: {
+            args: Prisma.OrganizationConnectorPolicyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>[]
+          }
+          create: {
+            args: Prisma.OrganizationConnectorPolicyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          createMany: {
+            args: Prisma.OrganizationConnectorPolicyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.OrganizationConnectorPolicyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>[]
+          }
+          delete: {
+            args: Prisma.OrganizationConnectorPolicyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          update: {
+            args: Prisma.OrganizationConnectorPolicyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          deleteMany: {
+            args: Prisma.OrganizationConnectorPolicyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.OrganizationConnectorPolicyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.OrganizationConnectorPolicyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>[]
+          }
+          upsert: {
+            args: Prisma.OrganizationConnectorPolicyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrganizationConnectorPolicyPayload>
+          }
+          aggregate: {
+            args: Prisma.OrganizationConnectorPolicyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateOrganizationConnectorPolicy>
+          }
+          groupBy: {
+            args: Prisma.OrganizationConnectorPolicyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationConnectorPolicyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.OrganizationConnectorPolicyCountArgs<ExtArgs>
+            result: $Utils.Optional<OrganizationConnectorPolicyCountAggregateOutputType> | number
+          }
+        }
+      }
+      ReconnectionAlert: {
+        payload: Prisma.$ReconnectionAlertPayload<ExtArgs>
+        fields: Prisma.ReconnectionAlertFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ReconnectionAlertFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ReconnectionAlertFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          findFirst: {
+            args: Prisma.ReconnectionAlertFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ReconnectionAlertFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          findMany: {
+            args: Prisma.ReconnectionAlertFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>[]
+          }
+          create: {
+            args: Prisma.ReconnectionAlertCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          createMany: {
+            args: Prisma.ReconnectionAlertCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ReconnectionAlertCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>[]
+          }
+          delete: {
+            args: Prisma.ReconnectionAlertDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          update: {
+            args: Prisma.ReconnectionAlertUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          deleteMany: {
+            args: Prisma.ReconnectionAlertDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ReconnectionAlertUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ReconnectionAlertUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>[]
+          }
+          upsert: {
+            args: Prisma.ReconnectionAlertUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ReconnectionAlertPayload>
+          }
+          aggregate: {
+            args: Prisma.ReconnectionAlertAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateReconnectionAlert>
+          }
+          groupBy: {
+            args: Prisma.ReconnectionAlertGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ReconnectionAlertGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ReconnectionAlertCountArgs<ExtArgs>
+            result: $Utils.Optional<ReconnectionAlertCountAggregateOutputType> | number
+          }
+        }
+      }
+      IntegrationFeatureRequest: {
+        payload: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>
+        fields: Prisma.IntegrationFeatureRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.IntegrationFeatureRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.IntegrationFeatureRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.IntegrationFeatureRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.IntegrationFeatureRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          findMany: {
+            args: Prisma.IntegrationFeatureRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>[]
+          }
+          create: {
+            args: Prisma.IntegrationFeatureRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          createMany: {
+            args: Prisma.IntegrationFeatureRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.IntegrationFeatureRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.IntegrationFeatureRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          update: {
+            args: Prisma.IntegrationFeatureRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.IntegrationFeatureRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.IntegrationFeatureRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.IntegrationFeatureRequestUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>[]
+          }
+          upsert: {
+            args: Prisma.IntegrationFeatureRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$IntegrationFeatureRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.IntegrationFeatureRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateIntegrationFeatureRequest>
+          }
+          groupBy: {
+            args: Prisma.IntegrationFeatureRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<IntegrationFeatureRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.IntegrationFeatureRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<IntegrationFeatureRequestCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -6760,6 +7390,13 @@ export namespace Prisma {
     agentRunResult?: AgentRunResultOmit
     consensusRecord?: ConsensusRecordOmit
     workspaceRuntime?: WorkspaceRuntimeOmit
+    connectorCatalog?: ConnectorCatalogOmit
+    userConnection?: UserConnectionOmit
+    projectConnectionLink?: ProjectConnectionLinkOmit
+    organizationOAuthAppOverride?: OrganizationOAuthAppOverrideOmit
+    organizationConnectorPolicy?: OrganizationConnectorPolicyOmit
+    reconnectionAlert?: ReconnectionAlertOmit
+    integrationFeatureRequest?: IntegrationFeatureRequestOmit
   }
 
   /* Types for Logging */
@@ -6863,6 +7500,10 @@ export namespace Prisma {
     agentMemoryPreferences: number
     mcpInstalls: number
     agentRuns: number
+    userConnections: number
+    linkedProjectConnections: number
+    configuredOauthAppOverrides: number
+    integrationFeatureRequests: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6889,6 +7530,10 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | UserCountOutputTypeCountAgentMemoryPreferencesArgs
     mcpInstalls?: boolean | UserCountOutputTypeCountMcpInstallsArgs
     agentRuns?: boolean | UserCountOutputTypeCountAgentRunsArgs
+    userConnections?: boolean | UserCountOutputTypeCountUserConnectionsArgs
+    linkedProjectConnections?: boolean | UserCountOutputTypeCountLinkedProjectConnectionsArgs
+    configuredOauthAppOverrides?: boolean | UserCountOutputTypeCountConfiguredOauthAppOverridesArgs
+    integrationFeatureRequests?: boolean | UserCountOutputTypeCountIntegrationFeatureRequestsArgs
   }
 
   // Custom InputTypes
@@ -7063,6 +7708,34 @@ export namespace Prisma {
     where?: AgentRunWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountUserConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserConnectionWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountLinkedProjectConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectConnectionLinkWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountConfiguredOauthAppOverridesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationOAuthAppOverrideWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountIntegrationFeatureRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IntegrationFeatureRequestWhereInput
+  }
+
 
   /**
    * Count Type OrganizationCountOutputType
@@ -7093,6 +7766,9 @@ export namespace Prisma {
     agentMemoryPreferences: number
     mcpInstalls: number
     agentRuns: number
+    oauthAppOverrides: number
+    connectorPolicies: number
+    integrationFeatureRequests: number
   }
 
   export type OrganizationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7120,6 +7796,9 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | OrganizationCountOutputTypeCountAgentMemoryPreferencesArgs
     mcpInstalls?: boolean | OrganizationCountOutputTypeCountMcpInstallsArgs
     agentRuns?: boolean | OrganizationCountOutputTypeCountAgentRunsArgs
+    oauthAppOverrides?: boolean | OrganizationCountOutputTypeCountOauthAppOverridesArgs
+    connectorPolicies?: boolean | OrganizationCountOutputTypeCountConnectorPoliciesArgs
+    integrationFeatureRequests?: boolean | OrganizationCountOutputTypeCountIntegrationFeatureRequestsArgs
   }
 
   // Custom InputTypes
@@ -7301,6 +7980,27 @@ export namespace Prisma {
     where?: AgentRunWhereInput
   }
 
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountOauthAppOverridesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationOAuthAppOverrideWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountConnectorPoliciesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationConnectorPolicyWhereInput
+  }
+
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountIntegrationFeatureRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IntegrationFeatureRequestWhereInput
+  }
+
 
   /**
    * Count Type RoleCountOutputType
@@ -7404,6 +8104,7 @@ export namespace Prisma {
     agentMemories: number
     agentMemoryPreferences: number
     agentPatchProposals: number
+    connectionLinks: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -7424,6 +8125,7 @@ export namespace Prisma {
     agentMemories?: boolean | ProjectCountOutputTypeCountAgentMemoriesArgs
     agentMemoryPreferences?: boolean | ProjectCountOutputTypeCountAgentMemoryPreferencesArgs
     agentPatchProposals?: boolean | ProjectCountOutputTypeCountAgentPatchProposalsArgs
+    connectionLinks?: boolean | ProjectCountOutputTypeCountConnectionLinksArgs
   }
 
   // Custom InputTypes
@@ -7554,6 +8256,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountAgentPatchProposalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentPatchProposalWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountConnectionLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectConnectionLinkWhereInput
   }
 
 
@@ -7789,6 +8498,77 @@ export namespace Prisma {
    */
   export type AgentRunCountOutputTypeCountResultsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentRunResultWhereInput
+  }
+
+
+  /**
+   * Count Type UserConnectionCountOutputType
+   */
+
+  export type UserConnectionCountOutputType = {
+    projectLinks: number
+    reconnectionAlerts: number
+  }
+
+  export type UserConnectionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    projectLinks?: boolean | UserConnectionCountOutputTypeCountProjectLinksArgs
+    reconnectionAlerts?: boolean | UserConnectionCountOutputTypeCountReconnectionAlertsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * UserConnectionCountOutputType without action
+   */
+  export type UserConnectionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnectionCountOutputType
+     */
+    select?: UserConnectionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * UserConnectionCountOutputType without action
+   */
+  export type UserConnectionCountOutputTypeCountProjectLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectConnectionLinkWhereInput
+  }
+
+  /**
+   * UserConnectionCountOutputType without action
+   */
+  export type UserConnectionCountOutputTypeCountReconnectionAlertsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReconnectionAlertWhereInput
+  }
+
+
+  /**
+   * Count Type OrganizationOAuthAppOverrideCountOutputType
+   */
+
+  export type OrganizationOAuthAppOverrideCountOutputType = {
+    userConnections: number
+  }
+
+  export type OrganizationOAuthAppOverrideCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    userConnections?: boolean | OrganizationOAuthAppOverrideCountOutputTypeCountUserConnectionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * OrganizationOAuthAppOverrideCountOutputType without action
+   */
+  export type OrganizationOAuthAppOverrideCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverrideCountOutputType
+     */
+    select?: OrganizationOAuthAppOverrideCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationOAuthAppOverrideCountOutputType without action
+   */
+  export type OrganizationOAuthAppOverrideCountOutputTypeCountUserConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserConnectionWhereInput
   }
 
 
@@ -8031,6 +8811,10 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
+    userConnections?: boolean | User$userConnectionsArgs<ExtArgs>
+    linkedProjectConnections?: boolean | User$linkedProjectConnectionsArgs<ExtArgs>
+    configuredOauthAppOverrides?: boolean | User$configuredOauthAppOverridesArgs<ExtArgs>
+    integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -8101,6 +8885,10 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | User$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | User$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | User$agentRunsArgs<ExtArgs>
+    userConnections?: boolean | User$userConnectionsArgs<ExtArgs>
+    linkedProjectConnections?: boolean | User$linkedProjectConnectionsArgs<ExtArgs>
+    configuredOauthAppOverrides?: boolean | User$configuredOauthAppOverridesArgs<ExtArgs>
+    integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -8132,6 +8920,10 @@ export namespace Prisma {
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
       agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
+      userConnections: Prisma.$UserConnectionPayload<ExtArgs>[]
+      linkedProjectConnections: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
+      configuredOauthAppOverrides: Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>[]
+      integrationFeatureRequests: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8562,6 +9354,10 @@ export namespace Prisma {
     agentMemoryPreferences<T extends User$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, User$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends User$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, User$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRuns<T extends User$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    userConnections<T extends User$userConnectionsArgs<ExtArgs> = {}>(args?: Subset<T, User$userConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    linkedProjectConnections<T extends User$linkedProjectConnectionsArgs<ExtArgs> = {}>(args?: Subset<T, User$linkedProjectConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    configuredOauthAppOverrides<T extends User$configuredOauthAppOverridesArgs<ExtArgs> = {}>(args?: Subset<T, User$configuredOauthAppOverridesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    integrationFeatureRequests<T extends User$integrationFeatureRequestsArgs<ExtArgs> = {}>(args?: Subset<T, User$integrationFeatureRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9544,6 +10340,102 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * User.userConnections
+   */
+  export type User$userConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    where?: UserConnectionWhereInput
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    cursor?: UserConnectionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserConnectionScalarFieldEnum | UserConnectionScalarFieldEnum[]
+  }
+
+  /**
+   * User.linkedProjectConnections
+   */
+  export type User$linkedProjectConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    where?: ProjectConnectionLinkWhereInput
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * User.configuredOauthAppOverrides
+   */
+  export type User$configuredOauthAppOverridesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    where?: OrganizationOAuthAppOverrideWhereInput
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrganizationOAuthAppOverrideScalarFieldEnum | OrganizationOAuthAppOverrideScalarFieldEnum[]
+  }
+
+  /**
+   * User.integrationFeatureRequests
+   */
+  export type User$integrationFeatureRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    where?: IntegrationFeatureRequestWhereInput
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IntegrationFeatureRequestScalarFieldEnum | IntegrationFeatureRequestScalarFieldEnum[]
   }
 
   /**
@@ -11959,6 +12851,9 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Organization$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
+    oauthAppOverrides?: boolean | Organization$oauthAppOverridesArgs<ExtArgs>
+    connectorPolicies?: boolean | Organization$connectorPoliciesArgs<ExtArgs>
+    integrationFeatureRequests?: boolean | Organization$integrationFeatureRequestsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
 
@@ -12014,6 +12909,9 @@ export namespace Prisma {
     agentMemoryPreferences?: boolean | Organization$agentMemoryPreferencesArgs<ExtArgs>
     mcpInstalls?: boolean | Organization$mcpInstallsArgs<ExtArgs>
     agentRuns?: boolean | Organization$agentRunsArgs<ExtArgs>
+    oauthAppOverrides?: boolean | Organization$oauthAppOverridesArgs<ExtArgs>
+    connectorPolicies?: boolean | Organization$connectorPoliciesArgs<ExtArgs>
+    integrationFeatureRequests?: boolean | Organization$integrationFeatureRequestsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -12048,6 +12946,9 @@ export namespace Prisma {
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       mcpInstalls: Prisma.$McpInstallPayload<ExtArgs>[]
       agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
+      oauthAppOverrides: Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>[]
+      connectorPolicies: Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>[]
+      integrationFeatureRequests: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12475,6 +13376,9 @@ export namespace Prisma {
     agentMemoryPreferences<T extends Organization$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     mcpInstalls<T extends Organization$mcpInstallsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$mcpInstallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$McpInstallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRuns<T extends Organization$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    oauthAppOverrides<T extends Organization$oauthAppOverridesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$oauthAppOverridesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    connectorPolicies<T extends Organization$connectorPoliciesArgs<ExtArgs> = {}>(args?: Subset<T, Organization$connectorPoliciesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    integrationFeatureRequests<T extends Organization$integrationFeatureRequestsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$integrationFeatureRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -13513,6 +14417,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.oauthAppOverrides
+   */
+  export type Organization$oauthAppOverridesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    where?: OrganizationOAuthAppOverrideWhereInput
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrganizationOAuthAppOverrideScalarFieldEnum | OrganizationOAuthAppOverrideScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.connectorPolicies
+   */
+  export type Organization$connectorPoliciesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    where?: OrganizationConnectorPolicyWhereInput
+    orderBy?: OrganizationConnectorPolicyOrderByWithRelationInput | OrganizationConnectorPolicyOrderByWithRelationInput[]
+    cursor?: OrganizationConnectorPolicyWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrganizationConnectorPolicyScalarFieldEnum | OrganizationConnectorPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.integrationFeatureRequests
+   */
+  export type Organization$integrationFeatureRequestsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    where?: IntegrationFeatureRequestWhereInput
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: IntegrationFeatureRequestScalarFieldEnum | IntegrationFeatureRequestScalarFieldEnum[]
   }
 
   /**
@@ -19169,6 +20145,7 @@ export namespace Prisma {
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
+    connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -19243,6 +20220,7 @@ export namespace Prisma {
     agentMemories?: boolean | Project$agentMemoriesArgs<ExtArgs>
     agentMemoryPreferences?: boolean | Project$agentMemoryPreferencesArgs<ExtArgs>
     agentPatchProposals?: boolean | Project$agentPatchProposalsArgs<ExtArgs>
+    connectionLinks?: boolean | Project$connectionLinksArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -19274,6 +20252,7 @@ export namespace Prisma {
       agentMemories: Prisma.$AgentMemoryPayload<ExtArgs>[]
       agentMemoryPreferences: Prisma.$AgentMemoryPreferencePayload<ExtArgs>[]
       agentPatchProposals: Prisma.$AgentPatchProposalPayload<ExtArgs>[]
+      connectionLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -19702,6 +20681,7 @@ export namespace Prisma {
     agentMemories<T extends Project$agentMemoriesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentMemoryPreferences<T extends Project$agentMemoryPreferencesArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentMemoryPreferencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentMemoryPreferencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentPatchProposals<T extends Project$agentPatchProposalsArgs<ExtArgs> = {}>(args?: Subset<T, Project$agentPatchProposalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentPatchProposalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    connectionLinks<T extends Project$connectionLinksArgs<ExtArgs> = {}>(args?: Subset<T, Project$connectionLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -20569,6 +21549,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentPatchProposalScalarFieldEnum | AgentPatchProposalScalarFieldEnum[]
+  }
+
+  /**
+   * Project.connectionLinks
+   */
+  export type Project$connectionLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    where?: ProjectConnectionLinkWhereInput
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
   }
 
   /**
@@ -75255,6 +76259,7 @@ export namespace Prisma {
     installCount: number | null
     featured: boolean | null
     verified: boolean | null
+    featuredForIdePanel: boolean | null
     publishedAt: Date | null
     updatedAt: Date | null
   }
@@ -75273,6 +76278,7 @@ export namespace Prisma {
     installCount: number | null
     featured: boolean | null
     verified: boolean | null
+    featuredForIdePanel: boolean | null
     publishedAt: Date | null
     updatedAt: Date | null
   }
@@ -75294,6 +76300,7 @@ export namespace Prisma {
     installCount: number
     featured: number
     verified: number
+    featuredForIdePanel: number
     publishedAt: number
     updatedAt: number
     _all: number
@@ -75322,6 +76329,7 @@ export namespace Prisma {
     installCount?: true
     featured?: true
     verified?: true
+    featuredForIdePanel?: true
     publishedAt?: true
     updatedAt?: true
   }
@@ -75340,6 +76348,7 @@ export namespace Prisma {
     installCount?: true
     featured?: true
     verified?: true
+    featuredForIdePanel?: true
     publishedAt?: true
     updatedAt?: true
   }
@@ -75361,6 +76370,7 @@ export namespace Prisma {
     installCount?: true
     featured?: true
     verified?: true
+    featuredForIdePanel?: true
     publishedAt?: true
     updatedAt?: true
     _all?: true
@@ -75469,6 +76479,7 @@ export namespace Prisma {
     installCount: number
     featured: boolean
     verified: boolean
+    featuredForIdePanel: boolean
     publishedAt: Date
     updatedAt: Date
     _count: McpCatalogEntryCountAggregateOutputType | null
@@ -75509,6 +76520,7 @@ export namespace Prisma {
     installCount?: boolean
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
     installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
@@ -75532,6 +76544,7 @@ export namespace Prisma {
     installCount?: boolean
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -75553,6 +76566,7 @@ export namespace Prisma {
     installCount?: boolean
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -75574,11 +76588,12 @@ export namespace Prisma {
     installCount?: boolean
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: boolean
     updatedAt?: boolean
   }
 
-  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
+  export type McpCatalogEntryOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "description" | "domain" | "tags" | "author" | "homepageUrl" | "iconUrl" | "version" | "transport" | "configTemplate" | "configSchema" | "installCount" | "featured" | "verified" | "featuredForIdePanel" | "publishedAt" | "updatedAt", ExtArgs["result"]["mcpCatalogEntry"]>
   export type McpCatalogEntryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     installs?: boolean | McpCatalogEntry$installsArgs<ExtArgs>
     _count?: boolean | McpCatalogEntryCountOutputTypeDefaultArgs<ExtArgs>
@@ -75608,6 +76623,7 @@ export namespace Prisma {
       installCount: number
       featured: boolean
       verified: boolean
+      featuredForIdePanel: boolean
       publishedAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["mcpCatalogEntry"]>
@@ -76050,6 +77066,7 @@ export namespace Prisma {
     readonly installCount: FieldRef<"McpCatalogEntry", 'Int'>
     readonly featured: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly verified: FieldRef<"McpCatalogEntry", 'Boolean'>
+    readonly featuredForIdePanel: FieldRef<"McpCatalogEntry", 'Boolean'>
     readonly publishedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
     readonly updatedAt: FieldRef<"McpCatalogEntry", 'DateTime'>
   }
@@ -82309,6 +83326,8271 @@ export namespace Prisma {
 
 
   /**
+   * Model ConnectorCatalog
+   */
+
+  export type AggregateConnectorCatalog = {
+    _count: ConnectorCatalogCountAggregateOutputType | null
+    _avg: ConnectorCatalogAvgAggregateOutputType | null
+    _sum: ConnectorCatalogSumAggregateOutputType | null
+    _min: ConnectorCatalogMinAggregateOutputType | null
+    _max: ConnectorCatalogMaxAggregateOutputType | null
+  }
+
+  export type ConnectorCatalogAvgAggregateOutputType = {
+    displayOrder: number | null
+  }
+
+  export type ConnectorCatalogSumAggregateOutputType = {
+    displayOrder: number | null
+  }
+
+  export type ConnectorCatalogMinAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    displayName: string | null
+    description: string | null
+    category: string | null
+    authType: string | null
+    section: string | null
+    logoUrl: string | null
+    defaultClientId: string | null
+    defaultClientSecretEnc: string | null
+    authorizeUrl: string | null
+    tokenUrl: string | null
+    revokeUrl: string | null
+    userInfoUrl: string | null
+    apiKeyTestEndpoint: string | null
+    webhookSupport: boolean | null
+    webhookSignatureScheme: string | null
+    webhookSigningSecretEnc: string | null
+    minPlanTier: string | null
+    forAgentUse: boolean | null
+    displayOrder: number | null
+    featuredForIdePanel: boolean | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ConnectorCatalogMaxAggregateOutputType = {
+    id: string | null
+    provider: string | null
+    displayName: string | null
+    description: string | null
+    category: string | null
+    authType: string | null
+    section: string | null
+    logoUrl: string | null
+    defaultClientId: string | null
+    defaultClientSecretEnc: string | null
+    authorizeUrl: string | null
+    tokenUrl: string | null
+    revokeUrl: string | null
+    userInfoUrl: string | null
+    apiKeyTestEndpoint: string | null
+    webhookSupport: boolean | null
+    webhookSignatureScheme: string | null
+    webhookSigningSecretEnc: string | null
+    minPlanTier: string | null
+    forAgentUse: boolean | null
+    displayOrder: number | null
+    featuredForIdePanel: boolean | null
+    enabled: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ConnectorCatalogCountAggregateOutputType = {
+    id: number
+    provider: number
+    displayName: number
+    description: number
+    category: number
+    authType: number
+    section: number
+    logoUrl: number
+    defaultClientId: number
+    defaultClientSecretEnc: number
+    authorizeUrl: number
+    tokenUrl: number
+    revokeUrl: number
+    userInfoUrl: number
+    defaultScopes: number
+    availableScopes: number
+    apiKeyFields: number
+    apiKeyTestEndpoint: number
+    triggersSupported: number
+    triggerDescriptions: number
+    webhookSupport: number
+    webhookSignatureScheme: number
+    webhookSigningSecretEnc: number
+    minPlanTier: number
+    forAgentUse: number
+    displayOrder: number
+    featuredForIdePanel: number
+    enabled: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ConnectorCatalogAvgAggregateInputType = {
+    displayOrder?: true
+  }
+
+  export type ConnectorCatalogSumAggregateInputType = {
+    displayOrder?: true
+  }
+
+  export type ConnectorCatalogMinAggregateInputType = {
+    id?: true
+    provider?: true
+    displayName?: true
+    description?: true
+    category?: true
+    authType?: true
+    section?: true
+    logoUrl?: true
+    defaultClientId?: true
+    defaultClientSecretEnc?: true
+    authorizeUrl?: true
+    tokenUrl?: true
+    revokeUrl?: true
+    userInfoUrl?: true
+    apiKeyTestEndpoint?: true
+    webhookSupport?: true
+    webhookSignatureScheme?: true
+    webhookSigningSecretEnc?: true
+    minPlanTier?: true
+    forAgentUse?: true
+    displayOrder?: true
+    featuredForIdePanel?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ConnectorCatalogMaxAggregateInputType = {
+    id?: true
+    provider?: true
+    displayName?: true
+    description?: true
+    category?: true
+    authType?: true
+    section?: true
+    logoUrl?: true
+    defaultClientId?: true
+    defaultClientSecretEnc?: true
+    authorizeUrl?: true
+    tokenUrl?: true
+    revokeUrl?: true
+    userInfoUrl?: true
+    apiKeyTestEndpoint?: true
+    webhookSupport?: true
+    webhookSignatureScheme?: true
+    webhookSigningSecretEnc?: true
+    minPlanTier?: true
+    forAgentUse?: true
+    displayOrder?: true
+    featuredForIdePanel?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ConnectorCatalogCountAggregateInputType = {
+    id?: true
+    provider?: true
+    displayName?: true
+    description?: true
+    category?: true
+    authType?: true
+    section?: true
+    logoUrl?: true
+    defaultClientId?: true
+    defaultClientSecretEnc?: true
+    authorizeUrl?: true
+    tokenUrl?: true
+    revokeUrl?: true
+    userInfoUrl?: true
+    defaultScopes?: true
+    availableScopes?: true
+    apiKeyFields?: true
+    apiKeyTestEndpoint?: true
+    triggersSupported?: true
+    triggerDescriptions?: true
+    webhookSupport?: true
+    webhookSignatureScheme?: true
+    webhookSigningSecretEnc?: true
+    minPlanTier?: true
+    forAgentUse?: true
+    displayOrder?: true
+    featuredForIdePanel?: true
+    enabled?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ConnectorCatalogAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConnectorCatalog to aggregate.
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConnectorCatalogs to fetch.
+     */
+    orderBy?: ConnectorCatalogOrderByWithRelationInput | ConnectorCatalogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ConnectorCatalogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConnectorCatalogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConnectorCatalogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ConnectorCatalogs
+    **/
+    _count?: true | ConnectorCatalogCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ConnectorCatalogAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ConnectorCatalogSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ConnectorCatalogMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ConnectorCatalogMaxAggregateInputType
+  }
+
+  export type GetConnectorCatalogAggregateType<T extends ConnectorCatalogAggregateArgs> = {
+        [P in keyof T & keyof AggregateConnectorCatalog]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConnectorCatalog[P]>
+      : GetScalarType<T[P], AggregateConnectorCatalog[P]>
+  }
+
+
+
+
+  export type ConnectorCatalogGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConnectorCatalogWhereInput
+    orderBy?: ConnectorCatalogOrderByWithAggregationInput | ConnectorCatalogOrderByWithAggregationInput[]
+    by: ConnectorCatalogScalarFieldEnum[] | ConnectorCatalogScalarFieldEnum
+    having?: ConnectorCatalogScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ConnectorCatalogCountAggregateInputType | true
+    _avg?: ConnectorCatalogAvgAggregateInputType
+    _sum?: ConnectorCatalogSumAggregateInputType
+    _min?: ConnectorCatalogMinAggregateInputType
+    _max?: ConnectorCatalogMaxAggregateInputType
+  }
+
+  export type ConnectorCatalogGroupByOutputType = {
+    id: string
+    provider: string
+    displayName: string
+    description: string
+    category: string
+    authType: string
+    section: string
+    logoUrl: string
+    defaultClientId: string | null
+    defaultClientSecretEnc: string | null
+    authorizeUrl: string | null
+    tokenUrl: string | null
+    revokeUrl: string | null
+    userInfoUrl: string | null
+    defaultScopes: string[]
+    availableScopes: string[]
+    apiKeyFields: JsonValue | null
+    apiKeyTestEndpoint: string | null
+    triggersSupported: string[]
+    triggerDescriptions: JsonValue
+    webhookSupport: boolean
+    webhookSignatureScheme: string | null
+    webhookSigningSecretEnc: string | null
+    minPlanTier: string
+    forAgentUse: boolean
+    displayOrder: number
+    featuredForIdePanel: boolean
+    enabled: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: ConnectorCatalogCountAggregateOutputType | null
+    _avg: ConnectorCatalogAvgAggregateOutputType | null
+    _sum: ConnectorCatalogSumAggregateOutputType | null
+    _min: ConnectorCatalogMinAggregateOutputType | null
+    _max: ConnectorCatalogMaxAggregateOutputType | null
+  }
+
+  type GetConnectorCatalogGroupByPayload<T extends ConnectorCatalogGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ConnectorCatalogGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ConnectorCatalogGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConnectorCatalogGroupByOutputType[P]>
+            : GetScalarType<T[P], ConnectorCatalogGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ConnectorCatalogSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    displayName?: boolean
+    description?: boolean
+    category?: boolean
+    authType?: boolean
+    section?: boolean
+    logoUrl?: boolean
+    defaultClientId?: boolean
+    defaultClientSecretEnc?: boolean
+    authorizeUrl?: boolean
+    tokenUrl?: boolean
+    revokeUrl?: boolean
+    userInfoUrl?: boolean
+    defaultScopes?: boolean
+    availableScopes?: boolean
+    apiKeyFields?: boolean
+    apiKeyTestEndpoint?: boolean
+    triggersSupported?: boolean
+    triggerDescriptions?: boolean
+    webhookSupport?: boolean
+    webhookSignatureScheme?: boolean
+    webhookSigningSecretEnc?: boolean
+    minPlanTier?: boolean
+    forAgentUse?: boolean
+    displayOrder?: boolean
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["connectorCatalog"]>
+
+  export type ConnectorCatalogSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    displayName?: boolean
+    description?: boolean
+    category?: boolean
+    authType?: boolean
+    section?: boolean
+    logoUrl?: boolean
+    defaultClientId?: boolean
+    defaultClientSecretEnc?: boolean
+    authorizeUrl?: boolean
+    tokenUrl?: boolean
+    revokeUrl?: boolean
+    userInfoUrl?: boolean
+    defaultScopes?: boolean
+    availableScopes?: boolean
+    apiKeyFields?: boolean
+    apiKeyTestEndpoint?: boolean
+    triggersSupported?: boolean
+    triggerDescriptions?: boolean
+    webhookSupport?: boolean
+    webhookSignatureScheme?: boolean
+    webhookSigningSecretEnc?: boolean
+    minPlanTier?: boolean
+    forAgentUse?: boolean
+    displayOrder?: boolean
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["connectorCatalog"]>
+
+  export type ConnectorCatalogSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    provider?: boolean
+    displayName?: boolean
+    description?: boolean
+    category?: boolean
+    authType?: boolean
+    section?: boolean
+    logoUrl?: boolean
+    defaultClientId?: boolean
+    defaultClientSecretEnc?: boolean
+    authorizeUrl?: boolean
+    tokenUrl?: boolean
+    revokeUrl?: boolean
+    userInfoUrl?: boolean
+    defaultScopes?: boolean
+    availableScopes?: boolean
+    apiKeyFields?: boolean
+    apiKeyTestEndpoint?: boolean
+    triggersSupported?: boolean
+    triggerDescriptions?: boolean
+    webhookSupport?: boolean
+    webhookSignatureScheme?: boolean
+    webhookSigningSecretEnc?: boolean
+    minPlanTier?: boolean
+    forAgentUse?: boolean
+    displayOrder?: boolean
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["connectorCatalog"]>
+
+  export type ConnectorCatalogSelectScalar = {
+    id?: boolean
+    provider?: boolean
+    displayName?: boolean
+    description?: boolean
+    category?: boolean
+    authType?: boolean
+    section?: boolean
+    logoUrl?: boolean
+    defaultClientId?: boolean
+    defaultClientSecretEnc?: boolean
+    authorizeUrl?: boolean
+    tokenUrl?: boolean
+    revokeUrl?: boolean
+    userInfoUrl?: boolean
+    defaultScopes?: boolean
+    availableScopes?: boolean
+    apiKeyFields?: boolean
+    apiKeyTestEndpoint?: boolean
+    triggersSupported?: boolean
+    triggerDescriptions?: boolean
+    webhookSupport?: boolean
+    webhookSignatureScheme?: boolean
+    webhookSigningSecretEnc?: boolean
+    minPlanTier?: boolean
+    forAgentUse?: boolean
+    displayOrder?: boolean
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ConnectorCatalogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "provider" | "displayName" | "description" | "category" | "authType" | "section" | "logoUrl" | "defaultClientId" | "defaultClientSecretEnc" | "authorizeUrl" | "tokenUrl" | "revokeUrl" | "userInfoUrl" | "defaultScopes" | "availableScopes" | "apiKeyFields" | "apiKeyTestEndpoint" | "triggersSupported" | "triggerDescriptions" | "webhookSupport" | "webhookSignatureScheme" | "webhookSigningSecretEnc" | "minPlanTier" | "forAgentUse" | "displayOrder" | "featuredForIdePanel" | "enabled" | "createdAt" | "updatedAt", ExtArgs["result"]["connectorCatalog"]>
+
+  export type $ConnectorCatalogPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ConnectorCatalog"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      provider: string
+      displayName: string
+      description: string
+      category: string
+      authType: string
+      section: string
+      logoUrl: string
+      defaultClientId: string | null
+      defaultClientSecretEnc: string | null
+      authorizeUrl: string | null
+      tokenUrl: string | null
+      revokeUrl: string | null
+      userInfoUrl: string | null
+      defaultScopes: string[]
+      availableScopes: string[]
+      apiKeyFields: Prisma.JsonValue | null
+      apiKeyTestEndpoint: string | null
+      triggersSupported: string[]
+      triggerDescriptions: Prisma.JsonValue
+      webhookSupport: boolean
+      webhookSignatureScheme: string | null
+      webhookSigningSecretEnc: string | null
+      minPlanTier: string
+      forAgentUse: boolean
+      displayOrder: number
+      featuredForIdePanel: boolean
+      enabled: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["connectorCatalog"]>
+    composites: {}
+  }
+
+  type ConnectorCatalogGetPayload<S extends boolean | null | undefined | ConnectorCatalogDefaultArgs> = $Result.GetResult<Prisma.$ConnectorCatalogPayload, S>
+
+  type ConnectorCatalogCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ConnectorCatalogFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ConnectorCatalogCountAggregateInputType | true
+    }
+
+  export interface ConnectorCatalogDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ConnectorCatalog'], meta: { name: 'ConnectorCatalog' } }
+    /**
+     * Find zero or one ConnectorCatalog that matches the filter.
+     * @param {ConnectorCatalogFindUniqueArgs} args - Arguments to find a ConnectorCatalog
+     * @example
+     * // Get one ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ConnectorCatalogFindUniqueArgs>(args: SelectSubset<T, ConnectorCatalogFindUniqueArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ConnectorCatalog that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ConnectorCatalogFindUniqueOrThrowArgs} args - Arguments to find a ConnectorCatalog
+     * @example
+     * // Get one ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ConnectorCatalogFindUniqueOrThrowArgs>(args: SelectSubset<T, ConnectorCatalogFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConnectorCatalog that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogFindFirstArgs} args - Arguments to find a ConnectorCatalog
+     * @example
+     * // Get one ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ConnectorCatalogFindFirstArgs>(args?: SelectSubset<T, ConnectorCatalogFindFirstArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConnectorCatalog that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogFindFirstOrThrowArgs} args - Arguments to find a ConnectorCatalog
+     * @example
+     * // Get one ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ConnectorCatalogFindFirstOrThrowArgs>(args?: SelectSubset<T, ConnectorCatalogFindFirstOrThrowArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ConnectorCatalogs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ConnectorCatalogs
+     * const connectorCatalogs = await prisma.connectorCatalog.findMany()
+     * 
+     * // Get first 10 ConnectorCatalogs
+     * const connectorCatalogs = await prisma.connectorCatalog.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const connectorCatalogWithIdOnly = await prisma.connectorCatalog.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ConnectorCatalogFindManyArgs>(args?: SelectSubset<T, ConnectorCatalogFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ConnectorCatalog.
+     * @param {ConnectorCatalogCreateArgs} args - Arguments to create a ConnectorCatalog.
+     * @example
+     * // Create one ConnectorCatalog
+     * const ConnectorCatalog = await prisma.connectorCatalog.create({
+     *   data: {
+     *     // ... data to create a ConnectorCatalog
+     *   }
+     * })
+     * 
+     */
+    create<T extends ConnectorCatalogCreateArgs>(args: SelectSubset<T, ConnectorCatalogCreateArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ConnectorCatalogs.
+     * @param {ConnectorCatalogCreateManyArgs} args - Arguments to create many ConnectorCatalogs.
+     * @example
+     * // Create many ConnectorCatalogs
+     * const connectorCatalog = await prisma.connectorCatalog.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ConnectorCatalogCreateManyArgs>(args?: SelectSubset<T, ConnectorCatalogCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ConnectorCatalogs and returns the data saved in the database.
+     * @param {ConnectorCatalogCreateManyAndReturnArgs} args - Arguments to create many ConnectorCatalogs.
+     * @example
+     * // Create many ConnectorCatalogs
+     * const connectorCatalog = await prisma.connectorCatalog.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ConnectorCatalogs and only return the `id`
+     * const connectorCatalogWithIdOnly = await prisma.connectorCatalog.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ConnectorCatalogCreateManyAndReturnArgs>(args?: SelectSubset<T, ConnectorCatalogCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ConnectorCatalog.
+     * @param {ConnectorCatalogDeleteArgs} args - Arguments to delete one ConnectorCatalog.
+     * @example
+     * // Delete one ConnectorCatalog
+     * const ConnectorCatalog = await prisma.connectorCatalog.delete({
+     *   where: {
+     *     // ... filter to delete one ConnectorCatalog
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ConnectorCatalogDeleteArgs>(args: SelectSubset<T, ConnectorCatalogDeleteArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ConnectorCatalog.
+     * @param {ConnectorCatalogUpdateArgs} args - Arguments to update one ConnectorCatalog.
+     * @example
+     * // Update one ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ConnectorCatalogUpdateArgs>(args: SelectSubset<T, ConnectorCatalogUpdateArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ConnectorCatalogs.
+     * @param {ConnectorCatalogDeleteManyArgs} args - Arguments to filter ConnectorCatalogs to delete.
+     * @example
+     * // Delete a few ConnectorCatalogs
+     * const { count } = await prisma.connectorCatalog.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ConnectorCatalogDeleteManyArgs>(args?: SelectSubset<T, ConnectorCatalogDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConnectorCatalogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ConnectorCatalogs
+     * const connectorCatalog = await prisma.connectorCatalog.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ConnectorCatalogUpdateManyArgs>(args: SelectSubset<T, ConnectorCatalogUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConnectorCatalogs and returns the data updated in the database.
+     * @param {ConnectorCatalogUpdateManyAndReturnArgs} args - Arguments to update many ConnectorCatalogs.
+     * @example
+     * // Update many ConnectorCatalogs
+     * const connectorCatalog = await prisma.connectorCatalog.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ConnectorCatalogs and only return the `id`
+     * const connectorCatalogWithIdOnly = await prisma.connectorCatalog.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ConnectorCatalogUpdateManyAndReturnArgs>(args: SelectSubset<T, ConnectorCatalogUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ConnectorCatalog.
+     * @param {ConnectorCatalogUpsertArgs} args - Arguments to update or create a ConnectorCatalog.
+     * @example
+     * // Update or create a ConnectorCatalog
+     * const connectorCatalog = await prisma.connectorCatalog.upsert({
+     *   create: {
+     *     // ... data to create a ConnectorCatalog
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ConnectorCatalog we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ConnectorCatalogUpsertArgs>(args: SelectSubset<T, ConnectorCatalogUpsertArgs<ExtArgs>>): Prisma__ConnectorCatalogClient<$Result.GetResult<Prisma.$ConnectorCatalogPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ConnectorCatalogs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogCountArgs} args - Arguments to filter ConnectorCatalogs to count.
+     * @example
+     * // Count the number of ConnectorCatalogs
+     * const count = await prisma.connectorCatalog.count({
+     *   where: {
+     *     // ... the filter for the ConnectorCatalogs we want to count
+     *   }
+     * })
+    **/
+    count<T extends ConnectorCatalogCountArgs>(
+      args?: Subset<T, ConnectorCatalogCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConnectorCatalogCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ConnectorCatalog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ConnectorCatalogAggregateArgs>(args: Subset<T, ConnectorCatalogAggregateArgs>): Prisma.PrismaPromise<GetConnectorCatalogAggregateType<T>>
+
+    /**
+     * Group by ConnectorCatalog.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConnectorCatalogGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ConnectorCatalogGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ConnectorCatalogGroupByArgs['orderBy'] }
+        : { orderBy?: ConnectorCatalogGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ConnectorCatalogGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConnectorCatalogGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ConnectorCatalog model
+   */
+  readonly fields: ConnectorCatalogFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ConnectorCatalog.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ConnectorCatalogClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ConnectorCatalog model
+   */
+  interface ConnectorCatalogFieldRefs {
+    readonly id: FieldRef<"ConnectorCatalog", 'String'>
+    readonly provider: FieldRef<"ConnectorCatalog", 'String'>
+    readonly displayName: FieldRef<"ConnectorCatalog", 'String'>
+    readonly description: FieldRef<"ConnectorCatalog", 'String'>
+    readonly category: FieldRef<"ConnectorCatalog", 'String'>
+    readonly authType: FieldRef<"ConnectorCatalog", 'String'>
+    readonly section: FieldRef<"ConnectorCatalog", 'String'>
+    readonly logoUrl: FieldRef<"ConnectorCatalog", 'String'>
+    readonly defaultClientId: FieldRef<"ConnectorCatalog", 'String'>
+    readonly defaultClientSecretEnc: FieldRef<"ConnectorCatalog", 'String'>
+    readonly authorizeUrl: FieldRef<"ConnectorCatalog", 'String'>
+    readonly tokenUrl: FieldRef<"ConnectorCatalog", 'String'>
+    readonly revokeUrl: FieldRef<"ConnectorCatalog", 'String'>
+    readonly userInfoUrl: FieldRef<"ConnectorCatalog", 'String'>
+    readonly defaultScopes: FieldRef<"ConnectorCatalog", 'String[]'>
+    readonly availableScopes: FieldRef<"ConnectorCatalog", 'String[]'>
+    readonly apiKeyFields: FieldRef<"ConnectorCatalog", 'Json'>
+    readonly apiKeyTestEndpoint: FieldRef<"ConnectorCatalog", 'String'>
+    readonly triggersSupported: FieldRef<"ConnectorCatalog", 'String[]'>
+    readonly triggerDescriptions: FieldRef<"ConnectorCatalog", 'Json'>
+    readonly webhookSupport: FieldRef<"ConnectorCatalog", 'Boolean'>
+    readonly webhookSignatureScheme: FieldRef<"ConnectorCatalog", 'String'>
+    readonly webhookSigningSecretEnc: FieldRef<"ConnectorCatalog", 'String'>
+    readonly minPlanTier: FieldRef<"ConnectorCatalog", 'String'>
+    readonly forAgentUse: FieldRef<"ConnectorCatalog", 'Boolean'>
+    readonly displayOrder: FieldRef<"ConnectorCatalog", 'Int'>
+    readonly featuredForIdePanel: FieldRef<"ConnectorCatalog", 'Boolean'>
+    readonly enabled: FieldRef<"ConnectorCatalog", 'Boolean'>
+    readonly createdAt: FieldRef<"ConnectorCatalog", 'DateTime'>
+    readonly updatedAt: FieldRef<"ConnectorCatalog", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ConnectorCatalog findUnique
+   */
+  export type ConnectorCatalogFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter, which ConnectorCatalog to fetch.
+     */
+    where: ConnectorCatalogWhereUniqueInput
+  }
+
+  /**
+   * ConnectorCatalog findUniqueOrThrow
+   */
+  export type ConnectorCatalogFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter, which ConnectorCatalog to fetch.
+     */
+    where: ConnectorCatalogWhereUniqueInput
+  }
+
+  /**
+   * ConnectorCatalog findFirst
+   */
+  export type ConnectorCatalogFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter, which ConnectorCatalog to fetch.
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConnectorCatalogs to fetch.
+     */
+    orderBy?: ConnectorCatalogOrderByWithRelationInput | ConnectorCatalogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConnectorCatalogs.
+     */
+    cursor?: ConnectorCatalogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConnectorCatalogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConnectorCatalogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConnectorCatalogs.
+     */
+    distinct?: ConnectorCatalogScalarFieldEnum | ConnectorCatalogScalarFieldEnum[]
+  }
+
+  /**
+   * ConnectorCatalog findFirstOrThrow
+   */
+  export type ConnectorCatalogFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter, which ConnectorCatalog to fetch.
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConnectorCatalogs to fetch.
+     */
+    orderBy?: ConnectorCatalogOrderByWithRelationInput | ConnectorCatalogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConnectorCatalogs.
+     */
+    cursor?: ConnectorCatalogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConnectorCatalogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConnectorCatalogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConnectorCatalogs.
+     */
+    distinct?: ConnectorCatalogScalarFieldEnum | ConnectorCatalogScalarFieldEnum[]
+  }
+
+  /**
+   * ConnectorCatalog findMany
+   */
+  export type ConnectorCatalogFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter, which ConnectorCatalogs to fetch.
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConnectorCatalogs to fetch.
+     */
+    orderBy?: ConnectorCatalogOrderByWithRelationInput | ConnectorCatalogOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ConnectorCatalogs.
+     */
+    cursor?: ConnectorCatalogWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConnectorCatalogs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConnectorCatalogs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConnectorCatalogs.
+     */
+    distinct?: ConnectorCatalogScalarFieldEnum | ConnectorCatalogScalarFieldEnum[]
+  }
+
+  /**
+   * ConnectorCatalog create
+   */
+  export type ConnectorCatalogCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ConnectorCatalog.
+     */
+    data: XOR<ConnectorCatalogCreateInput, ConnectorCatalogUncheckedCreateInput>
+  }
+
+  /**
+   * ConnectorCatalog createMany
+   */
+  export type ConnectorCatalogCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ConnectorCatalogs.
+     */
+    data: ConnectorCatalogCreateManyInput | ConnectorCatalogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConnectorCatalog createManyAndReturn
+   */
+  export type ConnectorCatalogCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * The data used to create many ConnectorCatalogs.
+     */
+    data: ConnectorCatalogCreateManyInput | ConnectorCatalogCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConnectorCatalog update
+   */
+  export type ConnectorCatalogUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ConnectorCatalog.
+     */
+    data: XOR<ConnectorCatalogUpdateInput, ConnectorCatalogUncheckedUpdateInput>
+    /**
+     * Choose, which ConnectorCatalog to update.
+     */
+    where: ConnectorCatalogWhereUniqueInput
+  }
+
+  /**
+   * ConnectorCatalog updateMany
+   */
+  export type ConnectorCatalogUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ConnectorCatalogs.
+     */
+    data: XOR<ConnectorCatalogUpdateManyMutationInput, ConnectorCatalogUncheckedUpdateManyInput>
+    /**
+     * Filter which ConnectorCatalogs to update
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * Limit how many ConnectorCatalogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConnectorCatalog updateManyAndReturn
+   */
+  export type ConnectorCatalogUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * The data used to update ConnectorCatalogs.
+     */
+    data: XOR<ConnectorCatalogUpdateManyMutationInput, ConnectorCatalogUncheckedUpdateManyInput>
+    /**
+     * Filter which ConnectorCatalogs to update
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * Limit how many ConnectorCatalogs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConnectorCatalog upsert
+   */
+  export type ConnectorCatalogUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ConnectorCatalog to update in case it exists.
+     */
+    where: ConnectorCatalogWhereUniqueInput
+    /**
+     * In case the ConnectorCatalog found by the `where` argument doesn't exist, create a new ConnectorCatalog with this data.
+     */
+    create: XOR<ConnectorCatalogCreateInput, ConnectorCatalogUncheckedCreateInput>
+    /**
+     * In case the ConnectorCatalog was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ConnectorCatalogUpdateInput, ConnectorCatalogUncheckedUpdateInput>
+  }
+
+  /**
+   * ConnectorCatalog delete
+   */
+  export type ConnectorCatalogDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+    /**
+     * Filter which ConnectorCatalog to delete.
+     */
+    where: ConnectorCatalogWhereUniqueInput
+  }
+
+  /**
+   * ConnectorCatalog deleteMany
+   */
+  export type ConnectorCatalogDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConnectorCatalogs to delete
+     */
+    where?: ConnectorCatalogWhereInput
+    /**
+     * Limit how many ConnectorCatalogs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConnectorCatalog without action
+   */
+  export type ConnectorCatalogDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConnectorCatalog
+     */
+    select?: ConnectorCatalogSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConnectorCatalog
+     */
+    omit?: ConnectorCatalogOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UserConnection
+   */
+
+  export type AggregateUserConnection = {
+    _count: UserConnectionCountAggregateOutputType | null
+    _min: UserConnectionMinAggregateOutputType | null
+    _max: UserConnectionMaxAggregateOutputType | null
+  }
+
+  export type UserConnectionMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    provider: string | null
+    externalAccountId: string | null
+    externalAccountLabel: string | null
+    accessTokenEncrypted: string | null
+    refreshTokenEncrypted: string | null
+    tokenExpiresAt: Date | null
+    status: string | null
+    lastUsedAt: Date | null
+    forAgentUse: boolean | null
+    oauthAppSource: string | null
+    oauthAppOverrideId: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    revokedAt: Date | null
+  }
+
+  export type UserConnectionMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    provider: string | null
+    externalAccountId: string | null
+    externalAccountLabel: string | null
+    accessTokenEncrypted: string | null
+    refreshTokenEncrypted: string | null
+    tokenExpiresAt: Date | null
+    status: string | null
+    lastUsedAt: Date | null
+    forAgentUse: boolean | null
+    oauthAppSource: string | null
+    oauthAppOverrideId: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    revokedAt: Date | null
+  }
+
+  export type UserConnectionCountAggregateOutputType = {
+    id: number
+    userId: number
+    provider: number
+    externalAccountId: number
+    externalAccountLabel: number
+    accessTokenEncrypted: number
+    refreshTokenEncrypted: number
+    apiKeyFieldsEncrypted: number
+    scopes: number
+    tokenExpiresAt: number
+    status: number
+    lastUsedAt: number
+    forAgentUse: number
+    oauthAppSource: number
+    oauthAppOverrideId: number
+    createdByUserId: number
+    createdAt: number
+    updatedAt: number
+    revokedAt: number
+    _all: number
+  }
+
+
+  export type UserConnectionMinAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    externalAccountId?: true
+    externalAccountLabel?: true
+    accessTokenEncrypted?: true
+    refreshTokenEncrypted?: true
+    tokenExpiresAt?: true
+    status?: true
+    lastUsedAt?: true
+    forAgentUse?: true
+    oauthAppSource?: true
+    oauthAppOverrideId?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    revokedAt?: true
+  }
+
+  export type UserConnectionMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    externalAccountId?: true
+    externalAccountLabel?: true
+    accessTokenEncrypted?: true
+    refreshTokenEncrypted?: true
+    tokenExpiresAt?: true
+    status?: true
+    lastUsedAt?: true
+    forAgentUse?: true
+    oauthAppSource?: true
+    oauthAppOverrideId?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    revokedAt?: true
+  }
+
+  export type UserConnectionCountAggregateInputType = {
+    id?: true
+    userId?: true
+    provider?: true
+    externalAccountId?: true
+    externalAccountLabel?: true
+    accessTokenEncrypted?: true
+    refreshTokenEncrypted?: true
+    apiKeyFieldsEncrypted?: true
+    scopes?: true
+    tokenExpiresAt?: true
+    status?: true
+    lastUsedAt?: true
+    forAgentUse?: true
+    oauthAppSource?: true
+    oauthAppOverrideId?: true
+    createdByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    revokedAt?: true
+    _all?: true
+  }
+
+  export type UserConnectionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserConnection to aggregate.
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserConnections to fetch.
+     */
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserConnectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserConnections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserConnections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserConnections
+    **/
+    _count?: true | UserConnectionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserConnectionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserConnectionMaxAggregateInputType
+  }
+
+  export type GetUserConnectionAggregateType<T extends UserConnectionAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserConnection]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserConnection[P]>
+      : GetScalarType<T[P], AggregateUserConnection[P]>
+  }
+
+
+
+
+  export type UserConnectionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserConnectionWhereInput
+    orderBy?: UserConnectionOrderByWithAggregationInput | UserConnectionOrderByWithAggregationInput[]
+    by: UserConnectionScalarFieldEnum[] | UserConnectionScalarFieldEnum
+    having?: UserConnectionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserConnectionCountAggregateInputType | true
+    _min?: UserConnectionMinAggregateInputType
+    _max?: UserConnectionMaxAggregateInputType
+  }
+
+  export type UserConnectionGroupByOutputType = {
+    id: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted: string | null
+    refreshTokenEncrypted: string | null
+    apiKeyFieldsEncrypted: JsonValue | null
+    scopes: string[]
+    tokenExpiresAt: Date | null
+    status: string
+    lastUsedAt: Date | null
+    forAgentUse: boolean
+    oauthAppSource: string
+    oauthAppOverrideId: string | null
+    createdByUserId: string
+    createdAt: Date
+    updatedAt: Date
+    revokedAt: Date | null
+    _count: UserConnectionCountAggregateOutputType | null
+    _min: UserConnectionMinAggregateOutputType | null
+    _max: UserConnectionMaxAggregateOutputType | null
+  }
+
+  type GetUserConnectionGroupByPayload<T extends UserConnectionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserConnectionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserConnectionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserConnectionGroupByOutputType[P]>
+            : GetScalarType<T[P], UserConnectionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserConnectionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    externalAccountId?: boolean
+    externalAccountLabel?: boolean
+    accessTokenEncrypted?: boolean
+    refreshTokenEncrypted?: boolean
+    apiKeyFieldsEncrypted?: boolean
+    scopes?: boolean
+    tokenExpiresAt?: boolean
+    status?: boolean
+    lastUsedAt?: boolean
+    forAgentUse?: boolean
+    oauthAppSource?: boolean
+    oauthAppOverrideId?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    revokedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+    projectLinks?: boolean | UserConnection$projectLinksArgs<ExtArgs>
+    reconnectionAlerts?: boolean | UserConnection$reconnectionAlertsArgs<ExtArgs>
+    _count?: boolean | UserConnectionCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["userConnection"]>
+
+  export type UserConnectionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    externalAccountId?: boolean
+    externalAccountLabel?: boolean
+    accessTokenEncrypted?: boolean
+    refreshTokenEncrypted?: boolean
+    apiKeyFieldsEncrypted?: boolean
+    scopes?: boolean
+    tokenExpiresAt?: boolean
+    status?: boolean
+    lastUsedAt?: boolean
+    forAgentUse?: boolean
+    oauthAppSource?: boolean
+    oauthAppOverrideId?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    revokedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+  }, ExtArgs["result"]["userConnection"]>
+
+  export type UserConnectionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    externalAccountId?: boolean
+    externalAccountLabel?: boolean
+    accessTokenEncrypted?: boolean
+    refreshTokenEncrypted?: boolean
+    apiKeyFieldsEncrypted?: boolean
+    scopes?: boolean
+    tokenExpiresAt?: boolean
+    status?: boolean
+    lastUsedAt?: boolean
+    forAgentUse?: boolean
+    oauthAppSource?: boolean
+    oauthAppOverrideId?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    revokedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+  }, ExtArgs["result"]["userConnection"]>
+
+  export type UserConnectionSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    provider?: boolean
+    externalAccountId?: boolean
+    externalAccountLabel?: boolean
+    accessTokenEncrypted?: boolean
+    refreshTokenEncrypted?: boolean
+    apiKeyFieldsEncrypted?: boolean
+    scopes?: boolean
+    tokenExpiresAt?: boolean
+    status?: boolean
+    lastUsedAt?: boolean
+    forAgentUse?: boolean
+    oauthAppSource?: boolean
+    oauthAppOverrideId?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    revokedAt?: boolean
+  }
+
+  export type UserConnectionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "provider" | "externalAccountId" | "externalAccountLabel" | "accessTokenEncrypted" | "refreshTokenEncrypted" | "apiKeyFieldsEncrypted" | "scopes" | "tokenExpiresAt" | "status" | "lastUsedAt" | "forAgentUse" | "oauthAppSource" | "oauthAppOverrideId" | "createdByUserId" | "createdAt" | "updatedAt" | "revokedAt", ExtArgs["result"]["userConnection"]>
+  export type UserConnectionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+    projectLinks?: boolean | UserConnection$projectLinksArgs<ExtArgs>
+    reconnectionAlerts?: boolean | UserConnection$reconnectionAlertsArgs<ExtArgs>
+    _count?: boolean | UserConnectionCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type UserConnectionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+  }
+  export type UserConnectionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    oauthAppOverride?: boolean | UserConnection$oauthAppOverrideArgs<ExtArgs>
+  }
+
+  export type $UserConnectionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserConnection"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      oauthAppOverride: Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs> | null
+      projectLinks: Prisma.$ProjectConnectionLinkPayload<ExtArgs>[]
+      reconnectionAlerts: Prisma.$ReconnectionAlertPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      provider: string
+      externalAccountId: string
+      externalAccountLabel: string
+      accessTokenEncrypted: string | null
+      refreshTokenEncrypted: string | null
+      apiKeyFieldsEncrypted: Prisma.JsonValue | null
+      scopes: string[]
+      tokenExpiresAt: Date | null
+      status: string
+      lastUsedAt: Date | null
+      forAgentUse: boolean
+      oauthAppSource: string
+      oauthAppOverrideId: string | null
+      createdByUserId: string
+      createdAt: Date
+      updatedAt: Date
+      revokedAt: Date | null
+    }, ExtArgs["result"]["userConnection"]>
+    composites: {}
+  }
+
+  type UserConnectionGetPayload<S extends boolean | null | undefined | UserConnectionDefaultArgs> = $Result.GetResult<Prisma.$UserConnectionPayload, S>
+
+  type UserConnectionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<UserConnectionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: UserConnectionCountAggregateInputType | true
+    }
+
+  export interface UserConnectionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserConnection'], meta: { name: 'UserConnection' } }
+    /**
+     * Find zero or one UserConnection that matches the filter.
+     * @param {UserConnectionFindUniqueArgs} args - Arguments to find a UserConnection
+     * @example
+     * // Get one UserConnection
+     * const userConnection = await prisma.userConnection.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserConnectionFindUniqueArgs>(args: SelectSubset<T, UserConnectionFindUniqueArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one UserConnection that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {UserConnectionFindUniqueOrThrowArgs} args - Arguments to find a UserConnection
+     * @example
+     * // Get one UserConnection
+     * const userConnection = await prisma.userConnection.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserConnectionFindUniqueOrThrowArgs>(args: SelectSubset<T, UserConnectionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserConnection that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionFindFirstArgs} args - Arguments to find a UserConnection
+     * @example
+     * // Get one UserConnection
+     * const userConnection = await prisma.userConnection.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserConnectionFindFirstArgs>(args?: SelectSubset<T, UserConnectionFindFirstArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserConnection that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionFindFirstOrThrowArgs} args - Arguments to find a UserConnection
+     * @example
+     * // Get one UserConnection
+     * const userConnection = await prisma.userConnection.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserConnectionFindFirstOrThrowArgs>(args?: SelectSubset<T, UserConnectionFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more UserConnections that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserConnections
+     * const userConnections = await prisma.userConnection.findMany()
+     * 
+     * // Get first 10 UserConnections
+     * const userConnections = await prisma.userConnection.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const userConnectionWithIdOnly = await prisma.userConnection.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UserConnectionFindManyArgs>(args?: SelectSubset<T, UserConnectionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a UserConnection.
+     * @param {UserConnectionCreateArgs} args - Arguments to create a UserConnection.
+     * @example
+     * // Create one UserConnection
+     * const UserConnection = await prisma.userConnection.create({
+     *   data: {
+     *     // ... data to create a UserConnection
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserConnectionCreateArgs>(args: SelectSubset<T, UserConnectionCreateArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many UserConnections.
+     * @param {UserConnectionCreateManyArgs} args - Arguments to create many UserConnections.
+     * @example
+     * // Create many UserConnections
+     * const userConnection = await prisma.userConnection.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserConnectionCreateManyArgs>(args?: SelectSubset<T, UserConnectionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserConnections and returns the data saved in the database.
+     * @param {UserConnectionCreateManyAndReturnArgs} args - Arguments to create many UserConnections.
+     * @example
+     * // Create many UserConnections
+     * const userConnection = await prisma.userConnection.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserConnections and only return the `id`
+     * const userConnectionWithIdOnly = await prisma.userConnection.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserConnectionCreateManyAndReturnArgs>(args?: SelectSubset<T, UserConnectionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a UserConnection.
+     * @param {UserConnectionDeleteArgs} args - Arguments to delete one UserConnection.
+     * @example
+     * // Delete one UserConnection
+     * const UserConnection = await prisma.userConnection.delete({
+     *   where: {
+     *     // ... filter to delete one UserConnection
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserConnectionDeleteArgs>(args: SelectSubset<T, UserConnectionDeleteArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one UserConnection.
+     * @param {UserConnectionUpdateArgs} args - Arguments to update one UserConnection.
+     * @example
+     * // Update one UserConnection
+     * const userConnection = await prisma.userConnection.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserConnectionUpdateArgs>(args: SelectSubset<T, UserConnectionUpdateArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more UserConnections.
+     * @param {UserConnectionDeleteManyArgs} args - Arguments to filter UserConnections to delete.
+     * @example
+     * // Delete a few UserConnections
+     * const { count } = await prisma.userConnection.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserConnectionDeleteManyArgs>(args?: SelectSubset<T, UserConnectionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserConnections.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserConnections
+     * const userConnection = await prisma.userConnection.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserConnectionUpdateManyArgs>(args: SelectSubset<T, UserConnectionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserConnections and returns the data updated in the database.
+     * @param {UserConnectionUpdateManyAndReturnArgs} args - Arguments to update many UserConnections.
+     * @example
+     * // Update many UserConnections
+     * const userConnection = await prisma.userConnection.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more UserConnections and only return the `id`
+     * const userConnectionWithIdOnly = await prisma.userConnection.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UserConnectionUpdateManyAndReturnArgs>(args: SelectSubset<T, UserConnectionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one UserConnection.
+     * @param {UserConnectionUpsertArgs} args - Arguments to update or create a UserConnection.
+     * @example
+     * // Update or create a UserConnection
+     * const userConnection = await prisma.userConnection.upsert({
+     *   create: {
+     *     // ... data to create a UserConnection
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserConnection we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserConnectionUpsertArgs>(args: SelectSubset<T, UserConnectionUpsertArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of UserConnections.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionCountArgs} args - Arguments to filter UserConnections to count.
+     * @example
+     * // Count the number of UserConnections
+     * const count = await prisma.userConnection.count({
+     *   where: {
+     *     // ... the filter for the UserConnections we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserConnectionCountArgs>(
+      args?: Subset<T, UserConnectionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserConnectionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserConnection.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserConnectionAggregateArgs>(args: Subset<T, UserConnectionAggregateArgs>): Prisma.PrismaPromise<GetUserConnectionAggregateType<T>>
+
+    /**
+     * Group by UserConnection.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserConnectionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserConnectionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserConnectionGroupByArgs['orderBy'] }
+        : { orderBy?: UserConnectionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserConnectionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserConnectionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserConnection model
+   */
+  readonly fields: UserConnectionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserConnection.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserConnectionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    oauthAppOverride<T extends UserConnection$oauthAppOverrideArgs<ExtArgs> = {}>(args?: Subset<T, UserConnection$oauthAppOverrideArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    projectLinks<T extends UserConnection$projectLinksArgs<ExtArgs> = {}>(args?: Subset<T, UserConnection$projectLinksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    reconnectionAlerts<T extends UserConnection$reconnectionAlertsArgs<ExtArgs> = {}>(args?: Subset<T, UserConnection$reconnectionAlertsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserConnection model
+   */
+  interface UserConnectionFieldRefs {
+    readonly id: FieldRef<"UserConnection", 'String'>
+    readonly userId: FieldRef<"UserConnection", 'String'>
+    readonly provider: FieldRef<"UserConnection", 'String'>
+    readonly externalAccountId: FieldRef<"UserConnection", 'String'>
+    readonly externalAccountLabel: FieldRef<"UserConnection", 'String'>
+    readonly accessTokenEncrypted: FieldRef<"UserConnection", 'String'>
+    readonly refreshTokenEncrypted: FieldRef<"UserConnection", 'String'>
+    readonly apiKeyFieldsEncrypted: FieldRef<"UserConnection", 'Json'>
+    readonly scopes: FieldRef<"UserConnection", 'String[]'>
+    readonly tokenExpiresAt: FieldRef<"UserConnection", 'DateTime'>
+    readonly status: FieldRef<"UserConnection", 'String'>
+    readonly lastUsedAt: FieldRef<"UserConnection", 'DateTime'>
+    readonly forAgentUse: FieldRef<"UserConnection", 'Boolean'>
+    readonly oauthAppSource: FieldRef<"UserConnection", 'String'>
+    readonly oauthAppOverrideId: FieldRef<"UserConnection", 'String'>
+    readonly createdByUserId: FieldRef<"UserConnection", 'String'>
+    readonly createdAt: FieldRef<"UserConnection", 'DateTime'>
+    readonly updatedAt: FieldRef<"UserConnection", 'DateTime'>
+    readonly revokedAt: FieldRef<"UserConnection", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserConnection findUnique
+   */
+  export type UserConnectionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter, which UserConnection to fetch.
+     */
+    where: UserConnectionWhereUniqueInput
+  }
+
+  /**
+   * UserConnection findUniqueOrThrow
+   */
+  export type UserConnectionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter, which UserConnection to fetch.
+     */
+    where: UserConnectionWhereUniqueInput
+  }
+
+  /**
+   * UserConnection findFirst
+   */
+  export type UserConnectionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter, which UserConnection to fetch.
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserConnections to fetch.
+     */
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserConnections.
+     */
+    cursor?: UserConnectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserConnections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserConnections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserConnections.
+     */
+    distinct?: UserConnectionScalarFieldEnum | UserConnectionScalarFieldEnum[]
+  }
+
+  /**
+   * UserConnection findFirstOrThrow
+   */
+  export type UserConnectionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter, which UserConnection to fetch.
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserConnections to fetch.
+     */
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserConnections.
+     */
+    cursor?: UserConnectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserConnections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserConnections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserConnections.
+     */
+    distinct?: UserConnectionScalarFieldEnum | UserConnectionScalarFieldEnum[]
+  }
+
+  /**
+   * UserConnection findMany
+   */
+  export type UserConnectionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter, which UserConnections to fetch.
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserConnections to fetch.
+     */
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserConnections.
+     */
+    cursor?: UserConnectionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserConnections from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserConnections.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserConnections.
+     */
+    distinct?: UserConnectionScalarFieldEnum | UserConnectionScalarFieldEnum[]
+  }
+
+  /**
+   * UserConnection create
+   */
+  export type UserConnectionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a UserConnection.
+     */
+    data: XOR<UserConnectionCreateInput, UserConnectionUncheckedCreateInput>
+  }
+
+  /**
+   * UserConnection createMany
+   */
+  export type UserConnectionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserConnections.
+     */
+    data: UserConnectionCreateManyInput | UserConnectionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserConnection createManyAndReturn
+   */
+  export type UserConnectionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * The data used to create many UserConnections.
+     */
+    data: UserConnectionCreateManyInput | UserConnectionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * UserConnection update
+   */
+  export type UserConnectionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a UserConnection.
+     */
+    data: XOR<UserConnectionUpdateInput, UserConnectionUncheckedUpdateInput>
+    /**
+     * Choose, which UserConnection to update.
+     */
+    where: UserConnectionWhereUniqueInput
+  }
+
+  /**
+   * UserConnection updateMany
+   */
+  export type UserConnectionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserConnections.
+     */
+    data: XOR<UserConnectionUpdateManyMutationInput, UserConnectionUncheckedUpdateManyInput>
+    /**
+     * Filter which UserConnections to update
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * Limit how many UserConnections to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserConnection updateManyAndReturn
+   */
+  export type UserConnectionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * The data used to update UserConnections.
+     */
+    data: XOR<UserConnectionUpdateManyMutationInput, UserConnectionUncheckedUpdateManyInput>
+    /**
+     * Filter which UserConnections to update
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * Limit how many UserConnections to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * UserConnection upsert
+   */
+  export type UserConnectionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the UserConnection to update in case it exists.
+     */
+    where: UserConnectionWhereUniqueInput
+    /**
+     * In case the UserConnection found by the `where` argument doesn't exist, create a new UserConnection with this data.
+     */
+    create: XOR<UserConnectionCreateInput, UserConnectionUncheckedCreateInput>
+    /**
+     * In case the UserConnection was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserConnectionUpdateInput, UserConnectionUncheckedUpdateInput>
+  }
+
+  /**
+   * UserConnection delete
+   */
+  export type UserConnectionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    /**
+     * Filter which UserConnection to delete.
+     */
+    where: UserConnectionWhereUniqueInput
+  }
+
+  /**
+   * UserConnection deleteMany
+   */
+  export type UserConnectionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserConnections to delete
+     */
+    where?: UserConnectionWhereInput
+    /**
+     * Limit how many UserConnections to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserConnection.oauthAppOverride
+   */
+  export type UserConnection$oauthAppOverrideArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    where?: OrganizationOAuthAppOverrideWhereInput
+  }
+
+  /**
+   * UserConnection.projectLinks
+   */
+  export type UserConnection$projectLinksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    where?: ProjectConnectionLinkWhereInput
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * UserConnection.reconnectionAlerts
+   */
+  export type UserConnection$reconnectionAlertsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    where?: ReconnectionAlertWhereInput
+    orderBy?: ReconnectionAlertOrderByWithRelationInput | ReconnectionAlertOrderByWithRelationInput[]
+    cursor?: ReconnectionAlertWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ReconnectionAlertScalarFieldEnum | ReconnectionAlertScalarFieldEnum[]
+  }
+
+  /**
+   * UserConnection without action
+   */
+  export type UserConnectionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectConnectionLink
+   */
+
+  export type AggregateProjectConnectionLink = {
+    _count: ProjectConnectionLinkCountAggregateOutputType | null
+    _min: ProjectConnectionLinkMinAggregateOutputType | null
+    _max: ProjectConnectionLinkMaxAggregateOutputType | null
+  }
+
+  export type ProjectConnectionLinkMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userConnectionId: string | null
+    linkedByUserId: string | null
+    linkedAt: Date | null
+    unlinkedAt: Date | null
+  }
+
+  export type ProjectConnectionLinkMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    userConnectionId: string | null
+    linkedByUserId: string | null
+    linkedAt: Date | null
+    unlinkedAt: Date | null
+  }
+
+  export type ProjectConnectionLinkCountAggregateOutputType = {
+    id: number
+    projectId: number
+    userConnectionId: number
+    linkedByUserId: number
+    linkedAt: number
+    unlinkedAt: number
+    _all: number
+  }
+
+
+  export type ProjectConnectionLinkMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    userConnectionId?: true
+    linkedByUserId?: true
+    linkedAt?: true
+    unlinkedAt?: true
+  }
+
+  export type ProjectConnectionLinkMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    userConnectionId?: true
+    linkedByUserId?: true
+    linkedAt?: true
+    unlinkedAt?: true
+  }
+
+  export type ProjectConnectionLinkCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    userConnectionId?: true
+    linkedByUserId?: true
+    linkedAt?: true
+    unlinkedAt?: true
+    _all?: true
+  }
+
+  export type ProjectConnectionLinkAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectConnectionLink to aggregate.
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectConnectionLinks to fetch.
+     */
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectConnectionLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectConnectionLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectConnectionLinks
+    **/
+    _count?: true | ProjectConnectionLinkCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectConnectionLinkMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectConnectionLinkMaxAggregateInputType
+  }
+
+  export type GetProjectConnectionLinkAggregateType<T extends ProjectConnectionLinkAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectConnectionLink]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectConnectionLink[P]>
+      : GetScalarType<T[P], AggregateProjectConnectionLink[P]>
+  }
+
+
+
+
+  export type ProjectConnectionLinkGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectConnectionLinkWhereInput
+    orderBy?: ProjectConnectionLinkOrderByWithAggregationInput | ProjectConnectionLinkOrderByWithAggregationInput[]
+    by: ProjectConnectionLinkScalarFieldEnum[] | ProjectConnectionLinkScalarFieldEnum
+    having?: ProjectConnectionLinkScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectConnectionLinkCountAggregateInputType | true
+    _min?: ProjectConnectionLinkMinAggregateInputType
+    _max?: ProjectConnectionLinkMaxAggregateInputType
+  }
+
+  export type ProjectConnectionLinkGroupByOutputType = {
+    id: string
+    projectId: string
+    userConnectionId: string
+    linkedByUserId: string
+    linkedAt: Date
+    unlinkedAt: Date | null
+    _count: ProjectConnectionLinkCountAggregateOutputType | null
+    _min: ProjectConnectionLinkMinAggregateOutputType | null
+    _max: ProjectConnectionLinkMaxAggregateOutputType | null
+  }
+
+  type GetProjectConnectionLinkGroupByPayload<T extends ProjectConnectionLinkGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectConnectionLinkGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectConnectionLinkGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectConnectionLinkGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectConnectionLinkGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectConnectionLinkSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userConnectionId?: boolean
+    linkedByUserId?: boolean
+    linkedAt?: boolean
+    unlinkedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectConnectionLink"]>
+
+  export type ProjectConnectionLinkSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userConnectionId?: boolean
+    linkedByUserId?: boolean
+    linkedAt?: boolean
+    unlinkedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectConnectionLink"]>
+
+  export type ProjectConnectionLinkSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    userConnectionId?: boolean
+    linkedByUserId?: boolean
+    linkedAt?: boolean
+    unlinkedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectConnectionLink"]>
+
+  export type ProjectConnectionLinkSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    userConnectionId?: boolean
+    linkedByUserId?: boolean
+    linkedAt?: boolean
+    unlinkedAt?: boolean
+  }
+
+  export type ProjectConnectionLinkOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "userConnectionId" | "linkedByUserId" | "linkedAt" | "unlinkedAt", ExtArgs["result"]["projectConnectionLink"]>
+  export type ProjectConnectionLinkInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ProjectConnectionLinkIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ProjectConnectionLinkIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+    linkedByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectConnectionLinkPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectConnectionLink"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      userConnection: Prisma.$UserConnectionPayload<ExtArgs>
+      linkedByUser: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      userConnectionId: string
+      linkedByUserId: string
+      linkedAt: Date
+      unlinkedAt: Date | null
+    }, ExtArgs["result"]["projectConnectionLink"]>
+    composites: {}
+  }
+
+  type ProjectConnectionLinkGetPayload<S extends boolean | null | undefined | ProjectConnectionLinkDefaultArgs> = $Result.GetResult<Prisma.$ProjectConnectionLinkPayload, S>
+
+  type ProjectConnectionLinkCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectConnectionLinkFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectConnectionLinkCountAggregateInputType | true
+    }
+
+  export interface ProjectConnectionLinkDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectConnectionLink'], meta: { name: 'ProjectConnectionLink' } }
+    /**
+     * Find zero or one ProjectConnectionLink that matches the filter.
+     * @param {ProjectConnectionLinkFindUniqueArgs} args - Arguments to find a ProjectConnectionLink
+     * @example
+     * // Get one ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectConnectionLinkFindUniqueArgs>(args: SelectSubset<T, ProjectConnectionLinkFindUniqueArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectConnectionLink that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectConnectionLinkFindUniqueOrThrowArgs} args - Arguments to find a ProjectConnectionLink
+     * @example
+     * // Get one ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectConnectionLinkFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectConnectionLinkFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectConnectionLink that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkFindFirstArgs} args - Arguments to find a ProjectConnectionLink
+     * @example
+     * // Get one ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectConnectionLinkFindFirstArgs>(args?: SelectSubset<T, ProjectConnectionLinkFindFirstArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectConnectionLink that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkFindFirstOrThrowArgs} args - Arguments to find a ProjectConnectionLink
+     * @example
+     * // Get one ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectConnectionLinkFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectConnectionLinkFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectConnectionLinks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectConnectionLinks
+     * const projectConnectionLinks = await prisma.projectConnectionLink.findMany()
+     * 
+     * // Get first 10 ProjectConnectionLinks
+     * const projectConnectionLinks = await prisma.projectConnectionLink.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectConnectionLinkWithIdOnly = await prisma.projectConnectionLink.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectConnectionLinkFindManyArgs>(args?: SelectSubset<T, ProjectConnectionLinkFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectConnectionLink.
+     * @param {ProjectConnectionLinkCreateArgs} args - Arguments to create a ProjectConnectionLink.
+     * @example
+     * // Create one ProjectConnectionLink
+     * const ProjectConnectionLink = await prisma.projectConnectionLink.create({
+     *   data: {
+     *     // ... data to create a ProjectConnectionLink
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectConnectionLinkCreateArgs>(args: SelectSubset<T, ProjectConnectionLinkCreateArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectConnectionLinks.
+     * @param {ProjectConnectionLinkCreateManyArgs} args - Arguments to create many ProjectConnectionLinks.
+     * @example
+     * // Create many ProjectConnectionLinks
+     * const projectConnectionLink = await prisma.projectConnectionLink.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectConnectionLinkCreateManyArgs>(args?: SelectSubset<T, ProjectConnectionLinkCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectConnectionLinks and returns the data saved in the database.
+     * @param {ProjectConnectionLinkCreateManyAndReturnArgs} args - Arguments to create many ProjectConnectionLinks.
+     * @example
+     * // Create many ProjectConnectionLinks
+     * const projectConnectionLink = await prisma.projectConnectionLink.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectConnectionLinks and only return the `id`
+     * const projectConnectionLinkWithIdOnly = await prisma.projectConnectionLink.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectConnectionLinkCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectConnectionLinkCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectConnectionLink.
+     * @param {ProjectConnectionLinkDeleteArgs} args - Arguments to delete one ProjectConnectionLink.
+     * @example
+     * // Delete one ProjectConnectionLink
+     * const ProjectConnectionLink = await prisma.projectConnectionLink.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectConnectionLink
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectConnectionLinkDeleteArgs>(args: SelectSubset<T, ProjectConnectionLinkDeleteArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectConnectionLink.
+     * @param {ProjectConnectionLinkUpdateArgs} args - Arguments to update one ProjectConnectionLink.
+     * @example
+     * // Update one ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectConnectionLinkUpdateArgs>(args: SelectSubset<T, ProjectConnectionLinkUpdateArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectConnectionLinks.
+     * @param {ProjectConnectionLinkDeleteManyArgs} args - Arguments to filter ProjectConnectionLinks to delete.
+     * @example
+     * // Delete a few ProjectConnectionLinks
+     * const { count } = await prisma.projectConnectionLink.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectConnectionLinkDeleteManyArgs>(args?: SelectSubset<T, ProjectConnectionLinkDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectConnectionLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectConnectionLinks
+     * const projectConnectionLink = await prisma.projectConnectionLink.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectConnectionLinkUpdateManyArgs>(args: SelectSubset<T, ProjectConnectionLinkUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectConnectionLinks and returns the data updated in the database.
+     * @param {ProjectConnectionLinkUpdateManyAndReturnArgs} args - Arguments to update many ProjectConnectionLinks.
+     * @example
+     * // Update many ProjectConnectionLinks
+     * const projectConnectionLink = await prisma.projectConnectionLink.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectConnectionLinks and only return the `id`
+     * const projectConnectionLinkWithIdOnly = await prisma.projectConnectionLink.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectConnectionLinkUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectConnectionLinkUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectConnectionLink.
+     * @param {ProjectConnectionLinkUpsertArgs} args - Arguments to update or create a ProjectConnectionLink.
+     * @example
+     * // Update or create a ProjectConnectionLink
+     * const projectConnectionLink = await prisma.projectConnectionLink.upsert({
+     *   create: {
+     *     // ... data to create a ProjectConnectionLink
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectConnectionLink we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectConnectionLinkUpsertArgs>(args: SelectSubset<T, ProjectConnectionLinkUpsertArgs<ExtArgs>>): Prisma__ProjectConnectionLinkClient<$Result.GetResult<Prisma.$ProjectConnectionLinkPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectConnectionLinks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkCountArgs} args - Arguments to filter ProjectConnectionLinks to count.
+     * @example
+     * // Count the number of ProjectConnectionLinks
+     * const count = await prisma.projectConnectionLink.count({
+     *   where: {
+     *     // ... the filter for the ProjectConnectionLinks we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectConnectionLinkCountArgs>(
+      args?: Subset<T, ProjectConnectionLinkCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectConnectionLinkCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectConnectionLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectConnectionLinkAggregateArgs>(args: Subset<T, ProjectConnectionLinkAggregateArgs>): Prisma.PrismaPromise<GetProjectConnectionLinkAggregateType<T>>
+
+    /**
+     * Group by ProjectConnectionLink.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectConnectionLinkGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectConnectionLinkGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectConnectionLinkGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectConnectionLinkGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectConnectionLinkGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectConnectionLinkGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectConnectionLink model
+   */
+  readonly fields: ProjectConnectionLinkFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectConnectionLink.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectConnectionLinkClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    userConnection<T extends UserConnectionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserConnectionDefaultArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    linkedByUser<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectConnectionLink model
+   */
+  interface ProjectConnectionLinkFieldRefs {
+    readonly id: FieldRef<"ProjectConnectionLink", 'String'>
+    readonly projectId: FieldRef<"ProjectConnectionLink", 'String'>
+    readonly userConnectionId: FieldRef<"ProjectConnectionLink", 'String'>
+    readonly linkedByUserId: FieldRef<"ProjectConnectionLink", 'String'>
+    readonly linkedAt: FieldRef<"ProjectConnectionLink", 'DateTime'>
+    readonly unlinkedAt: FieldRef<"ProjectConnectionLink", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectConnectionLink findUnique
+   */
+  export type ProjectConnectionLinkFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectConnectionLink to fetch.
+     */
+    where: ProjectConnectionLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectConnectionLink findUniqueOrThrow
+   */
+  export type ProjectConnectionLinkFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectConnectionLink to fetch.
+     */
+    where: ProjectConnectionLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectConnectionLink findFirst
+   */
+  export type ProjectConnectionLinkFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectConnectionLink to fetch.
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectConnectionLinks to fetch.
+     */
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectConnectionLinks.
+     */
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectConnectionLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectConnectionLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectConnectionLinks.
+     */
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectConnectionLink findFirstOrThrow
+   */
+  export type ProjectConnectionLinkFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectConnectionLink to fetch.
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectConnectionLinks to fetch.
+     */
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectConnectionLinks.
+     */
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectConnectionLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectConnectionLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectConnectionLinks.
+     */
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectConnectionLink findMany
+   */
+  export type ProjectConnectionLinkFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectConnectionLinks to fetch.
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectConnectionLinks to fetch.
+     */
+    orderBy?: ProjectConnectionLinkOrderByWithRelationInput | ProjectConnectionLinkOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectConnectionLinks.
+     */
+    cursor?: ProjectConnectionLinkWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectConnectionLinks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectConnectionLinks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectConnectionLinks.
+     */
+    distinct?: ProjectConnectionLinkScalarFieldEnum | ProjectConnectionLinkScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectConnectionLink create
+   */
+  export type ProjectConnectionLinkCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectConnectionLink.
+     */
+    data: XOR<ProjectConnectionLinkCreateInput, ProjectConnectionLinkUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectConnectionLink createMany
+   */
+  export type ProjectConnectionLinkCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectConnectionLinks.
+     */
+    data: ProjectConnectionLinkCreateManyInput | ProjectConnectionLinkCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectConnectionLink createManyAndReturn
+   */
+  export type ProjectConnectionLinkCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectConnectionLinks.
+     */
+    data: ProjectConnectionLinkCreateManyInput | ProjectConnectionLinkCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectConnectionLink update
+   */
+  export type ProjectConnectionLinkUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectConnectionLink.
+     */
+    data: XOR<ProjectConnectionLinkUpdateInput, ProjectConnectionLinkUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectConnectionLink to update.
+     */
+    where: ProjectConnectionLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectConnectionLink updateMany
+   */
+  export type ProjectConnectionLinkUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectConnectionLinks.
+     */
+    data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectConnectionLinks to update
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * Limit how many ProjectConnectionLinks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectConnectionLink updateManyAndReturn
+   */
+  export type ProjectConnectionLinkUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectConnectionLinks.
+     */
+    data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectConnectionLinks to update
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * Limit how many ProjectConnectionLinks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectConnectionLink upsert
+   */
+  export type ProjectConnectionLinkUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectConnectionLink to update in case it exists.
+     */
+    where: ProjectConnectionLinkWhereUniqueInput
+    /**
+     * In case the ProjectConnectionLink found by the `where` argument doesn't exist, create a new ProjectConnectionLink with this data.
+     */
+    create: XOR<ProjectConnectionLinkCreateInput, ProjectConnectionLinkUncheckedCreateInput>
+    /**
+     * In case the ProjectConnectionLink was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectConnectionLinkUpdateInput, ProjectConnectionLinkUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectConnectionLink delete
+   */
+  export type ProjectConnectionLinkDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectConnectionLink to delete.
+     */
+    where: ProjectConnectionLinkWhereUniqueInput
+  }
+
+  /**
+   * ProjectConnectionLink deleteMany
+   */
+  export type ProjectConnectionLinkDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectConnectionLinks to delete
+     */
+    where?: ProjectConnectionLinkWhereInput
+    /**
+     * Limit how many ProjectConnectionLinks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectConnectionLink without action
+   */
+  export type ProjectConnectionLinkDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectConnectionLink
+     */
+    select?: ProjectConnectionLinkSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectConnectionLink
+     */
+    omit?: ProjectConnectionLinkOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectConnectionLinkInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model OrganizationOAuthAppOverride
+   */
+
+  export type AggregateOrganizationOAuthAppOverride = {
+    _count: OrganizationOAuthAppOverrideCountAggregateOutputType | null
+    _min: OrganizationOAuthAppOverrideMinAggregateOutputType | null
+    _max: OrganizationOAuthAppOverrideMaxAggregateOutputType | null
+  }
+
+  export type OrganizationOAuthAppOverrideMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    provider: string | null
+    clientId: string | null
+    clientSecretEncrypted: string | null
+    configuredByUserId: string | null
+    testedAt: Date | null
+    testStatus: string | null
+    testError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrganizationOAuthAppOverrideMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    provider: string | null
+    clientId: string | null
+    clientSecretEncrypted: string | null
+    configuredByUserId: string | null
+    testedAt: Date | null
+    testStatus: string | null
+    testError: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrganizationOAuthAppOverrideCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    provider: number
+    clientId: number
+    clientSecretEncrypted: number
+    scopes: number
+    configuredByUserId: number
+    testedAt: number
+    testStatus: number
+    testError: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type OrganizationOAuthAppOverrideMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    clientId?: true
+    clientSecretEncrypted?: true
+    configuredByUserId?: true
+    testedAt?: true
+    testStatus?: true
+    testError?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrganizationOAuthAppOverrideMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    clientId?: true
+    clientSecretEncrypted?: true
+    configuredByUserId?: true
+    testedAt?: true
+    testStatus?: true
+    testError?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrganizationOAuthAppOverrideCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    clientId?: true
+    clientSecretEncrypted?: true
+    scopes?: true
+    configuredByUserId?: true
+    testedAt?: true
+    testStatus?: true
+    testError?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type OrganizationOAuthAppOverrideAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationOAuthAppOverride to aggregate.
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationOAuthAppOverrides to fetch.
+     */
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationOAuthAppOverrides from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationOAuthAppOverrides.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned OrganizationOAuthAppOverrides
+    **/
+    _count?: true | OrganizationOAuthAppOverrideCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: OrganizationOAuthAppOverrideMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: OrganizationOAuthAppOverrideMaxAggregateInputType
+  }
+
+  export type GetOrganizationOAuthAppOverrideAggregateType<T extends OrganizationOAuthAppOverrideAggregateArgs> = {
+        [P in keyof T & keyof AggregateOrganizationOAuthAppOverride]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateOrganizationOAuthAppOverride[P]>
+      : GetScalarType<T[P], AggregateOrganizationOAuthAppOverride[P]>
+  }
+
+
+
+
+  export type OrganizationOAuthAppOverrideGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationOAuthAppOverrideWhereInput
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithAggregationInput | OrganizationOAuthAppOverrideOrderByWithAggregationInput[]
+    by: OrganizationOAuthAppOverrideScalarFieldEnum[] | OrganizationOAuthAppOverrideScalarFieldEnum
+    having?: OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: OrganizationOAuthAppOverrideCountAggregateInputType | true
+    _min?: OrganizationOAuthAppOverrideMinAggregateInputType
+    _max?: OrganizationOAuthAppOverrideMaxAggregateInputType
+  }
+
+  export type OrganizationOAuthAppOverrideGroupByOutputType = {
+    id: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes: string[]
+    configuredByUserId: string
+    testedAt: Date | null
+    testStatus: string | null
+    testError: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: OrganizationOAuthAppOverrideCountAggregateOutputType | null
+    _min: OrganizationOAuthAppOverrideMinAggregateOutputType | null
+    _max: OrganizationOAuthAppOverrideMaxAggregateOutputType | null
+  }
+
+  type GetOrganizationOAuthAppOverrideGroupByPayload<T extends OrganizationOAuthAppOverrideGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<OrganizationOAuthAppOverrideGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof OrganizationOAuthAppOverrideGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], OrganizationOAuthAppOverrideGroupByOutputType[P]>
+            : GetScalarType<T[P], OrganizationOAuthAppOverrideGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type OrganizationOAuthAppOverrideSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEncrypted?: boolean
+    scopes?: boolean
+    configuredByUserId?: boolean
+    testedAt?: boolean
+    testStatus?: boolean
+    testError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+    userConnections?: boolean | OrganizationOAuthAppOverride$userConnectionsArgs<ExtArgs>
+    _count?: boolean | OrganizationOAuthAppOverrideCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationOAuthAppOverride"]>
+
+  export type OrganizationOAuthAppOverrideSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEncrypted?: boolean
+    scopes?: boolean
+    configuredByUserId?: boolean
+    testedAt?: boolean
+    testStatus?: boolean
+    testError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationOAuthAppOverride"]>
+
+  export type OrganizationOAuthAppOverrideSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEncrypted?: boolean
+    scopes?: boolean
+    configuredByUserId?: boolean
+    testedAt?: boolean
+    testStatus?: boolean
+    testError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationOAuthAppOverride"]>
+
+  export type OrganizationOAuthAppOverrideSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    clientId?: boolean
+    clientSecretEncrypted?: boolean
+    scopes?: boolean
+    configuredByUserId?: boolean
+    testedAt?: boolean
+    testStatus?: boolean
+    testError?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type OrganizationOAuthAppOverrideOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "provider" | "clientId" | "clientSecretEncrypted" | "scopes" | "configuredByUserId" | "testedAt" | "testStatus" | "testError" | "createdAt" | "updatedAt", ExtArgs["result"]["organizationOAuthAppOverride"]>
+  export type OrganizationOAuthAppOverrideInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+    userConnections?: boolean | OrganizationOAuthAppOverride$userConnectionsArgs<ExtArgs>
+    _count?: boolean | OrganizationOAuthAppOverrideCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type OrganizationOAuthAppOverrideIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type OrganizationOAuthAppOverrideIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    configuredByUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $OrganizationOAuthAppOverridePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "OrganizationOAuthAppOverride"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      configuredByUser: Prisma.$UserPayload<ExtArgs>
+      userConnections: Prisma.$UserConnectionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      provider: string
+      clientId: string
+      clientSecretEncrypted: string
+      scopes: string[]
+      configuredByUserId: string
+      testedAt: Date | null
+      testStatus: string | null
+      testError: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["organizationOAuthAppOverride"]>
+    composites: {}
+  }
+
+  type OrganizationOAuthAppOverrideGetPayload<S extends boolean | null | undefined | OrganizationOAuthAppOverrideDefaultArgs> = $Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload, S>
+
+  type OrganizationOAuthAppOverrideCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<OrganizationOAuthAppOverrideFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: OrganizationOAuthAppOverrideCountAggregateInputType | true
+    }
+
+  export interface OrganizationOAuthAppOverrideDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['OrganizationOAuthAppOverride'], meta: { name: 'OrganizationOAuthAppOverride' } }
+    /**
+     * Find zero or one OrganizationOAuthAppOverride that matches the filter.
+     * @param {OrganizationOAuthAppOverrideFindUniqueArgs} args - Arguments to find a OrganizationOAuthAppOverride
+     * @example
+     * // Get one OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends OrganizationOAuthAppOverrideFindUniqueArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideFindUniqueArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one OrganizationOAuthAppOverride that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {OrganizationOAuthAppOverrideFindUniqueOrThrowArgs} args - Arguments to find a OrganizationOAuthAppOverride
+     * @example
+     * // Get one OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends OrganizationOAuthAppOverrideFindUniqueOrThrowArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideFindUniqueOrThrowArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrganizationOAuthAppOverride that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideFindFirstArgs} args - Arguments to find a OrganizationOAuthAppOverride
+     * @example
+     * // Get one OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends OrganizationOAuthAppOverrideFindFirstArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideFindFirstArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrganizationOAuthAppOverride that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideFindFirstOrThrowArgs} args - Arguments to find a OrganizationOAuthAppOverride
+     * @example
+     * // Get one OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends OrganizationOAuthAppOverrideFindFirstOrThrowArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideFindFirstOrThrowArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more OrganizationOAuthAppOverrides that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverrides = await prisma.organizationOAuthAppOverride.findMany()
+     * 
+     * // Get first 10 OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverrides = await prisma.organizationOAuthAppOverride.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const organizationOAuthAppOverrideWithIdOnly = await prisma.organizationOAuthAppOverride.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends OrganizationOAuthAppOverrideFindManyArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a OrganizationOAuthAppOverride.
+     * @param {OrganizationOAuthAppOverrideCreateArgs} args - Arguments to create a OrganizationOAuthAppOverride.
+     * @example
+     * // Create one OrganizationOAuthAppOverride
+     * const OrganizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.create({
+     *   data: {
+     *     // ... data to create a OrganizationOAuthAppOverride
+     *   }
+     * })
+     * 
+     */
+    create<T extends OrganizationOAuthAppOverrideCreateArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideCreateArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many OrganizationOAuthAppOverrides.
+     * @param {OrganizationOAuthAppOverrideCreateManyArgs} args - Arguments to create many OrganizationOAuthAppOverrides.
+     * @example
+     * // Create many OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends OrganizationOAuthAppOverrideCreateManyArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many OrganizationOAuthAppOverrides and returns the data saved in the database.
+     * @param {OrganizationOAuthAppOverrideCreateManyAndReturnArgs} args - Arguments to create many OrganizationOAuthAppOverrides.
+     * @example
+     * // Create many OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many OrganizationOAuthAppOverrides and only return the `id`
+     * const organizationOAuthAppOverrideWithIdOnly = await prisma.organizationOAuthAppOverride.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends OrganizationOAuthAppOverrideCreateManyAndReturnArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a OrganizationOAuthAppOverride.
+     * @param {OrganizationOAuthAppOverrideDeleteArgs} args - Arguments to delete one OrganizationOAuthAppOverride.
+     * @example
+     * // Delete one OrganizationOAuthAppOverride
+     * const OrganizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.delete({
+     *   where: {
+     *     // ... filter to delete one OrganizationOAuthAppOverride
+     *   }
+     * })
+     * 
+     */
+    delete<T extends OrganizationOAuthAppOverrideDeleteArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideDeleteArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one OrganizationOAuthAppOverride.
+     * @param {OrganizationOAuthAppOverrideUpdateArgs} args - Arguments to update one OrganizationOAuthAppOverride.
+     * @example
+     * // Update one OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends OrganizationOAuthAppOverrideUpdateArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideUpdateArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more OrganizationOAuthAppOverrides.
+     * @param {OrganizationOAuthAppOverrideDeleteManyArgs} args - Arguments to filter OrganizationOAuthAppOverrides to delete.
+     * @example
+     * // Delete a few OrganizationOAuthAppOverrides
+     * const { count } = await prisma.organizationOAuthAppOverride.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends OrganizationOAuthAppOverrideDeleteManyArgs>(args?: SelectSubset<T, OrganizationOAuthAppOverrideDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrganizationOAuthAppOverrides.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends OrganizationOAuthAppOverrideUpdateManyArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrganizationOAuthAppOverrides and returns the data updated in the database.
+     * @param {OrganizationOAuthAppOverrideUpdateManyAndReturnArgs} args - Arguments to update many OrganizationOAuthAppOverrides.
+     * @example
+     * // Update many OrganizationOAuthAppOverrides
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more OrganizationOAuthAppOverrides and only return the `id`
+     * const organizationOAuthAppOverrideWithIdOnly = await prisma.organizationOAuthAppOverride.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends OrganizationOAuthAppOverrideUpdateManyAndReturnArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one OrganizationOAuthAppOverride.
+     * @param {OrganizationOAuthAppOverrideUpsertArgs} args - Arguments to update or create a OrganizationOAuthAppOverride.
+     * @example
+     * // Update or create a OrganizationOAuthAppOverride
+     * const organizationOAuthAppOverride = await prisma.organizationOAuthAppOverride.upsert({
+     *   create: {
+     *     // ... data to create a OrganizationOAuthAppOverride
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the OrganizationOAuthAppOverride we want to update
+     *   }
+     * })
+     */
+    upsert<T extends OrganizationOAuthAppOverrideUpsertArgs>(args: SelectSubset<T, OrganizationOAuthAppOverrideUpsertArgs<ExtArgs>>): Prisma__OrganizationOAuthAppOverrideClient<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of OrganizationOAuthAppOverrides.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideCountArgs} args - Arguments to filter OrganizationOAuthAppOverrides to count.
+     * @example
+     * // Count the number of OrganizationOAuthAppOverrides
+     * const count = await prisma.organizationOAuthAppOverride.count({
+     *   where: {
+     *     // ... the filter for the OrganizationOAuthAppOverrides we want to count
+     *   }
+     * })
+    **/
+    count<T extends OrganizationOAuthAppOverrideCountArgs>(
+      args?: Subset<T, OrganizationOAuthAppOverrideCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], OrganizationOAuthAppOverrideCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a OrganizationOAuthAppOverride.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends OrganizationOAuthAppOverrideAggregateArgs>(args: Subset<T, OrganizationOAuthAppOverrideAggregateArgs>): Prisma.PrismaPromise<GetOrganizationOAuthAppOverrideAggregateType<T>>
+
+    /**
+     * Group by OrganizationOAuthAppOverride.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationOAuthAppOverrideGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends OrganizationOAuthAppOverrideGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: OrganizationOAuthAppOverrideGroupByArgs['orderBy'] }
+        : { orderBy?: OrganizationOAuthAppOverrideGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, OrganizationOAuthAppOverrideGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetOrganizationOAuthAppOverrideGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the OrganizationOAuthAppOverride model
+   */
+  readonly fields: OrganizationOAuthAppOverrideFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for OrganizationOAuthAppOverride.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__OrganizationOAuthAppOverrideClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    configuredByUser<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    userConnections<T extends OrganizationOAuthAppOverride$userConnectionsArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationOAuthAppOverride$userConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the OrganizationOAuthAppOverride model
+   */
+  interface OrganizationOAuthAppOverrideFieldRefs {
+    readonly id: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly organizationId: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly provider: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly clientId: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly clientSecretEncrypted: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly scopes: FieldRef<"OrganizationOAuthAppOverride", 'String[]'>
+    readonly configuredByUserId: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly testedAt: FieldRef<"OrganizationOAuthAppOverride", 'DateTime'>
+    readonly testStatus: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly testError: FieldRef<"OrganizationOAuthAppOverride", 'String'>
+    readonly createdAt: FieldRef<"OrganizationOAuthAppOverride", 'DateTime'>
+    readonly updatedAt: FieldRef<"OrganizationOAuthAppOverride", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * OrganizationOAuthAppOverride findUnique
+   */
+  export type OrganizationOAuthAppOverrideFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationOAuthAppOverride to fetch.
+     */
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+  }
+
+  /**
+   * OrganizationOAuthAppOverride findUniqueOrThrow
+   */
+  export type OrganizationOAuthAppOverrideFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationOAuthAppOverride to fetch.
+     */
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+  }
+
+  /**
+   * OrganizationOAuthAppOverride findFirst
+   */
+  export type OrganizationOAuthAppOverrideFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationOAuthAppOverride to fetch.
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationOAuthAppOverrides to fetch.
+     */
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationOAuthAppOverrides.
+     */
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationOAuthAppOverrides from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationOAuthAppOverrides.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationOAuthAppOverrides.
+     */
+    distinct?: OrganizationOAuthAppOverrideScalarFieldEnum | OrganizationOAuthAppOverrideScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationOAuthAppOverride findFirstOrThrow
+   */
+  export type OrganizationOAuthAppOverrideFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationOAuthAppOverride to fetch.
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationOAuthAppOverrides to fetch.
+     */
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationOAuthAppOverrides.
+     */
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationOAuthAppOverrides from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationOAuthAppOverrides.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationOAuthAppOverrides.
+     */
+    distinct?: OrganizationOAuthAppOverrideScalarFieldEnum | OrganizationOAuthAppOverrideScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationOAuthAppOverride findMany
+   */
+  export type OrganizationOAuthAppOverrideFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationOAuthAppOverrides to fetch.
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationOAuthAppOverrides to fetch.
+     */
+    orderBy?: OrganizationOAuthAppOverrideOrderByWithRelationInput | OrganizationOAuthAppOverrideOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing OrganizationOAuthAppOverrides.
+     */
+    cursor?: OrganizationOAuthAppOverrideWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationOAuthAppOverrides from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationOAuthAppOverrides.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationOAuthAppOverrides.
+     */
+    distinct?: OrganizationOAuthAppOverrideScalarFieldEnum | OrganizationOAuthAppOverrideScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationOAuthAppOverride create
+   */
+  export type OrganizationOAuthAppOverrideCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * The data needed to create a OrganizationOAuthAppOverride.
+     */
+    data: XOR<OrganizationOAuthAppOverrideCreateInput, OrganizationOAuthAppOverrideUncheckedCreateInput>
+  }
+
+  /**
+   * OrganizationOAuthAppOverride createMany
+   */
+  export type OrganizationOAuthAppOverrideCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many OrganizationOAuthAppOverrides.
+     */
+    data: OrganizationOAuthAppOverrideCreateManyInput | OrganizationOAuthAppOverrideCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OrganizationOAuthAppOverride createManyAndReturn
+   */
+  export type OrganizationOAuthAppOverrideCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * The data used to create many OrganizationOAuthAppOverrides.
+     */
+    data: OrganizationOAuthAppOverrideCreateManyInput | OrganizationOAuthAppOverrideCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationOAuthAppOverride update
+   */
+  export type OrganizationOAuthAppOverrideUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * The data needed to update a OrganizationOAuthAppOverride.
+     */
+    data: XOR<OrganizationOAuthAppOverrideUpdateInput, OrganizationOAuthAppOverrideUncheckedUpdateInput>
+    /**
+     * Choose, which OrganizationOAuthAppOverride to update.
+     */
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+  }
+
+  /**
+   * OrganizationOAuthAppOverride updateMany
+   */
+  export type OrganizationOAuthAppOverrideUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update OrganizationOAuthAppOverrides.
+     */
+    data: XOR<OrganizationOAuthAppOverrideUpdateManyMutationInput, OrganizationOAuthAppOverrideUncheckedUpdateManyInput>
+    /**
+     * Filter which OrganizationOAuthAppOverrides to update
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * Limit how many OrganizationOAuthAppOverrides to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrganizationOAuthAppOverride updateManyAndReturn
+   */
+  export type OrganizationOAuthAppOverrideUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * The data used to update OrganizationOAuthAppOverrides.
+     */
+    data: XOR<OrganizationOAuthAppOverrideUpdateManyMutationInput, OrganizationOAuthAppOverrideUncheckedUpdateManyInput>
+    /**
+     * Filter which OrganizationOAuthAppOverrides to update
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * Limit how many OrganizationOAuthAppOverrides to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationOAuthAppOverride upsert
+   */
+  export type OrganizationOAuthAppOverrideUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * The filter to search for the OrganizationOAuthAppOverride to update in case it exists.
+     */
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    /**
+     * In case the OrganizationOAuthAppOverride found by the `where` argument doesn't exist, create a new OrganizationOAuthAppOverride with this data.
+     */
+    create: XOR<OrganizationOAuthAppOverrideCreateInput, OrganizationOAuthAppOverrideUncheckedCreateInput>
+    /**
+     * In case the OrganizationOAuthAppOverride was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<OrganizationOAuthAppOverrideUpdateInput, OrganizationOAuthAppOverrideUncheckedUpdateInput>
+  }
+
+  /**
+   * OrganizationOAuthAppOverride delete
+   */
+  export type OrganizationOAuthAppOverrideDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+    /**
+     * Filter which OrganizationOAuthAppOverride to delete.
+     */
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+  }
+
+  /**
+   * OrganizationOAuthAppOverride deleteMany
+   */
+  export type OrganizationOAuthAppOverrideDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationOAuthAppOverrides to delete
+     */
+    where?: OrganizationOAuthAppOverrideWhereInput
+    /**
+     * Limit how many OrganizationOAuthAppOverrides to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrganizationOAuthAppOverride.userConnections
+   */
+  export type OrganizationOAuthAppOverride$userConnectionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserConnection
+     */
+    select?: UserConnectionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserConnection
+     */
+    omit?: UserConnectionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserConnectionInclude<ExtArgs> | null
+    where?: UserConnectionWhereInput
+    orderBy?: UserConnectionOrderByWithRelationInput | UserConnectionOrderByWithRelationInput[]
+    cursor?: UserConnectionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserConnectionScalarFieldEnum | UserConnectionScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationOAuthAppOverride without action
+   */
+  export type OrganizationOAuthAppOverrideDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationOAuthAppOverride
+     */
+    select?: OrganizationOAuthAppOverrideSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationOAuthAppOverride
+     */
+    omit?: OrganizationOAuthAppOverrideOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationOAuthAppOverrideInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model OrganizationConnectorPolicy
+   */
+
+  export type AggregateOrganizationConnectorPolicy = {
+    _count: OrganizationConnectorPolicyCountAggregateOutputType | null
+    _avg: OrganizationConnectorPolicyAvgAggregateOutputType | null
+    _sum: OrganizationConnectorPolicySumAggregateOutputType | null
+    _min: OrganizationConnectorPolicyMinAggregateOutputType | null
+    _max: OrganizationConnectorPolicyMaxAggregateOutputType | null
+  }
+
+  export type OrganizationConnectorPolicyAvgAggregateOutputType = {
+    rateLimitOverride: number | null
+  }
+
+  export type OrganizationConnectorPolicySumAggregateOutputType = {
+    rateLimitOverride: number | null
+  }
+
+  export type OrganizationConnectorPolicyMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    provider: string | null
+    enabled: boolean | null
+    rateLimitOverride: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrganizationConnectorPolicyMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    provider: string | null
+    enabled: boolean | null
+    rateLimitOverride: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrganizationConnectorPolicyCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    provider: number
+    enabled: number
+    allowedRoleKeys: number
+    rateLimitOverride: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type OrganizationConnectorPolicyAvgAggregateInputType = {
+    rateLimitOverride?: true
+  }
+
+  export type OrganizationConnectorPolicySumAggregateInputType = {
+    rateLimitOverride?: true
+  }
+
+  export type OrganizationConnectorPolicyMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    enabled?: true
+    rateLimitOverride?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrganizationConnectorPolicyMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    enabled?: true
+    rateLimitOverride?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrganizationConnectorPolicyCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    provider?: true
+    enabled?: true
+    allowedRoleKeys?: true
+    rateLimitOverride?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type OrganizationConnectorPolicyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationConnectorPolicy to aggregate.
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationConnectorPolicies to fetch.
+     */
+    orderBy?: OrganizationConnectorPolicyOrderByWithRelationInput | OrganizationConnectorPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: OrganizationConnectorPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationConnectorPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationConnectorPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned OrganizationConnectorPolicies
+    **/
+    _count?: true | OrganizationConnectorPolicyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: OrganizationConnectorPolicyAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: OrganizationConnectorPolicySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: OrganizationConnectorPolicyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: OrganizationConnectorPolicyMaxAggregateInputType
+  }
+
+  export type GetOrganizationConnectorPolicyAggregateType<T extends OrganizationConnectorPolicyAggregateArgs> = {
+        [P in keyof T & keyof AggregateOrganizationConnectorPolicy]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateOrganizationConnectorPolicy[P]>
+      : GetScalarType<T[P], AggregateOrganizationConnectorPolicy[P]>
+  }
+
+
+
+
+  export type OrganizationConnectorPolicyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrganizationConnectorPolicyWhereInput
+    orderBy?: OrganizationConnectorPolicyOrderByWithAggregationInput | OrganizationConnectorPolicyOrderByWithAggregationInput[]
+    by: OrganizationConnectorPolicyScalarFieldEnum[] | OrganizationConnectorPolicyScalarFieldEnum
+    having?: OrganizationConnectorPolicyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: OrganizationConnectorPolicyCountAggregateInputType | true
+    _avg?: OrganizationConnectorPolicyAvgAggregateInputType
+    _sum?: OrganizationConnectorPolicySumAggregateInputType
+    _min?: OrganizationConnectorPolicyMinAggregateInputType
+    _max?: OrganizationConnectorPolicyMaxAggregateInputType
+  }
+
+  export type OrganizationConnectorPolicyGroupByOutputType = {
+    id: string
+    organizationId: string
+    provider: string
+    enabled: boolean
+    allowedRoleKeys: string[]
+    rateLimitOverride: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count: OrganizationConnectorPolicyCountAggregateOutputType | null
+    _avg: OrganizationConnectorPolicyAvgAggregateOutputType | null
+    _sum: OrganizationConnectorPolicySumAggregateOutputType | null
+    _min: OrganizationConnectorPolicyMinAggregateOutputType | null
+    _max: OrganizationConnectorPolicyMaxAggregateOutputType | null
+  }
+
+  type GetOrganizationConnectorPolicyGroupByPayload<T extends OrganizationConnectorPolicyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<OrganizationConnectorPolicyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof OrganizationConnectorPolicyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], OrganizationConnectorPolicyGroupByOutputType[P]>
+            : GetScalarType<T[P], OrganizationConnectorPolicyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type OrganizationConnectorPolicySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    enabled?: boolean
+    allowedRoleKeys?: boolean
+    rateLimitOverride?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationConnectorPolicy"]>
+
+  export type OrganizationConnectorPolicySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    enabled?: boolean
+    allowedRoleKeys?: boolean
+    rateLimitOverride?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationConnectorPolicy"]>
+
+  export type OrganizationConnectorPolicySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    enabled?: boolean
+    allowedRoleKeys?: boolean
+    rateLimitOverride?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["organizationConnectorPolicy"]>
+
+  export type OrganizationConnectorPolicySelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    provider?: boolean
+    enabled?: boolean
+    allowedRoleKeys?: boolean
+    rateLimitOverride?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type OrganizationConnectorPolicyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "provider" | "enabled" | "allowedRoleKeys" | "rateLimitOverride" | "createdAt" | "updatedAt", ExtArgs["result"]["organizationConnectorPolicy"]>
+  export type OrganizationConnectorPolicyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+  export type OrganizationConnectorPolicyIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+  export type OrganizationConnectorPolicyIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+  }
+
+  export type $OrganizationConnectorPolicyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "OrganizationConnectorPolicy"
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      provider: string
+      enabled: boolean
+      allowedRoleKeys: string[]
+      rateLimitOverride: number | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["organizationConnectorPolicy"]>
+    composites: {}
+  }
+
+  type OrganizationConnectorPolicyGetPayload<S extends boolean | null | undefined | OrganizationConnectorPolicyDefaultArgs> = $Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload, S>
+
+  type OrganizationConnectorPolicyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<OrganizationConnectorPolicyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: OrganizationConnectorPolicyCountAggregateInputType | true
+    }
+
+  export interface OrganizationConnectorPolicyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['OrganizationConnectorPolicy'], meta: { name: 'OrganizationConnectorPolicy' } }
+    /**
+     * Find zero or one OrganizationConnectorPolicy that matches the filter.
+     * @param {OrganizationConnectorPolicyFindUniqueArgs} args - Arguments to find a OrganizationConnectorPolicy
+     * @example
+     * // Get one OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends OrganizationConnectorPolicyFindUniqueArgs>(args: SelectSubset<T, OrganizationConnectorPolicyFindUniqueArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one OrganizationConnectorPolicy that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {OrganizationConnectorPolicyFindUniqueOrThrowArgs} args - Arguments to find a OrganizationConnectorPolicy
+     * @example
+     * // Get one OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends OrganizationConnectorPolicyFindUniqueOrThrowArgs>(args: SelectSubset<T, OrganizationConnectorPolicyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrganizationConnectorPolicy that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyFindFirstArgs} args - Arguments to find a OrganizationConnectorPolicy
+     * @example
+     * // Get one OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends OrganizationConnectorPolicyFindFirstArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyFindFirstArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrganizationConnectorPolicy that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyFindFirstOrThrowArgs} args - Arguments to find a OrganizationConnectorPolicy
+     * @example
+     * // Get one OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends OrganizationConnectorPolicyFindFirstOrThrowArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyFindFirstOrThrowArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more OrganizationConnectorPolicies that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all OrganizationConnectorPolicies
+     * const organizationConnectorPolicies = await prisma.organizationConnectorPolicy.findMany()
+     * 
+     * // Get first 10 OrganizationConnectorPolicies
+     * const organizationConnectorPolicies = await prisma.organizationConnectorPolicy.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const organizationConnectorPolicyWithIdOnly = await prisma.organizationConnectorPolicy.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends OrganizationConnectorPolicyFindManyArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a OrganizationConnectorPolicy.
+     * @param {OrganizationConnectorPolicyCreateArgs} args - Arguments to create a OrganizationConnectorPolicy.
+     * @example
+     * // Create one OrganizationConnectorPolicy
+     * const OrganizationConnectorPolicy = await prisma.organizationConnectorPolicy.create({
+     *   data: {
+     *     // ... data to create a OrganizationConnectorPolicy
+     *   }
+     * })
+     * 
+     */
+    create<T extends OrganizationConnectorPolicyCreateArgs>(args: SelectSubset<T, OrganizationConnectorPolicyCreateArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many OrganizationConnectorPolicies.
+     * @param {OrganizationConnectorPolicyCreateManyArgs} args - Arguments to create many OrganizationConnectorPolicies.
+     * @example
+     * // Create many OrganizationConnectorPolicies
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends OrganizationConnectorPolicyCreateManyArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many OrganizationConnectorPolicies and returns the data saved in the database.
+     * @param {OrganizationConnectorPolicyCreateManyAndReturnArgs} args - Arguments to create many OrganizationConnectorPolicies.
+     * @example
+     * // Create many OrganizationConnectorPolicies
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many OrganizationConnectorPolicies and only return the `id`
+     * const organizationConnectorPolicyWithIdOnly = await prisma.organizationConnectorPolicy.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends OrganizationConnectorPolicyCreateManyAndReturnArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a OrganizationConnectorPolicy.
+     * @param {OrganizationConnectorPolicyDeleteArgs} args - Arguments to delete one OrganizationConnectorPolicy.
+     * @example
+     * // Delete one OrganizationConnectorPolicy
+     * const OrganizationConnectorPolicy = await prisma.organizationConnectorPolicy.delete({
+     *   where: {
+     *     // ... filter to delete one OrganizationConnectorPolicy
+     *   }
+     * })
+     * 
+     */
+    delete<T extends OrganizationConnectorPolicyDeleteArgs>(args: SelectSubset<T, OrganizationConnectorPolicyDeleteArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one OrganizationConnectorPolicy.
+     * @param {OrganizationConnectorPolicyUpdateArgs} args - Arguments to update one OrganizationConnectorPolicy.
+     * @example
+     * // Update one OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends OrganizationConnectorPolicyUpdateArgs>(args: SelectSubset<T, OrganizationConnectorPolicyUpdateArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more OrganizationConnectorPolicies.
+     * @param {OrganizationConnectorPolicyDeleteManyArgs} args - Arguments to filter OrganizationConnectorPolicies to delete.
+     * @example
+     * // Delete a few OrganizationConnectorPolicies
+     * const { count } = await prisma.organizationConnectorPolicy.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends OrganizationConnectorPolicyDeleteManyArgs>(args?: SelectSubset<T, OrganizationConnectorPolicyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrganizationConnectorPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many OrganizationConnectorPolicies
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends OrganizationConnectorPolicyUpdateManyArgs>(args: SelectSubset<T, OrganizationConnectorPolicyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrganizationConnectorPolicies and returns the data updated in the database.
+     * @param {OrganizationConnectorPolicyUpdateManyAndReturnArgs} args - Arguments to update many OrganizationConnectorPolicies.
+     * @example
+     * // Update many OrganizationConnectorPolicies
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more OrganizationConnectorPolicies and only return the `id`
+     * const organizationConnectorPolicyWithIdOnly = await prisma.organizationConnectorPolicy.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends OrganizationConnectorPolicyUpdateManyAndReturnArgs>(args: SelectSubset<T, OrganizationConnectorPolicyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one OrganizationConnectorPolicy.
+     * @param {OrganizationConnectorPolicyUpsertArgs} args - Arguments to update or create a OrganizationConnectorPolicy.
+     * @example
+     * // Update or create a OrganizationConnectorPolicy
+     * const organizationConnectorPolicy = await prisma.organizationConnectorPolicy.upsert({
+     *   create: {
+     *     // ... data to create a OrganizationConnectorPolicy
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the OrganizationConnectorPolicy we want to update
+     *   }
+     * })
+     */
+    upsert<T extends OrganizationConnectorPolicyUpsertArgs>(args: SelectSubset<T, OrganizationConnectorPolicyUpsertArgs<ExtArgs>>): Prisma__OrganizationConnectorPolicyClient<$Result.GetResult<Prisma.$OrganizationConnectorPolicyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of OrganizationConnectorPolicies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyCountArgs} args - Arguments to filter OrganizationConnectorPolicies to count.
+     * @example
+     * // Count the number of OrganizationConnectorPolicies
+     * const count = await prisma.organizationConnectorPolicy.count({
+     *   where: {
+     *     // ... the filter for the OrganizationConnectorPolicies we want to count
+     *   }
+     * })
+    **/
+    count<T extends OrganizationConnectorPolicyCountArgs>(
+      args?: Subset<T, OrganizationConnectorPolicyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], OrganizationConnectorPolicyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a OrganizationConnectorPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends OrganizationConnectorPolicyAggregateArgs>(args: Subset<T, OrganizationConnectorPolicyAggregateArgs>): Prisma.PrismaPromise<GetOrganizationConnectorPolicyAggregateType<T>>
+
+    /**
+     * Group by OrganizationConnectorPolicy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrganizationConnectorPolicyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends OrganizationConnectorPolicyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: OrganizationConnectorPolicyGroupByArgs['orderBy'] }
+        : { orderBy?: OrganizationConnectorPolicyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, OrganizationConnectorPolicyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetOrganizationConnectorPolicyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the OrganizationConnectorPolicy model
+   */
+  readonly fields: OrganizationConnectorPolicyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for OrganizationConnectorPolicy.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__OrganizationConnectorPolicyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the OrganizationConnectorPolicy model
+   */
+  interface OrganizationConnectorPolicyFieldRefs {
+    readonly id: FieldRef<"OrganizationConnectorPolicy", 'String'>
+    readonly organizationId: FieldRef<"OrganizationConnectorPolicy", 'String'>
+    readonly provider: FieldRef<"OrganizationConnectorPolicy", 'String'>
+    readonly enabled: FieldRef<"OrganizationConnectorPolicy", 'Boolean'>
+    readonly allowedRoleKeys: FieldRef<"OrganizationConnectorPolicy", 'String[]'>
+    readonly rateLimitOverride: FieldRef<"OrganizationConnectorPolicy", 'Int'>
+    readonly createdAt: FieldRef<"OrganizationConnectorPolicy", 'DateTime'>
+    readonly updatedAt: FieldRef<"OrganizationConnectorPolicy", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * OrganizationConnectorPolicy findUnique
+   */
+  export type OrganizationConnectorPolicyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationConnectorPolicy to fetch.
+     */
+    where: OrganizationConnectorPolicyWhereUniqueInput
+  }
+
+  /**
+   * OrganizationConnectorPolicy findUniqueOrThrow
+   */
+  export type OrganizationConnectorPolicyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationConnectorPolicy to fetch.
+     */
+    where: OrganizationConnectorPolicyWhereUniqueInput
+  }
+
+  /**
+   * OrganizationConnectorPolicy findFirst
+   */
+  export type OrganizationConnectorPolicyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationConnectorPolicy to fetch.
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationConnectorPolicies to fetch.
+     */
+    orderBy?: OrganizationConnectorPolicyOrderByWithRelationInput | OrganizationConnectorPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationConnectorPolicies.
+     */
+    cursor?: OrganizationConnectorPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationConnectorPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationConnectorPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationConnectorPolicies.
+     */
+    distinct?: OrganizationConnectorPolicyScalarFieldEnum | OrganizationConnectorPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationConnectorPolicy findFirstOrThrow
+   */
+  export type OrganizationConnectorPolicyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationConnectorPolicy to fetch.
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationConnectorPolicies to fetch.
+     */
+    orderBy?: OrganizationConnectorPolicyOrderByWithRelationInput | OrganizationConnectorPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrganizationConnectorPolicies.
+     */
+    cursor?: OrganizationConnectorPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationConnectorPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationConnectorPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationConnectorPolicies.
+     */
+    distinct?: OrganizationConnectorPolicyScalarFieldEnum | OrganizationConnectorPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationConnectorPolicy findMany
+   */
+  export type OrganizationConnectorPolicyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter, which OrganizationConnectorPolicies to fetch.
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrganizationConnectorPolicies to fetch.
+     */
+    orderBy?: OrganizationConnectorPolicyOrderByWithRelationInput | OrganizationConnectorPolicyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing OrganizationConnectorPolicies.
+     */
+    cursor?: OrganizationConnectorPolicyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrganizationConnectorPolicies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrganizationConnectorPolicies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrganizationConnectorPolicies.
+     */
+    distinct?: OrganizationConnectorPolicyScalarFieldEnum | OrganizationConnectorPolicyScalarFieldEnum[]
+  }
+
+  /**
+   * OrganizationConnectorPolicy create
+   */
+  export type OrganizationConnectorPolicyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * The data needed to create a OrganizationConnectorPolicy.
+     */
+    data: XOR<OrganizationConnectorPolicyCreateInput, OrganizationConnectorPolicyUncheckedCreateInput>
+  }
+
+  /**
+   * OrganizationConnectorPolicy createMany
+   */
+  export type OrganizationConnectorPolicyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many OrganizationConnectorPolicies.
+     */
+    data: OrganizationConnectorPolicyCreateManyInput | OrganizationConnectorPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OrganizationConnectorPolicy createManyAndReturn
+   */
+  export type OrganizationConnectorPolicyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to create many OrganizationConnectorPolicies.
+     */
+    data: OrganizationConnectorPolicyCreateManyInput | OrganizationConnectorPolicyCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationConnectorPolicy update
+   */
+  export type OrganizationConnectorPolicyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * The data needed to update a OrganizationConnectorPolicy.
+     */
+    data: XOR<OrganizationConnectorPolicyUpdateInput, OrganizationConnectorPolicyUncheckedUpdateInput>
+    /**
+     * Choose, which OrganizationConnectorPolicy to update.
+     */
+    where: OrganizationConnectorPolicyWhereUniqueInput
+  }
+
+  /**
+   * OrganizationConnectorPolicy updateMany
+   */
+  export type OrganizationConnectorPolicyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update OrganizationConnectorPolicies.
+     */
+    data: XOR<OrganizationConnectorPolicyUpdateManyMutationInput, OrganizationConnectorPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which OrganizationConnectorPolicies to update
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * Limit how many OrganizationConnectorPolicies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrganizationConnectorPolicy updateManyAndReturn
+   */
+  export type OrganizationConnectorPolicyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * The data used to update OrganizationConnectorPolicies.
+     */
+    data: XOR<OrganizationConnectorPolicyUpdateManyMutationInput, OrganizationConnectorPolicyUncheckedUpdateManyInput>
+    /**
+     * Filter which OrganizationConnectorPolicies to update
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * Limit how many OrganizationConnectorPolicies to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrganizationConnectorPolicy upsert
+   */
+  export type OrganizationConnectorPolicyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * The filter to search for the OrganizationConnectorPolicy to update in case it exists.
+     */
+    where: OrganizationConnectorPolicyWhereUniqueInput
+    /**
+     * In case the OrganizationConnectorPolicy found by the `where` argument doesn't exist, create a new OrganizationConnectorPolicy with this data.
+     */
+    create: XOR<OrganizationConnectorPolicyCreateInput, OrganizationConnectorPolicyUncheckedCreateInput>
+    /**
+     * In case the OrganizationConnectorPolicy was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<OrganizationConnectorPolicyUpdateInput, OrganizationConnectorPolicyUncheckedUpdateInput>
+  }
+
+  /**
+   * OrganizationConnectorPolicy delete
+   */
+  export type OrganizationConnectorPolicyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+    /**
+     * Filter which OrganizationConnectorPolicy to delete.
+     */
+    where: OrganizationConnectorPolicyWhereUniqueInput
+  }
+
+  /**
+   * OrganizationConnectorPolicy deleteMany
+   */
+  export type OrganizationConnectorPolicyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrganizationConnectorPolicies to delete
+     */
+    where?: OrganizationConnectorPolicyWhereInput
+    /**
+     * Limit how many OrganizationConnectorPolicies to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrganizationConnectorPolicy without action
+   */
+  export type OrganizationConnectorPolicyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrganizationConnectorPolicy
+     */
+    select?: OrganizationConnectorPolicySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrganizationConnectorPolicy
+     */
+    omit?: OrganizationConnectorPolicyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationConnectorPolicyInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ReconnectionAlert
+   */
+
+  export type AggregateReconnectionAlert = {
+    _count: ReconnectionAlertCountAggregateOutputType | null
+    _min: ReconnectionAlertMinAggregateOutputType | null
+    _max: ReconnectionAlertMaxAggregateOutputType | null
+  }
+
+  export type ReconnectionAlertMinAggregateOutputType = {
+    id: string | null
+    userConnectionId: string | null
+    reason: string | null
+    detectedAt: Date | null
+    resolvedAt: Date | null
+    notifiedAt: Date | null
+  }
+
+  export type ReconnectionAlertMaxAggregateOutputType = {
+    id: string | null
+    userConnectionId: string | null
+    reason: string | null
+    detectedAt: Date | null
+    resolvedAt: Date | null
+    notifiedAt: Date | null
+  }
+
+  export type ReconnectionAlertCountAggregateOutputType = {
+    id: number
+    userConnectionId: number
+    reason: number
+    detectedAt: number
+    resolvedAt: number
+    notifiedAt: number
+    _all: number
+  }
+
+
+  export type ReconnectionAlertMinAggregateInputType = {
+    id?: true
+    userConnectionId?: true
+    reason?: true
+    detectedAt?: true
+    resolvedAt?: true
+    notifiedAt?: true
+  }
+
+  export type ReconnectionAlertMaxAggregateInputType = {
+    id?: true
+    userConnectionId?: true
+    reason?: true
+    detectedAt?: true
+    resolvedAt?: true
+    notifiedAt?: true
+  }
+
+  export type ReconnectionAlertCountAggregateInputType = {
+    id?: true
+    userConnectionId?: true
+    reason?: true
+    detectedAt?: true
+    resolvedAt?: true
+    notifiedAt?: true
+    _all?: true
+  }
+
+  export type ReconnectionAlertAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReconnectionAlert to aggregate.
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconnectionAlerts to fetch.
+     */
+    orderBy?: ReconnectionAlertOrderByWithRelationInput | ReconnectionAlertOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ReconnectionAlertWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconnectionAlerts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconnectionAlerts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ReconnectionAlerts
+    **/
+    _count?: true | ReconnectionAlertCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ReconnectionAlertMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ReconnectionAlertMaxAggregateInputType
+  }
+
+  export type GetReconnectionAlertAggregateType<T extends ReconnectionAlertAggregateArgs> = {
+        [P in keyof T & keyof AggregateReconnectionAlert]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateReconnectionAlert[P]>
+      : GetScalarType<T[P], AggregateReconnectionAlert[P]>
+  }
+
+
+
+
+  export type ReconnectionAlertGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ReconnectionAlertWhereInput
+    orderBy?: ReconnectionAlertOrderByWithAggregationInput | ReconnectionAlertOrderByWithAggregationInput[]
+    by: ReconnectionAlertScalarFieldEnum[] | ReconnectionAlertScalarFieldEnum
+    having?: ReconnectionAlertScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ReconnectionAlertCountAggregateInputType | true
+    _min?: ReconnectionAlertMinAggregateInputType
+    _max?: ReconnectionAlertMaxAggregateInputType
+  }
+
+  export type ReconnectionAlertGroupByOutputType = {
+    id: string
+    userConnectionId: string
+    reason: string
+    detectedAt: Date
+    resolvedAt: Date | null
+    notifiedAt: Date | null
+    _count: ReconnectionAlertCountAggregateOutputType | null
+    _min: ReconnectionAlertMinAggregateOutputType | null
+    _max: ReconnectionAlertMaxAggregateOutputType | null
+  }
+
+  type GetReconnectionAlertGroupByPayload<T extends ReconnectionAlertGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ReconnectionAlertGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ReconnectionAlertGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ReconnectionAlertGroupByOutputType[P]>
+            : GetScalarType<T[P], ReconnectionAlertGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ReconnectionAlertSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userConnectionId?: boolean
+    reason?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    notifiedAt?: boolean
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reconnectionAlert"]>
+
+  export type ReconnectionAlertSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userConnectionId?: boolean
+    reason?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    notifiedAt?: boolean
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reconnectionAlert"]>
+
+  export type ReconnectionAlertSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userConnectionId?: boolean
+    reason?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    notifiedAt?: boolean
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["reconnectionAlert"]>
+
+  export type ReconnectionAlertSelectScalar = {
+    id?: boolean
+    userConnectionId?: boolean
+    reason?: boolean
+    detectedAt?: boolean
+    resolvedAt?: boolean
+    notifiedAt?: boolean
+  }
+
+  export type ReconnectionAlertOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userConnectionId" | "reason" | "detectedAt" | "resolvedAt" | "notifiedAt", ExtArgs["result"]["reconnectionAlert"]>
+  export type ReconnectionAlertInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }
+  export type ReconnectionAlertIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }
+  export type ReconnectionAlertIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    userConnection?: boolean | UserConnectionDefaultArgs<ExtArgs>
+  }
+
+  export type $ReconnectionAlertPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ReconnectionAlert"
+    objects: {
+      userConnection: Prisma.$UserConnectionPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userConnectionId: string
+      reason: string
+      detectedAt: Date
+      resolvedAt: Date | null
+      notifiedAt: Date | null
+    }, ExtArgs["result"]["reconnectionAlert"]>
+    composites: {}
+  }
+
+  type ReconnectionAlertGetPayload<S extends boolean | null | undefined | ReconnectionAlertDefaultArgs> = $Result.GetResult<Prisma.$ReconnectionAlertPayload, S>
+
+  type ReconnectionAlertCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ReconnectionAlertFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ReconnectionAlertCountAggregateInputType | true
+    }
+
+  export interface ReconnectionAlertDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ReconnectionAlert'], meta: { name: 'ReconnectionAlert' } }
+    /**
+     * Find zero or one ReconnectionAlert that matches the filter.
+     * @param {ReconnectionAlertFindUniqueArgs} args - Arguments to find a ReconnectionAlert
+     * @example
+     * // Get one ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ReconnectionAlertFindUniqueArgs>(args: SelectSubset<T, ReconnectionAlertFindUniqueArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ReconnectionAlert that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ReconnectionAlertFindUniqueOrThrowArgs} args - Arguments to find a ReconnectionAlert
+     * @example
+     * // Get one ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ReconnectionAlertFindUniqueOrThrowArgs>(args: SelectSubset<T, ReconnectionAlertFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReconnectionAlert that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertFindFirstArgs} args - Arguments to find a ReconnectionAlert
+     * @example
+     * // Get one ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ReconnectionAlertFindFirstArgs>(args?: SelectSubset<T, ReconnectionAlertFindFirstArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ReconnectionAlert that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertFindFirstOrThrowArgs} args - Arguments to find a ReconnectionAlert
+     * @example
+     * // Get one ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ReconnectionAlertFindFirstOrThrowArgs>(args?: SelectSubset<T, ReconnectionAlertFindFirstOrThrowArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ReconnectionAlerts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ReconnectionAlerts
+     * const reconnectionAlerts = await prisma.reconnectionAlert.findMany()
+     * 
+     * // Get first 10 ReconnectionAlerts
+     * const reconnectionAlerts = await prisma.reconnectionAlert.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const reconnectionAlertWithIdOnly = await prisma.reconnectionAlert.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ReconnectionAlertFindManyArgs>(args?: SelectSubset<T, ReconnectionAlertFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ReconnectionAlert.
+     * @param {ReconnectionAlertCreateArgs} args - Arguments to create a ReconnectionAlert.
+     * @example
+     * // Create one ReconnectionAlert
+     * const ReconnectionAlert = await prisma.reconnectionAlert.create({
+     *   data: {
+     *     // ... data to create a ReconnectionAlert
+     *   }
+     * })
+     * 
+     */
+    create<T extends ReconnectionAlertCreateArgs>(args: SelectSubset<T, ReconnectionAlertCreateArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ReconnectionAlerts.
+     * @param {ReconnectionAlertCreateManyArgs} args - Arguments to create many ReconnectionAlerts.
+     * @example
+     * // Create many ReconnectionAlerts
+     * const reconnectionAlert = await prisma.reconnectionAlert.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ReconnectionAlertCreateManyArgs>(args?: SelectSubset<T, ReconnectionAlertCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ReconnectionAlerts and returns the data saved in the database.
+     * @param {ReconnectionAlertCreateManyAndReturnArgs} args - Arguments to create many ReconnectionAlerts.
+     * @example
+     * // Create many ReconnectionAlerts
+     * const reconnectionAlert = await prisma.reconnectionAlert.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ReconnectionAlerts and only return the `id`
+     * const reconnectionAlertWithIdOnly = await prisma.reconnectionAlert.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ReconnectionAlertCreateManyAndReturnArgs>(args?: SelectSubset<T, ReconnectionAlertCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ReconnectionAlert.
+     * @param {ReconnectionAlertDeleteArgs} args - Arguments to delete one ReconnectionAlert.
+     * @example
+     * // Delete one ReconnectionAlert
+     * const ReconnectionAlert = await prisma.reconnectionAlert.delete({
+     *   where: {
+     *     // ... filter to delete one ReconnectionAlert
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ReconnectionAlertDeleteArgs>(args: SelectSubset<T, ReconnectionAlertDeleteArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ReconnectionAlert.
+     * @param {ReconnectionAlertUpdateArgs} args - Arguments to update one ReconnectionAlert.
+     * @example
+     * // Update one ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ReconnectionAlertUpdateArgs>(args: SelectSubset<T, ReconnectionAlertUpdateArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ReconnectionAlerts.
+     * @param {ReconnectionAlertDeleteManyArgs} args - Arguments to filter ReconnectionAlerts to delete.
+     * @example
+     * // Delete a few ReconnectionAlerts
+     * const { count } = await prisma.reconnectionAlert.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ReconnectionAlertDeleteManyArgs>(args?: SelectSubset<T, ReconnectionAlertDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReconnectionAlerts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ReconnectionAlerts
+     * const reconnectionAlert = await prisma.reconnectionAlert.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ReconnectionAlertUpdateManyArgs>(args: SelectSubset<T, ReconnectionAlertUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ReconnectionAlerts and returns the data updated in the database.
+     * @param {ReconnectionAlertUpdateManyAndReturnArgs} args - Arguments to update many ReconnectionAlerts.
+     * @example
+     * // Update many ReconnectionAlerts
+     * const reconnectionAlert = await prisma.reconnectionAlert.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ReconnectionAlerts and only return the `id`
+     * const reconnectionAlertWithIdOnly = await prisma.reconnectionAlert.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ReconnectionAlertUpdateManyAndReturnArgs>(args: SelectSubset<T, ReconnectionAlertUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ReconnectionAlert.
+     * @param {ReconnectionAlertUpsertArgs} args - Arguments to update or create a ReconnectionAlert.
+     * @example
+     * // Update or create a ReconnectionAlert
+     * const reconnectionAlert = await prisma.reconnectionAlert.upsert({
+     *   create: {
+     *     // ... data to create a ReconnectionAlert
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ReconnectionAlert we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ReconnectionAlertUpsertArgs>(args: SelectSubset<T, ReconnectionAlertUpsertArgs<ExtArgs>>): Prisma__ReconnectionAlertClient<$Result.GetResult<Prisma.$ReconnectionAlertPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ReconnectionAlerts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertCountArgs} args - Arguments to filter ReconnectionAlerts to count.
+     * @example
+     * // Count the number of ReconnectionAlerts
+     * const count = await prisma.reconnectionAlert.count({
+     *   where: {
+     *     // ... the filter for the ReconnectionAlerts we want to count
+     *   }
+     * })
+    **/
+    count<T extends ReconnectionAlertCountArgs>(
+      args?: Subset<T, ReconnectionAlertCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ReconnectionAlertCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ReconnectionAlert.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ReconnectionAlertAggregateArgs>(args: Subset<T, ReconnectionAlertAggregateArgs>): Prisma.PrismaPromise<GetReconnectionAlertAggregateType<T>>
+
+    /**
+     * Group by ReconnectionAlert.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ReconnectionAlertGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ReconnectionAlertGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ReconnectionAlertGroupByArgs['orderBy'] }
+        : { orderBy?: ReconnectionAlertGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ReconnectionAlertGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetReconnectionAlertGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ReconnectionAlert model
+   */
+  readonly fields: ReconnectionAlertFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ReconnectionAlert.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ReconnectionAlertClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    userConnection<T extends UserConnectionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserConnectionDefaultArgs<ExtArgs>>): Prisma__UserConnectionClient<$Result.GetResult<Prisma.$UserConnectionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ReconnectionAlert model
+   */
+  interface ReconnectionAlertFieldRefs {
+    readonly id: FieldRef<"ReconnectionAlert", 'String'>
+    readonly userConnectionId: FieldRef<"ReconnectionAlert", 'String'>
+    readonly reason: FieldRef<"ReconnectionAlert", 'String'>
+    readonly detectedAt: FieldRef<"ReconnectionAlert", 'DateTime'>
+    readonly resolvedAt: FieldRef<"ReconnectionAlert", 'DateTime'>
+    readonly notifiedAt: FieldRef<"ReconnectionAlert", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ReconnectionAlert findUnique
+   */
+  export type ReconnectionAlertFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter, which ReconnectionAlert to fetch.
+     */
+    where: ReconnectionAlertWhereUniqueInput
+  }
+
+  /**
+   * ReconnectionAlert findUniqueOrThrow
+   */
+  export type ReconnectionAlertFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter, which ReconnectionAlert to fetch.
+     */
+    where: ReconnectionAlertWhereUniqueInput
+  }
+
+  /**
+   * ReconnectionAlert findFirst
+   */
+  export type ReconnectionAlertFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter, which ReconnectionAlert to fetch.
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconnectionAlerts to fetch.
+     */
+    orderBy?: ReconnectionAlertOrderByWithRelationInput | ReconnectionAlertOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReconnectionAlerts.
+     */
+    cursor?: ReconnectionAlertWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconnectionAlerts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconnectionAlerts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReconnectionAlerts.
+     */
+    distinct?: ReconnectionAlertScalarFieldEnum | ReconnectionAlertScalarFieldEnum[]
+  }
+
+  /**
+   * ReconnectionAlert findFirstOrThrow
+   */
+  export type ReconnectionAlertFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter, which ReconnectionAlert to fetch.
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconnectionAlerts to fetch.
+     */
+    orderBy?: ReconnectionAlertOrderByWithRelationInput | ReconnectionAlertOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ReconnectionAlerts.
+     */
+    cursor?: ReconnectionAlertWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconnectionAlerts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconnectionAlerts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReconnectionAlerts.
+     */
+    distinct?: ReconnectionAlertScalarFieldEnum | ReconnectionAlertScalarFieldEnum[]
+  }
+
+  /**
+   * ReconnectionAlert findMany
+   */
+  export type ReconnectionAlertFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter, which ReconnectionAlerts to fetch.
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ReconnectionAlerts to fetch.
+     */
+    orderBy?: ReconnectionAlertOrderByWithRelationInput | ReconnectionAlertOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ReconnectionAlerts.
+     */
+    cursor?: ReconnectionAlertWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ReconnectionAlerts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ReconnectionAlerts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ReconnectionAlerts.
+     */
+    distinct?: ReconnectionAlertScalarFieldEnum | ReconnectionAlertScalarFieldEnum[]
+  }
+
+  /**
+   * ReconnectionAlert create
+   */
+  export type ReconnectionAlertCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ReconnectionAlert.
+     */
+    data: XOR<ReconnectionAlertCreateInput, ReconnectionAlertUncheckedCreateInput>
+  }
+
+  /**
+   * ReconnectionAlert createMany
+   */
+  export type ReconnectionAlertCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ReconnectionAlerts.
+     */
+    data: ReconnectionAlertCreateManyInput | ReconnectionAlertCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ReconnectionAlert createManyAndReturn
+   */
+  export type ReconnectionAlertCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * The data used to create many ReconnectionAlerts.
+     */
+    data: ReconnectionAlertCreateManyInput | ReconnectionAlertCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReconnectionAlert update
+   */
+  export type ReconnectionAlertUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ReconnectionAlert.
+     */
+    data: XOR<ReconnectionAlertUpdateInput, ReconnectionAlertUncheckedUpdateInput>
+    /**
+     * Choose, which ReconnectionAlert to update.
+     */
+    where: ReconnectionAlertWhereUniqueInput
+  }
+
+  /**
+   * ReconnectionAlert updateMany
+   */
+  export type ReconnectionAlertUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ReconnectionAlerts.
+     */
+    data: XOR<ReconnectionAlertUpdateManyMutationInput, ReconnectionAlertUncheckedUpdateManyInput>
+    /**
+     * Filter which ReconnectionAlerts to update
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * Limit how many ReconnectionAlerts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReconnectionAlert updateManyAndReturn
+   */
+  export type ReconnectionAlertUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * The data used to update ReconnectionAlerts.
+     */
+    data: XOR<ReconnectionAlertUpdateManyMutationInput, ReconnectionAlertUncheckedUpdateManyInput>
+    /**
+     * Filter which ReconnectionAlerts to update
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * Limit how many ReconnectionAlerts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ReconnectionAlert upsert
+   */
+  export type ReconnectionAlertUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ReconnectionAlert to update in case it exists.
+     */
+    where: ReconnectionAlertWhereUniqueInput
+    /**
+     * In case the ReconnectionAlert found by the `where` argument doesn't exist, create a new ReconnectionAlert with this data.
+     */
+    create: XOR<ReconnectionAlertCreateInput, ReconnectionAlertUncheckedCreateInput>
+    /**
+     * In case the ReconnectionAlert was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ReconnectionAlertUpdateInput, ReconnectionAlertUncheckedUpdateInput>
+  }
+
+  /**
+   * ReconnectionAlert delete
+   */
+  export type ReconnectionAlertDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+    /**
+     * Filter which ReconnectionAlert to delete.
+     */
+    where: ReconnectionAlertWhereUniqueInput
+  }
+
+  /**
+   * ReconnectionAlert deleteMany
+   */
+  export type ReconnectionAlertDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ReconnectionAlerts to delete
+     */
+    where?: ReconnectionAlertWhereInput
+    /**
+     * Limit how many ReconnectionAlerts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ReconnectionAlert without action
+   */
+  export type ReconnectionAlertDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ReconnectionAlert
+     */
+    select?: ReconnectionAlertSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ReconnectionAlert
+     */
+    omit?: ReconnectionAlertOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ReconnectionAlertInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model IntegrationFeatureRequest
+   */
+
+  export type AggregateIntegrationFeatureRequest = {
+    _count: IntegrationFeatureRequestCountAggregateOutputType | null
+    _min: IntegrationFeatureRequestMinAggregateOutputType | null
+    _max: IntegrationFeatureRequestMaxAggregateOutputType | null
+  }
+
+  export type IntegrationFeatureRequestMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    organizationId: string | null
+    integrationName: string | null
+    useCaseDescription: string | null
+    status: string | null
+    createdAt: Date | null
+  }
+
+  export type IntegrationFeatureRequestMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    organizationId: string | null
+    integrationName: string | null
+    useCaseDescription: string | null
+    status: string | null
+    createdAt: Date | null
+  }
+
+  export type IntegrationFeatureRequestCountAggregateOutputType = {
+    id: number
+    userId: number
+    organizationId: number
+    integrationName: number
+    useCaseDescription: number
+    status: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type IntegrationFeatureRequestMinAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    integrationName?: true
+    useCaseDescription?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type IntegrationFeatureRequestMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    integrationName?: true
+    useCaseDescription?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type IntegrationFeatureRequestCountAggregateInputType = {
+    id?: true
+    userId?: true
+    organizationId?: true
+    integrationName?: true
+    useCaseDescription?: true
+    status?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type IntegrationFeatureRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IntegrationFeatureRequest to aggregate.
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IntegrationFeatureRequests to fetch.
+     */
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IntegrationFeatureRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IntegrationFeatureRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned IntegrationFeatureRequests
+    **/
+    _count?: true | IntegrationFeatureRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: IntegrationFeatureRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: IntegrationFeatureRequestMaxAggregateInputType
+  }
+
+  export type GetIntegrationFeatureRequestAggregateType<T extends IntegrationFeatureRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateIntegrationFeatureRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateIntegrationFeatureRequest[P]>
+      : GetScalarType<T[P], AggregateIntegrationFeatureRequest[P]>
+  }
+
+
+
+
+  export type IntegrationFeatureRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: IntegrationFeatureRequestWhereInput
+    orderBy?: IntegrationFeatureRequestOrderByWithAggregationInput | IntegrationFeatureRequestOrderByWithAggregationInput[]
+    by: IntegrationFeatureRequestScalarFieldEnum[] | IntegrationFeatureRequestScalarFieldEnum
+    having?: IntegrationFeatureRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: IntegrationFeatureRequestCountAggregateInputType | true
+    _min?: IntegrationFeatureRequestMinAggregateInputType
+    _max?: IntegrationFeatureRequestMaxAggregateInputType
+  }
+
+  export type IntegrationFeatureRequestGroupByOutputType = {
+    id: string
+    userId: string
+    organizationId: string | null
+    integrationName: string
+    useCaseDescription: string
+    status: string
+    createdAt: Date
+    _count: IntegrationFeatureRequestCountAggregateOutputType | null
+    _min: IntegrationFeatureRequestMinAggregateOutputType | null
+    _max: IntegrationFeatureRequestMaxAggregateOutputType | null
+  }
+
+  type GetIntegrationFeatureRequestGroupByPayload<T extends IntegrationFeatureRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<IntegrationFeatureRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof IntegrationFeatureRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], IntegrationFeatureRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], IntegrationFeatureRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type IntegrationFeatureRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    integrationName?: boolean
+    useCaseDescription?: boolean
+    status?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["integrationFeatureRequest"]>
+
+  export type IntegrationFeatureRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    integrationName?: boolean
+    useCaseDescription?: boolean
+    status?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["integrationFeatureRequest"]>
+
+  export type IntegrationFeatureRequestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    integrationName?: boolean
+    useCaseDescription?: boolean
+    status?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }, ExtArgs["result"]["integrationFeatureRequest"]>
+
+  export type IntegrationFeatureRequestSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    organizationId?: boolean
+    integrationName?: boolean
+    useCaseDescription?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }
+
+  export type IntegrationFeatureRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "organizationId" | "integrationName" | "useCaseDescription" | "status" | "createdAt", ExtArgs["result"]["integrationFeatureRequest"]>
+  export type IntegrationFeatureRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }
+  export type IntegrationFeatureRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }
+  export type IntegrationFeatureRequestIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    organization?: boolean | IntegrationFeatureRequest$organizationArgs<ExtArgs>
+  }
+
+  export type $IntegrationFeatureRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "IntegrationFeatureRequest"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      organization: Prisma.$OrganizationPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      organizationId: string | null
+      integrationName: string
+      useCaseDescription: string
+      status: string
+      createdAt: Date
+    }, ExtArgs["result"]["integrationFeatureRequest"]>
+    composites: {}
+  }
+
+  type IntegrationFeatureRequestGetPayload<S extends boolean | null | undefined | IntegrationFeatureRequestDefaultArgs> = $Result.GetResult<Prisma.$IntegrationFeatureRequestPayload, S>
+
+  type IntegrationFeatureRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<IntegrationFeatureRequestFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: IntegrationFeatureRequestCountAggregateInputType | true
+    }
+
+  export interface IntegrationFeatureRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['IntegrationFeatureRequest'], meta: { name: 'IntegrationFeatureRequest' } }
+    /**
+     * Find zero or one IntegrationFeatureRequest that matches the filter.
+     * @param {IntegrationFeatureRequestFindUniqueArgs} args - Arguments to find a IntegrationFeatureRequest
+     * @example
+     * // Get one IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends IntegrationFeatureRequestFindUniqueArgs>(args: SelectSubset<T, IntegrationFeatureRequestFindUniqueArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one IntegrationFeatureRequest that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {IntegrationFeatureRequestFindUniqueOrThrowArgs} args - Arguments to find a IntegrationFeatureRequest
+     * @example
+     * // Get one IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends IntegrationFeatureRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, IntegrationFeatureRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IntegrationFeatureRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestFindFirstArgs} args - Arguments to find a IntegrationFeatureRequest
+     * @example
+     * // Get one IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends IntegrationFeatureRequestFindFirstArgs>(args?: SelectSubset<T, IntegrationFeatureRequestFindFirstArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first IntegrationFeatureRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestFindFirstOrThrowArgs} args - Arguments to find a IntegrationFeatureRequest
+     * @example
+     * // Get one IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends IntegrationFeatureRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, IntegrationFeatureRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more IntegrationFeatureRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all IntegrationFeatureRequests
+     * const integrationFeatureRequests = await prisma.integrationFeatureRequest.findMany()
+     * 
+     * // Get first 10 IntegrationFeatureRequests
+     * const integrationFeatureRequests = await prisma.integrationFeatureRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const integrationFeatureRequestWithIdOnly = await prisma.integrationFeatureRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends IntegrationFeatureRequestFindManyArgs>(args?: SelectSubset<T, IntegrationFeatureRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a IntegrationFeatureRequest.
+     * @param {IntegrationFeatureRequestCreateArgs} args - Arguments to create a IntegrationFeatureRequest.
+     * @example
+     * // Create one IntegrationFeatureRequest
+     * const IntegrationFeatureRequest = await prisma.integrationFeatureRequest.create({
+     *   data: {
+     *     // ... data to create a IntegrationFeatureRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends IntegrationFeatureRequestCreateArgs>(args: SelectSubset<T, IntegrationFeatureRequestCreateArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many IntegrationFeatureRequests.
+     * @param {IntegrationFeatureRequestCreateManyArgs} args - Arguments to create many IntegrationFeatureRequests.
+     * @example
+     * // Create many IntegrationFeatureRequests
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends IntegrationFeatureRequestCreateManyArgs>(args?: SelectSubset<T, IntegrationFeatureRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many IntegrationFeatureRequests and returns the data saved in the database.
+     * @param {IntegrationFeatureRequestCreateManyAndReturnArgs} args - Arguments to create many IntegrationFeatureRequests.
+     * @example
+     * // Create many IntegrationFeatureRequests
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many IntegrationFeatureRequests and only return the `id`
+     * const integrationFeatureRequestWithIdOnly = await prisma.integrationFeatureRequest.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends IntegrationFeatureRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, IntegrationFeatureRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a IntegrationFeatureRequest.
+     * @param {IntegrationFeatureRequestDeleteArgs} args - Arguments to delete one IntegrationFeatureRequest.
+     * @example
+     * // Delete one IntegrationFeatureRequest
+     * const IntegrationFeatureRequest = await prisma.integrationFeatureRequest.delete({
+     *   where: {
+     *     // ... filter to delete one IntegrationFeatureRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends IntegrationFeatureRequestDeleteArgs>(args: SelectSubset<T, IntegrationFeatureRequestDeleteArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one IntegrationFeatureRequest.
+     * @param {IntegrationFeatureRequestUpdateArgs} args - Arguments to update one IntegrationFeatureRequest.
+     * @example
+     * // Update one IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends IntegrationFeatureRequestUpdateArgs>(args: SelectSubset<T, IntegrationFeatureRequestUpdateArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more IntegrationFeatureRequests.
+     * @param {IntegrationFeatureRequestDeleteManyArgs} args - Arguments to filter IntegrationFeatureRequests to delete.
+     * @example
+     * // Delete a few IntegrationFeatureRequests
+     * const { count } = await prisma.integrationFeatureRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends IntegrationFeatureRequestDeleteManyArgs>(args?: SelectSubset<T, IntegrationFeatureRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IntegrationFeatureRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many IntegrationFeatureRequests
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends IntegrationFeatureRequestUpdateManyArgs>(args: SelectSubset<T, IntegrationFeatureRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more IntegrationFeatureRequests and returns the data updated in the database.
+     * @param {IntegrationFeatureRequestUpdateManyAndReturnArgs} args - Arguments to update many IntegrationFeatureRequests.
+     * @example
+     * // Update many IntegrationFeatureRequests
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more IntegrationFeatureRequests and only return the `id`
+     * const integrationFeatureRequestWithIdOnly = await prisma.integrationFeatureRequest.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends IntegrationFeatureRequestUpdateManyAndReturnArgs>(args: SelectSubset<T, IntegrationFeatureRequestUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one IntegrationFeatureRequest.
+     * @param {IntegrationFeatureRequestUpsertArgs} args - Arguments to update or create a IntegrationFeatureRequest.
+     * @example
+     * // Update or create a IntegrationFeatureRequest
+     * const integrationFeatureRequest = await prisma.integrationFeatureRequest.upsert({
+     *   create: {
+     *     // ... data to create a IntegrationFeatureRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the IntegrationFeatureRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends IntegrationFeatureRequestUpsertArgs>(args: SelectSubset<T, IntegrationFeatureRequestUpsertArgs<ExtArgs>>): Prisma__IntegrationFeatureRequestClient<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of IntegrationFeatureRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestCountArgs} args - Arguments to filter IntegrationFeatureRequests to count.
+     * @example
+     * // Count the number of IntegrationFeatureRequests
+     * const count = await prisma.integrationFeatureRequest.count({
+     *   where: {
+     *     // ... the filter for the IntegrationFeatureRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends IntegrationFeatureRequestCountArgs>(
+      args?: Subset<T, IntegrationFeatureRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], IntegrationFeatureRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a IntegrationFeatureRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends IntegrationFeatureRequestAggregateArgs>(args: Subset<T, IntegrationFeatureRequestAggregateArgs>): Prisma.PrismaPromise<GetIntegrationFeatureRequestAggregateType<T>>
+
+    /**
+     * Group by IntegrationFeatureRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {IntegrationFeatureRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends IntegrationFeatureRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: IntegrationFeatureRequestGroupByArgs['orderBy'] }
+        : { orderBy?: IntegrationFeatureRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, IntegrationFeatureRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetIntegrationFeatureRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the IntegrationFeatureRequest model
+   */
+  readonly fields: IntegrationFeatureRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for IntegrationFeatureRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__IntegrationFeatureRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    organization<T extends IntegrationFeatureRequest$organizationArgs<ExtArgs> = {}>(args?: Subset<T, IntegrationFeatureRequest$organizationArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the IntegrationFeatureRequest model
+   */
+  interface IntegrationFeatureRequestFieldRefs {
+    readonly id: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly userId: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly organizationId: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly integrationName: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly useCaseDescription: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly status: FieldRef<"IntegrationFeatureRequest", 'String'>
+    readonly createdAt: FieldRef<"IntegrationFeatureRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * IntegrationFeatureRequest findUnique
+   */
+  export type IntegrationFeatureRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which IntegrationFeatureRequest to fetch.
+     */
+    where: IntegrationFeatureRequestWhereUniqueInput
+  }
+
+  /**
+   * IntegrationFeatureRequest findUniqueOrThrow
+   */
+  export type IntegrationFeatureRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which IntegrationFeatureRequest to fetch.
+     */
+    where: IntegrationFeatureRequestWhereUniqueInput
+  }
+
+  /**
+   * IntegrationFeatureRequest findFirst
+   */
+  export type IntegrationFeatureRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which IntegrationFeatureRequest to fetch.
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IntegrationFeatureRequests to fetch.
+     */
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IntegrationFeatureRequests.
+     */
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IntegrationFeatureRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IntegrationFeatureRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IntegrationFeatureRequests.
+     */
+    distinct?: IntegrationFeatureRequestScalarFieldEnum | IntegrationFeatureRequestScalarFieldEnum[]
+  }
+
+  /**
+   * IntegrationFeatureRequest findFirstOrThrow
+   */
+  export type IntegrationFeatureRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which IntegrationFeatureRequest to fetch.
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IntegrationFeatureRequests to fetch.
+     */
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for IntegrationFeatureRequests.
+     */
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IntegrationFeatureRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IntegrationFeatureRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IntegrationFeatureRequests.
+     */
+    distinct?: IntegrationFeatureRequestScalarFieldEnum | IntegrationFeatureRequestScalarFieldEnum[]
+  }
+
+  /**
+   * IntegrationFeatureRequest findMany
+   */
+  export type IntegrationFeatureRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which IntegrationFeatureRequests to fetch.
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of IntegrationFeatureRequests to fetch.
+     */
+    orderBy?: IntegrationFeatureRequestOrderByWithRelationInput | IntegrationFeatureRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing IntegrationFeatureRequests.
+     */
+    cursor?: IntegrationFeatureRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` IntegrationFeatureRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` IntegrationFeatureRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of IntegrationFeatureRequests.
+     */
+    distinct?: IntegrationFeatureRequestScalarFieldEnum | IntegrationFeatureRequestScalarFieldEnum[]
+  }
+
+  /**
+   * IntegrationFeatureRequest create
+   */
+  export type IntegrationFeatureRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a IntegrationFeatureRequest.
+     */
+    data: XOR<IntegrationFeatureRequestCreateInput, IntegrationFeatureRequestUncheckedCreateInput>
+  }
+
+  /**
+   * IntegrationFeatureRequest createMany
+   */
+  export type IntegrationFeatureRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many IntegrationFeatureRequests.
+     */
+    data: IntegrationFeatureRequestCreateManyInput | IntegrationFeatureRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * IntegrationFeatureRequest createManyAndReturn
+   */
+  export type IntegrationFeatureRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * The data used to create many IntegrationFeatureRequests.
+     */
+    data: IntegrationFeatureRequestCreateManyInput | IntegrationFeatureRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IntegrationFeatureRequest update
+   */
+  export type IntegrationFeatureRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a IntegrationFeatureRequest.
+     */
+    data: XOR<IntegrationFeatureRequestUpdateInput, IntegrationFeatureRequestUncheckedUpdateInput>
+    /**
+     * Choose, which IntegrationFeatureRequest to update.
+     */
+    where: IntegrationFeatureRequestWhereUniqueInput
+  }
+
+  /**
+   * IntegrationFeatureRequest updateMany
+   */
+  export type IntegrationFeatureRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update IntegrationFeatureRequests.
+     */
+    data: XOR<IntegrationFeatureRequestUpdateManyMutationInput, IntegrationFeatureRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which IntegrationFeatureRequests to update
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * Limit how many IntegrationFeatureRequests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * IntegrationFeatureRequest updateManyAndReturn
+   */
+  export type IntegrationFeatureRequestUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * The data used to update IntegrationFeatureRequests.
+     */
+    data: XOR<IntegrationFeatureRequestUpdateManyMutationInput, IntegrationFeatureRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which IntegrationFeatureRequests to update
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * Limit how many IntegrationFeatureRequests to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * IntegrationFeatureRequest upsert
+   */
+  export type IntegrationFeatureRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the IntegrationFeatureRequest to update in case it exists.
+     */
+    where: IntegrationFeatureRequestWhereUniqueInput
+    /**
+     * In case the IntegrationFeatureRequest found by the `where` argument doesn't exist, create a new IntegrationFeatureRequest with this data.
+     */
+    create: XOR<IntegrationFeatureRequestCreateInput, IntegrationFeatureRequestUncheckedCreateInput>
+    /**
+     * In case the IntegrationFeatureRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<IntegrationFeatureRequestUpdateInput, IntegrationFeatureRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * IntegrationFeatureRequest delete
+   */
+  export type IntegrationFeatureRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+    /**
+     * Filter which IntegrationFeatureRequest to delete.
+     */
+    where: IntegrationFeatureRequestWhereUniqueInput
+  }
+
+  /**
+   * IntegrationFeatureRequest deleteMany
+   */
+  export type IntegrationFeatureRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which IntegrationFeatureRequests to delete
+     */
+    where?: IntegrationFeatureRequestWhereInput
+    /**
+     * Limit how many IntegrationFeatureRequests to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * IntegrationFeatureRequest.organization
+   */
+  export type IntegrationFeatureRequest$organizationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Organization
+     */
+    select?: OrganizationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Organization
+     */
+    omit?: OrganizationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrganizationInclude<ExtArgs> | null
+    where?: OrganizationWhereInput
+  }
+
+  /**
+   * IntegrationFeatureRequest without action
+   */
+  export type IntegrationFeatureRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the IntegrationFeatureRequest
+     */
+    select?: IntegrationFeatureRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the IntegrationFeatureRequest
+     */
+    omit?: IntegrationFeatureRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: IntegrationFeatureRequestInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -83135,6 +92417,7 @@ export namespace Prisma {
     installCount: 'installCount',
     featured: 'featured',
     verified: 'verified',
+    featuredForIdePanel: 'featuredForIdePanel',
     publishedAt: 'publishedAt',
     updatedAt: 'updatedAt'
   };
@@ -83228,6 +92511,136 @@ export namespace Prisma {
   };
 
   export type WorkspaceRuntimeScalarFieldEnum = (typeof WorkspaceRuntimeScalarFieldEnum)[keyof typeof WorkspaceRuntimeScalarFieldEnum]
+
+
+  export const ConnectorCatalogScalarFieldEnum: {
+    id: 'id',
+    provider: 'provider',
+    displayName: 'displayName',
+    description: 'description',
+    category: 'category',
+    authType: 'authType',
+    section: 'section',
+    logoUrl: 'logoUrl',
+    defaultClientId: 'defaultClientId',
+    defaultClientSecretEnc: 'defaultClientSecretEnc',
+    authorizeUrl: 'authorizeUrl',
+    tokenUrl: 'tokenUrl',
+    revokeUrl: 'revokeUrl',
+    userInfoUrl: 'userInfoUrl',
+    defaultScopes: 'defaultScopes',
+    availableScopes: 'availableScopes',
+    apiKeyFields: 'apiKeyFields',
+    apiKeyTestEndpoint: 'apiKeyTestEndpoint',
+    triggersSupported: 'triggersSupported',
+    triggerDescriptions: 'triggerDescriptions',
+    webhookSupport: 'webhookSupport',
+    webhookSignatureScheme: 'webhookSignatureScheme',
+    webhookSigningSecretEnc: 'webhookSigningSecretEnc',
+    minPlanTier: 'minPlanTier',
+    forAgentUse: 'forAgentUse',
+    displayOrder: 'displayOrder',
+    featuredForIdePanel: 'featuredForIdePanel',
+    enabled: 'enabled',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ConnectorCatalogScalarFieldEnum = (typeof ConnectorCatalogScalarFieldEnum)[keyof typeof ConnectorCatalogScalarFieldEnum]
+
+
+  export const UserConnectionScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    provider: 'provider',
+    externalAccountId: 'externalAccountId',
+    externalAccountLabel: 'externalAccountLabel',
+    accessTokenEncrypted: 'accessTokenEncrypted',
+    refreshTokenEncrypted: 'refreshTokenEncrypted',
+    apiKeyFieldsEncrypted: 'apiKeyFieldsEncrypted',
+    scopes: 'scopes',
+    tokenExpiresAt: 'tokenExpiresAt',
+    status: 'status',
+    lastUsedAt: 'lastUsedAt',
+    forAgentUse: 'forAgentUse',
+    oauthAppSource: 'oauthAppSource',
+    oauthAppOverrideId: 'oauthAppOverrideId',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    revokedAt: 'revokedAt'
+  };
+
+  export type UserConnectionScalarFieldEnum = (typeof UserConnectionScalarFieldEnum)[keyof typeof UserConnectionScalarFieldEnum]
+
+
+  export const ProjectConnectionLinkScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    userConnectionId: 'userConnectionId',
+    linkedByUserId: 'linkedByUserId',
+    linkedAt: 'linkedAt',
+    unlinkedAt: 'unlinkedAt'
+  };
+
+  export type ProjectConnectionLinkScalarFieldEnum = (typeof ProjectConnectionLinkScalarFieldEnum)[keyof typeof ProjectConnectionLinkScalarFieldEnum]
+
+
+  export const OrganizationOAuthAppOverrideScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    provider: 'provider',
+    clientId: 'clientId',
+    clientSecretEncrypted: 'clientSecretEncrypted',
+    scopes: 'scopes',
+    configuredByUserId: 'configuredByUserId',
+    testedAt: 'testedAt',
+    testStatus: 'testStatus',
+    testError: 'testError',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type OrganizationOAuthAppOverrideScalarFieldEnum = (typeof OrganizationOAuthAppOverrideScalarFieldEnum)[keyof typeof OrganizationOAuthAppOverrideScalarFieldEnum]
+
+
+  export const OrganizationConnectorPolicyScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    provider: 'provider',
+    enabled: 'enabled',
+    allowedRoleKeys: 'allowedRoleKeys',
+    rateLimitOverride: 'rateLimitOverride',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type OrganizationConnectorPolicyScalarFieldEnum = (typeof OrganizationConnectorPolicyScalarFieldEnum)[keyof typeof OrganizationConnectorPolicyScalarFieldEnum]
+
+
+  export const ReconnectionAlertScalarFieldEnum: {
+    id: 'id',
+    userConnectionId: 'userConnectionId',
+    reason: 'reason',
+    detectedAt: 'detectedAt',
+    resolvedAt: 'resolvedAt',
+    notifiedAt: 'notifiedAt'
+  };
+
+  export type ReconnectionAlertScalarFieldEnum = (typeof ReconnectionAlertScalarFieldEnum)[keyof typeof ReconnectionAlertScalarFieldEnum]
+
+
+  export const IntegrationFeatureRequestScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    organizationId: 'organizationId',
+    integrationName: 'integrationName',
+    useCaseDescription: 'useCaseDescription',
+    status: 'status',
+    createdAt: 'createdAt'
+  };
+
+  export type IntegrationFeatureRequestScalarFieldEnum = (typeof IntegrationFeatureRequestScalarFieldEnum)[keyof typeof IntegrationFeatureRequestScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -83541,6 +92954,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
+    userConnections?: UserConnectionListRelationFilter
+    linkedProjectConnections?: ProjectConnectionLinkListRelationFilter
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
+    integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -83578,6 +92995,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
     agentRuns?: AgentRunOrderByRelationAggregateInput
+    userConnections?: UserConnectionOrderByRelationAggregateInput
+    linkedProjectConnections?: ProjectConnectionLinkOrderByRelationAggregateInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideOrderByRelationAggregateInput
+    integrationFeatureRequests?: IntegrationFeatureRequestOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -83618,6 +93039,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
+    userConnections?: UserConnectionListRelationFilter
+    linkedProjectConnections?: ProjectConnectionLinkListRelationFilter
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
+    integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -83830,6 +93255,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
+    oauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
+    connectorPolicies?: OrganizationConnectorPolicyListRelationFilter
+    integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
   }
 
   export type OrganizationOrderByWithRelationInput = {
@@ -83864,6 +93292,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     mcpInstalls?: McpInstallOrderByRelationAggregateInput
     agentRuns?: AgentRunOrderByRelationAggregateInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideOrderByRelationAggregateInput
+    connectorPolicies?: OrganizationConnectorPolicyOrderByRelationAggregateInput
+    integrationFeatureRequests?: IntegrationFeatureRequestOrderByRelationAggregateInput
   }
 
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -83901,6 +93332,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     mcpInstalls?: McpInstallListRelationFilter
     agentRuns?: AgentRunListRelationFilter
+    oauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
+    connectorPolicies?: OrganizationConnectorPolicyListRelationFilter
+    integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
   }, "id" | "slug">
 
   export type OrganizationOrderByWithAggregationInput = {
@@ -84241,6 +93675,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
+    connectionLinks?: ProjectConnectionLinkListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -84276,6 +93711,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryOrderByRelationAggregateInput
     agentMemoryPreferences?: AgentMemoryPreferenceOrderByRelationAggregateInput
     agentPatchProposals?: AgentPatchProposalOrderByRelationAggregateInput
+    connectionLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -84315,6 +93751,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryListRelationFilter
     agentMemoryPreferences?: AgentMemoryPreferenceListRelationFilter
     agentPatchProposals?: AgentPatchProposalListRelationFilter
+    connectionLinks?: ProjectConnectionLinkListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -87831,6 +97268,7 @@ export namespace Prisma {
     installCount?: IntFilter<"McpCatalogEntry"> | number
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
+    featuredForIdePanel?: BoolFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     installs?: McpInstallListRelationFilter
@@ -87853,6 +97291,7 @@ export namespace Prisma {
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
+    featuredForIdePanel?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
     installs?: McpInstallOrderByRelationAggregateInput
@@ -87878,6 +97317,7 @@ export namespace Prisma {
     installCount?: IntFilter<"McpCatalogEntry"> | number
     featured?: BoolFilter<"McpCatalogEntry"> | boolean
     verified?: BoolFilter<"McpCatalogEntry"> | boolean
+    featuredForIdePanel?: BoolFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeFilter<"McpCatalogEntry"> | Date | string
     installs?: McpInstallListRelationFilter
@@ -87900,6 +97340,7 @@ export namespace Prisma {
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
+    featuredForIdePanel?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
     _count?: McpCatalogEntryCountOrderByAggregateInput
@@ -87929,6 +97370,7 @@ export namespace Prisma {
     installCount?: IntWithAggregatesFilter<"McpCatalogEntry"> | number
     featured?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     verified?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
+    featuredForIdePanel?: BoolWithAggregatesFilter<"McpCatalogEntry"> | boolean
     publishedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"McpCatalogEntry"> | Date | string
   }
@@ -88389,6 +97831,685 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
   }
 
+  export type ConnectorCatalogWhereInput = {
+    AND?: ConnectorCatalogWhereInput | ConnectorCatalogWhereInput[]
+    OR?: ConnectorCatalogWhereInput[]
+    NOT?: ConnectorCatalogWhereInput | ConnectorCatalogWhereInput[]
+    id?: StringFilter<"ConnectorCatalog"> | string
+    provider?: StringFilter<"ConnectorCatalog"> | string
+    displayName?: StringFilter<"ConnectorCatalog"> | string
+    description?: StringFilter<"ConnectorCatalog"> | string
+    category?: StringFilter<"ConnectorCatalog"> | string
+    authType?: StringFilter<"ConnectorCatalog"> | string
+    section?: StringFilter<"ConnectorCatalog"> | string
+    logoUrl?: StringFilter<"ConnectorCatalog"> | string
+    defaultClientId?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    defaultClientSecretEnc?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    authorizeUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    tokenUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    revokeUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    userInfoUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    defaultScopes?: StringNullableListFilter<"ConnectorCatalog">
+    availableScopes?: StringNullableListFilter<"ConnectorCatalog">
+    apiKeyFields?: JsonNullableFilter<"ConnectorCatalog">
+    apiKeyTestEndpoint?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    triggersSupported?: StringNullableListFilter<"ConnectorCatalog">
+    triggerDescriptions?: JsonFilter<"ConnectorCatalog">
+    webhookSupport?: BoolFilter<"ConnectorCatalog"> | boolean
+    webhookSignatureScheme?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    webhookSigningSecretEnc?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    minPlanTier?: StringFilter<"ConnectorCatalog"> | string
+    forAgentUse?: BoolFilter<"ConnectorCatalog"> | boolean
+    displayOrder?: IntFilter<"ConnectorCatalog"> | number
+    featuredForIdePanel?: BoolFilter<"ConnectorCatalog"> | boolean
+    enabled?: BoolFilter<"ConnectorCatalog"> | boolean
+    createdAt?: DateTimeFilter<"ConnectorCatalog"> | Date | string
+    updatedAt?: DateTimeFilter<"ConnectorCatalog"> | Date | string
+  }
+
+  export type ConnectorCatalogOrderByWithRelationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    displayName?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    authType?: SortOrder
+    section?: SortOrder
+    logoUrl?: SortOrder
+    defaultClientId?: SortOrderInput | SortOrder
+    defaultClientSecretEnc?: SortOrderInput | SortOrder
+    authorizeUrl?: SortOrderInput | SortOrder
+    tokenUrl?: SortOrderInput | SortOrder
+    revokeUrl?: SortOrderInput | SortOrder
+    userInfoUrl?: SortOrderInput | SortOrder
+    defaultScopes?: SortOrder
+    availableScopes?: SortOrder
+    apiKeyFields?: SortOrderInput | SortOrder
+    apiKeyTestEndpoint?: SortOrderInput | SortOrder
+    triggersSupported?: SortOrder
+    triggerDescriptions?: SortOrder
+    webhookSupport?: SortOrder
+    webhookSignatureScheme?: SortOrderInput | SortOrder
+    webhookSigningSecretEnc?: SortOrderInput | SortOrder
+    minPlanTier?: SortOrder
+    forAgentUse?: SortOrder
+    displayOrder?: SortOrder
+    featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConnectorCatalogWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    provider?: string
+    AND?: ConnectorCatalogWhereInput | ConnectorCatalogWhereInput[]
+    OR?: ConnectorCatalogWhereInput[]
+    NOT?: ConnectorCatalogWhereInput | ConnectorCatalogWhereInput[]
+    displayName?: StringFilter<"ConnectorCatalog"> | string
+    description?: StringFilter<"ConnectorCatalog"> | string
+    category?: StringFilter<"ConnectorCatalog"> | string
+    authType?: StringFilter<"ConnectorCatalog"> | string
+    section?: StringFilter<"ConnectorCatalog"> | string
+    logoUrl?: StringFilter<"ConnectorCatalog"> | string
+    defaultClientId?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    defaultClientSecretEnc?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    authorizeUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    tokenUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    revokeUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    userInfoUrl?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    defaultScopes?: StringNullableListFilter<"ConnectorCatalog">
+    availableScopes?: StringNullableListFilter<"ConnectorCatalog">
+    apiKeyFields?: JsonNullableFilter<"ConnectorCatalog">
+    apiKeyTestEndpoint?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    triggersSupported?: StringNullableListFilter<"ConnectorCatalog">
+    triggerDescriptions?: JsonFilter<"ConnectorCatalog">
+    webhookSupport?: BoolFilter<"ConnectorCatalog"> | boolean
+    webhookSignatureScheme?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    webhookSigningSecretEnc?: StringNullableFilter<"ConnectorCatalog"> | string | null
+    minPlanTier?: StringFilter<"ConnectorCatalog"> | string
+    forAgentUse?: BoolFilter<"ConnectorCatalog"> | boolean
+    displayOrder?: IntFilter<"ConnectorCatalog"> | number
+    featuredForIdePanel?: BoolFilter<"ConnectorCatalog"> | boolean
+    enabled?: BoolFilter<"ConnectorCatalog"> | boolean
+    createdAt?: DateTimeFilter<"ConnectorCatalog"> | Date | string
+    updatedAt?: DateTimeFilter<"ConnectorCatalog"> | Date | string
+  }, "id" | "provider">
+
+  export type ConnectorCatalogOrderByWithAggregationInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    displayName?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    authType?: SortOrder
+    section?: SortOrder
+    logoUrl?: SortOrder
+    defaultClientId?: SortOrderInput | SortOrder
+    defaultClientSecretEnc?: SortOrderInput | SortOrder
+    authorizeUrl?: SortOrderInput | SortOrder
+    tokenUrl?: SortOrderInput | SortOrder
+    revokeUrl?: SortOrderInput | SortOrder
+    userInfoUrl?: SortOrderInput | SortOrder
+    defaultScopes?: SortOrder
+    availableScopes?: SortOrder
+    apiKeyFields?: SortOrderInput | SortOrder
+    apiKeyTestEndpoint?: SortOrderInput | SortOrder
+    triggersSupported?: SortOrder
+    triggerDescriptions?: SortOrder
+    webhookSupport?: SortOrder
+    webhookSignatureScheme?: SortOrderInput | SortOrder
+    webhookSigningSecretEnc?: SortOrderInput | SortOrder
+    minPlanTier?: SortOrder
+    forAgentUse?: SortOrder
+    displayOrder?: SortOrder
+    featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ConnectorCatalogCountOrderByAggregateInput
+    _avg?: ConnectorCatalogAvgOrderByAggregateInput
+    _max?: ConnectorCatalogMaxOrderByAggregateInput
+    _min?: ConnectorCatalogMinOrderByAggregateInput
+    _sum?: ConnectorCatalogSumOrderByAggregateInput
+  }
+
+  export type ConnectorCatalogScalarWhereWithAggregatesInput = {
+    AND?: ConnectorCatalogScalarWhereWithAggregatesInput | ConnectorCatalogScalarWhereWithAggregatesInput[]
+    OR?: ConnectorCatalogScalarWhereWithAggregatesInput[]
+    NOT?: ConnectorCatalogScalarWhereWithAggregatesInput | ConnectorCatalogScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    provider?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    displayName?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    description?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    category?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    authType?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    section?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    logoUrl?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    defaultClientId?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    defaultClientSecretEnc?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    authorizeUrl?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    tokenUrl?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    revokeUrl?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    userInfoUrl?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    defaultScopes?: StringNullableListFilter<"ConnectorCatalog">
+    availableScopes?: StringNullableListFilter<"ConnectorCatalog">
+    apiKeyFields?: JsonNullableWithAggregatesFilter<"ConnectorCatalog">
+    apiKeyTestEndpoint?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    triggersSupported?: StringNullableListFilter<"ConnectorCatalog">
+    triggerDescriptions?: JsonWithAggregatesFilter<"ConnectorCatalog">
+    webhookSupport?: BoolWithAggregatesFilter<"ConnectorCatalog"> | boolean
+    webhookSignatureScheme?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    webhookSigningSecretEnc?: StringNullableWithAggregatesFilter<"ConnectorCatalog"> | string | null
+    minPlanTier?: StringWithAggregatesFilter<"ConnectorCatalog"> | string
+    forAgentUse?: BoolWithAggregatesFilter<"ConnectorCatalog"> | boolean
+    displayOrder?: IntWithAggregatesFilter<"ConnectorCatalog"> | number
+    featuredForIdePanel?: BoolWithAggregatesFilter<"ConnectorCatalog"> | boolean
+    enabled?: BoolWithAggregatesFilter<"ConnectorCatalog"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"ConnectorCatalog"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ConnectorCatalog"> | Date | string
+  }
+
+  export type UserConnectionWhereInput = {
+    AND?: UserConnectionWhereInput | UserConnectionWhereInput[]
+    OR?: UserConnectionWhereInput[]
+    NOT?: UserConnectionWhereInput | UserConnectionWhereInput[]
+    id?: StringFilter<"UserConnection"> | string
+    userId?: StringFilter<"UserConnection"> | string
+    provider?: StringFilter<"UserConnection"> | string
+    externalAccountId?: StringFilter<"UserConnection"> | string
+    externalAccountLabel?: StringFilter<"UserConnection"> | string
+    accessTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    refreshTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    apiKeyFieldsEncrypted?: JsonNullableFilter<"UserConnection">
+    scopes?: StringNullableListFilter<"UserConnection">
+    tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    status?: StringFilter<"UserConnection"> | string
+    lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    forAgentUse?: BoolFilter<"UserConnection"> | boolean
+    oauthAppSource?: StringFilter<"UserConnection"> | string
+    oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
+    createdByUserId?: StringFilter<"UserConnection"> | string
+    createdAt?: DateTimeFilter<"UserConnection"> | Date | string
+    updatedAt?: DateTimeFilter<"UserConnection"> | Date | string
+    revokedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    oauthAppOverride?: XOR<OrganizationOAuthAppOverrideNullableScalarRelationFilter, OrganizationOAuthAppOverrideWhereInput> | null
+    projectLinks?: ProjectConnectionLinkListRelationFilter
+    reconnectionAlerts?: ReconnectionAlertListRelationFilter
+  }
+
+  export type UserConnectionOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    externalAccountId?: SortOrder
+    externalAccountLabel?: SortOrder
+    accessTokenEncrypted?: SortOrderInput | SortOrder
+    refreshTokenEncrypted?: SortOrderInput | SortOrder
+    apiKeyFieldsEncrypted?: SortOrderInput | SortOrder
+    scopes?: SortOrder
+    tokenExpiresAt?: SortOrderInput | SortOrder
+    status?: SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
+    forAgentUse?: SortOrder
+    oauthAppSource?: SortOrder
+    oauthAppOverrideId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    user?: UserOrderByWithRelationInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideOrderByWithRelationInput
+    projectLinks?: ProjectConnectionLinkOrderByRelationAggregateInput
+    reconnectionAlerts?: ReconnectionAlertOrderByRelationAggregateInput
+  }
+
+  export type UserConnectionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_provider_externalAccountId?: UserConnectionUserIdProviderExternalAccountIdCompoundUniqueInput
+    AND?: UserConnectionWhereInput | UserConnectionWhereInput[]
+    OR?: UserConnectionWhereInput[]
+    NOT?: UserConnectionWhereInput | UserConnectionWhereInput[]
+    userId?: StringFilter<"UserConnection"> | string
+    provider?: StringFilter<"UserConnection"> | string
+    externalAccountId?: StringFilter<"UserConnection"> | string
+    externalAccountLabel?: StringFilter<"UserConnection"> | string
+    accessTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    refreshTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    apiKeyFieldsEncrypted?: JsonNullableFilter<"UserConnection">
+    scopes?: StringNullableListFilter<"UserConnection">
+    tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    status?: StringFilter<"UserConnection"> | string
+    lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    forAgentUse?: BoolFilter<"UserConnection"> | boolean
+    oauthAppSource?: StringFilter<"UserConnection"> | string
+    oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
+    createdByUserId?: StringFilter<"UserConnection"> | string
+    createdAt?: DateTimeFilter<"UserConnection"> | Date | string
+    updatedAt?: DateTimeFilter<"UserConnection"> | Date | string
+    revokedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    oauthAppOverride?: XOR<OrganizationOAuthAppOverrideNullableScalarRelationFilter, OrganizationOAuthAppOverrideWhereInput> | null
+    projectLinks?: ProjectConnectionLinkListRelationFilter
+    reconnectionAlerts?: ReconnectionAlertListRelationFilter
+  }, "id" | "userId_provider_externalAccountId">
+
+  export type UserConnectionOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    externalAccountId?: SortOrder
+    externalAccountLabel?: SortOrder
+    accessTokenEncrypted?: SortOrderInput | SortOrder
+    refreshTokenEncrypted?: SortOrderInput | SortOrder
+    apiKeyFieldsEncrypted?: SortOrderInput | SortOrder
+    scopes?: SortOrder
+    tokenExpiresAt?: SortOrderInput | SortOrder
+    status?: SortOrder
+    lastUsedAt?: SortOrderInput | SortOrder
+    forAgentUse?: SortOrder
+    oauthAppSource?: SortOrder
+    oauthAppOverrideId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    revokedAt?: SortOrderInput | SortOrder
+    _count?: UserConnectionCountOrderByAggregateInput
+    _max?: UserConnectionMaxOrderByAggregateInput
+    _min?: UserConnectionMinOrderByAggregateInput
+  }
+
+  export type UserConnectionScalarWhereWithAggregatesInput = {
+    AND?: UserConnectionScalarWhereWithAggregatesInput | UserConnectionScalarWhereWithAggregatesInput[]
+    OR?: UserConnectionScalarWhereWithAggregatesInput[]
+    NOT?: UserConnectionScalarWhereWithAggregatesInput | UserConnectionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UserConnection"> | string
+    userId?: StringWithAggregatesFilter<"UserConnection"> | string
+    provider?: StringWithAggregatesFilter<"UserConnection"> | string
+    externalAccountId?: StringWithAggregatesFilter<"UserConnection"> | string
+    externalAccountLabel?: StringWithAggregatesFilter<"UserConnection"> | string
+    accessTokenEncrypted?: StringNullableWithAggregatesFilter<"UserConnection"> | string | null
+    refreshTokenEncrypted?: StringNullableWithAggregatesFilter<"UserConnection"> | string | null
+    apiKeyFieldsEncrypted?: JsonNullableWithAggregatesFilter<"UserConnection">
+    scopes?: StringNullableListFilter<"UserConnection">
+    tokenExpiresAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
+    status?: StringWithAggregatesFilter<"UserConnection"> | string
+    lastUsedAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
+    forAgentUse?: BoolWithAggregatesFilter<"UserConnection"> | boolean
+    oauthAppSource?: StringWithAggregatesFilter<"UserConnection"> | string
+    oauthAppOverrideId?: StringNullableWithAggregatesFilter<"UserConnection"> | string | null
+    createdByUserId?: StringWithAggregatesFilter<"UserConnection"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"UserConnection"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"UserConnection"> | Date | string
+    revokedAt?: DateTimeNullableWithAggregatesFilter<"UserConnection"> | Date | string | null
+  }
+
+  export type ProjectConnectionLinkWhereInput = {
+    AND?: ProjectConnectionLinkWhereInput | ProjectConnectionLinkWhereInput[]
+    OR?: ProjectConnectionLinkWhereInput[]
+    NOT?: ProjectConnectionLinkWhereInput | ProjectConnectionLinkWhereInput[]
+    id?: StringFilter<"ProjectConnectionLink"> | string
+    projectId?: StringFilter<"ProjectConnectionLink"> | string
+    userConnectionId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedByUserId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedAt?: DateTimeFilter<"ProjectConnectionLink"> | Date | string
+    unlinkedAt?: DateTimeNullableFilter<"ProjectConnectionLink"> | Date | string | null
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    userConnection?: XOR<UserConnectionScalarRelationFilter, UserConnectionWhereInput>
+    linkedByUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type ProjectConnectionLinkOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userConnectionId?: SortOrder
+    linkedByUserId?: SortOrder
+    linkedAt?: SortOrder
+    unlinkedAt?: SortOrderInput | SortOrder
+    project?: ProjectOrderByWithRelationInput
+    userConnection?: UserConnectionOrderByWithRelationInput
+    linkedByUser?: UserOrderByWithRelationInput
+  }
+
+  export type ProjectConnectionLinkWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_userConnectionId?: ProjectConnectionLinkProjectIdUserConnectionIdCompoundUniqueInput
+    AND?: ProjectConnectionLinkWhereInput | ProjectConnectionLinkWhereInput[]
+    OR?: ProjectConnectionLinkWhereInput[]
+    NOT?: ProjectConnectionLinkWhereInput | ProjectConnectionLinkWhereInput[]
+    projectId?: StringFilter<"ProjectConnectionLink"> | string
+    userConnectionId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedByUserId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedAt?: DateTimeFilter<"ProjectConnectionLink"> | Date | string
+    unlinkedAt?: DateTimeNullableFilter<"ProjectConnectionLink"> | Date | string | null
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    userConnection?: XOR<UserConnectionScalarRelationFilter, UserConnectionWhereInput>
+    linkedByUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "projectId_userConnectionId">
+
+  export type ProjectConnectionLinkOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userConnectionId?: SortOrder
+    linkedByUserId?: SortOrder
+    linkedAt?: SortOrder
+    unlinkedAt?: SortOrderInput | SortOrder
+    _count?: ProjectConnectionLinkCountOrderByAggregateInput
+    _max?: ProjectConnectionLinkMaxOrderByAggregateInput
+    _min?: ProjectConnectionLinkMinOrderByAggregateInput
+  }
+
+  export type ProjectConnectionLinkScalarWhereWithAggregatesInput = {
+    AND?: ProjectConnectionLinkScalarWhereWithAggregatesInput | ProjectConnectionLinkScalarWhereWithAggregatesInput[]
+    OR?: ProjectConnectionLinkScalarWhereWithAggregatesInput[]
+    NOT?: ProjectConnectionLinkScalarWhereWithAggregatesInput | ProjectConnectionLinkScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectConnectionLink"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectConnectionLink"> | string
+    userConnectionId?: StringWithAggregatesFilter<"ProjectConnectionLink"> | string
+    linkedByUserId?: StringWithAggregatesFilter<"ProjectConnectionLink"> | string
+    linkedAt?: DateTimeWithAggregatesFilter<"ProjectConnectionLink"> | Date | string
+    unlinkedAt?: DateTimeNullableWithAggregatesFilter<"ProjectConnectionLink"> | Date | string | null
+  }
+
+  export type OrganizationOAuthAppOverrideWhereInput = {
+    AND?: OrganizationOAuthAppOverrideWhereInput | OrganizationOAuthAppOverrideWhereInput[]
+    OR?: OrganizationOAuthAppOverrideWhereInput[]
+    NOT?: OrganizationOAuthAppOverrideWhereInput | OrganizationOAuthAppOverrideWhereInput[]
+    id?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    organizationId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    provider?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientSecretEncrypted?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    scopes?: StringNullableListFilter<"OrganizationOAuthAppOverride">
+    configuredByUserId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    testedAt?: DateTimeNullableFilter<"OrganizationOAuthAppOverride"> | Date | string | null
+    testStatus?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    testError?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    configuredByUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+    userConnections?: UserConnectionListRelationFilter
+  }
+
+  export type OrganizationOAuthAppOverrideOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEncrypted?: SortOrder
+    scopes?: SortOrder
+    configuredByUserId?: SortOrder
+    testedAt?: SortOrderInput | SortOrder
+    testStatus?: SortOrderInput | SortOrder
+    testError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    configuredByUser?: UserOrderByWithRelationInput
+    userConnections?: UserConnectionOrderByRelationAggregateInput
+  }
+
+  export type OrganizationOAuthAppOverrideWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_provider?: OrganizationOAuthAppOverrideOrganizationIdProviderCompoundUniqueInput
+    AND?: OrganizationOAuthAppOverrideWhereInput | OrganizationOAuthAppOverrideWhereInput[]
+    OR?: OrganizationOAuthAppOverrideWhereInput[]
+    NOT?: OrganizationOAuthAppOverrideWhereInput | OrganizationOAuthAppOverrideWhereInput[]
+    organizationId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    provider?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientSecretEncrypted?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    scopes?: StringNullableListFilter<"OrganizationOAuthAppOverride">
+    configuredByUserId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    testedAt?: DateTimeNullableFilter<"OrganizationOAuthAppOverride"> | Date | string | null
+    testStatus?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    testError?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    configuredByUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+    userConnections?: UserConnectionListRelationFilter
+  }, "id" | "organizationId_provider">
+
+  export type OrganizationOAuthAppOverrideOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEncrypted?: SortOrder
+    scopes?: SortOrder
+    configuredByUserId?: SortOrder
+    testedAt?: SortOrderInput | SortOrder
+    testStatus?: SortOrderInput | SortOrder
+    testError?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: OrganizationOAuthAppOverrideCountOrderByAggregateInput
+    _max?: OrganizationOAuthAppOverrideMaxOrderByAggregateInput
+    _min?: OrganizationOAuthAppOverrideMinOrderByAggregateInput
+  }
+
+  export type OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput = {
+    AND?: OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput | OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput[]
+    OR?: OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput[]
+    NOT?: OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput | OrganizationOAuthAppOverrideScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    organizationId?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    provider?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    clientId?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    clientSecretEncrypted?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    scopes?: StringNullableListFilter<"OrganizationOAuthAppOverride">
+    configuredByUserId?: StringWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string
+    testedAt?: DateTimeNullableWithAggregatesFilter<"OrganizationOAuthAppOverride"> | Date | string | null
+    testStatus?: StringNullableWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string | null
+    testError?: StringNullableWithAggregatesFilter<"OrganizationOAuthAppOverride"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"OrganizationOAuthAppOverride"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"OrganizationOAuthAppOverride"> | Date | string
+  }
+
+  export type OrganizationConnectorPolicyWhereInput = {
+    AND?: OrganizationConnectorPolicyWhereInput | OrganizationConnectorPolicyWhereInput[]
+    OR?: OrganizationConnectorPolicyWhereInput[]
+    NOT?: OrganizationConnectorPolicyWhereInput | OrganizationConnectorPolicyWhereInput[]
+    id?: StringFilter<"OrganizationConnectorPolicy"> | string
+    organizationId?: StringFilter<"OrganizationConnectorPolicy"> | string
+    provider?: StringFilter<"OrganizationConnectorPolicy"> | string
+    enabled?: BoolFilter<"OrganizationConnectorPolicy"> | boolean
+    allowedRoleKeys?: StringNullableListFilter<"OrganizationConnectorPolicy">
+    rateLimitOverride?: IntNullableFilter<"OrganizationConnectorPolicy"> | number | null
+    createdAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+  }
+
+  export type OrganizationConnectorPolicyOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    enabled?: SortOrder
+    allowedRoleKeys?: SortOrder
+    rateLimitOverride?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+  }
+
+  export type OrganizationConnectorPolicyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    organizationId_provider?: OrganizationConnectorPolicyOrganizationIdProviderCompoundUniqueInput
+    AND?: OrganizationConnectorPolicyWhereInput | OrganizationConnectorPolicyWhereInput[]
+    OR?: OrganizationConnectorPolicyWhereInput[]
+    NOT?: OrganizationConnectorPolicyWhereInput | OrganizationConnectorPolicyWhereInput[]
+    organizationId?: StringFilter<"OrganizationConnectorPolicy"> | string
+    provider?: StringFilter<"OrganizationConnectorPolicy"> | string
+    enabled?: BoolFilter<"OrganizationConnectorPolicy"> | boolean
+    allowedRoleKeys?: StringNullableListFilter<"OrganizationConnectorPolicy">
+    rateLimitOverride?: IntNullableFilter<"OrganizationConnectorPolicy"> | number | null
+    createdAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+  }, "id" | "organizationId_provider">
+
+  export type OrganizationConnectorPolicyOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    enabled?: SortOrder
+    allowedRoleKeys?: SortOrder
+    rateLimitOverride?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: OrganizationConnectorPolicyCountOrderByAggregateInput
+    _avg?: OrganizationConnectorPolicyAvgOrderByAggregateInput
+    _max?: OrganizationConnectorPolicyMaxOrderByAggregateInput
+    _min?: OrganizationConnectorPolicyMinOrderByAggregateInput
+    _sum?: OrganizationConnectorPolicySumOrderByAggregateInput
+  }
+
+  export type OrganizationConnectorPolicyScalarWhereWithAggregatesInput = {
+    AND?: OrganizationConnectorPolicyScalarWhereWithAggregatesInput | OrganizationConnectorPolicyScalarWhereWithAggregatesInput[]
+    OR?: OrganizationConnectorPolicyScalarWhereWithAggregatesInput[]
+    NOT?: OrganizationConnectorPolicyScalarWhereWithAggregatesInput | OrganizationConnectorPolicyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"OrganizationConnectorPolicy"> | string
+    organizationId?: StringWithAggregatesFilter<"OrganizationConnectorPolicy"> | string
+    provider?: StringWithAggregatesFilter<"OrganizationConnectorPolicy"> | string
+    enabled?: BoolWithAggregatesFilter<"OrganizationConnectorPolicy"> | boolean
+    allowedRoleKeys?: StringNullableListFilter<"OrganizationConnectorPolicy">
+    rateLimitOverride?: IntNullableWithAggregatesFilter<"OrganizationConnectorPolicy"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"OrganizationConnectorPolicy"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"OrganizationConnectorPolicy"> | Date | string
+  }
+
+  export type ReconnectionAlertWhereInput = {
+    AND?: ReconnectionAlertWhereInput | ReconnectionAlertWhereInput[]
+    OR?: ReconnectionAlertWhereInput[]
+    NOT?: ReconnectionAlertWhereInput | ReconnectionAlertWhereInput[]
+    id?: StringFilter<"ReconnectionAlert"> | string
+    userConnectionId?: StringFilter<"ReconnectionAlert"> | string
+    reason?: StringFilter<"ReconnectionAlert"> | string
+    detectedAt?: DateTimeFilter<"ReconnectionAlert"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+    notifiedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+    userConnection?: XOR<UserConnectionScalarRelationFilter, UserConnectionWhereInput>
+  }
+
+  export type ReconnectionAlertOrderByWithRelationInput = {
+    id?: SortOrder
+    userConnectionId?: SortOrder
+    reason?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    notifiedAt?: SortOrderInput | SortOrder
+    userConnection?: UserConnectionOrderByWithRelationInput
+  }
+
+  export type ReconnectionAlertWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ReconnectionAlertWhereInput | ReconnectionAlertWhereInput[]
+    OR?: ReconnectionAlertWhereInput[]
+    NOT?: ReconnectionAlertWhereInput | ReconnectionAlertWhereInput[]
+    userConnectionId?: StringFilter<"ReconnectionAlert"> | string
+    reason?: StringFilter<"ReconnectionAlert"> | string
+    detectedAt?: DateTimeFilter<"ReconnectionAlert"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+    notifiedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+    userConnection?: XOR<UserConnectionScalarRelationFilter, UserConnectionWhereInput>
+  }, "id">
+
+  export type ReconnectionAlertOrderByWithAggregationInput = {
+    id?: SortOrder
+    userConnectionId?: SortOrder
+    reason?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    notifiedAt?: SortOrderInput | SortOrder
+    _count?: ReconnectionAlertCountOrderByAggregateInput
+    _max?: ReconnectionAlertMaxOrderByAggregateInput
+    _min?: ReconnectionAlertMinOrderByAggregateInput
+  }
+
+  export type ReconnectionAlertScalarWhereWithAggregatesInput = {
+    AND?: ReconnectionAlertScalarWhereWithAggregatesInput | ReconnectionAlertScalarWhereWithAggregatesInput[]
+    OR?: ReconnectionAlertScalarWhereWithAggregatesInput[]
+    NOT?: ReconnectionAlertScalarWhereWithAggregatesInput | ReconnectionAlertScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ReconnectionAlert"> | string
+    userConnectionId?: StringWithAggregatesFilter<"ReconnectionAlert"> | string
+    reason?: StringWithAggregatesFilter<"ReconnectionAlert"> | string
+    detectedAt?: DateTimeWithAggregatesFilter<"ReconnectionAlert"> | Date | string
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"ReconnectionAlert"> | Date | string | null
+    notifiedAt?: DateTimeNullableWithAggregatesFilter<"ReconnectionAlert"> | Date | string | null
+  }
+
+  export type IntegrationFeatureRequestWhereInput = {
+    AND?: IntegrationFeatureRequestWhereInput | IntegrationFeatureRequestWhereInput[]
+    OR?: IntegrationFeatureRequestWhereInput[]
+    NOT?: IntegrationFeatureRequestWhereInput | IntegrationFeatureRequestWhereInput[]
+    id?: StringFilter<"IntegrationFeatureRequest"> | string
+    userId?: StringFilter<"IntegrationFeatureRequest"> | string
+    organizationId?: StringNullableFilter<"IntegrationFeatureRequest"> | string | null
+    integrationName?: StringFilter<"IntegrationFeatureRequest"> | string
+    useCaseDescription?: StringFilter<"IntegrationFeatureRequest"> | string
+    status?: StringFilter<"IntegrationFeatureRequest"> | string
+    createdAt?: DateTimeFilter<"IntegrationFeatureRequest"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }
+
+  export type IntegrationFeatureRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    integrationName?: SortOrder
+    useCaseDescription?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    organization?: OrganizationOrderByWithRelationInput
+  }
+
+  export type IntegrationFeatureRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: IntegrationFeatureRequestWhereInput | IntegrationFeatureRequestWhereInput[]
+    OR?: IntegrationFeatureRequestWhereInput[]
+    NOT?: IntegrationFeatureRequestWhereInput | IntegrationFeatureRequestWhereInput[]
+    userId?: StringFilter<"IntegrationFeatureRequest"> | string
+    organizationId?: StringNullableFilter<"IntegrationFeatureRequest"> | string | null
+    integrationName?: StringFilter<"IntegrationFeatureRequest"> | string
+    useCaseDescription?: StringFilter<"IntegrationFeatureRequest"> | string
+    status?: StringFilter<"IntegrationFeatureRequest"> | string
+    createdAt?: DateTimeFilter<"IntegrationFeatureRequest"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    organization?: XOR<OrganizationNullableScalarRelationFilter, OrganizationWhereInput> | null
+  }, "id">
+
+  export type IntegrationFeatureRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrderInput | SortOrder
+    integrationName?: SortOrder
+    useCaseDescription?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    _count?: IntegrationFeatureRequestCountOrderByAggregateInput
+    _max?: IntegrationFeatureRequestMaxOrderByAggregateInput
+    _min?: IntegrationFeatureRequestMinOrderByAggregateInput
+  }
+
+  export type IntegrationFeatureRequestScalarWhereWithAggregatesInput = {
+    AND?: IntegrationFeatureRequestScalarWhereWithAggregatesInput | IntegrationFeatureRequestScalarWhereWithAggregatesInput[]
+    OR?: IntegrationFeatureRequestScalarWhereWithAggregatesInput[]
+    NOT?: IntegrationFeatureRequestScalarWhereWithAggregatesInput | IntegrationFeatureRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
+    userId?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
+    organizationId?: StringNullableWithAggregatesFilter<"IntegrationFeatureRequest"> | string | null
+    integrationName?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
+    useCaseDescription?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
+    status?: StringWithAggregatesFilter<"IntegrationFeatureRequest"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"IntegrationFeatureRequest"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -88424,6 +98545,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -88461,6 +98586,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -88498,6 +98627,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -88535,6 +98668,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -88763,6 +98900,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateInput = {
@@ -88797,6 +98937,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUpdateInput = {
@@ -88831,6 +98974,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateInput = {
@@ -88865,6 +99011,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateManyInput = {
@@ -89192,6 +99341,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -89226,6 +99376,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -89260,6 +99411,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -89294,6 +99446,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -92906,6 +103059,7 @@ export namespace Prisma {
     installCount?: number
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
     installs?: McpInstallCreateNestedManyWithoutCatalogEntryInput
@@ -92928,6 +103082,7 @@ export namespace Prisma {
     installCount?: number
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
     installs?: McpInstallUncheckedCreateNestedManyWithoutCatalogEntryInput
@@ -92950,6 +103105,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     installs?: McpInstallUpdateManyWithoutCatalogEntryNestedInput
@@ -92972,6 +103128,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     installs?: McpInstallUncheckedUpdateManyWithoutCatalogEntryNestedInput
@@ -92994,6 +103151,7 @@ export namespace Prisma {
     installCount?: number
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -93015,6 +103173,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -93036,6 +103195,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -93552,6 +103712,770 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ConnectorCatalogCreateInput = {
+    id?: string
+    provider: string
+    displayName: string
+    description: string
+    category: string
+    authType: string
+    section: string
+    logoUrl: string
+    defaultClientId?: string | null
+    defaultClientSecretEnc?: string | null
+    authorizeUrl?: string | null
+    tokenUrl?: string | null
+    revokeUrl?: string | null
+    userInfoUrl?: string | null
+    defaultScopes?: ConnectorCatalogCreatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogCreateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: string | null
+    triggersSupported?: ConnectorCatalogCreatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: boolean
+    webhookSignatureScheme?: string | null
+    webhookSigningSecretEnc?: string | null
+    minPlanTier?: string
+    forAgentUse?: boolean
+    displayOrder?: number
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConnectorCatalogUncheckedCreateInput = {
+    id?: string
+    provider: string
+    displayName: string
+    description: string
+    category: string
+    authType: string
+    section: string
+    logoUrl: string
+    defaultClientId?: string | null
+    defaultClientSecretEnc?: string | null
+    authorizeUrl?: string | null
+    tokenUrl?: string | null
+    revokeUrl?: string | null
+    userInfoUrl?: string | null
+    defaultScopes?: ConnectorCatalogCreatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogCreateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: string | null
+    triggersSupported?: ConnectorCatalogCreatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: boolean
+    webhookSignatureScheme?: string | null
+    webhookSigningSecretEnc?: string | null
+    minPlanTier?: string
+    forAgentUse?: boolean
+    displayOrder?: number
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConnectorCatalogUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    displayName?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    authType?: StringFieldUpdateOperationsInput | string
+    section?: StringFieldUpdateOperationsInput | string
+    logoUrl?: StringFieldUpdateOperationsInput | string
+    defaultClientId?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultClientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    authorizeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tokenUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    userInfoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultScopes?: ConnectorCatalogUpdatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogUpdateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    triggersSupported?: ConnectorCatalogUpdatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: BoolFieldUpdateOperationsInput | boolean
+    webhookSignatureScheme?: NullableStringFieldUpdateOperationsInput | string | null
+    webhookSigningSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    minPlanTier?: StringFieldUpdateOperationsInput | string
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    displayOrder?: IntFieldUpdateOperationsInput | number
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConnectorCatalogUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    displayName?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    authType?: StringFieldUpdateOperationsInput | string
+    section?: StringFieldUpdateOperationsInput | string
+    logoUrl?: StringFieldUpdateOperationsInput | string
+    defaultClientId?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultClientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    authorizeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tokenUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    userInfoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultScopes?: ConnectorCatalogUpdatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogUpdateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    triggersSupported?: ConnectorCatalogUpdatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: BoolFieldUpdateOperationsInput | boolean
+    webhookSignatureScheme?: NullableStringFieldUpdateOperationsInput | string | null
+    webhookSigningSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    minPlanTier?: StringFieldUpdateOperationsInput | string
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    displayOrder?: IntFieldUpdateOperationsInput | number
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConnectorCatalogCreateManyInput = {
+    id?: string
+    provider: string
+    displayName: string
+    description: string
+    category: string
+    authType: string
+    section: string
+    logoUrl: string
+    defaultClientId?: string | null
+    defaultClientSecretEnc?: string | null
+    authorizeUrl?: string | null
+    tokenUrl?: string | null
+    revokeUrl?: string | null
+    userInfoUrl?: string | null
+    defaultScopes?: ConnectorCatalogCreatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogCreateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: string | null
+    triggersSupported?: ConnectorCatalogCreatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: boolean
+    webhookSignatureScheme?: string | null
+    webhookSigningSecretEnc?: string | null
+    minPlanTier?: string
+    forAgentUse?: boolean
+    displayOrder?: number
+    featuredForIdePanel?: boolean
+    enabled?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConnectorCatalogUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    displayName?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    authType?: StringFieldUpdateOperationsInput | string
+    section?: StringFieldUpdateOperationsInput | string
+    logoUrl?: StringFieldUpdateOperationsInput | string
+    defaultClientId?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultClientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    authorizeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tokenUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    userInfoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultScopes?: ConnectorCatalogUpdatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogUpdateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    triggersSupported?: ConnectorCatalogUpdatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: BoolFieldUpdateOperationsInput | boolean
+    webhookSignatureScheme?: NullableStringFieldUpdateOperationsInput | string | null
+    webhookSigningSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    minPlanTier?: StringFieldUpdateOperationsInput | string
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    displayOrder?: IntFieldUpdateOperationsInput | number
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConnectorCatalogUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    displayName?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    authType?: StringFieldUpdateOperationsInput | string
+    section?: StringFieldUpdateOperationsInput | string
+    logoUrl?: StringFieldUpdateOperationsInput | string
+    defaultClientId?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultClientSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    authorizeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    tokenUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    revokeUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    userInfoUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultScopes?: ConnectorCatalogUpdatedefaultScopesInput | string[]
+    availableScopes?: ConnectorCatalogUpdateavailableScopesInput | string[]
+    apiKeyFields?: NullableJsonNullValueInput | InputJsonValue
+    apiKeyTestEndpoint?: NullableStringFieldUpdateOperationsInput | string | null
+    triggersSupported?: ConnectorCatalogUpdatetriggersSupportedInput | string[]
+    triggerDescriptions?: JsonNullValueInput | InputJsonValue
+    webhookSupport?: BoolFieldUpdateOperationsInput | boolean
+    webhookSignatureScheme?: NullableStringFieldUpdateOperationsInput | string | null
+    webhookSigningSecretEnc?: NullableStringFieldUpdateOperationsInput | string | null
+    minPlanTier?: StringFieldUpdateOperationsInput | string
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    displayOrder?: IntFieldUpdateOperationsInput | number
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserConnectionCreateInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    user: UserCreateNestedOneWithoutUserConnectionsInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideCreateNestedOneWithoutUserConnectionsInput
+    projectLinks?: ProjectConnectionLinkCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUncheckedCreateInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    user?: UserUpdateOneRequiredWithoutUserConnectionsNestedInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideUpdateOneWithoutUserConnectionsNestedInput
+    projectLinks?: ProjectConnectionLinkUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionCreateManyInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+  }
+
+  export type UserConnectionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type UserConnectionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateInput = {
+    id?: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+    project: ProjectCreateNestedOneWithoutConnectionLinksInput
+    userConnection: UserConnectionCreateNestedOneWithoutProjectLinksInput
+    linkedByUser: UserCreateNestedOneWithoutLinkedProjectConnectionsInput
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    userConnectionId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    project?: ProjectUpdateOneRequiredWithoutConnectionLinksNestedInput
+    userConnection?: UserConnectionUpdateOneRequiredWithoutProjectLinksNestedInput
+    linkedByUser?: UserUpdateOneRequiredWithoutLinkedProjectConnectionsNestedInput
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateManyInput = {
+    id?: string
+    projectId: string
+    userConnectionId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OrganizationOAuthAppOverrideCreateInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutOauthAppOverridesInput
+    configuredByUser: UserCreateNestedOneWithoutConfiguredOauthAppOverridesInput
+    userConnections?: UserConnectionCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    configuredByUserId: string
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutOauthAppOverridesNestedInput
+    configuredByUser?: UserUpdateOneRequiredWithoutConfiguredOauthAppOverridesNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    configuredByUserId?: StringFieldUpdateOperationsInput | string
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideCreateManyInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    configuredByUserId: string
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    configuredByUserId?: StringFieldUpdateOperationsInput | string
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyCreateInput = {
+    id?: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutConnectorPoliciesInput
+  }
+
+  export type OrganizationConnectorPolicyUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationConnectorPolicyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutConnectorPoliciesNestedInput
+  }
+
+  export type OrganizationConnectorPolicyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyCreateManyInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationConnectorPolicyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ReconnectionAlertCreateInput = {
+    id?: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+    userConnection: UserConnectionCreateNestedOneWithoutReconnectionAlertsInput
+  }
+
+  export type ReconnectionAlertUncheckedCreateInput = {
+    id?: string
+    userConnectionId: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+  }
+
+  export type ReconnectionAlertUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    userConnection?: UserConnectionUpdateOneRequiredWithoutReconnectionAlertsNestedInput
+  }
+
+  export type ReconnectionAlertUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReconnectionAlertCreateManyInput = {
+    id?: string
+    userConnectionId: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+  }
+
+  export type ReconnectionAlertUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReconnectionAlertUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type IntegrationFeatureRequestCreateInput = {
+    id?: string
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutIntegrationFeatureRequestsInput
+    organization?: OrganizationCreateNestedOneWithoutIntegrationFeatureRequestsInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedCreateInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutIntegrationFeatureRequestsNestedInput
+    organization?: OrganizationUpdateOneWithoutIntegrationFeatureRequestsNestedInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestCreateManyInput = {
+    id?: string
+    userId: string
+    organizationId?: string | null
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -93747,6 +104671,30 @@ export namespace Prisma {
     none?: AgentRunWhereInput
   }
 
+  export type UserConnectionListRelationFilter = {
+    every?: UserConnectionWhereInput
+    some?: UserConnectionWhereInput
+    none?: UserConnectionWhereInput
+  }
+
+  export type ProjectConnectionLinkListRelationFilter = {
+    every?: ProjectConnectionLinkWhereInput
+    some?: ProjectConnectionLinkWhereInput
+    none?: ProjectConnectionLinkWhereInput
+  }
+
+  export type OrganizationOAuthAppOverrideListRelationFilter = {
+    every?: OrganizationOAuthAppOverrideWhereInput
+    some?: OrganizationOAuthAppOverrideWhereInput
+    none?: OrganizationOAuthAppOverrideWhereInput
+  }
+
+  export type IntegrationFeatureRequestListRelationFilter = {
+    every?: IntegrationFeatureRequestWhereInput
+    some?: IntegrationFeatureRequestWhereInput
+    none?: IntegrationFeatureRequestWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -93841,6 +104789,22 @@ export namespace Prisma {
   }
 
   export type AgentRunOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type UserConnectionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectConnectionLinkOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type OrganizationOAuthAppOverrideOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type IntegrationFeatureRequestOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -94140,6 +105104,12 @@ export namespace Prisma {
     none?: ProjectTemplateWhereInput
   }
 
+  export type OrganizationConnectorPolicyListRelationFilter = {
+    every?: OrganizationConnectorPolicyWhereInput
+    some?: OrganizationConnectorPolicyWhereInput
+    none?: OrganizationConnectorPolicyWhereInput
+  }
+
   export type OrganizationInviteOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -94201,6 +105171,10 @@ export namespace Prisma {
   }
 
   export type ProjectTemplateOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicyOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -96578,6 +107552,7 @@ export namespace Prisma {
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
+    featuredForIdePanel?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -96600,6 +107575,7 @@ export namespace Prisma {
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
+    featuredForIdePanel?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -96618,6 +107594,7 @@ export namespace Prisma {
     installCount?: SortOrder
     featured?: SortOrder
     verified?: SortOrder
+    featuredForIdePanel?: SortOrder
     publishedAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -96962,6 +107939,372 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type ConnectorCatalogCountOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    displayName?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    authType?: SortOrder
+    section?: SortOrder
+    logoUrl?: SortOrder
+    defaultClientId?: SortOrder
+    defaultClientSecretEnc?: SortOrder
+    authorizeUrl?: SortOrder
+    tokenUrl?: SortOrder
+    revokeUrl?: SortOrder
+    userInfoUrl?: SortOrder
+    defaultScopes?: SortOrder
+    availableScopes?: SortOrder
+    apiKeyFields?: SortOrder
+    apiKeyTestEndpoint?: SortOrder
+    triggersSupported?: SortOrder
+    triggerDescriptions?: SortOrder
+    webhookSupport?: SortOrder
+    webhookSignatureScheme?: SortOrder
+    webhookSigningSecretEnc?: SortOrder
+    minPlanTier?: SortOrder
+    forAgentUse?: SortOrder
+    displayOrder?: SortOrder
+    featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConnectorCatalogAvgOrderByAggregateInput = {
+    displayOrder?: SortOrder
+  }
+
+  export type ConnectorCatalogMaxOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    displayName?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    authType?: SortOrder
+    section?: SortOrder
+    logoUrl?: SortOrder
+    defaultClientId?: SortOrder
+    defaultClientSecretEnc?: SortOrder
+    authorizeUrl?: SortOrder
+    tokenUrl?: SortOrder
+    revokeUrl?: SortOrder
+    userInfoUrl?: SortOrder
+    apiKeyTestEndpoint?: SortOrder
+    webhookSupport?: SortOrder
+    webhookSignatureScheme?: SortOrder
+    webhookSigningSecretEnc?: SortOrder
+    minPlanTier?: SortOrder
+    forAgentUse?: SortOrder
+    displayOrder?: SortOrder
+    featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConnectorCatalogMinOrderByAggregateInput = {
+    id?: SortOrder
+    provider?: SortOrder
+    displayName?: SortOrder
+    description?: SortOrder
+    category?: SortOrder
+    authType?: SortOrder
+    section?: SortOrder
+    logoUrl?: SortOrder
+    defaultClientId?: SortOrder
+    defaultClientSecretEnc?: SortOrder
+    authorizeUrl?: SortOrder
+    tokenUrl?: SortOrder
+    revokeUrl?: SortOrder
+    userInfoUrl?: SortOrder
+    apiKeyTestEndpoint?: SortOrder
+    webhookSupport?: SortOrder
+    webhookSignatureScheme?: SortOrder
+    webhookSigningSecretEnc?: SortOrder
+    minPlanTier?: SortOrder
+    forAgentUse?: SortOrder
+    displayOrder?: SortOrder
+    featuredForIdePanel?: SortOrder
+    enabled?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConnectorCatalogSumOrderByAggregateInput = {
+    displayOrder?: SortOrder
+  }
+
+  export type OrganizationOAuthAppOverrideNullableScalarRelationFilter = {
+    is?: OrganizationOAuthAppOverrideWhereInput | null
+    isNot?: OrganizationOAuthAppOverrideWhereInput | null
+  }
+
+  export type ReconnectionAlertListRelationFilter = {
+    every?: ReconnectionAlertWhereInput
+    some?: ReconnectionAlertWhereInput
+    none?: ReconnectionAlertWhereInput
+  }
+
+  export type ReconnectionAlertOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type UserConnectionUserIdProviderExternalAccountIdCompoundUniqueInput = {
+    userId: string
+    provider: string
+    externalAccountId: string
+  }
+
+  export type UserConnectionCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    externalAccountId?: SortOrder
+    externalAccountLabel?: SortOrder
+    accessTokenEncrypted?: SortOrder
+    refreshTokenEncrypted?: SortOrder
+    apiKeyFieldsEncrypted?: SortOrder
+    scopes?: SortOrder
+    tokenExpiresAt?: SortOrder
+    status?: SortOrder
+    lastUsedAt?: SortOrder
+    forAgentUse?: SortOrder
+    oauthAppSource?: SortOrder
+    oauthAppOverrideId?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    revokedAt?: SortOrder
+  }
+
+  export type UserConnectionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    externalAccountId?: SortOrder
+    externalAccountLabel?: SortOrder
+    accessTokenEncrypted?: SortOrder
+    refreshTokenEncrypted?: SortOrder
+    tokenExpiresAt?: SortOrder
+    status?: SortOrder
+    lastUsedAt?: SortOrder
+    forAgentUse?: SortOrder
+    oauthAppSource?: SortOrder
+    oauthAppOverrideId?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    revokedAt?: SortOrder
+  }
+
+  export type UserConnectionMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    provider?: SortOrder
+    externalAccountId?: SortOrder
+    externalAccountLabel?: SortOrder
+    accessTokenEncrypted?: SortOrder
+    refreshTokenEncrypted?: SortOrder
+    tokenExpiresAt?: SortOrder
+    status?: SortOrder
+    lastUsedAt?: SortOrder
+    forAgentUse?: SortOrder
+    oauthAppSource?: SortOrder
+    oauthAppOverrideId?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    revokedAt?: SortOrder
+  }
+
+  export type UserConnectionScalarRelationFilter = {
+    is?: UserConnectionWhereInput
+    isNot?: UserConnectionWhereInput
+  }
+
+  export type ProjectConnectionLinkProjectIdUserConnectionIdCompoundUniqueInput = {
+    projectId: string
+    userConnectionId: string
+  }
+
+  export type ProjectConnectionLinkCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userConnectionId?: SortOrder
+    linkedByUserId?: SortOrder
+    linkedAt?: SortOrder
+    unlinkedAt?: SortOrder
+  }
+
+  export type ProjectConnectionLinkMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userConnectionId?: SortOrder
+    linkedByUserId?: SortOrder
+    linkedAt?: SortOrder
+    unlinkedAt?: SortOrder
+  }
+
+  export type ProjectConnectionLinkMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    userConnectionId?: SortOrder
+    linkedByUserId?: SortOrder
+    linkedAt?: SortOrder
+    unlinkedAt?: SortOrder
+  }
+
+  export type OrganizationOAuthAppOverrideOrganizationIdProviderCompoundUniqueInput = {
+    organizationId: string
+    provider: string
+  }
+
+  export type OrganizationOAuthAppOverrideCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEncrypted?: SortOrder
+    scopes?: SortOrder
+    configuredByUserId?: SortOrder
+    testedAt?: SortOrder
+    testStatus?: SortOrder
+    testError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationOAuthAppOverrideMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEncrypted?: SortOrder
+    configuredByUserId?: SortOrder
+    testedAt?: SortOrder
+    testStatus?: SortOrder
+    testError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationOAuthAppOverrideMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    clientId?: SortOrder
+    clientSecretEncrypted?: SortOrder
+    configuredByUserId?: SortOrder
+    testedAt?: SortOrder
+    testStatus?: SortOrder
+    testError?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicyOrganizationIdProviderCompoundUniqueInput = {
+    organizationId: string
+    provider: string
+  }
+
+  export type OrganizationConnectorPolicyCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    enabled?: SortOrder
+    allowedRoleKeys?: SortOrder
+    rateLimitOverride?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicyAvgOrderByAggregateInput = {
+    rateLimitOverride?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    enabled?: SortOrder
+    rateLimitOverride?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicyMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    provider?: SortOrder
+    enabled?: SortOrder
+    rateLimitOverride?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrganizationConnectorPolicySumOrderByAggregateInput = {
+    rateLimitOverride?: SortOrder
+  }
+
+  export type ReconnectionAlertCountOrderByAggregateInput = {
+    id?: SortOrder
+    userConnectionId?: SortOrder
+    reason?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
+    notifiedAt?: SortOrder
+  }
+
+  export type ReconnectionAlertMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userConnectionId?: SortOrder
+    reason?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
+    notifiedAt?: SortOrder
+  }
+
+  export type ReconnectionAlertMinOrderByAggregateInput = {
+    id?: SortOrder
+    userConnectionId?: SortOrder
+    reason?: SortOrder
+    detectedAt?: SortOrder
+    resolvedAt?: SortOrder
+    notifiedAt?: SortOrder
+  }
+
+  export type IntegrationFeatureRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    integrationName?: SortOrder
+    useCaseDescription?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type IntegrationFeatureRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    integrationName?: SortOrder
+    useCaseDescription?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type IntegrationFeatureRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    organizationId?: SortOrder
+    integrationName?: SortOrder
+    useCaseDescription?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -97120,6 +108463,34 @@ export namespace Prisma {
     connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
   }
 
+  export type UserConnectionCreateNestedManyWithoutUserInput = {
+    create?: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput> | UserConnectionCreateWithoutUserInput[] | UserConnectionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutUserInput | UserConnectionCreateOrConnectWithoutUserInput[]
+    createMany?: UserConnectionCreateManyUserInputEnvelope
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+  }
+
+  export type ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput> | ProjectConnectionLinkCreateWithoutLinkedByUserInput[] | ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput | ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput[]
+    createMany?: ProjectConnectionLinkCreateManyLinkedByUserInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput> | OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyConfiguredByUserInputEnvelope
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+  }
+
+  export type IntegrationFeatureRequestCreateNestedManyWithoutUserInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput> | IntegrationFeatureRequestCreateWithoutUserInput[] | IntegrationFeatureRequestUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutUserInput | IntegrationFeatureRequestCreateOrConnectWithoutUserInput[]
+    createMany?: IntegrationFeatureRequestCreateManyUserInputEnvelope
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -97276,6 +108647,34 @@ export namespace Prisma {
     connectOrCreate?: AgentRunCreateOrConnectWithoutUserInput | AgentRunCreateOrConnectWithoutUserInput[]
     createMany?: AgentRunCreateManyUserInputEnvelope
     connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
+  export type UserConnectionUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput> | UserConnectionCreateWithoutUserInput[] | UserConnectionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutUserInput | UserConnectionCreateOrConnectWithoutUserInput[]
+    createMany?: UserConnectionCreateManyUserInputEnvelope
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput> | ProjectConnectionLinkCreateWithoutLinkedByUserInput[] | ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput | ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput[]
+    createMany?: ProjectConnectionLinkCreateManyLinkedByUserInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput> | OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyConfiguredByUserInputEnvelope
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+  }
+
+  export type IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput> | IntegrationFeatureRequestCreateWithoutUserInput[] | IntegrationFeatureRequestUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutUserInput | IntegrationFeatureRequestCreateOrConnectWithoutUserInput[]
+    createMany?: IntegrationFeatureRequestCreateManyUserInputEnvelope
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -97616,6 +109015,62 @@ export namespace Prisma {
     deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
   }
 
+  export type UserConnectionUpdateManyWithoutUserNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput> | UserConnectionCreateWithoutUserInput[] | UserConnectionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutUserInput | UserConnectionCreateOrConnectWithoutUserInput[]
+    upsert?: UserConnectionUpsertWithWhereUniqueWithoutUserInput | UserConnectionUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: UserConnectionCreateManyUserInputEnvelope
+    set?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    disconnect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    delete?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    update?: UserConnectionUpdateWithWhereUniqueWithoutUserInput | UserConnectionUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: UserConnectionUpdateManyWithWhereWithoutUserInput | UserConnectionUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+  }
+
+  export type ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput> | ProjectConnectionLinkCreateWithoutLinkedByUserInput[] | ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput | ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutLinkedByUserInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutLinkedByUserInput[]
+    createMany?: ProjectConnectionLinkCreateManyLinkedByUserInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutLinkedByUserInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutLinkedByUserInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutLinkedByUserInput | ProjectConnectionLinkUpdateManyWithWhereWithoutLinkedByUserInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput> | OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput[]
+    upsert?: OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutConfiguredByUserInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyConfiguredByUserInputEnvelope
+    set?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    disconnect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    delete?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    update?: OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutConfiguredByUserInput[]
+    updateMany?: OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutConfiguredByUserInput[]
+    deleteMany?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+  }
+
+  export type IntegrationFeatureRequestUpdateManyWithoutUserNestedInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput> | IntegrationFeatureRequestCreateWithoutUserInput[] | IntegrationFeatureRequestUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutUserInput | IntegrationFeatureRequestCreateOrConnectWithoutUserInput[]
+    upsert?: IntegrationFeatureRequestUpsertWithWhereUniqueWithoutUserInput | IntegrationFeatureRequestUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: IntegrationFeatureRequestCreateManyUserInputEnvelope
+    set?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    disconnect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    delete?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    update?: IntegrationFeatureRequestUpdateWithWhereUniqueWithoutUserInput | IntegrationFeatureRequestUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: IntegrationFeatureRequestUpdateManyWithWhereWithoutUserInput | IntegrationFeatureRequestUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -97934,6 +109389,62 @@ export namespace Prisma {
     deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
   }
 
+  export type UserConnectionUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput> | UserConnectionCreateWithoutUserInput[] | UserConnectionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutUserInput | UserConnectionCreateOrConnectWithoutUserInput[]
+    upsert?: UserConnectionUpsertWithWhereUniqueWithoutUserInput | UserConnectionUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: UserConnectionCreateManyUserInputEnvelope
+    set?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    disconnect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    delete?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    update?: UserConnectionUpdateWithWhereUniqueWithoutUserInput | UserConnectionUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: UserConnectionUpdateManyWithWhereWithoutUserInput | UserConnectionUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput> | ProjectConnectionLinkCreateWithoutLinkedByUserInput[] | ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput | ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutLinkedByUserInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutLinkedByUserInput[]
+    createMany?: ProjectConnectionLinkCreateManyLinkedByUserInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutLinkedByUserInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutLinkedByUserInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutLinkedByUserInput | ProjectConnectionLinkUpdateManyWithWhereWithoutLinkedByUserInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput> | OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput[]
+    upsert?: OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutConfiguredByUserInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyConfiguredByUserInputEnvelope
+    set?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    disconnect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    delete?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    update?: OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutConfiguredByUserInput[]
+    updateMany?: OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutConfiguredByUserInput | OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutConfiguredByUserInput[]
+    deleteMany?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput> | IntegrationFeatureRequestCreateWithoutUserInput[] | IntegrationFeatureRequestUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutUserInput | IntegrationFeatureRequestCreateOrConnectWithoutUserInput[]
+    upsert?: IntegrationFeatureRequestUpsertWithWhereUniqueWithoutUserInput | IntegrationFeatureRequestUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: IntegrationFeatureRequestCreateManyUserInputEnvelope
+    set?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    disconnect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    delete?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    update?: IntegrationFeatureRequestUpdateWithWhereUniqueWithoutUserInput | IntegrationFeatureRequestUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: IntegrationFeatureRequestUpdateManyWithWhereWithoutUserInput | IntegrationFeatureRequestUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -98139,6 +109650,27 @@ export namespace Prisma {
     connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
   }
 
+  export type OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput> | OrganizationOAuthAppOverrideCreateWithoutOrganizationInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyOrganizationInputEnvelope
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+  }
+
+  export type OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput> | OrganizationConnectorPolicyCreateWithoutOrganizationInput[] | OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput | OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationConnectorPolicyCreateManyOrganizationInputEnvelope
+    connect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+  }
+
+  export type IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput> | IntegrationFeatureRequestCreateWithoutOrganizationInput[] | IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput | IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput[]
+    createMany?: IntegrationFeatureRequestCreateManyOrganizationInputEnvelope
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+  }
+
   export type OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -98314,6 +109846,27 @@ export namespace Prisma {
     connectOrCreate?: AgentRunCreateOrConnectWithoutOrganizationInput | AgentRunCreateOrConnectWithoutOrganizationInput[]
     createMany?: AgentRunCreateManyOrganizationInputEnvelope
     connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput> | OrganizationOAuthAppOverrideCreateWithoutOrganizationInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyOrganizationInputEnvelope
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+  }
+
+  export type OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput> | OrganizationConnectorPolicyCreateWithoutOrganizationInput[] | OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput | OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput[]
+    createMany?: OrganizationConnectorPolicyCreateManyOrganizationInputEnvelope
+    connect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+  }
+
+  export type IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput> | IntegrationFeatureRequestCreateWithoutOrganizationInput[] | IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput | IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput[]
+    createMany?: IntegrationFeatureRequestCreateManyOrganizationInputEnvelope
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
   }
 
   export type OrganizationMemberUpdateManyWithoutOrganizationNestedInput = {
@@ -98668,6 +110221,48 @@ export namespace Prisma {
     deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
   }
 
+  export type OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput> | OrganizationOAuthAppOverrideCreateWithoutOrganizationInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyOrganizationInputEnvelope
+    set?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    disconnect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    delete?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    update?: OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutOrganizationInput | OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+  }
+
+  export type OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput> | OrganizationConnectorPolicyCreateWithoutOrganizationInput[] | OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput | OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationConnectorPolicyUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationConnectorPolicyUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationConnectorPolicyCreateManyOrganizationInputEnvelope
+    set?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    disconnect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    delete?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    connect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    update?: OrganizationConnectorPolicyUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationConnectorPolicyUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationConnectorPolicyUpdateManyWithWhereWithoutOrganizationInput | OrganizationConnectorPolicyUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationConnectorPolicyScalarWhereInput | OrganizationConnectorPolicyScalarWhereInput[]
+  }
+
+  export type IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput> | IntegrationFeatureRequestCreateWithoutOrganizationInput[] | IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput | IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput[]
+    upsert?: IntegrationFeatureRequestUpsertWithWhereUniqueWithoutOrganizationInput | IntegrationFeatureRequestUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: IntegrationFeatureRequestCreateManyOrganizationInputEnvelope
+    set?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    disconnect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    delete?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    update?: IntegrationFeatureRequestUpdateWithWhereUniqueWithoutOrganizationInput | IntegrationFeatureRequestUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: IntegrationFeatureRequestUpdateManyWithWhereWithoutOrganizationInput | IntegrationFeatureRequestUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
+  }
+
   export type OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -99018,6 +110613,48 @@ export namespace Prisma {
     update?: AgentRunUpdateWithWhereUniqueWithoutOrganizationInput | AgentRunUpdateWithWhereUniqueWithoutOrganizationInput[]
     updateMany?: AgentRunUpdateManyWithWhereWithoutOrganizationInput | AgentRunUpdateManyWithWhereWithoutOrganizationInput[]
     deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput> | OrganizationOAuthAppOverrideCreateWithoutOrganizationInput[] | OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput | OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationOAuthAppOverrideCreateManyOrganizationInputEnvelope
+    set?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    disconnect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    delete?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput | OrganizationOAuthAppOverrideWhereUniqueInput[]
+    update?: OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutOrganizationInput | OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+  }
+
+  export type OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput> | OrganizationConnectorPolicyCreateWithoutOrganizationInput[] | OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput | OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput[]
+    upsert?: OrganizationConnectorPolicyUpsertWithWhereUniqueWithoutOrganizationInput | OrganizationConnectorPolicyUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: OrganizationConnectorPolicyCreateManyOrganizationInputEnvelope
+    set?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    disconnect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    delete?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    connect?: OrganizationConnectorPolicyWhereUniqueInput | OrganizationConnectorPolicyWhereUniqueInput[]
+    update?: OrganizationConnectorPolicyUpdateWithWhereUniqueWithoutOrganizationInput | OrganizationConnectorPolicyUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: OrganizationConnectorPolicyUpdateManyWithWhereWithoutOrganizationInput | OrganizationConnectorPolicyUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: OrganizationConnectorPolicyScalarWhereInput | OrganizationConnectorPolicyScalarWhereInput[]
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput> | IntegrationFeatureRequestCreateWithoutOrganizationInput[] | IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput | IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput[]
+    upsert?: IntegrationFeatureRequestUpsertWithWhereUniqueWithoutOrganizationInput | IntegrationFeatureRequestUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: IntegrationFeatureRequestCreateManyOrganizationInputEnvelope
+    set?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    disconnect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    delete?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    connect?: IntegrationFeatureRequestWhereUniqueInput | IntegrationFeatureRequestWhereUniqueInput[]
+    update?: IntegrationFeatureRequestUpdateWithWhereUniqueWithoutOrganizationInput | IntegrationFeatureRequestUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: IntegrationFeatureRequestUpdateManyWithWhereWithoutOrganizationInput | IntegrationFeatureRequestUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
   }
 
   export type OrganizationCreateNestedOneWithoutMembersInput = {
@@ -99414,6 +111051,13 @@ export namespace Prisma {
     connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
   }
 
+  export type ProjectConnectionLinkCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput> | ProjectConnectionLinkCreateWithoutProjectInput[] | ProjectConnectionLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutProjectInput | ProjectConnectionLinkCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectConnectionLinkCreateManyProjectInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -99534,6 +111178,13 @@ export namespace Prisma {
     connectOrCreate?: AgentPatchProposalCreateOrConnectWithoutProjectInput | AgentPatchProposalCreateOrConnectWithoutProjectInput[]
     createMany?: AgentPatchProposalCreateManyProjectInputEnvelope
     connect?: AgentPatchProposalWhereUniqueInput | AgentPatchProposalWhereUniqueInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput> | ProjectConnectionLinkCreateWithoutProjectInput[] | ProjectConnectionLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutProjectInput | ProjectConnectionLinkCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectConnectionLinkCreateManyProjectInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -99788,6 +111439,20 @@ export namespace Prisma {
     deleteMany?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
   }
 
+  export type ProjectConnectionLinkUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput> | ProjectConnectionLinkCreateWithoutProjectInput[] | ProjectConnectionLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutProjectInput | ProjectConnectionLinkCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutProjectInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectConnectionLinkCreateManyProjectInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput | ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -100030,6 +111695,20 @@ export namespace Prisma {
     update?: AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput | AgentPatchProposalUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: AgentPatchProposalUpdateManyWithWhereWithoutProjectInput | AgentPatchProposalUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: AgentPatchProposalScalarWhereInput | AgentPatchProposalScalarWhereInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput> | ProjectConnectionLinkCreateWithoutProjectInput[] | ProjectConnectionLinkUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutProjectInput | ProjectConnectionLinkCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutProjectInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectConnectionLinkCreateManyProjectInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput | ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -101622,6 +113301,344 @@ export namespace Prisma {
     update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutConsensusInput, AgentRunUpdateWithoutConsensusInput>, AgentRunUncheckedUpdateWithoutConsensusInput>
   }
 
+  export type ConnectorCatalogCreatedefaultScopesInput = {
+    set: string[]
+  }
+
+  export type ConnectorCatalogCreateavailableScopesInput = {
+    set: string[]
+  }
+
+  export type ConnectorCatalogCreatetriggersSupportedInput = {
+    set: string[]
+  }
+
+  export type ConnectorCatalogUpdatedefaultScopesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type ConnectorCatalogUpdateavailableScopesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type ConnectorCatalogUpdatetriggersSupportedInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type UserConnectionCreatescopesInput = {
+    set: string[]
+  }
+
+  export type UserCreateNestedOneWithoutUserConnectionsInput = {
+    create?: XOR<UserCreateWithoutUserConnectionsInput, UserUncheckedCreateWithoutUserConnectionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutUserConnectionsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationOAuthAppOverrideCreateNestedOneWithoutUserConnectionsInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutUserConnectionsInput>
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutUserConnectionsInput
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput
+  }
+
+  export type ProjectConnectionLinkCreateNestedManyWithoutUserConnectionInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput> | ProjectConnectionLinkCreateWithoutUserConnectionInput[] | ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput | ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput[]
+    createMany?: ProjectConnectionLinkCreateManyUserConnectionInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
+  export type ReconnectionAlertCreateNestedManyWithoutUserConnectionInput = {
+    create?: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput> | ReconnectionAlertCreateWithoutUserConnectionInput[] | ReconnectionAlertUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ReconnectionAlertCreateOrConnectWithoutUserConnectionInput | ReconnectionAlertCreateOrConnectWithoutUserConnectionInput[]
+    createMany?: ReconnectionAlertCreateManyUserConnectionInputEnvelope
+    connect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateNestedManyWithoutUserConnectionInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput> | ProjectConnectionLinkCreateWithoutUserConnectionInput[] | ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput | ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput[]
+    createMany?: ProjectConnectionLinkCreateManyUserConnectionInputEnvelope
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+  }
+
+  export type ReconnectionAlertUncheckedCreateNestedManyWithoutUserConnectionInput = {
+    create?: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput> | ReconnectionAlertCreateWithoutUserConnectionInput[] | ReconnectionAlertUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ReconnectionAlertCreateOrConnectWithoutUserConnectionInput | ReconnectionAlertCreateOrConnectWithoutUserConnectionInput[]
+    createMany?: ReconnectionAlertCreateManyUserConnectionInputEnvelope
+    connect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+  }
+
+  export type UserConnectionUpdatescopesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type UserUpdateOneRequiredWithoutUserConnectionsNestedInput = {
+    create?: XOR<UserCreateWithoutUserConnectionsInput, UserUncheckedCreateWithoutUserConnectionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutUserConnectionsInput
+    upsert?: UserUpsertWithoutUserConnectionsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutUserConnectionsInput, UserUpdateWithoutUserConnectionsInput>, UserUncheckedUpdateWithoutUserConnectionsInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateOneWithoutUserConnectionsNestedInput = {
+    create?: XOR<OrganizationOAuthAppOverrideCreateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutUserConnectionsInput>
+    connectOrCreate?: OrganizationOAuthAppOverrideCreateOrConnectWithoutUserConnectionsInput
+    upsert?: OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput
+    disconnect?: OrganizationOAuthAppOverrideWhereInput | boolean
+    delete?: OrganizationOAuthAppOverrideWhereInput | boolean
+    connect?: OrganizationOAuthAppOverrideWhereUniqueInput
+    update?: XOR<XOR<OrganizationOAuthAppOverrideUpdateToOneWithWhereWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUpdateWithoutUserConnectionsInput>, OrganizationOAuthAppOverrideUncheckedUpdateWithoutUserConnectionsInput>
+  }
+
+  export type ProjectConnectionLinkUpdateManyWithoutUserConnectionNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput> | ProjectConnectionLinkCreateWithoutUserConnectionInput[] | ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput | ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutUserConnectionInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutUserConnectionInput[]
+    createMany?: ProjectConnectionLinkCreateManyUserConnectionInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutUserConnectionInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutUserConnectionInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutUserConnectionInput | ProjectConnectionLinkUpdateManyWithWhereWithoutUserConnectionInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
+  export type ReconnectionAlertUpdateManyWithoutUserConnectionNestedInput = {
+    create?: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput> | ReconnectionAlertCreateWithoutUserConnectionInput[] | ReconnectionAlertUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ReconnectionAlertCreateOrConnectWithoutUserConnectionInput | ReconnectionAlertCreateOrConnectWithoutUserConnectionInput[]
+    upsert?: ReconnectionAlertUpsertWithWhereUniqueWithoutUserConnectionInput | ReconnectionAlertUpsertWithWhereUniqueWithoutUserConnectionInput[]
+    createMany?: ReconnectionAlertCreateManyUserConnectionInputEnvelope
+    set?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    disconnect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    delete?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    connect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    update?: ReconnectionAlertUpdateWithWhereUniqueWithoutUserConnectionInput | ReconnectionAlertUpdateWithWhereUniqueWithoutUserConnectionInput[]
+    updateMany?: ReconnectionAlertUpdateManyWithWhereWithoutUserConnectionInput | ReconnectionAlertUpdateManyWithWhereWithoutUserConnectionInput[]
+    deleteMany?: ReconnectionAlertScalarWhereInput | ReconnectionAlertScalarWhereInput[]
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionNestedInput = {
+    create?: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput> | ProjectConnectionLinkCreateWithoutUserConnectionInput[] | ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput | ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput[]
+    upsert?: ProjectConnectionLinkUpsertWithWhereUniqueWithoutUserConnectionInput | ProjectConnectionLinkUpsertWithWhereUniqueWithoutUserConnectionInput[]
+    createMany?: ProjectConnectionLinkCreateManyUserConnectionInputEnvelope
+    set?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    disconnect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    delete?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    connect?: ProjectConnectionLinkWhereUniqueInput | ProjectConnectionLinkWhereUniqueInput[]
+    update?: ProjectConnectionLinkUpdateWithWhereUniqueWithoutUserConnectionInput | ProjectConnectionLinkUpdateWithWhereUniqueWithoutUserConnectionInput[]
+    updateMany?: ProjectConnectionLinkUpdateManyWithWhereWithoutUserConnectionInput | ProjectConnectionLinkUpdateManyWithWhereWithoutUserConnectionInput[]
+    deleteMany?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+  }
+
+  export type ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionNestedInput = {
+    create?: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput> | ReconnectionAlertCreateWithoutUserConnectionInput[] | ReconnectionAlertUncheckedCreateWithoutUserConnectionInput[]
+    connectOrCreate?: ReconnectionAlertCreateOrConnectWithoutUserConnectionInput | ReconnectionAlertCreateOrConnectWithoutUserConnectionInput[]
+    upsert?: ReconnectionAlertUpsertWithWhereUniqueWithoutUserConnectionInput | ReconnectionAlertUpsertWithWhereUniqueWithoutUserConnectionInput[]
+    createMany?: ReconnectionAlertCreateManyUserConnectionInputEnvelope
+    set?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    disconnect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    delete?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    connect?: ReconnectionAlertWhereUniqueInput | ReconnectionAlertWhereUniqueInput[]
+    update?: ReconnectionAlertUpdateWithWhereUniqueWithoutUserConnectionInput | ReconnectionAlertUpdateWithWhereUniqueWithoutUserConnectionInput[]
+    updateMany?: ReconnectionAlertUpdateManyWithWhereWithoutUserConnectionInput | ReconnectionAlertUpdateManyWithWhereWithoutUserConnectionInput[]
+    deleteMany?: ReconnectionAlertScalarWhereInput | ReconnectionAlertScalarWhereInput[]
+  }
+
+  export type ProjectCreateNestedOneWithoutConnectionLinksInput = {
+    create?: XOR<ProjectCreateWithoutConnectionLinksInput, ProjectUncheckedCreateWithoutConnectionLinksInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutConnectionLinksInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserConnectionCreateNestedOneWithoutProjectLinksInput = {
+    create?: XOR<UserConnectionCreateWithoutProjectLinksInput, UserConnectionUncheckedCreateWithoutProjectLinksInput>
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutProjectLinksInput
+    connect?: UserConnectionWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutLinkedProjectConnectionsInput = {
+    create?: XOR<UserCreateWithoutLinkedProjectConnectionsInput, UserUncheckedCreateWithoutLinkedProjectConnectionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLinkedProjectConnectionsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutConnectionLinksNestedInput = {
+    create?: XOR<ProjectCreateWithoutConnectionLinksInput, ProjectUncheckedCreateWithoutConnectionLinksInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutConnectionLinksInput
+    upsert?: ProjectUpsertWithoutConnectionLinksInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutConnectionLinksInput, ProjectUpdateWithoutConnectionLinksInput>, ProjectUncheckedUpdateWithoutConnectionLinksInput>
+  }
+
+  export type UserConnectionUpdateOneRequiredWithoutProjectLinksNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutProjectLinksInput, UserConnectionUncheckedCreateWithoutProjectLinksInput>
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutProjectLinksInput
+    upsert?: UserConnectionUpsertWithoutProjectLinksInput
+    connect?: UserConnectionWhereUniqueInput
+    update?: XOR<XOR<UserConnectionUpdateToOneWithWhereWithoutProjectLinksInput, UserConnectionUpdateWithoutProjectLinksInput>, UserConnectionUncheckedUpdateWithoutProjectLinksInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutLinkedProjectConnectionsNestedInput = {
+    create?: XOR<UserCreateWithoutLinkedProjectConnectionsInput, UserUncheckedCreateWithoutLinkedProjectConnectionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLinkedProjectConnectionsInput
+    upsert?: UserUpsertWithoutLinkedProjectConnectionsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLinkedProjectConnectionsInput, UserUpdateWithoutLinkedProjectConnectionsInput>, UserUncheckedUpdateWithoutLinkedProjectConnectionsInput>
+  }
+
+  export type OrganizationOAuthAppOverrideCreatescopesInput = {
+    set: string[]
+  }
+
+  export type OrganizationCreateNestedOneWithoutOauthAppOverridesInput = {
+    create?: XOR<OrganizationCreateWithoutOauthAppOverridesInput, OrganizationUncheckedCreateWithoutOauthAppOverridesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutOauthAppOverridesInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutConfiguredOauthAppOverridesInput = {
+    create?: XOR<UserCreateWithoutConfiguredOauthAppOverridesInput, UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserConnectionCreateNestedManyWithoutOauthAppOverrideInput = {
+    create?: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput> | UserConnectionCreateWithoutOauthAppOverrideInput[] | UserConnectionUncheckedCreateWithoutOauthAppOverrideInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutOauthAppOverrideInput | UserConnectionCreateOrConnectWithoutOauthAppOverrideInput[]
+    createMany?: UserConnectionCreateManyOauthAppOverrideInputEnvelope
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+  }
+
+  export type UserConnectionUncheckedCreateNestedManyWithoutOauthAppOverrideInput = {
+    create?: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput> | UserConnectionCreateWithoutOauthAppOverrideInput[] | UserConnectionUncheckedCreateWithoutOauthAppOverrideInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutOauthAppOverrideInput | UserConnectionCreateOrConnectWithoutOauthAppOverrideInput[]
+    createMany?: UserConnectionCreateManyOauthAppOverrideInputEnvelope
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+  }
+
+  export type OrganizationOAuthAppOverrideUpdatescopesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutOauthAppOverridesNestedInput = {
+    create?: XOR<OrganizationCreateWithoutOauthAppOverridesInput, OrganizationUncheckedCreateWithoutOauthAppOverridesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutOauthAppOverridesInput
+    upsert?: OrganizationUpsertWithoutOauthAppOverridesInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutOauthAppOverridesInput, OrganizationUpdateWithoutOauthAppOverridesInput>, OrganizationUncheckedUpdateWithoutOauthAppOverridesInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutConfiguredOauthAppOverridesNestedInput = {
+    create?: XOR<UserCreateWithoutConfiguredOauthAppOverridesInput, UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput
+    upsert?: UserUpsertWithoutConfiguredOauthAppOverridesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutConfiguredOauthAppOverridesInput, UserUpdateWithoutConfiguredOauthAppOverridesInput>, UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput>
+  }
+
+  export type UserConnectionUpdateManyWithoutOauthAppOverrideNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput> | UserConnectionCreateWithoutOauthAppOverrideInput[] | UserConnectionUncheckedCreateWithoutOauthAppOverrideInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutOauthAppOverrideInput | UserConnectionCreateOrConnectWithoutOauthAppOverrideInput[]
+    upsert?: UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput | UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput[]
+    createMany?: UserConnectionCreateManyOauthAppOverrideInputEnvelope
+    set?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    disconnect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    delete?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    update?: UserConnectionUpdateWithWhereUniqueWithoutOauthAppOverrideInput | UserConnectionUpdateWithWhereUniqueWithoutOauthAppOverrideInput[]
+    updateMany?: UserConnectionUpdateManyWithWhereWithoutOauthAppOverrideInput | UserConnectionUpdateManyWithWhereWithoutOauthAppOverrideInput[]
+    deleteMany?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+  }
+
+  export type UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput> | UserConnectionCreateWithoutOauthAppOverrideInput[] | UserConnectionUncheckedCreateWithoutOauthAppOverrideInput[]
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutOauthAppOverrideInput | UserConnectionCreateOrConnectWithoutOauthAppOverrideInput[]
+    upsert?: UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput | UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput[]
+    createMany?: UserConnectionCreateManyOauthAppOverrideInputEnvelope
+    set?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    disconnect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    delete?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    connect?: UserConnectionWhereUniqueInput | UserConnectionWhereUniqueInput[]
+    update?: UserConnectionUpdateWithWhereUniqueWithoutOauthAppOverrideInput | UserConnectionUpdateWithWhereUniqueWithoutOauthAppOverrideInput[]
+    updateMany?: UserConnectionUpdateManyWithWhereWithoutOauthAppOverrideInput | UserConnectionUpdateManyWithWhereWithoutOauthAppOverrideInput[]
+    deleteMany?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+  }
+
+  export type OrganizationConnectorPolicyCreateallowedRoleKeysInput = {
+    set: string[]
+  }
+
+  export type OrganizationCreateNestedOneWithoutConnectorPoliciesInput = {
+    create?: XOR<OrganizationCreateWithoutConnectorPoliciesInput, OrganizationUncheckedCreateWithoutConnectorPoliciesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutConnectorPoliciesInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type OrganizationConnectorPolicyUpdateallowedRoleKeysInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutConnectorPoliciesNestedInput = {
+    create?: XOR<OrganizationCreateWithoutConnectorPoliciesInput, OrganizationUncheckedCreateWithoutConnectorPoliciesInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutConnectorPoliciesInput
+    upsert?: OrganizationUpsertWithoutConnectorPoliciesInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutConnectorPoliciesInput, OrganizationUpdateWithoutConnectorPoliciesInput>, OrganizationUncheckedUpdateWithoutConnectorPoliciesInput>
+  }
+
+  export type UserConnectionCreateNestedOneWithoutReconnectionAlertsInput = {
+    create?: XOR<UserConnectionCreateWithoutReconnectionAlertsInput, UserConnectionUncheckedCreateWithoutReconnectionAlertsInput>
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutReconnectionAlertsInput
+    connect?: UserConnectionWhereUniqueInput
+  }
+
+  export type UserConnectionUpdateOneRequiredWithoutReconnectionAlertsNestedInput = {
+    create?: XOR<UserConnectionCreateWithoutReconnectionAlertsInput, UserConnectionUncheckedCreateWithoutReconnectionAlertsInput>
+    connectOrCreate?: UserConnectionCreateOrConnectWithoutReconnectionAlertsInput
+    upsert?: UserConnectionUpsertWithoutReconnectionAlertsInput
+    connect?: UserConnectionWhereUniqueInput
+    update?: XOR<XOR<UserConnectionUpdateToOneWithWhereWithoutReconnectionAlertsInput, UserConnectionUpdateWithoutReconnectionAlertsInput>, UserConnectionUncheckedUpdateWithoutReconnectionAlertsInput>
+  }
+
+  export type UserCreateNestedOneWithoutIntegrationFeatureRequestsInput = {
+    create?: XOR<UserCreateWithoutIntegrationFeatureRequestsInput, UserUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutIntegrationFeatureRequestsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type OrganizationCreateNestedOneWithoutIntegrationFeatureRequestsInput = {
+    create?: XOR<OrganizationCreateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutIntegrationFeatureRequestsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutIntegrationFeatureRequestsNestedInput = {
+    create?: XOR<UserCreateWithoutIntegrationFeatureRequestsInput, UserUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutIntegrationFeatureRequestsInput
+    upsert?: UserUpsertWithoutIntegrationFeatureRequestsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutIntegrationFeatureRequestsInput, UserUpdateWithoutIntegrationFeatureRequestsInput>, UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+  }
+
+  export type OrganizationUpdateOneWithoutIntegrationFeatureRequestsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutIntegrationFeatureRequestsInput
+    upsert?: OrganizationUpsertWithoutIntegrationFeatureRequestsInput
+    disconnect?: OrganizationWhereInput | boolean
+    delete?: OrganizationWhereInput | boolean
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutIntegrationFeatureRequestsInput, OrganizationUpdateWithoutIntegrationFeatureRequestsInput>, OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -102697,6 +114714,156 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserConnectionCreateWithoutUserInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    oauthAppOverride?: OrganizationOAuthAppOverrideCreateNestedOneWithoutUserConnectionsInput
+    projectLinks?: ProjectConnectionLinkCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUncheckedCreateWithoutUserInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionCreateOrConnectWithoutUserInput = {
+    where: UserConnectionWhereUniqueInput
+    create: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput>
+  }
+
+  export type UserConnectionCreateManyUserInputEnvelope = {
+    data: UserConnectionCreateManyUserInput | UserConnectionCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProjectConnectionLinkCreateWithoutLinkedByUserInput = {
+    id?: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+    project: ProjectCreateNestedOneWithoutConnectionLinksInput
+    userConnection: UserConnectionCreateNestedOneWithoutProjectLinksInput
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput = {
+    id?: string
+    projectId: string
+    userConnectionId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateOrConnectWithoutLinkedByUserInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    create: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput>
+  }
+
+  export type ProjectConnectionLinkCreateManyLinkedByUserInputEnvelope = {
+    data: ProjectConnectionLinkCreateManyLinkedByUserInput | ProjectConnectionLinkCreateManyLinkedByUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutOauthAppOverridesInput
+    userConnections?: UserConnectionCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideCreateOrConnectWithoutConfiguredByUserInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput>
+  }
+
+  export type OrganizationOAuthAppOverrideCreateManyConfiguredByUserInputEnvelope = {
+    data: OrganizationOAuthAppOverrideCreateManyConfiguredByUserInput | OrganizationOAuthAppOverrideCreateManyConfiguredByUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type IntegrationFeatureRequestCreateWithoutUserInput = {
+    id?: string
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+    organization?: OrganizationCreateNestedOneWithoutIntegrationFeatureRequestsInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedCreateWithoutUserInput = {
+    id?: string
+    organizationId?: string | null
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestCreateOrConnectWithoutUserInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    create: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput>
+  }
+
+  export type IntegrationFeatureRequestCreateManyUserInputEnvelope = {
+    data: IntegrationFeatureRequestCreateManyUserInput | IntegrationFeatureRequestCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -103383,6 +115550,138 @@ export namespace Prisma {
     metadata?: JsonFilter<"AgentRun">
   }
 
+  export type UserConnectionUpsertWithWhereUniqueWithoutUserInput = {
+    where: UserConnectionWhereUniqueInput
+    update: XOR<UserConnectionUpdateWithoutUserInput, UserConnectionUncheckedUpdateWithoutUserInput>
+    create: XOR<UserConnectionCreateWithoutUserInput, UserConnectionUncheckedCreateWithoutUserInput>
+  }
+
+  export type UserConnectionUpdateWithWhereUniqueWithoutUserInput = {
+    where: UserConnectionWhereUniqueInput
+    data: XOR<UserConnectionUpdateWithoutUserInput, UserConnectionUncheckedUpdateWithoutUserInput>
+  }
+
+  export type UserConnectionUpdateManyWithWhereWithoutUserInput = {
+    where: UserConnectionScalarWhereInput
+    data: XOR<UserConnectionUpdateManyMutationInput, UserConnectionUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type UserConnectionScalarWhereInput = {
+    AND?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+    OR?: UserConnectionScalarWhereInput[]
+    NOT?: UserConnectionScalarWhereInput | UserConnectionScalarWhereInput[]
+    id?: StringFilter<"UserConnection"> | string
+    userId?: StringFilter<"UserConnection"> | string
+    provider?: StringFilter<"UserConnection"> | string
+    externalAccountId?: StringFilter<"UserConnection"> | string
+    externalAccountLabel?: StringFilter<"UserConnection"> | string
+    accessTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    refreshTokenEncrypted?: StringNullableFilter<"UserConnection"> | string | null
+    apiKeyFieldsEncrypted?: JsonNullableFilter<"UserConnection">
+    scopes?: StringNullableListFilter<"UserConnection">
+    tokenExpiresAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    status?: StringFilter<"UserConnection"> | string
+    lastUsedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+    forAgentUse?: BoolFilter<"UserConnection"> | boolean
+    oauthAppSource?: StringFilter<"UserConnection"> | string
+    oauthAppOverrideId?: StringNullableFilter<"UserConnection"> | string | null
+    createdByUserId?: StringFilter<"UserConnection"> | string
+    createdAt?: DateTimeFilter<"UserConnection"> | Date | string
+    updatedAt?: DateTimeFilter<"UserConnection"> | Date | string
+    revokedAt?: DateTimeNullableFilter<"UserConnection"> | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUpsertWithWhereUniqueWithoutLinkedByUserInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    update: XOR<ProjectConnectionLinkUpdateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedUpdateWithoutLinkedByUserInput>
+    create: XOR<ProjectConnectionLinkCreateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedCreateWithoutLinkedByUserInput>
+  }
+
+  export type ProjectConnectionLinkUpdateWithWhereUniqueWithoutLinkedByUserInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    data: XOR<ProjectConnectionLinkUpdateWithoutLinkedByUserInput, ProjectConnectionLinkUncheckedUpdateWithoutLinkedByUserInput>
+  }
+
+  export type ProjectConnectionLinkUpdateManyWithWhereWithoutLinkedByUserInput = {
+    where: ProjectConnectionLinkScalarWhereInput
+    data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserInput>
+  }
+
+  export type ProjectConnectionLinkScalarWhereInput = {
+    AND?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+    OR?: ProjectConnectionLinkScalarWhereInput[]
+    NOT?: ProjectConnectionLinkScalarWhereInput | ProjectConnectionLinkScalarWhereInput[]
+    id?: StringFilter<"ProjectConnectionLink"> | string
+    projectId?: StringFilter<"ProjectConnectionLink"> | string
+    userConnectionId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedByUserId?: StringFilter<"ProjectConnectionLink"> | string
+    linkedAt?: DateTimeFilter<"ProjectConnectionLink"> | Date | string
+    unlinkedAt?: DateTimeNullableFilter<"ProjectConnectionLink"> | Date | string | null
+  }
+
+  export type OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutConfiguredByUserInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    update: XOR<OrganizationOAuthAppOverrideUpdateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutConfiguredByUserInput>
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutConfiguredByUserInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutConfiguredByUserInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    data: XOR<OrganizationOAuthAppOverrideUpdateWithoutConfiguredByUserInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutConfiguredByUserInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutConfiguredByUserInput = {
+    where: OrganizationOAuthAppOverrideScalarWhereInput
+    data: XOR<OrganizationOAuthAppOverrideUpdateManyMutationInput, OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserInput>
+  }
+
+  export type OrganizationOAuthAppOverrideScalarWhereInput = {
+    AND?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+    OR?: OrganizationOAuthAppOverrideScalarWhereInput[]
+    NOT?: OrganizationOAuthAppOverrideScalarWhereInput | OrganizationOAuthAppOverrideScalarWhereInput[]
+    id?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    organizationId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    provider?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    clientSecretEncrypted?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    scopes?: StringNullableListFilter<"OrganizationOAuthAppOverride">
+    configuredByUserId?: StringFilter<"OrganizationOAuthAppOverride"> | string
+    testedAt?: DateTimeNullableFilter<"OrganizationOAuthAppOverride"> | Date | string | null
+    testStatus?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    testError?: StringNullableFilter<"OrganizationOAuthAppOverride"> | string | null
+    createdAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationOAuthAppOverride"> | Date | string
+  }
+
+  export type IntegrationFeatureRequestUpsertWithWhereUniqueWithoutUserInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    update: XOR<IntegrationFeatureRequestUpdateWithoutUserInput, IntegrationFeatureRequestUncheckedUpdateWithoutUserInput>
+    create: XOR<IntegrationFeatureRequestCreateWithoutUserInput, IntegrationFeatureRequestUncheckedCreateWithoutUserInput>
+  }
+
+  export type IntegrationFeatureRequestUpdateWithWhereUniqueWithoutUserInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    data: XOR<IntegrationFeatureRequestUpdateWithoutUserInput, IntegrationFeatureRequestUncheckedUpdateWithoutUserInput>
+  }
+
+  export type IntegrationFeatureRequestUpdateManyWithWhereWithoutUserInput = {
+    where: IntegrationFeatureRequestScalarWhereInput
+    data: XOR<IntegrationFeatureRequestUpdateManyMutationInput, IntegrationFeatureRequestUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type IntegrationFeatureRequestScalarWhereInput = {
+    AND?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
+    OR?: IntegrationFeatureRequestScalarWhereInput[]
+    NOT?: IntegrationFeatureRequestScalarWhereInput | IntegrationFeatureRequestScalarWhereInput[]
+    id?: StringFilter<"IntegrationFeatureRequest"> | string
+    userId?: StringFilter<"IntegrationFeatureRequest"> | string
+    organizationId?: StringNullableFilter<"IntegrationFeatureRequest"> | string | null
+    integrationName?: StringFilter<"IntegrationFeatureRequest"> | string
+    useCaseDescription?: StringFilter<"IntegrationFeatureRequest"> | string
+    status?: StringFilter<"IntegrationFeatureRequest"> | string
+    createdAt?: DateTimeFilter<"IntegrationFeatureRequest"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -103417,6 +115716,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -103453,6 +115756,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -103505,6 +115812,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -103541,6 +115852,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -103577,6 +115892,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -103613,6 +115932,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -103665,6 +115988,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -103701,6 +116028,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -103788,6 +116119,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -103821,6 +116153,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -104474,6 +116807,104 @@ export namespace Prisma {
 
   export type AgentRunCreateManyOrganizationInputEnvelope = {
     data: AgentRunCreateManyOrganizationInput | AgentRunCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationOAuthAppOverrideCreateWithoutOrganizationInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    configuredByUser: UserCreateNestedOneWithoutConfiguredOauthAppOverridesInput
+    userConnections?: UserConnectionCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    configuredByUserId: string
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutOauthAppOverrideInput
+  }
+
+  export type OrganizationOAuthAppOverrideCreateOrConnectWithoutOrganizationInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationOAuthAppOverrideCreateManyOrganizationInputEnvelope = {
+    data: OrganizationOAuthAppOverrideCreateManyOrganizationInput | OrganizationOAuthAppOverrideCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationConnectorPolicyCreateWithoutOrganizationInput = {
+    id?: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationConnectorPolicyCreateOrConnectWithoutOrganizationInput = {
+    where: OrganizationConnectorPolicyWhereUniqueInput
+    create: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationConnectorPolicyCreateManyOrganizationInputEnvelope = {
+    data: OrganizationConnectorPolicyCreateManyOrganizationInput | OrganizationConnectorPolicyCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type IntegrationFeatureRequestCreateWithoutOrganizationInput = {
+    id?: string
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutIntegrationFeatureRequestsInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    userId: string
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestCreateOrConnectWithoutOrganizationInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    create: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type IntegrationFeatureRequestCreateManyOrganizationInputEnvelope = {
+    data: IntegrationFeatureRequestCreateManyOrganizationInput | IntegrationFeatureRequestCreateManyOrganizationInput[]
     skipDuplicates?: boolean
   }
 
@@ -105132,6 +117563,68 @@ export namespace Prisma {
     data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyWithoutOrganizationInput>
   }
 
+  export type OrganizationOAuthAppOverrideUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    update: XOR<OrganizationOAuthAppOverrideUpdateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    data: XOR<OrganizationOAuthAppOverrideUpdateWithoutOrganizationInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateManyWithWhereWithoutOrganizationInput = {
+    where: OrganizationOAuthAppOverrideScalarWhereInput
+    data: XOR<OrganizationOAuthAppOverrideUpdateManyMutationInput, OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type OrganizationConnectorPolicyUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationConnectorPolicyWhereUniqueInput
+    update: XOR<OrganizationConnectorPolicyUpdateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<OrganizationConnectorPolicyCreateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type OrganizationConnectorPolicyUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: OrganizationConnectorPolicyWhereUniqueInput
+    data: XOR<OrganizationConnectorPolicyUpdateWithoutOrganizationInput, OrganizationConnectorPolicyUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type OrganizationConnectorPolicyUpdateManyWithWhereWithoutOrganizationInput = {
+    where: OrganizationConnectorPolicyScalarWhereInput
+    data: XOR<OrganizationConnectorPolicyUpdateManyMutationInput, OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
+  export type OrganizationConnectorPolicyScalarWhereInput = {
+    AND?: OrganizationConnectorPolicyScalarWhereInput | OrganizationConnectorPolicyScalarWhereInput[]
+    OR?: OrganizationConnectorPolicyScalarWhereInput[]
+    NOT?: OrganizationConnectorPolicyScalarWhereInput | OrganizationConnectorPolicyScalarWhereInput[]
+    id?: StringFilter<"OrganizationConnectorPolicy"> | string
+    organizationId?: StringFilter<"OrganizationConnectorPolicy"> | string
+    provider?: StringFilter<"OrganizationConnectorPolicy"> | string
+    enabled?: BoolFilter<"OrganizationConnectorPolicy"> | boolean
+    allowedRoleKeys?: StringNullableListFilter<"OrganizationConnectorPolicy">
+    rateLimitOverride?: IntNullableFilter<"OrganizationConnectorPolicy"> | number | null
+    createdAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+    updatedAt?: DateTimeFilter<"OrganizationConnectorPolicy"> | Date | string
+  }
+
+  export type IntegrationFeatureRequestUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    update: XOR<IntegrationFeatureRequestUpdateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<IntegrationFeatureRequestCreateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type IntegrationFeatureRequestUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: IntegrationFeatureRequestWhereUniqueInput
+    data: XOR<IntegrationFeatureRequestUpdateWithoutOrganizationInput, IntegrationFeatureRequestUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type IntegrationFeatureRequestUpdateManyWithWhereWithoutOrganizationInput = {
+    where: IntegrationFeatureRequestScalarWhereInput
+    data: XOR<IntegrationFeatureRequestUpdateManyMutationInput, IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type OrganizationCreateWithoutMembersInput = {
     id?: string
     slug: string
@@ -105163,6 +117656,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -105196,6 +117692,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -105237,6 +117736,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -105273,6 +117776,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -105345,6 +117852,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -105378,6 +117888,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutMembershipsInput = {
@@ -105425,6 +117938,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -105461,6 +117978,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -105523,6 +118044,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutInvitesInput = {
@@ -105556,6 +118080,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutInvitesInput = {
@@ -105628,6 +118155,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutInvitesInput = {
@@ -105661,6 +118191,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type RoleUpsertWithoutInvitesInput = {
@@ -105977,6 +118510,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectsInput = {
@@ -106010,6 +118546,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectsInput = {
@@ -106542,6 +119081,32 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectConnectionLinkCreateWithoutProjectInput = {
+    id?: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+    userConnection: UserConnectionCreateNestedOneWithoutProjectLinksInput
+    linkedByUser: UserCreateNestedOneWithoutLinkedProjectConnectionsInput
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateWithoutProjectInput = {
+    id?: string
+    userConnectionId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateOrConnectWithoutProjectInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    create: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectConnectionLinkCreateManyProjectInputEnvelope = {
+    data: ProjectConnectionLinkCreateManyProjectInput | ProjectConnectionLinkCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -106584,6 +119149,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectsInput = {
@@ -106617,6 +119185,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectEnvironmentUpsertWithWhereUniqueWithoutProjectInput = {
@@ -107023,6 +119594,22 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"AgentPatchProposal"> | Date | string
   }
 
+  export type ProjectConnectionLinkUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    update: XOR<ProjectConnectionLinkUpdateWithoutProjectInput, ProjectConnectionLinkUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectConnectionLinkCreateWithoutProjectInput, ProjectConnectionLinkUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectConnectionLinkUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    data: XOR<ProjectConnectionLinkUpdateWithoutProjectInput, ProjectConnectionLinkUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectConnectionLinkUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectConnectionLinkScalarWhereInput
+    data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type UserCreateWithoutAgentMemoriesInput = {
     id?: string
     email: string
@@ -107057,6 +119644,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -107093,6 +119684,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -107145,6 +119740,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -107181,6 +119780,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -107214,6 +119817,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoriesInput = {
@@ -107247,6 +119853,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoriesInput = {
@@ -107296,6 +119905,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -107329,6 +119941,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutAgentMemoriesInput = {
@@ -107362,6 +119977,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -107395,6 +120011,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -107444,6 +120061,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -107477,6 +120095,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -107513,6 +120132,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -107549,6 +120172,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -107587,6 +120214,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -107620,6 +120250,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -107658,6 +120291,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -107691,6 +120325,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -107743,6 +120378,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -107779,6 +120418,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -107823,6 +120466,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -107856,6 +120502,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectUpsertWithoutAgentMemoryPreferencesInput = {
@@ -107900,6 +120549,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -107933,6 +120583,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -107966,6 +120617,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -107999,6 +120651,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -108040,6 +120693,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -108076,6 +120733,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -108125,6 +120786,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -108158,6 +120820,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -108205,6 +120868,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -108241,6 +120908,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -108274,6 +120945,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -108307,6 +120979,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -108356,6 +121029,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -108389,6 +121063,7 @@ export namespace Prisma {
     shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -108422,6 +121097,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -108455,6 +121131,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -108504,6 +121181,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -108537,6 +121215,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -108570,6 +121249,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -108603,6 +121283,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -108652,6 +121333,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -108685,6 +121367,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -108718,6 +121401,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -108751,6 +121435,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -108800,6 +121485,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -108833,6 +121519,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -108866,6 +121553,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -108899,6 +121587,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -108940,6 +121629,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -108976,6 +121669,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -109025,6 +121722,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -109058,6 +121756,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -109105,6 +121804,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -109141,6 +121844,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -109174,6 +121881,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -109207,6 +121915,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -109248,6 +121957,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -109284,6 +121997,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -109333,6 +122050,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -109366,6 +122084,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -109413,6 +122132,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -109449,6 +122172,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -109482,6 +122209,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -109515,6 +122243,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -109556,6 +122285,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -109592,6 +122325,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -109641,6 +122378,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -109674,6 +122412,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -109721,6 +122460,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -109757,6 +122500,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -109790,6 +122537,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -109823,6 +122571,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -109864,6 +122613,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -109900,6 +122653,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -109949,6 +122706,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -109982,6 +122740,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -110029,6 +122788,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -110065,6 +122828,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -110098,6 +122865,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -110131,6 +122899,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -110172,6 +122941,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -110208,6 +122981,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -110257,6 +123034,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -110290,6 +123068,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -110337,6 +123116,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -110373,6 +123156,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -110406,6 +123193,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -110439,6 +123227,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -110477,6 +123266,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectTemplatesInput = {
@@ -110510,6 +123302,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectTemplatesInput = {
@@ -110559,6 +123354,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -110592,6 +123388,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -110636,6 +123433,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectTemplatesInput = {
@@ -110669,6 +123469,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutWorkspacesInput = {
@@ -110702,6 +123505,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -110735,6 +123539,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -110866,6 +123671,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -110899,6 +123705,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -111132,6 +123939,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -111165,6 +123973,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -111243,6 +124052,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -111276,6 +124086,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -111344,6 +124155,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -111377,6 +124189,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -111418,6 +124231,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -111454,6 +124271,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -111503,6 +124324,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -111536,6 +124358,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -111583,6 +124406,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -111619,6 +124446,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -111652,6 +124483,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -111685,6 +124517,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -111749,6 +124582,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -111782,6 +124616,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -111912,6 +124747,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
@@ -111945,6 +124783,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAuditLogsInput = {
@@ -111986,6 +124827,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -112022,6 +124867,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -112071,6 +124920,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
@@ -112104,6 +124956,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutAuditLogsInput = {
@@ -112151,6 +125006,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -112187,6 +125046,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -112223,6 +125086,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -112259,6 +125126,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -112311,6 +125182,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -112347,6 +125222,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -112380,6 +125259,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutBillingCustomerInput = {
@@ -112413,6 +125295,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutBillingCustomerInput = {
@@ -112462,6 +125347,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutBillingCustomerInput = {
@@ -112495,6 +125383,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSubscriptionsInput = {
@@ -112528,6 +125419,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -112561,6 +125455,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -112635,6 +125532,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -112668,6 +125568,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type PlanUpsertWithoutSubscriptionsInput = {
@@ -112784,6 +125687,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUsageEventsInput = {
@@ -112817,6 +125723,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUsageEventsInput = {
@@ -112866,6 +125775,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUsageEventsInput = {
@@ -112899,6 +125811,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaLedgerInput = {
@@ -112932,6 +125847,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaLedgerInput = {
@@ -112965,6 +125883,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaLedgerInput = {
@@ -113014,6 +125935,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaLedgerInput = {
@@ -113047,6 +125971,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaOverridesInput = {
@@ -113080,6 +126007,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaOverridesInput = {
@@ -113113,6 +126043,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaOverridesInput = {
@@ -113162,6 +126095,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaOverridesInput = {
@@ -113195,6 +126131,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutStripeEventsInput = {
@@ -113228,6 +126167,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutStripeEventsInput = {
@@ -113261,6 +126203,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutStripeEventsInput = {
@@ -113310,6 +126255,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutStripeEventsInput = {
@@ -113343,6 +126291,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutConversationsInput = {
@@ -113376,6 +126327,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -113409,6 +126361,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
     agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -113450,6 +126403,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -113486,6 +126443,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -113563,6 +126524,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -113596,6 +126558,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -113643,6 +126606,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -113679,6 +126646,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -114001,6 +126972,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAiCostLedgerInput = {
@@ -114034,6 +127008,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAiCostLedgerInput = {
@@ -114083,6 +127060,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAiCostLedgerInput = {
@@ -114116,6 +127096,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAbuseEventsInput = {
@@ -114149,6 +127132,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAbuseEventsInput = {
@@ -114182,6 +127168,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAbuseEventsInput = {
@@ -114231,6 +127220,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAbuseEventsInput = {
@@ -114264,6 +127256,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSupportTicketsInput = {
@@ -114297,6 +127292,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSupportTicketsInput = {
@@ -114330,6 +127328,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSupportTicketsInput = {
@@ -114371,6 +127372,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -114407,6 +127412,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -114456,6 +127465,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSupportTicketsInput = {
@@ -114489,6 +127501,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutSupportTicketsInput = {
@@ -114536,6 +127551,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -114572,6 +127591,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -114605,6 +127628,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutFeatureFlagsInput = {
@@ -114638,6 +127664,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutFeatureFlagsInput = {
@@ -114687,6 +127716,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutFeatureFlagsInput = {
@@ -114720,6 +127752,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutEmailVerificationTokensInput = {
@@ -114756,6 +127791,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -114792,6 +127831,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -114844,6 +127887,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -114880,6 +127927,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -114916,6 +127967,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -114952,6 +128007,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -115004,6 +128063,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -115040,6 +128103,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -115076,6 +128143,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -115112,6 +128183,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -115164,6 +128239,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -115200,6 +128279,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -115233,6 +128316,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutEnterpriseSettingsInput = {
@@ -115266,6 +128352,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutEnterpriseSettingsInput = {
@@ -115315,6 +128404,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutEnterpriseSettingsInput = {
@@ -115348,6 +128440,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutDomainsInput = {
@@ -115381,6 +128476,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutDomainsInput = {
@@ -115414,6 +128512,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutDomainsInput = {
@@ -115463,6 +128564,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutDomainsInput = {
@@ -115496,6 +128600,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSsoConfigurationsInput = {
@@ -115529,6 +128636,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSsoConfigurationsInput = {
@@ -115562,6 +128672,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSsoConfigurationsInput = {
@@ -115611,6 +128724,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSsoConfigurationsInput = {
@@ -115644,6 +128760,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutScimTokensInput = {
@@ -115677,6 +128796,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutScimTokensInput = {
@@ -115710,6 +128832,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutScimTokensInput = {
@@ -115759,6 +128884,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutScimTokensInput = {
@@ -115792,6 +128920,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCustomRolesInput = {
@@ -115825,6 +128956,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCustomRolesInput = {
@@ -115858,6 +128992,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCustomRolesInput = {
@@ -115907,6 +129044,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCustomRolesInput = {
@@ -115940,6 +129080,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSiemWebhooksInput = {
@@ -115973,6 +129116,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSiemWebhooksInput = {
@@ -116006,6 +129152,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSiemWebhooksInput = {
@@ -116055,6 +129204,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSiemWebhooksInput = {
@@ -116088,6 +129240,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutApiKeysInput = {
@@ -116121,6 +129276,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutApiKeysInput = {
@@ -116154,6 +129312,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutApiKeysInput = {
@@ -116195,6 +129356,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -116231,6 +129396,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -116280,6 +129449,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutApiKeysInput = {
@@ -116313,6 +129485,9 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutApiKeysInput = {
@@ -116360,6 +129535,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -116396,6 +129575,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -116432,6 +129615,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -116468,6 +129655,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -116520,6 +129711,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -116556,6 +129751,10 @@ export namespace Prisma {
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -116623,6 +129822,7 @@ export namespace Prisma {
     installCount?: number
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -116644,6 +129844,7 @@ export namespace Prisma {
     installCount?: number
     featured?: boolean
     verified?: boolean
+    featuredForIdePanel?: boolean
     publishedAt?: Date | string
     updatedAt?: Date | string
   }
@@ -116687,6 +129888,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -116723,6 +129928,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -116761,6 +129970,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMcpInstallsInput = {
@@ -116794,6 +130006,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMcpInstallsInput = {
@@ -116829,6 +130044,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -116850,6 +130066,7 @@ export namespace Prisma {
     installCount?: IntFieldUpdateOperationsInput | number
     featured?: BoolFieldUpdateOperationsInput | boolean
     verified?: BoolFieldUpdateOperationsInput | boolean
+    featuredForIdePanel?: BoolFieldUpdateOperationsInput | boolean
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -116899,6 +130116,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -116935,6 +130156,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -116979,6 +130204,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMcpInstallsInput = {
@@ -117012,6 +130240,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -117119,6 +130350,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -117155,6 +130390,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -117193,6 +130432,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentRunsInput = {
@@ -117226,6 +130468,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
     mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentRunsInput = {
@@ -117351,6 +130596,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -117387,6 +130636,10 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -117431,6 +130684,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentRunsInput = {
@@ -117464,6 +130720,9 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
     mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type AgentRunCreateWithoutResultsInput = {
@@ -117624,6 +130883,1802 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
     results?: AgentRunResultUncheckedUpdateManyWithoutRunNestedInput
+  }
+
+  export type UserCreateWithoutUserConnectionsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutUserConnectionsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutUserConnectionsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutUserConnectionsInput, UserUncheckedCreateWithoutUserConnectionsInput>
+  }
+
+  export type OrganizationOAuthAppOverrideCreateWithoutUserConnectionsInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutOauthAppOverridesInput
+    configuredByUser: UserCreateNestedOneWithoutConfiguredOauthAppOverridesInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedCreateWithoutUserConnectionsInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    configuredByUserId: string
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationOAuthAppOverrideCreateOrConnectWithoutUserConnectionsInput = {
+    where: OrganizationOAuthAppOverrideWhereUniqueInput
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutUserConnectionsInput>
+  }
+
+  export type ProjectConnectionLinkCreateWithoutUserConnectionInput = {
+    id?: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+    project: ProjectCreateNestedOneWithoutConnectionLinksInput
+    linkedByUser: UserCreateNestedOneWithoutLinkedProjectConnectionsInput
+  }
+
+  export type ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput = {
+    id?: string
+    projectId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateOrConnectWithoutUserConnectionInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    create: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput>
+  }
+
+  export type ProjectConnectionLinkCreateManyUserConnectionInputEnvelope = {
+    data: ProjectConnectionLinkCreateManyUserConnectionInput | ProjectConnectionLinkCreateManyUserConnectionInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ReconnectionAlertCreateWithoutUserConnectionInput = {
+    id?: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+  }
+
+  export type ReconnectionAlertUncheckedCreateWithoutUserConnectionInput = {
+    id?: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+  }
+
+  export type ReconnectionAlertCreateOrConnectWithoutUserConnectionInput = {
+    where: ReconnectionAlertWhereUniqueInput
+    create: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput>
+  }
+
+  export type ReconnectionAlertCreateManyUserConnectionInputEnvelope = {
+    data: ReconnectionAlertCreateManyUserConnectionInput | ReconnectionAlertCreateManyUserConnectionInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutUserConnectionsInput = {
+    update: XOR<UserUpdateWithoutUserConnectionsInput, UserUncheckedUpdateWithoutUserConnectionsInput>
+    create: XOR<UserCreateWithoutUserConnectionsInput, UserUncheckedCreateWithoutUserConnectionsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutUserConnectionsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutUserConnectionsInput, UserUncheckedUpdateWithoutUserConnectionsInput>
+  }
+
+  export type UserUpdateWithoutUserConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutUserConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
+    update: XOR<OrganizationOAuthAppOverrideUpdateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutUserConnectionsInput>
+    create: XOR<OrganizationOAuthAppOverrideCreateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedCreateWithoutUserConnectionsInput>
+    where?: OrganizationOAuthAppOverrideWhereInput
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateToOneWithWhereWithoutUserConnectionsInput = {
+    where?: OrganizationOAuthAppOverrideWhereInput
+    data: XOR<OrganizationOAuthAppOverrideUpdateWithoutUserConnectionsInput, OrganizationOAuthAppOverrideUncheckedUpdateWithoutUserConnectionsInput>
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateWithoutUserConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutOauthAppOverridesNestedInput
+    configuredByUser?: UserUpdateOneRequiredWithoutConfiguredOauthAppOverridesNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateWithoutUserConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    configuredByUserId?: StringFieldUpdateOperationsInput | string
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectConnectionLinkUpsertWithWhereUniqueWithoutUserConnectionInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    update: XOR<ProjectConnectionLinkUpdateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedUpdateWithoutUserConnectionInput>
+    create: XOR<ProjectConnectionLinkCreateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedCreateWithoutUserConnectionInput>
+  }
+
+  export type ProjectConnectionLinkUpdateWithWhereUniqueWithoutUserConnectionInput = {
+    where: ProjectConnectionLinkWhereUniqueInput
+    data: XOR<ProjectConnectionLinkUpdateWithoutUserConnectionInput, ProjectConnectionLinkUncheckedUpdateWithoutUserConnectionInput>
+  }
+
+  export type ProjectConnectionLinkUpdateManyWithWhereWithoutUserConnectionInput = {
+    where: ProjectConnectionLinkScalarWhereInput
+    data: XOR<ProjectConnectionLinkUpdateManyMutationInput, ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionInput>
+  }
+
+  export type ReconnectionAlertUpsertWithWhereUniqueWithoutUserConnectionInput = {
+    where: ReconnectionAlertWhereUniqueInput
+    update: XOR<ReconnectionAlertUpdateWithoutUserConnectionInput, ReconnectionAlertUncheckedUpdateWithoutUserConnectionInput>
+    create: XOR<ReconnectionAlertCreateWithoutUserConnectionInput, ReconnectionAlertUncheckedCreateWithoutUserConnectionInput>
+  }
+
+  export type ReconnectionAlertUpdateWithWhereUniqueWithoutUserConnectionInput = {
+    where: ReconnectionAlertWhereUniqueInput
+    data: XOR<ReconnectionAlertUpdateWithoutUserConnectionInput, ReconnectionAlertUncheckedUpdateWithoutUserConnectionInput>
+  }
+
+  export type ReconnectionAlertUpdateManyWithWhereWithoutUserConnectionInput = {
+    where: ReconnectionAlertScalarWhereInput
+    data: XOR<ReconnectionAlertUpdateManyMutationInput, ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionInput>
+  }
+
+  export type ReconnectionAlertScalarWhereInput = {
+    AND?: ReconnectionAlertScalarWhereInput | ReconnectionAlertScalarWhereInput[]
+    OR?: ReconnectionAlertScalarWhereInput[]
+    NOT?: ReconnectionAlertScalarWhereInput | ReconnectionAlertScalarWhereInput[]
+    id?: StringFilter<"ReconnectionAlert"> | string
+    userConnectionId?: StringFilter<"ReconnectionAlert"> | string
+    reason?: StringFilter<"ReconnectionAlert"> | string
+    detectedAt?: DateTimeFilter<"ReconnectionAlert"> | Date | string
+    resolvedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+    notifiedAt?: DateTimeNullableFilter<"ReconnectionAlert"> | Date | string | null
+  }
+
+  export type ProjectCreateWithoutConnectionLinksInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutConnectionLinksInput, ProjectUncheckedCreateWithoutConnectionLinksInput>
+  }
+
+  export type UserConnectionCreateWithoutProjectLinksInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    user: UserCreateNestedOneWithoutUserConnectionsInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideCreateNestedOneWithoutUserConnectionsInput
+    reconnectionAlerts?: ReconnectionAlertCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUncheckedCreateWithoutProjectLinksInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    reconnectionAlerts?: ReconnectionAlertUncheckedCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionCreateOrConnectWithoutProjectLinksInput = {
+    where: UserConnectionWhereUniqueInput
+    create: XOR<UserConnectionCreateWithoutProjectLinksInput, UserConnectionUncheckedCreateWithoutProjectLinksInput>
+  }
+
+  export type UserCreateWithoutLinkedProjectConnectionsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutLinkedProjectConnectionsInput, UserUncheckedCreateWithoutLinkedProjectConnectionsInput>
+  }
+
+  export type ProjectUpsertWithoutConnectionLinksInput = {
+    update: XOR<ProjectUpdateWithoutConnectionLinksInput, ProjectUncheckedUpdateWithoutConnectionLinksInput>
+    create: XOR<ProjectCreateWithoutConnectionLinksInput, ProjectUncheckedCreateWithoutConnectionLinksInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutConnectionLinksInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutConnectionLinksInput, ProjectUncheckedUpdateWithoutConnectionLinksInput>
+  }
+
+  export type ProjectUpdateWithoutConnectionLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type UserConnectionUpsertWithoutProjectLinksInput = {
+    update: XOR<UserConnectionUpdateWithoutProjectLinksInput, UserConnectionUncheckedUpdateWithoutProjectLinksInput>
+    create: XOR<UserConnectionCreateWithoutProjectLinksInput, UserConnectionUncheckedCreateWithoutProjectLinksInput>
+    where?: UserConnectionWhereInput
+  }
+
+  export type UserConnectionUpdateToOneWithWhereWithoutProjectLinksInput = {
+    where?: UserConnectionWhereInput
+    data: XOR<UserConnectionUpdateWithoutProjectLinksInput, UserConnectionUncheckedUpdateWithoutProjectLinksInput>
+  }
+
+  export type UserConnectionUpdateWithoutProjectLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    user?: UserUpdateOneRequiredWithoutUserConnectionsNestedInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideUpdateOneWithoutUserConnectionsNestedInput
+    reconnectionAlerts?: ReconnectionAlertUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateWithoutProjectLinksInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    reconnectionAlerts?: ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserUpsertWithoutLinkedProjectConnectionsInput = {
+    update: XOR<UserUpdateWithoutLinkedProjectConnectionsInput, UserUncheckedUpdateWithoutLinkedProjectConnectionsInput>
+    create: XOR<UserCreateWithoutLinkedProjectConnectionsInput, UserUncheckedCreateWithoutLinkedProjectConnectionsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutLinkedProjectConnectionsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutLinkedProjectConnectionsInput, UserUncheckedUpdateWithoutLinkedProjectConnectionsInput>
+  }
+
+  export type UserUpdateWithoutLinkedProjectConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type OrganizationCreateWithoutOauthAppOverridesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutOauthAppOverridesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutOauthAppOverridesInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutOauthAppOverridesInput, OrganizationUncheckedCreateWithoutOauthAppOverridesInput>
+  }
+
+  export type UserCreateWithoutConfiguredOauthAppOverridesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutConfiguredOauthAppOverridesInput, UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput>
+  }
+
+  export type UserConnectionCreateWithoutOauthAppOverrideInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    user: UserCreateNestedOneWithoutUserConnectionsInput
+    projectLinks?: ProjectConnectionLinkCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUncheckedCreateWithoutOauthAppOverrideInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutUserConnectionInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionCreateOrConnectWithoutOauthAppOverrideInput = {
+    where: UserConnectionWhereUniqueInput
+    create: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput>
+  }
+
+  export type UserConnectionCreateManyOauthAppOverrideInputEnvelope = {
+    data: UserConnectionCreateManyOauthAppOverrideInput | UserConnectionCreateManyOauthAppOverrideInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganizationUpsertWithoutOauthAppOverridesInput = {
+    update: XOR<OrganizationUpdateWithoutOauthAppOverridesInput, OrganizationUncheckedUpdateWithoutOauthAppOverridesInput>
+    create: XOR<OrganizationCreateWithoutOauthAppOverridesInput, OrganizationUncheckedCreateWithoutOauthAppOverridesInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutOauthAppOverridesInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutOauthAppOverridesInput, OrganizationUncheckedUpdateWithoutOauthAppOverridesInput>
+  }
+
+  export type OrganizationUpdateWithoutOauthAppOverridesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutOauthAppOverridesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutConfiguredOauthAppOverridesInput = {
+    update: XOR<UserUpdateWithoutConfiguredOauthAppOverridesInput, UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput>
+    create: XOR<UserCreateWithoutConfiguredOauthAppOverridesInput, UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutConfiguredOauthAppOverridesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutConfiguredOauthAppOverridesInput, UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput>
+  }
+
+  export type UserUpdateWithoutConfiguredOauthAppOverridesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
+    where: UserConnectionWhereUniqueInput
+    update: XOR<UserConnectionUpdateWithoutOauthAppOverrideInput, UserConnectionUncheckedUpdateWithoutOauthAppOverrideInput>
+    create: XOR<UserConnectionCreateWithoutOauthAppOverrideInput, UserConnectionUncheckedCreateWithoutOauthAppOverrideInput>
+  }
+
+  export type UserConnectionUpdateWithWhereUniqueWithoutOauthAppOverrideInput = {
+    where: UserConnectionWhereUniqueInput
+    data: XOR<UserConnectionUpdateWithoutOauthAppOverrideInput, UserConnectionUncheckedUpdateWithoutOauthAppOverrideInput>
+  }
+
+  export type UserConnectionUpdateManyWithWhereWithoutOauthAppOverrideInput = {
+    where: UserConnectionScalarWhereInput
+    data: XOR<UserConnectionUpdateManyMutationInput, UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideInput>
+  }
+
+  export type OrganizationCreateWithoutConnectorPoliciesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutConnectorPoliciesInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutConnectorPoliciesInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutConnectorPoliciesInput, OrganizationUncheckedCreateWithoutConnectorPoliciesInput>
+  }
+
+  export type OrganizationUpsertWithoutConnectorPoliciesInput = {
+    update: XOR<OrganizationUpdateWithoutConnectorPoliciesInput, OrganizationUncheckedUpdateWithoutConnectorPoliciesInput>
+    create: XOR<OrganizationCreateWithoutConnectorPoliciesInput, OrganizationUncheckedCreateWithoutConnectorPoliciesInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutConnectorPoliciesInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutConnectorPoliciesInput, OrganizationUncheckedUpdateWithoutConnectorPoliciesInput>
+  }
+
+  export type OrganizationUpdateWithoutConnectorPoliciesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutConnectorPoliciesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserConnectionCreateWithoutReconnectionAlertsInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    user: UserCreateNestedOneWithoutUserConnectionsInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideCreateNestedOneWithoutUserConnectionsInput
+    projectLinks?: ProjectConnectionLinkCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionUncheckedCreateWithoutReconnectionAlertsInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutUserConnectionInput
+  }
+
+  export type UserConnectionCreateOrConnectWithoutReconnectionAlertsInput = {
+    where: UserConnectionWhereUniqueInput
+    create: XOR<UserConnectionCreateWithoutReconnectionAlertsInput, UserConnectionUncheckedCreateWithoutReconnectionAlertsInput>
+  }
+
+  export type UserConnectionUpsertWithoutReconnectionAlertsInput = {
+    update: XOR<UserConnectionUpdateWithoutReconnectionAlertsInput, UserConnectionUncheckedUpdateWithoutReconnectionAlertsInput>
+    create: XOR<UserConnectionCreateWithoutReconnectionAlertsInput, UserConnectionUncheckedCreateWithoutReconnectionAlertsInput>
+    where?: UserConnectionWhereInput
+  }
+
+  export type UserConnectionUpdateToOneWithWhereWithoutReconnectionAlertsInput = {
+    where?: UserConnectionWhereInput
+    data: XOR<UserConnectionUpdateWithoutReconnectionAlertsInput, UserConnectionUncheckedUpdateWithoutReconnectionAlertsInput>
+  }
+
+  export type UserConnectionUpdateWithoutReconnectionAlertsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    user?: UserUpdateOneRequiredWithoutUserConnectionsNestedInput
+    oauthAppOverride?: OrganizationOAuthAppOverrideUpdateOneWithoutUserConnectionsNestedInput
+    projectLinks?: ProjectConnectionLinkUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateWithoutReconnectionAlertsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserCreateWithoutIntegrationFeatureRequestsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+  }
+
+  export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+  }
+
+  export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutIntegrationFeatureRequestsInput, UserUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+  }
+
+  export type OrganizationCreateWithoutIntegrationFeatureRequestsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
+    id?: string
+    slug: string
+    name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+  }
+
+  export type UserUpsertWithoutIntegrationFeatureRequestsInput = {
+    update: XOR<UserUpdateWithoutIntegrationFeatureRequestsInput, UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+    create: XOR<UserCreateWithoutIntegrationFeatureRequestsInput, UserUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutIntegrationFeatureRequestsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutIntegrationFeatureRequestsInput, UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+  }
+
+  export type UserUpdateWithoutIntegrationFeatureRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+  }
+
+  export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
+    update: XOR<OrganizationUpdateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+    create: XOR<OrganizationCreateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutIntegrationFeatureRequestsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutIntegrationFeatureRequestsInput, OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput>
+  }
+
+  export type OrganizationUpdateWithoutIntegrationFeatureRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type AccountCreateManyUserInput = {
@@ -117832,6 +132887,58 @@ export namespace Prisma {
     startedAt?: Date | string
     completedAt?: Date | string | null
     metadata?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type UserConnectionCreateManyUserInput = {
+    id?: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    oauthAppOverrideId?: string | null
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateManyLinkedByUserInput = {
+    id?: string
+    projectId: string
+    userConnectionId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type OrganizationOAuthAppOverrideCreateManyConfiguredByUserInput = {
+    id?: string
+    organizationId: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestCreateManyUserInput = {
+    id?: string
+    organizationId?: string | null
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
   }
 
   export type AccountUpdateWithoutUserInput = {
@@ -118536,6 +133643,168 @@ export namespace Prisma {
     metadata?: JsonNullValueInput | InputJsonValue
   }
 
+  export type UserConnectionUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    oauthAppOverride?: OrganizationOAuthAppOverrideUpdateOneWithoutUserConnectionsNestedInput
+    projectLinks?: ProjectConnectionLinkUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    oauthAppOverrideId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUpdateWithoutLinkedByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    project?: ProjectUpdateOneRequiredWithoutConnectionLinksNestedInput
+    userConnection?: UserConnectionUpdateOneRequiredWithoutProjectLinksNestedInput
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateWithoutLinkedByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type OrganizationOAuthAppOverrideUpdateWithoutConfiguredByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutOauthAppOverridesNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateWithoutConfiguredByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneWithoutIntegrationFeatureRequestsNestedInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: NullableStringFieldUpdateOperationsInput | string | null
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -118767,6 +134036,39 @@ export namespace Prisma {
     metadata?: JsonNullValueInput | InputJsonValue
   }
 
+  export type OrganizationOAuthAppOverrideCreateManyOrganizationInput = {
+    id?: string
+    provider: string
+    clientId: string
+    clientSecretEncrypted: string
+    scopes?: OrganizationOAuthAppOverrideCreatescopesInput | string[]
+    configuredByUserId: string
+    testedAt?: Date | string | null
+    testStatus?: string | null
+    testError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrganizationConnectorPolicyCreateManyOrganizationInput = {
+    id?: string
+    provider: string
+    enabled?: boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyCreateallowedRoleKeysInput | string[]
+    rateLimitOverride?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type IntegrationFeatureRequestCreateManyOrganizationInput = {
+    id?: string
+    userId: string
+    integrationName: string
+    useCaseDescription: string
+    status?: string
+    createdAt?: Date | string
+  }
+
   export type OrganizationMemberUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -118849,6 +134151,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -118882,6 +134185,7 @@ export namespace Prisma {
     agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
     agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
     agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -119572,6 +134876,107 @@ export namespace Prisma {
     metadata?: JsonNullValueInput | InputJsonValue
   }
 
+  export type OrganizationOAuthAppOverrideUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    configuredByUser?: UserUpdateOneRequiredWithoutConfiguredOauthAppOverridesNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    configuredByUserId?: StringFieldUpdateOperationsInput | string
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideNestedInput
+  }
+
+  export type OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    clientId?: StringFieldUpdateOperationsInput | string
+    clientSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    scopes?: OrganizationOAuthAppOverrideUpdatescopesInput | string[]
+    configuredByUserId?: StringFieldUpdateOperationsInput | string
+    testedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    testStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    testError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    allowedRoleKeys?: OrganizationConnectorPolicyUpdateallowedRoleKeysInput | string[]
+    rateLimitOverride?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutIntegrationFeatureRequestsNestedInput
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    integrationName?: StringFieldUpdateOperationsInput | string
+    useCaseDescription?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RolePermissionCreateManyRoleInput = {
     permissionId: string
   }
@@ -119838,6 +135243,14 @@ export namespace Prisma {
     error?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type ProjectConnectionLinkCreateManyProjectInput = {
+    id?: string
+    userConnectionId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
   }
 
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
@@ -120424,6 +135837,30 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectConnectionLinkUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    userConnection?: UserConnectionUpdateOneRequiredWithoutProjectLinksNestedInput
+    linkedByUser?: UserUpdateOneRequiredWithoutLinkedProjectConnectionsNestedInput
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userConnectionId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
   export type WorkspaceSessionCreateManyWorkspaceInput = {
     id?: string
     userId?: string | null
@@ -120842,6 +136279,158 @@ export namespace Prisma {
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkCreateManyUserConnectionInput = {
+    id?: string
+    projectId: string
+    linkedByUserId: string
+    linkedAt?: Date | string
+    unlinkedAt?: Date | string | null
+  }
+
+  export type ReconnectionAlertCreateManyUserConnectionInput = {
+    id?: string
+    reason: string
+    detectedAt?: Date | string
+    resolvedAt?: Date | string | null
+    notifiedAt?: Date | string | null
+  }
+
+  export type ProjectConnectionLinkUpdateWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    project?: ProjectUpdateOneRequiredWithoutConnectionLinksNestedInput
+    linkedByUser?: UserUpdateOneRequiredWithoutLinkedProjectConnectionsNestedInput
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    linkedByUserId?: StringFieldUpdateOperationsInput | string
+    linkedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    unlinkedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReconnectionAlertUpdateWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReconnectionAlertUncheckedUpdateWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    detectedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type UserConnectionCreateManyOauthAppOverrideInput = {
+    id?: string
+    userId: string
+    provider: string
+    externalAccountId: string
+    externalAccountLabel: string
+    accessTokenEncrypted?: string | null
+    refreshTokenEncrypted?: string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionCreatescopesInput | string[]
+    tokenExpiresAt?: Date | string | null
+    status?: string
+    lastUsedAt?: Date | string | null
+    forAgentUse?: boolean
+    oauthAppSource?: string
+    createdByUserId: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revokedAt?: Date | string | null
+  }
+
+  export type UserConnectionUpdateWithoutOauthAppOverrideInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    user?: UserUpdateOneRequiredWithoutUserConnectionsNestedInput
+    projectLinks?: ProjectConnectionLinkUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateWithoutOauthAppOverrideInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    projectLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutUserConnectionNestedInput
+    reconnectionAlerts?: ReconnectionAlertUncheckedUpdateManyWithoutUserConnectionNestedInput
+  }
+
+  export type UserConnectionUncheckedUpdateManyWithoutOauthAppOverrideInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    externalAccountId?: StringFieldUpdateOperationsInput | string
+    externalAccountLabel?: StringFieldUpdateOperationsInput | string
+    accessTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    refreshTokenEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    apiKeyFieldsEncrypted?: NullableJsonNullValueInput | InputJsonValue
+    scopes?: UserConnectionUpdatescopesInput | string[]
+    tokenExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    forAgentUse?: BoolFieldUpdateOperationsInput | boolean
+    oauthAppSource?: StringFieldUpdateOperationsInput | string
+    createdByUserId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
 

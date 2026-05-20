@@ -39,44 +39,48 @@ enum SupportTicketStatus {
 }
 
 model User {
-  id                      String                   @id @default(cuid())
-  email                   String                   @unique
-  name                    String?
-  passwordHash            String?
-  emailVerifiedAt         DateTime?
-  mfaEnabled              Boolean                  @default(false)
-  mfaSecretCiphertext     String?
-  platformAdmin           Boolean                  @default(false)
+  id                          String                         @id @default(cuid())
+  email                       String                         @unique
+  name                        String?
+  passwordHash                String?
+  emailVerifiedAt             DateTime?
+  mfaEnabled                  Boolean                        @default(false)
+  mfaSecretCiphertext         String?
+  platformAdmin               Boolean                        @default(false)
   // BCP-47 primary language tag (e.g. "en", "fr"). Null when the user
   // hasn't set a preference; the client falls back to navigator.language
   // and finally to "en". Drives SSR language selection via a cookie set
   // on session create.
-  language                String?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  accounts                Account[]
-  sessions                Session[]
-  memberships             OrganizationMember[]
-  apiKeys                 ApiKey[]
-  auditLogs               AuditLog[]
-  adminAuditLogs          AdminAuditLog[]
-  conversations           AiConversation[]
-  supportTickets          SupportTicket[]
-  oauthConnections        OAuthConnection[]
-  emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens     PasswordResetToken[]
-  recoveryCodes           MfaRecoveryCode[]
-  projectCollaborations   ProjectCollaborator[]
-  projectActivity         ProjectActivity[]
-  projectSnapshots        ProjectSnapshot[]
-  projectIdeStateUpdates  ProjectIdeState[]
-  collaborationPresence   CollaborationPresence[]
-  collaborationComments   CollaborationComment[]
-  collaborationShareLinks ProjectShareLink[]
-  agentMemories           AgentMemory[]
-  agentMemoryPreferences  AgentMemoryPreference[]
-  mcpInstalls             McpInstall[]
-  agentRuns               AgentRun[]
+  language                    String?
+  createdAt                   DateTime                       @default(now())
+  updatedAt                   DateTime                       @updatedAt
+  accounts                    Account[]
+  sessions                    Session[]
+  memberships                 OrganizationMember[]
+  apiKeys                     ApiKey[]
+  auditLogs                   AuditLog[]
+  adminAuditLogs              AdminAuditLog[]
+  conversations               AiConversation[]
+  supportTickets              SupportTicket[]
+  oauthConnections            OAuthConnection[]
+  emailVerificationTokens     EmailVerificationToken[]
+  passwordResetTokens         PasswordResetToken[]
+  recoveryCodes               MfaRecoveryCode[]
+  projectCollaborations       ProjectCollaborator[]
+  projectActivity             ProjectActivity[]
+  projectSnapshots            ProjectSnapshot[]
+  projectIdeStateUpdates      ProjectIdeState[]
+  collaborationPresence       CollaborationPresence[]
+  collaborationComments       CollaborationComment[]
+  collaborationShareLinks     ProjectShareLink[]
+  agentMemories               AgentMemory[]
+  agentMemoryPreferences      AgentMemoryPreference[]
+  mcpInstalls                 McpInstall[]
+  agentRuns                   AgentRun[]
+  userConnections             UserConnection[]
+  linkedProjectConnections    ProjectConnectionLink[]        @relation("LinkedByUser")
+  configuredOauthAppOverrides OrganizationOAuthAppOverride[] @relation("ConfiguredByUser")
+  integrationFeatureRequests  IntegrationFeatureRequest[]
 }
 
 model Account {
@@ -109,37 +113,40 @@ model Session {
 }
 
 model Organization {
-  id                     String                          @id @default(cuid())
-  slug                   String                          @unique
-  name                   String
-  createdAt              DateTime                        @default(now())
-  updatedAt              DateTime                        @updatedAt
-  members                OrganizationMember[]
-  invites                OrganizationInvite[]
-  projects               Project[]
-  billingCustomer        BillingCustomer?
-  subscriptions          Subscription[]
-  usageEvents            UsageEvent[]
-  quotaLedger            QuotaLedger[]
-  quotaOverrides         QuotaOverride[]
-  stripeEvents           StripeEvent[]
-  aiCostLedger           AiCostLedger[]
-  auditLogs              AuditLog[]
-  abuseEvents            AbuseEvent[]
-  supportTickets         SupportTicket[]
-  featureFlags           FeatureFlag[]
-  apiKeys                ApiKey[]
-  enterpriseSettings     EnterpriseOrganizationSettings?
-  domains                VerifiedDomain[]
-  ssoConfigurations      SsoConfiguration[]
-  scimTokens             ScimToken[]
-  customRoles            CustomRole[]
-  siemWebhooks           SiemWebhook[]
-  projectTemplates       ProjectTemplate[]
-  agentMemories          AgentMemory[]
-  agentMemoryPreferences AgentMemoryPreference[]
-  mcpInstalls            McpInstall[]
-  agentRuns              AgentRun[]
+  id                         String                          @id @default(cuid())
+  slug                       String                          @unique
+  name                       String
+  createdAt                  DateTime                        @default(now())
+  updatedAt                  DateTime                        @updatedAt
+  members                    OrganizationMember[]
+  invites                    OrganizationInvite[]
+  projects                   Project[]
+  billingCustomer            BillingCustomer?
+  subscriptions              Subscription[]
+  usageEvents                UsageEvent[]
+  quotaLedger                QuotaLedger[]
+  quotaOverrides             QuotaOverride[]
+  stripeEvents               StripeEvent[]
+  aiCostLedger               AiCostLedger[]
+  auditLogs                  AuditLog[]
+  abuseEvents                AbuseEvent[]
+  supportTickets             SupportTicket[]
+  featureFlags               FeatureFlag[]
+  apiKeys                    ApiKey[]
+  enterpriseSettings         EnterpriseOrganizationSettings?
+  domains                    VerifiedDomain[]
+  ssoConfigurations          SsoConfiguration[]
+  scimTokens                 ScimToken[]
+  customRoles                CustomRole[]
+  siemWebhooks               SiemWebhook[]
+  projectTemplates           ProjectTemplate[]
+  agentMemories              AgentMemory[]
+  agentMemoryPreferences     AgentMemoryPreference[]
+  mcpInstalls                McpInstall[]
+  agentRuns                  AgentRun[]
+  oauthAppOverrides          OrganizationOAuthAppOverride[]
+  connectorPolicies          OrganizationConnectorPolicy[]
+  integrationFeatureRequests IntegrationFeatureRequest[]
 }
 
 model OrganizationMember {
@@ -231,6 +238,7 @@ model Project {
   agentMemories          AgentMemory[]
   agentMemoryPreferences AgentMemoryPreference[]
   agentPatchProposals    AgentPatchProposal[]
+  connectionLinks        ProjectConnectionLink[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -958,28 +966,30 @@ enum McpTransport {
 }
 
 model McpCatalogEntry {
-  id             String       @id @default(cuid())
-  slug           String       @unique
-  name           String
-  description    String
-  domain         McpDomain
-  tags           String[]
-  author         String
-  homepageUrl    String?
-  iconUrl        String?
-  version        String
-  transport      McpTransport
-  configTemplate Json
-  configSchema   Json         @default("{}")
-  installCount   Int          @default(0)
-  featured       Boolean      @default(false)
-  verified       Boolean      @default(false)
-  publishedAt    DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  installs       McpInstall[]
+  id                  String       @id @default(cuid())
+  slug                String       @unique
+  name                String
+  description         String
+  domain              McpDomain
+  tags                String[]
+  author              String
+  homepageUrl         String?
+  iconUrl             String?
+  version             String
+  transport           McpTransport
+  configTemplate      Json
+  configSchema        Json         @default("{}")
+  installCount        Int          @default(0)
+  featured            Boolean      @default(false)
+  verified            Boolean      @default(false)
+  featuredForIdePanel Boolean      @default(false)
+  publishedAt         DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  installs            McpInstall[]
 
   @@index([domain])
   @@index([featured, verified])
+  @@index([featuredForIdePanel])
 }
 
 model McpInstall {
@@ -1113,4 +1123,167 @@ model WorkspaceRuntime {
   @@index([orgId])
   @@index([projectId])
   @@index([status, lastActiveAt])
+}
+
+// --- Integrations panel: connector catalog, user-scoped connections,
+// per-project links, enterprise overrides, reconnection alerts,
+// integration feature requests. See docs/INTEGRATIONS_MASTER_PLAN.md.
+
+model ConnectorCatalog {
+  id          String @id @default(cuid())
+  provider    String @unique
+  displayName String
+  description String
+  category    String
+  authType    String
+  section     String
+  logoUrl     String
+
+  defaultClientId        String?
+  defaultClientSecretEnc String?
+  authorizeUrl           String?
+  tokenUrl               String?
+  revokeUrl              String?
+  userInfoUrl            String?
+  defaultScopes          String[]
+  availableScopes        String[]
+
+  apiKeyFields       Json?
+  apiKeyTestEndpoint String?
+
+  triggersSupported   String[]
+  triggerDescriptions Json     @default("{}")
+
+  webhookSupport          Boolean @default(false)
+  webhookSignatureScheme  String?
+  webhookSigningSecretEnc String?
+
+  minPlanTier         String  @default("free")
+  forAgentUse         Boolean @default(true)
+  displayOrder        Int     @default(0)
+  featuredForIdePanel Boolean @default(false)
+  enabled             Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([section, enabled])
+  @@index([category])
+}
+
+model UserConnection {
+  id                   String @id @default(cuid())
+  userId               String
+  provider             String
+  externalAccountId    String
+  externalAccountLabel String
+
+  accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  apiKeyFieldsEncrypted Json?
+
+  scopes         String[]
+  tokenExpiresAt DateTime?
+  status         String    @default("active")
+  lastUsedAt     DateTime?
+  forAgentUse    Boolean   @default(true)
+
+  oauthAppSource     String  @default("e_code_default")
+  oauthAppOverrideId String?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  revokedAt       DateTime?
+
+  user               User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  oauthAppOverride   OrganizationOAuthAppOverride? @relation(fields: [oauthAppOverrideId], references: [id])
+  projectLinks       ProjectConnectionLink[]
+  reconnectionAlerts ReconnectionAlert[]
+
+  @@unique([userId, provider, externalAccountId])
+  @@index([userId, provider])
+  @@index([status])
+}
+
+model ProjectConnectionLink {
+  id               String    @id @default(cuid())
+  projectId        String
+  userConnectionId String
+  linkedByUserId   String
+  linkedAt         DateTime  @default(now())
+  unlinkedAt       DateTime?
+
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userConnection UserConnection @relation(fields: [userConnectionId], references: [id], onDelete: Cascade)
+  linkedByUser   User           @relation("LinkedByUser", fields: [linkedByUserId], references: [id])
+
+  @@unique([projectId, userConnectionId])
+  @@index([projectId])
+  @@index([userConnectionId])
+}
+
+model OrganizationOAuthAppOverride {
+  id                    String    @id @default(cuid())
+  organizationId        String
+  provider              String
+  clientId              String
+  clientSecretEncrypted String
+  scopes                String[]
+  configuredByUserId    String
+  testedAt              DateTime?
+  testStatus            String?
+  testError             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  configuredByUser User             @relation("ConfiguredByUser", fields: [configuredByUserId], references: [id])
+  userConnections  UserConnection[]
+
+  @@unique([organizationId, provider])
+}
+
+model OrganizationConnectorPolicy {
+  id                String   @id @default(cuid())
+  organizationId    String
+  provider          String
+  enabled           Boolean  @default(true)
+  allowedRoleKeys   String[]
+  rateLimitOverride Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
+}
+
+model ReconnectionAlert {
+  id               String    @id @default(cuid())
+  userConnectionId String
+  reason           String
+  detectedAt       DateTime  @default(now())
+  resolvedAt       DateTime?
+  notifiedAt       DateTime?
+
+  userConnection UserConnection @relation(fields: [userConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([userConnectionId, resolvedAt])
+}
+
+model IntegrationFeatureRequest {
+  id                 String   @id @default(cuid())
+  userId             String
+  organizationId     String?
+  integrationName    String
+  useCaseDescription String
+  status             String   @default("pending")
+  createdAt          DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
 }

@@ -1,4 +1,5 @@
 import { createDatabaseClient } from '../src/index.js';
+import { seedConnectorCatalog } from './seed-connector-catalog.js';
 import { seedMcpCatalog } from './seed-mcp-catalog.js';
 
 const prisma = createDatabaseClient();
@@ -71,6 +72,7 @@ async function main() {
   });
 
   await seedMcpCatalog(prisma);
+  await seedConnectorCatalog(prisma);
 }
 
 main()

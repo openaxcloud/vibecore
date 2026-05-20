@@ -756,6 +756,7 @@ exports.Prisma.McpCatalogEntryScalarFieldEnum = {
   installCount: 'installCount',
   featured: 'featured',
   verified: 'verified',
+  featuredForIdePanel: 'featuredForIdePanel',
   publishedAt: 'publishedAt',
   updatedAt: 'updatedAt'
 };
@@ -831,6 +832,115 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ConnectorCatalogScalarFieldEnum = {
+  id: 'id',
+  provider: 'provider',
+  displayName: 'displayName',
+  description: 'description',
+  category: 'category',
+  authType: 'authType',
+  section: 'section',
+  logoUrl: 'logoUrl',
+  defaultClientId: 'defaultClientId',
+  defaultClientSecretEnc: 'defaultClientSecretEnc',
+  authorizeUrl: 'authorizeUrl',
+  tokenUrl: 'tokenUrl',
+  revokeUrl: 'revokeUrl',
+  userInfoUrl: 'userInfoUrl',
+  defaultScopes: 'defaultScopes',
+  availableScopes: 'availableScopes',
+  apiKeyFields: 'apiKeyFields',
+  apiKeyTestEndpoint: 'apiKeyTestEndpoint',
+  triggersSupported: 'triggersSupported',
+  triggerDescriptions: 'triggerDescriptions',
+  webhookSupport: 'webhookSupport',
+  webhookSignatureScheme: 'webhookSignatureScheme',
+  webhookSigningSecretEnc: 'webhookSigningSecretEnc',
+  minPlanTier: 'minPlanTier',
+  forAgentUse: 'forAgentUse',
+  displayOrder: 'displayOrder',
+  featuredForIdePanel: 'featuredForIdePanel',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserConnectionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  externalAccountId: 'externalAccountId',
+  externalAccountLabel: 'externalAccountLabel',
+  accessTokenEncrypted: 'accessTokenEncrypted',
+  refreshTokenEncrypted: 'refreshTokenEncrypted',
+  apiKeyFieldsEncrypted: 'apiKeyFieldsEncrypted',
+  scopes: 'scopes',
+  tokenExpiresAt: 'tokenExpiresAt',
+  status: 'status',
+  lastUsedAt: 'lastUsedAt',
+  forAgentUse: 'forAgentUse',
+  oauthAppSource: 'oauthAppSource',
+  oauthAppOverrideId: 'oauthAppOverrideId',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  revokedAt: 'revokedAt'
+};
+
+exports.Prisma.ProjectConnectionLinkScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  userConnectionId: 'userConnectionId',
+  linkedByUserId: 'linkedByUserId',
+  linkedAt: 'linkedAt',
+  unlinkedAt: 'unlinkedAt'
+};
+
+exports.Prisma.OrganizationOAuthAppOverrideScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  provider: 'provider',
+  clientId: 'clientId',
+  clientSecretEncrypted: 'clientSecretEncrypted',
+  scopes: 'scopes',
+  configuredByUserId: 'configuredByUserId',
+  testedAt: 'testedAt',
+  testStatus: 'testStatus',
+  testError: 'testError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OrganizationConnectorPolicyScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  provider: 'provider',
+  enabled: 'enabled',
+  allowedRoleKeys: 'allowedRoleKeys',
+  rateLimitOverride: 'rateLimitOverride',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ReconnectionAlertScalarFieldEnum = {
+  id: 'id',
+  userConnectionId: 'userConnectionId',
+  reason: 'reason',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt',
+  notifiedAt: 'notifiedAt'
+};
+
+exports.Prisma.IntegrationFeatureRequestScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  organizationId: 'organizationId',
+  integrationName: 'integrationName',
+  useCaseDescription: 'useCaseDescription',
+  status: 'status',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1010,7 +1120,14 @@ exports.Prisma.ModelName = {
   AgentRun: 'AgentRun',
   AgentRunResult: 'AgentRunResult',
   ConsensusRecord: 'ConsensusRecord',
-  WorkspaceRuntime: 'WorkspaceRuntime'
+  WorkspaceRuntime: 'WorkspaceRuntime',
+  ConnectorCatalog: 'ConnectorCatalog',
+  UserConnection: 'UserConnection',
+  ProjectConnectionLink: 'ProjectConnectionLink',
+  OrganizationOAuthAppOverride: 'OrganizationOAuthAppOverride',
+  OrganizationConnectorPolicy: 'OrganizationConnectorPolicy',
+  ReconnectionAlert: 'ReconnectionAlert',
+  IntegrationFeatureRequest: 'IntegrationFeatureRequest'
 };
 
 /**
