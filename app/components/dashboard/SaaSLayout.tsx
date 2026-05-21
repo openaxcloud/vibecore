@@ -292,10 +292,10 @@ export const publicCompareLinks = [
 
 export const publicFooterUtilityLinks = [
   { label: 'GitHub', to: ECODE_MARKETING_BRAND.repositoryUrl, icon: Github, external: true },
-  { label: 'Documentation', to: '/docs', icon: BookOpen },
-  { label: 'Status', to: '/status', icon: Globe2 },
-  { label: 'Templates', to: '/templates', icon: Youtube },
-  { label: 'Contact', to: '/contact-sales', icon: Instagram },
+  { label: 'Documentation', to: '/docs', icon: BookOpen, external: false },
+  { label: 'Status', to: '/status', icon: Globe2, external: false },
+  { label: 'Templates', to: '/templates', icon: Youtube, external: false },
+  { label: 'Contact', to: '/contact-sales', icon: Instagram, external: false },
 ] as const satisfies readonly FooterUtilityLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
