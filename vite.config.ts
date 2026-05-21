@@ -29,7 +29,9 @@ export default defineConfig((config) => {
         ignored: [
           '**/.claude/**',
           '**/.playwright-mcp/**',
+          '**/.vibecore-project-storage',
           '**/.vibecore-project-storage/**',
+          '**/.vibecore-static-deployments',
           '**/.vibecore-static-deployments/**',
           '**/test-results/**',
           '**/tmp/**',

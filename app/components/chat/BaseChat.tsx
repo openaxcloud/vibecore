@@ -3728,21 +3728,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('chat', { activeTabId: normalizedToolId });
         } else if (normalizedToolId === 'files') {
           setMobileIdePanel('files');
+          setProjectPanelSearchParam('files');
         } else if (normalizedToolId === 'search') {
           setMobileIdePanel('search');
+          setProjectPanelSearchParam('search');
         } else if (normalizedToolId === 'locks') {
           setMobileIdePanel('locks');
+          setProjectPanelSearchParam('locks');
         } else if (normalizedToolId === 'preview') {
           setMobileIdePanel('preview');
+          setProjectPanelSearchParam('preview');
         } else if (normalizedToolId === 'console' || normalizedToolId === 'terminal' || normalizedToolId === 'shell') {
           setMobileIdePanel('terminal', { activeTabId: 'terminal' });
+          setProjectPanelSearchParam('terminal');
         } else if (normalizedToolId === 'editor') {
           setMobileIdePanel('editor');
+          setProjectPanelSearchParam('editor');
         } else {
           const managementPanel = managementPanelByTool[normalizedToolId];
 
           if (managementPanel) {
-            openWorkspacePanel(managementPanel);
+            openWorkspacePanel(managementPanel, { replaceUrl: false });
+            setProjectPanelSearchParam(managementPanel);
             setMobileIdePanel('deploy', { activeTabId: managementPanel });
           }
         }
@@ -3752,7 +3759,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setMobileToolsQuery('');
         setMobileTabSwitcherOpen(false);
       },
-      [ensureMobileOpenTab, openWorkspacePanel, setMobileIdePanel],
+      [ensureMobileOpenTab, openWorkspacePanel, setMobileIdePanel, setProjectPanelSearchParam],
     );
 
     const activateMobileMoreMenuItem = useCallback(

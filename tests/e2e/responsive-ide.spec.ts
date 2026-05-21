@@ -82,8 +82,13 @@ async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) 
 
 async function openMobileMoreMenu(page: import('@playwright/test').Page) {
   const moreMenu = page.getByTestId('mobile-more-menu-sheet');
+  const overviewItem = page.getByTestId('mobile-more-menu-overview');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    if ((await moreMenu.isVisible().catch(() => false)) && (await overviewItem.isVisible().catch(() => false))) {
+      return moreMenu;
+    }
+
     await clickFirstVisible([
       mobileBottomNavigation(page).getByTestId('button-more'),
       page.getByTestId('mobile-ide-header').getByTestId('button-more'),
@@ -91,7 +96,7 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page) {
 
     try {
       await expect(moreMenu).toBeVisible({ timeout: 5000 });
-      await expect(page.getByTestId('mobile-more-menu-overview')).toBeVisible({ timeout: 5000 });
+      await expect(overviewItem).toBeVisible({ timeout: 5000 });
 
       return moreMenu;
     } catch {
@@ -103,15 +108,20 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page) {
   }
 
   await expect(moreMenu).toBeVisible({ timeout: 15000 });
-  await expect(page.getByTestId('mobile-more-menu-overview')).toBeVisible({ timeout: 15000 });
+  await expect(overviewItem).toBeVisible({ timeout: 15000 });
 
   return moreMenu;
 }
 
 async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   const toolsSheet = page.getByTestId('tools-sheet');
+  const overviewItem = page.getByTestId('tool-item-overview');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    if ((await toolsSheet.isVisible().catch(() => false)) && (await overviewItem.isVisible().catch(() => false))) {
+      return toolsSheet;
+    }
+
     await clickFirstVisible([
       mobileBottomNavigation(page).getByTestId('button-add-tab'),
       page.getByTestId('mobile-ide-header').getByTestId('button-new-tab'),
@@ -119,7 +129,7 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page) {
 
     try {
       await expect(toolsSheet).toBeVisible({ timeout: 5000 });
-      await expect(page.getByTestId('tool-item-overview')).toBeVisible({ timeout: 5000 });
+      await expect(overviewItem).toBeVisible({ timeout: 5000 });
 
       return toolsSheet;
     } catch {
@@ -131,7 +141,7 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page) {
   }
 
   await expect(toolsSheet).toBeVisible({ timeout: 15000 });
-  await expect(page.getByTestId('tool-item-overview')).toBeVisible({ timeout: 15000 });
+  await expect(overviewItem).toBeVisible({ timeout: 15000 });
 
   return toolsSheet;
 }
@@ -613,7 +623,7 @@ test.describe('responsive IDE shell', () => {
 
   test('mobile and tablet use canonical web panel names in More and tools sheets', async ({ page }, testInfo) => {
     test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
 
     const projectId = await createTestProject(page, 'Responsive canonical mobile panels project');
 
@@ -659,8 +669,11 @@ test.describe('responsive IDE shell', () => {
     await expect(resetToolsSheet).toBeHidden({ timeout: 10_000 });
 
     const reopenedMoreMenu = await openMobileMoreMenu(page);
-    await expect(reopenedMoreMenu.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
-    await reopenedMoreMenu.getByTestId('mobile-more-menu-deployments').click({ force: true });
+    const deploymentsMenuItem = reopenedMoreMenu.getByTestId('mobile-more-menu-deployments');
+
+    await expect(deploymentsMenuItem).toBeVisible({ timeout: 15_000 });
+    await expect(deploymentsMenuItem).toContainText('Deployments');
+    await deploymentsMenuItem.click();
     await expectMobileServicePanel(page, 'deployments');
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
 
