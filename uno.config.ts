@@ -1,11 +1,20 @@
-import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename } from 'node:path';
+import { globSync } from 'fast-glob';
 import { defineConfig, presetIcons, presetUno, transformerDirectives } from 'unocss';
 
 const iconPaths = globSync('./icons/*.svg');
 
 const collectionName = 'bolt';
+
+const LOCAL_ARTIFACT_EXCLUDES = [
+  /\/\.claude\//,
+  /\/\.playwright-mcp\//,
+  /\/test-results\//,
+  /\/tmp\//,
+  /\/build\//,
+  /\/dist\//,
+];
 
 const customIconCollection = iconPaths.reduce(
   (acc, iconPath) => {
@@ -98,6 +107,11 @@ const COLOR_PRIMITIVES = {
 };
 
 export default defineConfig({
+  content: {
+    pipeline: {
+      exclude: LOCAL_ARTIFACT_EXCLUDES,
+    },
+  },
   safelist: [...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`)],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',

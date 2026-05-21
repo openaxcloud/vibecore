@@ -2203,6 +2203,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
 
+    const closeMobileOverlays = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileToolsSheetOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileToolsQuery('');
+    }, []);
+
+    const closeMobileToolsSheet = useCallback(() => {
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+    }, []);
+
+    const openMobileToolsSheet = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileTabSwitcherOpen(false);
+      setMobileToolsQuery('');
+      setMobileToolsSheetOpen(true);
+    }, []);
+
+    const openMobileMoreMenu = useCallback(() => {
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+      setMobileTabSwitcherOpen(false);
+      setMobileMoreOpen(true);
+    }, []);
+
+    const openMobileTabSwitcher = useCallback(() => {
+      setMobileMoreOpen(false);
+      setMobileToolsSheetOpen(false);
+      setMobileToolsQuery('');
+      setMobileTabSwitcherOpen(true);
+    }, []);
+
     const [mobileOpenTabs, setMobileOpenTabs] = useState(() =>
       ECODE_MOBILE_DEFAULT_TABS.map((tab) => ECODE_MOBILE_TAB_META[tab]),
     );
@@ -2277,11 +2310,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     useEffect(() => {
       if (!useMobileIde) {
-        setMobileMoreOpen(false);
-        setMobileToolsSheetOpen(false);
-        setMobileToolsQuery('');
+        closeMobileOverlays();
       }
-    }, [useMobileIde]);
+    }, [closeMobileOverlays, useMobileIde]);
 
     useEffect(() => {
       if (!useMobileIde || (!mobileMoreOpen && !mobileToolsSheetOpen && !mobileTabSwitcherOpen)) {
@@ -2293,15 +2324,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        setMobileMoreOpen(false);
-        setMobileToolsSheetOpen(false);
-        setMobileTabSwitcherOpen(false);
+        closeMobileOverlays();
       };
 
       window.addEventListener('keydown', handleMobileOverlayEscape);
 
       return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
-    }, [mobileMoreOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
+    }, [closeMobileOverlays, mobileMoreOpen, mobileTabSwitcherOpen, mobileToolsSheetOpen, useMobileIde]);
 
     const [isOnline, setIsOnline] = useState(true);
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
@@ -2534,9 +2563,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
-        setSearchParams(withPanelSearchParam(searchParams, panel));
+        setSearchParams((current) => withPanelSearchParam(current, panel));
       },
-      [searchParams, setSearchParams],
+      [setSearchParams],
     );
 
     const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
@@ -6210,16 +6239,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
-                <button
-                  type="button"
-                  aria-label="New tab"
-                  data-testid="button-new-tab"
-                  onClick={() => {
-                    setMobileMoreOpen(false);
-                    setMobileTabSwitcherOpen(false);
-                    setMobileToolsSheetOpen(true);
-                  }}
-                >
+                <button type="button" aria-label="New tab" data-testid="button-new-tab" onClick={openMobileToolsSheet}>
                   <span className="i-ph:plus" aria-hidden />
                 </button>
                 <button
@@ -6228,11 +6248,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-haspopup="dialog"
                   aria-expanded={mobileMoreOpen}
                   data-testid="button-more"
-                  onClick={() => {
-                    setMobileToolsSheetOpen(false);
-                    setMobileTabSwitcherOpen(false);
-                    setMobileMoreOpen(true);
-                  }}
+                  onClick={openMobileMoreMenu}
                 >
                   <span className="i-ph:dots-three-vertical" aria-hidden />
                 </button>
@@ -6436,7 +6452,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-mobile-replit-icon-tab"
                   aria-label="Open tab switcher"
                   data-testid="button-tab-switcher"
-                  onClick={() => setMobileTabSwitcherOpen(true)}
+                  onClick={openMobileTabSwitcher}
                 >
                   <span className="i-ph:squares-four" aria-hidden />
                 </button>
@@ -6466,7 +6482,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
                     aria-label={`Show ${mobileOpenTabs.length - 3} more tabs`}
                     data-testid="button-more-tabs"
-                    onClick={() => setMobileTabSwitcherOpen(true)}
+                    onClick={openMobileTabSwitcher}
                   >
                     +{mobileOpenTabs.length - 3}
                   </button>
@@ -6479,7 +6495,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       className="bolt-mobile-replit-icon-tab"
                       aria-label="Add new tab"
                       data-testid="button-add-tab"
-                      onClick={() => setMobileToolsSheetOpen(true)}
+                      onClick={openMobileToolsSheet}
                     >
                       <span className="i-ph:plus" aria-hidden />
                     </button>
@@ -6494,10 +6510,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 aria-haspopup="dialog"
                 aria-expanded={mobileMoreOpen}
                 data-testid="button-more"
-                onClick={() => {
-                  setMobileToolsSheetOpen(false);
-                  setMobileMoreOpen(true);
-                }}
+                onClick={openMobileMoreMenu}
               >
                 <span className="i-ph:dots-three-vertical" aria-hidden />
               </button>
@@ -6576,10 +6589,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     type="button"
                     aria-label="Open new tab"
                     data-testid="button-new-tab"
-                    onClick={() => {
-                      setMobileTabSwitcherOpen(false);
-                      setMobileToolsSheetOpen(true);
-                    }}
+                    onClick={openMobileToolsSheet}
                   >
                     <span className="i-ph:plus" aria-hidden />
                     <span>New Tab</span>
@@ -6662,7 +6672,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               type="button"
               className="bolt-mobile-more-backdrop"
               aria-label="Close tools sheet"
-              onClick={() => setMobileToolsSheetOpen(false)}
+              onClick={closeMobileToolsSheet}
             />
             <section
               className="bolt-mobile-more-sheet"
@@ -6688,7 +6698,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   type="button"
                   className="bolt-mobile-more-close"
                   data-testid="tools-sheet-close"
-                  onClick={() => setMobileToolsSheetOpen(false)}
+                  onClick={closeMobileToolsSheet}
                 >
                   Close
                 </button>

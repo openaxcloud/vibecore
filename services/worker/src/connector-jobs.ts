@@ -1,4 +1,3 @@
-import type { DatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
 
 /*
@@ -29,6 +28,61 @@ interface ProviderPingTarget {
   authHeader: (token: string) => string;
 }
 
+interface ConnectorJobsUserConnection {
+  id: string;
+  provider: string;
+  accessTokenEncrypted: string | null;
+  externalAccountLabel: string | null;
+}
+
+interface ConnectorJobsReconnectionAlert {
+  id: string;
+  reason: string;
+  detectedAt: Date;
+  userConnection: ConnectorJobsUserConnection | null;
+}
+
+interface ConnectorJobsDatabase {
+  userConnection: {
+    findMany(args: {
+      where: {
+        status: 'active';
+        forAgentUse: true;
+        OR: [{ lastUsedAt: null }, { lastUsedAt: { lt: Date } }];
+        provider: { in: string[] };
+      };
+      take: number;
+      orderBy: { lastUsedAt: { sort: 'asc'; nulls: 'first' } };
+    }): Promise<ConnectorJobsUserConnection[]>;
+    update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<unknown>;
+  };
+  reconnectionAlert: {
+    findFirst(args: { where: { userConnectionId: string; resolvedAt: null } }): Promise<unknown | null>;
+    create(args: { data: { userConnectionId: string; reason: 'token_revoked' } }): Promise<unknown>;
+    findMany(args: {
+      where: { resolvedAt: null; notifiedAt: null };
+      take: number;
+      orderBy: { detectedAt: 'asc' };
+      include: { userConnection: true };
+    }): Promise<ConnectorJobsReconnectionAlert[]>;
+    update(args: { where: { id: string }; data: { notifiedAt: Date } }): Promise<unknown>;
+  };
+  auditLog: {
+    create(args: {
+      data: {
+        action: string;
+        resourceType: 'UserConnection';
+        resourceId: string;
+        metadata: {
+          reason: string;
+          detectedAt: string;
+          accountLabel: string | null;
+        };
+      };
+    }): Promise<unknown>;
+  };
+}
+
 const PROVIDER_PING_TARGETS: Record<string, ProviderPingTarget> = {
   github: {
     url: 'https://api.github.com/user',
@@ -40,7 +94,7 @@ export const DEFAULT_HEALTH_CHECK_STALENESS_MS = 30 * 60 * 1000;
 export const DEFAULT_HEALTH_CHECK_MAX_CONNECTIONS = 50;
 
 export interface ConnectorTokenHealthCheckInput {
-  prisma: DatabaseClient;
+  prisma: ConnectorJobsDatabase;
   now?: Date;
   stalenessMs?: number;
   maxConnections?: number;
@@ -123,8 +177,10 @@ export async function runConnectorTokenHealthCheck(
         data: { status: 'needs_reconnect' },
       });
 
-      // Skip when an unresolved alert already exists so the notifier
-      // does not double-fire on the same connection.
+      /*
+       * Skip when an unresolved alert already exists so the notifier
+       * does not double-fire on the same connection.
+       */
       const existing = await input.prisma.reconnectionAlert.findFirst({
         where: { userConnectionId: connection.id, resolvedAt: null },
       });
@@ -142,9 +198,11 @@ export async function runConnectorTokenHealthCheck(
       continue;
     }
 
-    // Any other non-2xx is treated as a transient upstream blip; the
-    // sweep retries on the next tick. lastUsedAt is bumped only on
-    // success so a degraded provider stays at the front of the queue.
+    /*
+     * Any other non-2xx is treated as a transient upstream blip; the
+     * sweep retries on the next tick. lastUsedAt is bumped only on
+     * success so a degraded provider stays at the front of the queue.
+     */
     if (response.ok) {
       await input.prisma.userConnection.update({
         where: { id: connection.id },
@@ -164,7 +222,7 @@ export async function runConnectorTokenHealthCheck(
 }
 
 export interface ConnectorReconnectionNotifierInput {
-  prisma: DatabaseClient;
+  prisma: ConnectorJobsDatabase;
   now?: Date;
   maxAlerts?: number;
 }
@@ -201,8 +259,10 @@ export async function runConnectorReconnectionNotifier(
       continue;
     }
 
-    // Best-effort audit log entry; the existing SIEM webhook delivery
-    // worker picks the row up on its next sweep.
+    /*
+     * Best-effort audit log entry; the existing SIEM webhook delivery
+     * worker picks the row up on its next sweep.
+     */
     try {
       await input.prisma.auditLog.create({
         data: {
@@ -217,8 +277,10 @@ export async function runConnectorReconnectionNotifier(
         },
       });
     } catch {
-      // Even when the audit insert fails (table contention, FK race) we
-      // do not roll back notifiedAt — the notification still ran.
+      /*
+       * Even when the audit insert fails (table contention, FK race) we
+       * do not roll back notifiedAt; the notification still ran.
+       */
     }
 
     notified += 1;

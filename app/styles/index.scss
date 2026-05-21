@@ -3578,7 +3578,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-menu-backdrop {
   position: fixed !important;
-  z-index: 11000;
+  z-index: 12020;
   inset: 0 !important;
   display: block;
   width: 100vw;
@@ -3597,7 +3597,7 @@ body :where(.lucide, svg[data-lucide]) {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 11001;
+  z-index: 12021;
   display: flex;
   max-height: min(70dvh, 620px);
   flex-direction: column;
@@ -3746,7 +3746,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-more-backdrop {
   position: fixed !important;
-  z-index: 11000;
+  z-index: 12020;
   inset: 0 !important;
   display: block;
   width: 100vw;
@@ -3765,7 +3765,7 @@ body :where(.lucide, svg[data-lucide]) {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 11001;
+  z-index: 12021;
   display: flex;
   height: min(85dvh, 720px);
   max-height: calc(100dvh - env(safe-area-inset-top, 0px));
@@ -14969,7 +14969,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     top: 0;
     right: 0;
     left: 0;
-    z-index: 9000;
+    z-index: 11002;
     display: block;
     border-bottom: 1px solid rgb(55 65 81 / 0.5);
     background: rgb(28 28 28 / 0.95);

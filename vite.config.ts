@@ -25,6 +25,18 @@ export default defineConfig((config) => {
       host: devHost,
       port: devPort,
       strictPort: strictDevPort,
+      watch: {
+        ignored: [
+          '**/.claude/**',
+          '**/.playwright-mcp/**',
+          '**/.vibecore-project-storage/**',
+          '**/.vibecore-static-deployments/**',
+          '**/test-results/**',
+          '**/tmp/**',
+          '**/build/**',
+          '**/dist/**',
+        ],
+      },
     },
     build: {
       target: 'esnext',
@@ -188,7 +200,7 @@ export default defineConfig((config) => {
           },
         }),
       UnoCSS(),
-      tsconfigPaths(),
+      tsconfigPaths({ projects: ['./tsconfig.json'] }),
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
