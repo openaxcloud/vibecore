@@ -210,6 +210,36 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - .
 
+  # ---- 4. vulnerability scan (non-blocking) ----
+  # Runs after every service build is pushed. `allowFailure: true` keeps the
+  # pipeline green when the scanner is unavailable or finds CVEs — surfacing
+  # findings in Cloud Build logs without gating deploys. Tighten later by
+  # parsing the scan output and failing on CRITICAL severities.
+  - id: scan-images
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor:
+      - build-web
+      - build-admin
+      - build-api
+      - build-worker
+      - build-ai-gateway
+      - build-workspace-manager
+      - build-preview-proxy
+    allowFailure: true
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -u
+        for img in web admin api worker ai-gateway workspace-manager preview-proxy; do
+          echo "::: scanning $img:${_SHORT_SHA}"
+          gcloud artifacts docker images scan \
+            "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:${_SHORT_SHA}" \
+            --location="${_REGION}" \
+            --format='value(response.scan)' \
+            || echo "WARN: scan failed for $img (non-fatal)"
+        done
+
 images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:latest
