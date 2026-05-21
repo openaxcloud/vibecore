@@ -56,6 +56,8 @@ secrets:
     MOONSHOT_API_KEY: vibecore-prod-moonshot-api-key
     STRIPE_SECRET_KEY: vibecore-prod-stripe-secret-key
     STRIPE_WEBHOOK_SECRET: vibecore-prod-stripe-webhook-secret
+    EMAIL_HTTP_TOKEN: vibecore-prod-email-http-token
+    PREVIEW_PROXY_SHARED_SECRET: vibecore-prod-preview-proxy-shared-secret
     # Svix-format signing secret from the Resend dashboard. Verifies POSTs
     # to /webhooks/resend (services/api/src/app.ts:5217); the route returns
     # 503 WEBHOOK_NOT_CONFIGURED until this is populated.
@@ -81,6 +83,16 @@ platformEnv:
   # (services/api/src/app.ts:1005), but we set it explicitly here so the
   # policy is auditable from the chart values rather than implicit in code.
   adminMfaRequired: "true"
+  runtime:
+    mode: "remote-kubernetes"
+    apiBaseUrl: "https://api.e-code.ai/api/runtime"
+    workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
+    workspaceRuntimeNamespace: "workspaces"
+    workspaceAgentImage: "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-ef77d35"
+    previewUrlTemplate: "https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/"
+  email:
+    httpEndpoint: "https://api.resend.com/emails"
+    from: "no-reply@e-code.ai"
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

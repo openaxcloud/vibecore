@@ -32,6 +32,12 @@ describe('workspace Kubernetes manifests', () => {
     const container = (pod.spec?.containers as any[])[0];
 
     expect(pod.spec?.runtimeClassName).toBe('gvisor');
+    expect(pod.spec?.tolerations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'vibecore.ai/sandbox', value: 'true' }),
+        expect.objectContaining({ key: 'sandbox.gke.io/runtime', value: 'gvisor' }),
+      ]),
+    );
     expect(pod.spec?.securityContext).toMatchObject({ runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000, fsGroup: 1000 });
     expect(container.securityContext).toMatchObject({ allowPrivilegeEscalation: false, privileged: false, runAsNonRoot: true });
     expect(container.securityContext.capabilities.drop).toEqual(['ALL']);
@@ -99,7 +105,7 @@ describe('workspace Kubernetes manifests', () => {
     expect(except).not.toContain('');
   });
 
-  it('creates agent secret and ingress policy for manager and preview-proxy only', () => {
+  it('creates agent secret and ingress policy for platform runtime callers only', () => {
     expect(workspaceAgentSecret({ ...input, tokenSecret: 'secret' })).toMatchObject({
       kind: 'Secret',
       stringData: { tokenSecret: 'secret' },
@@ -107,7 +113,9 @@ describe('workspace Kubernetes manifests', () => {
 
     const policy = managerAndPreviewIngressNetworkPolicy('workspaces');
     expect(JSON.stringify(policy)).toContain('workspace-manager');
+    expect(JSON.stringify(policy)).toContain('api');
     expect(JSON.stringify(policy)).toContain('preview-proxy');
+    expect(JSON.stringify(policy)).toContain('kubernetes.io/metadata.name');
   });
 
   it('declares gVisor RuntimeClass', () => {

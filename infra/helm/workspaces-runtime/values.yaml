@@ -1,4 +1,8 @@
 namespace: workspaces
+platformNamespace: vibecore
+
+workspaceManager:
+  serviceAccountName: vibecore-vibecore-platform-workspace-manager
 
 runtimeClass:
   enabled: true

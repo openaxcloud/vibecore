@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEmailProvider, HttpEmailProvider, LoggingEmailProvider, SmtpEmailProvider } from '../email.js';
 
-const ENV_KEYS = ['SMTP_HOST', 'EMAIL_HTTP_ENDPOINT', 'EMAIL_PROVIDER', 'NODE_ENV'] as const;
+const ENV_KEYS = ['SMTP_HOST', 'EMAIL_HTTP_ENDPOINT', 'EMAIL_HTTP_TOKEN', 'EMAIL_FROM', 'EMAIL_PROVIDER', 'NODE_ENV'] as const;
 
 describe('createEmailProvider', () => {
   let original: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -68,5 +68,32 @@ describe('createEmailProvider', () => {
     expect(message).toContain('user@example.com');
     expect(message).toContain('Hello');
     expect(message).toContain('Hi there');
+  });
+
+  it('HttpEmailProvider sends Resend-compatible JSON with bearer auth and user-agent', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ id: 'email_1' }), { status: 200 }));
+    process.env.EMAIL_FROM = 'Vibecore <no-reply@e-code.ai>';
+
+    const provider = new HttpEmailProvider('https://api.resend.com/emails', 'resend-token');
+    await provider.send({ to: 'user@example.com', subject: 'Verify', text: 'Use this code', html: '<p>Use this code</p>' });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.resend.com/emails');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: expect.objectContaining({
+        accept: 'application/json',
+        authorization: 'Bearer resend-token',
+        'content-type': 'application/json',
+        'user-agent': 'Vibecore API transactional email',
+      }),
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      from: 'Vibecore <no-reply@e-code.ai>',
+      to: 'user@example.com',
+      subject: 'Verify',
+      text: 'Use this code',
+      html: '<p>Use this code</p>',
+    });
   });
 });

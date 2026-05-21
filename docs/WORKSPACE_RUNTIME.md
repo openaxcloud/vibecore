@@ -14,7 +14,7 @@ Ce document décrit le runtime Kubernetes ajouté autour de l'IDE Bolt existant.
 ## Cycle de vie
 
 1. L'API SaaS demande au `workspace-manager` de démarrer un workspace pour `orgId`, `projectId`, `workspaceId`.
-2. Le manager crée un record workspace dans son `WorkspaceStore`. L'implémentation actuelle fournit `InMemoryWorkspaceStore`; en production, elle doit être remplacée par un store Prisma branché sur `Workspace` / `WorkspaceSession`.
+2. Le manager crée un record workspace dans son `WorkspaceStore`. En production, `PrismaWorkspaceStore` persiste l'état dans PostgreSQL pour que les réplicas partagent les mêmes pods, PVC, services et secrets.
 3. Le manager crée un PVC par projet (`pvc-${projectId}`).
 4. Le manager crée un Secret contenant le secret de vérification agent et uniquement les secrets explicitement autorisés.
 5. Le manager crée un Pod `workspace-${workspaceId}` avec labels complets `orgId`, `projectId`, `workspaceId`.
@@ -33,11 +33,10 @@ Les ressources par défaut sont définies dans `packages/k8s-client/src/index.ts
 
 ## Points d'intégration production
 
-- Remplacer `InMemoryWorkspaceStore` par un store Prisma dans `services/workspace-manager`.
-- Remplacer `MockWorkspaceK8sClient` par un client Kubernetes réel utilisant l'API Kubernetes du cluster.
-- Brancher les événements `InMemoryEventBus` vers Redis/BullMQ ou un bus durable.
-- Brancher `preview-proxy` sur les Services workspace et sur `getPreviewUrl` du RuntimeAdapter remote.
-- Brancher `RemoteKubernetesRuntimeAdapter` sur `workspace-manager` + `workspace-agent`.
+- Déployer `infra/helm/workspaces-runtime` avant d'activer les workspaces: namespace runtime, `RuntimeClass/gvisor`, quotas, limites, NetworkPolicies et RBAC du service account `workspace-manager`.
+- Configurer `WORKSPACE_RUNTIME_NAMESPACE`, `WORKSPACE_AGENT_IMAGE`, `WORKSPACE_MANAGER_URL`, `VITE_RUNTIME_API_BASE_URL=/api/runtime`, `PREVIEW_URL_TEMPLATE` et `PREVIEW_PROXY_SHARED_SECRET`.
+- Vérifier que le cluster cible dispose d'un node pool sandbox compatible gVisor avec le label `vibecore.ai/node-pool=sandbox`, la taint `vibecore.ai/sandbox=true:NoSchedule` et la taint GKE `sandbox.gke.io/runtime=gvisor:NoSchedule`.
+- Garder `preview-proxy` branché sur `/internal/workspaces/:workspaceId/agent` du workspace-manager avec `PREVIEW_PROXY_SHARED_SECRET`, puis exposer les URLs publiques via `PREVIEW_URL_TEMPLATE`.
 
 ## Non-régression Bolt
 

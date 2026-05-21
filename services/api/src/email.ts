@@ -25,7 +25,9 @@ export class HttpEmailProvider implements EmailProvider {
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
+        accept: 'application/json',
         'content-type': 'application/json',
+        'user-agent': 'Vibecore API transactional email',
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
       },
       body: JSON.stringify({

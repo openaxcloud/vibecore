@@ -56,6 +56,30 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it('resolves agents through workspace-manager with the preview shared secret', async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async (url) => {
+      if (url.pathname === '/internal/workspaces/ws_1/agent') {
+        return Response.json(fakeAgent);
+      }
+
+      return new Response('preview', { status: 200 });
+    });
+
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      workspaceManagerUrl: 'http://workspace-manager.test',
+      proxySharedSecret: 'preview-secret',
+    });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.statusCode).toBe(200);
+    expect(calls[0].url.toString()).toBe('http://workspace-manager.test/internal/workspaces/ws_1/agent');
+    expect((calls[0].init.headers as Record<string, string>).authorization).toBe('Bearer preview-secret');
+    expect(calls[1].url.toString()).toBe('http://workspace-agent.test/preview/4173/');
+
+    await app.close();
+  });
+
   it('translates upstream timeout to 504', async () => {
     const fetchImpl = (async () => {
       throw Object.assign(new Error('aborted'), { name: 'AbortError' });

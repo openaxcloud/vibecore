@@ -81,3 +81,30 @@ spec:
         - podSelector:
             matchLabels:
               app.kubernetes.io/part-of: vibecore
+---
+# Runtime traffic leaves the platform namespace on port 8080 to reach
+# workspace-agent pods. Keep it scoped to the runtime control-plane callers.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-workspace-runtime-egress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["api", "workspace-manager", "preview-proxy"]
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vibecore-workspace
+      ports:
+        - protocol: TCP
+          port: 8080

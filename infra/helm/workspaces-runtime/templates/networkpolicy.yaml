@@ -54,13 +54,32 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformNamespace | quote }}
+          podSelector:
             matchLabels:
               app.kubernetes.io/name: workspace-manager
       ports:
         - protocol: TCP
           port: 8080
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformNamespace | quote }}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.platformNamespace | quote }}
+          podSelector:
             matchLabels:
               app.kubernetes.io/name: preview-proxy
+      ports:
+        - protocol: TCP
+          port: 8080

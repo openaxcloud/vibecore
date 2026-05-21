@@ -46,6 +46,16 @@ platformEnv:
   # treated as required unless it equals the string "false") — set
   # explicitly so the policy is visible in chart values.
   adminMfaRequired: "true"
+  runtime:
+    mode: "remote-kubernetes"
+    apiBaseUrl: "https://api.staging.example.com/api/runtime"
+    workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
+    workspaceRuntimeNamespace: "workspaces"
+    workspaceAgentImage: "us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging"
+    previewUrlTemplate: "https://{workspaceId}-{port}.preview.staging.example.com/p/{workspaceId}/{port}/"
+  email:
+    httpEndpoint: ""
+    from: ""
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

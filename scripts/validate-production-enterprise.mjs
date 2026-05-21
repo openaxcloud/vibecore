@@ -58,7 +58,6 @@ const httpsRequired = new Set([
   'CLOUD_RUN_BUILD_TRIGGER_URL',
   'DOCKER_BUILD_TRIGGER_URL',
   'VITE_RUNTIME_API_BASE_URL',
-  'WORKSPACE_MANAGER_URL',
 ]);
 
 const deploymentProviderRequirements = {
@@ -137,7 +136,15 @@ const groups = [
   {
     id: 'runtime-mode',
     label: 'Runtime mode',
-    required: ['VITE_RUNTIME_MODE', 'VITE_RUNTIME_API_BASE_URL', 'WORKSPACE_MANAGER_URL', 'WORKSPACE_RUNTIME_NAMESPACE'],
+    required: [
+      'VITE_RUNTIME_MODE',
+      'VITE_RUNTIME_API_BASE_URL',
+      'WORKSPACE_MANAGER_URL',
+      'WORKSPACE_RUNTIME_NAMESPACE',
+      'WORKSPACE_AGENT_IMAGE',
+      'PREVIEW_PROXY_SHARED_SECRET',
+      'PREVIEW_URL_TEMPLATE',
+    ],
     custom: validateRuntimeMode,
   },
   {
@@ -258,6 +265,21 @@ function validateUrl(name, problems) {
   }
 }
 
+function requireUrl(name, problems) {
+  const value = valueOf(name);
+
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    return new URL(value);
+  } catch {
+    problems.push(`${name} must be a valid URL`);
+    return undefined;
+  }
+}
+
 function validateScalar(name, problems) {
   if (isMissing(name)) {
     problems.push(`${name} is required`);
@@ -335,6 +357,36 @@ function validateWorkspaceSandboxControls(problems) {
 function validateRuntimeMode(problems) {
   if (valueOf('VITE_RUNTIME_MODE') !== 'remote-kubernetes') {
     problems.push('VITE_RUNTIME_MODE must be remote-kubernetes in production');
+  }
+
+  const runtimeApiBaseUrl = requireUrl('VITE_RUNTIME_API_BASE_URL', problems);
+  if (runtimeApiBaseUrl && runtimeApiBaseUrl.pathname.replace(/\/+$/, '') !== '/api/runtime') {
+    problems.push('VITE_RUNTIME_API_BASE_URL must point to the runtime API prefix, e.g. https://api.e-code.ai/api/runtime');
+  }
+
+  const workspaceManagerUrl = requireUrl('WORKSPACE_MANAGER_URL', problems);
+  if (workspaceManagerUrl) {
+    const isInternalKubernetesService =
+      workspaceManagerUrl.protocol === 'http:' &&
+      (workspaceManagerUrl.hostname.endsWith('.svc') || workspaceManagerUrl.hostname.endsWith('.svc.cluster.local'));
+    const isHttps = workspaceManagerUrl.protocol === 'https:';
+
+    if (!isHttps && !isInternalKubernetesService) {
+      problems.push('WORKSPACE_MANAGER_URL must be https or an internal Kubernetes service DNS URL');
+    }
+
+    if (/localhost|127\.0\.0\.1/.test(workspaceManagerUrl.hostname)) {
+      problems.push('WORKSPACE_MANAGER_URL must not point to localhost in production');
+    }
+  }
+
+  const previewUrlTemplate = valueOf('PREVIEW_URL_TEMPLATE');
+  if (previewUrlTemplate && (!previewUrlTemplate.includes('{workspaceId}') || !previewUrlTemplate.includes('{port}'))) {
+    problems.push('PREVIEW_URL_TEMPLATE must include {workspaceId} and {port}');
+  }
+
+  if (valueOf('WORKSPACE_AGENT_IMAGE')?.endsWith(':latest')) {
+    problems.push('WORKSPACE_AGENT_IMAGE must be pinned and must not use :latest');
   }
 }
 
@@ -578,6 +630,9 @@ function selfTest() {
     WORKSPACE_AGENT_TOKEN_SECRET: 'agent-token-prod-123456',
     WORKSPACE_MANAGER_URL: 'https://workspace-manager.vibecore.com',
     WORKSPACE_RUNTIME_NAMESPACE: 'workspaces',
+    WORKSPACE_AGENT_IMAGE: 'registry.company.com/vibecore/workspace-agent:sha-prod123456',
+    PREVIEW_PROXY_SHARED_SECRET: 'preview-proxy-secret-prod-123456',
+    PREVIEW_URL_TEMPLATE: 'https://{workspaceId}-{port}.preview.vibecore.com/p/{workspaceId}/{port}/',
     VITE_RUNTIME_API_BASE_URL: 'https://api.vibecore.com/api/runtime',
     VITE_RUNTIME_MODE: 'remote-kubernetes',
     STRIPE_SECRET_KEY: 'sk_live_prod123456',
@@ -642,6 +697,21 @@ function selfTest() {
 
   if (failingRuntimeMode.ok) {
     throw new Error('expected production WebContainer runtime mode to fail');
+  }
+
+  const failingRuntimeBase = withEnv({ ...minimum, VITE_RUNTIME_API_BASE_URL: 'https://api.vibecore.com' }, () => buildReport());
+
+  if (failingRuntimeBase.ok) {
+    throw new Error('expected runtime API base URL without /api/runtime to fail');
+  }
+
+  const passingInternalWorkspaceManager = withEnv(
+    { ...minimum, WORKSPACE_MANAGER_URL: 'http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010' },
+    () => buildReport(),
+  );
+
+  if (!passingInternalWorkspaceManager.ok) {
+    throw new Error('expected internal Kubernetes WORKSPACE_MANAGER_URL to pass');
   }
 
   console.log('Production enterprise validator self-test passed');

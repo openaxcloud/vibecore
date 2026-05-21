@@ -16,7 +16,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   app.get('/health', async () => ({ status: 'ok', service: 'preview-proxy' }));
 
-  const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options);
+  const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
   app.all('/p/:workspaceId/:port/*', async (request, reply) => {
     const params = request.params as { workspaceId: string; port: string; '*': string };
@@ -101,7 +101,7 @@ function shouldStreamBody(method: string): boolean {
   return method !== 'GET' && method !== 'HEAD';
 }
 
-function defaultResolveAgent(options: PreviewProxyOptions) {
+function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {
   return async (workspaceId: string) => {
     const managerUrl = options.workspaceManagerUrl;
     const secret = options.proxySharedSecret;
@@ -110,7 +110,7 @@ function defaultResolveAgent(options: PreviewProxyOptions) {
       return undefined;
     }
 
-    const response = await fetch(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
+    const response = await fetchImpl(`${managerUrl.replace(/\/$/, '')}/internal/workspaces/${workspaceId}/agent`, {
       headers: { authorization: `Bearer ${secret}` },
     });
 

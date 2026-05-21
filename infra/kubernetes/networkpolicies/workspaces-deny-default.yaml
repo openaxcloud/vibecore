@@ -74,4 +74,17 @@ spec:
               kubernetes.io/metadata.name: vibecore
           podSelector:
             matchLabels:
+              app.kubernetes.io/name: api
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vibecore
+          podSelector:
+            matchLabels:
               app.kubernetes.io/name: preview-proxy
+      ports:
+        - protocol: TCP
+          port: 8080
