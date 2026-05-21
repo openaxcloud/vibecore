@@ -86,6 +86,7 @@ type TemplateCard = {
 
 type MarketingMenuItem = readonly [title: string, to: string, description: string];
 type FooterLink = readonly [label: string, to: string];
+type FooterUtilityLink = { label: string; to: string; icon: Icon; external?: boolean };
 type FooterColumn = {
   title: string;
   links: readonly FooterLink[];
@@ -276,6 +277,11 @@ export const publicFooterColumns: readonly FooterColumn[] = [
   },
 ] as const;
 
+export const publicFooterActionLinks = [
+  ['Talk to sales', '/contact-sales'],
+  ['Start building', '/register'],
+] as const satisfies readonly FooterLink[];
+
 export const publicCompareLinks = [
   ['E-Code vs GitHub Codespaces', '/compare/github-codespaces'],
   ['E-Code vs Glitch', '/compare/glitch'],
@@ -283,6 +289,14 @@ export const publicCompareLinks = [
   ['E-Code vs CodeSandbox', '/compare/codesandbox'],
   ['E-Code vs AWS Cloud9', '/compare/aws-cloud9'],
 ] as const satisfies readonly FooterLink[];
+
+export const publicFooterUtilityLinks = [
+  { label: 'GitHub', to: ECODE_MARKETING_BRAND.repositoryUrl, icon: Github, external: true },
+  { label: 'Documentation', to: '/docs', icon: BookOpen },
+  { label: 'Status', to: '/status', icon: Globe2 },
+  { label: 'Templates', to: '/templates', icon: Youtube },
+  { label: 'Contact', to: '/contact-sales', icon: Instagram },
+] as const satisfies readonly FooterUtilityLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
 
@@ -559,13 +573,12 @@ function PublicMarketingFooter() {
             </p>
           </div>
           <div className="vc-public-footer-actions">
-            <LinkButton to="/contact-sales">
-              Talk to sales
-              <ArrowUpRight className="h-4 w-4" aria-hidden />
-            </LinkButton>
-            <LinkButton to="/register" variant="outline">
-              Start building
-            </LinkButton>
+            {publicFooterActionLinks.map(([label, to], index) => (
+              <LinkButton key={to} to={to} variant={index === 0 ? 'default' : 'outline'}>
+                {label}
+                {index === 0 ? <ArrowUpRight className="h-4 w-4" aria-hidden /> : null}
+              </LinkButton>
+            ))}
           </div>
         </div>
         <div className="vc-public-footer-metrics" aria-label="Enterprise platform metrics">
@@ -634,21 +647,25 @@ function PublicMarketingFooter() {
             © {new Date().getFullYear()} {ECODE_MARKETING_BRAND.legalName}. All rights reserved.
           </span>
           <div>
-            <a href={ECODE_MARKETING_BRAND.repositoryUrl} target="_blank" rel="noreferrer" aria-label="GitHub">
-              <Github className="h-4 w-4" />
-            </a>
-            <a href="/docs" aria-label="Documentation">
-              <BookOpen className="h-4 w-4" />
-            </a>
-            <a href="/status" aria-label="Status">
-              <Globe2 className="h-4 w-4" />
-            </a>
-            <a href="/templates" aria-label="Templates">
-              <Youtube className="h-4 w-4" />
-            </a>
-            <a href="/contact-sales" aria-label="Contact">
-              <Instagram className="h-4 w-4" />
-            </a>
+            {publicFooterUtilityLinks.map((utilityLink) => {
+              const FooterIcon = utilityLink.icon;
+
+              return utilityLink.external ? (
+                <a
+                  key={utilityLink.to}
+                  href={utilityLink.to}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={utilityLink.label}
+                >
+                  <FooterIcon className="h-4 w-4" />
+                </a>
+              ) : (
+                <Link key={utilityLink.to} to={utilityLink.to} aria-label={utilityLink.label}>
+                  <FooterIcon className="h-4 w-4" />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>

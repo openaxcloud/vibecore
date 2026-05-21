@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -6,10 +6,13 @@ import { describe, expect, it } from 'vitest';
 import {
   ECODE_MARKETING_BRAND,
   publicCompareLinks,
+  publicFooterActionLinks,
   publicFooterColumns,
+  publicFooterUtilityLinks,
   publicMarketingMenus,
   publicNav,
 } from './SaaSLayout';
+import { comparePages, marketingCampaignPages, solutionPages } from '~/components/marketing/EcodeMarketingPages';
 import { ecodeCompatibilityRoutePatterns } from '~/components/marketing/EcodeSurfacePages';
 
 describe('public marketing brand', () => {
@@ -78,6 +81,20 @@ describe('public marketing brand', () => {
     }
   });
 
+  it('keeps every public header, menu, footer, and comparison link routable to a concrete page', () => {
+    const routePatterns = collectConcretePublicRoutePatterns();
+    const publicTargets = collectPublicNavigationTargets();
+
+    const missingTargets = [...new Set(publicTargets)]
+      .map(normalizeInternalTarget)
+      .filter((target): target is string => Boolean(target))
+      .filter((target) => {
+        return !routePatterns.some((pattern) => routeMatches(pattern, target));
+      });
+
+    expect(missingTargets).toEqual([]);
+  });
+
   it('serves the copied E-Code favicon, logos, comparison assets, partner assets, and manifest icons', () => {
     const publicDir = join(process.cwd(), 'public');
     const favicon = readFileSync(join(publicDir, 'favicon.svg'), 'utf8');
@@ -123,3 +140,90 @@ describe('public marketing brand', () => {
     );
   });
 });
+
+function collectPublicNavigationTargets(): string[] {
+  return [
+    ...publicNav.map(({ to }) => to),
+    ...Object.values(publicMarketingMenus)
+      .flat()
+      .map(([, to]) => to),
+    ...publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to)),
+    ...publicFooterActionLinks.map(([, to]) => to),
+    ...publicFooterUtilityLinks.map(({ to }) => to),
+    ...publicCompareLinks.map(([, to]) => to),
+  ];
+}
+
+function collectConcretePublicRoutePatterns(): string[] {
+  const staticRoutePatterns = readdirSync(join(process.cwd(), 'app/routes'))
+    .flatMap(routeFileToPatterns)
+    .filter((pattern) => !pattern.includes(':') && !pattern.includes('*'));
+
+  return [
+    ...new Set([
+      ...staticRoutePatterns,
+      ...ecodeCompatibilityRoutePatterns,
+      ...Object.keys(marketingCampaignPages).map((slug) => `/marketing/${slug}`),
+      ...Object.keys(solutionPages).map((slug) => `/solutions/${slug}`),
+      ...Object.keys(comparePages).map((slug) => `/compare/${slug}`),
+    ]),
+  ];
+}
+
+function routeFileToPatterns(file: string): string[] {
+  if (!/\.(tsx|ts)$/.test(file) || file.startsWith('api.') || file.includes('.spec.')) {
+    return [];
+  }
+
+  const base = file.replace(/\.(tsx|ts)$/, '');
+
+  if (base === '_index') {
+    return ['/'];
+  }
+
+  const routeSegments = base
+    .split('.')
+    .filter((segment) => segment !== '_index')
+    .map((segment) => {
+      if (segment === '$') {
+        return '*';
+      }
+
+      if (segment.startsWith('$')) {
+        return `:${segment.slice(1)}`;
+      }
+
+      return segment.replace(/_/g, '-');
+    });
+
+  return [`/${routeSegments.join('/')}`];
+}
+
+function normalizeInternalTarget(to: string): string | undefined {
+  if (!to.startsWith('/') || to.startsWith('//')) {
+    return undefined;
+  }
+
+  return to.split(/[?#]/)[0] || '/';
+}
+
+function routeMatches(pattern: string, route: string): boolean {
+  if (pattern === route) {
+    return true;
+  }
+
+  const patternSegments = splitRoute(pattern);
+  const routeSegments = splitRoute(route);
+
+  if (patternSegments.length !== routeSegments.length) {
+    return false;
+  }
+
+  return patternSegments.every((segment, index) => {
+    return segment === '*' || segment.startsWith(':') || segment === routeSegments[index];
+  });
+}
+
+function splitRoute(route: string): string[] {
+  return route.replace(/^\//, '').split('/').filter(Boolean);
+}
