@@ -3004,6 +3004,76 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  it('prefers replacement ZIP storage over recovered IDE state files', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'zip-replace@example.com', organizationName: 'Zip Replace Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Replace Existing Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+    await store.upsertProjectIdeState({
+      projectId,
+      updatedByUserId: auth.user.id,
+      state: {
+        chat: {
+          messages: [
+            {
+              content: `<boltArtifact id="old-app" title="Old App">
+<boltAction type="file" filePath="package.json">
+{"scripts":{"dev":"vite"}}
+</boltAction>
+<boltAction type="file" filePath="src/App.tsx">
+export function App() { return 'Old app'; }
+</boltAction>
+</boltArtifact>`,
+            },
+          ],
+        },
+      },
+    });
+
+    const replacementZip = new JSZip();
+    replacementZip.file('index.html', '<!doctype html><main data-replaced="true">Replacement app</main>');
+
+    const replacementZipBase64 = (await replacementZip.generateAsync({ type: 'nodebuffer' })).toString('base64');
+    const replaced = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64: replacementZipBase64, replaceExisting: true },
+    });
+    expect(replaced.statusCode).toBe(200);
+    expect(replaced.json().files.map((file: { path: string }) => file.path)).toEqual(['index.html']);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(['index.html']);
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    expect(Object.keys(archive.files)).toEqual(['index.html']);
+    expect(await archive.file('index.html')!.async('string')).toContain('Replacement app');
+
+    await app.close();
+  });
+
   it('creates and restores snapshots without exposing runtime secrets', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'snapshots@example.com', organizationName: 'Snapshot Org' });

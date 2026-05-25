@@ -35,13 +35,6 @@ spec:
                 name: {{ include "vibecore-platform.fullname" . }}-web
                 port:
                   name: http
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "vibecore-platform.fullname" . }}-api
-                port:
-                  name: http
           - path: /runtime
             pathType: Prefix
             backend:

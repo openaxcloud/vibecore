@@ -8460,6 +8460,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
     });
+
+    if (body.replaceExisting === true) {
+      const existingState = await store.getProjectIdeState(project.id);
+      await store.upsertProjectIdeState({
+        projectId: project.id,
+        updatedByUserId: request.currentUser!.id,
+        state: mergeProjectIdeState(existingState?.state, { chat: { clearMessages: true, messages: [] } }),
+      });
+    }
+
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
