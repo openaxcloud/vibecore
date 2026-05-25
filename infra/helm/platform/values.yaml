@@ -42,6 +42,9 @@ platformEnv:
   # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
   # Override to "false" only for local helm template debugging.
   trustProxy: "true"
+  # API project storage must be on a writable mount because production pods
+  # run with a read-only root filesystem. /tmp is mounted as an emptyDir.
+  projectStorageDir: "/tmp/vibecore-project-storage"
   # PlatformAdmin TOTP gate. Defaults to "true" in the api (the env var is
   # treated as required unless it equals the string "false") — set
   # explicitly so the policy is visible in chart values.

@@ -129,7 +129,7 @@ function archiveKey(prefix: string, projectId: string) {
 }
 
 function storageRoot() {
-  return process.env.PROJECT_STORAGE_DIR ?? join(process.cwd(), '.vibecore-project-storage');
+  return process.env.PROJECT_STORAGE_DIR ?? (process.env.NODE_ENV === 'production' ? '/tmp/vibecore-project-storage' : join(process.cwd(), '.vibecore-project-storage'));
 }
 
 function safeProjectPath(projectId: string, filePath = '') {

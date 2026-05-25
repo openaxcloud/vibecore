@@ -43,6 +43,7 @@ data:
   # other than the literal string "false" as required (services/api/src/app.ts:1005),
   # so the only way to relax the policy is to set this to "false".
   ADMIN_MFA_REQUIRED: {{ .Values.platformEnv.adminMfaRequired | default "true" | quote }}
+  PROJECT_STORAGE_DIR: {{ .Values.platformEnv.projectStorageDir | default "/tmp/vibecore-project-storage" | quote }}
 
   # Remote Kubernetes runtime. These are operational endpoints and image
   # references, not credentials; credentials stay in the Secret.
