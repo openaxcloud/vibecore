@@ -115,7 +115,7 @@ describe('workspace-manager app', () => {
 
   it('exposes preview proxy agent resolution only with the shared secret', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
-    process.env.PREVIEW_PROXY_SHARED_SECRET = 'preview-secret';
+    process.env.PREVIEW_PROXY_SHARED_SECRET = 'preview-secret\n';
     process.env.WORKSPACE_AGENT_URL_TEMPLATE = 'http://workspace-{workspaceId}.{namespace}.svc:8080';
 
     const runtime = manager();

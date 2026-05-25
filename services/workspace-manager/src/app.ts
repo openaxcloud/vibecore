@@ -40,7 +40,7 @@ function agentBaseUrl(workspaceId: string) {
 }
 
 function requirePreviewProxyAuth(request: { headers: Record<string, string | string[] | undefined> }) {
-  const expected = process.env.PREVIEW_PROXY_SHARED_SECRET;
+  const expected = normalizeSharedSecret(process.env.PREVIEW_PROXY_SHARED_SECRET);
 
   if (!expected) {
     throw Object.assign(new Error('Preview proxy shared secret is not configured'), {
@@ -51,7 +51,7 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
 
   const authorization = request.headers.authorization;
   const value = Array.isArray(authorization) ? authorization[0] : authorization;
-  const token = value?.replace(/^Bearer\s+/i, '');
+  const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
   if (token !== expected) {
     throw Object.assign(new Error('Unauthorized preview proxy request'), {
@@ -59,6 +59,11 @@ function requirePreviewProxyAuth(request: { headers: Record<string, string | str
       code: 'PREVIEW_PROXY_UNAUTHORIZED',
     });
   }
+}
+
+function normalizeSharedSecret(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
 }
 
 export function buildWorkspaceManagerApp(manager: WorkspaceManager) {

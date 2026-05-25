@@ -68,7 +68,7 @@ describe('preview-proxy', () => {
     const app = await buildPreviewProxyApp({
       fetchImpl,
       workspaceManagerUrl: 'http://workspace-manager.test',
-      proxySharedSecret: 'preview-secret',
+      proxySharedSecret: 'preview-secret\n',
     });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 

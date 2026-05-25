@@ -113,7 +113,7 @@ function shouldStreamBody(method: string): boolean {
 function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fetch) {
   return async (workspaceId: string) => {
     const managerUrl = options.workspaceManagerUrl;
-    const secret = options.proxySharedSecret;
+    const secret = normalizeSharedSecret(options.proxySharedSecret);
 
     if (!managerUrl || !secret) {
       return undefined;
@@ -129,4 +129,9 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
     if (!body.baseUrl || !body.token) return undefined;
     return { baseUrl: body.baseUrl, token: body.token };
   };
+}
+
+function normalizeSharedSecret(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
 }
