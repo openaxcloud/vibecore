@@ -454,8 +454,9 @@ test.describe('responsive IDE shell', () => {
 
     const securityPanel = page.locator('[data-testid="ide-service-panel"][data-panel="security"]').first();
     await expect(securityPanel).toBeVisible({ timeout: 15000 });
-    await expect(securityPanel.getByRole('button', { name: 'Run full scan' })).toBeVisible();
-    await expect(securityPanel.getByRole('button', { name: 'Settings' })).toBeVisible();
+    await expect(securityPanel.getByText(/Loading security from backend/i)).toHaveCount(0, { timeout: 45000 });
+    await expect(securityPanel.getByRole('button', { name: 'Run full scan' })).toBeVisible({ timeout: 45000 });
+    await expect(securityPanel.getByRole('button', { name: 'Settings' })).toBeVisible({ timeout: 45000 });
 
     await page.goto(`/projects/${projectId}/ide?panel=logs`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {

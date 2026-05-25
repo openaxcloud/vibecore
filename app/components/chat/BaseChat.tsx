@@ -886,6 +886,10 @@ function previewPortText(input: {
     return 'Port: unavailable';
   }
 
+  if (input.previewServerState.status === 'static') {
+    return 'Port: static';
+  }
+
   return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Port: detecting' : 'Port: none';
 }
 
@@ -903,6 +907,10 @@ function previewPortCompactText(input: {
 
   if (input.workspaceError) {
     return 'Unavailable';
+  }
+
+  if (input.previewServerState.status === 'static') {
+    return 'Static';
   }
 
   return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Detecting' : 'No port';
@@ -936,6 +944,10 @@ function devServerStatusText(input: {
 
   if (input.workspaceError || input.previewServerState.status === 'error') {
     return 'Dev: blocked';
+  }
+
+  if (input.previewServerState.status === 'static') {
+    return 'Dev: static preview';
   }
 
   if (
@@ -1703,13 +1715,38 @@ function HeaderTip({
   children: React.ReactElement;
   side?: 'top' | 'bottom' | 'left' | 'right';
 }) {
+  const [open, setOpen] = useState(false);
+
   const trigger = React.cloneElement(children, {
     'data-vc-radix-tooltip': 'true',
     title: children.props.title ?? label,
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      children.props.onPointerEnter?.(event);
+      setOpen(true);
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      children.props.onPointerLeave?.(event);
+      setOpen(false);
+    },
+    onFocus: (event: React.FocusEvent<HTMLElement>) => {
+      children.props.onFocus?.(event);
+      setOpen(true);
+    },
+    onBlur: (event: React.FocusEvent<HTMLElement>) => {
+      children.props.onBlur?.(event);
+      setOpen(false);
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      children.props.onKeyDown?.(event);
+
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    },
   });
 
   return (
-    <Tooltip.Root>
+    <Tooltip.Root open={open} onOpenChange={setOpen} delayDuration={0}>
       <Tooltip.Trigger asChild>{trigger}</Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content side={side} sideOffset={8} collisionPadding={12} className="bolt-project-tooltip-content">
@@ -2703,7 +2740,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       const status = projectRuntimeState.workspace?.status?.toLowerCase();
 
-      if (status === 'running' || status === 'booting' || status === 'starting') {
+      if (status === 'running') {
+        return 'Running';
+      }
+
+      if (status === 'booting' || status === 'starting') {
         return 'Starting';
       }
 

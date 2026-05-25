@@ -424,6 +424,7 @@ export const Preview = memo(
       .join('|');
 
     const staticPreviewHtml = buildStaticPreviewHtml(files);
+    const hasStaticPreview = Boolean(staticPreviewHtml && !activePreview);
     const lastPreviewableFilesSignature = useRef(previewableFilesSignature);
 
     const visiblePreviewUrl =
@@ -738,13 +739,28 @@ export const Preview = memo(
         return;
       }
 
+      if (hasStaticPreview) {
+        setPreviewRunFailed(false);
+        setPreviewStatus('Static HTML preview ready.');
+        setIsStartingPreview(false);
+
+        return;
+      }
+
       setPreviewRunFailed(false);
       setPreviewStatus('App files changed. Detecting preview port...');
       setIsStartingPreview(false);
-    }, [previewableFilesSignature, previews.length]);
+    }, [hasStaticPreview, previewableFilesSignature, previews.length]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || previews.length > 0 || isStartingPreview || previewRunFailed) {
+      if (
+        !autoStart ||
+        !workspaceReady ||
+        hasStaticPreview ||
+        previews.length > 0 ||
+        isStartingPreview ||
+        previewRunFailed
+      ) {
         return;
       }
 
@@ -752,6 +768,7 @@ export const Preview = memo(
     }, [
       autoStart,
       isStartingPreview,
+      hasStaticPreview,
       previewableFilesSignature,
       previews.length,
       previewRunFailed,
@@ -760,7 +777,7 @@ export const Preview = memo(
     ]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || previews.length > 0) {
+      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0) {
         return undefined;
       }
 
@@ -785,10 +802,10 @@ export const Preview = memo(
       }, 2500);
 
       return () => window.clearInterval(interval);
-    }, [autoStart, previews.length, workspaceReady]);
+    }, [autoStart, hasStaticPreview, previews.length, workspaceReady]);
 
     useEffect(() => {
-      if (!autoStart || !workspaceReady || previews.length > 0) {
+      if (!autoStart || !workspaceReady || hasStaticPreview || previews.length > 0) {
         return undefined;
       }
 
@@ -800,7 +817,7 @@ export const Preview = memo(
       }, 120000);
 
       return () => window.clearTimeout(timeout);
-    }, [autoStart, previews.length, workspaceReady]);
+    }, [autoStart, hasStaticPreview, previews.length, workspaceReady]);
 
     const navigatePreviewHistory = (direction: 'back' | 'forward') => {
       try {

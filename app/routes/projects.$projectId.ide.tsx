@@ -101,6 +101,46 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { name: 'description', content: 'Bolt IDE connected to a persistent project workspace.' },
 ];
 
+const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
+
+function routeKeyWithoutClientIdeParams(url: URL) {
+  const searchParams = new URLSearchParams(url.search);
+
+  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
+    searchParams.delete(param);
+  }
+
+  const search = searchParams.toString();
+
+  return `${url.pathname}${search ? `?${search}` : ''}`;
+}
+
+export const shouldRevalidate = ({
+  currentUrl,
+  nextUrl,
+  formMethod,
+  defaultShouldRevalidate,
+}: {
+  currentUrl: URL;
+  nextUrl: URL;
+  formMethod?: string;
+  defaultShouldRevalidate: boolean;
+}) => {
+  if (formMethod && formMethod.toUpperCase() !== 'GET') {
+    return defaultShouldRevalidate;
+  }
+
+  if (
+    currentUrl.origin === nextUrl.origin &&
+    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
+    currentUrl.search !== nextUrl.search
+  ) {
+    return false;
+  }
+
+  return defaultShouldRevalidate;
+};
+
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (!params.projectId) {
     throw new Response('Project not found', { status: 404 });

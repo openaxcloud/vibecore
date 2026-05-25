@@ -66,7 +66,7 @@ type PreviewCommand = {
   setupCommands?: PreviewCommand[];
 };
 export type PreviewServerState = {
-  status: 'idle' | 'starting' | 'running' | 'stopping' | 'error';
+  status: 'idle' | 'static' | 'starting' | 'running' | 'stopping' | 'error';
   command?: string;
   error?: string;
 };
@@ -442,6 +442,13 @@ export class WorkbenchStore {
       return this.#previewStartPromise;
     }
 
+    if (this.#canUseStaticHtmlPreview()) {
+      this.previewServerState.set({ status: 'static', command: 'static HTML preview' });
+      this.appendWorkspaceLog('Using static HTML preview; dev server is not required for this project.');
+
+      return 'static HTML preview';
+    }
+
     if (!this.#findPackageJsonEntry()) {
       await this.loadRuntimeFiles('.').catch((error) => {
         this.appendWorkspaceLog(
@@ -677,6 +684,28 @@ export class WorkbenchStore {
     });
   }
 
+  #findIndexHtmlEntry() {
+    return Object.entries(this.files.get()).find(([filePath, dirent]) => {
+      return dirent?.type === 'file' && this.#isIndexHtmlPath(filePath);
+    });
+  }
+
+  #canUseStaticHtmlPreview() {
+    if (this.#findPackageJsonEntry()) {
+      return false;
+    }
+
+    const indexHtmlEntry = this.#findIndexHtmlEntry();
+    const indexHtmlFile = indexHtmlEntry?.[1];
+    const content = indexHtmlFile?.type === 'file' && !indexHtmlFile.isBinary ? indexHtmlFile.content : undefined;
+
+    if (!content) {
+      return false;
+    }
+
+    return !/<script\b[^>]*\bsrc\s*=/i.test(content);
+  }
+
   #isPackageJsonPath(filePath: string) {
     const normalizedPath = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
     const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
@@ -685,6 +714,17 @@ export class WorkbenchStore {
       normalizedPath === 'package.json' ||
       normalizedPath === `${normalizedWorkDir}/package.json` ||
       normalizedPath.endsWith('/package.json')
+    );
+  }
+
+  #isIndexHtmlPath(filePath: string) {
+    const normalizedPath = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
+    const normalizedWorkDir = WORK_DIR.replace(/^\/+/, '');
+
+    return (
+      normalizedPath === 'index.html' ||
+      normalizedPath === `${normalizedWorkDir}/index.html` ||
+      normalizedPath.endsWith('/index.html')
     );
   }
 

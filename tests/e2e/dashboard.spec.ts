@@ -1000,7 +1000,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
 });
 
 test('all IDE service panels keep light theme containers readable', async ({ page, isMobile }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
   const auth = await authenticate(page);
@@ -1029,12 +1029,18 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
     ['Deployments', 'deployments'],
     ['Monitoring', 'monitoring'],
     ['Extensions', 'extensions'],
+    ['Integrations', 'integrations'],
+    ['Workflows', 'workflows'],
+    ['Debugger', 'debugger'],
+    ['Security', 'security'],
     ['Env vars', 'env'],
     ['Secrets', 'secrets'],
     ['Git', 'git'],
     ['Activity', 'activity'],
+    ['Logs', 'logs'],
     ['Collaborators', 'collaborators'],
     ['Domains', 'domains'],
+    ['Snapshots', 'snapshots'],
     ['Settings', 'settings'],
   ] as const;
 
