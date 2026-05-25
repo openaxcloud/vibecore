@@ -1,3 +1,5 @@
+import { resolveImport } from '~/services/agent/post-validate';
+
 /**
  * Pure helpers that decide which workspace-log lines belong to a given
  * AI patch lifecycle event for a relative file path. The workbench store
@@ -9,6 +11,9 @@
  * Extracted from the workbench so the predicate stays testable in
  * isolation — the store class itself is hard to instantiate in tests.
  */
+
+const RESOLVABLE_MISSING_IMPORT_LOG_PATTERN =
+  /^AI patch (?:failed|blocked): [^:]+: Missing import in ([^:]+): ['"]([^'"]+)['"] does not resolve to a generated or existing file\.$/;
 
 /**
  * Build the log-line prefix the workbench emits when a patch is blocked
@@ -60,6 +65,47 @@ export function dropFailedPatchLogsForPath(lines: readonly string[], relativePat
     if (isFailedPatchLogForPath(line, relativePath)) {
       removed += 1;
       continue;
+    }
+
+    next.push(line);
+  }
+
+  return removed === 0 ? null : next;
+}
+
+/**
+ * Drop stale missing-import failures once the imported module now exists.
+ *
+ * This catches the common streaming/auto-apply race:
+ * 1. `src/App.tsx` is applied before `src/store/themeStore.ts`, so validation
+ *    logs `AI patch failed: src/App.tsx: Missing import ...`.
+ * 2. The agent then writes `src/store/themeStore.ts`.
+ * 3. The workspace is valid, but the old runtime diagnostic would otherwise
+ *    stay visible until a webview reload clears in-memory logs.
+ */
+export function dropResolvedMissingImportPatchLogs(
+  lines: readonly string[],
+  allFiles: ReadonlyMap<string, string>,
+): string[] | null {
+  if (allFiles.size === 0) {
+    return null;
+  }
+
+  let removed = 0;
+
+  const next: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(RESOLVABLE_MISSING_IMPORT_LOG_PATTERN);
+
+    if (match) {
+      const [, importerPath, importSpecifier] = match;
+
+      if (resolveImport(importSpecifier, importerPath, new Map(allFiles))) {
+        removed += 1;
+
+        continue;
+      }
     }
 
     next.push(line);

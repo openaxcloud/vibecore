@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   blockedPatchLogPrefix,
   dropFailedPatchLogsForPath,
+  dropResolvedMissingImportPatchLogs,
   failedPatchLogPrefix,
   isFailedPatchLogForPath,
 } from './agent-patch-logs';
@@ -83,6 +84,50 @@ describe('agent-patch-logs helpers', () => {
 
     it('returns null when relative path is empty', () => {
       expect(dropFailedPatchLogsForPath(['AI patch failed: : x'], '')).toBeNull();
+    });
+  });
+
+  describe('dropResolvedMissingImportPatchLogs', () => {
+    it('removes stale missing-import failures when the import now resolves', () => {
+      const lines = [
+        "AI patch failed: src/main.tsx: Missing import in src/main.tsx: './App' does not resolve to a generated or existing file.",
+        "AI patch failed: src/App.tsx: Missing import in src/App.tsx: './store/themeStore' does not resolve to a generated or existing file.",
+        'AI patch accepted: src/store/themeStore.ts',
+      ];
+
+      const files = new Map([
+        ['src/main.tsx', "import App from './App';"],
+        ['src/App.tsx', "import { useThemeStore } from './store/themeStore';"],
+        ['src/store/themeStore.ts', 'export const useThemeStore = () => ({ theme: "dark" });'],
+      ]);
+
+      expect(dropResolvedMissingImportPatchLogs(lines, files)).toEqual(['AI patch accepted: src/store/themeStore.ts']);
+    });
+
+    it('removes stale css side-effect import failures once css files exist', () => {
+      const lines = [
+        "AI patch blocked: src/components/Header.tsx: Missing import in src/components/Header.tsx: './Header.css' does not resolve to a generated or existing file.",
+        "AI patch failed: src/components/Footer.tsx: Missing import in src/components/Footer.tsx: './Footer.css' does not resolve to a generated or existing file.",
+      ];
+
+      const files = new Map([
+        ['src/components/Header.tsx', "import './Header.css';"],
+        ['src/components/Header.css', '.header { display: flex; }'],
+      ]);
+
+      expect(dropResolvedMissingImportPatchLogs(lines, files)).toEqual([
+        "AI patch failed: src/components/Footer.tsx: Missing import in src/components/Footer.tsx: './Footer.css' does not resolve to a generated or existing file.",
+      ]);
+    });
+
+    it('returns null when no logged missing import resolves yet', () => {
+      const lines = [
+        "AI patch failed: src/main.tsx: Missing import in src/main.tsx: './App' does not resolve to a generated or existing file.",
+      ];
+
+      expect(dropResolvedMissingImportPatchLogs(lines, new Map([['src/main.tsx', "import App from './App';"]]))).toBe(
+        null,
+      );
     });
   });
 });

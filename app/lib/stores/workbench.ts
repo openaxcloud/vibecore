@@ -36,7 +36,7 @@ import {
   extractRelativePath,
   type ReviewableDiffHunk,
 } from '~/utils/diff';
-import { dropFailedPatchLogsForPath } from '~/utils/agent-patch-logs';
+import { dropFailedPatchLogsForPath, dropResolvedMissingImportPatchLogs } from '~/utils/agent-patch-logs';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -410,6 +410,7 @@ export class WorkbenchStore {
   async loadRuntimeFiles(rootPath = '.') {
     await this.#filesStore.reloadFromRuntime(rootPath);
     this.setDocuments(this.files.get());
+    this.#dropResolvedMissingImportLogs();
   }
 
   async refreshRuntimePorts() {
@@ -817,6 +818,17 @@ export class WorkbenchStore {
     }
   }
 
+  #dropResolvedMissingImportLogs() {
+    const nextLogs = dropResolvedMissingImportPatchLogs(
+      this.workspaceLogs.get(),
+      this.#workspaceImportValidationFiles(),
+    );
+
+    if (nextLogs) {
+      this.workspaceLogs.set(nextLogs);
+    }
+  }
+
   addToExecutionQueue(callback: () => Promise<void>) {
     this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
   }
@@ -1216,6 +1228,7 @@ export class WorkbenchStore {
         actionId: proposal.actionId,
       });
       this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+      this.#dropResolvedMissingImportLogs();
       this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
       await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
@@ -1694,6 +1707,7 @@ export class WorkbenchStore {
           artifactId: data.artifactId,
           actionId: data.actionId,
         });
+        this.#dropResolvedMissingImportLogs();
       }
     } else {
       await artifact.runner.runAction(data);
