@@ -21,8 +21,10 @@ WORKDIR /app
 
 ENV HUSKY=0
 ENV CI=true
+ENV PNPM_STORE_DIR=/pnpm/store
 
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+RUN pnpm config set store-dir "${PNPM_STORE_DIR}"
 
 # git: required by some workspace install scripts and runtime tooling.
 # openssl + ca-certificates: required by Prisma's binary download + TLS.
@@ -74,8 +76,7 @@ COPY services/workspace-manager/package.json ./services/workspace-manager/
 
 COPY infra/package.json ./infra/
 
-# Install once, with the pnpm store mounted as a BuildKit cache so a
-# layer miss still skips the network fetch. `--frozen-lockfile` enforces
-# parity with pnpm-lock.yaml so a stale lockfile fails fast.
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+# Install once and persist the pnpm store in the image. Service images run
+# `pnpm deploy --prefer-offline`, so package tarballs must be part of this
+# shared base instead of living only in a transient BuildKit cache mount.
+RUN pnpm install --frozen-lockfile

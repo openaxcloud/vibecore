@@ -31,7 +31,7 @@ COPY packages ./packages
 COPY services ./services
 
 RUN pnpm --filter "${PACKAGE_FILTER}" build
-RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod /runtime
+RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /runtime

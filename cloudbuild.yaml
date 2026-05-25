@@ -37,11 +37,12 @@
 #      and fit comfortably in parallel.
 #
 # BuildKit + inline cache:
-#   DOCKER_BUILDKIT=1 is set on each docker step so cache mounts in the
-#   Dockerfiles (pnpm store) take effect. BUILDKIT_INLINE_CACHE=1 embeds
-#   cache metadata in pushed images so the next build's --cache-from
-#   actually has something to match against — without it, --cache-from
-#   on a registry pull is a no-op.
+#   DOCKER_BUILDKIT=1 is set on each docker step, and
+#   BUILDKIT_INLINE_CACHE=1 embeds cache metadata in pushed images so the
+#   next build's --cache-from actually has something to match against —
+#   without it, --cache-from on a registry pull is a no-op. The deps image
+#   intentionally persists the pnpm store so service deploy stages can reuse
+#   package tarballs and only hit npm for missing resolver metadata.
 substitutions:
   _REGION: europe-west9
   _PROJECT: vibecore-495216
