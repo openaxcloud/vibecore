@@ -15646,6 +15646,200 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
+.vc-auth-page {
+  --vc-auth-bg: var(--vc-ide-bg-app);
+  --vc-auth-card: color-mix(in srgb, var(--vc-ide-bg-panel) 88%, transparent);
+  --vc-auth-card-solid: var(--vc-ide-bg-panel);
+  --vc-auth-field: var(--vc-ide-bg-base);
+  --vc-auth-raised: var(--vc-ide-bg-card);
+  --vc-auth-hover: var(--vc-ide-bg-hover);
+  --vc-auth-border: var(--vc-ide-border-visible);
+  --vc-auth-border-subtle: var(--vc-ide-border-subtle);
+  --vc-auth-text: var(--vc-ide-text-primary);
+  --vc-auth-secondary: var(--vc-ide-text-secondary);
+  --vc-auth-muted: var(--vc-ide-text-muted);
+  --vc-auth-accent: var(--vc-ide-accent-orange);
+  --vc-auth-accent-2: #f99d25;
+  --vc-auth-link: var(--vc-ide-accent-ai-start);
+  --vc-auth-focus: var(--vc-ide-accent-action);
+  --vc-auth-success: var(--vc-ide-accent-success);
+  --vc-auth-error: var(--vc-ide-accent-error);
+  --vc-auth-shadow: 0 24px 64px rgb(0 4 20 / 0.62);
+  min-height: 100dvh;
+  background: var(--vc-auth-bg);
+  color: var(--vc-auth-text);
+}
+
+:root[data-theme='light'] .vc-auth-page {
+  --vc-auth-bg: #f6f8fb;
+  --vc-auth-card: rgb(255 255 255 / 0.9);
+  --vc-auth-field: #ffffff;
+  --vc-auth-raised: #eef2f7;
+  --vc-auth-hover: #e2e8f0;
+  --vc-auth-border: #b8c3d2;
+  --vc-auth-border-subtle: #d8e0ea;
+  --vc-auth-accent: #c2410c;
+  --vc-auth-accent-2: #0f766e;
+  --vc-auth-link: #5b4ae8;
+  --vc-auth-shadow: 0 24px 64px rgb(15 23 42 / 0.14);
+}
+
+.vc-auth-left-glow {
+  background:
+    radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--vc-auth-focus) 16%, transparent), transparent 28%),
+    radial-gradient(circle at 84% 86%, color-mix(in srgb, var(--vc-auth-link) 18%, transparent), transparent 32%);
+}
+
+.vc-auth-left-shade {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vc-auth-card-solid) 72%, transparent), transparent);
+}
+
+.vc-auth-back-link,
+.vc-auth-brand-subtitle,
+.vc-auth-hint,
+.vc-auth-card-footer,
+.vc-auth-legal,
+.vc-auth-checkbox-label {
+  color: var(--vc-auth-muted);
+}
+
+.vc-auth-back-link:hover,
+.vc-auth-back-link:focus-visible,
+.vc-auth-legal a:hover,
+.vc-auth-legal a:focus-visible {
+  color: var(--vc-auth-text);
+}
+
+.vc-auth-back-link:focus-visible,
+.vc-auth-input:focus,
+.vc-auth-input-action:focus-visible,
+.vc-auth-submit:focus-visible,
+.vc-auth-secondary-action:focus-visible,
+.vc-auth-inline-link:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--vc-auth-bg),
+    0 0 0 4px color-mix(in srgb, var(--vc-auth-focus) 42%, transparent);
+}
+
+.vc-auth-logo-box,
+.vc-auth-eyebrow,
+.vc-auth-mobile-stat,
+.vc-auth-secondary-action {
+  border: 1px solid var(--vc-auth-border);
+  background: var(--vc-auth-raised);
+}
+
+.vc-auth-logo-box {
+  box-shadow: 0 12px 32px rgb(0 4 20 / 0.32);
+}
+
+.vc-auth-brand-title,
+.vc-auth-title,
+.vc-auth-label,
+.vc-auth-mobile-stat > div:first-child {
+  color: var(--vc-auth-text);
+}
+
+.vc-auth-description {
+  color: var(--vc-auth-secondary);
+}
+
+.vc-auth-eyebrow {
+  color: var(--vc-auth-secondary);
+}
+
+.vc-auth-eyebrow svg,
+.vc-auth-link,
+.vc-auth-inline-link {
+  color: var(--vc-auth-accent);
+}
+
+.vc-auth-card {
+  border: 1px solid var(--vc-auth-border);
+  background: var(--vc-auth-card);
+  box-shadow: var(--vc-auth-shadow);
+}
+
+.vc-auth-alert {
+  border: 1px solid currentColor;
+}
+
+.vc-auth-alert-success {
+  background: color-mix(in srgb, var(--vc-auth-success) 12%, transparent);
+  color: var(--vc-auth-success);
+}
+
+.vc-auth-alert-error {
+  background: color-mix(in srgb, var(--vc-auth-error) 10%, transparent);
+  color: var(--vc-auth-error);
+}
+
+.vc-auth-card-footer,
+.vc-auth-secondary-actions {
+  border-color: var(--vc-auth-border-subtle);
+}
+
+.vc-auth-field-icon,
+.vc-auth-input-action {
+  color: var(--vc-auth-muted);
+}
+
+.vc-auth-input {
+  border-color: var(--vc-auth-border);
+  background: var(--vc-auth-field);
+  color: var(--vc-auth-text);
+}
+
+.vc-auth-input::placeholder {
+  color: var(--vc-auth-muted);
+}
+
+.vc-auth-input:focus {
+  border-color: var(--vc-auth-focus);
+}
+
+.vc-auth-input-action:hover {
+  background: var(--vc-auth-hover);
+  color: var(--vc-auth-text);
+}
+
+.vc-auth-checkbox {
+  border-color: var(--vc-auth-border);
+  background: var(--vc-auth-field);
+  accent-color: var(--vc-auth-accent);
+}
+
+.vc-auth-submit {
+  background: linear-gradient(135deg, var(--vc-auth-accent), var(--vc-auth-accent-2));
+  color: #ffffff;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--vc-auth-accent) 28%, transparent);
+}
+
+.vc-auth-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.vc-auth-secondary-action {
+  color: var(--vc-auth-text);
+}
+
+.vc-auth-secondary-action:hover {
+  background: var(--vc-auth-hover);
+}
+
+.vc-auth-mobile-stat {
+  background: color-mix(in srgb, var(--vc-auth-card-solid) 82%, transparent);
+}
+
+.vc-auth-mobile-stat > div:last-child {
+  color: var(--vc-auth-muted);
+}
+
+.vc-auth-legal a {
+  color: inherit;
+}
+
 .vc-public-shell {
   --vc-public-bg: #080b13;
   --vc-public-panel: #0d1322;

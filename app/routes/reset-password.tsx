@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
       footer={
         <>
           Done?{' '}
-          <Link to="/login" className="font-semibold text-[#7B61FF] hover:underline">
+          <Link to="/login" className="vc-auth-link font-semibold hover:underline">
             Sign in with your new password
           </Link>
         </>

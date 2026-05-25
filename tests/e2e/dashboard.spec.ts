@@ -127,15 +127,20 @@ test('onboarding guides project setup', async ({ page }) => {
 test('project creation exposes templates and import paths', async ({ page }) => {
   await authenticate(page);
   await page.goto('/projects/new');
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
-  await expect(page.getByLabel('AI prompt')).toBeVisible();
-  await expect(page.getByLabel('Project name')).toBeVisible();
-  await expect(page.getByText('Brief depth')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Production path selected' })).toBeVisible();
-  await expect(page.getByText('Live backend flow')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Import GitHub/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Import zip/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Browse templates/ })).toHaveAttribute('href', '/dashboard/templates');
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
+  await expect(page.getByRole('form', { name: 'Create project form' })).toBeVisible();
+  await expect(page.getByLabel('Describe your idea')).toBeVisible();
+  await expect(page.getByLabel('Artifact type')).toBeVisible();
+  await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
+  await expect(page.getByTestId('ai-provider-dropdown')).toBeVisible();
+  await expect(page.getByTestId('ai-model-dropdown')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Import an existing GitHub repository/ })).toHaveAttribute(
+    'href',
+    '/import-github',
+  );
+  await expect(page.getByRole('link', { name: /Upload a zip archive/ })).toHaveAttribute('href', '/import-zip');
+  await expect(page.getByRole('heading', { name: 'Start from the existing catalog' })).toBeVisible();
+  await expect(page.getByText('Authenticated template flow already wired to project creation.')).toBeVisible();
 });
 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
@@ -145,7 +150,7 @@ test('project creation light theme uses light containers and readable image prev
   });
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
 
   const themeProbe = await page.evaluate(() => {
     const parseRgb = (value: string) => {
@@ -175,10 +180,10 @@ test('project creation light theme uses light containers and readable image prev
 
     return {
       theme: document.documentElement.getAttribute('data-theme'),
-      hero: styles('.vc-create-hero'),
-      composer: styles('.vc-create-composer'),
+      hero: styles('.vc-new-project-page'),
+      composer: styles('.vc-new-project-composer'),
       templatePreview: styles('.vc-template-preview'),
-      title: styles('.vc-create-title'),
+      title: styles('.vc-new-project-title'),
     };
   });
 
@@ -189,7 +194,7 @@ test('project creation light theme uses light containers and readable image prev
   expect(themeProbe.title.colorLuminance).toBeLessThan(0.18);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
 
   const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(mobileOverflow).toBeLessThanOrEqual(2);
@@ -1498,16 +1503,41 @@ test('IDE project services open as in-place panels instead of legacy project pag
 
 test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+  test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
     localStorage.setItem('bolt_theme', 'light');
   });
 
-  const projectId = await createTestProject(page, 'Light theme IDE tabs');
+  const auth = await authenticate(page);
+  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    data: { name: 'Light theme IDE tabs' },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+  const projectId = (await createProject.json()).project.id as string;
+  const zipBase64 = await createZipBase64({
+    'components/AppShell.tsx': 'export function AppShell() { return <main />; }\n',
+  });
+  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+    data: { zipBase64 },
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+
+  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
+  const filesPanel = page.locator('[aria-label="Project files panel"]');
+  await expect(filesPanel.getByText('AppShell.tsx', { exact: true })).toBeVisible({ timeout: 60_000 });
+  await filesPanel.getByText('AppShell.tsx', { exact: true }).click();
+  await expect(page.locator('[data-testid="responsive-code-editor"]')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('[data-editor-kind="monaco"]')).toBeVisible({ timeout: 30_000 });
 
   const tabProbe = await page.evaluate(() => {
     const parseRgb = (value: string) => {
@@ -1542,6 +1572,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
       theme: document.documentElement.getAttribute('data-theme'),
       editorActive: read('.bolt-project-tab[aria-selected="true"]'),
       editorStrip: read('.bolt-project-tabbar'),
+      editorCanvas: read('[data-testid="responsive-code-editor"]'),
       rightPanel: read('[aria-label="Project files panel"]'),
     };
   });
@@ -1550,6 +1581,8 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(tabProbe.editorActive.backgroundLuminance).toBeGreaterThan(0.9);
   expect(tabProbe.editorActive.colorLuminance).toBeLessThan(0.18);
   expect(tabProbe.editorStrip.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.editorCanvas.backgroundLuminance).toBeGreaterThan(0.9);
+  expect(tabProbe.editorCanvas.colorLuminance).toBeLessThan(0.2);
   expect(tabProbe.rightPanel.backgroundLuminance).toBeGreaterThan(0.88);
 });
 

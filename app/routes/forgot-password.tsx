@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
       footer={
         <>
           Remembered it?{' '}
-          <Link to="/login" className="font-semibold text-[#7B61FF] hover:underline">
+          <Link to="/login" className="vc-auth-link font-semibold hover:underline">
             Back to sign in
           </Link>
         </>
