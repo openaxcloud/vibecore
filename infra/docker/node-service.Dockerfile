@@ -44,8 +44,11 @@ ENV HOST=0.0.0.0
 ENV PATH=/runtime/node_modules/.bin:${PATH}
 ARG START_CMD
 ENV START_CMD=${START_CMD}
+ARG KUBECTL_VERSION=v1.35.3
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
+  && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
+  && chmod 0755 /usr/local/bin/kubectl \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /runtime /runtime
