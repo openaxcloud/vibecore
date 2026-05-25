@@ -9,9 +9,11 @@ export default function PrivacyPage() {
       <Policy
         title="Privacy policy"
         sections={[
-          'Project data is used to provide the workspace, AI, deployment and support workflows.',
-          'Secrets stay server-side and provider keys, secrets and billing identifiers are handled as confidential platform data.',
-          'Enterprise exports, retention settings, DPA terms and subprocessors are governed by organization policy.',
+          'Project data is used to provide the workspace, AI, deployment and support workflows. Secrets stay server-side.',
+          'Use E-code to build lawful software and keep account credentials secure.',
+          'Enterprise plans may execute a data processing addendum with subprocessors listed here.',
+          'Google Cloud, Stripe, Sentry, email delivery and analytics providers support the service.',
+          'Provider keys, secrets, billing identifiers, enterprise exports, retention settings, DPA terms and subprocessors are governed by organization policy.',
         ]}
       />
     </PublicShell>

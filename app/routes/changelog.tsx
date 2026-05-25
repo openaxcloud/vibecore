@@ -18,7 +18,7 @@ export default function ChangelogPage() {
               {
                 title: 'v1 platform hardening',
                 detail:
-                  'GCP storage, deployer, creation flow, AI generator, mobile shipping kit, marketing and docs foundations imported from the E-Code release notes.',
+                  'GCP storage, deployer, creation flow, AI generator, mobile shipping kit, marketing and docs foundations.',
                 icon: ShieldCheck,
               },
               {

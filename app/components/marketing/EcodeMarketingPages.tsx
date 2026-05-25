@@ -65,23 +65,33 @@ export const marketingPages = {
     sections: [
       {
         title: 'Editor',
-        body: 'Panels, terminal, Git, preview, problems and settings are organized for repeated engineering work.',
+        body: 'Panels, terminal, Git, preview, problems and settings built for repeated engineering work.',
         items: ['Workbench panels', 'Terminal and preview', 'Git context', 'Project settings'],
       },
       {
-        title: 'AI and agents',
-        body: 'Streaming multi-model generation supports attachments, stack selection, build correction, visible plans, tool calls, artifacts, pause, resume and commit handoff.',
-        items: ['Streaming generation', 'Stack selection', 'Visible tool calls', 'Commit handoff'],
+        title: 'AI',
+        body: 'Streaming multi-model generation with attachments, stack selection and build correction.',
+        items: ['Streaming generation', 'Multi-model routing', 'Attachments', 'Build correction'],
+      },
+      {
+        title: 'Agents',
+        body: 'Visible plan, tool calls, artifacts, pause, resume and commit handoff.',
+        items: ['Visible plan', 'Tool calls', 'Artifacts', 'Pause and resume'],
       },
       {
         title: 'Deploy',
-        body: 'Cloud Run releases, rollback, domains, scheduled jobs and Cloud Monitoring metrics are part of the E-Code delivery path.',
+        body: 'Cloud Run releases, rollback, domains, scheduled jobs and Cloud Monitoring metrics.',
         items: ['Cloud Run releases', 'Rollback', 'Custom domains', 'Monitoring metrics'],
       },
       {
-        title: 'Mobile and collaboration',
-        body: 'Project browser, editor, terminal, preview, notifications, presence, shared editing, public projects, fork flow and moderation are connected to the same product system.',
-        items: ['Phone and tablet IDE', 'Push and deep links', 'Presence', 'Public project workflows'],
+        title: 'Mobile',
+        body: 'Project browser, editor, terminal, preview and notifications on phone and tablet.',
+        items: ['Project browser', 'Editor', 'Terminal and preview', 'Notifications'],
+      },
+      {
+        title: 'Collaboration',
+        body: 'Presence, shared editing, public projects, fork flow and moderation.',
+        items: ['Presence', 'Shared editing', 'Public projects', 'Fork flow and moderation'],
       },
     ],
   },

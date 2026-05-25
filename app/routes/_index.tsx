@@ -51,26 +51,26 @@ const features = [
   {
     anchor: 'ai-platform',
     icon: Bot,
-    title: 'AI agent that works inside the IDE',
-    text: 'Generate, edit and validate application code without replacing the preserved Bolt workspace.',
+    title: 'Editor',
+    text: 'Workbench, terminal, preview, Git, LSP and collaborative presence in one workspace.',
   },
   {
     anchor: 'runtime',
     icon: TerminalSquare,
-    title: 'Real terminal and runtime panels',
-    text: 'Interactive shell, logs, monitoring, ports and workspace status are wired to backend runtimes.',
+    title: 'AI and agents',
+    text: 'Greenfield generation, codebase-aware agents, visible tool calls, diffs and rollback.',
   },
   {
     anchor: 'collaboration',
     icon: ShieldCheck,
-    title: 'Enterprise governance by default',
-    text: 'Role controls, audit trails, environment secrets, snapshots and security scan surfaces.',
+    title: 'Deploy',
+    text: 'Cloud Build, Artifact Registry, Cloud Run, traffic splitting, domains and monitoring.',
   },
   {
     anchor: 'preview',
     icon: MonitorPlay,
-    title: 'Preview-first delivery',
-    text: 'Run dev servers, inspect live previews and keep runtime status visible across desktop and mobile.',
+    title: 'Mobile',
+    text: 'Native project browser, editor, terminal, AI chat, push and deep links for work on the move.',
   },
   {
     anchor: 'database',
@@ -357,8 +357,8 @@ export default function LandingPage() {
             <span className="vc-badge">Source comparison</span>
             <h2>Compared with Replit, Cursor and Lovable</h2>
             <p>
-              Imported from the E-Code source marketing page and adapted into the Vibecore public shell. Privacy-first
-              analytics. Google Cloud native.
+              Imported from the E-Code source marketing page and adapted into the Vibecore public shell. E-code Inc.
+              Privacy-first analytics. Google Cloud native.
             </p>
           </div>
           <div className="vc-home-source-compare-table" role="region" aria-label="E-Code source comparison table">
