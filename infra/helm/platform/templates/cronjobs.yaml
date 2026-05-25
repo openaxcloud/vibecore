@@ -31,6 +31,7 @@
       "job" "workspace.gc")
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
+{{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}
 {{- range $name, $cron := $merged }}
 {{- if $cron.enabled }}
 ---
@@ -72,8 +73,8 @@ spec:
               type: RuntimeDefault
           containers:
             - name: enqueue
-              image: "{{ $.Values.global.imageRegistry }}/worker:{{ required "global.imageTag must be set" $.Values.global.imageTag }}"
-              imagePullPolicy: {{ if eq (toString $.Values.global.imageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+              image: "{{ $.Values.global.imageRegistry }}/worker:{{ required "global.imageTag or services.worker.imageTag must be set" $workerImageTag }}"
+              imagePullPolicy: {{ if eq (toString $workerImageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
               command:
                 - node
                 - /runtime/dist/enqueue-cli.js

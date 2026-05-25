@@ -113,6 +113,9 @@ ingress:
   previewTlsSecretName: vibecore-preview-wildcard-tls
 
 services:
+  # Optional `imageTag` on any service overrides `global.imageTag` for that
+  # service only. This keeps emergency backend/runtime rollouts narrow while
+  # preserving immutable tags in production.
   web:
     enabled: true
     image: web

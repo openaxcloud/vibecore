@@ -1,5 +1,6 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
+{{- $imageTag := default $.Values.global.imageTag $svc.imageTag }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -36,11 +37,11 @@ spec:
           type: RuntimeDefault
       containers:
         - name: {{ kebabcase $name }}
-          image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $.Values.global.imageTag }}"
+          image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $imageTag }}"
           # `latest` is mutable in our registry, so always pull to pick up new SHAs.
           # For pinned (immutable) tags, IfNotPresent would be cheaper, but the
           # current flow rolls all services on the `latest` tag.
-          imagePullPolicy: {{ if eq ($.Values.global.imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+          imagePullPolicy: {{ if eq ($imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
