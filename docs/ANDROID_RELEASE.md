@@ -55,7 +55,7 @@ This runs the mobile Vite build, Capacitor Android sync, and Gradle `assembleDeb
 https://<host>/.well-known/assetlinks.json
 ```
 
-Serve `apps/mobile/assets/assetlinks.json` from that path. The JSON must include the production package name and release SHA-256 signing certificate fingerprint, not the debug fingerprint.
+Serve `apps/mobile/assets/assetlinks.json` from that path. `pnpm mobile:release-assets` also mirrors the same JSON to `public/.well-known/assetlinks.json` for the web app host. The JSON must include the production package name and release SHA-256 signing certificate fingerprint, not the debug fingerprint.
 
 ## Signing Environment
 

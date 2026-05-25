@@ -31,6 +31,8 @@ const requiredMobileAssets = [
   'apps/mobile/ios/App/App/App.entitlements',
   'apps/mobile/assets/assetlinks.json',
   'apps/mobile/assets/apple-app-site-association',
+  'public/.well-known/assetlinks.json',
+  'public/.well-known/apple-app-site-association',
   'docs/MOBILE_APPS.md',
   'docs/IOS_RELEASE.md',
   'docs/ANDROID_RELEASE.md',

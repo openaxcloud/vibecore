@@ -19,7 +19,6 @@ import {
   GitBranch,
   Github,
   Globe2,
-  Instagram,
   KeyRound,
   Layers,
   LifeBuoy,
@@ -41,7 +40,6 @@ import {
   User as UserIcon,
   Users,
   X,
-  Youtube,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -294,8 +292,8 @@ export const publicFooterUtilityLinks = [
   { label: 'GitHub', to: ECODE_MARKETING_BRAND.repositoryUrl, icon: Github, external: true },
   { label: 'Documentation', to: '/docs', icon: BookOpen, external: false },
   { label: 'Status', to: '/status', icon: Globe2, external: false },
-  { label: 'Templates', to: '/templates', icon: Youtube, external: false },
-  { label: 'Contact', to: '/contact-sales', icon: Instagram, external: false },
+  { label: 'Templates', to: '/templates', icon: Layers, external: false },
+  { label: 'Contact', to: '/contact-sales', icon: MailPlus, external: false },
 ] as const satisfies readonly FooterUtilityLink[];
 
 type NavItem = { label: string; to: string; icon: Icon; shortcut?: string };
@@ -611,7 +609,7 @@ function PublicMarketingFooter() {
             <nav key={column.title} aria-label={`${column.title} footer links`}>
               <h3>{column.title}</h3>
               {column.links.map(([label, to]) => (
-                <Link key={to} to={to}>
+                <Link key={`${column.title}-${label}-${to}`} to={to}>
                   {label}
                 </Link>
               ))}

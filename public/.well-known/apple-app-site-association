@@ -1,0 +1,20 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [],
+        "components": [
+          {
+            "/": "/projects/*",
+            "comment": "Project and IDE deep links"
+          },
+          {
+            "/": "/invitations/*",
+            "comment": "Invitation accept deep links"
+          }
+        ]
+      }
+    ]
+  }
+}

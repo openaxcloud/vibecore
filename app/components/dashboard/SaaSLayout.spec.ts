@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -95,7 +95,7 @@ describe('public marketing brand', () => {
     expect(missingTargets).toEqual([]);
   });
 
-  it('serves the copied E-Code favicon, logos, comparison assets, partner assets, and manifest icons', () => {
+  it('serves the copied E-Code favicon, logos, comparison assets, partner assets, mobile links, and manifest icons', () => {
     const publicDir = join(process.cwd(), 'public');
     const favicon = readFileSync(join(publicDir, 'favicon.svg'), 'utf8');
     const faviconIco = readFileSync(join(publicDir, 'favicon.ico'));
@@ -106,6 +106,18 @@ describe('public marketing brand', () => {
     const agentWorkingIcon = readFileSync(join(publicDir, 'icons/agent/working.svg'), 'utf8');
     const offlinePage = readFileSync(join(publicDir, 'offline.html'), 'utf8');
     const robots = readFileSync(join(publicDir, 'robots.txt'), 'utf8');
+
+    const appleAssociation = JSON.parse(
+      readFileSync(join(publicDir, '.well-known/apple-app-site-association'), 'utf8'),
+    ) as {
+      applinks: { details: Array<{ appIDs: string[]; components: Array<{ '/': string; comment: string }> }> };
+    };
+    const androidAssetLinks = JSON.parse(
+      readFileSync(join(publicDir, '.well-known/assetlinks.json'), 'utf8'),
+    ) as Array<{
+      relation: string[];
+      target: { namespace: string; package_name: string; sha256_cert_fingerprints: string[] };
+    }>;
 
     const manifest = JSON.parse(readFileSync(join(publicDir, 'manifest.webmanifest'), 'utf8')) as {
       name: string;
@@ -126,6 +138,25 @@ describe('public marketing brand', () => {
     expect(agentWorkingIcon).toContain('<svg');
     expect(offlinePage).toContain('E-Code');
     expect(robots).toContain('Sitemap');
+    expect(appleAssociation.applinks.details[0]).toEqual(
+      expect.objectContaining({
+        appIDs: [],
+        components: expect.arrayContaining([
+          expect.objectContaining({ '/': '/projects/*' }),
+          expect.objectContaining({ '/': '/invitations/*' }),
+        ]),
+      }),
+    );
+    expect(androidAssetLinks[0]).toEqual(
+      expect.objectContaining({
+        relation: expect.arrayContaining(['delegate_permission/common.handle_all_urls']),
+        target: expect.objectContaining({
+          namespace: 'android_app',
+          package_name: 'app.vibecore.mobile',
+          sha256_cert_fingerprints: [],
+        }),
+      }),
+    );
     expect(manifest.name).toBe('E-Code.ai');
     expect(jsonManifest.name).toBe('E-Code.ai');
 
@@ -138,8 +169,29 @@ describe('public marketing brand', () => {
     expect(jsonManifest.icons).toContainEqual(
       expect.objectContaining({ src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' }),
     );
+
+    expectBrokenSourceMediaIsNotShipped(publicDir);
   });
 });
+
+function expectBrokenSourceMediaIsNotShipped(publicDir: string) {
+  const demoVideoPath = join(publicDir, 'assets/platform-demo.mp4');
+
+  if (existsSync(demoVideoPath)) {
+    const demoVideo = readFileSync(demoVideoPath);
+
+    expect(demoVideo.byteLength).toBeGreaterThan(1024);
+    expect(demoVideo.subarray(0, 4).toString('binary')).not.toBe('<!--');
+  }
+
+  for (const audioName of ['complete.mp3', 'error.mp3']) {
+    const audioPath = join(publicDir, `assets/agent-sfx/${audioName}`);
+
+    if (existsSync(audioPath)) {
+      expect(statSync(audioPath).size).toBeGreaterThan(0);
+    }
+  }
+}
 
 function collectPublicNavigationTargets(): string[] {
   return [

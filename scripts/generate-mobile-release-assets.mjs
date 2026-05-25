@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 const env = process.env;
 const dryRun = process.argv.includes('--dry-run');
@@ -89,6 +90,8 @@ const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
 if (!dryRun) {
   writeJson('apps/mobile/assets/assetlinks.json', assetLinks);
   writeJson('apps/mobile/assets/apple-app-site-association', appleAssociation);
+  writeJson('public/.well-known/assetlinks.json', assetLinks);
+  writeJson('public/.well-known/apple-app-site-association', appleAssociation);
   writeText('apps/mobile/android/app/src/main/res/values/strings.xml', stringsXml);
   writeText('apps/mobile/ios/App/App/App.entitlements', entitlements);
 }
@@ -101,6 +104,7 @@ console.log(
     iosAssociatedDomainHost,
     iosAppIds: iosAppIds.length,
     androidFingerprints: androidFingerprints.length,
+    publicWellKnown: true,
   }),
 );
 
@@ -126,10 +130,12 @@ function list(name) {
 }
 
 function writeJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 function writeText(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, value);
 }
 
