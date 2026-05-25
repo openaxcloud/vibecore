@@ -65,6 +65,15 @@ export interface ProjectIdeMemory {
     messages?: Message[];
     archivedMessages?: Message[];
     clearMessages?: boolean;
+    pendingPrompt?: {
+      id: string;
+      prompt: string;
+      model?: string;
+      provider?: string;
+      createdAt: string;
+      aiFallback?: boolean;
+      aiFallbackReason?: string;
+    } | null;
     conversations?: Array<{
       id: string;
       title?: string;

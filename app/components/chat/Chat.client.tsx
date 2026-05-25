@@ -79,14 +79,14 @@ function fallbackProjectModelSelection() {
   };
 }
 
-function projectModelSelectionFromParams(searchParams: URLSearchParams) {
-  const requestedModel = searchParams.get('model')?.trim();
+function projectModelSelectionFromValues(requestedModelValue?: string | null, requestedProviderValue?: string | null) {
+  const requestedModel = requestedModelValue?.trim();
 
   if (!requestedModel) {
     return null;
   }
 
-  const requestedProvider = providerByName(searchParams.get('provider')?.trim()) ?? providerForModel(requestedModel);
+  const requestedProvider = providerByName(requestedProviderValue?.trim()) ?? providerForModel(requestedModel);
   const fallbackSelection = fallbackProjectModelSelection();
   const provider = (requestedProvider ?? fallbackSelection.provider) as ProviderInfo;
   const modelKnownForProvider = provider.staticModels?.some((model) => model.name === requestedModel) ?? false;
@@ -95,6 +95,10 @@ function projectModelSelectionFromParams(searchParams: URLSearchParams) {
     model: modelKnownForProvider ? requestedModel : fallbackSelection.model,
     provider: modelKnownForProvider ? provider : fallbackSelection.provider,
   };
+}
+
+function projectModelSelectionFromParams(searchParams: URLSearchParams) {
+  return projectModelSelectionFromValues(searchParams.get('model'), searchParams.get('provider'));
 }
 
 function initialProjectModelSelection() {
@@ -544,6 +548,77 @@ export const ChatImpl = memo(
     };
 
     useEffect(() => {
+      let cancelled = false;
+
+      if (!projectIdeMode || !projectId) {
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      getProjectIdeMemory(projectId)
+        .then((memory) => {
+          if (cancelled) {
+            return;
+          }
+
+          const pendingPrompt = memory.chat?.pendingPrompt;
+          const prompt = pendingPrompt?.prompt?.trim();
+
+          if (!pendingPrompt || !prompt) {
+            return;
+          }
+
+          const promptKey = `${projectId}:pending:${pendingPrompt.id}`;
+
+          if (submittedProjectPromptRef.current === promptKey) {
+            return;
+          }
+
+          submittedProjectPromptRef.current = promptKey;
+
+          const requestedSelection = projectModelSelectionFromValues(pendingPrompt.model, pendingPrompt.provider);
+          const selectedModel = requestedSelection?.model ?? model;
+          const selectedProvider = requestedSelection?.provider ?? provider;
+
+          if (requestedSelection) {
+            setModel(selectedModel);
+            setProvider(selectedProvider);
+            Cookies.set('selectedModel', selectedModel, { expires: 30 });
+            Cookies.set('selectedProvider', selectedProvider.name, { expires: 30 });
+          }
+
+          if (pendingPrompt.aiFallback) {
+            toast.warn(
+              pendingPrompt.aiFallbackReason
+                ? `AI generation failed (${pendingPrompt.aiFallbackReason}). The project was created empty so you can keep your prompt and retry.`
+                : 'AI generation failed. The project was created empty so you can keep your prompt and retry.',
+              { autoClose: 8000 },
+            );
+          }
+
+          runAnimation();
+          append({
+            role: 'user',
+            content: `[Model: ${selectedModel}]\n\n[Provider: ${selectedProvider.name}]\n\n${prompt}`,
+          });
+
+          void saveProjectIdeMemory(projectId, {
+            chat: {
+              pendingPrompt: null,
+            },
+          });
+        })
+        .catch((error) => {
+          logger.warn('failed to load queued project prompt', { projectId, error });
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [append, model, projectId, projectIdeMode, provider, runAnimation]);
+
+    useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
       const requestedSelection = projectModelSelectionFromParams(searchParams);
 
@@ -597,6 +672,24 @@ export const ChatImpl = memo(
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete('model');
       nextParams.delete('provider');
+      setSearchParams(nextParams, { replace: true });
+    }, [projectIdeMode, searchParams, setSearchParams]);
+
+    useEffect(() => {
+      if (!projectIdeMode || !searchParams.has('promptQueueError')) {
+        return;
+      }
+
+      const reason = searchParams.get('promptQueueError')?.trim();
+      toast.error(
+        reason
+          ? `Project created, but the initial prompt could not be queued (${reason}).`
+          : 'Project created, but the initial prompt could not be queued.',
+        { autoClose: 8000 },
+      );
+
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('promptQueueError');
       setSearchParams(nextParams, { replace: true });
     }, [projectIdeMode, searchParams, setSearchParams]);
 

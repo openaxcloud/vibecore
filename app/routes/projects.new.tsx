@@ -63,6 +63,15 @@ import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validati
 export const meta: MetaFunction = () => [{ title: 'Create project - VibeCore' }];
 
 type Project = { id: string };
+type PendingProjectPrompt = {
+  id: string;
+  prompt: string;
+  model: string;
+  provider: string;
+  createdAt: string;
+  aiFallback?: boolean;
+  aiFallbackReason?: string;
+};
 type ArtifactCategory = {
   id: string;
   label: string;
@@ -456,6 +465,27 @@ function loginRedirect(request: Request) {
   return redirect(`/login?redirectTo=${encodeURIComponent(redirectTo)}`);
 }
 
+function createPendingPromptId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+async function queueProjectPrompt(request: Request, projectId: string, pendingPrompt: PendingProjectPrompt) {
+  await apiRequest(request, `/projects/${projectId}/ide-state`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      state: {
+        chat: {
+          pendingPrompt,
+        },
+      },
+    }),
+  });
+}
+
 async function requireFirstOrganization(request: Request) {
   try {
     return await firstOrganization(request);
@@ -602,20 +632,30 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     });
   }
 
-  const ideParams = new URLSearchParams();
+  let promptQueueError: string | undefined;
 
   if (prompt) {
-    ideParams.set('prompt', generationPrompt);
-    ideParams.set('model', selectedModel);
-    ideParams.set('provider', selectedProvider);
+    const pendingPrompt: PendingProjectPrompt = {
+      id: createPendingPromptId(),
+      prompt: generationPrompt,
+      model: selectedModel,
+      provider: selectedProvider,
+      createdAt: new Date().toISOString(),
+      ...(aiGenerationFailed ? { aiFallback: true } : {}),
+      ...(aiGenerationError ? { aiFallbackReason: aiGenerationError.slice(0, 240) } : {}),
+    };
+
+    try {
+      await queueProjectPrompt(request, result.project.id, pendingPrompt);
+    } catch (error) {
+      promptQueueError = error instanceof Error ? error.message : 'Unable to queue the initial prompt';
+    }
   }
 
-  if (aiGenerationFailed) {
-    ideParams.set('aiFallback', 'true');
+  const ideParams = new URLSearchParams();
 
-    if (aiGenerationError) {
-      ideParams.set('aiFallbackReason', aiGenerationError.slice(0, 240));
-    }
+  if (promptQueueError) {
+    ideParams.set('promptQueueError', promptQueueError.slice(0, 240));
   }
 
   const ideUrl = `/projects/${result.project.id}/ide${ideParams.size ? `?${ideParams.toString()}` : ''}`;
