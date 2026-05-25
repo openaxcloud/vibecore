@@ -174,4 +174,72 @@ describe('projects/new action', () => {
     expect(response.headers.get('location')!.length).toBeLessThan(128);
     expect(queuedPromptLength).toBeGreaterThan(longPrompt.length);
   });
+
+  it('returns an inline error when AI project creation hits the project quota', async () => {
+    let attemptedFallbackCreate = false;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url === 'https://api.example.com/orgs') {
+          return jsonResponse({ organizations: [{ id: 'org_1' }] });
+        }
+
+        if (url === 'https://api.example.com/orgs/org_1/projects/from-ai') {
+          return jsonResponse({ error: 'Quota exceeded for projects.count', code: 'QUOTA_EXCEEDED' }, 429);
+        }
+
+        if (url === 'https://api.example.com/orgs/org_1/projects') {
+          attemptedFallbackCreate = true;
+          return jsonResponse({ project: { id: 'project_fallback' } }, 201);
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    const response = (await action(
+      buildActionArgs({
+        prompt: 'Build a production analytics dashboard',
+        artifactType: 'web',
+        provider: 'OpenAI',
+        model: 'gpt-4o',
+      }),
+    )) as { error?: string };
+
+    expect(response.error).toMatch(/project limit/i);
+    expect(attemptedFallbackCreate).toBe(false);
+  });
+
+  it('returns an inline error when blank project creation hits the project quota', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url === 'https://api.example.com/orgs') {
+          return jsonResponse({ organizations: [{ id: 'org_1' }] });
+        }
+
+        if (url === 'https://api.example.com/orgs/org_1/projects') {
+          return jsonResponse({ error: 'Quota exceeded for projects.count', code: 'QUOTA_EXCEEDED' }, 429);
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    const response = (await action(
+      buildActionArgs({
+        name: 'Manual project',
+        artifactType: 'web',
+        provider: 'OpenAI',
+        model: 'gpt-4o',
+      }),
+    )) as { error?: string };
+
+    expect(response.error).toMatch(/project limit/i);
+  });
 });

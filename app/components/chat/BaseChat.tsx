@@ -86,6 +86,7 @@ import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
+import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import LlmErrorAlert from './LLMApiAlert';
@@ -4368,8 +4369,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         fetch('/api/models')
           .then((response) => response.json())
           .then((data) => {
-            const typedData = data as { modelList: ModelInfo[] };
-            setModelList(typedData.modelList);
+            setModelList(modelListFromResponse(data));
           })
           .catch((error) => {
             console.warn('Error fetching model list:', error);
@@ -4392,7 +4392,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       try {
         const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
         const data = await response.json();
-        providerModels = (data as { modelList: ModelInfo[] }).modelList;
+        providerModels = modelListFromResponse(data);
       } catch (error) {
         console.warn('Error loading dynamic models for:', providerName, error);
       }
