@@ -65,6 +65,12 @@ describe('workspace Kubernetes manifests', () => {
     expect(pvc.spec?.resources).toEqual({ requests: { storage: '30Gi' } });
   });
 
+  it('pins workspace PVCs to the configured storage class', () => {
+    const pvc = workspacePvc({ ...input, storageClassName: 'workspace-standard-rwo' });
+
+    expect(pvc.spec?.storageClassName).toBe('workspace-standard-rwo');
+  });
+
   it('injects workspace secrets only through Secret references', () => {
     const pod = workspacePod(input);
     const container = (pod.spec?.containers as any[])[0];

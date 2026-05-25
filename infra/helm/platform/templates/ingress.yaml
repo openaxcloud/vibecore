@@ -5,6 +5,8 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.proxyReadTimeoutSeconds | default 180 | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.proxySendTimeoutSeconds | default 180 | quote }}
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:

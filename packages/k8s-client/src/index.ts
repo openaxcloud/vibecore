@@ -21,6 +21,7 @@ export interface WorkspaceRuntimeInput {
   plan: WorkspacePlan;
   resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
+  storageClassName?: string;
 }
 
 export interface WorkspaceResourceLimits {
@@ -101,6 +102,7 @@ export function workspacePvc(input: WorkspaceRuntimeInput): K8sObject {
     metadata: { name: input.pvcName, namespace: input.namespace, labels: labels(input) },
     spec: {
       accessModes: ['ReadWriteOnce'],
+      ...(input.storageClassName ? { storageClassName: input.storageClassName } : {}),
       resources: { requests: { storage: resources.storageRequest } },
     },
   };

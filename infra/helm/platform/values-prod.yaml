@@ -92,6 +92,7 @@ platformEnv:
     apiBaseUrl: "https://api.e-code.ai/api/runtime"
     workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
     workspaceRuntimeNamespace: "workspaces"
+    workspaceStorageClass: "workspace-standard-rwo"
     workspaceAgentImage: "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-ef77d35"
     previewUrlTemplate: "https://{workspaceId}-{port}.preview.e-code.ai/p/{workspaceId}/{port}/"
   email:
@@ -115,6 +116,8 @@ ingress:
   issuerName: letsencrypt-dns01
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
+  proxyReadTimeoutSeconds: 180
+  proxySendTimeoutSeconds: 180
 
 services:
   # Optional `imageTag` on any service overrides `global.imageTag` for that

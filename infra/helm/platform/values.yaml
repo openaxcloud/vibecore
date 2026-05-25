@@ -54,6 +54,7 @@ platformEnv:
     apiBaseUrl: "https://api.staging.example.com/api/runtime"
     workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
     workspaceRuntimeNamespace: "workspaces"
+    workspaceStorageClass: "workspace-standard-rwo"
     workspaceAgentImage: "us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging"
     previewUrlTemplate: "https://{workspaceId}-{port}.preview.staging.example.com/p/{workspaceId}/{port}/"
   email:
@@ -77,6 +78,8 @@ ingress:
   issuerName: letsencrypt-dns01
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
+  proxyReadTimeoutSeconds: 180
+  proxySendTimeoutSeconds: 180
 
 services:
   # Optional `imageTag` on any service overrides `global.imageTag` for that

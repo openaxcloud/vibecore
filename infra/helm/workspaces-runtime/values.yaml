@@ -9,6 +9,13 @@ runtimeClass:
   name: gvisor
   handler: runsc
 
+storageClass:
+  enabled: true
+  name: workspace-standard-rwo
+  type: pd-standard
+  reclaimPolicy: Delete
+  allowVolumeExpansion: true
+
 sandboxNodeSelector:
   vibecore.ai/node-pool: sandbox
 

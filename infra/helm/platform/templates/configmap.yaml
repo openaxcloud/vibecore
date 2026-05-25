@@ -51,6 +51,7 @@ data:
   VITE_RUNTIME_API_BASE_URL: {{ .Values.platformEnv.runtime.apiBaseUrl | quote }}
   WORKSPACE_MANAGER_URL: {{ .Values.platformEnv.runtime.workspaceManagerUrl | quote }}
   WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
+  WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
   WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
   PREVIEW_URL_TEMPLATE: {{ .Values.platformEnv.runtime.previewUrlTemplate | quote }}
 
