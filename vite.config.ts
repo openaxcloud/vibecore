@@ -1,7 +1,7 @@
 import { cloudflareDevProxyVitePlugin as remixCloudflareDevProxy, vitePlugin as remixVitePlugin } from '@remix-run/dev';
 import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
-import { defineConfig, type ViteDevServer } from 'vite';
+import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -165,6 +165,7 @@ export default defineConfig((config) => {
         exclude: ['child_process', 'fs', 'path'],
       }),
       suppressUnoCssLabeledVariantWarning(),
+      suppressGeneratedWorkspaceWatchEvents(),
       {
         name: 'buffer-polyfill',
         transform(code, id) {
@@ -244,6 +245,45 @@ export default defineConfig((config) => {
     },
   };
 });
+
+const GENERATED_WORKSPACE_WATCH_EVENTS = new Set(['add', 'addDir', 'change', 'unlink', 'unlinkDir']);
+
+function suppressGeneratedWorkspaceWatchEvents() {
+  return {
+    name: 'vibecore:suppress-generated-workspace-watch-events',
+    configureServer(server: ViteDevServer) {
+      const ignoredRoots = [
+        'services/api/.vibecore',
+        'services/api/.vibecore-project-storage',
+        'services/api/.vibecore-static-deployments',
+      ].map((relativePath) => normalizePath(`${server.config.root}/${relativePath}`).replace(/\/?$/, '/'));
+
+      const isIgnoredWorkspacePath = (filePath: unknown) => {
+        if (typeof filePath !== 'string') {
+          return false;
+        }
+
+        const absolutePath = normalizePath(filePath.startsWith('/') ? filePath : `${server.config.root}/${filePath}`);
+
+        return ignoredRoots.some((root) => absolutePath === root.slice(0, -1) || absolutePath.startsWith(root));
+      };
+
+      const originalEmit = server.watcher.emit.bind(server.watcher);
+
+      server.watcher.emit = ((eventName: string | symbol, ...args: unknown[]) => {
+        if (
+          typeof eventName === 'string' &&
+          GENERATED_WORKSPACE_WATCH_EVENTS.has(eventName) &&
+          isIgnoredWorkspacePath(args[0])
+        ) {
+          return false;
+        }
+
+        return originalEmit(eventName, ...args);
+      }) as typeof server.watcher.emit;
+    },
+  };
+}
 
 function chrome129IssuePlugin() {
   return {
