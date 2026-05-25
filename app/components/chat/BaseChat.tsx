@@ -2358,9 +2358,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
-    const DEFAULT_RIGHT_PANEL_WIDTH = 220;
-    const MIN_RIGHT_PANEL_WIDTH = 160;
-    const MAX_RIGHT_PANEL_WIDTH = 260;
+    const DEFAULT_RIGHT_PANEL_WIDTH = 280;
+    const MIN_RIGHT_PANEL_WIDTH = 272;
+    const MAX_RIGHT_PANEL_WIDTH = 360;
     const [rightPanelOpen, setRightPanelOpen] = useState(true);
     const [rightPanelMode, setRightPanelMode] = useState<'files' | 'preview-logs'>('files');
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
@@ -5516,12 +5516,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     };
 
-    const panelPercentToPixels = useCallback((size: number) => {
+    const getProjectPanelAvailableWidth = useCallback(() => {
       const viewportWidth = typeof window === 'undefined' ? 1440 : window.innerWidth;
-      const availableWidth = Math.max(320, viewportWidth - 48);
 
-      return Math.round((availableWidth * size) / 100);
+      const railWidth =
+        typeof document === 'undefined'
+          ? 56
+          : Number.parseFloat(
+              window
+                .getComputedStyle(document.querySelector('.bolt-responsive-ide-desktop') ?? document.documentElement)
+                .getPropertyValue('--project-ide-rail-width'),
+            ) || 56;
+
+      return Math.max(320, viewportWidth - railWidth - 1);
     }, []);
+
+    const panelPercentToPixels = useCallback(
+      (size: number) => Math.round((getProjectPanelAvailableWidth() * size) / 100),
+      [getProjectPanelAvailableWidth],
+    );
+
+    const panelPixelsToPercent = useCallback(
+      (pixels: number) => {
+        const clampedPixels = Math.min(MAX_RIGHT_PANEL_WIDTH, Math.max(MIN_RIGHT_PANEL_WIDTH, pixels));
+
+        return (clampedPixels / getProjectPanelAvailableWidth()) * 100;
+      },
+      [MAX_RIGHT_PANEL_WIDTH, MIN_RIGHT_PANEL_WIDTH, getProjectPanelAvailableWidth],
+    );
+
+    const rightPanelDefaultSize = panelPixelsToPercent(rightPanelWidth);
+    const rightPanelMinSize = panelPixelsToPercent(MIN_RIGHT_PANEL_WIDTH);
+    const rightPanelMaxSize = panelPixelsToPercent(MAX_RIGHT_PANEL_WIDTH);
+    const agentPanelDefaultSize = 24;
+
+    const workspacePanelDefaultSize = rightPanelOpen
+      ? projectAgentPanelOpen
+        ? Math.max(35, 100 - agentPanelDefaultSize - rightPanelDefaultSize)
+        : Math.max(35, 100 - rightPanelDefaultSize)
+      : projectAgentPanelOpen
+        ? 100 - agentPanelDefaultSize
+        : 100;
 
     const projectIdePanels = (
       <div
@@ -5555,7 +5590,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <Panel
             id="project-workspace-panel"
             order={projectAgentPanelOpen ? 2 : 1}
-            defaultSize={rightPanelOpen ? (projectAgentPanelOpen ? 62 : 84) : projectAgentPanelOpen ? 76 : 100}
+            defaultSize={workspacePanelDefaultSize}
             minSize={35}
             className="bolt-project-panel-slot bolt-project-panel-slot-workspace"
           >
@@ -5624,9 +5659,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <Panel
                 id="project-right-panel"
                 order={projectAgentPanelOpen ? 3 : 2}
-                defaultSize={14}
-                minSize={10}
-                maxSize={22}
+                defaultSize={rightPanelDefaultSize}
+                minSize={rightPanelMinSize}
+                maxSize={rightPanelMaxSize}
                 collapsible
                 collapsedSize={0}
                 className="bolt-project-panel-slot bolt-project-panel-slot-right"
@@ -5714,7 +5749,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <Panel
                 id="project-agent-panel"
                 order={1}
-                defaultSize={24}
+                defaultSize={agentPanelDefaultSize}
                 minSize={20}
                 maxSize={36}
                 className="bolt-project-panel-slot bolt-project-panel-slot-agent"

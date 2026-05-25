@@ -39,6 +39,7 @@ describe('public marketing brand', () => {
 
     const footerTargets = publicFooterColumns.flatMap((column) => column.links.map(([, to]) => to));
 
+    expect(menuTargets).toContain('/product');
     expect(menuTargets).toContain('/features');
     expect(menuTargets).toContain('/apps');
     expect(menuTargets).toContain('/ai-agent/studio');
@@ -50,6 +51,7 @@ describe('public marketing brand', () => {
     expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/ai');
     expect(menuTargets).toContain('/partners');
+    expect(menuTargets).toContain('/customers');
     expect(menuTargets).toContain('/marketplace');
     expect(menuTargets).toContain('/community');
     expect(menuTargets).toContain('/explore');
@@ -65,7 +67,9 @@ describe('public marketing brand', () => {
     expect(footerTargets).toContain('/performance');
     expect(footerTargets).toContain('/ai-documentation');
     expect(footerTargets).toContain('/subprocessors');
+    expect(footerTargets).toContain('/product');
     expect(footerTargets).toContain('/features');
+    expect(footerTargets).toContain('/customers');
     expect(footerTargets).toContain('/marketplace');
     expect(footerTargets).toContain('/community');
     expect(footerTargets).toContain('/explore');

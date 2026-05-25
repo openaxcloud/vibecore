@@ -16,6 +16,12 @@ export default function ChangelogPage() {
           <ActivityList
             items={[
               {
+                title: 'v1 platform hardening',
+                detail:
+                  'GCP storage, deployer, creation flow, AI generator, mobile shipping kit, marketing and docs foundations imported from the E-Code release notes.',
+                icon: ShieldCheck,
+              },
+              {
                 title: 'Billing and quotas',
                 detail: 'Stripe lifecycle, signed webhooks, quota ledgers and billing pages added.',
                 icon: Rocket,

@@ -44,8 +44,7 @@ const WithTooltip = forwardRef(
                 max-h-[300px]
                 select-none
                 rounded-md
-                bg-bolt-elements-background-depth-3
-                text-bolt-elements-textPrimary
+                border
                 text-sm
                 leading-tight
                 shadow-lg
@@ -60,15 +59,18 @@ const WithTooltip = forwardRef(
               sideOffset={sideOffset}
               style={{
                 maxWidth,
+                background: 'var(--vc-ui-tooltip-bg)',
+                borderColor: 'var(--vc-ui-tooltip-border)',
+                color: 'var(--vc-ide-text-primary)',
                 ...tooltipStyle,
               }}
             >
               <div className="break-words">{tooltip}</div>
               <TooltipPrimitive.Arrow
                 className={`
-                  fill-bolt-elements-background-depth-3
                   ${arrowClassName}
                 `}
+                style={{ fill: 'var(--vc-ui-tooltip-bg)' }}
                 width={12}
                 height={6}
               />
@@ -102,18 +104,25 @@ export function Tooltip({
     <TooltipPrimitive.Provider>
       <TooltipPrimitive.Root delayDuration={delayDuration}>
         <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
-        <TooltipPrimitive.Content
-          side={side}
-          align={align}
-          className={classNames(
-            'z-50 overflow-hidden rounded-md bg-bolt-elements-background-depth-3 dark:bg-bolt-elements-background-depth-4 px-3 py-1.5 text-xs text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-            className,
-          )}
-          sideOffset={5}
-        >
-          {content}
-          <TooltipPrimitive.Arrow className="fill-bolt-elements-background-depth-3 dark:fill-bolt-elements-background-depth-4" />
-        </TooltipPrimitive.Content>
+        <TooltipPrimitive.Portal>
+          <TooltipPrimitive.Content
+            side={side}
+            align={align}
+            className={classNames(
+              'z-[2000] max-w-[min(280px,calc(100vw-24px))] overflow-hidden rounded-md border px-3 py-1.5 text-xs leading-tight shadow-lg animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+              className,
+            )}
+            sideOffset={5}
+            style={{
+              background: 'var(--vc-ui-tooltip-bg)',
+              borderColor: 'var(--vc-ui-tooltip-border)',
+              color: 'var(--vc-ide-text-primary)',
+            }}
+          >
+            <span className="block break-words">{content}</span>
+            <TooltipPrimitive.Arrow style={{ fill: 'var(--vc-ui-tooltip-bg)' }} />
+          </TooltipPrimitive.Content>
+        </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>
     </TooltipPrimitive.Provider>
   );

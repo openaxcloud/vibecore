@@ -103,7 +103,7 @@ export const ECODE_MARKETING_BRAND = {
 } as const;
 
 export const publicNav = [
-  { label: 'Product', to: '/features' },
+  { label: 'Product', to: '/product' },
   { label: 'Platform', to: '/apps' },
   { label: 'Solutions', to: '/solutions/app-builder' },
   { label: 'Resources', to: '/docs' },
@@ -114,8 +114,9 @@ export const publicNav = [
 
 export const publicMarketingMenus = {
   product: [
+    ['Product Tour', '/product', 'Editor, AI, agents, deploy, mobile and collaboration in one product surface.'],
     ['AI Agent', '/ai', 'Build production-ready apps with natural language prompts.'],
-    ['Browser IDE', '/features', 'Enterprise-grade development workspace built for teams.'],
+    ['Features', '/features', 'Enterprise-grade development workspace built for teams.'],
     ['Multiplayer', '/collaboration', 'Live collaboration, pair programming and shared presence.'],
     ['Mobile App', '/mobile', 'Ship from phone and tablet with the same IDE workflow.'],
     ['Desktop App', '/desktop', 'Optimized local workflows with secure project sync.'],
@@ -188,6 +189,7 @@ export const publicMarketingMenus = {
   ],
   company: [
     ['About', '/about', 'Learn about the platform mission and product direction.'],
+    ['Customers', '/customers', 'Internal tools, AI products and education showcases imported from E-Code.'],
     ['Careers', '/careers', 'Join a distributed team building the future of software.'],
     ['Press', '/press', 'Brand, partner and platform overview.'],
     ['Partners', '/partners', 'Strategic alliances and solution partners.'],
@@ -200,6 +202,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
   {
     title: 'Product',
     links: [
+      ['Product Tour', '/product'],
       ['AI Agent', '/ai'],
       ['IDE', '/features'],
       ['Multiplayer', '/collaboration'],
@@ -254,6 +257,7 @@ export const publicFooterColumns: readonly FooterColumn[] = [
       ['Careers', '/careers'],
       ['Press', '/press'],
       ['Partners', '/partners'],
+      ['Customers', '/customers'],
       ['Contact sales', '/contact-sales'],
       ['Contact', '/contact'],
       ['Security', '/security'],

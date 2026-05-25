@@ -197,11 +197,22 @@ body {
   --vc-ide-bg-card: #1a2030;
   --vc-ide-bg-hover: #2b3245;
   --vc-ide-bg-muted: #20283a;
+  --vc-ide-bg-base: var(--vc-ide-bg-app);
+  --vc-ide-bg-elevated: var(--vc-ide-bg-card);
+  --vc-ide-bg-subtle: var(--vc-ide-bg-muted);
+  --vc-ide-bg-overlay: rgb(26 32 48 / 0.92);
+  --vc-ide-bg-panel-subtle: color-mix(in srgb, var(--vc-ide-bg-panel), var(--vc-ide-bg-card) 32%);
+  --vc-ide-surface-0: var(--vc-ide-bg-app);
+  --vc-ide-surface-1: var(--vc-ide-bg-panel);
+  --vc-ide-surface-2: var(--vc-ide-bg-card);
   --vc-ide-border-subtle: #1a2030;
   --vc-ide-border-visible: #2b3245;
+  --vc-ide-border: var(--vc-ide-border-visible);
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   --vc-ide-text-muted: #a3adba;
+  --vc-ide-text-tertiary: var(--vc-ide-text-muted);
+  --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-ai-start: #7b61ff;
   --vc-ide-accent-ai-end: #ff6b9d;
   --vc-ide-accent-success: #3fb950;
@@ -209,6 +220,17 @@ body {
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  --vc-ide-accent: var(--vc-ide-accent-action);
+  --vc-ide-accent-primary: var(--vc-ide-accent-action);
+  --vc-ide-accent-green: var(--vc-ide-accent-success);
+  --vc-ide-accent-danger: var(--vc-ide-accent-error);
+  --vc-success: var(--vc-ide-accent-success);
+  --vc-danger: var(--vc-ide-accent-error);
+  --vc-status-ok: var(--vc-ide-accent-success);
+  --vc-status-error: var(--vc-ide-accent-error);
+  --vc-status-warn: var(--vc-ide-accent-warning);
+  --vc-status-muted: var(--vc-ide-text-muted);
+  --vc-status-neutral: var(--vc-ide-text-secondary);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #ff7a2b;
   --ecode-text-muted: var(--vc-ide-text-muted);
@@ -293,8 +315,10 @@ body {
   --bolt-elements-cta-text: var(--vc-ide-text-primary);
   --vc-font-interface:
     'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --vc-font-sans: var(--vc-font-interface);
   --vc-font-code:
     'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --vc-ide-font-mono: var(--vc-font-code);
   --vc-type-interface-size: 12px;
   --vc-type-interface-compact-size: 11px;
   --vc-type-code-size: 12px;
@@ -312,6 +336,8 @@ body {
   --vc-ui-shadow-md: 0 4px 12px rgb(0 4 20 / 0.5);
   --vc-ui-shadow-lg: 0 12px 32px rgb(0 4 20 / 0.6);
   --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
+  --vc-ui-shadow-soft: var(--vc-ui-shadow-md);
+  --vc-ide-shadow-soft: var(--vc-ui-shadow-md);
   --vc-ui-transition-hover: 150ms ease-out;
   --vc-ui-transition-panel: 200ms cubic-bezier(0.2, 0, 0, 1);
   --vc-ui-transition-popover: 100ms ease-out;
@@ -352,7 +378,6 @@ body {
   // --accent-color: rgba(180, 170, 220, var(--gradient-opacity));
 }
 
-:root:not([data-theme]),
 :root[data-theme='light'] {
   color-scheme: light;
   --vc-ide-bg-app: #f6f8fb;
@@ -360,11 +385,22 @@ body {
   --vc-ide-bg-card: #eef2f7;
   --vc-ide-bg-hover: #e2e8f0;
   --vc-ide-bg-muted: #e2e8f0;
+  --vc-ide-bg-base: var(--vc-ide-bg-panel);
+  --vc-ide-bg-elevated: var(--vc-ide-bg-panel);
+  --vc-ide-bg-subtle: #f8fafc;
+  --vc-ide-bg-overlay: rgb(255 255 255 / 0.94);
+  --vc-ide-bg-panel-subtle: #f8fafc;
+  --vc-ide-surface-0: var(--vc-ide-bg-app);
+  --vc-ide-surface-1: var(--vc-ide-bg-panel);
+  --vc-ide-surface-2: var(--vc-ide-bg-card);
   --vc-ide-border-subtle: #cfd7e3;
   --vc-ide-border-visible: #9aa8bb;
+  --vc-ide-border: var(--vc-ide-border-subtle);
   --vc-ide-text-primary: #111827;
   --vc-ide-text-secondary: #334155;
   --vc-ide-text-muted: #475569;
+  --vc-ide-text-tertiary: var(--vc-ide-text-muted);
+  --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-ai-start: #6d5dfc;
@@ -374,6 +410,17 @@ body {
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
   --vc-ide-accent-warning: #a16207;
+  --vc-ide-accent: var(--vc-ide-accent-action);
+  --vc-ide-accent-primary: var(--vc-ide-accent-action);
+  --vc-ide-accent-green: var(--vc-ide-accent-success);
+  --vc-ide-accent-danger: var(--vc-ide-accent-error);
+  --vc-success: var(--vc-ide-accent-success);
+  --vc-danger: var(--vc-ide-accent-error);
+  --vc-status-ok: var(--vc-ide-accent-success);
+  --vc-status-error: var(--vc-ide-accent-error);
+  --vc-status-warn: var(--vc-ide-accent-warning);
+  --vc-status-muted: var(--vc-ide-text-muted);
+  --vc-status-neutral: var(--vc-ide-text-secondary);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   --ecode-text-muted: var(--vc-ide-text-muted);
@@ -460,6 +507,8 @@ body {
   --vc-ui-shadow-md: 0 4px 12px rgb(15 23 42 / 0.1);
   --vc-ui-shadow-lg: 0 12px 32px rgb(15 23 42 / 0.12);
   --vc-ui-shadow-xl: 0 24px 64px rgb(15 23 42 / 0.16);
+  --vc-ui-shadow-soft: var(--vc-ui-shadow-sm);
+  --vc-ide-shadow-soft: var(--vc-ui-shadow-md);
   --vc-ui-overlay-bg: rgb(255 255 255 / 0.85);
   --vc-ui-tooltip-bg: #ffffff;
   --vc-ui-focus-ring: #005fcc;
@@ -479,11 +528,23 @@ body {
   --vc-ide-bg-panel: #0e1525;
   --vc-ide-bg-card: #1a2030;
   --vc-ide-bg-hover: #2b3245;
+  --vc-ide-bg-muted: #20283a;
+  --vc-ide-bg-base: var(--vc-ide-bg-app);
+  --vc-ide-bg-elevated: var(--vc-ide-bg-card);
+  --vc-ide-bg-subtle: var(--vc-ide-bg-muted);
+  --vc-ide-bg-overlay: rgb(26 32 48 / 0.92);
+  --vc-ide-bg-panel-subtle: color-mix(in srgb, var(--vc-ide-bg-panel), var(--vc-ide-bg-card) 32%);
+  --vc-ide-surface-0: var(--vc-ide-bg-app);
+  --vc-ide-surface-1: var(--vc-ide-bg-panel);
+  --vc-ide-surface-2: var(--vc-ide-bg-card);
   --vc-ide-border-subtle: #1a2030;
   --vc-ide-border-visible: #2b3245;
+  --vc-ide-border: var(--vc-ide-border-visible);
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   --vc-ide-text-muted: #6e7681;
+  --vc-ide-text-tertiary: var(--vc-ide-text-muted);
+  --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-ai-start: #7b61ff;
@@ -493,6 +554,17 @@ body {
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  --vc-ide-accent: var(--vc-ide-accent-action);
+  --vc-ide-accent-primary: var(--vc-ide-accent-action);
+  --vc-ide-accent-green: var(--vc-ide-accent-success);
+  --vc-ide-accent-danger: var(--vc-ide-accent-error);
+  --vc-success: var(--vc-ide-accent-success);
+  --vc-danger: var(--vc-ide-accent-error);
+  --vc-status-ok: var(--vc-ide-accent-success);
+  --vc-status-error: var(--vc-ide-accent-error);
+  --vc-status-warn: var(--vc-ide-accent-warning);
+  --vc-status-muted: var(--vc-ide-text-muted);
+  --vc-status-neutral: var(--vc-ide-text-secondary);
   --bolt-elements-borderColor: var(--vc-ide-border-subtle);
   --bolt-elements-borderColorActive: var(--vc-ide-border-visible);
   --bolt-elements-bg-depth-1: var(--vc-ide-bg-app);
@@ -4963,8 +5035,8 @@ body :where(.lucide, svg[data-lucide]) {
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: var(--vc-ide-bg-app);
-  color: var(--vc-ide-text-primary);
+  background-color: var(--vc-ide-bg-app) !important;
+  color: var(--vc-ide-text-primary) !important;
 }
 
 .bolt-project-panel-group {
@@ -7449,7 +7521,10 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-file-tree-icon-wrap {
   display: inline-flex;
+  width: 16px !important;
   min-width: 16px;
+  max-width: 16px !important;
+  flex: 0 0 16px;
   height: 16px;
   align-items: center;
   color: var(--vc-file-tree-foreground);
@@ -7457,10 +7532,11 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-file-tree-icon-wrap [class*='i-ph:'] {
-  width: 16px;
-  height: 16px;
+  width: 16px !important;
+  height: 16px !important;
   color: var(--vc-file-tree-foreground);
-  font-size: 16px;
+  font-size: 16px !important;
+  line-height: 16px !important;
 }
 
 .bolt-file-tree-name {
@@ -7468,12 +7544,31 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
   max-width: 100%;
   color: var(--vc-file-tree-foreground);
-  font-size: 14px;
+  font-size: 14px !important;
   font-weight: 400;
-  line-height: normal;
+  line-height: normal !important;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-icon-wrap {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  flex-basis: 16px !important;
+}
+
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-icon-wrap [class*='i-ph:'] {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+  line-height: 16px !important;
+}
+
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-name {
+  font-size: 14px !important;
+  line-height: normal !important;
 }
 
 .bolt-project-file-tree .bolt-file-tree-node:hover .bolt-file-tree-name,
@@ -14766,6 +14861,28 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: var(--vc-type-label-size) !important;
 }
 
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-node,
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-name {
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+}
+
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-icon-wrap {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  flex-basis: 16px !important;
+  padding-left: 0 !important;
+}
+
+.bolt-project-ide-shell .bolt-project-file-tree .bolt-file-tree-icon-wrap [class*='i-ph:'] {
+  width: 16px !important;
+  height: 16px !important;
+  font-size: 16px !important;
+  line-height: 16px !important;
+}
+
 .bolt-project-ide-shell :where(h1, h2):not([class*='i-']),
 .bolt-project-agent-panel :where(h1, h2):not([class*='i-']),
 .bolt-project-chatbox :where(h1, h2):not([class*='i-']) {
@@ -14975,9 +15092,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     left: 0;
     z-index: 11002;
     display: block;
-    border-bottom: 1px solid rgb(55 65 81 / 0.5);
-    background: rgb(28 28 28 / 0.95);
-    color: #fff;
+    border-bottom: 1px solid var(--vc-ide-border-subtle);
+    background: color-mix(in srgb, var(--vc-ide-bg-panel) 95%, transparent);
+    color: var(--vc-ide-text-primary);
     backdrop-filter: blur(20px);
     padding-top: env(safe-area-inset-top, 0px);
   }
@@ -15906,13 +16023,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-public-footer-cta h2 {
   margin: 0;
   color: var(--vc-public-text);
-  font-weight: 800;
+  font-weight: 800 !important;
   letter-spacing: 0;
 }
 
 .vc-home-hero-copy h1 {
-  font-size: clamp(2.65rem, 8vw, 5.8rem);
-  line-height: 0.95;
+  font-size: 2.65rem !important;
+  line-height: 0.95 !important;
 }
 
 .vc-home-hero-copy p,
@@ -15922,8 +16039,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-public-footer p {
   margin: 0;
   color: var(--vc-public-muted);
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 16px !important;
+  line-height: 1.7 !important;
 }
 
 .vc-home-builder-form {
@@ -16282,8 +16399,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-home-media-card h2,
 .vc-home-cta h2,
 .vc-public-footer-cta h2 {
-  font-size: clamp(2rem, 5vw, 3.7rem);
-  line-height: 1.02;
+  font-size: 2rem !important;
+  line-height: 1.02 !important;
 }
 
 .vc-home-feature-grid,
@@ -17650,6 +17767,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: block;
   }
 
+  .vc-home-hero-copy h1 {
+    font-size: 4.25rem !important;
+  }
+
+  .vc-home-section-head h2,
+  .vc-home-media-card h2,
+  .vc-home-cta h2,
+  .vc-public-footer-cta h2 {
+    font-size: 3rem !important;
+  }
+
   .vc-home-stats .vc-public-container,
   .vc-home-feature-grid,
   .vc-home-partner-grid,
@@ -17721,6 +17849,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 }
 
+@media (min-width: 1180px) {
+  .vc-home-hero-copy h1 {
+    font-size: 5.8rem !important;
+  }
+
+  .vc-home-section-head h2,
+  .vc-home-media-card h2,
+  .vc-home-cta h2,
+  .vc-public-footer-cta h2 {
+    font-size: 3.7rem !important;
+  }
+}
+
 .vc-marketing-page {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -17736,8 +17877,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-marketing-page-hero h1 {
   margin: 0;
   color: var(--vc-public-text);
-  font-size: clamp(2.5rem, 7vw, 5.5rem);
-  line-height: 0.95;
+  font-size: 2.5rem !important;
+  font-weight: 800 !important;
+  line-height: 0.95 !important;
   letter-spacing: 0;
 }
 
@@ -17745,8 +17887,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   margin: 0;
   max-width: 720px;
   color: var(--vc-public-muted);
-  font-size: clamp(1rem, 1.8vw, 1.25rem);
-  line-height: 1.7;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
 }
 
 .vc-marketing-page-actions {
@@ -17803,7 +17945,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-marketing-section-card h2 {
   margin: 0;
   color: var(--vc-public-text);
-  font-size: 1.35rem;
+  font-size: 1.35rem !important;
   letter-spacing: 0;
 }
 
@@ -17944,22 +18086,69 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .vc-surface-related h2 {
   margin: 0;
   color: var(--vc-public-text);
-  font-weight: 800;
+  font-weight: 800 !important;
   letter-spacing: 0;
 }
 
 .vc-surface-hero-copy h1 {
   max-width: 860px;
-  font-size: clamp(2.5rem, 7vw, 5.8rem);
-  line-height: 0.95;
+  font-size: 2.5rem !important;
+  line-height: 0.95 !important;
 }
 
 .vc-surface-hero-copy p {
   max-width: 760px;
   margin: 0;
   color: var(--vc-public-muted);
-  font-size: clamp(1rem, 1.8vw, 1.22rem);
-  line-height: 1.7;
+  font-size: 1rem !important;
+  line-height: 1.7 !important;
+}
+
+.vc-public-shell :where(h1.text-3xl, h2.text-3xl, h3.text-3xl) {
+  font-size: 30px !important;
+  line-height: 36px !important;
+}
+
+.vc-public-shell :where(h1.text-2xl, h2.text-2xl, h3.text-2xl) {
+  font-size: 24px !important;
+  line-height: 32px !important;
+}
+
+.vc-public-shell :where(h1.text-xl, h2.text-xl, h3.text-xl) {
+  font-size: 20px !important;
+  line-height: 28px !important;
+}
+
+.vc-public-shell :where(h1.text-lg, h2.text-lg, h3.text-lg) {
+  font-size: 18px !important;
+  line-height: 28px !important;
+}
+
+@media (min-width: 720px) {
+  .vc-marketing-page-hero h1,
+  .vc-surface-hero-copy h1 {
+    font-size: 4rem !important;
+  }
+
+  .vc-marketing-page-hero p,
+  .vc-surface-hero-copy p {
+    font-size: 1.125rem !important;
+  }
+}
+
+@media (min-width: 1180px) {
+  .vc-marketing-page-hero h1 {
+    font-size: 5.5rem !important;
+  }
+
+  .vc-surface-hero-copy h1 {
+    font-size: 5.8rem !important;
+  }
+
+  .vc-marketing-page-hero p,
+  .vc-surface-hero-copy p {
+    font-size: 1.22rem !important;
+  }
 }
 
 .vc-surface-console,

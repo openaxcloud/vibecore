@@ -19,6 +19,7 @@ import {
 } from '~/lib/persistence/agentPatchProposalSync';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { ActionRunner } from '~/lib/runtime/action-runner';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
@@ -726,12 +727,23 @@ export class WorkbenchStore {
     };
   }
 
-  async #previewSetupCommands(packageJsonPath: string, pkg: { packageManager?: string }, forceInstall: boolean) {
-    if (!forceInstall && (await this.#packageDirectoryHasRuntimeDirectory(packageJsonPath, 'node_modules'))) {
+  async #previewSetupCommands(
+    packageJsonPath: string,
+    pkg: PreviewPackageManifest & { packageManager?: string },
+    forceInstall: boolean,
+  ) {
+    if (!forceInstall && (await this.#packageDirectoryHasInstalledPreviewDependencies(packageJsonPath, pkg))) {
       return [];
     }
 
     return [this.#installCommandForPackage(packageJsonPath, pkg)];
+  }
+
+  async #packageDirectoryHasInstalledPreviewDependencies(packageJsonPath: string, pkg: PreviewPackageManifest) {
+    const cwd = this.#runtimeCwdForPackageJson(packageJsonPath);
+    const nodeModulesPath = cwd ? `${cwd}/node_modules` : 'node_modules';
+
+    return hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory), nodeModulesPath);
   }
 
   async #packageDirectoryHasRuntimeDirectory(packageJsonPath: string, directoryName: string) {

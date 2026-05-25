@@ -14,6 +14,7 @@ describe('E-Code marketing page registry', () => {
     expect(Object.keys(marketingPages)).toEqual(
       expect.arrayContaining([
         'about',
+        'product',
         'features',
         'careers',
         'blog',
@@ -26,6 +27,7 @@ describe('E-Code marketing page registry', () => {
         'languages',
         'tutorials',
         'case-studies',
+        'customers',
         'help-center',
         'forum',
         'ai',
@@ -46,6 +48,20 @@ describe('E-Code marketing page registry', () => {
         'runtime-test',
       ]),
     );
+  });
+
+  it('preserves the imported static E-Code marketing mini-site content as routed pages', () => {
+    expect(marketingPages.product.sections.map((section) => section.title)).toEqual(
+      expect.arrayContaining(['Editor', 'AI and agents', 'Deploy', 'Mobile and collaboration']),
+    );
+    expect(marketingPages.product.highlights).toEqual(
+      expect.arrayContaining(['Editor', 'AI generation', 'Agents', 'Deploy', 'Mobile', 'Collaboration']),
+    );
+
+    expect(marketingPages.customers.sections.map((section) => section.title)).toEqual(
+      expect.arrayContaining(['Internal tools', 'AI products', 'Education']),
+    );
+    expect(marketingPages.customers.description).toContain('Cloud Run deployment');
   });
 
   it('covers E-Code solutions, comparison pages, campaigns and newsletter routes', () => {

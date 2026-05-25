@@ -20,7 +20,7 @@ import { path } from '~/utils/path';
 
 const logger = createScopedLogger('FileTree');
 
-const NODE_BASE_PADDING_LEFT = 2;
+const NODE_BASE_PADDING_LEFT = 0;
 const NODE_PADDING_LEFT = 6;
 
 function FileTreeName({ name, className }: { name: string; className?: string }) {

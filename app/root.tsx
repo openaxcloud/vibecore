@@ -69,7 +69,7 @@ const inlineThemeCode = stripIndents`
   function setTutorialKitTheme() {
     let theme = localStorage.getItem('bolt_theme');
 
-    if (!theme) {
+    if (theme !== 'dark' && theme !== 'light') {
       theme = 'dark';
     }
 
@@ -77,6 +77,11 @@ const inlineThemeCode = stripIndents`
 
     root?.setAttribute('data-theme', theme);
     root?.classList.toggle('dark', theme === 'dark');
+    root && (root.style.colorScheme = theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0f1c' : '#f6f8fb');
+    document
+      .querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+      ?.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
   }
 `;
 
@@ -84,7 +89,7 @@ export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="theme-color" content="#0a0f1c" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -101,10 +106,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
 
   useEffect(() => {
-    const root = document.querySelector('html');
-
-    root?.setAttribute('data-theme', theme);
-    root?.classList.toggle('dark', theme === 'dark');
+    applyThemeToDocument(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -168,6 +170,8 @@ function AppBootFallback({ ide }: { ide: boolean }) {
 }
 
 function AppToastContainer() {
+  const theme = useStore(themeStore);
+
   return (
     <ToastContainer
       closeButton={({ closeToast }) => {
@@ -195,6 +199,7 @@ function AppToastContainer() {
       autoClose={4000}
       limit={5}
       newestOnTop={false}
+      theme={theme}
     />
   );
 }
@@ -237,7 +242,7 @@ function GlobalRouteLoader() {
 }
 
 import { logStore } from './lib/stores/logs';
-import { themeStore } from './lib/stores/theme';
+import { applyThemeToDocument, themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 
 export default function App() {

@@ -51,6 +51,40 @@ export interface MarketingPageDefinition {
 const productProof = ['AI-native builder', 'Preserved Bolt IDE', 'Real runtimes', 'Enterprise governance'] as const;
 
 export const marketingPages = {
+  product: {
+    slug: 'product',
+    title: 'E-Code Product',
+    eyebrow: 'Product tour',
+    description:
+      'The imported E-Code product tour covering the editor, AI generation, agent supervision, Cloud Run deployment, mobile workflows and collaboration.',
+    kind: 'standard',
+    icon: Layers,
+    primaryAction: ['Explore features', '/features'],
+    secondaryAction: ['View pricing', '/pricing'],
+    highlights: ['Editor', 'AI generation', 'Agents', 'Deploy', 'Mobile', 'Collaboration'],
+    sections: [
+      {
+        title: 'Editor',
+        body: 'Panels, terminal, Git, preview, problems and settings are organized for repeated engineering work.',
+        items: ['Workbench panels', 'Terminal and preview', 'Git context', 'Project settings'],
+      },
+      {
+        title: 'AI and agents',
+        body: 'Streaming multi-model generation supports attachments, stack selection, build correction, visible plans, tool calls, artifacts, pause, resume and commit handoff.',
+        items: ['Streaming generation', 'Stack selection', 'Visible tool calls', 'Commit handoff'],
+      },
+      {
+        title: 'Deploy',
+        body: 'Cloud Run releases, rollback, domains, scheduled jobs and Cloud Monitoring metrics are part of the E-Code delivery path.',
+        items: ['Cloud Run releases', 'Rollback', 'Custom domains', 'Monitoring metrics'],
+      },
+      {
+        title: 'Mobile and collaboration',
+        body: 'Project browser, editor, terminal, preview, notifications, presence, shared editing, public projects, fork flow and moderation are connected to the same product system.',
+        items: ['Phone and tablet IDE', 'Push and deep links', 'Presence', 'Public project workflows'],
+      },
+    ],
+  },
   features: {
     slug: 'features',
     title: 'E-Code Features',
@@ -144,11 +178,16 @@ export const marketingPages = {
         title: 'Featured articles',
         body: 'Practical product and engineering updates from the E-Code platform roadmap.',
         items: [
+          'Why Cloud Run for developer workspaces',
           'Shipping governed AI agents without losing review loops',
           'Why previews are a release gate, not a demo artifact',
           'Designing a mobile IDE for real production work',
-          'Keeping enterprise controls visible in daily coding flows',
         ],
+      },
+      {
+        title: 'Why Cloud Run for developer workspaces',
+        body: 'Cloud Run gives stateless services, gVisor isolation, regional deploys and predictable scaling for modern IDE workloads.',
+        items: ['Stateless services', 'gVisor isolation', 'Regional deploys', 'Predictable scaling'],
       },
       {
         title: 'Editorial tracks',
@@ -372,6 +411,40 @@ export const marketingPages = {
       },
     ],
   },
+  customers: {
+    slug: 'customers',
+    title: 'Customers and showcase',
+    eyebrow: 'Customers',
+    description:
+      'The imported E-Code customer showcase for internal tools, AI products and education teams building with Cloud Run deployment and validated templates.',
+    kind: 'resource',
+    icon: Users,
+    primaryAction: ['Read case studies', '/case-studies'],
+    secondaryAction: ['Contact sales', '/contact-sales'],
+    highlights: ['Internal tools', 'AI products', 'Education', 'Cloud Run deployment'],
+    sections: [
+      {
+        title: 'Internal tools',
+        body: 'Teams build dashboards, automations and back-office apps with Cloud Run deployment.',
+        items: ['Dashboards', 'Automations', 'Back-office apps', 'Cloud Run deployment'],
+      },
+      {
+        title: 'AI products',
+        body: 'Founders generate, iterate and ship model-powered apps from validated templates.',
+        items: ['Model-powered apps', 'Validated templates', 'Iteration loops', 'Preview before release'],
+      },
+      {
+        title: 'Education',
+        body: 'Classrooms run safe project environments with reproducible templates.',
+        items: ['Safe environments', 'Reproducible templates', 'Student projects', 'Teacher review'],
+      },
+      {
+        title: 'Showcase paths',
+        body: 'The imported showcase now routes through real Vibecore pages instead of a detached static HTML file.',
+        items: ['Templates', 'Marketplace', 'Community', 'Case studies'],
+      },
+    ],
+  },
   'help-center': {
     slug: 'help-center',
     title: 'Help Center',
@@ -530,8 +603,8 @@ export const marketingPages = {
     sections: [
       {
         title: 'Scope',
-        body: 'The DPA describes processing responsibilities, security commitments and support for compliance workflows.',
-        items: ['Controller and processor roles', 'Processing instructions', 'Confidentiality', 'Deletion assistance'],
+        body: 'Enterprise plans may execute a data processing addendum with processing responsibilities, security commitments and support for compliance workflows.',
+        items: ['Controller and processor roles', 'Processing instructions', 'Confidentiality', 'Subprocessor list'],
       },
       {
         title: 'Operational safeguards',
@@ -600,8 +673,8 @@ export const marketingPages = {
     sections: [
       {
         title: 'Provider categories',
-        body: 'Subprocessors are used to operate core application hosting, analytics, support and secure AI workflows.',
-        items: ['Hosting', 'Data storage', 'AI inference', 'Support tooling'],
+        body: 'Subprocessors are used to operate core application hosting, payments, email delivery, analytics, support and secure AI workflows.',
+        items: ['Google Cloud', 'Stripe', 'Sentry', 'Email delivery and analytics'],
       },
       {
         title: 'Change management',

@@ -9,9 +9,9 @@ export default function PrivacyPage() {
       <Policy
         title="Privacy policy"
         sections={[
-          'Workspace metadata is used to operate projects, billing, support and security controls.',
-          'Provider keys, secrets and billing identifiers are handled as confidential platform data.',
-          'Enterprise exports and retention settings are governed by organization policy.',
+          'Project data is used to provide the workspace, AI, deployment and support workflows.',
+          'Secrets stay server-side and provider keys, secrets and billing identifiers are handled as confidential platform data.',
+          'Enterprise exports, retention settings, DPA terms and subprocessors are governed by organization policy.',
         ]}
       />
     </PublicShell>
