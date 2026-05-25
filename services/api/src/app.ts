@@ -2942,7 +2942,9 @@ function agentBaseUrl(workspaceId: string) {
 }
 
 function previewUrlForWorkspacePort(workspaceId: string, port: number) {
-  const template = process.env.PREVIEW_URL_TEMPLATE ?? process.env.PREVIEW_PROXY_URL;
+  const template = [process.env.PREVIEW_URL_TEMPLATE, process.env.PREVIEW_PROXY_URL].find(
+    (value) => value && value !== 'undefined' && value !== 'null',
+  );
 
   if (template) {
     return template
@@ -5721,6 +5723,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     (error as { code?: string } | undefined)?.code === 'WORKSPACE_MANAGER_UNAVAILABLE' ||
     (error instanceof Error && error.message === 'Workspace manager is unavailable');
 
+  const isRuntimeAgentUnavailable = (error: unknown) =>
+    (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+
+  const shouldUseLocalRuntimeFallback = (error: unknown) =>
+    localRuntimeFallbackEnabled() && (isRuntimeManagerUnavailable(error) || isRuntimeAgentUnavailable(error));
+
   const localRuntimeRoot = (workspaceId: string) => {
     const safeId = workspaceId.replace(/[^A-Za-z0-9_.-]/g, '_');
     return resolve(process.env.WORKSPACE_LOCAL_RUNTIME_ROOT ?? '.vibecore/local-runtime', safeId);
@@ -5856,6 +5864,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       status: record.status,
       exitCode: record.exitCode,
     })),
+  });
+
+  const listLocalRuntimePorts = (workspaceId: string) => ({
+    ports: [...(localRuntimeProcesses.get(workspaceId)?.values() ?? [])].flatMap((record) => {
+      const source = `${record.command}\n${record.output ?? ''}`;
+      const matches = source.matchAll(
+        /(?:https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[[^\]]+\])[:/]|localhost:|127\.0\.0\.1:|0\.0\.0\.0:|--port\s+|LISTEN\s+)(\d{2,5})/gi,
+      );
+      const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
+
+      if (
+        !ports.size &&
+        /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)
+      ) {
+        ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
+      }
+
+      return [...ports].map((port) => ({ port, processId: record.id }));
+    }),
   });
 
   const stopLocalRuntimeProcess = (workspaceId: string, processId: string) => {
@@ -6646,7 +6673,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         { method: 'POST', body: JSON.stringify(body) },
       );
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -6678,7 +6705,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         '/processes',
       );
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -6695,7 +6722,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
     } catch (error) {
-      if (!isRuntimeManagerUnavailable(error)) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
@@ -6708,10 +6735,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
-    const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
-      authorized.workspaceId,
-      '/ports',
-    );
+    let result: { ports: Array<{ port: number; processId?: string }> };
+
+    try {
+      result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+        authorized.workspaceId,
+        '/ports',
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = listLocalRuntimePorts(authorized.workspaceId);
+    }
 
     return result.ports.map((port) => ({
       ...port,
@@ -7008,10 +7045,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
     const client = normalizeRuntimeApiWebSocket(socket);
 
-    const result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
-      authorized.workspaceId,
-      '/ports',
-    );
+    let result: { ports: Array<{ port: number; processId?: string }> };
+
+    try {
+      result = await agentRequest<{ ports: Array<{ port: number; processId?: string }> }>(
+        authorized.workspaceId,
+        '/ports',
+      );
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      result = listLocalRuntimePorts(authorized.workspaceId);
+    }
 
     for (const port of result.ports) {
       client.send(

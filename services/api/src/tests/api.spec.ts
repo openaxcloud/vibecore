@@ -230,7 +230,9 @@ class MemoryProjectStorage implements ProjectStorage {
   }
 }
 
-async function startRuntimeServices(options: { logs?: string[]; commandStdout?: string; commandStderr?: string } = {}) {
+async function startRuntimeServices(
+  options: { logs?: string[]; commandStdout?: string; commandStderr?: string; agentUnavailable?: boolean } = {},
+) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
 
@@ -245,6 +247,11 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
     request.on('end', () => {
       const payload = body ? JSON.parse(body) : {};
       response.setHeader('content-type', 'application/json');
+
+      if (options.agentUnavailable) {
+        response.writeHead(503).end(JSON.stringify({ error: 'workspace_agent_unavailable' }));
+        return;
+      }
 
       if (request.method === 'GET' && url.pathname === '/files/tree') {
         response.end(JSON.stringify([...files.keys()].map((path) => ({ path, type: 'file' }))));
@@ -4146,6 +4153,83 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
       }
 
+      await app.close();
+      await rm(localRuntimeRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('uses the local runtime fallback for commands and ports when the workspace agent is unavailable', async () => {
+    const runtime = await startRuntimeServices({ agentUnavailable: true });
+    const previousFallback = process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+    const previousFallbackRoot = process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+    const localRuntimeRoot = await mkdtemp(join(tmpdir(), 'vibecore-local-runtime-agent-fallback-'));
+    process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = 'true';
+    process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = localRuntimeRoot;
+
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store: new TestApiStore(), projectStorage });
+
+    const auth = await register(app, {
+      email: 'runtime-agent-fallback@example.com',
+      organizationName: 'Runtime Agent Fallback Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Agent Fallback Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    await projectStorage.writeFiles(projectId, [
+      { path: 'package.json', content: '{\n  "scripts": { "dev": "vite" }\n}\n' },
+    ]);
+
+    try {
+      const command = await app.inject({
+        method: 'POST',
+        url: `/api/runtime/workspaces/${projectId}/commands`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          command: 'sh',
+          args: ['-lc', 'echo "Local: http://127.0.0.1:5173/"'],
+          timeoutMs: 5000,
+        },
+      });
+
+      expect(command.statusCode).toBe(200);
+      expect(command.json()).toMatchObject({ exitCode: 0, localRuntime: true });
+      expect(command.json().output).toContain('127.0.0.1:5173');
+
+      const ports = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/ports`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(ports.statusCode).toBe(200);
+      expect(ports.json()).toEqual([
+        expect.objectContaining({
+          port: 5173,
+          type: 'open',
+          ready: true,
+          url: `/api/runtime/workspaces/${projectId}/preview/5173/proxy/`,
+        }),
+      ]);
+    } finally {
+      if (previousFallback === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_FALLBACK = previousFallback;
+      }
+
+      if (previousFallbackRoot === undefined) {
+        delete process.env.WORKSPACE_LOCAL_RUNTIME_ROOT;
+      } else {
+        process.env.WORKSPACE_LOCAL_RUNTIME_ROOT = previousFallbackRoot;
+      }
+
+      await runtime.close();
       await app.close();
       await rm(localRuntimeRoot, { recursive: true, force: true });
     }
