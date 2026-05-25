@@ -2565,7 +2565,7 @@ describe('SaaS API', () => {
       },
     });
     expect(saveIdeState.statusCode).toBe(200);
-    expect(saveIdeState.json().ideState.version).toBe(1);
+    expect(saveIdeState.json().ideState.version).toBe(2);
 
     const loadIdeState = await app.inject({
       method: 'GET',
@@ -2690,7 +2690,16 @@ describe('SaaS API', () => {
 
     const projectId = create.json().project.id as string;
 
-    // Initial PUT without If-Match seeds version 1 and surfaces the etag header.
+    // Project scaffolds seed an internal file manifest at version 1; the first UI save bumps it.
+    const seededState = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(seededState.statusCode).toBe(200);
+    expect(seededState.json().ideState.version).toBe(1);
+    expect(seededState.headers.etag).toBe('"1"');
+
     const firstSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
@@ -2698,8 +2707,8 @@ describe('SaaS API', () => {
       payload: { state: { ui: { agentWidth: 480 } } },
     });
     expect(firstSave.statusCode).toBe(200);
-    expect(firstSave.json().ideState.version).toBe(1);
-    expect(firstSave.headers.etag).toBe('"1"');
+    expect(firstSave.json().ideState.version).toBe(2);
+    expect(firstSave.headers.etag).toBe('"2"');
 
     // GET also surfaces the etag so the client can seed its If-Match state.
     const initialFetch = await app.inject({
@@ -2708,32 +2717,32 @@ describe('SaaS API', () => {
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(initialFetch.statusCode).toBe(200);
-    expect(initialFetch.headers.etag).toBe('"1"');
+    expect(initialFetch.headers.etag).toBe('"2"');
 
-    // PUT with matching If-Match → success, version bumps to 2, new etag.
+    // PUT with matching If-Match -> success, version bumps to 3, new etag.
     const matchingSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
-      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"2"' },
       payload: { state: { ui: { agentWidth: 520 } } },
     });
     expect(matchingSave.statusCode).toBe(200);
-    expect(matchingSave.json().ideState.version).toBe(2);
-    expect(matchingSave.headers.etag).toBe('"2"');
+    expect(matchingSave.json().ideState.version).toBe(3);
+    expect(matchingSave.headers.etag).toBe('"3"');
 
     // Stale If-Match → 412 with the current state in the body so the client can re-merge.
     const staleSave = await app.inject({
       method: 'PUT',
       url: `/projects/${projectId}/ide-state`,
-      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"1"' },
+      headers: { authorization: `Bearer ${auth.token}`, 'if-match': '"2"' },
       payload: { state: { ui: { agentWidth: 999 } } },
     });
     expect(staleSave.statusCode).toBe(412);
-    expect(staleSave.headers.etag).toBe('"2"');
+    expect(staleSave.headers.etag).toBe('"3"');
 
     const staleBody = staleSave.json();
     expect(staleBody.code).toBe('IDE_STATE_PRECONDITION_FAILED');
-    expect(staleBody.ideState.version).toBe(2);
+    expect(staleBody.ideState.version).toBe(3);
     expect(staleBody.ideState.state.ui.agentWidth).toBe(520);
 
     // The rejected write must not bump the version or land its payload.
@@ -2742,7 +2751,7 @@ describe('SaaS API', () => {
       url: `/projects/${projectId}/ide-state`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
-    expect(afterStale.json().ideState.version).toBe(2);
+    expect(afterStale.json().ideState.version).toBe(3);
     expect(afterStale.json().ideState.state.ui.agentWidth).toBe(520);
 
     // Backward compatibility: requests without an If-Match header still work.
@@ -2753,8 +2762,8 @@ describe('SaaS API', () => {
       payload: { state: { ui: { agentWidth: 540 } } },
     });
     expect(headerlessSave.statusCode).toBe(200);
-    expect(headerlessSave.json().ideState.version).toBe(3);
-    expect(headerlessSave.headers.etag).toBe('"3"');
+    expect(headerlessSave.json().ideState.version).toBe(4);
+    expect(headerlessSave.headers.etag).toBe('"4"');
 
     await app.close();
   });
@@ -3006,7 +3015,8 @@ describe('SaaS API', () => {
 
   it('prefers replacement ZIP storage over recovered IDE state files', async () => {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
     const auth = await register(app, { email: 'zip-replace@example.com', organizationName: 'Zip Replace Org' });
 
     const project = await app.inject({
@@ -3052,6 +3062,8 @@ export function App() { return 'Old app'; }
     expect(replaced.statusCode).toBe(200);
     expect(replaced.json().files.map((file: { path: string }) => file.path)).toEqual(['index.html']);
 
+    projectStorage.files.delete(projectId);
+
     const listed = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/files`,
@@ -3070,6 +3082,46 @@ export function App() { return 'Old app'; }
     const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
     expect(Object.keys(archive.files)).toEqual(['index.html']);
     expect(await archive.file('index.html')!.async('string')).toContain('Replacement app');
+
+    await app.close();
+  });
+
+  it('recovers new project scaffold files from persisted storage state when pod-local storage is empty', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'scaffold-recovery@example.com', organizationName: 'Scaffold Recovery Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Scaffold Recovery Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+    projectStorage.files.delete(projectId);
+
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/files`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json().files.map((file: { path: string }) => file.path)).toEqual(
+      expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']),
+    );
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    expect(Object.keys(archive.files)).toEqual(expect.arrayContaining(['package.json', 'src/App.tsx', 'README.md']));
 
     await app.close();
   });

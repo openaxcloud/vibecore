@@ -1556,8 +1556,16 @@ function collaborationDocuments(state?: ProjectIdeStateRecord) {
 }
 
 function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array<{ path: string; content: string }> {
-  const root = ideStateObject(state);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
+  if (persistedManifest.exists) {
+    return persistedManifest.files;
+  }
+
+  return projectFilesFromIdeStateRoot(ideStateObject(state));
+}
+
+function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ path: string; content: string }> {
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
@@ -1579,6 +1587,109 @@ function projectFilesFromPersistedIdeState(state?: ProjectIdeStateRecord): Array
   }
 
   return [...files.entries()].map(([path, content]) => ({ path, content }));
+}
+
+function projectFileManifestFromPersistedIdeState(state?: ProjectIdeStateRecord): {
+  exists: boolean;
+  files: Array<{ path: string; content: string }>;
+} {
+  const root = ideStateObject(state);
+  return projectFileManifestFromPersistedInput(root.files);
+}
+
+function projectFileManifestFromPersistedInput(input: unknown): {
+  exists: boolean;
+  files: Array<{ path: string; content: string }>;
+} {
+  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const exists = Array.isArray(manifest.entries);
+  return {
+    exists,
+    files: exists ? projectFilesFromPersistedFileManifest(input) : [],
+  };
+}
+
+function projectFilesFromPersistedFileManifest(input: unknown): Array<{ path: string; content: string }> {
+  const manifest = input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
+  const files: Array<{ path: string; content: string }> = [];
+
+  for (const entry of entries) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+
+    const record = entry as Record<string, unknown>;
+
+    if (typeof record.path !== 'string' || typeof record.content !== 'string') {
+      continue;
+    }
+
+    const normalizedPath = normalizeProjectPath(record.path);
+
+    if (!normalizedPath) {
+      continue;
+    }
+
+    files.push({ path: normalizedPath, content: record.content });
+  }
+
+  return files;
+}
+
+function projectFileManifestState(files: Array<{ path: string; content: string }>) {
+  return {
+    entries: files
+      .map((file) => ({ path: normalizeProjectPath(file.path), content: file.content }))
+      .filter((file): file is { path: string; content: string } => Boolean(file.path)),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function projectFilesWithUpdatedAt(files: Array<{ path: string; content: string }>): ProjectFile[] {
+  const updatedAt = new Date().toISOString();
+  return files.map((file) => ({ ...file, updatedAt }));
+}
+
+function projectFilesMatch(left: ProjectFile[], right: Array<{ path: string; content: string }>) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const leftByPath = new Map(left.map((file) => [file.path, file.content]));
+
+  return right.every((file) => leftByPath.get(file.path) === file.content);
+}
+
+async function syncProjectStorageWithFileManifest(
+  projectStorage: ProjectStorage,
+  projectId: string,
+  existingFiles: ProjectFile[],
+  files: Array<{ path: string; content: string }>,
+) {
+  if (projectFilesMatch(existingFiles, files)) {
+    return existingFiles;
+  }
+
+  return projectStorage.restoreSnapshot({ projectId, files: projectFilesWithUpdatedAt(files) });
+}
+
+async function persistProjectFileManifest(
+  store: ApiStore,
+  projectId: string,
+  files: Array<{ path: string; content: string }>,
+  updatedByUserId?: string,
+  options: { clearRecoveredChatFiles?: boolean } = {},
+) {
+  const existingState = await store.getProjectIdeState(projectId);
+  await store.upsertProjectIdeState({
+    projectId,
+    updatedByUserId,
+    state: mergeProjectIdeState(existingState?.state, {
+      files: projectFileManifestState(files),
+      ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
+    }),
+  });
 }
 
 function persistedIdeMessageContent(message: unknown) {
@@ -1665,12 +1776,18 @@ async function ensureProjectStorageFromIdeState(
   projectId: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId);
+  const ideState = await store.getProjectIdeState(projectId);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
+
+  if (persistedManifest.exists) {
+    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+  }
 
   if (existingFiles.length > 0) {
     return existingFiles;
   }
 
-  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+  const recoveredFiles = projectFilesFromPersistedIdeState(ideState);
 
   if (!recoveredFiles.length) {
     return existingFiles;
@@ -1685,7 +1802,14 @@ async function listProjectFilesIncludingIdeState(
   projectId: string,
 ): Promise<ProjectFile[]> {
   const existingFiles = await projectStorage.listFiles(projectId);
-  const recoveredFiles = projectFilesFromPersistedIdeState(await store.getProjectIdeState(projectId));
+  const ideState = await store.getProjectIdeState(projectId);
+  const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
+
+  if (persistedManifest.exists) {
+    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+  }
+
+  const recoveredFiles = projectFilesFromPersistedIdeState(ideState);
 
   if (!recoveredFiles.length) {
     return existingFiles;
@@ -2738,6 +2862,23 @@ function renderProjectHomepagePreviewSvg(input: {
 
 function publicFiles(files: ProjectFile[]) {
   return files.map(({ path, updatedAt, content }) => ({ path, updatedAt, sizeBytes: Buffer.byteLength(content) }));
+}
+
+async function archiveProjectFiles(projectId: string, files: ProjectFile[]) {
+  const zip = new JSZip();
+
+  for (const file of files) {
+    zip.file(file.path, file.content);
+  }
+
+  const content = await zip.generateAsync({ type: 'nodebuffer' });
+
+  return {
+    storageKey: `exports/${projectId}/${Date.now()}-${randomUUID()}.zip`,
+    byteLength: content.byteLength,
+    base64: content.toString('base64'),
+    createdAt: new Date().toISOString(),
+  };
 }
 
 type ProjectPackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
@@ -6230,7 +6371,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const createBeforeAiSnapshot = async (request: any, project: ProjectRecord, reason: string) => {
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
 
     return store.createSnapshot({
@@ -6365,7 +6506,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       output = await gitProvider.commit({
         projectId: project.id,
         message: input.message ?? 'AI changes',
-        files: await projectStorage.listFiles(project.id),
+        files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       });
     } else if (toolName === 'deploy_project') {
       await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -8013,7 +8154,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       description: body.description,
       sourceType: 'blank',
     });
-    await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    const files = await projectStorage.writeFiles(project.id, starterFiles({ sourceType: 'blank', name: project.name }));
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -8045,10 +8187,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceType: 'template',
       templateName: body.templateName,
     });
-    await projectStorage.writeFiles(
+    const files = await projectStorage.writeFiles(
       project.id,
       starterFiles({ sourceType: 'template', name: project.name, templateName: body.templateName }),
     );
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -8081,7 +8224,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       sourceType: 'ai',
     });
-    await projectStorage.writeFiles(
+    const files = await projectStorage.writeFiles(
       project.id,
       starterFiles({
         sourceType: 'ai',
@@ -8092,6 +8235,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         model: body.model,
       }),
     );
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -8131,7 +8275,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       gitRepositoryUrl: imported.remoteUrl,
       gitDefaultBranch: imported.defaultBranch,
     });
-    await projectStorage.writeFiles(project.id, imported.files);
+    const files = await projectStorage.writeFiles(project.id, imported.files);
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
@@ -8147,7 +8292,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { repositoryUrl: body.repositoryUrl },
     });
 
-    return reply.code(201).send({ project, files: publicFiles(await projectStorage.listFiles(project.id)) });
+    return reply.code(201).send({ project, files: publicFiles(files) });
   });
   app.post('/orgs/:orgId/projects/import/zip', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
@@ -8165,6 +8310,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const files = await projectStorage.importZip(project.id, body.zipBase64);
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -8266,7 +8412,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         updatedAt: project.updatedAt,
         sourceType: project.sourceType,
       },
-      files: await projectStorage.listFiles(project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
     });
 
     return reply
@@ -8322,7 +8468,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const state = mergeProjectIdeState(existingState?.state, body.state);
+    let state = mergeProjectIdeState(existingState?.state, body.state);
+    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
+
+    if (generatedFiles.length) {
+      const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
+
+      for (const file of generatedFiles) {
+        mergedFiles.set(file.path, file);
+      }
+
+      state = mergeProjectIdeState(state, { files: projectFileManifestState([...mergedFiles.values()]) });
+    }
 
     const ideState = await store.upsertProjectIdeState({
       projectId: project.id,
@@ -8460,15 +8617,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const files = await projectStorage.importZip(project.id, body.zipBase64, {
       replaceExisting: body.replaceExisting === true,
     });
-
-    if (body.replaceExisting === true) {
-      const existingState = await store.getProjectIdeState(project.id);
-      await store.upsertProjectIdeState({
-        projectId: project.id,
-        updatedByUserId: request.currentUser!.id,
-        state: mergeProjectIdeState(existingState?.state, { chat: { clearMessages: true, messages: [] } }),
-      });
-    }
+    await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
+      clearRecoveredChatFiles: body.replaceExisting === true,
+    });
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -8493,9 +8644,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-    await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
-
-    const archive = await projectStorage.exportZip(project.id);
+    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
+    const archive = await archiveProjectFiles(project.id, files);
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -9350,7 +9500,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       name: body.name,
       slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
     });
-    await projectStorage.writeFiles(duplicate.id, await projectStorage.listFiles(project.id));
+    const sourceFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const duplicateFiles = await projectStorage.writeFiles(duplicate.id, sourceFiles);
+    await persistProjectFileManifest(store, duplicate.id, duplicateFiles, request.currentUser!.id);
     await store.recordProjectActivity({
       projectId: duplicate.id,
       actorUserId: request.currentUser!.id,
@@ -9452,7 +9604,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
     };
   });
   app.get('/files/:workspaceId/metadata', async (request) => {
@@ -9468,7 +9620,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await projectStorage.listFiles(project.id)),
+      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
     };
   });
 
@@ -9493,7 +9645,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createSnapshotSchema, request.body);
     await ensureQuota(request, project.organizationId, 'snapshots.count');
 
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
     const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
 
     const snapshot = await store.createSnapshot({
@@ -9540,7 +9692,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     await ensureQuota(request, project.organizationId, 'snapshots.count');
 
-    const files = await projectStorage.listFiles(project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
 
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
@@ -9595,6 +9747,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const snapshotFiles = snapshot.storageKey ? await projectStorage.getSnapshotFiles(snapshot.storageKey) : [];
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
+    await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
+      clearRecoveredChatFiles: true,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
       actorUserId: request.currentUser!.id,
@@ -10848,7 +11003,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const commit = await gitProvider.commit({
       projectId: project.id,
       message: body.message,
-      files: await projectStorage.listFiles(project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
       selectedFiles: body.files,
     });
     await store.recordProjectActivity({
