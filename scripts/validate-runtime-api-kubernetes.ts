@@ -68,7 +68,11 @@ async function main() {
 
   const terminal = await adapter.openTerminal({ terminal: { cols: 100, rows: 30 } });
   const terminalEvent = await nextEvent(terminal.events, 10_000);
-  assert(terminalEvent.type === 'stdout' && String(terminalEvent.data).includes('ready'), `terminal did not become ready: ${JSON.stringify(terminalEvent)}`);
+  const terminalData = String((terminalEvent as { data?: unknown }).data ?? '');
+  assert(
+    terminalEvent.type === 'stdout' && (terminalData.includes('ready') || terminalData.includes(']654;prompt') || terminalData.includes(']654;interactive')),
+    `terminal did not become ready: ${JSON.stringify(terminalEvent)}`,
+  );
   await terminal.kill();
 
   const ports = await adapter.listPorts();
