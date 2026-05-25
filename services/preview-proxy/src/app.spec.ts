@@ -24,6 +24,39 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it('refuses production boot when the default resolver has no manager URL or shared secret', async () => {
+    await expect(buildPreviewProxyApp({ isProduction: true, proxySharedSecret: 'preview-secret' })).rejects.toThrow(
+      /WORKSPACE_MANAGER_URL is required/,
+    );
+
+    await expect(
+      buildPreviewProxyApp({
+        isProduction: true,
+        workspaceManagerUrl: 'https://workspace-manager.example.com',
+      }),
+    ).rejects.toThrow(/PREVIEW_PROXY_SHARED_SECRET is required/);
+
+    await expect(
+      buildPreviewProxyApp({
+        isProduction: true,
+        workspaceManagerUrl: 'http://127.0.0.1:3010',
+        proxySharedSecret: 'preview-secret',
+      }),
+    ).rejects.toThrow(/WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL/);
+  });
+
+  it('boots in production with an internal workspace-manager service URL and shared secret', async () => {
+    const app = await buildPreviewProxyApp({
+      isProduction: true,
+      workspaceManagerUrl: 'http://workspace-manager.vibecore.svc:3010',
+      proxySharedSecret: 'preview-secret',
+    });
+
+    const response = await app.inject({ method: 'GET', url: '/health' });
+    expect(response.json()).toEqual({ status: 'ok', service: 'preview-proxy' });
+    await app.close();
+  });
+
   it('rejects an invalid port', async () => {
     const app = await buildPreviewProxyApp({ resolveAgent: async () => fakeAgent });
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/0/index.html' });

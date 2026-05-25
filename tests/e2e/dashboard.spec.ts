@@ -200,6 +200,50 @@ test('project creation light theme uses light containers and readable image prev
   expect(mobileOverflow).toBeLessThanOrEqual(2);
 });
 
+test('app shell form buttons stay visible in light theme', async ({ page }) => {
+  await authenticate(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+
+  await page.goto('/account-settings', { waitUntil: 'domcontentloaded' });
+  const saveButton = page.getByRole('button', { name: 'Save changes' });
+  await expect(saveButton).toBeVisible();
+
+  const saveButtonProbe = await saveButton.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+
+    return {
+      background: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      color: style.color,
+      height: rect.height,
+    };
+  });
+
+  expect(saveButtonProbe.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(saveButtonProbe.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+  expect(saveButtonProbe.height).toBeGreaterThanOrEqual(32);
+
+  await page.goto('/billing', { waitUntil: 'domcontentloaded' });
+  const portalButton = page.getByRole('button', { name: 'Open customer portal' });
+  await expect(portalButton).toBeVisible();
+
+  const portalButtonProbe = await portalButton.evaluate((element) => {
+    const style = window.getComputedStyle(element);
+
+    return {
+      background: style.backgroundColor,
+      borderColor: style.borderTopColor,
+      color: style.color,
+    };
+  });
+
+  expect(portalButtonProbe.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(portalButtonProbe.borderColor).not.toBe('rgba(0, 0, 0, 0)');
+});
+
 test('project creation syncs AI providers and models from settings', async ({ page }) => {
   await authenticate(page);
 
@@ -267,20 +311,22 @@ test('project creation syncs AI providers and models from settings', async ({ pa
   });
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'What do you want to create?' })).toBeVisible();
-  await expect(page.getByText('1 provider from Settings')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
+  await expect(page.getByText('1 provider synced from Settings')).toBeVisible({ timeout: 15_000 });
 
   const providerDropdown = page.getByTestId('ai-provider-dropdown');
-  await expect(providerDropdown.getByRole('button', { name: 'AI provider' })).toContainText('OpenAI');
-  await providerDropdown.getByRole('button', { name: 'AI provider' }).click();
+  const providerCombobox = providerDropdown.getByRole('combobox', { name: 'AI provider' });
+  await expect(providerCombobox).toContainText('OpenAI');
+  await providerCombobox.click();
   await expect(page.getByRole('option', { name: /OpenAI/ })).toBeVisible();
   await expect(page.getByRole('option', { name: /Anthropic/ })).toHaveCount(0);
 
   await page.keyboard.press('Escape');
 
   const modelDropdown = page.getByTestId('ai-model-dropdown');
-  await expect(modelDropdown.getByRole('button', { name: 'AI model' })).toContainText('GPT Settings Live');
-  await modelDropdown.getByRole('button', { name: 'AI model' }).click();
+  const modelCombobox = modelDropdown.getByRole('combobox', { name: 'AI model' });
+  await expect(modelCombobox).toContainText('GPT Settings Live');
+  await modelCombobox.click();
   await expect(page.getByRole('option', { name: /GPT Settings Live/ })).toBeVisible();
   await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
 });

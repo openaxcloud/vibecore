@@ -84,7 +84,7 @@ runDbTests('Connector isolation guards (real Postgres)', () => {
         await prismaCleanup.$disconnect();
       }
     };
-  });
+  }, 30_000);
 
   it('a UserConnection is only visible when queried by its userId', async () => {
     const prisma = createDatabaseClient();

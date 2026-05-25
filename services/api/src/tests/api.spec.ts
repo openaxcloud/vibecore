@@ -350,6 +350,21 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
   return buildApiApp({ gitProvider: new TestGitProvider(), emailProvider: new TestEmailProvider(), ...options });
 }
 
+async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Promise<T> {
+  const previousManager = process.env.WORKSPACE_MANAGER_URL;
+  process.env.WORKSPACE_MANAGER_URL = 'https://workspace-manager.example.com';
+
+  try {
+    return await callback();
+  } finally {
+    if (previousManager === undefined) {
+      delete process.env.WORKSPACE_MANAGER_URL;
+    } else {
+      process.env.WORKSPACE_MANAGER_URL = previousManager;
+    }
+  }
+}
+
 async function register(
   app: Awaited<ReturnType<typeof buildTestApiApp>>,
   input: { email: string; password?: string; name?: string; organizationName?: string },
@@ -491,37 +506,79 @@ describe('SaaS API', () => {
   });
 
   it('refuses to boot in production when the CORS allowlist is missing or dev-default', async () => {
-    await expect(
-      buildTestApiApp({
-        store: new TestApiStore(),
-        isProduction: true,
-        allowedOrigins: ['http://localhost:5173'],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+    await withProductionWorkspaceManager(async () => {
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['http://localhost:5173'],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
 
-    await expect(
-      buildTestApiApp({
-        store: new TestApiStore(),
-        isProduction: true,
-        allowedOrigins: [],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: [],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
 
-    await expect(
-      buildTestApiApp({
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['http://app.example.com'],
+        }),
+      ).rejects.toThrow(/API_CORS_ORIGINS/);
+    });
+  });
+
+  it('refuses to boot in production when the workspace manager URL is missing or local', async () => {
+    const previousManager = process.env.WORKSPACE_MANAGER_URL;
+
+    try {
+      delete process.env.WORKSPACE_MANAGER_URL;
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['https://app.example.com'],
+        }),
+      ).rejects.toThrow(/WORKSPACE_MANAGER_URL is required/);
+
+      process.env.WORKSPACE_MANAGER_URL = 'http://127.0.0.1:3010';
+      await expect(
+        buildTestApiApp({
+          store: new TestApiStore(),
+          isProduction: true,
+          allowedOrigins: ['https://app.example.com'],
+        }),
+      ).rejects.toThrow(/WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL/);
+
+      process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.vibecore.svc:3010';
+      const app = await buildTestApiApp({
         store: new TestApiStore(),
         isProduction: true,
-        allowedOrigins: ['http://app.example.com'],
-      }),
-    ).rejects.toThrow(/API_CORS_ORIGINS/);
+        allowedOrigins: ['https://app.example.com'],
+      });
+      await app.close();
+    } finally {
+      if (previousManager === undefined) {
+        delete process.env.WORKSPACE_MANAGER_URL;
+      } else {
+        process.env.WORKSPACE_MANAGER_URL = previousManager;
+      }
+    }
   });
 
   it('boots in production when the CORS allowlist is explicit HTTPS origins', async () => {
-    const app = await buildTestApiApp({
-      store: new TestApiStore(),
-      isProduction: true,
-      allowedOrigins: ['https://app.example.com', 'https://admin.example.com'],
-    });
+    const app = await withProductionWorkspaceManager(() =>
+      buildTestApiApp({
+        store: new TestApiStore(),
+        isProduction: true,
+        allowedOrigins: ['https://app.example.com', 'https://admin.example.com'],
+      }),
+    );
 
     const cors = await app.inject({
       method: 'OPTIONS',

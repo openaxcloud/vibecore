@@ -260,7 +260,7 @@ Sentry-compatible reporter receives a probe event.
 ## Step 11 - DR + rollback drill (½ day)
 
 ```bash
-# Backup restore dry run
+# Encrypted project backup restore dry run
 pnpm sre:validate
 
 # Real Cloud SQL point-in-time-recovery drill (in staging)

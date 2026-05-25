@@ -106,9 +106,11 @@ gcloud builds submit \
 
 ## Step 2 — Sync the K8s Secret from GCP Secret Manager
 
-19 of the 20 production secrets are populated in Secret Manager. The
-20th (`vibecore-prod-anthropic-api-key`) is optional — managed mode
-falls back to OpenAI / Gemini / etc. when missing.
+Production deploy is blocked until every provider and runtime variable
+required by `pnpm run production:validate` is populated with non-local
+values. Do not add placeholder values here: the validator intentionally
+rejects local, example, test and mock-looking values before Helm touches
+the cluster.
 
 ```bash
 SHA=$(git rev-parse --short HEAD)
@@ -127,6 +129,7 @@ declare -A MAP=(
   [COOKIE_SECRET]=vibecore-prod-cookie-secret
   [CONFIG_ENCRYPTION_KEY]=vibecore-prod-encryption-key
   [WORKSPACE_AGENT_TOKEN_SECRET]=vibecore-prod-workspace-agent-token-secret
+  [PREVIEW_PROXY_SHARED_SECRET]=vibecore-prod-preview-proxy-shared-secret
   [BACKUP_ENCRYPTION_KEY]=vibecore-prod-backup-encryption-key
   [SIEM_SIGNING_SECRET]=vibecore-prod-siem-signing-secret
   [GOOGLE_CLIENT_ID]=vibecore-prod-google-client-id
@@ -157,7 +160,7 @@ cat >> "$TMP" <<'EOF'
 NODE_ENV=production
 APP_ENV=production
 VITE_RUNTIME_MODE=remote-kubernetes
-VITE_RUNTIME_API_BASE_URL=https://workspace-manager.e-code.ai
+VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime
 WORKSPACE_MANAGER_URL=https://workspace-manager.e-code.ai
 WORKSPACE_RUNTIME_NAMESPACE=workspaces
 LOG_REDACTION_ENABLED=true
@@ -286,9 +289,13 @@ These are tracked as Phase 1 remaining work:
 - **B5** — `packages/k8s-client` is still `execFile('kubectl')` for
   workspace pod orchestration. Reliable enough for the launch volume,
   but the workspace-manager replicas:2 (B4) made it more visible.
-- **B8** — `scripts/backup-restore-dry-run.mjs` is a checksum stub.
-  Real PITR validation still has to be a manual `gcloud sql instances
-  clone` per [`ROLLBACK.md`](./ROLLBACK.md) until B8 lands.
+- **B8** — repo-local backup restore validation is automated by
+  `scripts/backup-restore-dry-run.mjs`: it creates a project archive,
+  writes a manifest with per-file hashes, encrypts the backup envelope,
+  restores to a separate project directory, compares manifest hashes,
+  and verifies tamper rejection. Real Cloud SQL PITR validation still
+  has to be a staging `gcloud sql instances clone` per
+  [`ROLLBACK.md`](./ROLLBACK.md) before production launch.
 - **B9** — `auth.account.delete` only purges Postgres rows; backups,
   S3 snapshots, and PVCs aren't reaped. Acceptable for the private
   beta; before GDPR-EU GA, ship B9.
@@ -296,5 +303,6 @@ These are tracked as Phase 1 remaining work:
   `OTEL_EXPORTER_OTLP_ENDPOINT` is intentionally empty (no backend
   picked yet). Traces are dropped, metrics still surface via Prometheus.
 - **Email transactionnel** — neither `SMTP_*` nor `EMAIL_HTTP_*` is
-  populated. Signup/reset/invite flows that need email will fail
-  silently until you wire Resend or SES.
+  populated in local validation. In production the API refuses to boot
+  without a real SMTP relay or HTTP email provider, and the development
+  fallback only logs redacted metadata.

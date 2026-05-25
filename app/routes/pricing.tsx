@@ -2,25 +2,28 @@ import type { MetaFunction } from '@remix-run/cloudflare';
 import { CheckCircle2 } from 'lucide-react';
 import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
-export const meta: MetaFunction = () => [{ title: 'Pricing - E-Code' }];
+export const meta: MetaFunction = () => [
+  { title: 'Pricing - E-Code' },
+  { name: 'description', content: 'E-code Free, Pro, Team and Enterprise pricing.' },
+];
 
 const plans = [
   {
     name: 'Free',
     price: '$0',
-    detail: 'For learning and small projects.',
+    detail: '$0 for learning and small projects.',
     features: ['Starter workspace', 'Public templates', 'Visible quotas before use'],
   },
   {
     name: 'Pro',
     price: '$20',
-    detail: 'Per user monthly for private projects, agents and deploys.',
+    detail: '$20 per user monthly for private projects, agents and deploys.',
     features: ['Private projects', 'AI agents', 'Deployments'],
   },
   {
     name: 'Team',
     price: '$40',
-    detail: 'Per user monthly with roles, billing controls and shared secrets.',
+    detail: '$40 per user monthly with roles, billing controls and shared secrets.',
     features: ['Roles', 'Billing controls', 'Shared secrets'],
   },
   {
@@ -34,11 +37,11 @@ const plans = [
 const pricingFaq = [
   {
     question: 'Do annual plans receive a discount?',
-    answer: 'Yes. Annual billing can receive a discount for Pro, Team and Enterprise agreements.',
+    answer: 'Yes. Compute, storage and AI quotas are visible before use so teams can plan costs and guardrails.',
   },
   {
-    question: 'Are compute, storage and AI quotas visible?',
-    answer: 'Yes. Compute, storage and AI quotas are visible before use so teams can plan costs and guardrails.',
+    question: 'How do annual discounts and quotas work?',
+    answer: 'Annual billing receives a discount. Compute, storage and AI quotas are visible before use.',
   },
 ] as const;
 

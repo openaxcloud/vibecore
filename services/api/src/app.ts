@@ -2924,8 +2924,42 @@ function runtimeNamespace() {
   return process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 }
 
+function assertProductionWorkspaceManagerUrl(rawUrl = process.env.WORKSPACE_MANAGER_URL) {
+  const normalized = rawUrl?.trim().replace(/\/+$/, '');
+
+  if (!normalized) {
+    throw new Error('WORKSPACE_MANAGER_URL is required in production.');
+  }
+
+  let url: URL;
+
+  try {
+    url = new URL(normalized);
+  } catch {
+    throw new Error('WORKSPACE_MANAGER_URL must be an absolute URL in production.');
+  }
+
+  const isInternalKubernetesService =
+    url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+  const isHttps = url.protocol === 'https:';
+
+  if (!isHttps && !isInternalKubernetesService) {
+    throw new Error('WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.');
+  }
+
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(url.hostname)) {
+    throw new Error('WORKSPACE_MANAGER_URL must not point to localhost in production.');
+  }
+
+  return normalized;
+}
+
 function workspaceManagerUrl() {
-  return (process.env.WORKSPACE_MANAGER_URL ?? 'http://127.0.0.1:3010').replace(/\/+$/, '');
+  if (process.env.NODE_ENV === 'production') {
+    return assertProductionWorkspaceManagerUrl();
+  }
+
+  return (process.env.WORKSPACE_MANAGER_URL?.trim() || 'http://127.0.0.1:3010').replace(/\/+$/, '');
 }
 
 function agentBaseUrl(workspaceId: string) {
@@ -3494,6 +3528,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }). Set API_CORS_ORIGINS=https://app.example.com,https://admin.example.com before boot.`,
       );
     }
+
+    assertProductionWorkspaceManagerUrl();
   }
 
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(

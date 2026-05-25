@@ -722,6 +722,67 @@ button:disabled {
   opacity: var(--vc-button-disabled-opacity);
 }
 
+body button[data-vc-button='true'] {
+  min-width: max-content;
+  border: 1px solid transparent;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+body button[data-vc-button='true'][data-size='default'] {
+  min-height: 36px;
+  padding: 0 14px;
+}
+
+body button[data-vc-button='true'][data-size='sm'] {
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+body button[data-vc-button='true'][data-size='lg'] {
+  min-height: 40px;
+  padding: 0 32px;
+}
+
+body button[data-vc-button='true'][data-size='icon'] {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+
+body button[data-vc-button='true'][data-variant='default'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 28%, transparent);
+  background: var(--bolt-elements-button-primary-background) !important;
+  color: var(--bolt-elements-button-primary-text) !important;
+}
+
+body button[data-vc-button='true'][data-variant='default']:where(:enabled:hover) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 42%, transparent);
+  background: var(--bolt-elements-button-primary-backgroundHover) !important;
+}
+
+body button[data-vc-button='true'][data-variant='outline'] {
+  border-color: var(--vc-ide-border-visible);
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 86%, transparent) !important;
+  color: var(--vc-ide-text-primary) !important;
+}
+
+body button[data-vc-button='true'][data-variant='outline']:where(:enabled:hover) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 34%, var(--vc-ide-border-visible));
+  background: var(--vc-ide-bg-hover) !important;
+}
+
+body button[data-vc-button='true'][data-variant='ghost'] {
+  color: var(--vc-ide-text-secondary) !important;
+}
+
+body button[data-vc-button='true'][data-variant='link'] {
+  border-color: transparent;
+  background: transparent !important;
+  color: var(--vc-ide-accent-action) !important;
+  box-shadow: none;
+}
+
 body
   :where(
     button[aria-busy='true'],

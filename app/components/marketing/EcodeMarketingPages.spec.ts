@@ -52,7 +52,7 @@ describe('E-Code marketing page registry', () => {
 
   it('preserves the imported static E-Code marketing mini-site content as routed pages', () => {
     expect(marketingPages.product.sections.map((section) => section.title)).toEqual(
-      expect.arrayContaining(['Editor', 'AI and agents', 'Deploy', 'Mobile and collaboration']),
+      expect.arrayContaining(['Editor', 'AI', 'Agents', 'Deploy', 'Mobile', 'Collaboration']),
     );
     expect(marketingPages.product.highlights).toEqual(
       expect.arrayContaining(['Editor', 'AI generation', 'Agents', 'Deploy', 'Mobile', 'Collaboration']),

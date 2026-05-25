@@ -1,9 +1,10 @@
 # Production secrets bootstrap
 
-This is the runbook for the **6 Phase 0 secret gaps** identified by
-`pnpm run production:validate --strict`. The platform compiles, types
-and tests green on `main`, but `helm upgrade` will not pass until every
-secret below has an enabled version in GCP Secret Manager.
+This is the runbook for the production secret and provider gaps
+identified by `pnpm run production:validate --strict`. The platform may
+compile, typecheck and test green on `main`, but production deploy must
+stay blocked until every required value has an enabled version in GCP
+Secret Manager or a real production GitHub Environment variable.
 
 The platform K8s Secret `vibecore-platform-secrets` (defined in
 `infra/helm/platform/values-prod.yaml`) is hydrated from these GCP
@@ -29,6 +30,7 @@ for s in \
   vibecore-prod-stripe-free-product-id \
   vibecore-prod-stripe-free-price-id \
   vibecore-prod-stripe-enterprise-product-id \
+  vibecore-prod-preview-proxy-shared-secret \
   vibecore-prod-smtp-host \
   vibecore-prod-otel-endpoint \
   vibecore-prod-incident-webhook-url
@@ -165,6 +167,7 @@ chmod 600 "$TMP"
 
 declare -A MAP=(
   [ANTHROPIC_API_KEY]=vibecore-prod-anthropic-api-key
+  [PREVIEW_PROXY_SHARED_SECRET]=vibecore-prod-preview-proxy-shared-secret
   [REDIS_URL]=vibecore-prod-redis-url
   [STRIPE_FREE_PRODUCT_ID]=vibecore-prod-stripe-free-product-id
   [STRIPE_FREE_PRICE_ID]=vibecore-prod-stripe-free-price-id

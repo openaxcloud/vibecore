@@ -4,6 +4,7 @@ export interface PreviewProxyOptions {
   logger?: boolean;
   workspaceManagerUrl?: string;
   proxySharedSecret?: string;
+  isProduction?: boolean;
   fetchImpl?: typeof fetch;
   resolveAgent?: (workspaceId: string) => Promise<{ baseUrl: string; token: string } | undefined>;
   requestTimeoutMs?: number;
@@ -12,6 +13,12 @@ export interface PreviewProxyOptions {
 type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
 
 export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): Promise<FastifyInstance> {
+  const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+
+  if (isProduction && !options.resolveAgent) {
+    assertProductionDefaultResolverConfig(options);
+  }
+
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
   const app = Fastify({ logger: options.logger ?? false });
@@ -129,6 +136,39 @@ function defaultResolveAgent(options: PreviewProxyOptions, fetchImpl: typeof fet
     if (!body.baseUrl || !body.token) return undefined;
     return { baseUrl: body.baseUrl, token: body.token };
   };
+}
+
+function assertProductionDefaultResolverConfig(options: PreviewProxyOptions) {
+  const managerUrl = options.workspaceManagerUrl?.trim();
+  const secret = normalizeSharedSecret(options.proxySharedSecret);
+
+  if (!managerUrl) {
+    throw new Error('WORKSPACE_MANAGER_URL is required in production for preview-proxy.');
+  }
+
+  if (!secret) {
+    throw new Error('PREVIEW_PROXY_SHARED_SECRET is required in production for preview-proxy.');
+  }
+
+  let url: URL;
+
+  try {
+    url = new URL(managerUrl);
+  } catch {
+    throw new Error('WORKSPACE_MANAGER_URL must be an absolute URL in production for preview-proxy.');
+  }
+
+  const isInternalKubernetesService =
+    url.protocol === 'http:' && (url.hostname.endsWith('.svc') || url.hostname.endsWith('.svc.cluster.local'));
+  const isHttps = url.protocol === 'https:';
+
+  if (!isHttps && !isInternalKubernetesService) {
+    throw new Error('WORKSPACE_MANAGER_URL must use HTTPS or an internal Kubernetes service DNS URL in production.');
+  }
+
+  if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/i.test(url.hostname)) {
+    throw new Error('WORKSPACE_MANAGER_URL must not point to localhost in production.');
+  }
 }
 
 function normalizeSharedSecret(value: string | undefined): string | undefined {
