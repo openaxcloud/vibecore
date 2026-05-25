@@ -16,6 +16,7 @@ export default defineConfig((config) => {
   const devPort = Number(process.env.VITE_DEV_PORT ?? 5173);
   const strictDevPort = process.env.VITE_STRICT_PORT === 'true';
   const nodeEnv = config.mode === 'production' ? 'production' : 'development';
+  const optimizeCssModulesEnabled = process.env.VITE_OPTIMIZE_CSS_MODULES === 'true';
 
   return {
     define: {
@@ -29,6 +30,8 @@ export default defineConfig((config) => {
         ignored: [
           '**/.claude/**',
           '**/.playwright-mcp/**',
+          '**/.vibecore',
+          '**/.vibecore/**',
           '**/.vibecore-project-storage',
           '**/.vibecore-project-storage/**',
           '**/.vibecore-static-deployments',
@@ -150,6 +153,7 @@ export default defineConfig((config) => {
       },
     },
     plugins: [
+      katexModernFontsPlugin(),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
@@ -204,7 +208,7 @@ export default defineConfig((config) => {
       UnoCSS(),
       tsconfigPaths({ projects: ['./tsconfig.json'] }),
       chrome129IssuePlugin(),
-      config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      config.mode === 'production' && optimizeCssModulesEnabled && optimizeCssModules({ apply: 'build' }),
     ],
     envPrefix: [
       'VITE_',
@@ -263,6 +267,23 @@ function chrome129IssuePlugin() {
 
         next();
       });
+    },
+  };
+}
+
+function katexModernFontsPlugin() {
+  return {
+    name: 'katex-modern-fonts',
+    enforce: 'pre' as const,
+    transform(code: string, id: string) {
+      if (!id.includes('/katex/dist/katex.min.css')) {
+        return null;
+      }
+
+      return {
+        code: code.replace(/,url\(fonts\/[^)]+\.(?:woff|ttf)\) format\("(?:woff|truetype)"\)/g, ''),
+        map: null,
+      };
     },
   };
 }

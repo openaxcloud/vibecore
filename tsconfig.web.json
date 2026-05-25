@@ -1,0 +1,37 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "functions/**/*.ts",
+    "load-context.ts",
+    "types/**/*.d.ts",
+    "uno.config.ts",
+    "vite.config.ts",
+    "vite-electron.config.ts",
+    "worker-configuration.d.ts"
+  ],
+  "exclude": [
+    "**/.claude",
+    "**/.claude/**",
+    "**/.playwright-mcp",
+    "**/.playwright-mcp/**",
+    "**/.vibecore",
+    "**/.vibecore/**",
+    "**/.vibecore-project-storage",
+    "**/.vibecore-project-storage/**",
+    "**/.vibecore-static-deployments",
+    "**/.vibecore-static-deployments/**",
+    "apps",
+    "build",
+    "dist",
+    "electron",
+    "app/**/*.spec.ts",
+    "app/**/*.spec.tsx",
+    "node_modules",
+    "packages",
+    "services",
+    "test-results",
+    "tmp"
+  ]
+}

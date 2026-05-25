@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { requireProductionSecret } from './index';
+import { requireProductionSecret } from './index.js';
 
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 

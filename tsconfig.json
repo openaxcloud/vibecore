@@ -36,14 +36,19 @@
     "**/.client/**/*.tsx"
   ],
   "exclude": [
-    ".claude",
-    ".playwright-mcp",
-    ".vibecore-project-storage",
-    ".vibecore-static-deployments",
+    "**/.claude",
+    "**/.claude/**",
+    "**/.playwright-mcp",
+    "**/.playwright-mcp/**",
+    "**/.vibecore",
+    "**/.vibecore/**",
+    "**/.vibecore-project-storage",
+    "**/.vibecore-project-storage/**",
+    "**/.vibecore-static-deployments",
+    "**/.vibecore-static-deployments/**",
     "build",
     "dist",
     "node_modules",
-    "services/api/.vibecore-project-storage",
     "test-results",
     "tmp"
   ]

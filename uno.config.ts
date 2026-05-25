@@ -10,6 +10,9 @@ const collectionName = 'bolt';
 const LOCAL_ARTIFACT_EXCLUDES = [
   /\/\.claude\//,
   /\/\.playwright-mcp\//,
+  /\/\.vibecore\//,
+  /\/\.vibecore-project-storage\//,
+  /\/\.vibecore-static-deployments\//,
   /\/test-results\//,
   /\/tmp\//,
   /\/build\//,

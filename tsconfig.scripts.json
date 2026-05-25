@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.package.node.json",
+  "include": ["playwright.config.ts", "playwright.config.preview.ts", "scripts/**/*.ts"],
+  "exclude": [
+    "**/.claude",
+    "**/.claude/**",
+    "**/.playwright-mcp",
+    "**/.playwright-mcp/**",
+    "**/.vibecore",
+    "**/.vibecore/**",
+    "**/.vibecore-project-storage",
+    "**/.vibecore-project-storage/**",
+    "**/.vibecore-static-deployments",
+    "**/.vibecore-static-deployments/**",
+    "build",
+    "dist",
+    "node_modules",
+    "test-results",
+    "tmp"
+  ]
+}
