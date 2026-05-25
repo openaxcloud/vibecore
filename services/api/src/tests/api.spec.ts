@@ -270,6 +270,9 @@ async function startRuntimeServices(options: { logs?: string[]; commandStdout?: 
         );
       } else if (request.method === 'GET' && url.pathname === '/ports') {
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
+      } else if (request.method === 'GET' && url.pathname === '/preview/5173/') {
+        response.setHeader('content-type', 'text/html');
+        response.end('<main>runtime preview root</main>');
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
         response.end(
           JSON.stringify({
@@ -3910,6 +3913,36 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       ]);
     } finally {
       process.env.PREVIEW_URL_TEMPLATE = previousPreviewTemplate;
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('proxies root preview requests without requiring a trailing wildcard path', async () => {
+    const runtime = await startRuntimeServices();
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, { email: 'runtime-preview-proxy@example.com', organizationName: 'Runtime Preview Proxy Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Proxy Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/preview/5173/proxy`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain('runtime preview root');
+      expect(runtime.calls).toContain('GET /preview/5173/');
+    } finally {
       await runtime.close();
       await app.close();
     }

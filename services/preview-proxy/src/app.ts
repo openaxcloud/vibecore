@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
 export interface PreviewProxyOptions {
   logger?: boolean;
@@ -9,6 +9,8 @@ export interface PreviewProxyOptions {
   requestTimeoutMs?: number;
 }
 
+type PreviewRouteParams = { workspaceId: string; port: string; '*'?: string };
+
 export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): Promise<FastifyInstance> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 30_000;
@@ -18,8 +20,11 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
   const resolveAgent = options.resolveAgent ?? defaultResolveAgent(options, fetchImpl);
 
-  app.all('/p/:workspaceId/:port/*', async (request, reply) => {
-    const params = request.params as { workspaceId: string; port: string; '*': string };
+  const handlePreviewRequest = async (
+    request: FastifyRequest<{ Params: PreviewRouteParams }>,
+    reply: FastifyReply,
+  ) => {
+    const params = request.params;
     const portNumber = Number(params.port);
 
     if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
@@ -32,7 +37,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return reply.code(404).send({ error: 'Workspace agent not reachable', code: 'PREVIEW_AGENT_NOT_FOUND' });
     }
 
-    const upstreamPath = `/preview/${portNumber}/${params['*'] ?? ''}`;
+    const proxyPath = params['*'] ?? '';
+    const upstreamPath = `/preview/${portNumber}/${proxyPath}`;
     const queryString = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
     const upstream = new URL(`${agent.baseUrl.replace(/\/$/, '')}${upstreamPath}${queryString}`);
     const headers: Record<string, string> = {
@@ -92,7 +98,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     } finally {
       clearTimeout(timeout);
     }
-  });
+  };
+
+  app.all('/p/:workspaceId/:port', handlePreviewRequest);
+  app.all('/p/:workspaceId/:port/*', handlePreviewRequest);
 
   return app;
 }

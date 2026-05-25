@@ -6739,7 +6739,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { port, url, ready: true };
   });
-  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', async (request, reply) => {
+  const handleRuntimePreviewProxy = async (request: FastifyRequest, reply: FastifyReply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const params = request.params as { port: string; '*': string };
     const port = Number(params.port);
@@ -6783,7 +6783,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(response.status).send(Buffer.from(await response.arrayBuffer()));
-  });
+  };
+  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy', handleRuntimePreviewProxy);
+  app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', handleRuntimePreviewProxy);
   app.post('/api/runtime/workspaces/:workspaceId/snapshots', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');

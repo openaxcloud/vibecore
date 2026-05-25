@@ -80,6 +80,21 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
+  it('forwards root preview requests without requiring a trailing slash', async () => {
+    const { fn: fetchImpl, calls } = recordingFetch(async () => new Response('root preview', { status: 200 }));
+    const app = await buildPreviewProxyApp({
+      fetchImpl,
+      resolveAgent: async () => fakeAgent,
+    });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toBe('root preview');
+    expect(calls[0].url.toString()).toBe('http://workspace-agent.test/preview/4173/');
+
+    await app.close();
+  });
+
   it('translates upstream timeout to 504', async () => {
     const fetchImpl = (async () => {
       throw Object.assign(new Error('aborted'), { name: 'AbortError' });
