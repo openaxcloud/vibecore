@@ -5,6 +5,7 @@ import {
   dropResolvedMissingImportPatchLogs,
   failedPatchLogPrefix,
   isFailedPatchLogForPath,
+  isResolvedMissingImportPatchFailure,
 } from './agent-patch-logs';
 
 describe('agent-patch-logs helpers', () => {
@@ -128,6 +129,39 @@ describe('agent-patch-logs helpers', () => {
       expect(dropResolvedMissingImportPatchLogs(lines, new Map([['src/main.tsx', "import App from './App';"]]))).toBe(
         null,
       );
+    });
+  });
+
+  describe('isResolvedMissingImportPatchFailure', () => {
+    it('detects stale persisted proposal errors once their imports resolve', () => {
+      const files = new Map([
+        ['src/main.tsx', "import App from './App';"],
+        ['src/App.tsx', 'export default function App() { return null; }'],
+      ]);
+
+      expect(
+        isResolvedMissingImportPatchFailure(
+          "Missing import in src/main.tsx: './App' does not resolve to a generated or existing file.",
+          files,
+        ),
+      ).toBe(true);
+    });
+
+    it('keeps persisted proposal errors when the import is still missing', () => {
+      const files = new Map([['src/main.tsx', "import App from './App';"]]);
+
+      expect(
+        isResolvedMissingImportPatchFailure(
+          "Missing import in src/main.tsx: './App' does not resolve to a generated or existing file.",
+          files,
+        ),
+      ).toBe(false);
+    });
+
+    it('ignores non missing-import proposal errors', () => {
+      const files = new Map([['src/main.tsx', "import App from './App';"]]);
+
+      expect(isResolvedMissingImportPatchFailure('Failed to apply patch cleanly.', files)).toBe(false);
     });
   });
 });

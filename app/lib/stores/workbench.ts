@@ -36,7 +36,11 @@ import {
   extractRelativePath,
   type ReviewableDiffHunk,
 } from '~/utils/diff';
-import { dropFailedPatchLogsForPath, dropResolvedMissingImportPatchLogs } from '~/utils/agent-patch-logs';
+import {
+  dropFailedPatchLogsForPath,
+  dropResolvedMissingImportPatchLogs,
+  isResolvedMissingImportPatchFailure,
+} from '~/utils/agent-patch-logs';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
@@ -279,6 +283,7 @@ export class WorkbenchStore {
     import.meta.hot?.data.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
+  #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
     if (import.meta.hot) {
@@ -349,6 +354,10 @@ export class WorkbenchStore {
     const changed = this.#projectId !== projectId;
     this.#projectId = projectId;
 
+    if (changed) {
+      this.#runtimeFilesLoadedProjectId = undefined;
+    }
+
     /*
      * Hydrate the AgentPatchProposal queue from the server every time the
      * workbench rebinds to a different project. The fetch is best-effort
@@ -383,6 +392,8 @@ export class WorkbenchStore {
       this.agentPatchProposals.setKey(proposal.id, proposal);
       this.#agentPatchOriginals.set(proposal.actionId, proposal.originalContent);
     }
+
+    this.#dropResolvedMissingImportFailures();
   }
 
   #syncAgentPatchProposalToServer(proposalId: string) {
@@ -410,7 +421,8 @@ export class WorkbenchStore {
   async loadRuntimeFiles(rootPath = '.') {
     await this.#filesStore.reloadFromRuntime(rootPath);
     this.setDocuments(this.files.get());
-    this.#dropResolvedMissingImportLogs();
+    this.#runtimeFilesLoadedProjectId = this.#projectId;
+    this.#dropResolvedMissingImportFailures();
   }
 
   async refreshRuntimePorts() {
@@ -818,14 +830,50 @@ export class WorkbenchStore {
     }
   }
 
-  #dropResolvedMissingImportLogs() {
-    const nextLogs = dropResolvedMissingImportPatchLogs(
-      this.workspaceLogs.get(),
-      this.#workspaceImportValidationFiles(),
-    );
+  #dropResolvedMissingImportFailures() {
+    const files = this.#workspaceImportValidationFiles();
+    const nextLogs = dropResolvedMissingImportPatchLogs(this.workspaceLogs.get(), files);
 
     if (nextLogs) {
       this.workspaceLogs.set(nextLogs);
+    }
+
+    this.#dropResolvedMissingImportProposals(files);
+  }
+
+  #dropResolvedMissingImportProposals(files: ReadonlyMap<string, string>) {
+    const projectId = this.#projectId;
+
+    if (!projectId || this.#runtimeFilesLoadedProjectId !== projectId || files.size === 0) {
+      return;
+    }
+
+    const proposals = this.agentPatchProposals.get();
+    const nextProposals = { ...proposals };
+    const removedIds: string[] = [];
+
+    for (const [proposalId, proposal] of Object.entries(proposals)) {
+      if (proposal.status !== 'failed') {
+        continue;
+      }
+
+      if (!isResolvedMissingImportPatchFailure(proposal.error, files)) {
+        continue;
+      }
+
+      delete nextProposals[proposalId];
+      removedIds.push(proposalId);
+      this.#agentPatchOriginals.delete(proposal.actionId);
+    }
+
+    if (!removedIds.length) {
+      return;
+    }
+
+    this.agentPatchProposals.set(nextProposals);
+
+    for (const proposalId of removedIds) {
+      void deleteAgentPatchProposalRemote(projectId, proposalId);
     }
   }
 
@@ -1228,7 +1276,7 @@ export class WorkbenchStore {
         actionId: proposal.actionId,
       });
       this.#dropResolvedAgentPatchLogs(proposal.relativePath);
-      this.#dropResolvedMissingImportLogs();
+      this.#dropResolvedMissingImportFailures();
       this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
       await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
@@ -1707,7 +1755,7 @@ export class WorkbenchStore {
           artifactId: data.artifactId,
           actionId: data.actionId,
         });
-        this.#dropResolvedMissingImportLogs();
+        this.#dropResolvedMissingImportFailures();
       }
     } else {
       await artifact.runner.runAction(data);

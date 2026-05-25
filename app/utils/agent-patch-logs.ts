@@ -12,8 +12,10 @@ import { resolveImport } from '~/services/agent/post-validate';
  * isolation — the store class itself is hard to instantiate in tests.
  */
 
+const MISSING_IMPORT_MESSAGE_PATTERN =
+  /^Missing import in ([^:]+): ['"]([^'"]+)['"] does not resolve to a generated or existing file\.$/;
 const RESOLVABLE_MISSING_IMPORT_LOG_PATTERN =
-  /^AI patch (?:failed|blocked): [^:]+: Missing import in ([^:]+): ['"]([^'"]+)['"] does not resolve to a generated or existing file\.$/;
+  /^AI patch (?:failed|blocked): [^:]+: (Missing import in [^:]+: ['"][^'"]+['"] does not resolve to a generated or existing file\.)$/;
 
 /**
  * Build the log-line prefix the workbench emits when a patch is blocked
@@ -98,18 +100,33 @@ export function dropResolvedMissingImportPatchLogs(
   for (const line of lines) {
     const match = line.match(RESOLVABLE_MISSING_IMPORT_LOG_PATTERN);
 
-    if (match) {
-      const [, importerPath, importSpecifier] = match;
+    if (match && isResolvedMissingImportPatchFailure(match[1], allFiles)) {
+      removed += 1;
 
-      if (resolveImport(importSpecifier, importerPath, new Map(allFiles))) {
-        removed += 1;
-
-        continue;
-      }
+      continue;
     }
 
     next.push(line);
   }
 
   return removed === 0 ? null : next;
+}
+
+export function isResolvedMissingImportPatchFailure(
+  message: string | undefined,
+  allFiles: ReadonlyMap<string, string>,
+): boolean {
+  if (!message || allFiles.size === 0) {
+    return false;
+  }
+
+  const match = message.match(MISSING_IMPORT_MESSAGE_PATTERN);
+
+  if (!match) {
+    return false;
+  }
+
+  const [, importerPath, importSpecifier] = match;
+
+  return Boolean(resolveImport(importSpecifier, importerPath, new Map(allFiles)));
 }
