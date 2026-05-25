@@ -2,9 +2,11 @@ import { expect, test } from '@playwright/test';
 
 test('public platform pages use the shared typography system', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Build and deploy production apps/i }).first()).toBeVisible({
+  await expect(page.getByTestId('section-hero').getByRole('heading', { name: 'E-Code' })).toBeVisible({
     timeout: 30_000,
   });
+  await expect(page.getByRole('heading', { name: 'Compared with Replit, Cursor and Lovable' })).toBeVisible();
+  await expect(page.getByText('Cloud Run with gVisor and GCS-backed files')).toBeVisible();
 
   const landingTypography = await page.locator('.vc-home-hero-copy').evaluate((element) => {
     const root = window.getComputedStyle(document.documentElement);

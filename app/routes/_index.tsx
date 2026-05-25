@@ -29,11 +29,11 @@ import {
 import { PublicShell, LinkButton, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 
 export const meta: MetaFunction = () => [
-  { title: 'E-Code - AI-powered enterprise development platform' },
+  { title: 'E-Code - Native cloud IDE for AI software teams' },
   {
     name: 'description',
     content:
-      'Build, run and govern production applications with AI agents, the preserved Bolt IDE, real runtimes, mobile workflows and enterprise controls.',
+      'E-Code combines a VS Code-class cloud IDE, AI agents, Cloud Run deployment, and native mobile workflows on Google Cloud.',
   },
 ];
 
@@ -120,6 +120,12 @@ const partnerLogos = [
   ['Firebase', '/partners/firebase.svg'],
 ] as const;
 
+const sourceComparisonRows = [
+  ['Runtime', 'Cloud Run with gVisor and GCS-backed files', 'Mixed proprietary runtimes'],
+  ['Agents', 'Plan, act, observe, commit, deploy', 'Editor-only or generation-only'],
+  ['Mobile', 'Native iOS and Android workflows', 'Usually web-first'],
+] as const;
+
 const comparisonPlatforms = [
   [
     'compare-github-codespaces',
@@ -164,10 +170,10 @@ export default function LandingPage() {
               <Sparkles className="h-3 w-3" aria-hidden />
               AI-powered enterprise development platform
             </span>
-            <h1>Build and deploy production apps in minutes.</h1>
+            <h1>E-Code</h1>
             <p>
-              E-Code wraps the Bolt editor with persistent projects, real runtimes, mobile-ready workflows, deployment
-              controls and enterprise governance so teams can ship without losing engineering discipline.
+              The GCP-native workspace where teams create, run, review, and deploy real applications with AI agents and
+              production controls. Build, run, collaborate, and deploy production apps with AI agents.
             </p>
             <Form method="get" action="/signup" className="vc-home-builder-form" id="builder">
               <label htmlFor="homepage-prompt">Describe the app you want to build</label>
@@ -337,6 +343,43 @@ export default function LandingPage() {
                 </Link>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="vc-home-section vc-home-source-compare"
+        id="compare-replit-cursor-lovable"
+        data-testid="section-source-compare"
+      >
+        <div className="vc-public-container">
+          <div className="vc-home-section-head">
+            <span className="vc-badge">Source comparison</span>
+            <h2>Compared with Replit, Cursor and Lovable</h2>
+            <p>
+              Imported from the E-Code source marketing page and adapted into the Vibecore public shell. Privacy-first
+              analytics. Google Cloud native.
+            </p>
+          </div>
+          <div className="vc-home-source-compare-table" role="region" aria-label="E-Code source comparison table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Capability</th>
+                  <th>E-Code</th>
+                  <th>Alternatives</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sourceComparisonRows.map(([capability, ecode, alternatives]) => (
+                  <tr key={capability}>
+                    <td>{capability}</td>
+                    <td>{ecode}</td>
+                    <td>{alternatives}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

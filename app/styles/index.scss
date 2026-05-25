@@ -16352,6 +16352,52 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   transform: translateY(-2px);
 }
 
+.vc-home-source-compare-table {
+  overflow-x: auto;
+  border: 1px solid var(--vc-public-border);
+  border-radius: 12px;
+  background: var(--vc-public-card-bg);
+  box-shadow: 0 24px 70px var(--vc-public-shadow);
+}
+
+.vc-home-source-compare-table table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.vc-home-source-compare-table th,
+.vc-home-source-compare-table td {
+  border-bottom: 1px solid var(--vc-public-border);
+  padding: 16px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.vc-home-source-compare-table th {
+  color: var(--vc-public-text);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vc-home-source-compare-table td {
+  color: var(--vc-public-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.vc-home-source-compare-table td:first-child,
+.vc-home-source-compare-table td:nth-child(2) {
+  color: var(--vc-public-text);
+  font-weight: 700;
+}
+
+.vc-home-source-compare-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .vc-home-product-frame {
   position: relative;
   overflow: hidden;
