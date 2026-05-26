@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { loader } from './api.projects.$projectId.collaboration-ws';
 
@@ -19,11 +19,39 @@ function request(url: string, headers: Record<string, string> = {}) {
   });
 }
 
+const ENV_KEYS = [
+  'API_BASE_URL',
+  'API_HOST',
+  'API_PORT',
+  'PUBLIC_API_BASE_URL',
+  'SAAS_API_URL',
+  'VITE_API_URL',
+  'VITE_PUBLIC_API_BASE_URL',
+] as const;
+
 describe('project collaboration websocket loader', () => {
+  let originalEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
+
+  beforeEach(() => {
+    originalEnv = {};
+
+    for (const key of ENV_KEYS) {
+      originalEnv[key] = process.env[key];
+      delete process.env[key];
+    }
+  });
+
   afterEach(() => {
-    delete process.env.PUBLIC_API_BASE_URL;
-    delete process.env.VITE_PUBLIC_API_BASE_URL;
-    delete process.env.VITE_API_URL;
+    for (const key of ENV_KEYS) {
+      const value = originalEnv[key];
+
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
     vi.unstubAllGlobals();
   });
 
@@ -57,6 +85,9 @@ describe('project collaboration websocket loader', () => {
   });
 
   it('keeps localhost websocket URLs on the local API base', async () => {
+    process.env.API_HOST = '127.0.0.1';
+    process.env.API_PORT = '3001';
+
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>

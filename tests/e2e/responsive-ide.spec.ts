@@ -237,6 +237,17 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
+    await expect(
+      page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^src$/ }).first(),
+    ).toBeVisible({
+      timeout: 45000,
+    });
+    await expect(
+      page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^App\.tsx$/ }).first(),
+    ).toBeVisible({
+      timeout: 45000,
+    });
 
     const agentBox = await page.locator('[data-testid="ide-agent-panel"]').first().boundingBox();
     const viewport = page.viewportSize();
@@ -435,6 +446,32 @@ test.describe('responsive IDE shell', () => {
       timeout: 45000,
     });
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Files');
+    await expect(
+      page.getByTestId('mobile-files-panel').locator('.bolt-file-tree-name', { hasText: /^src$/ }).first(),
+    ).toBeVisible({
+      timeout: 45000,
+    });
+    await expect(
+      page
+        .getByTestId('mobile-files-panel')
+        .locator('.bolt-file-tree-name', { hasText: /^App\.tsx$/ })
+        .first(),
+    ).toBeVisible({
+      timeout: 45000,
+    });
+    await page
+      .getByTestId('mobile-files-panel')
+      .locator('.bolt-file-tree-name', { hasText: /^App\.tsx$/ })
+      .first()
+      .click({ force: true });
+    await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'editor', {
+      timeout: 45000,
+    });
+    await expect(
+      page.locator('[data-testid="responsive-code-editor"] [data-editor-kind="codemirror"]').first(),
+    ).toBeVisible({
+      timeout: 45000,
+    });
 
     await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'deploy', {

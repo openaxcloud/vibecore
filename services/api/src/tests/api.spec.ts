@@ -201,7 +201,12 @@ class MemoryProjectStorage implements ProjectStorage {
     const storageKey = `snapshots/${input.projectId}/${Date.now()}.zip`;
     this.objects.set(storageKey, content);
 
-    return { storageKey, byteLength: content.byteLength, createdAt: new Date().toISOString() };
+    return {
+      storageKey,
+      byteLength: content.byteLength,
+      base64: content.toString('base64'),
+      createdAt: new Date().toISOString(),
+    };
   }
 
   async getSnapshotFiles(storageKey: string) {
@@ -3090,7 +3095,10 @@ export function App() { return 'Old app'; }
     const store = new TestApiStore();
     const projectStorage = new MemoryProjectStorage();
     const app = await buildTestApiApp({ store, projectStorage });
-    const auth = await register(app, { email: 'scaffold-recovery@example.com', organizationName: 'Scaffold Recovery Org' });
+    const auth = await register(app, {
+      email: 'scaffold-recovery@example.com',
+      organizationName: 'Scaffold Recovery Org',
+    });
 
     const project = await app.inject({
       method: 'POST',
@@ -3171,6 +3179,80 @@ export function App() { return 'Old app'; }
     });
     expect(restore.statusCode).toBe(200);
     expect(restore.json().files.length).toBeGreaterThan(0);
+    await app.close();
+  });
+
+  it('restores snapshots from durable archive storage when pod-local objects are missing', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, {
+      email: 'snapshot-durable-archive@example.com',
+      organizationName: 'Snapshot Durable Archive Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Durable Snapshot Project' },
+    });
+    expect(project.statusCode).toBe(201);
+
+    const projectId = project.json().project.id as string;
+    const seedZip = new JSZip();
+    seedZip.file('README.md', '# Durable snapshot\nversion one\n');
+
+    const imported = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64: await seedZip.generateAsync({ type: 'base64' }), replaceExisting: true },
+    });
+    expect(imported.statusCode).toBe(200);
+
+    const snapshot = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/snapshots`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { label: 'Durable checkpoint', kind: 'manual' },
+    });
+    expect(snapshot.statusCode).toBe(201);
+    const storageKey = snapshot.json().snapshot.storageKey as string;
+    expect(storageKey).toMatch(/^snapshots\//);
+    expect(store.projectStorageObjects.get(storageKey)?.contentBase64).toBeTruthy();
+
+    const changedZip = new JSZip();
+    changedZip.file('README.md', '# Durable snapshot\nversion two\n');
+    const changed = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/files/import/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { zipBase64: await changedZip.generateAsync({ type: 'base64' }), replaceExisting: true },
+    });
+    expect(changed.statusCode).toBe(200);
+
+    projectStorage.objects.delete(storageKey);
+
+    const restore = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/snapshots/${snapshot.json().snapshot.id}/restore`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(restore.statusCode).toBe(200);
+
+    const exported = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/export/zip`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(exported.statusCode).toBe(200);
+    const archive = await JSZip.loadAsync(Buffer.from(exported.json().archive.base64, 'base64'));
+    expect(await archive.file('README.md')!.async('string')).toContain('version one');
+
+    const metrics = await app.inject({ method: 'GET', url: '/metrics' });
+    expect(metrics.body).toContain('project_snapshot_restore_fallbacks_total{backend="database"} 1');
+
     await app.close();
   });
 
@@ -4107,7 +4189,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
   it('proxies root preview requests without requiring a trailing wildcard path', async () => {
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store: new TestApiStore() });
-    const auth = await register(app, { email: 'runtime-preview-proxy@example.com', organizationName: 'Runtime Preview Proxy Org' });
+    const auth = await register(app, {
+      email: 'runtime-preview-proxy@example.com',
+      organizationName: 'Runtime Preview Proxy Org',
+    });
 
     const project = await app.inject({
       method: 'POST',

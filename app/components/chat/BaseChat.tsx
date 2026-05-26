@@ -451,6 +451,13 @@ const ECODE_MOBILE_TOOLS = [
     tone: 'warning',
   },
   {
+    id: 'packages',
+    section: 'tools',
+    title: 'Packages',
+    description: 'Dependencies manager',
+    icon: 'i-ph:package',
+  },
+  {
     id: 'integrations',
     section: 'tools',
     title: 'Integrations',
@@ -555,19 +562,19 @@ const ECODE_MOBILE_MORE_MENU_ITEMS = [
   { id: 'packages', label: 'Packages', icon: 'i-ph:package' },
   { id: 'database', label: 'Database', icon: 'i-ph:database' },
   { id: 'object-storage', label: 'Object Storage', icon: 'i-ph:hard-drives' },
+  { id: 'debugger', label: 'Debugger', icon: 'i-ph:bug' },
+  { id: 'activity', label: 'Activity', icon: 'i-ph:activity' },
   { id: 'locks', label: 'Locks', icon: 'i-ph:lock' },
   { id: 'secrets', label: 'Secrets', icon: 'i-ph:key' },
   { id: 'env', label: 'Environment variables', icon: 'i-ph:brackets-curly' },
   { id: 'terminal', label: 'Terminal', icon: 'i-ph:terminal-window' },
   { id: 'logs', label: 'Logs', icon: 'i-ph:list-magnifying-glass' },
-  { id: 'debugger', label: 'Debugger', icon: 'i-ph:bug' },
   { id: 'search', label: 'Search', icon: 'i-ph:magnifying-glass' },
   { id: 'commands', label: 'Commands', icon: 'i-ph:command' },
   { id: 'workflows', label: 'Workflows', icon: 'i-ph:git-branch' },
   { id: 'integrations', label: 'Integrations', icon: 'i-ph:package' },
   { id: 'collaborators', label: 'Collaborators', icon: 'i-ph:users' },
   { id: 'share', label: 'Share', icon: 'i-ph:share-network' },
-  { id: 'activity', label: 'Activity', icon: 'i-ph:activity' },
   { id: 'snapshots', label: 'Snapshots', icon: 'i-ph:stack' },
   { id: 'extensions', label: 'Extensions', icon: 'i-ph:puzzle-piece' },
   { id: 'monitoring', label: 'Monitoring', icon: 'i-ph:chart-line' },
@@ -2230,6 +2237,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, []);
 
     const useMobileIde = layout.isMobile || layout.isTablet;
+    const [clientHydrated, setClientHydrated] = useState(false);
 
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
@@ -2240,6 +2248,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
 
     const [mobileTabSwitcherOpen, setMobileTabSwitcherOpen] = useState(false);
+
+    useEffect(() => {
+      setClientHydrated(true);
+    }, []);
 
     const closeMobileOverlays = useCallback(() => {
       setMobileMoreOpen(false);
@@ -3294,11 +3306,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
 
-      if (!projectIdeMode || !pendingSelectedFile || projectFiles[pendingSelectedFile]?.type !== 'file') {
+      const resolvedPendingFile =
+        pendingSelectedFile && projectFiles[pendingSelectedFile]?.type === 'file'
+          ? pendingSelectedFile
+          : pendingSelectedFile
+            ? Object.keys(projectFiles).find(
+                (filePath) => projectFiles[filePath]?.type === 'file' && filePath.endsWith(pendingSelectedFile),
+              )
+            : undefined;
+
+      if (!projectIdeMode || !pendingSelectedFile || !resolvedPendingFile) {
         return;
       }
 
-      workbenchStore.setSelectedFile(pendingSelectedFile);
+      workbenchStore.setSelectedFile(resolvedPendingFile);
       pendingProjectSelectedFile.current = undefined;
     }, [projectFiles, projectIdeMode]);
 
@@ -3676,19 +3697,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
+        const normalizedPath = filePath.startsWith('/') ? filePath : `${WORK_DIR}/${filePath.replace(/^\.?\//, '')}`;
+
         const exactPath = projectFiles[filePath]
           ? filePath
-          : Object.keys(projectFiles).find((path) => path.endsWith(filePath));
+          : projectFiles[normalizedPath]
+            ? normalizedPath
+            : Object.keys(projectFiles).find((path) => path.endsWith(filePath));
 
-        if (exactPath) {
-          openProjectFile(exactPath, { preview: false });
+        const targetPath = exactPath ?? normalizedPath;
+
+        pendingProjectSelectedFile.current = targetPath;
+        openProjectFile(targetPath, { preview: false });
+
+        if (useMobileIde) {
+          setMobileIdePanel('editor');
         }
       };
 
       window.addEventListener('vibecore:open-editor-file', handleOpenEditorFile);
 
       return () => window.removeEventListener('vibecore:open-editor-file', handleOpenEditorFile);
-    }, [openProjectFile, projectFiles]);
+    }, [openProjectFile, projectFiles, setMobileIdePanel, useMobileIde]);
 
     const runProjectEditorCommand = useCallback((command: string) => {
       window.dispatchEvent(new CustomEvent('vibecore:editor-command', { detail: { command } }));
@@ -3916,7 +3946,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useEffect(() => {
-      if (!projectIdeMode || !projectStateReady) {
+      if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
         return;
       }
 
@@ -5236,6 +5266,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   pinned: Boolean(tab.pinned),
                 }))}
               changedFiles={projectBackendState.git?.fileStatuses ?? projectBackendState.git?.changedFiles}
+              openFilesOnSelect={useMobileIde}
               onFilePreview={(filePath) => openProjectFile(filePath, { preview: true })}
               onFileOpen={(filePath) => openProjectFile(filePath, { preview: false })}
             />
@@ -6263,6 +6294,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
 
+    const showMobileChrome = useMobileIde && clientHydrated;
+
     const keybindingSections = useMemo(
       () =>
         (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
@@ -6295,7 +6328,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
-        {projectIdeMode && useMobileIde && (
+        {projectIdeMode && showMobileChrome && (
           <header className="bolt-mobile-ecode-header" data-testid="mobile-ide-header">
             <div className="bolt-mobile-ecode-header-inner">
               <div className="bolt-mobile-ecode-header-side">
@@ -6497,6 +6530,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                             mobilePanel === 'chat' ? 'editor' : mobilePanel === 'deploy' ? 'editor' : mobilePanel
                           }
                           projectId={projectId}
+                          onMobilePanelChange={(panel) => {
+                            if (panel === 'editor') {
+                              setMobileIdePanel('editor');
+                              setProjectPanelSearchParam('editor');
+                            }
+                          }}
                         />
                       </Suspense>
                     </PanelBoundary>
@@ -6506,7 +6545,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </>
           )}
         </div>
-        {useMobileIde && (
+        {showMobileChrome && (
           <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
             <div className="bolt-mobile-replit-nav-bg" aria-hidden />
             <div className="bolt-mobile-replit-nav-inner">
@@ -6600,7 +6639,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </nav>
         )}
-        {useMobileIde && mobileTabSwitcherOpen && (
+        {showMobileChrome && mobileTabSwitcherOpen && (
           <section
             className="bolt-mobile-tab-switcher"
             role="dialog"
@@ -6699,7 +6738,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </section>
         )}
-        {useMobileIde && mobileMoreOpen && (
+        {showMobileChrome && mobileMoreOpen && (
           <>
             <button
               type="button"
@@ -6749,7 +6788,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </section>
           </>
         )}
-        {useMobileIde && mobileToolsSheetOpen && (
+        {showMobileChrome && mobileToolsSheetOpen && (
           <>
             <button
               type="button"
@@ -7571,10 +7610,10 @@ function ProjectBottomTerminal({
       </div>
       <div className="bolt-project-bottom-terminal-content">
         {active === 'terminal' ? (
-          <ClientOnly fallback={<PanelLoading title="Loading terminal..." />}>
+          <ClientOnly fallback={<TerminalTabsFallback />}>
             {() => (
               <PanelBoundary title="Terminal">
-                <Suspense fallback={<PanelLoading title="Loading terminal..." />}>
+                <Suspense fallback={<TerminalTabsFallback />}>
                   <PanelGroup direction="vertical" className="h-full">
                     <LazyTerminalTabs panelDefaultSize={100} />
                   </PanelGroup>
@@ -7591,6 +7630,85 @@ function ProjectBottomTerminal({
         )}
       </div>
     </section>
+  );
+}
+
+function TerminalTabsFallback() {
+  return (
+    <div className="h-full">
+      <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background flex h-full flex-col">
+        <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-busy="true">
+          <div className="bolt-terminal-tabs-strip" aria-label="Terminal sessions">
+            <div className="bolt-terminal-tab-item is-active" data-terminal-kind="agent">
+              <button
+                type="button"
+                className="bolt-terminal-tab-button"
+                aria-current="page"
+                aria-label="Vibecore Terminal"
+                disabled
+              >
+                <span className="i-ph:sparkle-duotone" aria-hidden />
+                <span>Vibecore Terminal</span>
+              </button>
+            </div>
+          </div>
+          <div
+            className="bolt-terminal-toolbar-section"
+            data-section="search"
+            role="search"
+            aria-label="Search terminal"
+          >
+            <span className="bolt-terminal-toolbar-label">Search</span>
+            <div className="bolt-terminal-search">
+              <input aria-label="Search terminal scrollback" placeholder="Find in terminal" disabled />
+              <button type="button" aria-label="Find previous terminal match" disabled>
+                <span className="i-ph:caret-up" aria-hidden />
+              </button>
+              <button type="button" aria-label="Find next terminal match" disabled>
+                <span className="i-ph:caret-down" aria-hidden />
+              </button>
+            </div>
+          </div>
+          <div className="bolt-terminal-toolbar-section" data-section="process" aria-label="Terminal process actions">
+            <span className="bolt-terminal-toolbar-label">Process</span>
+            <button type="button" className="bolt-terminal-action-button" disabled>
+              <span className="i-ph:plus" aria-hidden />
+              New
+            </button>
+            <button type="button" className="bolt-terminal-action-button" disabled>
+              <span className="i-ph:stop" aria-hidden />
+              Kill
+            </button>
+            <button type="button" className="bolt-terminal-action-button" disabled>
+              <span className="i-ph:arrow-clockwise" aria-hidden />
+              Restart
+            </button>
+          </div>
+          <div className="bolt-terminal-toolbar-section" data-section="view" aria-label="Terminal view actions">
+            <span className="bolt-terminal-toolbar-label">View</span>
+            <button type="button" className="bolt-terminal-action-button" disabled>
+              <span className="i-ph:columns" aria-hidden />
+              Split
+            </button>
+            <button type="button" className="bolt-terminal-action-button" disabled>
+              <span className="i-ph:eraser" aria-hidden />
+              Clear
+            </button>
+          </div>
+          <div className="bolt-terminal-more">
+            <button type="button" className="bolt-terminal-more-button" aria-label="More terminal options" disabled>
+              <span className="i-ph:dots-three-vertical-bold" aria-hidden />
+              More
+            </button>
+          </div>
+        </div>
+        <div className="bolt-terminal-viewports">
+          <div className="grid h-full place-items-center text-sm text-bolt-elements-textSecondary" role="status">
+            Loading terminal...
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -7666,10 +7784,10 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
   return (
     <section className="bolt-project-terminal-direct-panel" aria-label="Interactive terminal">
       <div className="bolt-project-terminal-direct-shell">
-        <ClientOnly fallback={<PanelLoading title="Loading terminal..." />}>
+        <ClientOnly fallback={<TerminalTabsFallback />}>
           {() => (
             <PanelBoundary title="Terminal">
-              <Suspense fallback={<PanelLoading title="Loading terminal..." />}>
+              <Suspense fallback={<TerminalTabsFallback />}>
                 <PanelGroup direction="vertical" className="h-full">
                   <LazyTerminalTabs panelDefaultSize={100} />
                 </PanelGroup>
@@ -8041,10 +8159,10 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                 <strong>Interactive workspace shell</strong>
                 <small>{workspace?.status ?? 'runtime status loading'}</small>
               </div>
-              <ClientOnly fallback={<PanelLoading title="Loading terminal..." />}>
+              <ClientOnly fallback={<TerminalTabsFallback />}>
                 {() => (
                   <PanelBoundary title="Terminal">
-                    <Suspense fallback={<PanelLoading title="Loading terminal..." />}>
+                    <Suspense fallback={<TerminalTabsFallback />}>
                       <PanelGroup direction="vertical" className="h-full">
                         <LazyTerminalTabs panelDefaultSize={100} />
                       </PanelGroup>
@@ -8257,6 +8375,7 @@ function ProjectFilesTool({
   unsavedFiles,
   openEditors = [],
   changedFiles = [],
+  openFilesOnSelect = false,
   onFilePreview,
   onFileOpen,
 }: {
@@ -8265,6 +8384,7 @@ function ProjectFilesTool({
   unsavedFiles?: Set<string>;
   openEditors?: Array<{ id: string; filePath?: string; dirty?: boolean; pinned?: boolean }>;
   changedFiles?: unknown[];
+  openFilesOnSelect?: boolean;
   onFilePreview: (filePath: string) => void;
   onFileOpen: (filePath: string) => void;
 }) {
@@ -8359,6 +8479,11 @@ function ProjectFilesTool({
         rootFolder={WORK_DIR}
         selectedFile={selectedFile}
         onFileSelect={(filePath) => {
+          if (openFilesOnSelect) {
+            onFileOpen(filePath);
+            return;
+          }
+
           workbenchStore.setSelectedFile(filePath);
           workbenchStore.currentView.set('code');
           workbenchStore.setShowWorkbench(true);

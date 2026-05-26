@@ -33,6 +33,7 @@ export interface ProjectFile {
 export interface StoredArchive {
   storageKey: string;
   byteLength: number;
+  base64?: string;
   createdAt: string;
 }
 
@@ -129,7 +130,12 @@ function archiveKey(prefix: string, projectId: string) {
 }
 
 function storageRoot() {
-  return process.env.PROJECT_STORAGE_DIR ?? (process.env.NODE_ENV === 'production' ? '/tmp/vibecore-project-storage' : join(process.cwd(), '.vibecore-project-storage'));
+  return (
+    process.env.PROJECT_STORAGE_DIR ??
+    (process.env.NODE_ENV === 'production'
+      ? '/tmp/vibecore-project-storage'
+      : join(process.cwd(), '.vibecore-project-storage'))
+  );
 }
 
 function safeProjectPath(projectId: string, filePath = '') {
@@ -178,6 +184,29 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   return files;
 }
 
+export async function archiveFiles(files: Array<{ path: string; content: string }>) {
+  const zip = new JSZip();
+
+  for (const file of files) {
+    zip.file(file.path, file.content);
+  }
+
+  return zip.generateAsync({ type: 'nodebuffer' });
+}
+
+export async function filesFromZipBase64(base64: string): Promise<Array<{ path: string; content: string }>> {
+  const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
+  const files: Array<{ path: string; content: string }> = [];
+
+  for (const [path, entry] of Object.entries(zip.files)) {
+    if (!entry.dir) {
+      files.push({ path, content: await entry.async('string') });
+    }
+  }
+
+  return files;
+}
+
 export class LocalProjectStorage implements ProjectStorage {
   async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
     for (const file of files) {
@@ -194,13 +223,7 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async exportZip(projectId: string) {
-    const zip = new JSZip();
-
-    for (const file of await this.listFiles(projectId)) {
-      zip.file(file.path, file.content);
-    }
-
-    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    const content = await archiveFiles(await this.listFiles(projectId));
     const storageKey = archiveKey('exports', projectId);
     const target = safeProjectPath('_objects', storageKey);
     await mkdir(dirname(target), { recursive: true });
@@ -210,14 +233,7 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
-    const zip = await JSZip.loadAsync(Buffer.from(base64, 'base64'));
-    const files: Array<{ path: string; content: string }> = [];
-
-    for (const [path, entry] of Object.entries(zip.files)) {
-      if (!entry.dir) {
-        files.push({ path, content: await entry.async('string') });
-      }
-    }
+    const files = await filesFromZipBase64(base64);
 
     if (options.replaceExisting) {
       await rm(safeProjectPath(projectId), { recursive: true, force: true });
@@ -227,32 +243,22 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
-    const zip = new JSZip();
-
-    for (const file of input.files) {
-      zip.file(file.path, file.content);
-    }
-
-    const content = await zip.generateAsync({ type: 'nodebuffer' });
+    const content = await archiveFiles(input.files);
     const storageKey = archiveKey('snapshots', input.projectId);
     const target = safeProjectPath('_objects', storageKey);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, content);
 
-    return { storageKey, byteLength: content.byteLength, createdAt: now() };
+    return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
   }
 
   async getSnapshotFiles(storageKey: string) {
-    const zip = await JSZip.loadAsync(await readFile(safeProjectPath('_objects', storageKey)));
-    const files: ProjectFile[] = [];
+    const files = await filesFromZipBase64(
+      (await readFile(safeProjectPath('_objects', storageKey))).toString('base64'),
+    );
+    const updatedAt = now();
 
-    for (const [path, entry] of Object.entries(zip.files)) {
-      if (!entry.dir) {
-        files.push({ path, content: await entry.async('string'), updatedAt: now() });
-      }
-    }
-
-    return files;
+    return files.map((file) => ({ ...file, updatedAt }));
   }
 
   async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }) {
@@ -289,10 +295,14 @@ export class GitCliProvider implements GitProvider {
         cwd: target,
         env: this.gitEnv(),
       }).catch(() => undefined);
-      await execFile('git', ['--git-dir', gitDir, '--work-tree', target, 'config', 'user.email', 'you@vibecore.local'], {
-        cwd: target,
-        env: this.gitEnv(),
-      }).catch(() => undefined);
+      await execFile(
+        'git',
+        ['--git-dir', gitDir, '--work-tree', target, 'config', 'user.email', 'you@vibecore.local'],
+        {
+          cwd: target,
+          env: this.gitEnv(),
+        },
+      ).catch(() => undefined);
       return;
     }
 
@@ -307,10 +317,14 @@ export class GitCliProvider implements GitProvider {
   private async git(projectId: string, args: string[]) {
     await this.ensureRepository(projectId);
 
-    const result = await execFile('git', ['--git-dir', this.gitDir(projectId), '--work-tree', this.workspacePath(projectId), ...args], {
-      cwd: this.workspacePath(projectId),
-      env: this.gitEnv(),
-    });
+    const result = await execFile(
+      'git',
+      ['--git-dir', this.gitDir(projectId), '--work-tree', this.workspacePath(projectId), ...args],
+      {
+        cwd: this.workspacePath(projectId),
+        env: this.gitEnv(),
+      },
+    );
 
     return commandStdout(result).trim();
   }
@@ -318,15 +332,21 @@ export class GitCliProvider implements GitProvider {
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
     const projectId = `import-${Date.now().toString(36)}`;
     const target = safeProjectPath(projectId);
-    await execFile('git', ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target], {
-      env: this.gitEnv(),
-    });
+    await execFile(
+      'git',
+      ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
+      {
+        env: this.gitEnv(),
+      },
+    );
 
     const files = await walkFiles(target);
 
     const defaultBranch =
       input.branch ??
-      commandStdout(await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() })).trim();
+      commandStdout(
+        await execFile('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: target, env: this.gitEnv() }),
+      ).trim();
 
     return { files, defaultBranch, remoteUrl: input.repositoryUrl };
   }

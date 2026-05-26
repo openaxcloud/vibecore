@@ -110,7 +110,7 @@ async function postForm(path, fields) {
   const body = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    console.error(`Stripe ${path} failed (${response.status}):`, body);
+    console.error(`Stripe ${path} failed (${response.status}): ${formatStripeError(body)}`);
     process.exit(1);
   }
 
@@ -128,11 +128,27 @@ async function getJson(path) {
       return { data: [] };
     }
 
-    console.error(`Stripe GET ${path} failed (${response.status}):`, body);
+    console.error(`Stripe GET ${path} failed (${response.status}): ${formatStripeError(body)}`);
     process.exit(1);
   }
 
   return body;
+}
+
+function formatStripeError(body) {
+  const error = body?.error;
+
+  if (!error || typeof error !== 'object') {
+    return 'request failed';
+  }
+
+  const fields = [
+    error.code ? `code=${error.code}` : undefined,
+    error.type ? `type=${error.type}` : undefined,
+    error.doc_url ? `doc=${error.doc_url}` : undefined,
+  ].filter(Boolean);
+
+  return fields.length > 0 ? fields.join(' ') : 'request failed';
 }
 
 function parsePlansFromSource(source) {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiBaseUrl, apiRequest, firstOrganization, firstOrganizationOrNull } from './enterprise-api.server';
 
-const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL', 'NODE_ENV'] as const;
+const ENV_KEYS = ['SAAS_API_URL', 'API_BASE_URL', 'API_HOST', 'API_PORT', 'NODE_ENV'] as const;
 
 describe('apiBaseUrl', () => {
   let original: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>>;
@@ -50,6 +50,20 @@ describe('apiBaseUrl', () => {
     process.env.NODE_ENV = 'production';
 
     expect(apiBaseUrl()).toBe('http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001');
+  });
+
+  it('uses API_HOST and API_PORT when no explicit base URL is configured', () => {
+    process.env.API_HOST = '127.0.0.1';
+    process.env.API_PORT = '3001';
+
+    expect(apiBaseUrl()).toBe('http://127.0.0.1:3001');
+  });
+
+  it('normalizes wildcard API_HOST to a loopback client URL', () => {
+    process.env.API_HOST = '0.0.0.0';
+    process.env.API_PORT = '3001';
+
+    expect(apiBaseUrl()).toBe('http://127.0.0.1:3001');
   });
 
   it('falls back to localhost in non-production environments', () => {

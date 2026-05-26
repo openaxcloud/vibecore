@@ -288,7 +288,12 @@ export const EditorPanel = memo(
       if (mobilePanel === 'terminal') {
         return (
           <PanelBoundary title="Terminal">
-            <div className="h-full min-h-0" data-testid="mobile-terminal-panel">
+            <div
+              className="h-full min-h-0"
+              data-testid="mobile-terminal-panel"
+              role="region"
+              aria-label="Interactive terminal"
+            >
               <PanelGroup direction="vertical">
                 <TerminalTabs panelDefaultSize={100} />
               </PanelGroup>

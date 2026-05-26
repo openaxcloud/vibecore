@@ -10,7 +10,12 @@ interface MetricDefinition {
 const defaultBuckets = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60];
 
 export const platformMetricDefinitions: MetricDefinition[] = [
-  { name: 'api_request_duration_seconds', help: 'API request latency by route and status.', type: 'histogram', buckets: defaultBuckets },
+  {
+    name: 'api_request_duration_seconds',
+    help: 'API request latency by route and status.',
+    type: 'histogram',
+    buckets: defaultBuckets,
+  },
   { name: 'api_requests_total', help: 'Total API requests.', type: 'counter' },
   { name: 'api_errors_total', help: 'Total API errors.', type: 'counter' },
   { name: 'auth_failures_total', help: 'Authentication failures.', type: 'counter' },
@@ -19,7 +24,12 @@ export const platformMetricDefinitions: MetricDefinition[] = [
   { name: 'queue_depth', help: 'Queue depth by queue.', type: 'gauge' },
   { name: 'job_failures_total', help: 'Background job failures.', type: 'counter' },
   { name: 'workspace_starts_total', help: 'Workspace start attempts.', type: 'counter' },
-  { name: 'workspace_start_latency_seconds', help: 'Workspace start latency.', type: 'histogram', buckets: defaultBuckets },
+  {
+    name: 'workspace_start_latency_seconds',
+    help: 'Workspace start latency.',
+    type: 'histogram',
+    buckets: defaultBuckets,
+  },
   { name: 'workspace_failures_total', help: 'Workspace failures.', type: 'counter' },
   { name: 'active_workspaces', help: 'Active workspaces.', type: 'gauge' },
   { name: 'terminal_sessions', help: 'Open terminal sessions.', type: 'gauge' },
@@ -34,6 +44,18 @@ export const platformMetricDefinitions: MetricDefinition[] = [
   { name: 'node_pool_capacity', help: 'Node pool allocatable capacity.', type: 'gauge' },
   { name: 'pvc_usage_bytes', help: 'Persistent volume claim usage.', type: 'gauge' },
   { name: 'storage_usage_bytes', help: 'Object storage usage.', type: 'gauge' },
+  {
+    name: 'project_archive_objects_total',
+    help: 'Project archive objects written by backend and kind.',
+    type: 'counter',
+  },
+  { name: 'project_archive_bytes_total', help: 'Project archive bytes written by backend and kind.', type: 'counter' },
+  {
+    name: 'project_snapshot_restore_fallbacks_total',
+    help: 'Snapshot restores served by durable fallback storage.',
+    type: 'counter',
+  },
+  { name: 'project_snapshot_restore_failures_total', help: 'Snapshot restore failures by reason.', type: 'counter' },
   { name: 'cost_estimate_cents', help: 'Estimated platform cost in cents.', type: 'gauge' },
   { name: 'synthetic_check_success', help: 'Synthetic check success as 0 or 1.', type: 'gauge' },
   { name: 'backup_restore_dry_run_success', help: 'Backup restore dry run success as 0 or 1.', type: 'gauge' },

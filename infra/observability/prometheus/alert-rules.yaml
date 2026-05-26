@@ -73,6 +73,16 @@ groups:
         annotations:
           summary: Persistent workspace storage usage high
 
+      - alert: ProjectSnapshotRestoreFailures
+        expr: sum(rate(project_snapshot_restore_failures_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: page
+          slo: project-snapshot-restore
+        annotations:
+          summary: Project snapshot restore failed or archive checksum mismatched
+          runbook_url: https://docs.vibecore.local/RUNBOOK#project-storage-and-snapshots
+
       - alert: KubernetesPodFailures
         expr: sum(rate(kubernetes_pod_failures_total[10m])) > 0
         for: 10m

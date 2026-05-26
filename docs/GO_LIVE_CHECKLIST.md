@@ -1,6 +1,6 @@
 # Go-Live Checklist
 
-Date: 2026-05-07
+Date: 2026-05-26
 
 This checklist is conservative. A box is checked only when the current repo or this review has direct evidence. Production launch stays blocked until every required live gate has a linked run, dashboard, log query, or signed-off artifact.
 
@@ -23,19 +23,24 @@ This checklist is conservative. A box is checked only when the current repo or t
 - [x] `pnpm run ide:panel-audit:validate`
 - [x] `pnpm run test:e2e` passed: 127 passed, 17 breakpoint-specific skips across chromium, tablet, and mobile.
 - [x] `pnpm run platform:verify`
+- [x] GitHub Actions on `main` commit `1e578a1d`: CI/CD, Production CI, Code Quality, Security Analysis and Docs CI/CD passed.
 
 ## Blocking Production Gates
 
 - [ ] `pnpm run production:validate` passes with real production/staging secrets.
-  - Latest local result: fails because production OAuth/OIDC/SAML, transactional email, SIEM, database/Redis, Stripe secrets/catalog, runtime HTTPS URLs, monitoring/incident response, and SOC2/rotation owner values are missing or placeholder.
+  - Latest cluster-only result: `VALIDATE_PRODUCTION_NO_DOTENV=1 pnpm run production:validate:live -- --no-dotenv` fails on Entra/OIDC, SAML, SIEM, expired Stripe key, missing Stripe catalog IDs, deployment provider configuration, monitoring/incident response and rotation/SOC2 evidence.
+  - Passing in the same run: Google OAuth, GitHub OAuth, transactional email, workspace sandbox controls, runtime mode and AI provider keys.
 - [x] Preview runtime local E2E passes for imported project content, package-script Vite apps, template-created projects, and AI-created projects.
 - [x] IDE panel audit passes for all workspace/service panels: 81/81.
-- [ ] `VITE_RUNTIME_MODE=remote-kubernetes`.
-- [ ] `VITE_RUNTIME_API_BASE_URL` and `WORKSPACE_MANAGER_URL` use HTTPS and point to the deployed runtime.
-- [ ] `pnpm run runtime:validate:api-kubernetes` passes. Current result: fails during preflight because `http://127.0.0.1:3010/health` is not reachable; workspace-manager is not running or not exposed.
-- [ ] `pnpm run runtime:validate:remote-kubernetes` passes against staging GKE.
-  - Latest local result: fails with actionable context while pulling the required local validation node image: `Unable to pull required Docker image "kindest/node:v1.34.0"` after 600000ms. The validator now has explicit `kubectl`/`kind`/Docker preflight checks, separate `kind` node image pull diagnostics, and bounded command timeouts.
-- [ ] `pnpm run networkpolicies:validate:live` passes. Current result: fails during `kubectl cluster-info` preflight because no Kubernetes API server is reachable from this workstation.
+- [x] `VITE_RUNTIME_MODE=remote-kubernetes`.
+- [x] `VITE_RUNTIME_API_BASE_URL` and `WORKSPACE_MANAGER_URL` point to the deployed runtime or internal Kubernetes service URL.
+- [ ] Latest committed image is deployed to production.
+  - Current production deployments still run `sha-1116d9d`; latest `main` is `1e578a1d`.
+- [ ] `pnpm run runtime:validate:api-kubernetes` passes against the deployed API/workspace-manager pair after the latest image is deployed.
+- [ ] `pnpm run runtime:validate:remote-kubernetes` passes against staging or production GKE.
+  - Current status: runtime configuration validates, but full workspace lifecycle E2E has not been rerun after the latest code changes.
+- [ ] `pnpm run networkpolicies:validate:live` passes.
+  - Current status: Kubernetes access is available, but the denied-traffic drill has not been rerun in this review against the active workspace namespace.
 - [ ] GitHub Actions `Staging Runtime Validation` passes and its run id is supplied to production deploy.
 - [ ] `deploy-prod.yml` production validation step passes before GCP authentication or Helm deploy.
 

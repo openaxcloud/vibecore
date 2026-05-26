@@ -54,6 +54,10 @@ Core metrics include:
 - `node_pool_capacity`
 - `pvc_usage_bytes`
 - `storage_usage_bytes`
+- `project_archive_objects_total`
+- `project_archive_bytes_total`
+- `project_snapshot_restore_fallbacks_total`
+- `project_snapshot_restore_failures_total`
 - `cost_estimate_cents`
 
 ## Dashboards And Alerts

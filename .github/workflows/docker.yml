@@ -69,7 +69,7 @@ jobs:
             dockerfile: Dockerfile
             context: .
             target: bolt-ai-production
-            build_args: ""
+            build_args: ''
           - image: admin
             dockerfile: infra/docker/node-service.Dockerfile
             context: .
@@ -109,7 +109,7 @@ jobs:
             dockerfile: services/workspace-agent/Dockerfile
             context: .
             target: runtime
-            build_args: ""
+            build_args: ''
           - image: preview-proxy
             dockerfile: infra/docker/node-service.Dockerfile
             context: .

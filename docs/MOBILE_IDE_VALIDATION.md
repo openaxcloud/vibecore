@@ -43,7 +43,15 @@ This checklist tracks the production mobile IDE surface for Vibecore. The implem
 - `pnpm exec vitest run packages/editor/src/index.spec.ts --reporter=dot`
 - `pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile`
 - `pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=tablet --project=chromium`
+- `pnpm exec playwright test tests/e2e/mobile-device-matrix.spec.ts --project=chromium`
 - `pnpm run build`
+
+## Compact Panel Matrix
+
+- `tests/e2e/mobile-device-matrix.spec.ts` now verifies every compact IDE panel on phone and tablet landscape.
+- Covered panels: Webview, AI Agent, Files, Editor, Terminal, Search, Locks, Overview, Git, Packages, Database, Object Storage, Secrets, Environment variables, Logs, Debugger, Workflows, Integrations, Collaborators, Activity, Snapshots, Extensions, Monitoring, Domains, Security, Settings and Deployments.
+- The matrix asserts no horizontal overflow, no status/tab-bar overlap, full-screen compact panel sizing and a nonblank Webview surface.
+- Screenshots are attached per panel/profile to the Playwright report.
 
 ## Non-Goals
 

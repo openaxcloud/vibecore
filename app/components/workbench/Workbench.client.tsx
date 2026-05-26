@@ -33,6 +33,8 @@ import type { FileHistory } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 
+type MobileWorkbenchPanel = 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
+
 interface WorkspaceProps {
   chatStarted?: boolean;
   isStreaming?: boolean;
@@ -41,7 +43,8 @@ interface WorkspaceProps {
   };
   updateChatMestaData?: (metadata: any) => void;
   setSelectedElement?: (element: ElementInfo | null) => void;
-  mobilePanel?: 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';
+  mobilePanel?: MobileWorkbenchPanel;
+  onMobilePanelChange?: (panel: MobileWorkbenchPanel) => void;
   projectId?: string;
 }
 
@@ -294,6 +297,7 @@ export const Workbench = memo(
     updateChatMestaData: _updateChatMestaData,
     setSelectedElement,
     mobilePanel,
+    onMobilePanelChange,
     projectId,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -358,9 +362,17 @@ export const Workbench = memo(
       workbenchStore.setCurrentDocumentScrollPosition(position);
     }, []);
 
-    const onFileSelect = useCallback((filePath: string | undefined) => {
-      workbenchStore.setSelectedFile(filePath);
-    }, []);
+    const onFileSelect = useCallback(
+      (filePath: string | undefined) => {
+        workbenchStore.setSelectedFile(filePath);
+        workbenchStore.currentView.set('code');
+
+        if (filePath && useMobileWorkbench && mobilePanel === 'files') {
+          onMobilePanelChange?.('editor');
+        }
+      },
+      [mobilePanel, onMobilePanelChange, useMobileWorkbench],
+    );
 
     const onFileSave = useCallback(() => {
       const filePath = workbenchStore.currentDocument.get()?.filePath;

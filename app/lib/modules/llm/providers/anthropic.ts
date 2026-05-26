@@ -39,7 +39,7 @@ export default class AnthropicProvider extends BaseProvider {
       label: 'Claude Haiku 4.5',
       provider: 'Anthropic',
       maxTokenAllowed: 200000,
-      maxCompletionTokens: 128000,
+      maxCompletionTokens: 64000,
     },
   ];
 
@@ -90,11 +90,11 @@ export default class AnthropicProvider extends BaseProvider {
       }
 
       // Determine completion token limits based on specific model
-      let maxCompletionTokens = 128000; // default for older Claude 3 models
+      let maxCompletionTokens = 64000; // Anthropic caps Claude output at or below 64K unless a model advertises less
 
       if (m.id?.includes('claude-opus-4')) {
         maxCompletionTokens = 32000; // Claude 4 Opus: 32K output limit
-      } else if (m.id?.includes('claude-sonnet-4')) {
+      } else if (m.id?.includes('claude-sonnet-4') || m.id?.includes('claude-haiku-4')) {
         maxCompletionTokens = 64000; // Claude 4 Sonnet: 64K output limit
       } else if (m.id?.includes('claude-4')) {
         maxCompletionTokens = 32000; // Other Claude 4 models: conservative 32K limit

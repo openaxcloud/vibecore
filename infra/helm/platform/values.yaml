@@ -8,9 +8,9 @@ global:
   # In production these split the marketing landing, raw API, and workspace
   # manager onto their own subdomains so each can be reached without sharing
   # the application path prefix.
-  marketingDomain: ""
-  apiDomain: ""
-  workspaceManagerDomain: ""
+  marketingDomain: ''
+  apiDomain: ''
+  workspaceManagerDomain: ''
   dns01:
     enabled: true
     project: PROJECT
@@ -18,13 +18,13 @@ global:
   labels:
     app.kubernetes.io/part-of: vibecore
   workloadIdentity:
-    web: ""
-    admin: ""
-    api: ""
-    worker: ""
-    aiGateway: ""
-    workspaceManager: ""
-    previewProxy: ""
+    web: ''
+    admin: ''
+    api: ''
+    worker: ''
+    aiGateway: ''
+    workspaceManager: ''
+    previewProxy: ''
 
 secrets:
   existingSecret: vibecore-platform-secrets
@@ -36,55 +36,55 @@ platformEnv:
   # In-cluster DNS for the api Service. Released chart name is
   # `<release>-<chart>-api`, so with `helm install vibecore ...` this is
   # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.
-  saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
-  apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
-  publicApiBaseUrl: ""
-  platformAdminEmails: ""
+  saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  publicApiBaseUrl: ''
+  platformAdminEmails: ''
   # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
   # Override to "false" only for local helm template debugging.
-  trustProxy: "true"
+  trustProxy: 'true'
   # API project storage must be on a writable mount because production pods
   # run with a read-only root filesystem. /tmp is mounted as an emptyDir.
-  projectStorageDir: "/tmp/vibecore-project-storage"
+  projectStorageDir: '/tmp/vibecore-project-storage'
   # PlatformAdmin TOTP gate. Defaults to "true" in the api (the env var is
   # treated as required unless it equals the string "false") — set
   # explicitly so the policy is visible in chart values.
-  adminMfaRequired: "true"
+  adminMfaRequired: 'true'
   runtime:
-    mode: "remote-kubernetes"
-    apiBaseUrl: "https://api.staging.example.com/api/runtime"
-    workspaceManagerUrl: "http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010"
-    workspaceRuntimeNamespace: "workspaces"
-    workspaceStorageClass: "workspace-standard-rwo"
-    workspaceAgentImage: "us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging"
-    previewUrlTemplate: "https://{workspaceId}-{port}.preview.staging.example.com/p/{workspaceId}/{port}/"
+    mode: 'remote-kubernetes'
+    apiBaseUrl: 'https://api.staging.example.com/api/runtime'
+    workspaceManagerUrl: 'http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010'
+    workspaceRuntimeNamespace: 'workspaces'
+    workspaceStorageClass: 'workspace-standard-rwo'
+    workspaceAgentImage: 'us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging'
+    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.staging.example.com/p/{workspaceId}/{port}/'
   email:
-    httpEndpoint: ""
-    from: ""
+    httpEndpoint: ''
+    from: ''
   # Stripe product and price IDs are not secrets. Leave empty until the
   # catalog is seeded, then set them so the API can seed Plan rows with
   # checkout-capable price IDs at startup.
   stripe:
-    freeProductId: ""
-    freePriceId: ""
-    proProductId: ""
-    proPriceId: ""
-    teamProductId: ""
-    teamPriceId: ""
-    enterpriseProductId: ""
-    enterprisePriceId: ""
+    freeProductId: ''
+    freePriceId: ''
+    proProductId: ''
+    proPriceId: ''
+    teamProductId: ''
+    teamPriceId: ''
+    enterpriseProductId: ''
+    enterprisePriceId: ''
   google:
-    authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
-    tokenUrl: "https://oauth2.googleapis.com/token"
-    userinfoUrl: "https://openidconnect.googleapis.com/v1/userinfo"
-    redirectUri: ""
-    scope: "openid email profile"
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+    tokenUrl: 'https://oauth2.googleapis.com/token'
+    userinfoUrl: 'https://openidconnect.googleapis.com/v1/userinfo'
+    redirectUri: ''
+    scope: 'openid email profile'
   github:
-    authorizationUrl: "https://github.com/login/oauth/authorize"
-    tokenUrl: "https://github.com/login/oauth/access_token"
-    userinfoUrl: "https://api.github.com/user"
-    redirectUri: ""
-    scope: "read:user user:email"
+    authorizationUrl: 'https://github.com/login/oauth/authorize'
+    tokenUrl: 'https://github.com/login/oauth/access_token'
+    userinfoUrl: 'https://api.github.com/user'
+    redirectUri: ''
+    scope: 'read:user user:email'
 
 ingress:
   className: nginx
@@ -107,7 +107,7 @@ services:
     path: /
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
   admin:
     enabled: true
     image: admin
@@ -125,16 +125,16 @@ services:
     path: /api
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
   worker:
     enabled: true
     image: worker
     port: 3002
     replicas: 2
-    path: ""
+    path: ''
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
   aiGateway:
     enabled: true
     image: ai-gateway
@@ -143,7 +143,7 @@ services:
     path: /ai
     resources:
       requests: { cpu: 500m, memory: 1Gi }
-      limits: { cpu: "2", memory: 2Gi }
+      limits: { cpu: '2', memory: 2Gi }
   workspaceManager:
     enabled: true
     image: workspace-manager
@@ -152,17 +152,17 @@ services:
     path: /runtime
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
   previewProxy:
     enabled: true
     image: preview-proxy
     port: 3030
     replicas: 3
     path: /
-    host: "*.preview.staging.example.com"
+    host: '*.preview.staging.example.com'
     resources:
       requests: { cpu: 250m, memory: 512Mi }
-      limits: { cpu: "1", memory: 1Gi }
+      limits: { cpu: '1', memory: 1Gi }
 
 podSecurity:
   enabled: true

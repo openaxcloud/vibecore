@@ -24,6 +24,13 @@ the non-secret Product/Price IDs are rendered by the Helm chart from
 catalog IDs are intentionally omitted from the ConfigMap so they do not
 override a separately managed env source.
 
+Run `pnpm run production:validate:live` before every billing release. The
+live validator calls Stripe `/v1/account` with the configured secret key
+and fails on expired or invalid keys before Helm rolls new pods.
+Use `pnpm run production:validate:live -- --no-dotenv` when checking
+values sourced from the live cluster so local `.env` files cannot hide a
+missing Stripe catalog variable.
+
 ## API
 
 - `GET /orgs/:orgId/billing`

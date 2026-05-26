@@ -6,16 +6,19 @@ import dotenv from 'dotenv';
 
 const root = process.cwd();
 const envFiles = ['.env', '.env.local', '.env.production', '.env.production.local'];
+const args = new Set(process.argv.slice(2));
+const loadDotenv = !args.has('--no-dotenv') && process.env.VALIDATE_PRODUCTION_NO_DOTENV !== '1';
 
-for (const file of envFiles) {
-  const path = resolve(root, file);
+if (loadDotenv) {
+  for (const file of envFiles) {
+    const path = resolve(root, file);
 
-  if (existsSync(path)) {
-    dotenv.config({ path, override: false });
+    if (existsSync(path)) {
+      dotenv.config({ path, override: false });
+    }
   }
 }
 
-const args = new Set(process.argv.slice(2));
 const strict = args.has('--strict') || process.env.VALIDATE_PRODUCTION === '1' || process.env.NODE_ENV === 'production';
 const json = args.has('--json');
 const live = args.has('--live') || process.env.VALIDATE_EXTERNAL_CONNECTIVITY === '1';
@@ -127,6 +130,7 @@ const groups = [
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
     ],
+    live: [{ kind: 'stripe-account' }],
   },
   {
     id: 'workspace-sandbox',
@@ -503,7 +507,46 @@ async function liveCheck(check) {
     return { ok: true, target: 'SMTP_HOST' };
   }
 
+  if (check.kind === 'stripe-account') {
+    return stripeAccountLiveCheck();
+  }
+
   return { ok: true, skipped: true };
+}
+
+async function stripeAccountLiveCheck() {
+  const apiKey = valueOf('STRIPE_SECRET_KEY');
+
+  if (!apiKey) {
+    return { ok: false, target: 'STRIPE_SECRET_KEY', reason: 'missing_key' };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch('https://api.stripe.com/v1/account', {
+      headers: { authorization: `Bearer ${apiKey}`, accept: 'application/json' },
+      signal: controller.signal,
+    });
+
+    if (response.ok) {
+      return { ok: true, status: response.status, target: 'Stripe /v1/account' };
+    }
+
+    const body = await response.json().catch(() => ({}));
+    const code = typeof body?.error?.code === 'string' ? body.error.code : undefined;
+    const type = typeof body?.error?.type === 'string' ? body.error.type : undefined;
+
+    return {
+      ok: false,
+      status: response.status,
+      target: 'Stripe /v1/account',
+      reason: code ?? type ?? 'request_failed',
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function runLiveChecks(report) {
@@ -523,7 +566,9 @@ async function runLiveChecks(report) {
 
         if (!result.ok) {
           item.ok = false;
-          item.problems.push(`external connectivity check failed for ${result.target ?? group.label}: ${result.status ?? 'unreachable'}`);
+          item.problems.push(
+            `external connectivity check failed for ${result.target ?? group.label}: ${result.status ?? 'unreachable'}${result.reason ? ` (${result.reason})` : ''}`,
+          );
         }
       } catch (error) {
         item.ok = false;
@@ -537,7 +582,7 @@ function buildReport() {
   const report = {
     strict,
     live,
-    loadedEnvFiles: envFiles.filter((file) => existsSync(resolve(root, file))),
+    loadedEnvFiles: loadDotenv ? envFiles.filter((file) => existsSync(resolve(root, file))) : [],
     groups: groups.map(validateGroup),
     redactedPresence: Object.fromEntries(
       Array.from(new Set(groups.flatMap((group) => [...(group.required ?? []), ...(group.requiredAny ?? []).flat()])))
