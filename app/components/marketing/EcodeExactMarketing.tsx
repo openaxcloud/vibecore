@@ -1,6 +1,9 @@
 import type { LinksFunction, MetaFunction } from '@remix-run/cloudflare';
 
-export const ecodeExactLinks: LinksFunction = () => [{ rel: 'stylesheet', href: '/styles.css' }];
+export const ecodeExactLinks: LinksFunction = () => [
+  { rel: 'stylesheet', href: '/styles.css' },
+  { rel: 'stylesheet', href: '/ecode-exact-host.css' },
+];
 
 export const ecodeHomeMeta: MetaFunction = () => [
   { title: 'E-code - Native cloud IDE for AI software teams' },
