@@ -199,6 +199,9 @@ and that the API pod sees the Pro price ID:
 
 ```bash
 pnpm run production:validate:live
+# When validating env values copied from the live K8s Secret/ConfigMap, pass
+# --no-dotenv so local repo .env files cannot mask missing cluster variables.
+pnpm run production:validate:live -- --no-dotenv
 
 kubectl -n vibecore exec deploy/vibecore-vibecore-platform-api -- sh -lc '
   env | sort | awk -F= "/^STRIPE_/ {

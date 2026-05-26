@@ -6,16 +6,19 @@ import dotenv from 'dotenv';
 
 const root = process.cwd();
 const envFiles = ['.env', '.env.local', '.env.production', '.env.production.local'];
+const args = new Set(process.argv.slice(2));
+const loadDotenv = !args.has('--no-dotenv') && process.env.VALIDATE_PRODUCTION_NO_DOTENV !== '1';
 
-for (const file of envFiles) {
-  const path = resolve(root, file);
+if (loadDotenv) {
+  for (const file of envFiles) {
+    const path = resolve(root, file);
 
-  if (existsSync(path)) {
-    dotenv.config({ path, override: false });
+    if (existsSync(path)) {
+      dotenv.config({ path, override: false });
+    }
   }
 }
 
-const args = new Set(process.argv.slice(2));
 const strict = args.has('--strict') || process.env.VALIDATE_PRODUCTION === '1' || process.env.NODE_ENV === 'production';
 const json = args.has('--json');
 const live = args.has('--live') || process.env.VALIDATE_EXTERNAL_CONNECTIVITY === '1';
@@ -579,7 +582,7 @@ function buildReport() {
   const report = {
     strict,
     live,
-    loadedEnvFiles: envFiles.filter((file) => existsSync(resolve(root, file))),
+    loadedEnvFiles: loadDotenv ? envFiles.filter((file) => existsSync(resolve(root, file))) : [],
     groups: groups.map(validateGroup),
     redactedPresence: Object.fromEntries(
       Array.from(new Set(groups.flatMap((group) => [...(group.required ?? []), ...(group.requiredAny ?? []).flat()])))
