@@ -518,6 +518,66 @@ gcloud builds list --project=vibecore-495216 --region=europe-west9 --limit=10
 gcloud builds log <BUILD_ID> --project=vibecore-495216 --region=europe-west9
 ```
 
+### Targeted Rebuilds
+
+The full pipeline (`cloudbuild.yaml`) takes ~8-12 min because it rebuilds
+every image. When you only need to ship one or two services, use a
+targeted Cloud Build config — these live under `infra/cloudbuild/` and
+are driven by the top-level `Makefile`.
+
+There are two variants, picked by **whether the lockfile changed**:
+
+| Lockfile changed? | Source changes touch       | Use                             | Approx duration |
+| ----------------- | -------------------------- | ------------------------------- | --------------- |
+| No                | one service                | `make deploy-<service>`          | 90-180 s        |
+| Yes               | api/workspace-manager/preview-proxy only | `make deploy-runtime` | 4-6 min         |
+| Yes               | anything else, or multiple tiers | `make deploy-all`         | 8-12 min        |
+
+**Pinned-deps single-service builds** (`infra/cloudbuild/single-service.yaml`,
+`infra/cloudbuild/single-web.yaml`) skip `build-deps` entirely and reuse an
+existing deps image from Artifact Registry. The `Makefile` auto-detects
+the latest deps SHA tag; override with `DEPS_TAG=<sha>`:
+
+```bash
+# Auto-detect latest deps tag, tag image with current HEAD SHA
+make deploy-api
+
+# Pin a specific deps base and SHA
+make deploy-api DEPS_TAG=9b9c9a037b SHORT_SHA=hotfix1
+
+# Web is built from the root Dockerfile (Remix), not node-service.Dockerfile
+make deploy-web
+
+# List the deps tags Artifact Registry currently has
+make list-deps-tags
+```
+
+**Fresh-deps runtime tier** (`infra/cloudbuild/runtime-tier.yaml`) rebuilds
+the deps base and then api + workspace-manager + preview-proxy in
+parallel. Use this when a `pnpm-lock.yaml` or `package.json` change only
+affects code shipped in those three runtime services:
+
+```bash
+make deploy-runtime
+```
+
+> **imageTag caveat.** Helm's `global.imageTag` is a single value applied
+> to every chart subdeployment. If you rebuild only `api` at a new SHA
+> and run `helm upgrade --set global.imageTag=<new-sha>`, the six
+> unchanged services will `ImagePullBackOff` looking for a tag that
+> doesn't exist on their images. Options:
+>
+> 1. **Re-tag** the previous SHA's unchanged images at `<new-sha>` before
+>    deploying (cheap).
+> 2. **Override per-service** in helm values so only the rebuilt service
+>    rolls to the new SHA.
+> 3. Use the full pipeline (`make deploy-all`) so every image carries
+>    the SHA you're about to deploy.
+>
+> Option 1 is the usual choice — Cloud Build's targeted configs already
+> push `:latest` for the rebuilt service, and a quick `gcloud artifacts
+> docker tags add` loop covers the rest.
+
 ---
 
 ## Common Operations
