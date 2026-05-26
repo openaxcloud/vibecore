@@ -1,10 +1,10 @@
 # Production Readiness Review
 
-Date: 2026-05-07
+Date: 2026-05-26
 
 Scope: strict final review for private beta, paid users, 1,000 users, and 10,000 users across the 34 requested platform areas.
 
-Reviewed commit: `a3fbbca`.
+Reviewed commit: `1e578a1d`.
 
 ## Verdict
 
@@ -30,7 +30,7 @@ This product is not assessed as an MVP. Permanent mocks are not acceptable subst
 | Code is real, typed, tested, documented, integrated | partial | `pnpm run typecheck`, `test`, `lint`, `build`, `ide:panel-audit`, `infra:validate`, `sre:validate`, `cicd:validate`, `mobile:validate`, and `desktop:test` pass. Live runtime, Stripe, backup, load, provider and mobile signing proof remain missing. |
 | No permanent mock replaces a critical feature | partial | Production deploy provider guard and runtime mock scan exist. Non-production static/synthetic flows remain for local dev and must not be used as paid-user proof. |
 | Existing Bolt IDE is preserved | complete | Workbench/chat components and project IDE route remain present; IDE panel audit passes 81/81. |
-| Tests, build, typecheck, docs and acceptance checks pass before claiming completion | partial | Repo-local gates pass after this review. `pnpm run production:validate` fails on missing/placeholder production env, and live Kubernetes checks fail without a reachable cluster/runtime. |
+| Tests, build, typecheck, docs and acceptance checks pass before claiming completion | partial | Repo-local gates and GitHub Actions pass for `1e578a1d`. Cluster-only `pnpm run production:validate:live -- --no-dotenv` still fails on external provider/security/ops configuration, and the latest image is not deployed. |
 | Platform can be called production ready | missing | Hard no-go gates remain open: workspace isolation live proof, gVisor admission enforcement live proof, NetworkPolicies live proof, Stripe live webhook proof, admin/browser audit, backup restore, load tests, rollback, mobile signing, and desktop release matrix. |
 
 ## Commands Run In This Review
@@ -60,13 +60,14 @@ Passed:
 Failed, and therefore blocking:
 
 - `pnpm run production:validate`
-  - Fails on missing or placeholder Google OAuth, GitHub OAuth, OIDC, SAML, transactional email, SIEM, production `DATABASE_URL`/`REDIS_URL`, Stripe secrets, Stripe product/price catalog, remote Kubernetes HTTPS runtime URLs, monitoring/incident response, and SOC2/rotation evidence variables.
+  - Cluster-only live validation now passes Google OAuth, GitHub OAuth, transactional email, workspace sandbox controls, runtime mode and AI provider keys.
+  - It still fails on Microsoft Entra/OIDC, SAML SSO, SIEM export, an expired Stripe key, missing Stripe product/price catalog IDs, deployment provider configuration, monitoring/incident response and rotation/SOC2 evidence variables.
 - `pnpm run runtime:validate:api-kubernetes`
-  - Fails during preflight because `http://127.0.0.1:3010/health` is not reachable; the workspace-manager is not running or not exposed to this workstation.
-  - The validator was tightened in this review to check API/workspace-manager/kubectl readiness before creating test data and to port-forward the actual returned `session.id` instead of the project id.
+  - Must still pass against the deployed API/workspace-manager pair after the latest image is deployed.
+  - Runtime configuration validates from Kubernetes Secret/ConfigMap state, but full workspace lifecycle E2E has not been rerun after the latest code changes.
 - `pnpm run networkpolicies:validate:live`
-  - Fails during preflight because `kubectl cluster-info` cannot reach a Kubernetes API server at the current context; no live NetworkPolicy proof exists from this workstation.
-  - The validator was tightened in this review to verify cluster reachability before creating/deleting the probe pod and to honor `NETWORKPOLICY_NAMESPACE`, `WORKSPACE_NAMESPACE`, or `WORKSPACE_RUNTIME_NAMESPACE`.
+  - Must still pass against the active staging or production workspace namespace.
+  - Kubernetes access is available, but the denied-traffic drill has not been rerun in this review.
 
 ## Hard No-Go Checks
 

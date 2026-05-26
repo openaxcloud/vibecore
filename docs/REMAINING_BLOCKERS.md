@@ -1,33 +1,43 @@
 # Remaining Blockers
 
-Date: 2026-05-07
+Date: 2026-05-26
 
 This file lists blockers that remain after the strict repo-local audit. Items here are not optional for paid production launch.
 
 ## P0 Before Private Beta
 
-1. **Remote Kubernetes runtime validation fails or is not proven.**
-   - Current local result: `pnpm run runtime:validate:api-kubernetes` fails during preflight because `http://127.0.0.1:3010/health` is not reachable; workspace-manager is not running or not exposed to this workstation.
-   - Latest local result: `pnpm run runtime:validate:remote-kubernetes` now fails with an actionable timeout while pulling the required local validation node image: `Unable to pull required Docker image "kindest/node:v1.34.0"` after 600000ms.
-   - Repo fix applied: the API Kubernetes validator checks API/workspace-manager/kubectl readiness before creating test data and uses the returned runtime `session.id` for pod/service checks instead of the project id. The direct remote Kubernetes validator now runs explicit `kubectl`/`kind`/Docker preflight checks, pulls the required `kind` node image as a separate diagnosable step, and wraps long `kind`, Docker and `kubectl` operations with timeouts and contextual error output.
-   - Required proof: workspace start, file operations, command streaming, terminal WebSocket, logs, preview, snapshot, stop/restart/delete in staging GKE.
-   - Next action: inspect API/runtime-manager logs and fix the workspace start path, then run `Staging Runtime Validation`.
+1. **Remote Kubernetes runtime E2E proof is still required after deploy.**
+   - Current cluster configuration result: `pnpm run production:validate:live -- --no-dotenv`, populated only from the Kubernetes Secret/ConfigMap, now passes `Runtime mode`, including `VITE_RUNTIME_MODE=remote-kubernetes`, `VITE_RUNTIME_API_BASE_URL`, `WORKSPACE_MANAGER_URL`, workspace namespace, agent image, preview shared secret and preview URL template.
+   - Current deployment result: production pods are healthy, but the live deployments still run image tag `sha-1116d9d`; the latest committed code is `1e578a1d` and is not deployed.
+   - Required proof: workspace start, file operations, command streaming, terminal WebSocket, logs, preview, snapshot, stop/restart/delete in the live Kubernetes runtime after deploying the latest image.
+   - Next action: unblock production validation, deploy the latest image set, then run the staging/production runtime validation and Playwright IDE preview checks against the deployed host.
 
 2. **Workspace isolation is not proven live.**
    - Source proof exists for gVisor, restricted pod security, Kyverno, NetworkPolicies, ResourceQuota and LimitRange.
-   - Current local result: `pnpm run networkpolicies:validate:live` fails during preflight because `kubectl cluster-info` cannot reach a Kubernetes API server from the active kube context.
+   - Current cluster access is available, but the denied-traffic drill has not been rerun in this review against the active production/staging workspace namespace.
    - Repo fix applied: the validator now checks cluster reachability before creating/deleting the probe pod and accepts `NETWORKPOLICY_NAMESPACE`, `WORKSPACE_NAMESPACE`, or `WORKSPACE_RUNTIME_NAMESPACE`.
    - Required proof: gVisor admission enforcement, no privileged pods, no hostPath, no hostNetwork/hostPID/hostIPC, metadata/internal CIDR egress blocked.
    - Next action: configure staging kube context, install policies, set exact Cloud SQL/Redis CIDRs, run denied-traffic drill.
 
 3. **Production configuration is incomplete.**
-   - Current result: `pnpm run production:validate` fails on OAuth, OIDC, SAML, email, SIEM, production `DATABASE_URL`/`REDIS_URL`, Stripe secrets/catalog, runtime HTTPS URLs, monitoring/incident response and SOC2/rotation evidence.
-   - Latest local confirmation: strict validation still fails for missing real provider credentials and production URLs after commit `a3fbbca`; repo-local `platform:verify`, full Playwright E2E, and IDE panel audit pass.
-   - Next action: populate real staging/prod secret sets and rerun validation.
+   - Latest cluster-only result: `VALIDATE_PRODUCTION_NO_DOTENV=1 pnpm run production:validate:live -- --no-dotenv` fails while populated only from `vibecore-platform-secrets` and `vibecore-vibecore-platform-platform-env`.
+   - Passing groups: Google OAuth, GitHub OAuth, transactional email, workspace sandbox controls, runtime mode and AI provider keys.
+   - Failing groups: Microsoft Entra/OIDC, SAML SSO, SIEM export, Stripe account live check, Stripe catalog, deployment providers, monitoring/incident response and rotation/SOC2 evidence.
+   - Exact missing or invalid production values:
+     - `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`, `OIDC_ISSUER_URL`, `OIDC_AUTHORIZATION_URL`, `OIDC_TOKEN_URL`, `OIDC_USERINFO_URL`, `OIDC_JWKS_URL`.
+     - One complete SAML provider set: `SAML_ENTITY_ID`, `SAML_ACS_URL`, plus either `SAML_SSO_URL` and `SAML_X509_CERTIFICATE`, or `SAML_METADATA_URL`.
+     - `SIEM_WEBHOOK_URL`, `SIEM_SIGNING_SECRET`.
+     - The live `STRIPE_SECRET_KEY` is rejected by Stripe with `api_key_expired`.
+     - `STRIPE_FREE_PRODUCT_ID`, `STRIPE_FREE_PRICE_ID`, `STRIPE_PRO_PRODUCT_ID`, `STRIPE_PRO_PRICE_ID`, `STRIPE_TEAM_PRODUCT_ID`, `STRIPE_TEAM_PRICE_ID`, `STRIPE_ENTERPRISE_PRODUCT_ID`, `STRIPE_ENTERPRISE_PRICE_ID`.
+     - `DEPLOYMENT_PROVIDERS_ENABLED`.
+     - `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `LOG_REDACTION_ENABLED=true`, `SECURITY_CONTACT_EMAIL`, `INCIDENT_WEBHOOK_URL`.
+     - `SECRET_ROTATION_OWNER`, `SECRET_ROTATION_CADENCE_DAYS`, `AUDIT_RETENTION_DAYS`, `SOC2_EVIDENCE_BUCKET`, `BACKUP_ENCRYPTION_KEY`, `PRODUCTION_RUNBOOK_OWNER`.
+   - Next action: populate or rotate the missing external/provider secrets, rerun live validation with `--no-dotenv`, then deploy.
 
 4. **Stripe live test-mode flow is unverified.**
+   - Current blocker: the configured live Stripe key is expired, so the catalog seed and `/v1/account` live validation cannot proceed.
    - Required proof: checkout, portal, signature rejection, duplicate event idempotency, invoice paid/failed, payment failed, upgrade, downgrade, cancel, trial.
-   - Next action: run Stripe CLI/test-mode drill against staging.
+   - Next action: rotate the Stripe live/test release key, run `pnpm stripe:seed`, store the returned product/price IDs in production secrets, then run the Stripe CLI/test-mode drill against staging.
 
 5. **Backup restore is not proven.**
    - Current repo-local proof: `pnpm sre:validate` runs an encrypted project backup round-trip with manifest hash comparison and tamper rejection.
