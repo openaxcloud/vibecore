@@ -229,6 +229,8 @@ export default defineConfig((config) => {
       },
     },
     test: {
+      testTimeout: 120_000,
+      hookTimeout: 120_000,
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

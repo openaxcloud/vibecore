@@ -1,4 +1,9 @@
-import { createBrowserWebContainerRuntime, type WebContainerLike } from '@vibecore/runtime-webcontainer';
+import {
+  WebContainerRuntimeAdapter,
+  createBrowserWebContainerRuntime,
+  type BrowserWebContainerRuntime,
+  type WebContainerLike,
+} from '@vibecore/runtime-webcontainer';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR, WORK_DIR_NAME } from '~/utils/constants';
 import { cleanStackTrace } from '~/utils/stacktrace';
@@ -19,16 +24,27 @@ export let webcontainer: Promise<WebContainerLike> = new Promise(() => {
   // noop for ssr
 });
 
-export let webcontainerRuntimeAdapter = createBrowserWebContainerRuntime({
-  workdir: WORK_DIR,
-  workdirName: WORK_DIR_NAME,
-  ssr: true,
-}).adapter;
+let browserRuntime: BrowserWebContainerRuntime | undefined;
+let browserWebcontainer: Promise<WebContainerLike> | undefined;
 
-if (!import.meta.env.SSR) {
+// Keep WebContainer boot lazy so importing the IDE route does not block React hydration.
+export const webcontainerRuntimeAdapter = new WebContainerRuntimeAdapter({
+  workdir: WORK_DIR,
+  bootWebContainer: bootBrowserWebContainer,
+});
+
+function bootBrowserWebContainer() {
+  if (import.meta.env.SSR) {
+    return webcontainer;
+  }
+
+  if (browserWebcontainer) {
+    return browserWebcontainer;
+  }
+
   const inspectorScript = fetch('/inspector-script.js').then((response) => response.text());
 
-  const runtime = createBrowserWebContainerRuntime({
+  browserRuntime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,
     workdirName: WORK_DIR_NAME,
     hotData: import.meta.hot?.data,
@@ -52,6 +68,9 @@ if (!import.meta.env.SSR) {
       }
     },
   });
-  webcontainer = runtime.webcontainer;
-  webcontainerRuntimeAdapter = runtime.adapter;
+
+  browserWebcontainer = browserRuntime.webcontainer;
+  webcontainer = browserWebcontainer;
+
+  return browserWebcontainer;
 }

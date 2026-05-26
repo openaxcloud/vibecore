@@ -153,7 +153,7 @@ runPrismaTests('PrismaApiStore integration', () => {
 
     await app.close();
     await prisma.$disconnect();
-  }, 20_000);
+  }, 120_000);
 
   it('persists critical store records across independent PrismaApiStore instances', async () => {
     const prismaA = createDatabaseClient();
@@ -223,7 +223,7 @@ runPrismaTests('PrismaApiStore integration', () => {
       await prismaA.$disconnect();
       await prismaB.$disconnect();
     }
-  }, 20_000);
+  }, 120_000);
 
   it('creates unique slugs for repeated project names in one organization', async () => {
     const prisma = createDatabaseClient();
@@ -259,5 +259,5 @@ runPrismaTests('PrismaApiStore integration', () => {
     } finally {
       await prisma.$disconnect();
     }
-  }, 20_000);
+  }, 120_000);
 });

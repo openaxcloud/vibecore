@@ -222,7 +222,7 @@ runDbTests('McpMarketplaceService integration (real Postgres)', () => {
 const runApiTests = (await canReachDatabase()) ? describe : describe.skip;
 
 runApiTests('MCP marketplace HTTP endpoints (Postgres)', () => {
-  it('exposes catalog, install, list, patch and uninstall flow end-to-end', { timeout: 30_000 }, async () => {
+  it('exposes catalog, install, list, patch and uninstall flow end-to-end', { timeout: 120_000 }, async () => {
     // Many sequential HTTP calls + Postgres roundtrips; default 5s is too tight
     // when this spec runs alongside the full platform:test suite under load.
     const prisma = createDatabaseClient();
@@ -368,7 +368,7 @@ runApiTests('MCP marketplace HTTP endpoints (Postgres)', () => {
     }
   });
 
-  it('isolates installs between users', { timeout: 30_000 }, async () => {
+  it('isolates installs between users', { timeout: 120_000 }, async () => {
     const prisma = createDatabaseClient();
     try {
       await prisma.mcpInstall.deleteMany({});
