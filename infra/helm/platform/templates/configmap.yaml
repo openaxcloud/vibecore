@@ -17,6 +17,9 @@ data:
   # set explicitly here so the source of truth is the chart, not the bundle.
   SAAS_API_URL: {{ .Values.platformEnv.saasApiUrl | quote }}
   API_BASE_URL: {{ .Values.platformEnv.apiBaseUrl | quote }}
+  {{- if .Values.platformEnv.publicApiBaseUrl }}
+  PUBLIC_API_BASE_URL: {{ .Values.platformEnv.publicApiBaseUrl | quote }}
+  {{- end }}
 
   # Google OAuth — well-known endpoints, redirect URI derived from the chart.
   GOOGLE_AUTHORIZATION_URL: {{ .Values.platformEnv.google.authorizationUrl | quote }}
@@ -60,4 +63,31 @@ data:
   {{- end }}
   {{- if .Values.platformEnv.email.from }}
   EMAIL_FROM: {{ .Values.platformEnv.email.from | quote }}
+  {{- end }}
+
+  {{- with .Values.platformEnv.stripe }}
+  {{- if .freeProductId }}
+  STRIPE_FREE_PRODUCT_ID: {{ .freeProductId | quote }}
+  {{- end }}
+  {{- if .freePriceId }}
+  STRIPE_FREE_PRICE_ID: {{ .freePriceId | quote }}
+  {{- end }}
+  {{- if .proProductId }}
+  STRIPE_PRO_PRODUCT_ID: {{ .proProductId | quote }}
+  {{- end }}
+  {{- if .proPriceId }}
+  STRIPE_PRO_PRICE_ID: {{ .proPriceId | quote }}
+  {{- end }}
+  {{- if .teamProductId }}
+  STRIPE_TEAM_PRODUCT_ID: {{ .teamProductId | quote }}
+  {{- end }}
+  {{- if .teamPriceId }}
+  STRIPE_TEAM_PRICE_ID: {{ .teamPriceId | quote }}
+  {{- end }}
+  {{- if .enterpriseProductId }}
+  STRIPE_ENTERPRISE_PRODUCT_ID: {{ .enterpriseProductId | quote }}
+  {{- end }}
+  {{- if .enterprisePriceId }}
+  STRIPE_ENTERPRISE_PRICE_ID: {{ .enterprisePriceId | quote }}
+  {{- end }}
   {{- end }}

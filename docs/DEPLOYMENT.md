@@ -179,6 +179,37 @@ kubectl create secret generic vibecore-platform-secrets \
 shred -u "$TMP" 2>/dev/null || rm -f "$TMP"
 ```
 
+### Stripe checkout readiness
+
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` stay in Secret Manager,
+but Stripe Product/Price IDs are non-secret catalog identifiers. Seed or
+reconcile them with an active live key:
+
+```bash
+STRIPE_SECRET_KEY=sk_live_... pnpm stripe:seed > /tmp/vibecore-stripe-live.env
+```
+
+Copy the printed `STRIPE_*_PRODUCT_ID` / `STRIPE_*_PRICE_ID` values into
+`infra/helm/platform/values-prod.yaml` under `platformEnv.stripe`, then
+run the Helm upgrade in Step 3. Empty values are omitted from the
+ConfigMap, so they cannot mask values supplied from another env source.
+
+Before declaring billing ready, verify the live API key has not expired
+and that the API pod sees the Pro price ID:
+
+```bash
+kubectl -n vibecore exec deploy/vibecore-vibecore-platform-api -- sh -lc '
+  env | sort | awk -F= "/^STRIPE_/ {
+    if ($1 ~ /SECRET/) printf \"%s=<redacted length=%d>\\n\", $1, length($2);
+    else print
+  }"
+'
+```
+
+`POST /orgs/:orgId/billing/checkout` returns `503 STRIPE_NOT_CONFIGURED`
+when the key is missing or expired, and `503 STRIPE_PRICE_NOT_CONFIGURED`
+when the selected plan lacks a Stripe price ID.
+
 ---
 
 ## Step 3 — Helm upgrade with the SHA pin

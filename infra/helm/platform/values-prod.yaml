@@ -71,9 +71,10 @@ secrets:
 platformEnv:
   saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
   apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  publicApiBaseUrl: "https://api.e-code.ai"
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
-  platformAdminEmails: "avi@snatchbot.me"
+  platformAdminEmails: "avi@snatchbot.me,groupequaliwatt@gmail.com"
   # Fastify must trust X-Forwarded-* headers because traffic arrives via the
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.
@@ -98,6 +99,18 @@ platformEnv:
   email:
     httpEndpoint: "https://api.resend.com/emails"
     from: "no-reply@e-code.ai"
+  # Non-secret Stripe catalog IDs. Populate from `pnpm stripe:seed` after
+  # rotating STRIPE_SECRET_KEY; empty values are intentionally omitted from
+  # the rendered ConfigMap so they cannot mask Secret-sourced env values.
+  stripe:
+    freeProductId: ""
+    freePriceId: ""
+    proProductId: ""
+    proPriceId: ""
+    teamProductId: ""
+    teamPriceId: ""
+    enterpriseProductId: ""
+    enterprisePriceId: ""
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

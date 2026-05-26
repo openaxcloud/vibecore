@@ -111,7 +111,7 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
   return payload as T;
 }
 
-export function isApiResponse(error: unknown, status?: number) {
+export function isApiResponse(error: unknown, status?: number): error is Response {
   return error instanceof Response && (typeof status !== 'number' || error.status === status);
 }
 

@@ -38,6 +38,7 @@ platformEnv:
   # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.
   saasApiUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
   apiBaseUrl: "http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001"
+  publicApiBaseUrl: ""
   platformAdminEmails: ""
   # Fastify trust-proxy. Staging/prod sit behind ingress-nginx; leave true.
   # Override to "false" only for local helm template debugging.
@@ -60,6 +61,18 @@ platformEnv:
   email:
     httpEndpoint: ""
     from: ""
+  # Stripe product and price IDs are not secrets. Leave empty until the
+  # catalog is seeded, then set them so the API can seed Plan rows with
+  # checkout-capable price IDs at startup.
+  stripe:
+    freeProductId: ""
+    freePriceId: ""
+    proProductId: ""
+    proPriceId: ""
+    teamProductId: ""
+    teamPriceId: ""
+    enterpriseProductId: ""
+    enterprisePriceId: ""
   google:
     authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth"
     tokenUrl: "https://oauth2.googleapis.com/token"

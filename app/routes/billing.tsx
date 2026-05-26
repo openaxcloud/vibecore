@@ -8,6 +8,7 @@ import {
   apiErrorMessage,
   firstOrganization,
   firstOrganizationOrNull,
+  isApiResponse,
   isForbiddenApiResponse,
   json,
   redirect,
@@ -65,10 +66,10 @@ export async function action({ request }: EnterpriseActionArgs) {
       });
       return Response.redirect(result.portalUrl);
     } catch (error) {
-      if (isForbiddenApiResponse(error)) {
+      if (isApiResponse(error)) {
         return json(
           { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
-          { status: 403 },
+          { status: error.status },
         );
       }
 
@@ -88,10 +89,10 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return Response.redirect(result.checkoutUrl);
   } catch (error) {
-    if (isForbiddenApiResponse(error)) {
+    if (isApiResponse(error)) {
       return json(
-        { error: await apiErrorMessage(error, 'You cannot manage billing for this organization.') },
-        { status: 403 },
+        { error: await apiErrorMessage(error, 'Billing checkout is unavailable. Please try again later.') },
+        { status: error.status },
       );
     }
 
