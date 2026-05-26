@@ -84,6 +84,17 @@ export interface SnapshotRecord {
   createdAt: string;
 }
 
+export interface ProjectStorageObjectRecord {
+  id: string;
+  projectId?: string;
+  key: string;
+  kind: 'export' | 'snapshot' | 'before-ai-change' | 'runtime';
+  contentBase64: string;
+  byteLength: number;
+  contentHash: string;
+  createdAt: string;
+}
+
 export interface ProjectEnvironmentRecord {
   id: string;
   projectId: string;
@@ -695,6 +706,15 @@ export interface ApiStore {
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
+  putProjectStorageObject(input: {
+    projectId?: string;
+    key: string;
+    kind: ProjectStorageObjectRecord['kind'];
+    contentBase64: string;
+    byteLength: number;
+    contentHash: string;
+  }): Promise<ProjectStorageObjectRecord>;
+  getProjectStorageObject(key: string): Promise<ProjectStorageObjectRecord | undefined>;
   createDeployment(input: {
     projectId: string;
     provider: string;
@@ -836,7 +856,10 @@ export interface ApiStore {
     projectId: string;
     userConnectionId: string;
   }): Promise<ProjectConnectionLinkRecord | undefined>;
-  listProjectConnectionLinks(projectId: string, opts?: { includeUnlinked?: boolean }): Promise<ProjectConnectionLinkRecord[]>;
+  listProjectConnectionLinks(
+    projectId: string,
+    opts?: { includeUnlinked?: boolean },
+  ): Promise<ProjectConnectionLinkRecord[]>;
   createAiConversation(input: { projectId?: string; userId: string; title?: string }): Promise<AiConversationRecord>;
   getAiConversation(id: string): Promise<AiConversationRecord | undefined>;
   createAiMessage(input: {

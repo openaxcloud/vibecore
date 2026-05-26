@@ -17,29 +17,29 @@ Last verified: **2026-05-21** against commit `b6b8cc17` (worktree
 
 ## Quick Reference
 
-| Thing | Value |
-|---|---|
-| GCP project | `vibecore-495216` |
-| GCP account | `groupequaliwatt@gmail.com` |
-| Region | `europe-west9` (Paris) |
-| GKE cluster | `vibecore-prod-app` (regional, 3× `e2-standard-4`, GKE `v1.35.3-gke.1389000`) |
-| Cluster control plane | `https://34.155.5.126` (private nodes, public endpoint) |
-| VPC / subnet | `vibecore-prod-vpc` / `vibecore-prod-app` |
-| Namespace | `vibecore` |
-| Helm release | `vibecore` (chart `infra/helm/platform`) |
-| Ingress LB IP | `34.1.6.93` (Standard tier static, ingress-nginx) |
-| App domain | `app.e-code.ai` |
-| API domain | `api.e-code.ai` |
-| Marketing | `e-code.ai` |
-| Workspace mgr | `workspace-manager.e-code.ai` |
-| Previews | `*.preview.e-code.ai` (wildcard TLS) |
-| Cloud SQL | `vibecore-prod-postgres` (Postgres 16, `db-custom-2-8192`, `10.237.1.2`) |
-| Memorystore Redis | `vibecore-prod-redis` (Redis 7.2 STANDARD_HA, `10.237.0.4:6379`) |
-| Artifact Registry | `europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/` |
-| GitHub repo | `openaxcloud/vibecore` (upstream: `stackblitz-labs/bolt.diy`) |
-| TLS issuer | `letsencrypt-dns01` (cert-manager, Cloud DNS `e-code-ai` zone) |
-| DNS zone | Cloud DNS `e-code-ai` (Gandi → Cloud DNS NS delegation) |
-| Platform admin allowlist | `avi@snatchbot.me` |
+| Thing                    | Value                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| GCP project              | `vibecore-495216`                                                             |
+| GCP account              | `groupequaliwatt@gmail.com`                                                   |
+| Region                   | `europe-west9` (Paris)                                                        |
+| GKE cluster              | `vibecore-prod-app` (regional, 3× `e2-standard-4`, GKE `v1.35.3-gke.1389000`) |
+| Cluster control plane    | `https://34.155.5.126` (private nodes, public endpoint)                       |
+| VPC / subnet             | `vibecore-prod-vpc` / `vibecore-prod-app`                                     |
+| Namespace                | `vibecore`                                                                    |
+| Helm release             | `vibecore` (chart `infra/helm/platform`)                                      |
+| Ingress LB IP            | `34.1.6.93` (Standard tier static, ingress-nginx)                             |
+| App domain               | `app.e-code.ai`                                                               |
+| API domain               | `api.e-code.ai`                                                               |
+| Marketing                | `e-code.ai`                                                                   |
+| Workspace mgr            | `workspace-manager.e-code.ai`                                                 |
+| Previews                 | `*.preview.e-code.ai` (wildcard TLS)                                          |
+| Cloud SQL                | `vibecore-prod-postgres` (Postgres 16, `db-custom-2-8192`, `10.237.1.2`)      |
+| Memorystore Redis        | `vibecore-prod-redis` (Redis 7.2 STANDARD_HA, `10.237.0.4:6379`)              |
+| Artifact Registry        | `europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/`       |
+| GitHub repo              | `openaxcloud/vibecore` (upstream: `stackblitz-labs/bolt.diy`)                 |
+| TLS issuer               | `letsencrypt-dns01` (cert-manager, Cloud DNS `e-code-ai` zone)                |
+| DNS zone                 | Cloud DNS `e-code-ai` (Gandi → Cloud DNS NS delegation)                       |
+| Platform admin allowlist | `avi@snatchbot.me`                                                            |
 
 ---
 
@@ -132,15 +132,15 @@ All 7 services run in the `vibecore` namespace under the Helm release
 The currently-running image tag is the short SHA of the source commit
 (value at time of writing: `5b2e66f0a8`).
 
-| Service | Port | Replicas | Path | Image | Health | Notes |
-|---|---|---|---|---|---|---|
-| `web` | 3000 | 2 (HPA 2-10) | `/` on `app.e-code.ai`, `e-code.ai` | `web` | `/health` | Remix shell. Vite SSR — see "Gotchas: process.env in SSR". |
-| `admin` | 3000 | 2 (HPA 2-10) | `/admin` on `app.e-code.ai` | `admin` | `/health` | PlatformAdmin console. MFA enforced (see `ADMIN_MFA_REQUIRED`). |
-| `api` | 3001 | 2 (HPA 2-10) | `/api` on `app.e-code.ai`, `/` on `api.e-code.ai` | `api` | `/health` (liveness), `/ready` (readiness — DB+Redis ping) | Fastify monolith. The big one. |
-| `worker` | 3002 | 1 | — | `worker` | exec probe | BullMQ consumer. No HTTP listener. Single replica is sufficient (queue is dedup'd). |
-| `ai-gateway` | 3030 | 2 (HPA 2-10) | `/ai` on `app.e-code.ai` | `ai-gateway` | `/health` | Provider fan-out (OpenAI, Anthropic, Gemini, xAI, Moonshot). |
-| `workspace-manager` | 3010 | 2 (HPA 2-10) | `/runtime` on `app.e-code.ai`, `/` on `workspace-manager.e-code.ai` | `workspace-manager` | `/health` | Backed by `PrismaWorkspaceStore` so replicas > 1 share state. |
-| `preview-proxy` | 3020 | 2 (HPA 2-10) | `/` on `*.preview.e-code.ai` | `preview-proxy` | `/health` | Host-routed reverse proxy into workspace pods. |
+| Service             | Port | Replicas     | Path                                                                | Image               | Health                                                     | Notes                                                                               |
+| ------------------- | ---- | ------------ | ------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `web`               | 3000 | 2 (HPA 2-10) | `/` on `app.e-code.ai`, `e-code.ai`                                 | `web`               | `/health`                                                  | Remix shell. Vite SSR — see "Gotchas: process.env in SSR".                          |
+| `admin`             | 3000 | 2 (HPA 2-10) | `/admin` on `app.e-code.ai`                                         | `admin`             | `/health`                                                  | PlatformAdmin console. MFA enforced (see `ADMIN_MFA_REQUIRED`).                     |
+| `api`               | 3001 | 2 (HPA 2-10) | `/api` on `app.e-code.ai`, `/` on `api.e-code.ai`                   | `api`               | `/health` (liveness), `/ready` (readiness — DB+Redis ping) | Fastify monolith. The big one.                                                      |
+| `worker`            | 3002 | 1            | —                                                                   | `worker`            | exec probe                                                 | BullMQ consumer. No HTTP listener. Single replica is sufficient (queue is dedup'd). |
+| `ai-gateway`        | 3030 | 2 (HPA 2-10) | `/ai` on `app.e-code.ai`                                            | `ai-gateway`        | `/health`                                                  | Provider fan-out (OpenAI, Anthropic, Gemini, xAI, Moonshot).                        |
+| `workspace-manager` | 3010 | 2 (HPA 2-10) | `/runtime` on `app.e-code.ai`, `/` on `workspace-manager.e-code.ai` | `workspace-manager` | `/health`                                                  | Backed by `PrismaWorkspaceStore` so replicas > 1 share state.                       |
+| `preview-proxy`     | 3020 | 2 (HPA 2-10) | `/` on `*.preview.e-code.ai`                                        | `preview-proxy`     | `/health`                                                  | Host-routed reverse proxy into workspace pods.                                      |
 
 HPA: every service except `worker` is min 2, max 10, scaling on **70 % CPU**.
 
@@ -149,11 +149,11 @@ so rolling updates and node drains never bring a service to zero.
 
 CronJobs (all share the `worker` image, run as one-shot jobs):
 
-| Name | Schedule | Purpose |
-|---|---|---|
-| `cron-workspace-gc` | `*/15 * * * *` | Sweep idle/expired workspaces |
-| `cron-siem-deliver` | `*/5 * * * *` | Drain SIEM webhook outbox to configured endpoint |
-| `cron-retention-enforce` | `30 3 * * *` | Daily data-retention enforcement |
+| Name                     | Schedule       | Purpose                                          |
+| ------------------------ | -------------- | ------------------------------------------------ |
+| `cron-workspace-gc`      | `*/15 * * * *` | Sweep idle/expired workspaces                    |
+| `cron-siem-deliver`      | `*/5 * * * *`  | Drain SIEM webhook outbox to configured endpoint |
+| `cron-retention-enforce` | `30 3 * * *`   | Daily data-retention enforcement                 |
 
 Older failed CronJob runs (≤ 2026-05-19) exist as `Failed` job entries — the
 underlying issue was fixed in the recent rollouts; new runs `Complete` in
@@ -181,11 +181,13 @@ key/value pairs into the K8s Secret.
 Currently 38 keys live in the Secret. Grouped by purpose:
 
 ### Database & cache (3)
+
 - `DATABASE_URL` — Postgres connection string (`postgresql://…@10.237.1.2:5432/vibecore`)
 - `REDIS_URL` — Memorystore connection (`redis://10.237.0.4:6379`)
 - `WORKSPACE_MANAGER_URL` — usually overridden to the cluster-internal Service URL; see Gotchas
 
 ### Auth & crypto (5)
+
 - `JWT_SECRET` — JWT signing key for session tokens
 - `COOKIE_SECRET` — Fastify cookie plugin secret
 - `CONFIG_ENCRYPTION_KEY` — symmetric key for at-rest encryption of stored connector configs
@@ -193,6 +195,7 @@ Currently 38 keys live in the Secret. Grouped by purpose:
 - `SENTRY_DSN` — error reporting (not strictly auth, but a runtime secret)
 
 ### OAuth — Google (6) — provider URLs live in the ConfigMap, only credentials are secret
+
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_AUTHORIZATION_URL` ← duplicated; also lives in ConfigMap
@@ -207,6 +210,7 @@ Currently 38 keys live in the Secret. Grouped by purpose:
   > path; leave them for now.
 
 ### OAuth — GitHub (6) — same shape as Google
+
 - `GITHUB_CLIENT_ID`
 - `GITHUB_CLIENT_SECRET`
 - `GITHUB_AUTHORIZATION_URL`
@@ -216,19 +220,22 @@ Currently 38 keys live in the Secret. Grouped by purpose:
 - `GITHUB_SCOPE`
 
 ### AI providers (5)
+
 - `OPENAI_API_KEY`
 - `GOOGLE_GEMINI_API_KEY`
 - `XAI_API_KEY`
 - `MOONSHOT_API_KEY`
-- `ANTHROPIC_API_KEY` *(in `secretManagerMap` but **not** present in the
+- `ANTHROPIC_API_KEY` _(in `secretManagerMap` but **not** present in the
   current K8s Secret as of 2026-05-21 — verify before relying on Anthropic
-  routes; the ai-gateway will refuse to load Claude routes without it)*
+  routes; the ai-gateway will refuse to load Claude routes without it)_
 
 ### Billing — Stripe (2)
+
 - `STRIPE_SECRET_KEY` — live-mode secret
 - `STRIPE_WEBHOOK_SECRET` — verifies `/webhooks/stripe`
 
 ### Email — Resend (3)
+
 - `EMAIL_FROM` — sender address used by the api
 - `EMAIL_HTTP_ENDPOINT` — Resend HTTP API endpoint
 - `EMAIL_HTTP_TOKEN` — Resend API token
@@ -237,20 +244,24 @@ Currently 38 keys live in the Secret. Grouped by purpose:
   route returns `503 WEBHOOK_NOT_CONFIGURED`.
 
 ### Inter-service (3)
+
 - `API_BASE_URL` — in-cluster URL the web pod uses for the api Service
 - `SAAS_API_URL` — same target, different env name (the api reads `SAAS_API_URL`,
   the web SSR reads `API_BASE_URL`)
 - `WORKSPACE_MANAGER_URL` — cluster-internal URL for workspace-manager
 
 ### Runtime/build (3)
+
 - `NODE_ENV` — `production`
 - `VITE_RUNTIME_API_BASE_URL` — baked into the web bundle at build time
 - `VITE_RUNTIME_MODE` — `production`
 
 ### Networking (1)
+
 - `API_CORS_ORIGINS` — comma-separated allowlist for the api's CORS middleware
 
 ### Validator-only / declared but not yet used by code
+
 The `secretManagerMap` in `values-prod.yaml` references three keys that the
 bootstrap script intends to populate but which **have no runtime consumer**
 in the current source tree:
@@ -273,29 +284,30 @@ The only chart-managed ConfigMap is `vibecore-vibecore-platform-platform-env`
 secrets — they're well-known endpoints, internal Service URLs, and policy
 flags whose audit trail belongs in git, not Secret Manager.
 
-| Key | Value | Why it's here |
-|---|---|---|
-| `SAAS_API_URL` | `http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001` | In-cluster api URL the worker / web read |
-| `API_BASE_URL` | same as above | In-cluster api URL the web SSR reads |
-| `GOOGLE_AUTHORIZATION_URL` | `https://accounts.google.com/o/oauth2/v2/auth` | Public well-known endpoint |
-| `GOOGLE_TOKEN_URL` | `https://oauth2.googleapis.com/token` | Public well-known endpoint |
-| `GOOGLE_USERINFO_URL` | `https://openidconnect.googleapis.com/v1/userinfo` | Public well-known endpoint |
-| `GOOGLE_REDIRECT_URI` | `https://app.e-code.ai/auth/oauth/google/callback` | Derived from chart, must match Google Console |
-| `GOOGLE_SCOPE` | `openid email profile` | OIDC scope |
-| `GITHUB_AUTHORIZATION_URL` | `https://github.com/login/oauth/authorize` | Public well-known endpoint |
-| `GITHUB_TOKEN_URL` | `https://github.com/login/oauth/access_token` | Public well-known endpoint |
-| `GITHUB_USERINFO_URL` | `https://api.github.com/user` | Public well-known endpoint |
-| `GITHUB_REDIRECT_URI` | `https://app.e-code.ai/auth/oauth/github/callback` | Derived from chart, must match GitHub OAuth app |
-| `GITHUB_SCOPE` | `read:user user:email` | Minimum required |
-| `PLATFORM_ADMIN_EMAILS` | `avi@snatchbot.me` | Comma-separated. Grants global PlatformAdmin (`services/api/src/app.ts:2224`). Edit cautiously. |
-| `TRUST_PROXY` | `true` | Fastify trusts `X-Forwarded-*` from ingress-nginx so `request.ip` is the real client (audit logs, rate-limits, OAuth callback origin checks). |
-| `ADMIN_MFA_REQUIRED` | `true` | Gates `/platform/admin/*` behind TOTP. Anything other than literal `"false"` is treated as required (`services/api/src/app.ts:1005`). |
+| Key                        | Value                                                                   | Why it's here                                                                                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SAAS_API_URL`             | `http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001` | In-cluster api URL the worker / web read                                                                                                      |
+| `API_BASE_URL`             | same as above                                                           | In-cluster api URL the web SSR reads                                                                                                          |
+| `GOOGLE_AUTHORIZATION_URL` | `https://accounts.google.com/o/oauth2/v2/auth`                          | Public well-known endpoint                                                                                                                    |
+| `GOOGLE_TOKEN_URL`         | `https://oauth2.googleapis.com/token`                                   | Public well-known endpoint                                                                                                                    |
+| `GOOGLE_USERINFO_URL`      | `https://openidconnect.googleapis.com/v1/userinfo`                      | Public well-known endpoint                                                                                                                    |
+| `GOOGLE_REDIRECT_URI`      | `https://app.e-code.ai/auth/oauth/google/callback`                      | Derived from chart, must match Google Console                                                                                                 |
+| `GOOGLE_SCOPE`             | `openid email profile`                                                  | OIDC scope                                                                                                                                    |
+| `GITHUB_AUTHORIZATION_URL` | `https://github.com/login/oauth/authorize`                              | Public well-known endpoint                                                                                                                    |
+| `GITHUB_TOKEN_URL`         | `https://github.com/login/oauth/access_token`                           | Public well-known endpoint                                                                                                                    |
+| `GITHUB_USERINFO_URL`      | `https://api.github.com/user`                                           | Public well-known endpoint                                                                                                                    |
+| `GITHUB_REDIRECT_URI`      | `https://app.e-code.ai/auth/oauth/github/callback`                      | Derived from chart, must match GitHub OAuth app                                                                                               |
+| `GITHUB_SCOPE`             | `read:user user:email`                                                  | Minimum required                                                                                                                              |
+| `PLATFORM_ADMIN_EMAILS`    | `avi@snatchbot.me`                                                      | Comma-separated. Grants global PlatformAdmin (`services/api/src/app.ts:2224`). Edit cautiously.                                               |
+| `TRUST_PROXY`              | `true`                                                                  | Fastify trusts `X-Forwarded-*` from ingress-nginx so `request.ip` is the real client (audit logs, rate-limits, OAuth callback origin checks). |
+| `ADMIN_MFA_REQUIRED`       | `true`                                                                  | Gates `/platform/admin/*` behind TOTP. Anything other than literal `"false"` is treated as required (`services/api/src/app.ts:1005`).         |
 
 ---
 
 ## External Services
 
 ### Cloud SQL — Postgres
+
 - **Instance:** `vibecore-prod-postgres`
 - **Engine:** Postgres 16
 - **Tier:** `db-custom-2-8192` (2 vCPU, 8 GiB)
@@ -308,6 +320,7 @@ flags whose audit trail belongs in git, not Secret Manager.
   surfaces in the K8s Secret as `DATABASE_URL`.
 
 ### Memorystore — Redis
+
 - **Instance:** `vibecore-prod-redis`
 - **Engine:** Redis 7.2
 - **Tier:** `STANDARD_HA` (replica node for failover)
@@ -319,6 +332,7 @@ flags whose audit trail belongs in git, not Secret Manager.
   and surfaces in the K8s Secret as `REDIS_URL`.
 
 ### Artifact Registry
+
 - **Repo:** `vibecore-prod-containers` (Docker format, standard)
 - **Region:** `europe-west9`
 - **URL:** `europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/`
@@ -329,6 +343,7 @@ flags whose audit trail belongs in git, not Secret Manager.
 - Labels: `app=vibecore environment=prod owner=platform`
 
 ### Cloud Build
+
 - **Config:** `cloudbuild.yaml` (root)
 - **Region:** `europe-west9`
 - **Machine type:** `e2-highcpu-8` (cannot move to `e2-highcpu-32` in this region — quota does not exist as of 2026-05-19; gcloud returns FAILED_PRECONDITION)
@@ -339,12 +354,14 @@ flags whose audit trail belongs in git, not Secret Manager.
 - **Vuln scan:** runs after every service build, `allowFailure: true` — logs CVE findings but never gates the pipeline
 
 ### Resend (transactional email)
+
 - **API token & sender:** `EMAIL_HTTP_TOKEN`, `EMAIL_FROM` in the K8s Secret
 - **Webhook URL:** `https://api.e-code.ai/webhooks/resend`
 - **Signing secret:** `RESEND_WEBHOOK_SECRET` (Svix format)
 - **Code:** `services/api/src/app.ts:5217` — verifies and dispatches
 
 ### Stripe (billing)
+
 - **Mode:** live
 - **Secret key:** `STRIPE_SECRET_KEY` in the K8s Secret
 - **Webhook secret:** `STRIPE_WEBHOOK_SECRET` in the K8s Secret
@@ -352,12 +369,14 @@ flags whose audit trail belongs in git, not Secret Manager.
 - **Plan / product seeding:** `pnpm --filter @vibecore/api stripe:seed` (see Common Operations)
 
 ### OAuth providers
+
 - **Google** — client ID and secret in K8s Secret; redirect URI must match
   `https://app.e-code.ai/auth/oauth/google/callback` in the Google Cloud Console.
 - **GitHub** — client ID and secret in K8s Secret; OAuth app must list
   `https://app.e-code.ai/auth/oauth/github/callback` as a callback URL.
 
 ### Cloud DNS
+
 - **Zone name:** `e-code-ai` (Gandi nameservers point at Cloud DNS)
 - **Records:** `app.e-code.ai`, `e-code.ai`, `api.e-code.ai`, `workspace-manager.e-code.ai`, `*.preview.e-code.ai` all A-record to `34.1.6.93`
 - **DNS-01 cert challenge:** cert-manager `letsencrypt-dns01` ClusterIssuer uses workload identity to write `_acme-challenge` TXT records in this zone
@@ -372,6 +391,7 @@ Both managed by `infra/helm/platform/templates/ingress.yaml`. Both terminate
 on the same nginx-ingress controller (LB IP `34.1.6.93`).
 
 **`vibecore-vibecore-platform-app`** — public app + api + workspace-manager
+
 ```
 host: app.e-code.ai
   /        → web
@@ -387,6 +407,7 @@ TLS: vibecore-platform-tls (4 SANs, cert-manager letsencrypt-dns01)
 ```
 
 **`vibecore-vibecore-platform-preview`** — wildcard preview routing
+
 ```
 host: *.preview.e-code.ai
   /        → preview-proxy
@@ -394,6 +415,7 @@ TLS: vibecore-preview-wildcard-tls (cert-manager letsencrypt-dns01)
 ```
 
 Both ingresses set:
+
 - `kubernetes.io/ingress.class: nginx`
 - `cert-manager.io/cluster-issuer: letsencrypt-dns01`
 
@@ -418,6 +440,7 @@ same as long-form thanks to the cluster's search-domain.
 ### NetworkPolicy
 
 `infra/helm/platform/templates/networkpolicy.yaml` allows:
+
 - Ingress from `kubernetes.io/metadata.name: ingress-nginx` (label
   `app.kubernetes.io/name: ingress-nginx`) to each public service
 - Pod-to-pod traffic inside `vibecore` namespace
@@ -426,6 +449,7 @@ same as long-form thanks to the cluster's search-domain.
   Resend, Stripe, OAuth, Sentry)
 
 ### Pod Security
+
 `enforce: restricted` Pod Security admission across the namespace.
 Every container runs non-root, read-only root FS, no privileged escalation.
 
@@ -499,12 +523,14 @@ gcloud builds log <BUILD_ID> --project=vibecore-495216 --region=europe-west9
 ## Common Operations
 
 ### Restart a deployment (zero-downtime rolling restart)
+
 ```bash
 kubectl rollout restart deployment/vibecore-vibecore-platform-api -n vibecore
 kubectl rollout status  deployment/vibecore-vibecore-platform-api -n vibecore
 ```
 
 ### Check logs
+
 ```bash
 # Tail logs from all api pods
 kubectl logs -n vibecore -l app.kubernetes.io/name=api --tail=200 -f
@@ -514,6 +540,7 @@ kubectl logs -n vibecore job/vibecore-vibecore-platform-cron-siem-deliver-296536
 ```
 
 ### Update a secret (GCP Secret Manager is source of truth)
+
 ```bash
 # 1. Update the value in GCP Secret Manager
 gcloud secrets versions add vibecore-prod-stripe-webhook-secret \
@@ -526,7 +553,9 @@ kubectl rollout restart deployment/vibecore-vibecore-platform-api -n vibecore
 ```
 
 ### Run `stripe:seed`
+
 Seeds products and prices into the configured Stripe account.
+
 ```bash
 # From a developer machine with STRIPE_SECRET_KEY exported:
 pnpm --filter @vibecore/api stripe:seed
@@ -540,6 +569,7 @@ kubectl run stripe-seed --rm -it \
 ```
 
 ### Check current image tag in production
+
 ```bash
 kubectl get pods -n vibecore \
   -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}' \
@@ -547,11 +577,13 @@ kubectl get pods -n vibecore \
 ```
 
 ### Tail Cloud Build progress
+
 ```bash
 gcloud builds list --project=vibecore-495216 --region=europe-west9 --ongoing
 ```
 
 ### Connect to Postgres from the cluster (debugging)
+
 ```bash
 kubectl run pg-debug --rm -it --restart=Never \
   --image=postgres:16-alpine \
@@ -561,6 +593,7 @@ kubectl run pg-debug --rm -it --restart=Never \
 ```
 
 ### Connect to Redis from the cluster (debugging)
+
 ```bash
 kubectl run redis-debug --rm -it --restart=Never \
   --image=redis:7-alpine \
@@ -576,60 +609,61 @@ kubectl run redis-debug --rm -it --restart=Never \
 Comprehensive table. "Where Set" = which mechanism populates it. "Code
 Consumer" = an indicative call site (not exhaustive).
 
-| VAR | Required? | Where Set | Code Consumer | Notes |
-|---|---|---|---|---|
-| `NODE_ENV` | ✅ | K8s Secret | All services | `production` |
-| `DATABASE_URL` | ✅ | K8s Secret (← GCP `vibecore-prod-database-url`) | `packages/database/src/client.ts` | `postgresql://…@10.237.1.2:5432/vibecore` |
-| `REDIS_URL` | ✅ | K8s Secret (← GCP `vibecore-prod-redis-url`) | BullMQ + session store | `redis://10.237.0.4:6379` |
-| `JWT_SECRET` | ✅ | K8s Secret | `services/api` auth | Min length validated at boot |
-| `COOKIE_SECRET` | ✅ | K8s Secret | `services/api` Fastify cookie | Min length validated at boot |
-| `CONFIG_ENCRYPTION_KEY` | ✅ | K8s Secret | Connector config at-rest encrypt | 32-byte key, base64 |
-| `WORKSPACE_AGENT_TOKEN_SECRET` | ✅ | K8s Secret | Workspace agent HMAC | |
-| `SAAS_API_URL` | ✅ | ConfigMap (also in Secret as duplicate) | `services/web` SSR, `services/worker` | `http://…api.vibecore.svc.cluster.local:3001` |
-| `API_BASE_URL` | ✅ | ConfigMap (also in Secret as duplicate) | `services/web` SSR | Same target as `SAAS_API_URL`. Different name due to historical bifurcation. |
-| `API_CORS_ORIGINS` | ✅ | K8s Secret | `services/api` CORS plugin | Comma-separated allowlist |
-| `WORKSPACE_MANAGER_URL` | ⚠️ | K8s Secret | `services/api/src/app.ts` (workspace routes) | Defaults to `http://127.0.0.1:3010` if unset → outage. See Gotchas. |
-| `TRUST_PROXY` | ✅ | ConfigMap | Fastify init | Must be `true` in prod |
-| `ADMIN_MFA_REQUIRED` | ✅ | ConfigMap | `services/api/src/app.ts:1005` | Anything ≠ `"false"` is treated as required |
-| `PLATFORM_ADMIN_EMAILS` | ✅ | ConfigMap | `services/api/src/app.ts:2224` | Comma-separated. `avi@snatchbot.me` today |
-| `GOOGLE_CLIENT_ID` | ✅ | K8s Secret | OAuth | |
-| `GOOGLE_CLIENT_SECRET` | ✅ | K8s Secret | OAuth | |
-| `GOOGLE_AUTHORIZATION_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GOOGLE_TOKEN_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GOOGLE_USERINFO_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GOOGLE_REDIRECT_URI` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | Must match Google Cloud Console exactly |
-| `GOOGLE_SCOPE` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | `openid email profile` |
-| `GITHUB_CLIENT_ID` | ✅ | K8s Secret | OAuth | |
-| `GITHUB_CLIENT_SECRET` | ✅ | K8s Secret | OAuth | |
-| `GITHUB_AUTHORIZATION_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GITHUB_TOKEN_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GITHUB_USERINFO_URL` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | |
-| `GITHUB_REDIRECT_URI` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | Must match GitHub OAuth app exactly |
-| `GITHUB_SCOPE` | ✅ | ConfigMap (also in Secret as duplicate) | OAuth | `read:user user:email` |
-| `OPENAI_API_KEY` | ✅ | K8s Secret | ai-gateway | |
-| `ANTHROPIC_API_KEY` | ⚠️ | K8s Secret (declared in `secretManagerMap`, not yet present 2026-05-21) | ai-gateway | Anthropic routes disabled without it |
-| `GOOGLE_GEMINI_API_KEY` | ✅ | K8s Secret | ai-gateway | |
-| `XAI_API_KEY` | ✅ | K8s Secret | ai-gateway | |
-| `MOONSHOT_API_KEY` | ✅ | K8s Secret | ai-gateway | |
-| `STRIPE_SECRET_KEY` | ✅ | K8s Secret | `services/api` billing | Live mode |
-| `STRIPE_WEBHOOK_SECRET` | ✅ | K8s Secret | `/webhooks/stripe` | |
-| `EMAIL_FROM` | ✅ | K8s Secret | Resend send | |
-| `EMAIL_HTTP_ENDPOINT` | ✅ | K8s Secret | Resend send | |
-| `EMAIL_HTTP_TOKEN` | ✅ | K8s Secret | Resend send | |
-| `RESEND_WEBHOOK_SECRET` | ✅ | K8s Secret | `/webhooks/resend` (`services/api/src/app.ts:5217`) | Svix format. Until set, route returns 503 WEBHOOK_NOT_CONFIGURED |
-| `SENTRY_DSN` | ✅ | K8s Secret | All services | |
-| `VITE_RUNTIME_API_BASE_URL` | ✅ | K8s Secret (also build arg) | web bundle | Baked into bundle by Vite SSR — see Gotchas |
-| `VITE_RUNTIME_MODE` | ✅ | K8s Secret (also build arg) | web bundle | `production` |
-| `BACKUP_ENCRYPTION_KEY` | ❌ | Declared in `secretManagerMap`, no consumer yet | — | Reserved for backup-restore pipeline |
-| `SIEM_SIGNING_SECRET` | ❌ | Declared in `secretManagerMap`, no consumer yet | — | Reserved for SIEM HMAC |
-| `SAML_*` | ❌ | Not set | `services/api/src/app.ts:2287-4335` returns `SAML_PROVIDER_NOT_CONFIGURED` | Graceful degrade until SAML is offered |
-| `INCIDENT_WEBHOOK_*` | ❌ | Not set | Validator-only | No production consumer |
+| VAR                            | Required? | Where Set                                                               | Code Consumer                                                              | Notes                                                                        |
+| ------------------------------ | --------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `NODE_ENV`                     | ✅        | K8s Secret                                                              | All services                                                               | `production`                                                                 |
+| `DATABASE_URL`                 | ✅        | K8s Secret (← GCP `vibecore-prod-database-url`)                         | `packages/database/src/client.ts`                                          | `postgresql://…@10.237.1.2:5432/vibecore`                                    |
+| `REDIS_URL`                    | ✅        | K8s Secret (← GCP `vibecore-prod-redis-url`)                            | BullMQ + session store                                                     | `redis://10.237.0.4:6379`                                                    |
+| `JWT_SECRET`                   | ✅        | K8s Secret                                                              | `services/api` auth                                                        | Min length validated at boot                                                 |
+| `COOKIE_SECRET`                | ✅        | K8s Secret                                                              | `services/api` Fastify cookie                                              | Min length validated at boot                                                 |
+| `CONFIG_ENCRYPTION_KEY`        | ✅        | K8s Secret                                                              | Connector config at-rest encrypt                                           | 32-byte key, base64                                                          |
+| `WORKSPACE_AGENT_TOKEN_SECRET` | ✅        | K8s Secret                                                              | Workspace agent HMAC                                                       |                                                                              |
+| `SAAS_API_URL`                 | ✅        | ConfigMap (also in Secret as duplicate)                                 | `services/web` SSR, `services/worker`                                      | `http://…api.vibecore.svc.cluster.local:3001`                                |
+| `API_BASE_URL`                 | ✅        | ConfigMap (also in Secret as duplicate)                                 | `services/web` SSR                                                         | Same target as `SAAS_API_URL`. Different name due to historical bifurcation. |
+| `API_CORS_ORIGINS`             | ✅        | K8s Secret                                                              | `services/api` CORS plugin                                                 | Comma-separated allowlist                                                    |
+| `WORKSPACE_MANAGER_URL`        | ⚠️        | K8s Secret                                                              | `services/api/src/app.ts` (workspace routes)                               | Defaults to `http://127.0.0.1:3010` if unset → outage. See Gotchas.          |
+| `TRUST_PROXY`                  | ✅        | ConfigMap                                                               | Fastify init                                                               | Must be `true` in prod                                                       |
+| `ADMIN_MFA_REQUIRED`           | ✅        | ConfigMap                                                               | `services/api/src/app.ts:1005`                                             | Anything ≠ `"false"` is treated as required                                  |
+| `PLATFORM_ADMIN_EMAILS`        | ✅        | ConfigMap                                                               | `services/api/src/app.ts:2224`                                             | Comma-separated. `avi@snatchbot.me` today                                    |
+| `GOOGLE_CLIENT_ID`             | ✅        | K8s Secret                                                              | OAuth                                                                      |                                                                              |
+| `GOOGLE_CLIENT_SECRET`         | ✅        | K8s Secret                                                              | OAuth                                                                      |                                                                              |
+| `GOOGLE_AUTHORIZATION_URL`     | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GOOGLE_TOKEN_URL`             | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GOOGLE_USERINFO_URL`          | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GOOGLE_REDIRECT_URI`          | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      | Must match Google Cloud Console exactly                                      |
+| `GOOGLE_SCOPE`                 | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      | `openid email profile`                                                       |
+| `GITHUB_CLIENT_ID`             | ✅        | K8s Secret                                                              | OAuth                                                                      |                                                                              |
+| `GITHUB_CLIENT_SECRET`         | ✅        | K8s Secret                                                              | OAuth                                                                      |                                                                              |
+| `GITHUB_AUTHORIZATION_URL`     | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GITHUB_TOKEN_URL`             | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GITHUB_USERINFO_URL`          | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      |                                                                              |
+| `GITHUB_REDIRECT_URI`          | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      | Must match GitHub OAuth app exactly                                          |
+| `GITHUB_SCOPE`                 | ✅        | ConfigMap (also in Secret as duplicate)                                 | OAuth                                                                      | `read:user user:email`                                                       |
+| `OPENAI_API_KEY`               | ✅        | K8s Secret                                                              | ai-gateway                                                                 |                                                                              |
+| `ANTHROPIC_API_KEY`            | ⚠️        | K8s Secret (declared in `secretManagerMap`, not yet present 2026-05-21) | ai-gateway                                                                 | Anthropic routes disabled without it                                         |
+| `GOOGLE_GEMINI_API_KEY`        | ✅        | K8s Secret                                                              | ai-gateway                                                                 |                                                                              |
+| `XAI_API_KEY`                  | ✅        | K8s Secret                                                              | ai-gateway                                                                 |                                                                              |
+| `MOONSHOT_API_KEY`             | ✅        | K8s Secret                                                              | ai-gateway                                                                 |                                                                              |
+| `STRIPE_SECRET_KEY`            | ✅        | K8s Secret                                                              | `services/api` billing                                                     | Live mode                                                                    |
+| `STRIPE_WEBHOOK_SECRET`        | ✅        | K8s Secret                                                              | `/webhooks/stripe`                                                         |                                                                              |
+| `EMAIL_FROM`                   | ✅        | K8s Secret                                                              | Resend send                                                                |                                                                              |
+| `EMAIL_HTTP_ENDPOINT`          | ✅        | K8s Secret                                                              | Resend send                                                                |                                                                              |
+| `EMAIL_HTTP_TOKEN`             | ✅        | K8s Secret                                                              | Resend send                                                                |                                                                              |
+| `RESEND_WEBHOOK_SECRET`        | ✅        | K8s Secret                                                              | `/webhooks/resend` (`services/api/src/app.ts:5217`)                        | Svix format. Until set, route returns 503 WEBHOOK_NOT_CONFIGURED             |
+| `SENTRY_DSN`                   | ✅        | K8s Secret                                                              | All services                                                               |                                                                              |
+| `VITE_RUNTIME_API_BASE_URL`    | ✅        | K8s Secret (also build arg)                                             | web bundle                                                                 | Baked into bundle by Vite SSR — see Gotchas                                  |
+| `VITE_RUNTIME_MODE`            | ✅        | K8s Secret (also build arg)                                             | web bundle                                                                 | `production`                                                                 |
+| `BACKUP_ENCRYPTION_KEY`        | ❌        | Declared in `secretManagerMap`, no consumer yet                         | —                                                                          | Reserved for backup-restore pipeline                                         |
+| `SIEM_SIGNING_SECRET`          | ❌        | Declared in `secretManagerMap`, no consumer yet                         | —                                                                          | Reserved for SIEM HMAC                                                       |
+| `SAML_*`                       | ❌        | Not set                                                                 | `services/api/src/app.ts:2287-4335` returns `SAML_PROVIDER_NOT_CONFIGURED` | Graceful degrade until SAML is offered                                       |
+| `INCIDENT_WEBHOOK_*`           | ❌        | Not set                                                                 | Validator-only                                                             | No production consumer                                                       |
 
 ---
 
 ## Known Issues / Gotchas
 
 ### Vite SSR strips `process.env` (2026-05-19 incident)
+
 `services/web` runs Remix on top of Vite SSR. Vite polyfills
 `process.env = {}` in the SSR bundle, so any `process.env.X` read in the
 browser/server-side render gets `undefined`. The web bundle defaulted its
@@ -640,6 +674,7 @@ add the value to a Vite-aware config module instead.
 (Memory: `project_prod_oauth_incident`)
 
 ### `WORKSPACE_MANAGER_URL` defaults to localhost
+
 If unset, `services/api` defaults to `http://127.0.0.1:3010` and immediately
 fails because nothing is listening on the api pod's own loopback. Confirm
 the K8s Secret has this key set to the cluster-internal Service URL
@@ -647,10 +682,12 @@ the K8s Secret has this key set to the cluster-internal Service URL
 before deploying to a fresh environment.
 
 ### Redis eviction policy must be `noeviction`
+
 BullMQ refuses to operate on a Redis with `allkeys-lru` or any eviction
 policy because jobs would silently disappear. Memorystore defaults to
 `noeviction`; if anyone flips it, BullMQ will throw and the worker pod
 crashes. Re-verify with:
+
 ```bash
 gcloud redis instances describe vibecore-prod-redis \
   --region=europe-west9 --project=vibecore-495216 \
@@ -658,42 +695,49 @@ gcloud redis instances describe vibecore-prod-redis \
 ```
 
 ### NetworkPolicy can block intra-namespace traffic
+
 The 2026-05-19 OAuth incident also surfaced a NetworkPolicy denying
 intra-namespace web→api traffic. The chart has been updated, but if you
 add a new deployment, double-check the relevant `NetworkPolicy` template
 allows the new pod's egress to the api service.
 
 ### Cloud Build duration
+
 Full pipeline (7 services + deps) runs in **~8–12 min** post-rewrite. If
 a build is taking 25+ min, the deps cache is probably cold — the next
 build will be back to normal. Don't bump `machineType` past
 `e2-highcpu-8` in `europe-west9` (no quota for `e2-highcpu-32`).
 
 ### Validator-only vars surface in K8s but have no code consumers
+
 `BACKUP_ENCRYPTION_KEY`, `SIEM_SIGNING_SECRET`, `SAML_*`, and
 `INCIDENT_WEBHOOK_*` may appear in startup logs as "loaded" because
 they're declared in the boot validator, but no runtime code reads them
 yet. Don't waste time chasing them when debugging a feature regression.
 
 ### Cloud SQL is single-zone
+
 `vibecore-prod-postgres` is in `europe-west9-b` only. A zone outage
 takes the database offline. Promoting to a regional / HA tier is in the
 backlog — see `project_prod_infra_coords` memory ("cost-first deploy,
 pas de Cloud SQL haut-de-gamme avant trafic réel").
 
 ### Cron job history shows old failures
+
 `kubectl get jobs -n vibecore` lists `Failed` jobs from 2026-05-19. The
 root cause was fixed in the recent rollouts; current runs `Complete` in
 <10s. The Failed entries get pruned by the chart's history limits;
 manual cleanup is safe but not required.
 
 ### `ANTHROPIC_API_KEY` not yet in the K8s Secret
+
 Declared in `secretManagerMap` but the K8s Secret currently has 38 keys
 and Anthropic is not one of them as of 2026-05-21. The ai-gateway will
 refuse to register Claude provider routes until it's populated. Verify
 before relying on Claude in production.
 
 ### Helm history is large
+
 Currently at revision **v38**. The chart auto-prunes to the last 10
 revisions in our deploy wrapper; if `helm history` shows more than that,
 manual cleanup is harmless (`helm history vibecore -n vibecore`, then

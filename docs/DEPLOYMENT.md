@@ -14,18 +14,18 @@ specifics live in [`RUNBOOK.md`](./RUNBOOK.md).
 
 The current main has the launch stack wired:
 
-| Layer | Status |
-|-------|--------|
-| Managed-mode AI billing (cost ledger + quota + force-keys) | ✅ C1.b |
+| Layer                                                                      | Status             |
+| -------------------------------------------------------------------------- | ------------------ |
+| Managed-mode AI billing (cost ledger + quota + force-keys)                 | ✅ C1.b            |
 | HA: web/admin/api/ai-gateway/preview-proxy/workspace-manager at replicas:2 | ✅ Phase 0 A8 + B4 |
-| Workspace auto-GC (every 15 min) | ✅ B6.2 |
-| SIEM webhook delivery (every 5 min) | ✅ B6 |
-| Data retention enforcement (daily 03:30 UTC) | ✅ B6 |
-| Liveness `/health` + readiness `/ready` separated (api) | ✅ |
-| SHA-pinned image tags rejected at deploy time if `:latest` | ✅ A7 |
-| Production secret guards (`dev-*` fallbacks refuse to boot prod) | ✅ B3 |
-| `i18next` runtime wired in the Remix shell | ✅ parallel |
-| AST self-repair retry loop on agent file writes | ✅ parallel |
+| Workspace auto-GC (every 15 min)                                           | ✅ B6.2            |
+| SIEM webhook delivery (every 5 min)                                        | ✅ B6              |
+| Data retention enforcement (daily 03:30 UTC)                               | ✅ B6              |
+| Liveness `/health` + readiness `/ready` separated (api)                    | ✅                 |
+| SHA-pinned image tags rejected at deploy time if `:latest`                 | ✅ A7              |
+| Production secret guards (`dev-*` fallbacks refuse to boot prod)           | ✅ B3              |
+| `i18next` runtime wired in the Remix shell                                 | ✅ parallel        |
+| AST self-repair retry loop on agent file writes                            | ✅ parallel        |
 
 ---
 

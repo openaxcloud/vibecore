@@ -7,8 +7,9 @@ Persistent SaaS projects wrap the existing Bolt IDE with durable project metadat
 ## Storage architecture
 
 - Postgres stores organizations, projects, collaborators, env vars, encrypted secrets, activity, Git metadata and snapshot metadata.
+- Postgres also stores durable `ProjectStorageObject` archive blobs for project exports and snapshots. API pods still keep a local cache for Git and fast archive reads, but snapshot restore falls back to the DB archive when another replica cannot read the original pod-local object.
 - PersistentVolumeClaim stores active workspace files for the runtime pod.
-- S3-compatible cloud storage stores snapshot archives, zip imports and zip exports.
+- S3-compatible or GCS cloud storage remains the preferred large-scale archive tier; DB archive storage is the current durable shared baseline and checksum-verifies every fallback restore.
 - GitHub can be used as an optional source of truth for repository-backed projects.
 - Redis is the coordination layer for workspace locks, project events, autosave conflict detection and runtime availability signals.
 
@@ -57,6 +58,14 @@ Configuration and governance:
 - Runtime autosave writes to the remote runtime and updates project storage.
 - Conflict detection uses project file timestamps and Redis locks/events.
 - Runtime failures surface an offline warning without deleting local IDE state.
+
+## Snapshot restore durability
+
+- Snapshot creation writes the pod-local archive and persists the same ZIP payload in `ProjectStorageObject`.
+- Restore first tries the local archive path for speed.
+- If the local object is missing because another API replica serves the request, restore loads the DB archive by `storageKey`.
+- The DB archive is SHA-256 checked before unzip; checksum mismatch returns `SNAPSHOT_STORAGE_CHECKSUM_MISMATCH`.
+- Missing local and durable archive returns `SNAPSHOT_STORAGE_MISSING` instead of silently restoring an empty project.
 
 ## Security
 

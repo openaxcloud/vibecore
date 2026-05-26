@@ -35,6 +35,7 @@ import type {
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
+  ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
   ScimTokenRecord,
@@ -827,6 +828,35 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
       mapSnapshot,
     );
+  }
+
+  async putProjectStorageObject(input: {
+    projectId?: string;
+    key: string;
+    kind: ProjectStorageObjectRecord['kind'];
+    contentBase64: string;
+    byteLength: number;
+    contentHash: string;
+  }) {
+    return mapProjectStorageObject(
+      await this.prisma.projectStorageObject.upsert({
+        where: { key: input.key },
+        create: input,
+        update: {
+          projectId: input.projectId,
+          kind: input.kind,
+          contentBase64: input.contentBase64,
+          byteLength: input.byteLength,
+          contentHash: input.contentHash,
+        },
+      }),
+    );
+  }
+
+  async getProjectStorageObject(key: string) {
+    const object = await this.prisma.projectStorageObject.findUnique({ where: { key } });
+
+    return object ? mapProjectStorageObject(object) : undefined;
   }
 
   async createDeployment(input: {
@@ -1761,12 +1791,7 @@ export class PrismaApiStore implements ApiStore {
     };
   }
 
-  async listEmailDeliveryEvents(filter?: {
-    email?: string;
-    type?: string;
-    emailMessageId?: string;
-    limit?: number;
-  }) {
+  async listEmailDeliveryEvents(filter?: { email?: string; type?: string; emailMessageId?: string; limit?: number }) {
     const where: Record<string, unknown> = {};
     if (filter?.email) where.email = filter.email;
     if (filter?.type) where.type = filter.type;
@@ -2013,6 +2038,19 @@ function mapSnapshot(snapshot: any): SnapshotRecord {
     byteLength: snapshot.byteLength ?? undefined,
     createdByUserId: snapshot.createdByUserId ?? undefined,
     createdAt: toIso(snapshot.createdAt)!,
+  };
+}
+
+function mapProjectStorageObject(object: any): ProjectStorageObjectRecord {
+  return {
+    id: object.id,
+    projectId: object.projectId ?? undefined,
+    key: object.key,
+    kind: object.kind,
+    contentBase64: object.contentBase64,
+    byteLength: object.byteLength,
+    contentHash: object.contentHash,
+    createdAt: toIso(object.createdAt)!,
   };
 }
 

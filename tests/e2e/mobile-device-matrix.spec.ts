@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Browser } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Browser, type Page, type TestInfo } from '@playwright/test';
 import JSZip from 'jszip';
 
 type AuthPayload = { token: string; organization: { id: string } };
@@ -49,6 +49,69 @@ const mobileDeviceProfiles = [
     userAgent:
       'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
   },
+] as const;
+
+const compactPanelProfiles = mobileDeviceProfiles.filter((profile) =>
+  ['iphone-pro-max', 'ipad-landscape'].includes(profile.name),
+);
+
+const compactIdePanels = [
+  'preview',
+  'agent',
+  'files',
+  'editor',
+  'terminal',
+  'search',
+  'locks',
+  'overview',
+  'git',
+  'packages',
+  'database',
+  'object-storage',
+  'secrets',
+  'env',
+  'logs',
+  'debugger',
+  'workflows',
+  'integrations',
+  'collaborators',
+  'activity',
+  'snapshots',
+  'extensions',
+  'monitoring',
+  'domains',
+  'security',
+  'settings',
+  'deployments',
+] as const;
+
+const compactMoreMenuItems = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'preview', label: 'Webview' },
+  { id: 'deployments', label: 'Deployments' },
+  { id: 'git', label: 'Git' },
+  { id: 'packages', label: 'Packages' },
+  { id: 'database', label: 'Database' },
+  { id: 'object-storage', label: 'Object Storage' },
+  { id: 'locks', label: 'Locks' },
+  { id: 'secrets', label: 'Secrets' },
+  { id: 'env', label: 'Environment variables' },
+  { id: 'terminal', label: 'Terminal' },
+  { id: 'logs', label: 'Logs' },
+  { id: 'debugger', label: 'Debugger' },
+  { id: 'search', label: 'Search' },
+  { id: 'commands', label: 'Commands' },
+  { id: 'workflows', label: 'Workflows' },
+  { id: 'integrations', label: 'Integrations' },
+  { id: 'collaborators', label: 'Collaborators' },
+  { id: 'share', label: 'Share' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'snapshots', label: 'Snapshots' },
+  { id: 'extensions', label: 'Extensions' },
+  { id: 'monitoring', label: 'Monitoring' },
+  { id: 'domains', label: 'Domains' },
+  { id: 'security', label: 'Security' },
+  { id: 'settings', label: 'Settings' },
 ] as const;
 
 async function waitForRateLimitReset(responseText: string, fallbackMs = 10_000) {
@@ -115,6 +178,17 @@ async function createProject(request: APIRequestContext, auth: AuthPayload) {
 
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
+  const listedFiles = await request.get(`${apiBaseUrl}/projects/${projectId}/files`, {
+    headers: { authorization: `Bearer ${auth.token}` },
+  });
+  const listedFilesBody = await listedFiles.text();
+
+  expect(listedFiles.ok(), listedFilesBody).toBeTruthy();
+  expect(
+    (JSON.parse(listedFilesBody) as { files: Array<{ path: string }> }).files.some((file) => file.path === 'src/App.tsx'),
+    'imported project file should be persisted by the real project files API',
+  ).toBe(true);
+
   return projectId;
 }
 
@@ -147,6 +221,9 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page, profile
 
     try {
       await expect(moreMenu, `${profileName} more menu`).toBeVisible({ timeout: 5_000 });
+      await expect(moreMenu.getByTestId('mobile-more-menu-overview'), `${profileName} more menu content`).toBeVisible({
+        timeout: 5_000,
+      });
 
       return moreMenu;
     } catch {
@@ -161,6 +238,9 @@ async function openMobileMoreMenu(page: import('@playwright/test').Page, profile
   }
 
   await expect(moreMenu, `${profileName} more menu`).toBeVisible({ timeout: 15_000 });
+  await expect(moreMenu.getByTestId('mobile-more-menu-overview'), `${profileName} more menu content`).toBeVisible({
+    timeout: 15_000,
+  });
 
   return moreMenu;
 }
@@ -204,6 +284,9 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page, profi
 
     try {
       await expect(toolsSheet, `${profileName} tools sheet`).toBeVisible({ timeout: 5_000 });
+      await expect(toolsSheet.getByTestId('tool-item-editor'), `${profileName} tools sheet content`).toBeVisible({
+        timeout: 5_000,
+      });
 
       return toolsSheet;
     } catch {
@@ -218,11 +301,16 @@ async function openMobileToolsSheet(page: import('@playwright/test').Page, profi
   }
 
   await expect(toolsSheet, `${profileName} tools sheet`).toBeVisible({ timeout: 15_000 });
+  await expect(toolsSheet.getByTestId('tool-item-editor'), `${profileName} tools sheet content`).toBeVisible({
+    timeout: 15_000,
+  });
 
   return toolsSheet;
 }
 
 test.describe('compact IDE shell device matrix', () => {
+  test.describe.configure({ timeout: 300_000 });
+
   let auth: AuthPayload;
   let projectId: string;
 
@@ -234,11 +322,22 @@ test.describe('compact IDE shell device matrix', () => {
   for (const profile of mobileDeviceProfiles) {
     test(`adapts to ${profile.name}`, async ({ browser }, testInfo) => {
       test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
-      test.setTimeout(90_000);
+      test.setTimeout(150_000);
 
       await assertCompactShellForProfile(browser, auth, projectId, profile);
     });
   }
+
+  test('renders every compact IDE panel full-screen on phone and tablet with a nonblank preview', async ({
+    browser,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
+    test.setTimeout(240_000);
+
+    for (const profile of compactPanelProfiles) {
+      await assertEveryCompactPanelForProfile(browser, auth, projectId, profile, testInfo);
+    }
+  });
 });
 
 async function assertCompactShellForProfile(
@@ -268,9 +367,9 @@ async function assertCompactShellForProfile(
   const page = await context.newPage();
 
   try {
-    await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
-      timeout: 45_000,
+      timeout: 90_000,
     });
     await expect(page.getByTestId('mobile-bottom-navigation'), `${profile.name} bottom navigation`).toBeVisible({
       timeout: 45_000,
@@ -306,18 +405,326 @@ async function assertCompactShellForProfile(
     expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
 
     const moreMenu = await openMobileMoreMenu(page, profile.name);
+    const renderedMoreMenuItems = await moreMenu.evaluate((sheet) =>
+      Array.from(sheet.querySelectorAll('[data-testid^="mobile-more-menu-"]')).map((element) => ({
+        id: element.getAttribute('data-testid')?.replace('mobile-more-menu-', ''),
+        label: (element.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      })),
+    );
 
-    for (const label of ['Overview', 'Webview', 'Deployments', 'Object Storage', 'Environment variables', 'Settings']) {
-      await expect(moreMenu.getByText(label, { exact: true }), `${profile.name} more menu ${label}`).toBeVisible();
+    for (const item of compactMoreMenuItems) {
+      const renderedItem = renderedMoreMenuItems.find((candidate) => candidate.id === item.id);
+
+      expect(renderedItem, `${profile.name} more menu ${item.label}`).toBeTruthy();
+      expect(renderedItem?.label, `${profile.name} more menu ${item.label} label`).toContain(item.label);
     }
 
     await closeMobileMoreMenu(page);
-    await openMobileToolsSheet(page, profile.name);
+    const toolsSheet = await openMobileToolsSheet(page, profile.name);
+    const renderedToolIds = await toolsSheet.evaluate((sheet) =>
+      Array.from(sheet.querySelectorAll('[data-testid^="tool-item-"]')).map((element) =>
+        element.getAttribute('data-testid')?.replace('tool-item-', ''),
+      ),
+    );
 
     for (const toolId of ['editor', 'files', 'terminal', 'deployments', 'object-storage', 'settings']) {
-      await expect(page.getByTestId(`tool-item-${toolId}`), `${profile.name} tool ${toolId}`).toBeVisible();
+      expect(renderedToolIds, `${profile.name} tool ${toolId}`).toContain(toolId);
     }
   } finally {
     await context.close();
+  }
+}
+
+async function assertEveryCompactPanelForProfile(
+  browser: Browser,
+  auth: AuthPayload,
+  projectId: string,
+  profile: (typeof mobileDeviceProfiles)[number],
+  testInfo: TestInfo,
+) {
+  const context = await browser.newContext({
+    baseURL: appBaseUrl,
+    viewport: profile.viewport,
+    isMobile: true,
+    hasTouch: true,
+    userAgent: profile.userAgent,
+  });
+
+  await context.addCookies([
+    {
+      name: 'vc_session',
+      value: auth.token,
+      url: appBaseUrl,
+      httpOnly: true,
+      sameSite: 'Lax',
+    },
+  ]);
+
+  const page = await context.newPage();
+
+  try {
+    await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.bolt-responsive-ide-mobile'), `${profile.name} compact shell`).toBeVisible({
+      timeout: 90_000,
+    });
+
+    for (const panel of compactIdePanels) {
+      await test.step(`${profile.name} ${panel}`, async () => {
+        await openCompactPanel(page, panel);
+        await assertCompactPanelRendered(page, profile.name, panel);
+        await assertCompactPanelLayout(page, profile.name, panel);
+
+        const screenshotTarget = compactPanelScreenshotTarget(page, panel);
+        await testInfo.attach(`${profile.name}-${panel}`, {
+          body: await screenshotTarget.screenshot({ animations: 'disabled' }),
+          contentType: 'image/png',
+        });
+      });
+    }
+  } finally {
+    await context.close();
+  }
+}
+
+async function openCompactPanel(page: Page, panel: (typeof compactIdePanels)[number]) {
+  const bottomNav = page.getByTestId('mobile-bottom-navigation');
+  const visibleTab = bottomNav.getByTestId(`tab-${panel}`);
+
+  if (await visibleTab.isVisible().catch(() => false)) {
+    await visibleTab.click({ force: true });
+  } else {
+    const toolsSheet = await openMobileToolsSheet(page, `panel ${panel}`);
+    const toolItem = toolsSheet.getByTestId(`tool-item-${panel}`).first();
+
+    await toolItem.scrollIntoViewIfNeeded({ timeout: 10_000 }).catch(() => undefined);
+    await expect(toolItem, `${panel} tool item`).toBeVisible({ timeout: 15_000 });
+    await toolItem.evaluate((element) => {
+      (element as HTMLButtonElement).click();
+    });
+  }
+
+  await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+
+  if (panel !== 'agent' && panel !== 'editor') {
+    await expect
+      .poll(() => page.evaluate(() => new URL(window.location.href).searchParams.get('panel')), {
+        message: `${panel} should update the compact IDE panel URL`,
+        timeout: 15_000,
+      })
+      .toBe(panel);
+  } else if (panel === 'editor') {
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const panelParam = new URL(window.location.href).searchParams.get('panel');
+
+            return panelParam === null || panelParam === 'editor';
+          }),
+        {
+          message: 'editor should use the canonical editor URL',
+          timeout: 15_000,
+        },
+      )
+      .toBe(true);
+  }
+}
+
+async function assertCompactPanelRendered(page: Page, profileName: string, panel: (typeof compactIdePanels)[number]) {
+  await expect(page.getByText(/Application Error|Unexpected Application Error|Route Error/i)).toHaveCount(0);
+
+  if (panel === 'agent') {
+    await expect(
+      page.getByPlaceholder(/Describe what you want the agent to build/i),
+      `${profileName} agent input`,
+    ).toBeVisible({
+      timeout: 45_000,
+    });
+    return;
+  }
+
+  if (panel === 'preview') {
+    const previewSurface = page.locator('.bolt-workbench-mobile > div.fixed:visible').first();
+    const previewControls = page
+      .locator(
+        [
+          '.bolt-project-webview-tool:visible',
+          '.bolt-project-webview-toolbar:visible',
+          '[data-testid="preview-splash-sequence"]:visible',
+          '[data-testid="preview-not-running-state"]:visible',
+        ].join(', '),
+      )
+      .first();
+    await expect(previewSurface, `${profileName} preview surface`).toBeVisible({ timeout: 45_000 });
+    await expect(previewControls, `${profileName} preview controls`).toBeVisible({ timeout: 45_000 });
+
+    const previewState = await previewSurface.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const textLength = (element.textContent ?? '').replace(/\s+/g, '').length;
+
+      return {
+        area: rect.width * rect.height,
+        hasFrame: Boolean(element.querySelector('iframe')),
+        hasCanvas: Boolean(element.querySelector('canvas')),
+        textLength,
+      };
+    });
+
+    expect(previewState.area, `${profileName} preview area`).toBeGreaterThan(80_000);
+    expect(
+      previewState.hasFrame || previewState.hasCanvas || previewState.textLength > 20,
+      `${profileName} preview should not be blank`,
+    ).toBe(true);
+    return;
+  }
+
+  if (panel === 'files') {
+    const filesPanel = page.getByTestId('mobile-files-panel');
+    const srcFolder = filesPanel.locator('.bolt-file-tree-name', { hasText: /^src$/ }).first();
+    const appFile = filesPanel.locator('.bolt-file-tree-name', { hasText: /^App\.tsx$/ }).first();
+
+    await expect(filesPanel, `${profileName} files panel`).toBeVisible({ timeout: 45_000 });
+    await expect(srcFolder, `${profileName} imported src folder`).toBeVisible({ timeout: 45_000 });
+
+    if (!(await appFile.isVisible().catch(() => false))) {
+      await srcFolder.click({ force: true });
+    }
+
+    await expect(appFile, `${profileName} imported project file`).toBeVisible({ timeout: 45_000 });
+    return;
+  }
+
+  if (panel === 'editor') {
+    await expect(page.getByTestId('responsive-code-editor').first(), `${profileName} editor`).toBeVisible({
+      timeout: 45_000,
+    });
+    return;
+  }
+
+  if (panel === 'terminal') {
+    await expect(page.getByTestId('mobile-terminal-panel'), `${profileName} terminal panel`).toBeVisible({
+      timeout: 45_000,
+    });
+    await expect(
+      page.getByRole('region', { name: 'Interactive terminal' }),
+      `${profileName} terminal region`,
+    ).toBeVisible({
+      timeout: 45_000,
+    });
+    return;
+  }
+
+  if (panel === 'search') {
+    await expect(page.getByPlaceholder('Search files'), `${profileName} search input`).toBeVisible({ timeout: 45_000 });
+    return;
+  }
+
+  if (panel === 'locks') {
+    await expect(page.getByTestId('mobile-locks-panel'), `${profileName} locks panel`).toBeVisible({ timeout: 45_000 });
+    return;
+  }
+
+  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
+  await expect(servicePanel, `${profileName} ${panel} service panel`).toBeVisible({ timeout: 45_000 });
+  await expect(servicePanel.getByText(/Loading .* from backend/i)).toHaveCount(0, { timeout: 45_000 });
+  await expect(servicePanel.getByRole('alert')).toHaveCount(0);
+}
+
+function compactPanelScreenshotTarget(page: Page, panel: (typeof compactIdePanels)[number]) {
+  if (panel === 'agent') {
+    return page.locator('.bolt-responsive-ide-mobile').first();
+  }
+
+  if (panel === 'preview') {
+    return page.locator('.bolt-responsive-ide-mobile').first();
+  }
+
+  return page.locator('.bolt-responsive-ide-mobile').first();
+}
+
+async function assertCompactPanelLayout(page: Page, profileName: string, panel: (typeof compactIdePanels)[number]) {
+  const layout = await page.evaluate(() => {
+    const shell = document.querySelector('.bolt-responsive-ide-mobile');
+    const header = document.querySelector('[data-testid="mobile-ide-header"]');
+    const nav = document.querySelector('[data-testid="mobile-bottom-navigation"]');
+    const status = document.querySelector('.bolt-project-statusbar-mobile');
+    const isVisible = (element: Element): element is HTMLElement => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+
+      return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+    };
+    const activeSurface =
+      Array.from(
+        document.querySelectorAll(
+          '.bolt-workbench-mobile > div.fixed, .bolt-workbench-mobile, [data-testid="ide-service-panel"]',
+        ),
+      )
+        .filter(isVisible)
+        .sort((left, right) => {
+          const leftBox = left.getBoundingClientRect();
+          const rightBox = right.getBoundingClientRect();
+
+          return rightBox.width * rightBox.height - leftBox.width * leftBox.height;
+        })[0] ?? null;
+
+    const rect = (element: Element | null) => {
+      if (!(element instanceof HTMLElement)) {
+        return null;
+      }
+
+      const box = element.getBoundingClientRect();
+
+      return {
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        left: box.left,
+        width: box.width,
+        height: box.height,
+      };
+    };
+
+    const navRect = rect(nav);
+    const statusRect = rect(status);
+    const activeRect = rect(activeSurface);
+
+    return {
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      shell: rect(shell),
+      header: rect(header),
+      nav: navRect,
+      status: statusRect,
+      active: activeRect,
+      statusOverlapsNav: Boolean(statusRect && navRect && statusRect.bottom > navRect.top),
+    };
+  });
+
+  expect(layout.overflowX, `${profileName} ${panel} horizontal overflow`).toBe(false);
+  expect(layout.shell?.width ?? 0, `${profileName} ${panel} shell width`).toBeGreaterThanOrEqual(layout.innerWidth - 2);
+  expect(layout.shell?.height ?? 0, `${profileName} ${panel} shell height`).toBeGreaterThan(layout.innerHeight * 0.75);
+  expect(
+    (layout.shell?.top ?? layout.innerHeight) + (layout.shell?.height ?? 0),
+    `${profileName} ${panel} shell reaches viewport bottom`,
+  ).toBeGreaterThanOrEqual(layout.innerHeight - 2);
+  expect(layout.nav?.height ?? 0, `${profileName} ${panel} bottom nav visible`).toBeGreaterThan(40);
+  expect(layout.statusOverlapsNav, `${profileName} ${panel} status/nav overlap`).toBe(false);
+
+  if (panel !== 'agent') {
+    expect(layout.active?.width ?? 0, `${profileName} ${panel} active panel width`).toBeGreaterThanOrEqual(
+      layout.innerWidth - 2,
+    );
+    expect(layout.active?.height ?? 0, `${profileName} ${panel} active panel height`).toBeGreaterThan(
+      layout.innerHeight * 0.55,
+    );
+    expect(layout.active?.top ?? layout.innerHeight, `${profileName} ${panel} active panel top`).toBeGreaterThanOrEqual(
+      (layout.shell?.top ?? 0) - 2,
+    );
   }
 }

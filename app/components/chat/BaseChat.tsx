@@ -451,6 +451,13 @@ const ECODE_MOBILE_TOOLS = [
     tone: 'warning',
   },
   {
+    id: 'packages',
+    section: 'tools',
+    title: 'Packages',
+    description: 'Dependencies manager',
+    icon: 'i-ph:package',
+  },
+  {
     id: 'integrations',
     section: 'tools',
     title: 'Integrations',
