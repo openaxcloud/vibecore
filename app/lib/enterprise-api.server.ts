@@ -18,11 +18,31 @@ const sessionCookieName = 'vc_session';
 const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
 const LOCAL_DEV_API_URL = 'http://localhost:8787';
 
+function apiBaseUrlFromHostPort() {
+  const host = process.env.API_HOST?.trim();
+  const port = process.env.API_PORT?.trim();
+
+  if (!host && !port) {
+    return undefined;
+  }
+
+  const hostname = !host || host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
+  const normalizedHost = hostname.includes(':') && !hostname.startsWith('[') ? `[${hostname}]` : hostname;
+
+  return `http://${normalizedHost}:${port || '3001'}`;
+}
+
 export function apiBaseUrl() {
   const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
 
   if (fromEnv && fromEnv.length > 0) {
     return fromEnv;
+  }
+
+  const fromHostPort = apiBaseUrlFromHostPort();
+
+  if (fromHostPort) {
+    return fromHostPort;
   }
 
   return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : LOCAL_DEV_API_URL;
