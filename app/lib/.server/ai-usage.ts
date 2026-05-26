@@ -8,6 +8,7 @@ const logger = createScopedLogger('ai-usage');
  * inlined via vite `define`, so we use it to pick an in-cluster default.
  */
 const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
+const WEB_SESSION_COOKIE_NAME = 'vc_session';
 
 function apiBaseUrl() {
   const fromEnv = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? process.env.VITE_API_URL;
@@ -17,6 +18,40 @@ function apiBaseUrl() {
   }
 
   return process.env.NODE_ENV === 'production' ? IN_CLUSTER_API_URL : 'http://localhost:3001';
+}
+
+function sessionTokenFromCookie(cookieHeader?: string) {
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  const match = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${WEB_SESSION_COOKIE_NAME}=`));
+
+  return match ? decodeURIComponent(match.slice(WEB_SESSION_COOKIE_NAME.length + 1)) : undefined;
+}
+
+function applyApiAuthHeaders(headers: Record<string, string>, input: { bearerToken?: string; cookieHeader?: string }) {
+  if (input.bearerToken) {
+    headers.authorization = `Bearer ${input.bearerToken}`;
+    return true;
+  }
+
+  const sessionToken = sessionTokenFromCookie(input.cookieHeader);
+
+  if (sessionToken) {
+    headers.authorization = `Bearer ${sessionToken}`;
+    return true;
+  }
+
+  if (input.cookieHeader) {
+    headers.cookie = input.cookieHeader;
+    return true;
+  }
+
+  return false;
 }
 
 export interface RecordChatUsageInput {
@@ -108,11 +143,7 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
     accept: 'application/json',
   };
 
-  if (input.bearerToken) {
-    headers.authorization = `Bearer ${input.bearerToken}`;
-  } else if (input.cookieHeader) {
-    headers.cookie = input.cookieHeader;
-  } else {
+  if (!applyApiAuthHeaders(headers, input)) {
     // No credentials forwarded — fail-open, the api would reject anyway.
     return { ok: true };
   }
@@ -212,11 +243,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
     accept: 'application/json',
   };
 
-  if (input.bearerToken) {
-    headers.authorization = `Bearer ${input.bearerToken}`;
-  } else if (input.cookieHeader) {
-    headers.cookie = input.cookieHeader;
-  } else {
+  if (!applyApiAuthHeaders(headers, input)) {
     logger.warn(
       JSON.stringify({
         event: 'ai-usage.skipped',
