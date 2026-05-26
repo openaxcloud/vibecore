@@ -17,8 +17,48 @@ env:
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
 
 jobs:
+  deps:
+    name: Build shared deps base
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      image: ${{ steps.deps-meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${GAR_LOCATION}-docker.pkg.dev" --quiet
+
+      - name: Deps metadata
+        id: deps-meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IMAGE="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPOSITORY}/deps:sha-${SHORT_SHA}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push deps
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/deps.Dockerfile
+          push: true
+          provenance: true
+          sbom: true
+          tags: |
+            ${{ steps.deps-meta.outputs.image }}
+            ${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/deps:latest
+
   docker:
     name: Build, scan, SBOM, push
+    needs: deps
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -108,7 +148,9 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           target: ${{ matrix.target }}
-          build-args: ${{ matrix.build_args }}
+          build-args: |
+            DEPS_IMAGE=${{ needs.deps.outputs.image }}
+            ${{ matrix.build_args }}
           push: true
           provenance: true
           sbom: true
