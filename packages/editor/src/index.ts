@@ -5,7 +5,7 @@ import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { markdown } from '@codemirror/lang-markdown';
 import { searchKeymap } from '@codemirror/search';
-import { EditorState, type Extension } from '@codemirror/state';
+import { Compartment, EditorState, type Extension } from '@codemirror/state';
 import { drawSelection, dropCursor, EditorView, highlightActiveLine, keymap, lineNumbers } from '@codemirror/view';
 import { createElement, useEffect, useRef, useState, type ReactNode } from 'react';
 import type * as MonacoTypes from 'monaco-editor';
@@ -165,9 +165,7 @@ export function useEditorAdapter(): EditorKind {
   return editorKindForLayout(layout);
 }
 
-export function editorKindForLayout(
-  layout: Pick<ResponsiveLayoutState, 'isDesktop'>,
-): EditorKind {
+export function editorKindForLayout(layout: Pick<ResponsiveLayoutState, 'isDesktop'>): EditorKind {
   if (layout.isDesktop) {
     return 'monaco';
   }
@@ -975,7 +973,10 @@ export function DesktopCodeEditor({
   return createElement('div', { ref: containerRef, className, 'data-editor-kind': 'monaco' });
 }
 
-function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
+function codeMirrorExtensions(
+  props: EditorAdapterProps,
+  compartments?: { editable: Compartment; readOnly: Compartment },
+): Extension[] {
   const largeFile = Boolean(props.largeFile);
   const language = languageForPath(props.filePath, props.language);
   const languageExtension = largeFile
@@ -1014,8 +1015,37 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
       ...searchKeymap,
     ]),
     ...(largeFile ? [] : [EditorView.lineWrapping]),
-    EditorView.editable.of(!props.readOnly),
-    EditorState.readOnly.of(Boolean(props.readOnly)),
+    ...(compartments
+      ? [
+          compartments.editable.of(EditorView.editable.of(!props.readOnly)),
+          compartments.readOnly.of(EditorState.readOnly.of(Boolean(props.readOnly))),
+        ]
+      : [EditorView.editable.of(!props.readOnly), EditorState.readOnly.of(Boolean(props.readOnly))]),
+    EditorView.domEventHandlers({
+      keydown(event, view) {
+        if (
+          view.state.readOnly ||
+          event.defaultPrevented ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.altKey ||
+          event.isComposing
+        ) {
+          return false;
+        }
+
+        const keyText = event.key === 'Enter' ? '\n' : event.key.length === 1 ? event.key : undefined;
+
+        if (!keyText) {
+          return false;
+        }
+
+        event.preventDefault();
+        view.dispatch(view.state.replaceSelection(keyText));
+
+        return true;
+      },
+    }),
     languageExtension,
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
@@ -1048,6 +1078,8 @@ function codeMirrorExtensions(props: EditorAdapterProps): Extension[] {
 export function MobileCodeEditor(props: EditorAdapterProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const editableCompartmentRef = useRef(new Compartment());
+  const readOnlyCompartmentRef = useRef(new Compartment());
   const propsRef = useRef(props);
 
   propsRef.current = props;
@@ -1061,7 +1093,14 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
       parent: containerRef.current,
       state: EditorState.create({
         doc: propsRef.current.value,
-        extensions: codeMirrorExtensions(propsRef.current),
+        extensions: codeMirrorExtensions(
+          {
+            ...propsRef.current,
+            onChange: (change) => propsRef.current.onChange?.(change),
+            onSave: () => propsRef.current.onSave?.(),
+          },
+          { editable: editableCompartmentRef.current, readOnly: readOnlyCompartmentRef.current },
+        ),
       }),
     });
 
@@ -1090,6 +1129,21 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
       view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: props.value } });
     }
   }, [props.value, props.filePath]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+
+    if (!view) {
+      return;
+    }
+
+    view.dispatch({
+      effects: [
+        editableCompartmentRef.current.reconfigure(EditorView.editable.of(!props.readOnly)),
+        readOnlyCompartmentRef.current.reconfigure(EditorState.readOnly.of(Boolean(props.readOnly))),
+      ],
+    });
+  }, [props.readOnly]);
 
   useEffect(() => {
     const insertText = (event: Event) => {
